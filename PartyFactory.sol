@@ -1,0 +1,42 @@
+// SPDX-License-Identifier: UNLICENSED
+pragma solidity ^0.8;
+
+// Creates generic Party instances.
+contract PartyFactory {
+    event PartyCreated(Party party, address creator);
+
+    IGlobals public immutable GLOBALS;
+
+    mapping (Party => address) public partyAuthorities;
+
+    modifier onlyAuthority(Party party) {
+        require(partyAuthorities[party] == msg.sender);
+        _;
+    }
+
+    function createParty(
+        address authority,
+        Party.PartyOptions calldata opts
+    )
+        external
+        returns (Party party)
+    {
+        require(authority != address(0));
+        party = Party(address(new PartyProxy(abi.encode(opts))));
+        partyAuthorities[party] = authority;
+        emit PartyCreated(party, msg.sender);
+    }
+    function abdicate(Party party) external onlyAuthority(party) {
+        partyAuthorities[party] = address(0);
+    }
+    function mint(
+        IParty party,
+        address owner,
+        uint256 amount,
+        address delegate
+    )
+        external
+        onlyAuthority(party)
+    {
+        party.mint(owner, amount, delegate);
+    }
