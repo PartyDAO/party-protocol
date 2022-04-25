@@ -7,15 +7,17 @@ interface ITokenDistributor {
     // The difference between the previous recorded balance of `token` will be
     // used to determine the distribution amount.
     // ETH (0xeee...) should be attached to the call.
-    // Caller should be a PartyGovernance contract (implementing getVotingPowerAt()).
-    // The voting power of the claimant at the block when the distribution
-    // was created will determine the share of tokens that can be redeemed by
-    // the claimant.
+    // Caller should be an instance of the PartyGovernanceNFT contract contract.
     function createDistribution(IERC20 token)
         external
         payable
         returns (uint256 distributionId);
-    function claim(uint256 distributionId, IERC20 token)
+    // Claim a distribution based on a PartyGovernanceNFT.
+    function claim(
+        uint256 distributionId,
+        PartyGovernanceNFT governanceToken,
+        uint256 governanceTokenId
+    )
         external
         returns (uint256 amountClaimed);
 }

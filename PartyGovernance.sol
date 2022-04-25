@@ -11,6 +11,7 @@ contract PartyGovernance {
         Expired,
         NotExecutable,
         Pending,
+        Running,
         Executed
     }
 
@@ -19,8 +20,7 @@ contract PartyGovernance {
         uint40 voteDurationInBlocks;
         uint40 executionDelayInBlocks;
         uint16 passThresholdBps;
-        uint16 vetoThresholdBps;
-        address erc721Token;
+        IERC721 erc721Token;
         uint256 erc721TokenId;
     }
 
@@ -37,10 +37,9 @@ contract PartyGovernance {
     }
 
     struct Proposal {
-        address proposer;
         uint40 minExecutableBlockNumber;
         uint40 maxExecutableBlockNumber;
-        uint256 nonce;
+        uint64 nonce;
         bytes proposalData;
     }
 
@@ -81,7 +80,6 @@ contract PartyGovernance {
     IGlobals public immutable GLOBALS;
 
     IPartyProposals public proposalsImpl; // Upgradable.
-    uint128 public totalVotingSupply;
     GovernanceOpts public governanceOpts;
     mapping (uint256 => uint128) public votingPowerByTokenId;
     mapping (address => VotingPowerSnapshot[]) public votingPowerSnapshotsByOwner;
@@ -120,18 +118,12 @@ contract PartyGovernance {
     }
     // Will also cast sender's votes for proposal.
     function propose(bytes memory proposal) external returns (bytes32 proposalId) {
-        require(
-            proposalsImpl.isValidProposal(
-                governanceOpts.erc721Token,
-                governanceOpts.erc721TokenId,
-                proposal
-            )
-        );
+        proposalInfoByProposalId[getProposalId(proposal)];
         // ...
     }
     function accept(bytes32 proposalId) external hasNotVoted(proposalId);
-    function veto(bytes32 proposalId) external hasNotVoted(proposalId);
-    function chaperoneVeto(bytes32 proposalId) onlyChaperone external;
+    function veto(bytes32 proposalId) external onlyChaperone;
+    // Can be called repeatedly for multi-tx proposals.
     function execute(Proposal calldata proposal)
         external
         payable
@@ -209,9 +201,8 @@ contract PartyGovernance {
     function _mintVotingPower(address owner, uint256 votingPower, address delegate) internal;
     function _delegateVotingPower(address owner, address delegate) internal (uint256 votingPowerDelegated);
 
-    function _initialize(GovernanceOpts memory opts, uint128 totalVotingSupply_) internal {
+    function _initialize(GovernanceOpts memory opts) internal {
         proposalsImpl = GLOBALS.getAddress(PARTY_PROPOSALS_IMPL);
         governanceOpts = opts;
-        totalVotingSupply = totalVotingSupply_;
     }
 }

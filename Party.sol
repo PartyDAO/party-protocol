@@ -8,6 +8,8 @@ contract Party is Implementation, PartyGovernanceNFT {
         uint128 totalVotingSupply;
         string name;
         string symbol;
+        IERC721 erc721Token;
+        uint256 erc721TokenId;
     }
 
     function initialize(bytes memory initData) external onlyDelegateCall {
@@ -16,7 +18,6 @@ contract Party is Implementation, PartyGovernanceNFT {
             opts.name,
             opts.symbol,
             opts.governance,
-            opts.totalVotingSupply
         );
     }
 }

@@ -43,14 +43,13 @@ contract PartyGovernanceNFT is IERC721, PartyGovernance {
     function _initialize(
         string name_,
         string symbol_,
-        PartyGovernance.GovernanceOpts governanceOpts,
-        uint128 totalVotingSupply
+        PartyGovernance.GovernanceOpts governanceOpts
     )
         internal
     {
         string = string_;
         symbol = symbol_;
-        PartyGovernance._initialize(governanceOpts, totalVotingSupply);
+        PartyGovernance._initialize(governanceOpts);
     }
 
     // ...
