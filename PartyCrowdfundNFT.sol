@@ -3,7 +3,10 @@ pragma solidity ^0.8;
 
 // NFT functionality for PartyBid/Buy contributions.
 // This NFT is read-only.
-contract PartyCrowdfundNFT is IERC721 {
+contract PartyCrowdfundNFT is IERC721, ReadOnlyDelegateCall {
+
+    error AlreadyBurnedError(address owner, uint256 tokenId);
+
     address private immutable GLOBALS;
 
     mapping (uint256 => address) ownerOf;
@@ -12,6 +15,15 @@ contract PartyCrowdfundNFT is IERC721 {
 
     constructor(IGlobals globals) {
         GLOBALS = globals;
+    }
+
+    // Must be called once by freshly deployed PartyProxy instances.
+    function initialize(string name, string symbol)
+        public
+        virtual
+    {
+        name = name_;
+        symbol = symbol_;
     }
 
     modifier alwaysRevert() {
@@ -40,7 +52,10 @@ contract PartyCrowdfundNFT is IERC721 {
 
     function tokenURI(uint256 tokenId) external external /* view */ returns (string)
     {
-        (GLOBALS.getAddress(PARTY_CF_NFT_RENDER_IMPL)).delegatecall(msg.data);
+        _readOnlyDelegateCall(
+            // An instance of IERC721Renderer
+            GLOBALS.getAddress(LibGobals.GLOBAL_CF_NFT_RENDER_IMPL)
+        );
     }
 
     function _mint(address owner) internal returns (uint256 tokenId)
@@ -57,13 +72,10 @@ contract PartyCrowdfundNFT is IERC721 {
         if (ownerOf[tokenId] == owner) {
             ownerOf[tokenId] = address(0);
             emit Transfer(owner, address(0), tokenId);
+            return;
         }
+        revert AlreadyBurnedError(owner, tokenId);
     }
 
-    function _initialize(string name_, string symbol_) internal {
-        name = name_;
-        symbol = symbol_;
-    }
-
-    // ...
+    // other ERC721 fns...
 }

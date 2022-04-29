@@ -3,24 +3,26 @@ pragma solidity ^0.8;
 
 // Base class for all proxy contracts
 contract Proxy {
+    using LibRawResult for bytes;
+
     Implementation public immutable IMPL;
 
-    constructor(Implementation impl, bytes calldata initData) {
+    constructor(Implementation impl, bytes calldata initData) payable {
         IMPL = impl;
         (bool s, bytes memory r) = address(impl).delegatecall(
-            abi.encodeCall(impl.initialize, initData)
+            abi.encodeCall(impl.initialize, initData, msg.sender)
         );
         if (!s) {
-            assembly { revert(add(r, 32), mload(r)) }
+            r.rawRevert();
         }
     }
 
     fallback() external payable {
-        // but in asm
+        // TODO: in asm
         (bool s, bytes memory r) = address(IMPL).delegatecall(msg.data);
         if (!s) {
-            assembly { revert(add(r, 32), mload(r)) }
+            r.rawRevert();
         }
-        assembly { return(add(r, 32), mload(r)) }
+        r.rawReturn();
     }
 }

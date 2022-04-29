@@ -9,11 +9,18 @@ contract PartyFactory {
 
     mapping (Party => address) public partyAuthorities;
 
+    constructor(IGlobals globals) {
+        GLOBALS = globals;
+    }
+
     modifier onlyAuthority(Party party) {
         require(partyAuthorities[party] == msg.sender);
         _;
     }
 
+    // Deploy a new party instance. Afterwards, governance NFTs can be minted
+    // for party members using the `PartyFactory.mint()` function.
+    // `authority` is the address that can call `mint()`.
     function createParty(
         address authority,
         Party.PartyOptions calldata opts
@@ -26,9 +33,12 @@ contract PartyFactory {
         partyAuthorities[party] = authority;
         emit PartyCreated(party, msg.sender);
     }
+
+    // Relinquish the ability to call `mint()`` by an authority.
     function abdicate(Party party) external onlyAuthority(party) {
         partyAuthorities[party] = address(0);
     }
+
     function mint(
         IParty party,
         address owner,

@@ -1,9 +1,15 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8;
 
-// What gets deployed by PartyFactory when creating a new Party.
+// The Party instance. Just a thin proxy that delegatecalls into previously deployed
+// implementation logic.
 contract PartyProxy is Proxy {
     constructor(bytes calldata initData)
-        Proxy(IPartyFactory(msg.sender).GLOBALS().getAddress(PARTY_IMPL), initData)
+        Proxy(
+            IPartyFactory(msg.sender)
+                .GLOBALS()
+                .getAddress(LibGlobals.GLOBAL_PARTY_IMPL),
+            initData
+        )
     {}
 }
