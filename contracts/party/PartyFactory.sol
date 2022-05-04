@@ -39,6 +39,8 @@ contract PartyFactory {
         partyAuthorities[party] = address(0);
     }
 
+    // Mint governance tokens on a party created through this factory.
+    // Only the authortiy set in `createParty()` can call this function.
     function mint(
         IParty party,
         address owner,
