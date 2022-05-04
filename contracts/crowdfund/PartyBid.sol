@@ -2,59 +2,98 @@
 pragma solidity ^0.8;
 
 contract PartyBid is Implementation, PartyCrowdfund {
-    struct Split {
-        address recipient;
-        uint16 splitBps;
-    }
-
     struct PartyBidOptions {
-        uint256 tokenId;
-        uint256 auctionId;
-        IMarketWrapper marketWrapper;
-        IERC721 nftContract;
-        Split split; // TODO: needed? propagate to party?
-        uint40 duratiomInSeconds;
         string name;
         string symbol;
+        uint256 auctionId;
+        IMarketWrapper market;
+        IERC721 nftContract;
+        uint256 nftTokenId;
+        uint40 durationInSeconds;
+        address payable splitRecipient;
+        uint16 splitBps;
         bytes32 partyOptionsHash;
+        address initialDelegate;
+        IGateKeeper gateKeeper;
+        bytes12 gateKeeperData;
     }
 
-    // ...
+    uint256 public nftTokenId;
+    IERC721 public nftContract;
+    uint40 public expiry;
+    IGateKeeper public gateKeeper;
+    bytes12 public gateKeeperData;
+    IMarketWrapper public market;
+    uint256 public highestBid;
 
-    constructor(IGlobals globals) PartyCrowdfund(globals) { }
+    constructor(IGlobals globals) PartyCrowdfund(globals) {}
 
-    function initialize(bytes calldata rawInitOpts, address deployer)
+    function initialize(bytes calldata rawInitOpts)
         external
         override
         onlyDelegateCall
     {
         PartyBidOptions memory opts = abi.decode(rawInitOpts, (PartyBidOptions));
-        PartyCrowdfund.initialize(opts.name, opts.symbol, opts.partyOptionsHash);
+        PartyCrowdfund.initialize(CrowdfundInitOptions({
+            name: opts.name,
+            symbol: opts.symbol,
+            partyOptionsHash: opts.partyOptionsHash,
+            splitRecipient: opts.splitRecipient,
+            splitBps: opts.splitBps,
+            initialDelegate: opts.initialDelegate
+        }));
+        nftContract = opts.nftContract;
+        nftTokenId = opts.nftTokenId;
+        market = opts.market;
+        gateKeeper = opts.gateKeeper;
+        gateKeeperData = opts.gateKeeperData;
+        expiry = uint40(opts.durationInSeconds + block.timestamp);
+    }
+
+    function contribute(address contributor, address delegate)
+        public
+        override
+        payable
+    {
+        if (gateKeeper != IGateKeeper(address(0))) {
+            require(gateKeeper.isAllowed(contributor, gateKeeperData), 'NOT_ALLOWED');
+        }
+        PartyCrowdfund.contribute(contributor, delegate);
+    }
+
+    // Delegatecall into `market` to perform a bid.
+    function bid() external {
+        // ...
+        highestBid = ...;
+    }
+
+    // Claim NFT and create a party if won or rescind bid if lost/expired.
+    function finalize(Party.PartyOptions calldata partyOptions) external {
+        CrowdfundLifecycle lc = getCrowdfundLifecycle();
+        if (lc == CrowdfundLifecycle.Won) {
+            _createParty(partyOptions);
+        } else if (lc == CrowdfundLifecycle.Lost) {
+            // Rescind bid...
+        }
+        revert WrongLifecycleError(lc);
+    }
+
+    function getCrowdfundLifecycle() public override view returns (CrowdfundLifecycle) {
+        // Note: cannot rely on ownerOf because it might be transferred to Party
+        // if `createParty()` was called.
         // ...
     }
 
     function _transferSharedAssetsTo(address recipient) internal override {
-        nftContract.transfer(recipient, boughtTokenId);
+        nftContract.transfer(recipient, nftTokenId);
     }
 
-    function _getCrowdfundLifecycle() internal override view returns (CrowdfundLifecycle) {
-        // Note: cannot rely on ownerOf because it might be transferred to Party
-        // if `createParty()` was called.
-        if (boughtTokenId == tokenId) {
-            return CrowdfundLifecycle.Won;
-        }
-        // ...
-    }
-
-    function _getFinalContribution(address contributor)
+    function _getFinalPrice()
         internal
         override
         view
-        returns (uint256 ethUsed, uint256 ethOwed)
+        returns (uint256 price)
     {
-        // Loop throough `contributor`'s contributions and return
-        // how much was actually used and how much was not.
+        return highestBid;
     }
-
-    // Rest of PartyBidV1 functions...
 }

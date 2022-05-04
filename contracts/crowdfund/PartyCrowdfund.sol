@@ -19,7 +19,7 @@ abstract contract PartyCrowdfund is PartyCrowdfundNFT {
         string symbol;
         bytes32 partyOptionsHash;
         address payable splitRecipient;
-        address daoPriceSplitBps;
+        uint16 splitBps;
         address initialDelegate;
     }
 
@@ -28,7 +28,7 @@ abstract contract PartyCrowdfund is PartyCrowdfundNFT {
         uint128 contribution;
     }
 
-    error WrongLifecycleError(CrowdfundLifecycle current, CrowdfundLifecycle wanted);
+    error WrongLifecycleError(CrowdfundLifecycle current);
 
     event DaoClaimed(address recipient, uint256 amount);
     event Burned(address contributor, uint256 ethUsed, uint256 votingPower);
@@ -37,10 +37,10 @@ abstract contract PartyCrowdfund is PartyCrowdfundNFT {
 
     // When this crowdfund expires.
     uint40 expiry;
-    // The party instance created by `createParty()`, if any.
+    // The party instance created by `_createParty()`, if any.
     Party public party;
     // Hash of PartyOptions passed into initialize().
-    // The PartyOptions passed into `createParty()` must match.
+    // The PartyOptions passed into `_createParty()` must match.
     bytes32 public partyOptionsHash;
     // Who will receive a reserved portion of governance power.
     address payable public splitRecipient;
@@ -76,24 +76,8 @@ abstract contract PartyCrowdfund is PartyCrowdfundNFT {
         }
     }
 
-    // Can be called after a party has won.
-    // Deploys and initializes a a `Party` instance via the `PartyFactory`
-    // and transfers the bought NFT to it.
-    // After calling this, anyone can burn CF tokens on a contributor's behalf
-    // with the `burn()` function.
-    function createParty(Party.PartyOptions opts) public returns (Party party_) {
-        require(getCrowdfundLifecycle() == CrowdfundLifecycle.Won);
-        require(party == Party(address(0)));
-        require(_hashPartyOptions(opts) == partyOptionsHash);
-        party = party_ =
-            PartyFactory(_GLOBALS.getAddress(LibGlobals.GLOBAL_PARTY_FACTORY))
-                .createParty(address(this), opts);
-        _transferSharedAssetsTo(address(party_));
-        emit PartyCreated(party_);
-    }
-
     // Burns CF tokens owned by `owner` AFTER the CF has ended.
-    // If the party has won, someone needs to call `createParty()` first. After
+    // If the party has won, someone needs to call `_createParty()` first. After
     // which, `burn()` will refund unused ETH and mint governance tokens for the
     // given `contributor`.
     // If the party has lost, this will only refund unused ETH (all of it) for
@@ -117,8 +101,10 @@ abstract contract PartyCrowdfund is PartyCrowdfundNFT {
     }
 
     // Contribute and/or delegate.
+    // TODO: Should contributor not be a param?
     function contribute(address contributor, address delegate)
-        external
+        public
+        virtual
         payable
     {
         _addContribution(
@@ -151,7 +137,7 @@ abstract contract PartyCrowdfund is PartyCrowdfundNFT {
         {
             CrowdfundLifecycle lc = getCrowdfundLifecycle();
             if (lc != CrowdfundLifecycle.Won) {
-                revert WrongLifecycleError(lc, CrowdfundLifecycle.Won);
+                revert WrongLifecycleError(lc);
             }
         }
         daoClaimed = true;
@@ -168,12 +154,32 @@ abstract contract PartyCrowdfund is PartyCrowdfundNFT {
     // bought assets.
     function _getFinalPrice() internal abstract view returns (uint256);
 
+    // Can be called after a party has won.
+    // Deploys and initializes a a `Party` instance via the `PartyFactory`
+    // and transfers the bought NFT to it.
+    // After calling this, anyone can burn CF tokens on a contributor's behalf
+    // with the `burn()` function.
+    function _createParty(Party.PartyOptions opts) internal returns (Party party_) {
+        require(party == Party(address(0)));
+        require(_hashPartyOptions(opts) == partyOptionsHash);
+        party = party_ =
+            PartyFactory(_GLOBALS.getAddress(LibGlobals.GLOBAL_PARTY_FACTORY))
+                ._createParty(address(this), opts);
+        _transferSharedAssetsTo(address(party_));
+        emit PartyCreated(party_);
+    }
+
+
     function _hashPartyOptions(PartyOptions memory partyOptions)
         private
         view
         returns (bytes32 h)
     {
         // Do EIP1271 hash here...
+    }
+
+    function _getParty() internal view returns (Party) {
+        return party;
     }
 
     function _getFinalContribution(address contributor)
@@ -226,7 +232,7 @@ abstract contract PartyCrowdfund is PartyCrowdfundNFT {
             {
                 CrowdfundLifecycle lc = getCrowdfundLifecycle();
                 if (lc != CrowdfundLifecycle.Active) {
-                    revert WrongLifecycleError(lc, CrowdfundLifecycle.Active);
+                    revert WrongLifecycleError(lc);
                 }
             }
             // Create contributions entry for this contributor.
