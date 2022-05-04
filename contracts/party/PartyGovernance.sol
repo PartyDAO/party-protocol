@@ -13,7 +13,7 @@ contract PartyGovernance is
         Passed,
         Unexecutable,
         Ready,
-        Incomplete,
+        InProgress,
         Complete
     }
 
@@ -52,7 +52,8 @@ contract PartyGovernance is
     }
 
     struct VotingPowerSnapshot {
-        uint40 blockNumber;
+        // The timestamp when the snapshot was taken.
+        uint40 timestamp;
         // Who the user has delegated their voting power to.
         address delegate;
         // Combined intrinsic and delegated voting power for this user
@@ -105,7 +106,7 @@ contract PartyGovernance is
     error BadProposalStateError(ProposalState state);
     error ProposalExistsError(bytes32 proposalId);
 
-    IGlobals public immutable GLOBALS;
+    IGlobals private immutable _GLOBALS;
 
     GovernanceValues public governanceValues;
     // The contract of the NFT we're trying to protect.
@@ -113,10 +114,14 @@ contract PartyGovernance is
     // The id of the NFT we're trying to protect.
     uint256 preciousTokenId;
     mapping(uint256 => uint96) public votingPowerByTokenId;
-    mapping(address => VotingPowerSnapshot[]) public votingPowerSnapshotsByOwner;
-    mapping(bytes32 => ProposalInfo) public proposalInfoByProposalId;
+    // List of past proposal IDs.
+    bytes32[] public pastProposalIds;
     // Whether an address is a party host.
     mapping(address => bool) public isHost;
+    // Snapshots of voting power per user, each sorted by increasing time.
+    mapping(address => VotingPowerSnapshot[]) private _votingPowerSnapshotsByOwner;
+    // ProposalInfo by proposal ID.
+    mapping(bytes32 => ProposalInfo) private _proposalInfoByProposalId;
 
     modifier onlyHost() {
         require(isHost[msg.sender], "ONLY_HOST");
@@ -124,7 +129,7 @@ contract PartyGovernance is
     }
 
     constructor() {
-        GLOBALS = IPartyFactory(msg.sender).GLOBALS();
+        _GLOBALS = IPartyFactory(msg.sender)._GLOBALS();
     }
 
     function initialize(GovernanceOpts memory opts)
@@ -132,7 +137,7 @@ contract PartyGovernance is
         virtual
     {
         LibProposal.initProposalImpl(IProposalExecutionEngine(
-            GLOBALS.getAddress(LibGlobals.GLOBAL_PROPOSAL_ENGINE_IMPL)
+            _GLOBALS.getAddress(LibGlobals.GLOBAL_PROPOSAL_ENGINE_IMPL)
         ));
         governanceValues = GovernanceValues({
             voteDurationInSeconds: opts.voteDurationInSeconds,
@@ -168,7 +173,7 @@ contract PartyGovernance is
         view
         returns (uint96)
     {
-        // Binary search votingPowerSnapshotsByOwner ...
+        // Binary search _votingPowerSnapshotsByOwner ...
     }
 
     function getProposalId(Proposal calldata proposal)
@@ -184,7 +189,7 @@ contract PartyGovernance is
         view
         returns (ProposalState state)
     {
-        return _getProposalState(proposalInfoByProposalId[proposalId]);
+        return _getProposalState(_proposalInfoByProposalId[proposalId]);
     }
 
     function delegateVotingPower(address delegate) external view returns (uint256);
@@ -204,7 +209,7 @@ contract PartyGovernance is
         returns (uint256 distributionId)
     {
         ITokenDistributor distributor = ITokenDistributor(
-            GLOBALS.getAddress(LibGobals.GLOBAL_TOKEN_DISTRIBUTOR)
+            _GLOBALS.getAddress(LibGobals.GLOBAL_TOKEN_DISTRIBUTOR)
         );
         uint256 value = 0;
         if (token != 0xeee...) {
@@ -219,10 +224,10 @@ contract PartyGovernance is
     // Will also cast sender's votes for proposal.
     function propose(bytes memory proposal) external returns (bytes32 proposalId) {
         bytes32 proposalId = getProposalId(proposal);
-        if (proposalInfoByProposalId[proposalId].proposedTime != 0) {
+        if (_proposalInfoByProposalId[proposalId].proposedTime != 0) {
             revert ProposalExistsError(proposalId);
         }
-        proposalInfoByProposalId[proposalId] = ProposalInfo({
+        _proposalInfoByProposalId[proposalId] = ProposalInfo({
             values: ProposalInfoValues({
                 proposedTime: uint40(block.timestamp),
                 passedTime: 0,
@@ -231,6 +236,7 @@ contract PartyGovernance is
                 votes: 0
             })
         });
+        pastProposalIds.push(proposalId);
         // ...
         emit Proposed(
             proposalId,
@@ -242,7 +248,7 @@ contract PartyGovernance is
     function accept(bytes32 proposalId)
         external
     {
-        ProposalInfo storage info = proposalInfoByProposalId[proposalId];
+        ProposalInfo storage info = _proposalInfoByProposalId[proposalId];
         ProposalInfoValues memory values = info.values;
 
         ProposalState state = _getProposalState(values);
@@ -270,7 +276,7 @@ contract PartyGovernance is
 
     function veto(bytes32 proposalId) external onlyHost {
         // Setting `votes` to -1 indicates a veto.
-        ProposalInfo storage info = proposalInfoByProposalId[proposalId];
+        ProposalInfo storage info = _proposalInfoByProposalId[proposalId];
         ProposalInfoValues memory values = info.values;
 
         ProposalState state = _getProposalState(values);
@@ -288,12 +294,12 @@ contract PartyGovernance is
     }
 
     // Executes a passed proposal.
-    // The proposal must be in the Ready or Incomplete state.
+    // The proposal must be in the Ready or InProgress state.
     // For multi-step/tx proposals, this should be called repeatedly.
     // `progressData` is the data emitted in the `ProposalExecutionProgress` event
     // by `IProposalExecutionEngine` for the last execute call on this proposal.
     // A proposal that has been executed but still requires further execute calls
-    // will have the state of `Incomplete`.
+    // will have the state of `InProgress`.
     // No other proposals may be executed if there is a an incomplete proposal.
     // When the proposal has completed (no more further execute calls necessary),
     // a `ProposalCompleted` event will be emitted.
@@ -302,10 +308,10 @@ contract PartyGovernance is
         payable
     {
         bytes32 proposalId = _getProposalId(proposal);
-        ProposalInfo storage proposalInfo = proposalInfoByProposalId[proposalId];
+        ProposalInfo storage proposalInfo = _proposalInfoByProposalId[proposalId];
         ProposalInfoValues memory infoValues = proposalInfo.values;
         ProposalState state = _getProposalState(infoValues);
-        if (state != ProposalState.Ready && state != ProposalState.Incomplete) {
+        if (state != ProposalState.Ready && state != ProposalState.InProgress) {
             revert BadProposalStateError(state);
         }
         if (state == ProposalState.Ready) {
@@ -392,7 +398,7 @@ contract PartyGovernance is
         if (values.executedTime != 0) {
             return values.completedTime == 0
                 ? ProposalState.Complete
-                : ProposalState.Incomplete;
+                : ProposalState.InProgress;
         }
         // Vetoed.
         if (values.votes == uint96(int128(-1))) {

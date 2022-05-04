@@ -1,52 +1,55 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8;
 
-contract PartyBid is Implementation, PartyCrowdfund {
+contract PartyBuy is IPartyBuyV1, Implementation, PartyCrowdfund {
     struct Split {
         address recipient;
         uint16 splitBps;
     }
 
-    struct PartyBidOptions {
+    struct PartyBuyOptions {
         uint256 tokenId;
-        uint256 auctionId;
-        IMarketWrapper marketWrapper;
         IERC721 nftContract;
-        Split split; // TODO: needed? propagate to party?
-        uint40 duratiomInSeconds;
+        uint128 maxPrice;
+        uint32 durationInSeconds;
+        address payable splitRecipient;
+        uint16 splitBps;
         string name;
         string symbol;
         bytes32 partyOptionsHash;
+        address initialDelegate;
     }
 
     // ...
 
     constructor(IGlobals globals) PartyCrowdfund(globals) { }
 
-    function initialize(bytes calldata rawInitOpts, address deployer)
+    function initialize(bytes calldata rawInitOpts)
         external
         override
         onlyDelegateCall
     {
-        PartyBidOptions memory opts = abi.decode(rawInitOpts, (PartyBidOptions));
-        PartyCrowdfund._initialize(opts.name, opts.symbol, opts.partyOptionsHash);
+        PartyBuyOptions memory opts = abi.decode(rawInitOpts, (PartyBuyOptions));
+        PartyCrowdfund.initialize(
+            opts.name,
+            opts.symbol,
+            opts.partyOptionsHash,
+            opts.splitRecipient,
+            opts.splitBps,
+            opts.initialDelegate
+        );
         // ...
-        // If the deployer passed in some ETH during deployment, credit them.
-        uint256 initialBalance = address(this).balance;
-        if (initialBalance > 0) {
-            _addContribution(payable(deployer), initialBalance);
-        }
     }
 
     function _transferSharedAssetsTo(address recipient) internal override {
         nftContract.transfer(recipient, boughtTokenId);
     }
 
-    function _getPartyLifecycle() internal override view returns (PartyLifecycle) {
+    function _getCrowdfundLifecycle() internal override view returns (CrowdfundLifecycle) {
         // Note: cannot rely on ownerOf because it might be transferred to Party
         // if `createParty()` was called.
         if (boughtTokenId == tokenId) {
-            return PartyLifecycle.Won;
+            return CrowdfundLifecycle.Won;
         }
         // ...
     }
@@ -61,5 +64,5 @@ contract PartyBid is Implementation, PartyCrowdfund {
         // how much was actually used and how much was not.
     }
 
-    // Rest of PartyBidV1 functions...
+    // Rest of PartyBuyV1 functions...
 }

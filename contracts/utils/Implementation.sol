@@ -13,10 +13,7 @@ abstract contract Implementation {
     }
 
     // Delegatecalled once when a proxy is deployed.
-    function initialize(
-        bytes calldata initializeData,
-        address deployer
-    )
+    function initialize(bytes calldata initializeData)
         external
         abstract;
 }

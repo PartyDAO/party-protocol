@@ -15,12 +15,22 @@ contract ArbitraryCallsProposal {
     }
 
     error PreciousLostError();
-    error CallProhibited(address target, bytes data);
-    error ArbitraryCallFailed(bytes revertData);
-    error UnexpectedCallResultHash(uint256 idx, bytes32 resultHash, bytes32 expectedResultHash);
+    error CallProhibitedError(address target, bytes data);
+    error ArbitraryCallFailedError(bytes revertData);
+    error UnexpectedCallResultHashError(uint256 idx, bytes32 resultHash, bytes32 expectedResultHash);
+    error EthBalanceNotPreservedError();
+
+    modifier preserveEthBalance() {
+        uint256 oldBal = address(this).balance - msg.value;
+        _;
+        if (oldBal > address(this).balance) {
+            revert EthBalanceNotPreservedError();
+        }
+    }
 
     function _executeArbitraryCalls(ExecuteProposalParams memory params)
         internal
+        preserveEthBalance
     {
         (ArbitraryCall[] memory calls) = abi.decode(params.proposalData, (ArbitraryCall[]));
         bool hadPrecious = _getHasPrecious(params.preciousToken, params.preciousTokenId);
@@ -51,18 +61,18 @@ contract ArbitraryCallsProposal {
         private
     {
         if (!_isCallProhibited(call, preciousToken, preciousTokenId, flags)) {
-            revert CallProhibited(call.target, call.data);
+            revert CallProhibitedError(call.target, call.data);
         }
         (bool s, bytes memory r) = call.target.call{ value: call.value }(call.data);
         if (!s) {
             if (!call.optional) {
-                error ArbitraryCallFailed(r);
+                error ArbitraryCallFailedError(r);
             }
         } else {
             if (call.expectedResultHash != bytes32(0)) {
                 bytes32 resultHash = keccak256(r);
                 if (resultHash != call.expectedResultHash) {
-                    revert UnexpectedCallResultHash(
+                    revert UnexpectedCallResultHashError(
                         resultHash,
                         call.expectedResultHash
                     );
@@ -97,23 +107,25 @@ contract ArbitraryCallsProposal {
         }
         bool isUnanimous = flags & LibProposal.PROPOSAL_FLAG_UNANIMOUS
             == LibProposal.PROPOSAL_FLAG_UNANIMOUS;
-        // Unani,ous proposals can call any function.
+        // Unanimous proposals can call any function.
         if (!isUnanimous && (call.data.length >= 4 && call.target == preciousToken)) {
             bytes4 selector;
             {
                 bytes memory callData = call.data;
                 assembly { selector := and(mload(add(callData, 4)), 0xffffffff) }
             }
-            // Cannot call approve() or setApprovalForAll().
-            if (
-                selector == IERC721.approve.selector ||
-                selector == IERC721.setApprovalForAll.selector
-            ) {
-                return false;
+            // Cannot call approve() or setApprovalForAll()
+            // unless it's to revoke approvals.
+            if (selector == IERC721.approve.selector) {
+                (, uint256 a) abi.decode(IERC721.approve.selector, (bytes32, uint256));
+                return a != 0;
+            }
+            if (selector == IERC721.setApprovalForAll.selector) {
+                (, bool b) abi.decode(IERC721.approve.setApprovalForAll, (bytes32, bool));
+                return b;
             }
         }
         // TODO: Do we need to block TokenDistributor contract too?
-        // We do if we decide to pass in party splits to `createDistribution()`.
         return true;
     }
 }

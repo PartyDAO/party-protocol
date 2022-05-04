@@ -8,7 +8,7 @@ interface IProposalExecutionEngine {
         Unexecuted,
         // A proposal has been executed at least once but still has more steps
         // to go.
-        Incomplete,
+        InProgress,
         // A proposal has been executed at least once and has completed all its
         // steps.
         Complete

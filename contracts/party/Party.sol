@@ -9,7 +9,7 @@ contract Party is Implementation, PartyGovernanceNFT {
         string symbol;
     }
 
-    function initialize(bytes memory initData, address deployer)
+    function initialize(bytes memory initData)
         public
         override
         onlyDelegateCall

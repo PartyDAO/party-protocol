@@ -29,30 +29,30 @@ contract ProposalExecutionEngine is
         // for the next call to executeProposal().
         // The hash will be 0x0 if the proposal has not been executed.
         // The hash will be of the next progressData to be passed
-        // into executeProposal}() if the proposal is incomplete.
+        // into executeProposal}() if the proposal is in progress.
         // The hash will be of the empty bytes (hex"") if the proposal
         // is completed.
         mapping (bytes32 => bytes32) proposalProgressDataHashByProposalId;
-        // The proposal ID of the current, incomplete proposal being executed.
-        // Incomplete proposals need to have executeProposal() called on them
+        // The proposal ID of the current, in progress proposal being executed.
+        // InProgress proposals need to have executeProposal() called on them
         // multiple times until they complete. Only one proposal may be
-        // incomplete at a time, meaning no other proposals can be executed
+        // in progress at a time, meaning no other proposals can be executed
         // if this value is nonzero.
-        bytes32 currentIncompleteProposalId;
+        bytes32 currentInProgressProposalId;
     }
 
     event ProposalExecutionProgress(bytes32 proposalId, bytes progressData);
 
     bytes32 private constant EMPTY_HASH = keccak256("");
-    IGlobals private immutable GLOBALS;
+    IGlobals private immutable _GLOBALS;
     // Storage slot for `Storage`.
-    uint256 private immutable STORAGE_SLOT;
+    uint256 private immutable _STORAGE_SLOT;
 
     constructor(IGlobals globals) ListOnOpenSeaProposal(globals) {
-        GLOBALS = globals;
+        _GLOBALS = globals;
         // First version is just the hash of the runtime code. Later versions
         // might hardcode this value if they intend to reuse storage.
-        STORAGE_SLOT = keccak256(type(ProposalExecutionEngine).runtimeCode);
+        _STORAGE_SLOT = keccak256(type(ProposalExecutionEngine).runtimeCode);
     }
 
     function initialize(bytes calldata initializeData) external { /* NOOP */ }
@@ -81,10 +81,10 @@ contract ProposalExecutionEngine is
                 != ProposalExecutionStatus.Complete
         );
         Storage storage stor = _getStorage();
-        // Only one proposal can be incomplete at a time.
-        if (currentIncompleteProposalId != bytes32(0)) {
-            bytes32 currentIncompleteProposalId = stor.currentIncompleteProposalId;
-            if (currentIncompleteProposalId != params.proposalId) {
+        // Only one proposal can be in progress at a time.
+        if (currentInProgressProposalId != bytes32(0)) {
+            bytes32 currentInProgressProposalId = stor.currentInProgressProposalId;
+            if (currentInProgressProposalId != params.proposalId) {
                 revert ProposalExecutionBlocked(
                     params.proposalId,
                     currentIncompleteProposalId
@@ -102,12 +102,12 @@ contract ProposalExecutionEngine is
             keccak256(nextProgressData);
 
         // If progress data is empty, the propsal is complete,
-        // so clear the current incomplete proposal.
+        // so clear the current in progress proposal.
         if (nextProgressData.length == 0) {
-            stor.currentIncompleteProposalId = bytes32(0);
+            stor.currentInProgressProposalId = bytes32(0);
             return ProposalExecutionStatus.Complete;
         }
-        return ProposalExecutionStatus.Incomplete;
+        return ProposalExecutionStatus.InProgress;
     }
 
     function _execute(ExecuteProposalParams memory params)
@@ -154,8 +154,8 @@ contract ProposalExecutionEngine is
     function _executeUpgradeProposalsImplementation()
         private
     {
-        // Always upgrade to latest implementation stored in GLOBALS.
-        address newImpl = GLOBALS.getAddress(IGlobals.GLOBAL_PARTY_PROPOSAL_IMPL);
+        // Always upgrade to latest implementation stored in _GLOBALS.
+        address newImpl = _GLOBALS.getAddress(IGlobals.GLOBAL_PARTY_PROPOSAL_IMPL);
         LibProposal.setProposalsImpl(newImpl);
         (bool s, bytes memory r) = address(newImpl)
             .delegatecall(abi.encodeCall(
@@ -169,7 +169,7 @@ contract ProposalExecutionEngine is
 
     // Retrieve the explicit storage bucket for the ProposalExecutionEngine logic.
     function _getStorage() private pure returns (Storage storage stor) {
-        uint256 slot = STORAGE_SLOT;
+        uint256 slot = _STORAGE_SLOT;
         assembly { stor := slot }
     }
 
@@ -187,6 +187,6 @@ contract ProposalExecutionEngine is
         if (storedProgressDataHash == bytes32(0)) {
             return ProposalExecutionStatus.Unexecuted;
         }
-        return ProposalExecutionStatus.Incomplete;
+        return ProposalExecutionStatus.InProgress;
     }
 }

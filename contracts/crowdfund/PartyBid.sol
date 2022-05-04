@@ -1,19 +1,19 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8;
 
-contract PartyBuy is IPartyBuyV1, Implementation, PartyCrowdfund {
+contract PartyBid is Implementation, PartyCrowdfund {
     struct Split {
         address recipient;
         uint16 splitBps;
     }
 
-    struct PartyBuyOptions {
+    struct PartyBidOptions {
         uint256 tokenId;
+        uint256 auctionId;
+        IMarketWrapper marketWrapper;
         IERC721 nftContract;
-        uint128 maxPrice;
-        uint32 duratiomInSeconds;
-        address splitRecipient;
-        uint32 splitBps; // TODO: needed? propagate to party?
+        Split split; // TODO: needed? propagate to party?
+        uint40 duratiomInSeconds;
         string name;
         string symbol;
         bytes32 partyOptionsHash;
@@ -28,25 +28,20 @@ contract PartyBuy is IPartyBuyV1, Implementation, PartyCrowdfund {
         override
         onlyDelegateCall
     {
-        PartyBuyOptions memory opts = abi.decode(rawInitOpts, (PartyBuyOptions));
-        PartyCrowdfund._initialize(opts.name, opts.symbol, opts.partyOptionsHash);
+        PartyBidOptions memory opts = abi.decode(rawInitOpts, (PartyBidOptions));
+        PartyCrowdfund.initialize(opts.name, opts.symbol, opts.partyOptionsHash);
         // ...
-        // If the deployer passed in some ETH during deployment, credit them.
-        uint256 initialBalance = address(this).balance;
-        if (initialBalance > 0) {
-            _addContribution(deployer, initialBalance);
-        }
     }
 
     function _transferSharedAssetsTo(address recipient) internal override {
         nftContract.transfer(recipient, boughtTokenId);
     }
 
-    function _getPartyLifecycle() internal override view returns (PartyLifecycle) {
+    function _getCrowdfundLifecycle() internal override view returns (CrowdfundLifecycle) {
         // Note: cannot rely on ownerOf because it might be transferred to Party
         // if `createParty()` was called.
         if (boughtTokenId == tokenId) {
-            return PartyLifecycle.Won;
+            return CrowdfundLifecycle.Won;
         }
         // ...
     }
@@ -61,5 +56,5 @@ contract PartyBuy is IPartyBuyV1, Implementation, PartyCrowdfund {
         // how much was actually used and how much was not.
     }
 
-    // Rest of PartyBuyV1 functions...
+    // Rest of PartyBidV1 functions...
 }

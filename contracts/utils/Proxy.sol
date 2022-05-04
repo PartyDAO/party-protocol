@@ -10,7 +10,7 @@ contract Proxy {
     constructor(Implementation impl, bytes calldata initData) payable {
         IMPL = impl;
         (bool s, bytes memory r) = address(impl).delegatecall(
-            abi.encodeCall(impl.initialize, initData, msg.sender)
+            abi.encodeCall(impl.initialize, initData)
         );
         if (!s) {
             r.rawRevert();

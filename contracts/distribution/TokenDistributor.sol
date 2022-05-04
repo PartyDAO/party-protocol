@@ -20,8 +20,8 @@ contract TokenDistributor is ITokenDistributor {
     mapping(uint256 => mapping(uint256 => boolean)) private _hasTokenClaimed;
     // distributionId => hasPartyDaoClaimed
     mapping(uint256 => boolean) private _hasPartyDaoClaimed;
-    // ID of the next distribution returned by `createDistribution()`.
-    uint256 public nextDistributionId = 1;
+    // Last distribution ID for a party.
+    mapping(ITokenDistributorParty => uint256) public lastDistributionIdPerParty;
 
     modifier onlyPartyDao() {
         require(msg.sender == PARTY_DAO, 'NOT_ALLOWED');
@@ -68,8 +68,8 @@ contract TokenDistributor is ITokenDistributor {
         uint256 supply = bal - _storedBalances[token];
         _storedBalances[token] = bal;
 
-        uint256 distId = nextDistributionId++;
         ITokenDistributorParty party = ITokenDistributorParty(msg.sender);
+        uint256 distId = lastDistributionIdPerParty[party]++;
         distributionHashById[distId] = getDistributionHash(
             party,
             token,
