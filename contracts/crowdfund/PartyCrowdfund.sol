@@ -47,8 +47,6 @@ abstract contract PartyCrowdfund is PartyCrowdfundNFT {
     // How much governance power to reserve for `splitRecipient`,
     // in bps, where 1000 = 100%.
     uint16 public splitBps;
-    // Bps of the DAO split of the settled price.
-    uint16 public daoPriceSplitBps;
     // Who a contributor last delegated to.
     mapping (address => address) private _delegationsByContributor;
     // Array of contributions by a contributor.
@@ -68,7 +66,6 @@ abstract contract PartyCrowdfund is PartyCrowdfundNFT {
         partyOptionsHash = opts.partyOptionsHash;
         splitRecipient = opts.splitRecipient;
         splitBps = opts.splitBps;
-        daoPriceSplitBps = uint16(_GLOBALS.getUint256(LibGobals.GLOBAL_DAO_CF_SPLIT));
         // If the deployer passed in some ETH during deployment, credit them.
         uint128 initialBalance = uint128(address(this).balance);
         if (initialBalance > 0) {
@@ -130,22 +127,6 @@ abstract contract PartyCrowdfund is PartyCrowdfundNFT {
         );
     }
 
-    function daoClaim(address payable recipient) external {
-        // Must be called by the DAO.
-        require(_GLOBALS.getAddress(LibGlobals.GLOBAL_DAO_WALLET) == msg.sender, 'NOT_DAO');
-        require(!daoClaimed, 'ALREADY_CLAIMED');
-        {
-            CrowdfundLifecycle lc = getCrowdfundLifecycle();
-            if (lc != CrowdfundLifecycle.Won) {
-                revert WrongLifecycleError(lc);
-            }
-        }
-        daoClaimed = true;
-        uint256 amount = _getFinalPrice() * daoPriceSplitBps / 1e4;
-        _transferEth(recipient, amount);
-        emit DaoClaimed(recipient, amount);
-    }
-
     function getCrowdfundLifecycle() public abstract view returns (CrowdfundLifecycle);
 
     // Transfer the bought asset(s) to a recipient.
@@ -188,7 +169,6 @@ abstract contract PartyCrowdfund is PartyCrowdfundNFT {
         returns (uint256 ethUsed, uint256 ethOwed, uint256 votingPower)
     {
         uint256 totalEthUsed = _getFinalPrice();
-        totalEthUsed += totalEthUsed * daoPriceSplitBps / 1e4;
         {
             Contribution[] storage contributions = _contributionsByContributor[contributor];
             uint256 numContributions = contributions.length;

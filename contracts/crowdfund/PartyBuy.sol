@@ -14,7 +14,7 @@ contract PartyBuy is Implementation, PartyCrowdfund {
         bytes32 partyOptionsHash;
         address initialDelegate;
         IGateKeeper gateKeeper;
-        bytes12 gateKeeperData;
+        bytes12 gateKeeperId;
     }
 
     uint256 public nftTokenId;
@@ -22,7 +22,7 @@ contract PartyBuy is Implementation, PartyCrowdfund {
     uint40 public expiry;
     uint256 public price;
     IGateKeeper public gateKeeper;
-    bytes12 public gateKeeperData;
+    bytes12 public gateKeeperId;
 
     constructor(IGlobals globals) PartyCrowdfund(globals) {}
 
@@ -44,17 +44,17 @@ contract PartyBuy is Implementation, PartyCrowdfund {
         nftContract = opts.nftContract;
         nftTokenId = opts.nftTokenId;
         gateKeeper = opts.gateKeeper;
-        gateKeeperData = opts.gateKeeperData;
+        gateKeeperId = opts.gateKeeperId;
         expiry = uint40(opts.durationInSeconds + block.timestamp);
     }
 
-    function contribute(address contributor, address delegate)
+    function contribute(address contributor, address delegate, bytes gateData)
         public
         override
         payable
     {
         if (gateKeeper != IGateKeeper(address(0))) {
-            require(gateKeeper.isAllowed(contributor, gateKeeperData), 'NOT_ALLOWED');
+            require(gateKeeper.isAllowed(contributor, gatkeeperId, gateData), 'NOT_ALLOWED');
         }
         PartyCrowdfund.contribute(contributor, delegate);
     }
