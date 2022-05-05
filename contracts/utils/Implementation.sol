@@ -3,7 +3,7 @@ pragma solidity ^0.8;
 
 // Base contract for all contracts intended to be delegatecalled into.
 abstract contract Implementation {
-    address private immutable IMPL;
+    address public immutable IMPL;
 
     constructor() { IMPL = address(this); }
 

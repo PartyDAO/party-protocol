@@ -102,6 +102,7 @@ contract PartyGovernance is
     event ProposalExecuted(bytes32 proposalId, address executor);
     event ProposalCompleted(bytes32 proposalId);
     event DistributionCreated(uint256 distributionId, IERC20 token);
+    event VotingPowerDelegated(address owner, address delegate, uint256 votingPower)
 
     error BadProposalStateError(ProposalState state);
     error ProposalExistsError(bytes32 proposalId);
@@ -192,7 +193,11 @@ contract PartyGovernance is
         return _getProposalState(_proposalInfoByProposalId[proposalId]);
     }
 
-    function delegateVotingPower(address delegate) external view returns (uint256);
+    function delegateVotingPower(address delegate) external view returns (uint256)
+    {
+        // ...
+        emit VotingPowerDelegated(msg.sender, delegate, votingPower)
+    }
 
     // Transfer party host status to another.
     function abdicate(address newPartyHost) external onlyHost {
@@ -362,12 +367,21 @@ contract PartyGovernance is
         );
     }
 
-    // Transfers the entire voting power of `from` to `to`. The total voting power of
+    // Transfers some voting power of `from` to `to`. The total voting power of
     // their respective delegatees will be updated as well.
-    function _transferVotingPower(address from, address to) internal returns (uint256 votingPowerMoved);
+    function _transferVotingPower(address from, address to, uint256 power)
+        internal
+    {
+        // ...
+    }
 
     // Add to the base voting power of `owner` and delegate all votes to `delegate`
-    function _mintVotingPower(address owner, uint256 votingPower, address delegate) internal;
+    function _mintVotingPower(address owner, uint256 votingPower, address delegate)
+        internal
+    {
+        // ...
+        emit VotingPowerDelegated(owner, delegate, votingPower)
+    }
 
     // TODO: accept storage vars.
     function _getProposalFlags(

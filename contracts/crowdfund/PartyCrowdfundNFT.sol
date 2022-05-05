@@ -37,7 +37,7 @@ contract PartyCrowdfundNFT is IERC721, ReadOnlyDelegateCall {
         alwaysRevert
     {}
 
-    function safeTransferFrom(address owner, address to, uint256 tokenId, bytes memory data)
+    function safeTransferFrom(address owner, address to, uint256 tokenId, bytes calldata data)
         external
         alwaysRevert
     {}
@@ -52,11 +52,28 @@ contract PartyCrowdfundNFT is IERC721, ReadOnlyDelegateCall {
         alwaysRevert
     {}
 
+    function getApproved(uint256 tokenId)
+        external
+        pure
+        returns (address)
+    {
+        return address(0);
+    }
+
+    function isApprovedForAll(address owner, address operator)
+        external
+        pure
+        returns (bool)
+    {
+        return false;
+    }
+
     function tokenURI(uint256 tokenId) external /* view */ returns (string)
     {
         _readOnlyDelegateCall(
             // An instance of IERC721Renderer
-            _GLOBALS.getAddress(LibGobals.GLOBAL_CF_NFT_RENDER_IMPL)
+            _GLOBALS.getAddress(LibGobals.GLOBAL_CF_NFT_RENDER_IMPL),
+            msg.data
         );
     }
 
