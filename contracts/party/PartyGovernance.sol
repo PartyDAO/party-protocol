@@ -105,6 +105,7 @@ contract PartyGovernance is
     error BadProposalStateError(ProposalState state);
     error ProposalExistsError(uint256 proposalId);
     error BadProposalHashError(bytes32 proposalHash, bytes32 actualHash);
+    error ProposalHasNoVotesError(uint256 proposalId);
 
     IGlobals private immutable _GLOBALS;
 
@@ -274,11 +275,14 @@ contract PartyGovernance is
             hash: _getProposalHash(proposal),
         });
         emit Proposed(proposalId, msg.sender, proposal);
-        accept(proposalId);
+        if (accept(proposalId) == 0) {
+            revert ProposalHasNoVotesError(proposalId);
+        }
     }
 
     function accept(uint256 proposalId)
-        external
+        public
+        returns (uint256 totalVotes)
     {
         ProposalInfo storage info = _proposalInfoByProposalId[proposalId];
         ProposalInfoValues memory values = info.values;
@@ -294,16 +298,18 @@ contract PartyGovernance is
         uint256 votingPower =
             uint96(getVotingPowerAt(msg.sender, values.proposedTime));
         values.votes += votingPower;
+        info.values = values;
         emit ProposalAccepted(proposalId, msg.sender, votingPower);
 
         if (values.passedTime == 0 && _areVotesPassing(
             values.votes,
             governanceValues.totalVotingPower,
-            gv.values.passThresholdBps))
+            governanceValues.passThresholdBps))
         {
             info.values.passedTime = uint40(block.timestamp);
             emit ProposalPassed(proposalId);
         }
+        return values.votes;
     }
 
     function veto(uint256 proposalId) external onlyHost {
