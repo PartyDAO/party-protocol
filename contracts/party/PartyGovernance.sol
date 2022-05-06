@@ -56,7 +56,9 @@ contract PartyGovernance is
         uint40 timestamp;
         // Combined intrinsic and delegated voting power for this user
         // at `blockNumber`. Does not double-count self-delegations.
-        uint128 votingPower;
+        uint96 votingPower;
+        // Whether the user was delegated to another at this snapshot.
+        bool wasDelegated;
     }
 
     struct Proposal {
@@ -111,13 +113,15 @@ contract PartyGovernance is
 
     GovernanceValues public governanceValues;
     // The contract of the NFT we're trying to protect.
-    IERC721 preciousToken;
+    IERC721 public preciousToken;
     // The id of the NFT we're trying to protect.
-    uint256 preciousTokenId;
+    uint256 public preciousTokenId;
     // The last proposal ID that was used. 0 means no proposals have been made.
-    uint256 lastProposalId;
+    uint256 public lastProposalId;
     // Whether an address is a party host.
     mapping(address => bool) public isHost;
+    // The last person a voter delegated its voting power to.
+    mapping(address => address) public delegationsByVoter;
     // Snapshots of voting power per user, each sorted by increasing time.
     mapping(address => VotingPowerSnapshot[]) private _votingPowerSnapshotsByVoter;
     // ProposalInfo by proposal ID.
@@ -171,7 +175,7 @@ contract PartyGovernance is
     function getVotingPowerAt(address voter, uint40 timestamp)
         external
         view
-        returns (uint128 votingPower)
+        returns (uint96 votingPower)
     {
         VotingPowerSnapshot[] storage snaps = _votingPowerSnapshotsByVoter[voter];
         uint256 n = snaps.length;
@@ -287,16 +291,23 @@ contract PartyGovernance is
         ProposalInfo storage info = _proposalInfoByProposalId[proposalId];
         ProposalInfoValues memory values = info.values;
 
-        ProposalState state = _getProposalState(values);
-        if (state != ProposalState.Voting) {
-            revert BadProposalStateError(state);
+        {
+            ProposalState state = _getProposalState(values);
+            if (
+                state != ProposalState.Voting &&
+                state != ProposalState.Passed &&
+                state != ProposalState.Ready
+            ) {
+                revert BadProposalStateError(state);
+            }
         }
+
         // Cannot vote twice.
         require(!info.hasVoted[msg.sender], 'ALREADY_VOTED');
         info.hasVoted[msg.sender] = true;
 
-        uint256 votingPower =
-            uint96(getVotingPowerAt(msg.sender, values.proposedTime));
+        uint96 votingPower =
+            getVotingPowerAt(msg.sender, values.proposedTime);
         values.votes += votingPower;
         info.values = values;
         emit ProposalAccepted(proposalId, msg.sender, votingPower);
@@ -317,14 +328,16 @@ contract PartyGovernance is
         ProposalInfo storage info = _proposalInfoByProposalId[proposalId];
         ProposalInfoValues memory values = info.values;
 
-        ProposalState state = _getProposalState(values);
-        // Proposal must be in one of the following states.
-        if (
-            state != ProposalState.Voting &&
-            state != ProposalState.Passed &&
-            state != ProposalState.Ready
-        ) {
-            revert BadProposalStateError(state);
+        {
+            ProposalState state = _getProposalState(values);
+            // Proposal must be in one of the following states.
+            if (
+                state != ProposalState.Voting &&
+                state != ProposalState.Passed &&
+                state != ProposalState.Ready
+            ) {
+                revert BadProposalStateError(state);
+            }
         }
 
         // -1 indicates veto.
@@ -416,21 +429,66 @@ contract PartyGovernance is
     }
 
     // Add to the base voting power of `owner` and delegate all votes to `delegate`
-    function _mintVotingPower(address owner, uint256 votingPower, address delegate)
+    function _mintVotingPower(address voter, uint256 votingPower, address delegate)
         internal
     {
-        // Add the voting power from the last snapshot.
-        VotingPowerSnapshot[] storage snaps = _votingPowerSnapshotsByVoter[owner];
-        uint256 numSnaps = snaps.length;
-        if (numSnaps != 0) {
-            votingPower += snaps[numSnaps - 1];
+        if (delegate == address(0)) {
+            revert InvalidDelegateError(delegate);
         }
-        snaps.push(VotingPowerSnapshot({
-            timestamp: block.timestamp,
-            votingPower: votingPower
-        }));
-        // TODO: delegates?
+        VotingPowerSnapshot[] storage voterSnaps = _votingPowerSnapshotsByVoter[voter];
+        uint96 oldVotingPower = _getLastVotingPowerSnapshot(voterSnaps).votingPower;
+        uint96 voterTotalVotingPower = oldVotingPower + votingPower;
+        {
+            // Create a new snapshot for this voter, combining voting power.
+            snaps.push(VotingPowerSnapshot({
+                timestamp: block.timestamp,
+                votingPower: voterTotalVotingPower,
+                wasDelegated: delegate != voter
+            }));
+        }
+        {
+            address oldDelegate = delegationsByVoter[voter];
+            if (oldDelegate != delegate) {
+                // Changing delegation.
+                if (oldDelegate != address(0)) {
+                    // Remove past voting power from old delegate.
+                    VotingPowerSnapshot[] storage oldDelegateSnaps =
+                        _votingPowerSnapshotsByVoter[oldDelegate];
+                    VotingPowerSnapshot memory oldDelegateShot =
+                        _getLastVotingPowerSnapshot(oldDelegateSnaps);
+                    oldDelegateSnaps.push(VotingPowerSnapshot({
+                        timestamp: block.timstamp,
+                        votingPower: oldDelegateShot.votingPower - oldVotingPower,
+                        wasDelegated: oldDelegateShot.wasDelegated
+                    }));
+                }
+            }
+        }
+        if (delegate != voter) { // Not delegating to self.
+            // Add new voting power to new delegate.
+            VotingPowerSnapshot[] storage delegateSnaps =
+                _votingPowerSnapshotsByVoter[delegate];
+            VotingPowerSnapshot memory delegateShot =
+                _getLastVotingPowerSnapshot(delegateSnaps);
+            delegateSnaps.push(VotingPowerSnapshot({
+                timstamp: block.timstamp,
+                votingPower: delegateShot.votingPower + voterTotalVotingPower,
+                wasDelegated: delegateShot.wasDelegated
+            }));
+        }
+        delegationsByVoter[voter] = delegate;
         emit VotingPowerDelegated(owner, delegate, votingPower)
+    }
+
+    function _getLastVotingPowerSnapshot(VotingPowerSnapshot[] storage snaps)
+        private
+        view
+        returns (VotingPowerSnapshot memory shot)
+    {
+        uint256 n = snaps.length;
+        if (n != 0) {
+            shot = snaps[snaps.length - 1];
+        }
     }
 
     // TODO: accept storage vars?
