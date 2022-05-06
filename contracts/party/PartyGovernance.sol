@@ -54,11 +54,12 @@ contract PartyGovernance is
     struct VotingPowerSnapshot {
         // The timestamp when the snapshot was taken.
         uint40 timestamp;
-        // Combined intrinsic and delegated voting power for this user
-        // at `blockNumber`. Does not double-count self-delegations.
-        uint96 votingPower;
+        // Voting power that was delegated to this user by others.
+        uint96 delegatedVotingPower;
+        // The intrinsic (not delegated from someone else) voting power of this user.
+        uint96 intrinsicVotingPower;
         // Whether the user was delegated to another at this snapshot.
-        bool wasDelegated;
+        bool isDelegated;
     }
 
     struct Proposal {
@@ -108,6 +109,7 @@ contract PartyGovernance is
     error ProposalExistsError(uint256 proposalId);
     error BadProposalHashError(bytes32 proposalHash, bytes32 actualHash);
     error ProposalHasNoVotesError(uint256 proposalId);
+    error Int192ToUint96CastOutOfRange(int192 i192);
 
     IGlobals private immutable _GLOBALS;
 
@@ -171,30 +173,40 @@ contract PartyGovernance is
         return LibProposal.getProposalExecutionEngine();
     }
 
-    // Get the voting power of a user at a timestamp.
+    // Get the total (delegated + intrinsic) voting power of `voter` by a timestamp.
     function getVotingPowerAt(address voter, uint40 timestamp)
         external
         view
         returns (uint96 votingPower)
     {
+        VotingPowerSnapshot memory shot = _getVotingPowerSnapshotAt(voter, timestamp);
+        return shot.intrinsicVotingPower + shot.delegatedVotingPower;
+    }
+
+    // Get the most recent voting power snapshot <= timestamp.
+    function _getVotingPowerSnapshotAt(address voter, uint40 timestamp)
+        external
+        view
+        returns (VotingPowerSnapshot memory shot)
+    {
         VotingPowerSnapshot[] storage snaps = _votingPowerSnapshotsByVoter[voter];
         uint256 n = snaps.length;
-        uint256 p = n / 2;
+        uint256 p = n / 2; // Search index.
         while (n != 0) {
-            VotingPowerSnapshot memory shot = snaps[p];
-            if (timestamp == shot.timestamp) {
+            VotingPowerSnapshot memory shot_ = snaps[p];
+            if (timestamp == shot_.timestamp) {
                 // Entry at exact time.
-                votingPower = shot.power;
+                votingPower = shot_;
                 break;
             }
             n /= 2;
-            if (timestamp > shot.timestamp) {
-                // Entry is older. Can use this snapshot's power for now.
-                votingPower = shot.power;
-                p += (n + 1) / 2;
-            } else if (timestamp < timestamp_) {
-                // Entry is younger.
-                p -= (n + 1) / 2;
+            if (timestamp > shot_.timestamp) {
+                // Entry is older. This is our best guess for now.
+                votingPower = shot_;
+                p += (n + 1) / 2; // Move search index to middle of lower half.
+            } else /* if (timestamp < timestamp_) */ {
+                // Entry is too recent.
+                p -= (n + 1) / 2; // Move search index to middle of upper half.
             }
         }
     }
@@ -231,10 +243,12 @@ contract PartyGovernance is
         return _getProposalState(_proposalInfoByProposalId[proposalId]);
     }
 
+    // Pledge your intrinsic voting power to a new delegate, removing it from
+    // the old one (if any).
     function delegateVotingPower(address delegate) external view returns (uint256)
     {
-
-        // ...
+        delegationsByVoter[msg.sender] = delegate;
+        _rebalanceDelegates(delegate);
         emit VotingPowerDelegated(msg.sender, delegate, votingPower)
     }
 
@@ -421,63 +435,90 @@ contract PartyGovernance is
     }
 
     // Transfers some voting power of `from` to `to`. The total voting power of
-    // their respective delegatees will be updated as well.
+    // their respective delegates will be updated as well.
     function _transferVotingPower(address from, address to, uint256 power)
         internal
     {
-        // ...
+        assert(power <= type(int192).max);
+        _adjustVotingPower(from, -int192(power), address(0));
+        _adjustVotingPower(to, int192(power), address(0));
     }
 
-    // Add to the base voting power of `owner` and delegate all votes to `delegate`
-    function _mintVotingPower(address voter, uint256 votingPower, address delegate)
+    // Increase `voter`'s intrinsic voting power and update their delegate if delegate is nonzero.
+    function _adjustVotingPower(address voter, int192 votingPower, address delegate)
         internal
     {
-        if (delegate == address(0)) {
+        VotingPowerSnapshot[] storage voterSnaps = _votingPowerSnapshotsByVoter[voter];
+        VotingPowerSnapshot memory oldSnap = _getLastVotingPowerSnapshot(voterSnaps);
+        uint256 oldDelegate = delegationsByVoter[voter];
+        // If `delegate` is zero, use the current delegate.
+        delegate = delegate == address(0) ? oldDelegate : delegate;
+        // If `delegate` is still zero (`voter` never delegated), set the delegate
+        // to themself.
+        delegate = delgate == address(0) ? voter : delegate;
+        VotingPowerSnapshot memory newSnap = VotingPowerSnapshot({
+            timestamp: block.timestamp,
+            delegatedVotingPower: oldSnap.delegatedVotingPower,
+            intrinsicVotingPower: _safeCastToUint96(
+                int192(oldSnap.intrinsicVotingPower) + votingPower
+            ),
+            isDelegated: delegate != voter
+        });
+        voerSnaps.push(newSnap);
+        delegationsByVoter[voter] = delegate;
+        // Handle rebalancing delegates.
+        _rebalanceDelegates(voter, oldDelegate, delegate, oldSnap, newSnap);
+    }
+
+    // Update the delegated voting power of the old and new delegates delegated to
+    // by `voter` based on the snapshot change.
+    function _rebalanceDelegates(
+        address voter,
+        address oldDelegate,
+        address newDelegate,
+        VotingPowerSnapshot memory oldSnap,
+        VotingPowerSnapshot memory newSnap
+    )
+        internal
+    {
+        if (newDelegate == address(0)) {
             revert InvalidDelegateError(delegate);
         }
-        VotingPowerSnapshot[] storage voterSnaps = _votingPowerSnapshotsByVoter[voter];
-        uint96 oldVotingPower = _getLastVotingPowerSnapshot(voterSnaps).votingPower;
-        uint96 voterTotalVotingPower = oldVotingPower + votingPower;
         {
-            // Create a new snapshot for this voter, combining voting power.
-            snaps.push(VotingPowerSnapshot({
-                timestamp: block.timestamp,
-                votingPower: voterTotalVotingPower,
-                wasDelegated: delegate != voter
-            }));
-        }
-        {
-            address oldDelegate = delegationsByVoter[voter];
-            if (oldDelegate != delegate) {
-                // Changing delegation.
-                if (oldDelegate != address(0)) {
-                    // Remove past voting power from old delegate.
-                    VotingPowerSnapshot[] storage oldDelegateSnaps =
-                        _votingPowerSnapshotsByVoter[oldDelegate];
-                    VotingPowerSnapshot memory oldDelegateShot =
-                        _getLastVotingPowerSnapshot(oldDelegateSnaps);
-                    oldDelegateSnaps.push(VotingPowerSnapshot({
-                        timestamp: block.timstamp,
-                        votingPower: oldDelegateShot.votingPower - oldVotingPower,
-                        wasDelegated: oldDelegateShot.wasDelegated
-                    }));
-                }
+            if (oldDelegate != address(0) && oldDelegate != newDelegate) {
+                // Remove past voting power from old delegate.
+                VotingPowerSnapshot[] storage oldDelegateSnaps =
+                    _votingPowerSnapshotsByVoter[oldDelegate];
+                VotingPowerSnapshot memory oldDelegateShot =
+                    _getLastVotingPowerSnapshot(oldDelegateSnaps);
+                oldDelegateSnaps.push(VotingPowerSnapshot({
+                    timestamp: block.timstamp,
+                    delegatedVotingPower: _safeCastToUint96(
+                        int192(oldDelegateShot.delegatedVotingPower) +
+                            oldSnap.intrinsicVotingPower
+                    ),
+                    intrinsicVotingPower: oldDelegateShot.intrinsicVotingPower,
+                    isDelegated: oldDelegateShot.isDelegated
+                }));
             }
         }
         if (delegate != voter) { // Not delegating to self.
             // Add new voting power to new delegate.
-            VotingPowerSnapshot[] storage delegateSnaps =
+            VotingPowerSnapshot[] storage newDelegateSnaps =
                 _votingPowerSnapshotsByVoter[delegate];
-            VotingPowerSnapshot memory delegateShot =
-                _getLastVotingPowerSnapshot(delegateSnaps);
-            delegateSnaps.push(VotingPowerSnapshot({
+            VotingPowerSnapshot memory newDelegateShot =
+                _getLastVotingPowerSnapshot(newDelegateSnaps);
+            newDelegateSnaps.push(VotingPowerSnapshot({
                 timstamp: block.timstamp,
-                votingPower: delegateShot.votingPower + voterTotalVotingPower,
-                wasDelegated: delegateShot.wasDelegated
+                delegatedVotingPower: _safeCastToUint96(
+                    int192(newDelegateShot.delegatedVotingPower) +
+                        newSnap.intrinsicVotingPower
+                ),
+                intrinsicVotingPower: newDelegateShot.intrinsicVotingPower,
+                isDelegated: newDelegateShot.isDelegated
             }));
         }
-        delegationsByVoter[voter] = delegate;
-        emit VotingPowerDelegated(owner, delegate, votingPower)
+        emit VotingPowerDelegated(owner, delegate, newSnap.intrinsicVotingPower);
     }
 
     function _getLastVotingPowerSnapshot(VotingPowerSnapshot[] storage snaps)
@@ -547,6 +588,13 @@ contract PartyGovernance is
     {
           return uint256(voteCount) * 1e4
             / uint256(totalVotingPower) >= uint256(passThresholdBps);
+    }
+
+    function _safeCastToUint96(int192 i192) private pure returns (uint96) {
+        if (i192 < 0 || i192 > type(uint96).max) {
+            revert Int192ToUint96CastOutOfRange(i192);
+        }
+        return uint96(uint192(i192));
     }
 
 }
