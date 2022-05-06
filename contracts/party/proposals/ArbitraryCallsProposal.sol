@@ -18,30 +18,24 @@ contract ArbitraryCallsProposal {
     error CallProhibitedError(address target, bytes data);
     error ArbitraryCallFailedError(bytes revertData);
     error UnexpectedCallResultHashError(uint256 idx, bytes32 resultHash, bytes32 expectedResultHash);
-    error EthBalanceNotPreservedError();
-
-    modifier preserveEthBalance() {
-        uint256 oldBal = address(this).balance - msg.value;
-        _;
-        if (oldBal > address(this).balance) {
-            revert EthBalanceNotPreservedError();
-        }
-    }
+    error NotEnoughEthAttachedError(uint256 callValue, uint256 ethAvailable);
 
     function _executeArbitraryCalls(ExecuteProposalParams memory params)
         internal
-        preserveEthBalance
     {
         (ArbitraryCall[] memory calls) = abi.decode(params.proposalData, (ArbitraryCall[]));
         bool hadPrecious = _getHasPrecious(params.preciousToken, params.preciousTokenId);
+        uint256 ethAvailable = msg.value;
         for (uint256 i = 0; i < calls.length; ++i) {
             _executeSingleArbitraryCall(
                 i,
                 calls[i],
                 params.preciousToken,
                 params.preciousTokenId,
-                params.flags
+                params.flags,
+                ethAvailable
             );
+            ethAvailable -= calls[i].value;
         }
         // If we had the precious beforehand, check that we still have it now.
         if (hadPrecious) {
@@ -56,12 +50,16 @@ contract ArbitraryCallsProposal {
         ArbitraryCall memory call,
         IERC721 preciousToken,
         uint256 preciousTokenId
-        uint256 flags
+        uint256 flags,
+        uint256 ethAvailable
     )
         private
     {
         if (!_isCallProhibited(call, preciousToken, preciousTokenId, flags)) {
             revert CallProhibitedError(call.target, call.data);
+        }
+        if (ethAvailable < call.value) {
+            revert NotEnoughEthAttachedError(call.value, ethAvailable);
         }
         (bool s, bytes memory r) = call.target.call{ value: call.value }(call.data);
         if (!s) {

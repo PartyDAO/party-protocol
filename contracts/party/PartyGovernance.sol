@@ -54,15 +54,12 @@ contract PartyGovernance is
     struct VotingPowerSnapshot {
         // The timestamp when the snapshot was taken.
         uint40 timestamp;
-        // Who the user has delegated their voting power to.
-        address delegate;
         // Combined intrinsic and delegated voting power for this user
         // at `blockNumber`. Does not double-count self-delegations.
-        uint96 votingPower;
+        uint128 votingPower;
     }
 
     struct Proposal {
-        uint40 minExecutableTime;
         uint40 maxExecutableTime;
         uint256 nonce;
         bytes proposalData;
@@ -84,28 +81,30 @@ contract PartyGovernance is
 
     struct ProposalInfo {
         ProposalInfoValues values;
+        bytes32 hash;
         mapping (address => bool) hasVoted;
     }
 
     event Proposed(
-        bytes32 proposalId,
+        uint256 proposalId,
         address proposer,
         Proposal proposal
     );
     event ProposalAccepted(
-        bytes32 proposalId,
+        uint256 proposalId,
         address voter,
         uint256 weight
     );
-    event ProposalPassed(bytes32 proposalId);
-    event ProposalVetoed(bytes32 proposalId, address host);
-    event ProposalExecuted(bytes32 proposalId, address executor);
-    event ProposalCompleted(bytes32 proposalId);
+    event ProposalPassed(uint256 proposalId);
+    event ProposalVetoed(uint256 proposalId, address host);
+    event ProposalExecuted(uint256 proposalId, address executor);
+    event ProposalCompleted(uint256 proposalId);
     event DistributionCreated(uint256 distributionId, IERC20 token);
     event VotingPowerDelegated(address owner, address delegate, uint256 votingPower)
 
     error BadProposalStateError(ProposalState state);
-    error ProposalExistsError(bytes32 proposalId);
+    error ProposalExistsError(uint256 proposalId);
+    error BadProposalHashError(bytes32 proposalHash, bytes32 actualHash);
 
     IGlobals private immutable _GLOBALS;
 
@@ -114,15 +113,14 @@ contract PartyGovernance is
     IERC721 preciousToken;
     // The id of the NFT we're trying to protect.
     uint256 preciousTokenId;
-    mapping(uint256 => uint96) public votingPowerByTokenId;
-    // List of past proposal IDs.
-    bytes32[] public pastProposalIds;
+    // The last proposal ID that was used. 0 means no proposals have been made.
+    uint256 lastProposalId;
     // Whether an address is a party host.
     mapping(address => bool) public isHost;
     // Snapshots of voting power per user, each sorted by increasing time.
-    mapping(address => VotingPowerSnapshot[]) private _votingPowerSnapshotsByOwner;
+    mapping(address => VotingPowerSnapshot[]) private _votingPowerSnapshotsByVoter;
     // ProposalInfo by proposal ID.
-    mapping(bytes32 => ProposalInfo) private _proposalInfoByProposalId;
+    mapping(uint256 => ProposalInfo) private _proposalInfoByProposalId;
 
     modifier onlyHost() {
         require(isHost[msg.sender], "ONLY_HOST");
@@ -172,20 +170,55 @@ contract PartyGovernance is
     function getVotingPowerAt(address voter, uint40 timestamp)
         external
         view
-        returns (uint96)
+        returns (uint128 votingPower)
     {
-        // Binary search _votingPowerSnapshotsByOwner ...
+        VotingPowerSnapshot[] storage snaps = _votingPowerSnapshotsByVoter[voter];
+        uint256 n = snaps.length;
+        uint256 p = n / 2;
+        while (n != 0) {
+            VotingPowerSnapshot memory shot = snaps[p];
+            if (timestamp == shot.timestamp) {
+                // Entry at exact time.
+                votingPower = shot.power;
+                break;
+            }
+            n /= 2;
+            if (timestamp > shot.timestamp) {
+                // Entry is older. Can use this snapshot's power for now.
+                votingPower = shot.power;
+                p += (n + 1) / 2;
+            } else if (timestamp < timestamp_) {
+                // Entry is younger.
+                p -= (n + 1) / 2;
+            }
+        }
     }
 
-    function getProposalId(Proposal calldata proposal)
-        public
+    function _getProposalHash(Proposal calldata proposal)
+        internal
         view
-        returns (bytes32 proposalId)
+        returns (bytes32 h)
     {
-        // Compute EIP1271 hash...
+        // Hash the proposal in-place. Equivalent to:
+        // keccak256(abi.encode(
+        //   proposal.minExecutableTime,
+        //   proposal.nonce,
+        //   keccak256(proposal.proposalData)
+        // ))
+        bytes32 dataHash = keccak256(proposal.proposalData);
+        assembly {
+            // Overwrite the data field with the hash of its contents and then
+            // hash the struct.
+            let dataPos = add(proposal, 0x40)
+            let t := mload(dataPos)
+            mstore(dataPos, dataHash)
+            h := keccak256(proposal, 0x60)
+            // Restore the data field.
+            mstore(dataPos, t)
+        }
     }
 
-    function getProposalState(bytes32 proposalId)
+    function getProposalState(uint256 proposalId)
         external
         view
         returns (ProposalState state)
@@ -195,6 +228,7 @@ contract PartyGovernance is
 
     function delegateVotingPower(address delegate) external view returns (uint256)
     {
+
         // ...
         emit VotingPowerDelegated(msg.sender, delegate, votingPower)
     }
@@ -227,11 +261,8 @@ contract PartyGovernance is
     }
 
     // Will also cast sender's votes for proposal.
-    function propose(bytes memory proposal) external returns (bytes32 proposalId) {
-        bytes32 proposalId = getProposalId(proposal);
-        if (_proposalInfoByProposalId[proposalId].proposedTime != 0) {
-            revert ProposalExistsError(proposalId);
-        }
+    function propose(bytes memory proposal) external returns (uint256 proposalId) {
+        uint256 proposalId = ++lastProposalId;
         _proposalInfoByProposalId[proposalId] = ProposalInfo({
             values: ProposalInfoValues({
                 proposedTime: uint40(block.timestamp),
@@ -239,18 +270,14 @@ contract PartyGovernance is
                 executedTime: 0,
                 completedTime: 0,
                 votes: 0
-            })
+            }),
+            hash: _getProposalHash(proposal),
         });
-        pastProposalIds.push(proposalId);
-        // ...
-        emit Proposed(
-            proposalId,
-            msg.sender,
-            proposal
-        );
+        emit Proposed(proposalId, msg.sender, proposal);
+        accept(proposalId);
     }
 
-    function accept(bytes32 proposalId)
+    function accept(uint256 proposalId)
         external
     {
         ProposalInfo storage info = _proposalInfoByProposalId[proposalId];
@@ -271,7 +298,7 @@ contract PartyGovernance is
 
         if (values.passedTime == 0 && _areVotesPassing(
             values.votes,
-            governanceOpts.values.totalVotingPower,
+            governanceValues.totalVotingPower,
             gv.values.passThresholdBps))
         {
             info.values.passedTime = uint40(block.timestamp);
@@ -279,7 +306,7 @@ contract PartyGovernance is
         }
     }
 
-    function veto(bytes32 proposalId) external onlyHost {
+    function veto(uint256 proposalId) external onlyHost {
         // Setting `votes` to -1 indicates a veto.
         ProposalInfo storage info = _proposalInfoByProposalId[proposalId];
         ProposalInfoValues memory values = info.values;
@@ -294,6 +321,7 @@ contract PartyGovernance is
             revert BadProposalStateError(state);
         }
 
+        // -1 indicates veto.
         info.values.votes = uint96(int96(-1));
         emit ProposalVetoed(proposalId, msg.sender);
     }
@@ -308,12 +336,18 @@ contract PartyGovernance is
     // No other proposals may be executed if there is a an incomplete proposal.
     // When the proposal has completed (no more further execute calls necessary),
     // a `ProposalCompleted` event will be emitted.
-    function execute(Proposal calldata proposal, bytes memory progressData)
+    function execute(uint256 proposalId, Proposal calldata proposal, bytes memory progressData)
         external
         payable
     {
-        bytes32 proposalId = _getProposalId(proposal);
         ProposalInfo storage proposalInfo = _proposalInfoByProposalId[proposalId];
+        {
+            bytes32 actualHash = _getProposalHash(proposal);
+            bytes32 proposalHash = proposalInfo.hash;
+            if (proposalHash != proposalHash) {
+                revert BadProposalHashError(proposalHash, actualHash);
+            }
+        }
         ProposalInfoValues memory infoValues = proposalInfo.values;
         ProposalState state = _getProposalState(infoValues);
         if (state != ProposalState.Ready && state != ProposalState.InProgress) {
@@ -326,7 +360,7 @@ contract PartyGovernance is
             _executeProposal(
                 proposalId,
                 proposal,
-                _getProposalFlags(proposalId, infoValues)
+                _getProposalFlags(infoValues)
             );
         emit ProposalExecuted(proposalId, msg.sender);
         if (es == IProposalExecutionEngine.ProposalExecutionStatus.Complete) {
@@ -336,7 +370,7 @@ contract PartyGovernance is
     }
 
     function _executeProposal(
-        bytes32 proposalId,
+        uint256 proposalId,
         Proposal memory proposal,
         uint32 flags
     )
@@ -345,11 +379,11 @@ contract PartyGovernance is
     {
         IProposalExecutionEngine.ExecuteProposalParams executeParams =
             IProposalExecutionEngine.ExecuteProposalParams({
-                proposalId: proposalId,
+                proposalId: bytes32(proposalId),
                 proposalData: proposal.proposalData,
                 progressData: progressData,
-                preciousToken: governanceOpts.preciousToken,
-                preciousTokenId: governanceOpts.preciousTokenId,
+                preciousToken: preciousToken,
+                preciousTokenId: preciousTokenId,
                 flags: flags
             });
         (bool success, bytes memory revertData) =
@@ -379,20 +413,27 @@ contract PartyGovernance is
     function _mintVotingPower(address owner, uint256 votingPower, address delegate)
         internal
     {
-        // ...
+        // Add the voting power from the last snapshot.
+        VotingPowerSnapshot[] storage snaps = _votingPowerSnapshotsByVoter[owner];
+        uint256 numSnaps = snaps.length;
+        if (numSnaps != 0) {
+            votingPower += snaps[numSnaps - 1];
+        }
+        snaps.push(VotingPowerSnapshot({
+            timestamp: block.timestamp,
+            votingPower: votingPower
+        }));
+        // TODO: delegates?
         emit VotingPowerDelegated(owner, delegate, votingPower)
     }
 
-    // TODO: accept storage vars.
-    function _getProposalFlags(
-        bytes32 proposalId,
-        ProposalInfoValues memory pv
-    )
+    // TODO: accept storage vars?
+    function _getProposalFlags(ProposalInfoValues memory pv)
         private
         view
         returns (uint256)
     {
-        if (pv.votes >= governanceOpts.totalVotingPower) {
+        if (pv.votes >= governanceValues.totalVotingPower) {
             // Passed unanimously.
             return LibProposal.PROPOSAL_FLAG_UNANIMOUS;
         }
@@ -424,28 +465,11 @@ contract PartyGovernance is
             return ProposalState.Passed;
         }
         uint40 t = uint40(block.timstamp);
-        GovernanceValues gv = governanceOpts.values;
+        GovernanceValues memory gv = governanceValues;
         // Voting window expired.
         if (t >= values.proposedTime + gv.voteDurationInSeconds) {
             return ProposalState.Defeated;
         }
-    }
-
-    // TODO: delete?
-    function _getProposalExecutionStatus(bytes32 proposalId)
-        private
-        view // Will 0.8 allow this?
-        returns (IProposalExecutionEngine.ProposalExecutionStatus status)
-    {
-        (bool s, bytes memory r) = address(LibProposal.getProposalExecutionEngine())
-            .delegatecall(abi.encodeCall(
-                IProposalExecutionEngine.getProposalExecutionStatus,
-                proposalId
-            ));
-        if (!s) {
-            r.rawRevert();
-        }
-        return abi.decode(status, (IProposalExecutionEngine.ProposalExecutionStatus));
     }
 
     function _areVotesPassing(
