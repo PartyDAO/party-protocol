@@ -8,5 +8,6 @@ contract FractionalizeProposal {
         internal
     {
         // TODO
+        revert('unimplemented');
     }
 }

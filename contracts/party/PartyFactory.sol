@@ -52,3 +52,4 @@ contract PartyFactory {
     {
         party.mint(owner, amount, delegate);
     }
+}

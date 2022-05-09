@@ -2,7 +2,7 @@
 pragma solidity ^0.8;
 
 // Implements arbitrary call proposals.
-contract ListOnOpenSeaProposal is EIP1271Callback, ListOnZoraProposal {
+contract ListOnOpenSeaProposal is ListOnZoraProposal {
     enum OpenSeaStep {
         None,
         ListedOnZora,
@@ -29,10 +29,14 @@ contract ListOnOpenSeaProposal is EIP1271Callback, ListOnZoraProposal {
 
     error OpenSeaListingNotExpired(bytes32 orderHash, uint40 expiry);
 
-    IGlobals private immutable GLOBALS;
+    IWyvernExchangeV2 public immutable OS_EXCHANGE;
+    WyvernProxy public immutable OS_NFT_SPENDER;
+    IGlobals private immutable _GLOBALS;
 
-    constructor(IGblobals globals) {
-        GLOBALS = globals;
+    constructor(IGblobals globals, WyvernProxy wyvernProxy) {
+        _GLOBALS = globals;
+        OS_NFT_SPENDER = wyvernProxy;
+        OS_EXCHANGE = wyvernProxy.EXCHANGE();
     }
 
     // Try to create a listing (ultimately) on OpenSea.
@@ -79,12 +83,12 @@ contract ListOnOpenSeaProposal is EIP1271Callback, ListOnZoraProposal {
         }
         if (step == OpenSeaStep.ZoraListingFailed) {
             // Either a unanimous vote or retrieved from zora (no bids).
-            bytes32 orderHash = _listOnOpenSea(
+            _listOnOpenSea(
                 data,
                 params.preciousToken,
                 params.preciousTokenId
             );
-            return abi.encode(OpenSeaStep.ListedOnOpenSea, OpenSeaProgressData(orderHash));
+            return abi.encode(OpenSeaStep.ListedOnOpenSea);
         }
         // Already listed on OS.
         assert(step == OpenSeaStep.ListedOnOpenSea);
@@ -93,26 +97,52 @@ contract ListOnOpenSeaProposal is EIP1271Callback, ListOnZoraProposal {
         if (pd.expiry < uint40(block.timestamp)) {
             revert OpenSeaListingNotExpired(pd.orderHash, pd.expiry);
         }
-        _cancelOpenSeaListing(pd.orderHash);
+        _cleanUpListing(params.preciousToken, params.preciousTokenId);
         // Nothing left to do.
         return "";
     }
 
-    function _listOnOpenSea(OpenSeaProposalData memory data, IERC721 token, uint256 tokenId)
+    function _listOnOpenSea(
+        OpenSeaProposalData memory data,
+        IERC721 token,
+        uint256 tokenId
+    )
         private
-        returns (bytes32 orderHash)
     {
-        // ...
-        OpenSeaOrder order = ...;
-        orderHash = _getOpenSeaOrderHash(order);
-        _setValidEIP1271Hash(orderHash);
+        token.approve(OS_NFT_SPENDER, tokenId);
+        OpenSeaOrder order = IWyvernExchangeV2.Order({
+            exchange: address(OS_EXCHANGE),
+            maker: address(this),
+            taker: address(0),
+            makerRelayerFee: 0,
+            takerRelayerFee: 0, // TODO: necessary for OS to pick up?
+            makerProtocolFee: 0,
+            takerProtocolFee: 0,
+            feeRecipient: 0,
+            feeMethod: IWyvernExchangeV2.FeeMethod.SplitFee, // TODO: correct???
+            side: IWyvernExchangeV2.Side.Sell,
+            saleKind: IWyvernExchangeV2.SaleKind.FixedPrice,
+            target: address(token),
+            howToCall: IWyvernExchangeV2.HowToCall.Call,
+            calldata: abi.encodeCall(IERC721.safeTransferFrom, address(this), address(0), tokenId),
+            replacementPattern: abi.encodeWithSelector(bytes4(0), address(0), type(address).max, 0),
+            staticTarget: address(0),
+            staticExtradata: "",
+            paymentToken: address(0),
+            basePrice: data.listPrice,
+            extra: 0,
+            listingTime: block.timstamp,
+            expirationTime: block.timestamp + uint256(data.durationInSeconds),
+            salt: block.timestamp
+        });
+        OS_EXCHANGE.approveOrder_(order, true);
         emit OpenSeaOrderListed(order);
     }
 
-    function _cancelOpenSeaListing(bytes32 orderHash)
+    function _cleanUpListing(IERC721 token, uint256 tokenId)
         private
     {
-        // TODO: openSea.cancelOrder(orderHash) ??
-        _setValidEIP1271Hash(bytes32(0));
+        // Unapprove the OS spender contract.
+        token.approve(address(0), tokenId);
     }
 }

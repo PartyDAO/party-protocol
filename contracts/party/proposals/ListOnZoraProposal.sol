@@ -24,10 +24,13 @@ contract ListOnZoraProposal {
 
     error ZoraListingNotExpired(uint256 auctionId, uint40 expiry);
 
-    IGlobals private immutable GLOBALS;
+    IGlobals private immutable _GLOBALS;
+    IZoraAuctionHouse public immutable ZORA;
 
-    constructor(IGblobals globals) {
-        GLOBALS = globals;
+
+    constructor(IGblobals globals, IZoraAuctionHouse zoraAuctionHouse) {
+        _GLOBALS = globals;
+        ZORA = zoraAuctionHouse;
     }
 
     // Try to create a listing (ultimately) on OpenSea.
@@ -68,10 +71,10 @@ contract ListOnZoraProposal {
         returns (uint256 auctionId, uint40 minExpiry)
     {
         // TODO: Should this be passed in/per party?
-        uint256 duration = GLOBALS.getUint256(LibGlobals.GLOBAL_OS_ZORA_AUCTION_DURATION);
+        uint256 duration = _GLOBALS.getUint256(LibGlobals.GLOBAL_OS_ZORA_AUCTION_DURATION);
         minExpiry = uint40(block.timestamp) + uint40(duration);
-        token.approve(zora, tokenId);
-        auctionId = zora.createAuction(
+        token.approve(address(ZORA), tokenId);
+        auctionId = ZORA.createAuction(
             tokenId,
             token,
             duration,
@@ -88,12 +91,12 @@ contract ListOnZoraProposal {
     {
         // Getting the state of an auction is super expensive so it seems
         // cheaper to just let `endAuction` fail and react to the error.
-        try zora.endAuction(auctionId) {
+        try ZORA.endAuction(auctionId) {
         } catch (bytes memory errData) {
             bytes32 errHash = keccak256(errData);
             if (errHash == keccak256("Auction hasn't begun")) {
                 // No bids placed. Just cancel it.
-                zora.cancelAuction(auctionId);
+                ZORA.cancelAuction(auctionId);
                 return false;
             } else if (errHash != keccak256("Auction doesn't exist")) {
                 errData.rawRevert();

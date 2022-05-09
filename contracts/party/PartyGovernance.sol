@@ -11,7 +11,6 @@ contract PartyGovernance is
         Voting,
         Defeated,
         Passed,
-        Unexecutable,
         Ready,
         InProgress,
         Complete
@@ -110,6 +109,7 @@ contract PartyGovernance is
     error BadProposalHashError(bytes32 proposalHash, bytes32 actualHash);
     error ProposalHasNoVotesError(uint256 proposalId);
     error Int192ToUint96CastOutOfRange(int192 i192);
+    error ExecutionTimeExceededError(uint40 maxExecutableTime, uint40 timestamp);
 
     IGlobals private immutable _GLOBALS;
 
@@ -124,10 +124,10 @@ contract PartyGovernance is
     mapping(address => bool) public isHost;
     // The last person a voter delegated its voting power to.
     mapping(address => address) public delegationsByVoter;
+    // ProposalInfo by proposal ID.
+    mapping(uint256 => ProposalInfo) public proposalInfoByProposalId;
     // Snapshots of voting power per user, each sorted by increasing time.
     mapping(address => VotingPowerSnapshot[]) private _votingPowerSnapshotsByVoter;
-    // ProposalInfo by proposal ID.
-    mapping(uint256 => ProposalInfo) private _proposalInfoByProposalId;
 
     modifier onlyHost() {
         require(isHost[msg.sender], "ONLY_HOST");
@@ -240,15 +240,19 @@ contract PartyGovernance is
         view
         returns (ProposalState state)
     {
-        return _getProposalState(_proposalInfoByProposalId[proposalId]);
+        return _getProposalState(proposalInfoByProposalId[proposalId]);
     }
 
     // Pledge your intrinsic voting power to a new delegate, removing it from
     // the old one (if any).
     function delegateVotingPower(address delegate) external view returns (uint256)
     {
+        address oldDelegate = delegationsByVoter[msg.sender];
         delegationsByVoter[msg.sender] = delegate;
-        _rebalanceDelegates(delegate);
+        VotingPowerSnapshot memory snap = _getLastVotingPowerSnapshot(
+            _votingPowerSnapshotsByVoter[msg.sender]
+        );
+        _rebalanceDelegates(msg.sender, oldDelegate, delegate, snap, snap);
         emit VotingPowerDelegated(msg.sender, delegate, votingPower)
     }
 
@@ -282,7 +286,7 @@ contract PartyGovernance is
     // Will also cast sender's votes for proposal.
     function propose(bytes memory proposal) external returns (uint256 proposalId) {
         uint256 proposalId = ++lastProposalId;
-        _proposalInfoByProposalId[proposalId] = ProposalInfo({
+        proposalInfoByProposalId[proposalId] = ProposalInfo({
             values: ProposalInfoValues({
                 proposedTime: uint40(block.timestamp),
                 passedTime: 0,
@@ -302,7 +306,7 @@ contract PartyGovernance is
         public
         returns (uint256 totalVotes)
     {
-        ProposalInfo storage info = _proposalInfoByProposalId[proposalId];
+        ProposalInfo storage info = proposalInfoByProposalId[proposalId];
         ProposalInfoValues memory values = info.values;
 
         {
@@ -339,7 +343,7 @@ contract PartyGovernance is
 
     function veto(uint256 proposalId) external onlyHost {
         // Setting `votes` to -1 indicates a veto.
-        ProposalInfo storage info = _proposalInfoByProposalId[proposalId];
+        ProposalInfo storage info = proposalInfoByProposalId[proposalId];
         ProposalInfoValues memory values = info.values;
 
         {
@@ -373,7 +377,7 @@ contract PartyGovernance is
         external
         payable
     {
-        ProposalInfo storage proposalInfo = _proposalInfoByProposalId[proposalId];
+        ProposalInfo storage proposalInfo = proposalInfoByProposalId[proposalId];
         {
             bytes32 actualHash = _getProposalHash(proposal);
             bytes32 proposalHash = proposalInfo.hash;
@@ -387,6 +391,12 @@ contract PartyGovernance is
             revert BadProposalStateError(state);
         }
         if (state == ProposalState.Ready) {
+            if (proposal.maxExecutableTime < block.timestamp) {
+                revert ExecutionTimeExceededError(
+                    proposal.maxExecutableTime,
+                    uint40(block.timestamp)
+                );
+            }
             proposalInfo.values.executedTime = uint40(block.timestamp);
         }
         IProposalExecutionEngine.ProposalExecutionStatus es =
@@ -545,36 +555,40 @@ contract PartyGovernance is
         return 0;
     }
 
-    function _getProposalState(ProposalInfoValues memory values)
+    function _getProposalState(ProposalInfoValues memory pv)
         private
         view
         returns (ProposalState state)
     {
         // Never proposed.
-        if (values.proposedTime == 0) {
+        if (pv.proposedTime == 0) {
             return ProposalState.Invalid;
         }
         // Executed at least once.
-        if (values.executedTime != 0) {
-            return values.completedTime == 0
+        if (pv.executedTime != 0) {
+            return pv.completedTime == 0
                 ? ProposalState.Complete
                 : ProposalState.InProgress;
         }
         // Vetoed.
-        if (values.votes == uint96(int128(-1))) {
+        if (pv.votes == uint96(int128(-1))) {
             return ProposalState.Defeated;
         }
-        // ...
-        // Passed.
-        if (values.passedTime != 0) {
+        uint40 t = uint40(block.timestamp);
+        GovernanceValues memory gv = governanceValues;
+        if (pv.passedTime != 0) {
+            // Ready.
+            if (pv.passedTime + gv.executionDelayInSeconds <= t) {
+                return ProposalState.Ready;
+            }
+            // Passed.
             return ProposalState.Passed;
         }
-        uint40 t = uint40(block.timstamp);
-        GovernanceValues memory gv = governanceValues;
         // Voting window expired.
-        if (t >= values.proposedTime + gv.voteDurationInSeconds) {
+        if (pv.proposedTime + gv.voteDurationInSeconds <= t) {
             return ProposalState.Defeated;
         }
+        return ProposalState.Voting;
     }
 
     function _areVotesPassing(
@@ -596,5 +610,4 @@ contract PartyGovernance is
         }
         return uint96(uint192(i192));
     }
-
 }
