@@ -55,6 +55,8 @@ contract SharedWyvernV2Maker {
         TRANSFER_PROXY = EXCHANGE.registry().registerProxy();
     }
 
+    receive() external payable {}
+
     // Seller should transfer the NFT being sold to this contract
     // (using transferFrom()) before calling this function.
     // LOL VULNS GALORE
