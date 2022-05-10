@@ -20,23 +20,17 @@ contract ListOnOpenSeaProposal is ListOnZoraProposal {
     struct OpenSeaProgressData {
         // Hash of the OS order that was listed.
         bytes32 orderHash;
-        // Expiration timestamp of the offer.
+        // Expiration timestamp of the listing.
         uint40 expiry;
     }
 
-    // Useful for discovery?
-    event OpenSeaOrderListed(OpenSeaOrder order);
+    // Shared OS/Wyvern maker contract for all parties.
+    // This allows all parties to avoid having to create a new transfer proxy
+    // when listing on opensea for the first time.
+    WyvernProxy public immutable SHARED_WYVERN_MAKER;
 
-    error OpenSeaListingNotExpired(bytes32 orderHash, uint40 expiry);
-
-    IWyvernExchangeV2 public immutable OS_EXCHANGE;
-    WyvernProxy public immutable OS_NFT_SPENDER;
-    IGlobals private immutable _GLOBALS;
-
-    constructor(IGblobals globals, WyvernProxy wyvernProxy) {
-        _GLOBALS = globals;
-        OS_NFT_SPENDER = wyvernProxy;
-        OS_EXCHANGE = wyvernProxy.EXCHANGE();
+    constructor(SharedWyvernV2Maker sharedMaker) {
+        SHARED_WYVERN_MAKER = sharedMaker;
     }
 
     // Try to create a listing (ultimately) on OpenSea.
@@ -83,21 +77,25 @@ contract ListOnOpenSeaProposal is ListOnZoraProposal {
         }
         if (step == OpenSeaStep.ZoraListingFailed) {
             // Either a unanimous vote or retrieved from zora (no bids).
-            _listOnOpenSea(
+            uint256 expiry = block.timestamp + uint256(data.durationInSeconds);
+            bytes32 orderHash = _listOnOpenSea(
                 data,
                 params.preciousToken,
-                params.preciousTokenId
+                params.preciousTokenId,
+                expiry
             );
-            return abi.encode(OpenSeaStep.ListedOnOpenSea);
+            return abi.encode(OpenSeaStep.ListedOnOpenSea, orderHash, expiry);
         }
         // Already listed on OS.
         assert(step == OpenSeaStep.ListedOnOpenSea);
         (OpenSeaProgressData memory pd) =
             abi.decode(params.progressData, (OpenSeaProgressData));
-        if (pd.expiry < uint40(block.timestamp)) {
-            revert OpenSeaListingNotExpired(pd.orderHash, pd.expiry);
-        }
-        _cleanUpListing(params.preciousToken, params.preciousTokenId);
+        _cleanUpListing(
+            data,
+            params.preciousToken,
+            params.preciousTokenId,
+            pd
+        );
         // Nothing left to do.
         return "";
     }
@@ -105,44 +103,39 @@ contract ListOnOpenSeaProposal is ListOnZoraProposal {
     function _listOnOpenSea(
         OpenSeaProposalData memory data,
         IERC721 token,
-        uint256 tokenId
+        uint256 tokenId,
+        uint256 expiry
+    )
+        private
+        returns (bytes32 orderHash)
+    {
+        // The shared maker requires us to transfer in the NFT being sold
+        // first.
+        token.transfer(address(SHARED_WYVERN_MAKER), tokenId);
+        orderHash = SHARED_WYVERN_MAKER.createListing(
+            token,
+            tokenId,
+            listPrice,
+            expiry
+        );
+    }
+
+    function _cleanUpListing(
+        OpenSeaProposalData memory data,
+        IERC721 token,
+        uint256 tokenId,
+        OpenSeaProgressData memory pd
     )
         private
     {
-        token.approve(OS_NFT_SPENDER, tokenId);
-        OpenSeaOrder order = IWyvernExchangeV2.Order({
-            exchange: address(OS_EXCHANGE),
-            maker: address(this),
-            taker: address(0),
-            makerRelayerFee: 0,
-            takerRelayerFee: 0, // TODO: necessary for OS to pick up?
-            makerProtocolFee: 0,
-            takerProtocolFee: 0,
-            feeRecipient: 0,
-            feeMethod: IWyvernExchangeV2.FeeMethod.SplitFee, // TODO: correct???
-            side: IWyvernExchangeV2.Side.Sell,
-            saleKind: IWyvernExchangeV2.SaleKind.FixedPrice,
-            target: address(token),
-            howToCall: IWyvernExchangeV2.HowToCall.Call,
-            calldata: abi.encodeCall(IERC721.safeTransferFrom, address(this), address(0), tokenId),
-            replacementPattern: abi.encodeWithSelector(bytes4(0), address(0), type(address).max, 0),
-            staticTarget: address(0),
-            staticExtradata: "",
-            paymentToken: address(0),
-            basePrice: data.listPrice,
-            extra: 0,
-            listingTime: block.timstamp,
-            expirationTime: block.timestamp + uint256(data.durationInSeconds),
-            salt: block.timestamp
-        });
-        OS_EXCHANGE.approveOrder_(order, true);
-        emit OpenSeaOrderListed(order);
-    }
-
-    function _cleanUpListing(IERC721 token, uint256 tokenId)
-        private
-    {
-        // Unapprove the OS spender contract.
-        token.approve(address(0), tokenId);
+        // This will transfer ETH to us if the listing was bought
+        // or transfer the NFT back to us if the listing expired.
+        SHARED_WYVERN_MAKER.finalizeListing(
+            pd.orderHash,
+            token,
+            tokenId,
+            data.listPrice,
+            pd.expiry
+        );
     }
 }

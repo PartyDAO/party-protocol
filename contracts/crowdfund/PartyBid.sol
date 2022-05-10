@@ -12,6 +12,8 @@ contract PartyBid is Implementation, PartyCrowdfund {
         uint40 durationInSeconds;
         address payable splitRecipient;
         uint16 splitBps;
+        // TODO: Replace with actual options and compute on-chain to avoid
+        // parties getting stuck after winning if hash is invalid.
         bytes32 partyOptionsHash;
         address initialDelegate;
         IGateKeeper gateKeeper;

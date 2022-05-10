@@ -15,6 +15,10 @@ contract PartyCrowdfundNFT is IERC721, ReadOnlyDelegateCall {
 
     mapping (uint256 => address) private _owners;
 
+    modifier alwaysRevert() {
+        revert('ALWAYS FAILING');
+    }
+
     constructor(IGlobals globals) {
         _GLOBALS = globals;
     }
@@ -26,10 +30,6 @@ contract PartyCrowdfundNFT is IERC721, ReadOnlyDelegateCall {
     {
         name = name_;
         symbol = symbol_;
-    }
-
-    modifier alwaysRevert() {
-        revert('ALWAYS FAILING');
     }
 
     function transferFrom(address owner, address to, uint256 tokenId)
@@ -66,6 +66,16 @@ contract PartyCrowdfundNFT is IERC721, ReadOnlyDelegateCall {
         returns (bool)
     {
         return false;
+    }
+
+    function supportsInterface(bytes4 interfaceId) external pure returns (bool) {
+        if (interfaceId == 0x01ffc9a7) {
+            return true;
+        }
+        if (interfaceId == 0xffffffff) {
+            return false;
+        }
+        return interfaceId == 0x5b5e139f; // ERC721Metadata
     }
 
     function tokenURI(uint256 tokenId) external /* view */ returns (string)

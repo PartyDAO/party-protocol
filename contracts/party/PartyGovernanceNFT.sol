@@ -15,12 +15,13 @@ contract PartyGovernanceNFT is
     error InvalidTokenError(uint256 tokenId);
     error InvalidTokenRecipientError();
     error NotTokenOwnerError(address notOWner, address owner, uint256 tokenId);
-    error NotApprovedError(address operator, uint256 tokenId);
+    error NotApprovedError(address notOperator, address operator, uint256 tokenId);
     error InvalidERC721ReceiverResultError(address receiver);
 
     address private immutable _GLOBALS;
     IPartyFactory private immutable _FACTORY;
 
+    mapping (address => mapping (address => bool)) public isApprovedForAll;
     mapping (uint256 => TokenInfo) private _tokens;
 
     modifier mustOwnToken(uint256 tokenId, address whom) {
@@ -116,6 +117,16 @@ contract PartyGovernanceNFT is
         }
     }
 
+    function supportsInterface(bytes4 interfaceId) external pure returns (bool) {
+        if (interfaceId == 0x01ffc9a7) {
+            return true;
+        }
+        if (interfaceId == 0xffffffff) {
+            return false;
+        }
+        return interfaceId == 0x5b5e139f; // ERC721Metadata
+    }
+
     function getApproved(uint256 tokenId)
         external
         view
@@ -156,6 +167,7 @@ contract PartyGovernanceNFT is
         }
         _consumeApproval(owner, msg.sender, tokenId);
         _tokens[tokenId].owner = to;
+        _tokens[tokenId].operator = address(0); // Don't persist individual approvals.
         _transferVotingPower(owner, to, _tokens[tokenId].votingPower);
         Transfer(owner, to, tokenId);
     }
@@ -163,14 +175,16 @@ contract PartyGovernanceNFT is
     function _consumeApproval(address owner, address operator, uint256 tokenId)
         private
     {
+        // Always consume individual approvals.
+        address approvedOperator = _tokens[tokenId].operator;
+        _tokens[tokenId].operator = address(0);
         if (operator != owner) {
             if (isApprovedForAll[owner][operator]) {
                 return;
             }
-            if (_tokens[tokenID].operator != operator) {
-                revert NotApprovedError(operator, tokenId);
+            if (approvedOperator != operator) {
+                revert NotApprovedError(operator, approvedOperator, tokenId);
             }
-            _tokens[tokenId].operator = address(0);
         }
     }
 }

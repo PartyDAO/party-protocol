@@ -67,4 +67,8 @@ interface IWyvernExchangeV2 {
         /* Order salt, used to prevent duplicate hashes. */
         uint256 salt;
     }
+
+    function approveOrder_(Order calldata order, bool approved) external;
+    function registry() external view returns (IWyvernV2MakerProxyRegistry);
+    function cancelledOrFinalized(bytes32 orderHash) external view returns (bool);
 }
