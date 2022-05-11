@@ -125,7 +125,7 @@ contract PartyGovernance is
     // The last person a voter delegated its voting power to.
     mapping(address => address) public delegationsByVoter;
     // ProposalInfo by proposal ID.
-    mapping(uint256 => ProposalInfo) public proposalInfoByProposalId;
+    mapping(uint256 => ProposalInfo) private _proposalInfoByProposalId;
     // Snapshots of voting power per user, each sorted by increasing time.
     mapping(address => VotingPowerSnapshot[]) private _votingPowerSnapshotsByVoter;
 
@@ -235,12 +235,13 @@ contract PartyGovernance is
         }
     }
 
-    function getProposalState(uint256 proposalId)
+    function getProposalStates(uint256 proposalId)
         external
         view
-        returns (ProposalState state)
+        returns (ProposalState state, ProposalInfoValues memory values)
     {
-        return _getProposalState(proposalInfoByProposalId[proposalId]);
+        values = _proposalInfoByProposalId[proposalId].values;
+        state = _getProposalState(values);
     }
 
     // Pledge your intrinsic voting power to a new delegate, removing it from
@@ -286,16 +287,19 @@ contract PartyGovernance is
     // Will also cast sender's votes for proposal.
     function propose(bytes memory proposal) external returns (uint256 proposalId) {
         uint256 proposalId = ++lastProposalId;
-        proposalInfoByProposalId[proposalId] = ProposalInfo({
-            values: ProposalInfoValues({
+        (
+            _proposalInfoByProposalId[proposalId].values,
+            _proposalInfoByProposalId[proposalId].hash
+        ) = (
+            ProposalInfoValues({
                 proposedTime: uint40(block.timestamp),
                 passedTime: 0,
                 executedTime: 0,
                 completedTime: 0,
                 votes: 0
             }),
-            hash: _getProposalHash(proposal),
-        });
+            _getProposalHash(proposal),
+        );
         emit Proposed(proposalId, msg.sender, proposal);
         if (accept(proposalId) == 0) {
             revert ProposalHasNoVotesError(proposalId);
@@ -306,7 +310,7 @@ contract PartyGovernance is
         public
         returns (uint256 totalVotes)
     {
-        ProposalInfo storage info = proposalInfoByProposalId[proposalId];
+        ProposalInfo storage info = _proposalInfoByProposalId[proposalId];
         ProposalInfoValues memory values = info.values;
 
         {
@@ -343,7 +347,7 @@ contract PartyGovernance is
 
     function veto(uint256 proposalId) external onlyHost {
         // Setting `votes` to -1 indicates a veto.
-        ProposalInfo storage info = proposalInfoByProposalId[proposalId];
+        ProposalInfo storage info = _proposalInfoByProposalId[proposalId];
         ProposalInfoValues memory values = info.values;
 
         {
@@ -377,7 +381,7 @@ contract PartyGovernance is
         external
         payable
     {
-        ProposalInfo storage proposalInfo = proposalInfoByProposalId[proposalId];
+        ProposalInfo storage proposalInfo = _proposalInfoByProposalId[proposalId];
         {
             bytes32 actualHash = _getProposalHash(proposal);
             bytes32 proposalHash = proposalInfo.hash;

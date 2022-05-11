@@ -11,6 +11,7 @@ library LibGlobals {
     uint256 internal constant GLOBAL_OS_ZORA_AUCTION_DURATION   = 6;
     uint256 internal constant GLOBAL_PARTY_BID_IMPL             = 7;
     uint256 internal constant GLOBAL_PARTY_BUY_IMPL             = 8;
+    // TODO: needed?
     uint256 internal constant GLOBAL_DAO_CF_SPLIT               = 9;
     uint256 internal constant GLOBAL_DAO_DISTRIBUTION_SPLIT     = 10;
     uint256 internal constant GLOBAL_DAO_WALLET                 = 11;

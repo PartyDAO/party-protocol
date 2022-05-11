@@ -3,48 +3,61 @@ pragma solidity ^0.8;
 
 // Token and ETH distributor contract.
 contract TokenDistributor is ITokenDistributor {
+
+    struct DistributionInfo {
+        uint256 distributionId;
+        IERC20Token token;
+        ITokenDistributorParty party;
+        uint256 memberSupply;
+        uint256 daoSupply;
+    }
+
+    struct DistributionState {
+        // The remaining member supply.
+        uint128 remainingMembersupply;
+        // The 15-byte hash of the DistributionInfo.
+        bytes15 distributionHash15;
+        // Whether partyDao has claimed its distribution share.
+        bool hasPartyDaoClaimed;
+        // Whether a governance token has claimed its distribution share.
+        mapping (uint256 => bool) hasTokenClaimed;
+    }
+
+    error OnlyPartyDaoError(address notDao, address partyDao);
+    error InvalidDistributionInfoError(DistributionInfo info);
+    error DistributionAlreadyClaimedByTokenError(uint256 distributionId, uint256 tokenId);
+    error DistributionAlreadyClaimedByPartyDaoError(uint256 distributionId);
+
+    event DistributionCreated(DistributionInfo info);
+    event DistributionClaimedByPartyDao(DistributionInfo info, address recipient, uint256 amountClaimed);
+    event DistributionClaimedByToken(DistributionInfo info, uint256 tokenId, address recipient, uint256 amountClaimed);
+
     IERC20 constant private ETH_TOKEN = IERC20(0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee);
 
     IGlobals public immutable GLOBALS;
-    uint256 public immutable PARTY_DAO_SPLIT;
-    address payable public immutable PARTY_DAO;
 
     // Last known amount of a token. Gets lazily updated
     // when creating and claiming a distribution.
     // Allows one to simply transfer and call `createDistribution()` without
     // fussing with allowances.
     mapping(IERC20 => uint256) private _storedBalances;
-    // Last seen balances of an ERC20 token. (and ETH)
-    mapping(uint256 => bytes32) publthe ic distributionHashById;
-    // distributionId => tokenId => hasTokenClaimed
-    mapping(uint256 => mapping(uint256 => boolean)) private _hasTokenClaimed;
-    // distributionId => hasPartyDaoClaimed
-    mapping(uint256 => boolean) private _hasPartyDaoClaimed;
+    // distributionId => DistributionState
+    mapping(uint256 => DistributionState) private _distributionStateById;
     // Last distribution ID for a party.
     mapping(ITokenDistributorParty => uint256) public lastDistributionIdPerParty;
 
     modifier onlyPartyDao() {
-        require(msg.sender == PARTY_DAO, 'NOT_ALLOWED');
+        {
+            address partyDao = IGlobals.getAddress(LibGlobals.GLOBAL_DAO_WALLET)
+            if (msg.sender != partyDao) {
+                revert OnlyPartyDaoError(msg.sender, partyDao);
+            }
+        }
         _;
     }
 
-    constructor(IGlobals globals, address payable partyDao, uint256 partyDaoSplit) {
+    constructor(IGlobals globals) {
         GLOBALS = globals;
-        PARTY_DAO_SPLIT = partyDaoSplit;
-        PARTY_DAO = partyDao;
-    }
-
-    function getDistributionHash(
-        ITokenDistributorParty party,
-        IERC20 token,
-        uint256 supply
-    )
-        public
-        view
-        returns (bytes32 hash)
-    {
-        // TODO: But in assembly.
-        return keccak256(abi.encode(party, token, supply));
     }
 
     // Create a distribution.
@@ -55,7 +68,7 @@ contract TokenDistributor is ITokenDistributor {
     function createDistribution(IERC20 token)
         external
         payable
-        returns (uint256 distributionId)
+        returns (DistributionInfo memory info)
     {
         uint256 bal;
         if (token == ETH_TOKEN) {
@@ -70,12 +83,23 @@ contract TokenDistributor is ITokenDistributor {
 
         ITokenDistributorParty party = ITokenDistributorParty(msg.sender);
         uint256 distId = lastDistributionIdPerParty[party]++;
-        distributionHashById[distId] = getDistributionHash(
-            party,
-            token,
-            supply,
-        );
-        emit DistributionCreated(distId, party, token, supply);
+        // Compute the portion of the supply reserved for the DAO
+        uint256 daoSupply = supply *
+            IGlobals.getUint256(LibGlobals.GLOBAL_DAO_DISTRIBUTION_SPLIT) / 1e18;
+        assert(daoSupply <= supply);
+        uint256 memberSupply = supply - daoSupply;
+        info = new DistributionInfo({
+            distributionId: distId,
+            token: token,
+            party: party,
+            memberSupply: memberSupply,
+            daoSupply: daoSupply
+        });
+        (
+            _distributionStateById[distId].distributionHash15,
+            _distributionStateById[distId].remainingMembersupply,
+        ) = (_getDistributionHash(info), memberSupply);
+        emit DistributionCreated(distributionInfo);
     }
 
     // Claim a distribution as a party member based on the weight of a
@@ -83,52 +107,55 @@ contract TokenDistributor is ITokenDistributor {
     // The amount sent to `recipient` will be based on
     // `ITokenDistributorParty.getDistributionShareOf()`.
     function claim(
-        uint256 distributionId,
-        ITokenDistributorParty party,
-        IERC20 token,
-        uint256 supply,
-        uint256 governanceTokenId,
+        DistributionInfo calldata info,
+        uint256 tokenId,
         address payable recipient
     )
         external
         returns (uint256 amountClaimed)
     {
-        bytes32 distHash = distributionHashById[distributionId];
-        require(
-            getDistributionHash(party, token, supply) == distHash,
-            'INVALID_DISTRIBUTION_DATA'
-        );
-        require(!_hasTokenClaimed[distributionId][tokenId], 'ALREADY_CLAIMED');
-        _hasTokenClaimed[distributionId][tokenId] = true;
-        // When paying out, reserve a portion based on partydao split.
+        DistributionState storage state = _distributionStateById[distributionId];
+        if (state.distributionHash15 != _getDistributionHash(info)) {
+            revert InvalidDistributionInfoError(info);
+        }
+        if (state.hasTokenClaimed[tokenId]) {
+            revert DistributionAlreadyClaimedByTokenError(info.distributionId, tokenId);
+        }
+        state.hasTokenClaimed[tokenId] = true;
+        // When paying out, reserve a portion based on token's distribution share.
         // This value is denominated in fractions of 1e18, where 1e18 = 100%.
         uint256 tokenSplit = party.getDistributionShareOf(governanceTokenId);
-        uint256 amount = ...
-        // ...
-        _transfer(token, recipient, amount);
+        amountClaimed = tokenSplit * info.memberSupply / 1e18;
+        uint256 remainingMembersupply = state.remainingMembersupply;
+        // Cap at the remaining member supply. Otherwise a malicious
+        // distribution creator could drain more than the distribution supply.
+        amountClaimed = amountClaimed > remainingMembersupply
+            ? remainingMembersupply
+            : amountClaimed;
+        state.remainingMembersupply = remainingMembersupply - amountClaimed;
+        _transfer(info.token, recipient, amountClaimed);
+        emit DistributionClaimedByToken(info, tokenId, recipient, amountClaimed);
     }
 
     // Claim a distribution based on a
     function partyDaoClaim(
-        uint256 distributionId,
-        ITokenDistributorParty party,
-        IERC20 token,
-        uint256 supply,
-        address recipient
+        DistributionInfo calldata info,
+        address payable recipient
     )
         external
         onlyPartyDao
         returns (uint256 amountClaimed)
     {
-        bytes32 distHash = distributionHashById[distributionId];
-        require(
-            getDistributionHash(party, token, supply) == distHash,
-            'INVALID_DISTRIBUTION_DATA'
-        );
-        require(!_hasPartyDaoClaimed[distributionId], 'ALREADY_CLAIMED');
-        _hasPartyDaoClaimed[distributionId] = true;
-        uint256 amount = PARTY_DAO_SPLIT * supply / 1e18;
-        _transfer(token, recipient, amount);
+        DistributionState storage state = _distributionStateById[distributionId];
+        if (state.distributionHash15 != _getDistributionHash(info)) {
+            revert InvalidDistributionInfoError(info);
+        }
+        if (state.hasPartyDaoClaimed) {
+            revert DistributionAlreadyClaimedByPartyDaoError(info.distributionId);
+        }
+        state.hasPartyDaoClaimed = true;
+        _transfer(info.token, recipient, info.daoSupply);
+        emit DistributionClaimedByPartyDao(info, recipient, amountClaimed);
     }
 
     function _transfer(IERC20 token, address payable recipient, uint256 amount)
@@ -137,9 +164,23 @@ contract TokenDistributor is ITokenDistributor {
         // Reduce stored token balance.
         _storedBalances[token] -= amount;
         if (token == ETH_TOKEN) {
-            recipient.call{ gas: gasleft(), value: amount }("");
+            recipient.call{ value: amount }("");
         } else {
             token.compatTransfer(recipient, amount);
+        }
+    }
+
+    function _getDistributionHash(DistributionInfo memory info)
+        private
+        pure
+        returns (bytes15 hash)
+    {
+        // TODO: consider cleaning dirty bits.
+        assembly {
+            hash := and(
+                keccak256(info, 0xA0),
+                0x0000000000000000000000000000000000ffffffffffffffffffffffffffffff
+            )
         }
     }
 }
