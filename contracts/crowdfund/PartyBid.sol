@@ -12,9 +12,7 @@ contract PartyBid is Implementation, PartyCrowdfund {
         uint40 durationInSeconds;
         address payable splitRecipient;
         uint16 splitBps;
-        // TODO: Replace with actual options and compute on-chain to avoid
-        // parties getting stuck after winning if hash is invalid.
-        bytes32 partyOptionsHash;
+        Party.PartyOptions partyOptions;
         address initialDelegate;
         IGateKeeper gateKeeper;
         bytes12 gateKeeperId;
@@ -39,7 +37,7 @@ contract PartyBid is Implementation, PartyCrowdfund {
         PartyCrowdfund.initialize(CrowdfundInitOptions({
             name: opts.name,
             symbol: opts.symbol,
-            partyOptionsHash: opts.partyOptionsHash,
+            partyOptions: opts.partyOptions,
             splitRecipient: opts.splitRecipient,
             splitBps: opts.splitBps,
             initialDelegate: opts.initialDelegate

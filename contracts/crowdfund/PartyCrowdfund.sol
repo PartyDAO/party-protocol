@@ -17,7 +17,7 @@ abstract contract PartyCrowdfund is PartyCrowdfundNFT {
     struct CrowdfundInitOptions {
         string name;
         string symbol;
-        bytes32 partyOptionsHash;
+        Party.PartyOptions partyOptions;
         address payable splitRecipient;
         uint16 splitBps;
         address initialDelegate;
@@ -28,7 +28,12 @@ abstract contract PartyCrowdfund is PartyCrowdfundNFT {
         uint128 contribution;
     }
 
-    error WrongLifecycleError(CrowdfundLifecycle current);
+    error PartyAlreadyExistsError(Party party);
+    error WrongLifecycleError(CrowdfundLifecycle lc);
+    error CrowdfundNotOverError(CrowdfundLifecycle lc);
+    error InvalidPartyOptionsError(bytes32 partyOptionsHash, bytes32 expectedPartyOptionsHash);
+    error InvalidDelegateError();
+    error NoPartyError();
 
     event DaoClaimed(address recipient, uint256 amount);
     event Burned(address contributor, uint256 ethUsed, uint256 votingPower);
@@ -39,14 +44,14 @@ abstract contract PartyCrowdfund is PartyCrowdfundNFT {
     uint40 expiry;
     // The party instance created by `_createParty()`, if any.
     Party public party;
-    // Hash of PartyOptions passed into initialize().
-    // The PartyOptions passed into `_createParty()` must match.
-    bytes32 public partyOptionsHash;
-    // Who will receive a reserved portion of governance power.
-    address payable public splitRecipient;
     // How much governance power to reserve for `splitRecipient`,
     // in bps, where 1000 = 100%.
     uint16 public splitBps;
+    // Who will receive a reserved portion of governance power.
+    address payable public splitRecipient;
+    // Hash of PartyOptions passed into initialize().
+    // The PartyOptions passed into `_createParty()` must match.
+    bytes32 public partyOptionsHash;
     // Who a contributor last delegated to.
     mapping (address => address) private _delegationsByContributor;
     // Array of contributions by a contributor.
@@ -63,7 +68,7 @@ abstract contract PartyCrowdfund is PartyCrowdfundNFT {
         override
     {
         PartyCrowdfundNFT.initialize(opts.name, opts.symbol);
-        partyOptionsHash = opts.partyOptionsHash;
+        partyOptionsHash = _hashPartyOptions(opts.partyOptions);
         splitRecipient = opts.splitRecipient;
         splitBps = opts.splitBps;
         // If the deployer passed in some ETH during deployment, credit them.
@@ -141,8 +146,15 @@ abstract contract PartyCrowdfund is PartyCrowdfundNFT {
     // After calling this, anyone can burn CF tokens on a contributor's behalf
     // with the `burn()` function.
     function _createParty(Party.PartyOptions opts) internal returns (Party party_) {
-        require(party == Party(address(0)));
-        require(_hashPartyOptions(opts) == partyOptionsHash);
+        if (party!== Party(address(0))) {
+            revert PartyAlreadyExistsError(party);
+        }
+        {
+            bytes32 partyOptionsHash_ = _hashPartyOptions(opts)
+            if (partyOptionsHash_ != partyOptionsHash) {
+                revert InvalidPartyOptionsError(partyOptionsHash_, partyOptionsHash);
+            }
+        }
         party = party_ =
             PartyFactory(_GLOBALS.getAddress(LibGlobals.GLOBAL_PARTY_FACTORY))
                 ._createParty(address(this), opts);
@@ -150,13 +162,27 @@ abstract contract PartyCrowdfund is PartyCrowdfundNFT {
         emit PartyCreated(party_);
     }
 
-
-    function _hashPartyOptions(PartyOptions memory partyOptions)
+    function _hashPartyOptions(Party.PartyOptions memory opts)
         private
         view
         returns (bytes32 h)
     {
-        // Do EIP1271 hash here...
+        bytes32 governanceOptsHostsHash = keccak256(abi.encode(opts.hosts));
+        bytes32 nameHash = keccak256(opts.name);
+        bytes32 symbolHash = keccak256(opts.symbol);
+        // Hash in place.
+        assembly {
+            let oldGovernanceOptsHostFieldValue := mload(opts)
+            let oldNameFieldValue := mload(add(opts, 0xE0))
+            let oldSymbolFieldValue := mload(add(opts, 0x100))
+            mstore(opts, governanceOptsHostsHash)
+            mstore(add(opts, 0xE0), nameHash)
+            mstore(add(opts, 0x100), symbolHash)
+            h := keccak256(opts, 0x120)
+            mstore(opts, oldGovernanceOptsHostFieldValue)
+            mstore(add(opts, 0xE0), oldNameFieldValue)
+            mstore(add(opts, 0x100), oldSymbolFieldValue)
+        }
     }
 
     function _getParty() internal view returns (Party) {
@@ -202,7 +228,9 @@ abstract contract PartyCrowdfund is PartyCrowdfundNFT {
     )
         internal
     {
-        require(delegate != address(0), 'INVALID_DELEGATE');
+        if (delegate == address(0)) {
+            revert InvalidDelegateError();
+        }
         // Update delegate.
         _delegationsByContributor[contributor] = delegate;
         emit Contributed(contributor, amount, delegate);
@@ -248,10 +276,14 @@ abstract contract PartyCrowdfund is PartyCrowdfundNFT {
     {
         // If the CF has won, a party must have been created prior.
         if (lc == CrowdfundLifecycle.Won) {
-            require(party_ != Party(address(0)), "MUST_CREATE_PARTY");
+            if (party_ == Party(address(0))) {
+                revert NoPartyError();
+            }
         } else {
             // Otherwise it must have lost.
-            require(lc == CrowdfundLifecycle.Lost, "CROWDFUND_NOT_OVER");
+            if (lc != CrowdfundLifecycle.Lost) {
+                revert CrowdfundNotOverError(lc);
+            }
         }
         if (splitRecipient != contributor || _doesTokenExistFor(contributor)) {
             // Will revert if already burned.

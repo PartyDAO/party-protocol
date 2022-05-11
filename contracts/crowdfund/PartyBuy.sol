@@ -11,7 +11,7 @@ contract PartyBuy is Implementation, PartyCrowdfund {
         uint40 durationInSeconds;
         address payable splitRecipient;
         uint16 splitBps;
-        bytes32 partyOptionsHash;
+        Party.PartyOptions partyOptions;
         address initialDelegate;
         IGateKeeper gateKeeper;
         bytes12 gateKeeperId;
@@ -35,7 +35,7 @@ contract PartyBuy is Implementation, PartyCrowdfund {
         PartyCrowdfund.initialize(CrowdfundInitOptions({
             name: opts.name,
             symbol: opts.symbol,
-            partyOptionsHash: opts.partyOptionsHash,
+            partyOptions: opts.partyOptions,
             splitRecipient: opts.splitRecipient,
             splitBps: opts.splitBps,
             initialDelegate: opts.initialDelegate
