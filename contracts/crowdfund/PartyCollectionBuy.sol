@@ -10,11 +10,10 @@ import "./IGateKeeper.sol";
 import "./IMarketWrapper.sol";
 import "./PartyCrowdfund.sol";
 
-contract PartyBuy is Implementation, PartyCrowdfund {
-    struct PartyBuyOptions {
+contract PartyCollectionBuy is Implementation, PartyCrowdfund {
+    struct PartyCollectionBuyOptions {
         string name;
         string symbol;
-        uint256 nftTokenId;
         IERC721 nftContract;
         uint256 price;
         uint40 durationInSeconds;
@@ -41,7 +40,7 @@ contract PartyBuy is Implementation, PartyCrowdfund {
         override
         onlyDelegateCall
     {
-        PartyBuyOptions memory opts = abi.decode(rawInitOpts, (PartyBuyOptions));
+        PartyCollectionBuyOptions memory opts = abi.decode(rawInitOpts, (PartyBuyOptions));
         PartyCrowdfund.initialize(CrowdfundInitOptions({
             name: opts.name,
             symbol: opts.symbol,
@@ -52,7 +51,6 @@ contract PartyBuy is Implementation, PartyCrowdfund {
         }));
         price = opts.price;
         nftContract = opts.nftContract;
-        nftTokenId = opts.nftTokenId;
         gateKeeper = opts.gateKeeper;
         gateKeeperId = opts.gateKeeperId;
         expiry = uint40(opts.durationInSeconds + block.timestamp);
@@ -71,6 +69,7 @@ contract PartyBuy is Implementation, PartyCrowdfund {
 
     // execute calldata to perform a buy.
     function buy(
+        uint256 tokenId,
         address payable callTarget,
         uint256 callValue,
         bytes calldata callData,
@@ -79,18 +78,14 @@ contract PartyBuy is Implementation, PartyCrowdfund {
         external
     {
         require(getCrowdfundLifecycle() == CrowdfundLifecycle.Active);
-        settledPrice = callValue;
+        settledPrice = callValue == 0 ? address(this).balance : callValue;
+        nftTokenId = tokenId;
         // Do we even care whether it succeeds?
         callTarget.call{ value: callValue }(callData);
-        finalize(partyOptions);
+        _finalize(partyOptions);
     }
 
-    // Create a party if the party has won or somehow managed to acquire the
-    // NFT.
-    // TODO: Figure out what to do if the NFT
-    // is manually transferred instead of being bought (no ETH was spent).
-    // Should we just set the price to the total contributions?
-    function finalize(Party.PartyOptions memory partyOptions) public {
+    function _finalize(Party.PartyOptions memory partyOptions) private {
         CrowdfundLifecycle lc = getCrowdfundLifecycle();
         if (lc != CrowdfundLifecycle.Won) {
             revert WrongLifecycleError(lc);
@@ -101,9 +96,6 @@ contract PartyBuy is Implementation, PartyCrowdfund {
     // TODO: Can we avoid needing these functions/steps?
     // function expire() ...
 
-    // TODO: War-game losing then someone transferring the NFT in after
-    // some people have already burned their tokens. Might need explicit state
-    // tracking.
     function getCrowdfundLifecycle() public override view returns (CrowdfundLifecycle) {
         // If there is a settled price then we tried to buy the NFT.
         if (settledPrice) {

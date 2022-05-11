@@ -1,6 +1,10 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8;
 
+import "../tokens/IERC721.sol";
+import "../utils/ReadOnlyDelegateCall.sol";
+import "../globals/IGlobals.sol";
+
 // NFT functionality for PartyBid/Buy contributions.
 // This NFT is soulbound and read-only.
 contract PartyCrowdfundNFT is IERC721, ReadOnlyDelegateCall {
@@ -8,7 +12,7 @@ contract PartyCrowdfundNFT is IERC721, ReadOnlyDelegateCall {
     error AlreadyBurnedError(address owner, uint256 tokenId);
     error InvalidTokenError(uint256 tokenId);
 
-    address private immutable   _GLOBALS;
+    IGlobals private immutable _GLOBALS;
 
     string public name;
     string public symbol;

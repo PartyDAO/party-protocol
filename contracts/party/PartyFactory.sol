@@ -23,13 +23,20 @@ contract PartyFactory {
     // `authority` is the address that can call `mint()`.
     function createParty(
         address authority,
-        Party.PartyOptions calldata opts
+        Party.PartyOptions calldata opts,
+        IERC721 preciousToken,
+        uint256 preciousTokenId
     )
         external
         returns (Party party)
     {
         require(authority != address(0));
-        party = Party(address(new PartyProxy(abi.encode(opts))));
+        Party.PartyInitData memory initData = new Party.PartyInitData({
+            options: opts,
+            preciousToken: preciousToken,
+            preciousTokenId: preciousTokenId
+        });
+        party = Party(address(new PartyProxy(abi.encode(initData))));
         partyAuthorities[party] = authority;
         emit PartyCreated(party, msg.sender);
     }

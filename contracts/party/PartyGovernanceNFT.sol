@@ -46,12 +46,14 @@ contract PartyGovernanceNFT is
     function initialize(
         string name_,
         string symbol_,
-        PartyGovernance.GovernanceOpts governanceOpts
+        PartyGovernance.GovernanceOpts memory governanceOpts,
+        IERC721 preciousToken,
+        uint256 preciousTokenId
     )
         public
         override
     {
-        PartyGovernance.initialize(governanceOpts);
+        PartyGovernance.initialize(governanceOpts, preciousToken, preciousTokenId);
         name = name_;
         symbol = symbol_;
     }

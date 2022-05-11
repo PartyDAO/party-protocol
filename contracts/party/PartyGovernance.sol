@@ -19,10 +19,6 @@ contract PartyGovernance is
     struct GovernanceOpts {
         // Address of initial party hosts.
         address[] hosts;
-        // The contract of the NFT we're trying to protect.
-        IERC721 preciousToken;
-        // The id of the NFT we're trying to protect.
-        uint256 preciousTokenId;
         // How long people can vote on a proposal.
         uint40 voteDurationInSeconds;
         // How long to wait after a proposal passes before it can be
@@ -138,7 +134,11 @@ contract PartyGovernance is
         _GLOBALS = IPartyFactory(msg.sender)._GLOBALS();
     }
 
-    function initialize(GovernanceOpts memory opts)
+    function initialize(
+        GovernanceOpts memory opts,
+        IERC721 preciousToken,
+        uint256 preciousTokenId
+    )
         public
         virtual
     {
@@ -151,8 +151,8 @@ contract PartyGovernance is
             passThresholdBps: opts.passThresholdBps,
             totalVotingPower: opts.totalVotingPower
         });
-        preciousToken = opts.preciousToken;
-        preciousTokenId = opts.preciousTokenId;
+        preciousToken = preciousToken;
+        preciousTokenId = preciousTokenId;
     }
 
     fallback() external {

@@ -1,5 +1,14 @@
-// SPDX-License-Identifier: UNLICENSED
+// SPDX-License-Identifier: MIT
 pragma solidity ^0.8;
+
+import "../tokens/IERC721.sol";
+import "../party/Party.sol";
+import "../utils/Implementation.sol";
+import "../globals/IGlobals.sol";
+
+import "./IGateKeeper.sol";
+import "./IMarketWrapper.sol";
+import "./PartyCrowdfund.sol";
 
 contract PartyBid is Implementation, PartyCrowdfund {
     struct PartyBidOptions {
@@ -71,7 +80,7 @@ contract PartyBid is Implementation, PartyCrowdfund {
     function finalize(Party.PartyOptions calldata partyOptions) external {
         CrowdfundLifecycle lc = getCrowdfundLifecycle();
         if (lc == CrowdfundLifecycle.Won) {
-            _createParty(partyOptions);
+            _createParty(partyOptions, nftContract, nftTokenId);
         } else if (lc == CrowdfundLifecycle.Lost) {
             // Rescind bid...
         }
@@ -82,10 +91,7 @@ contract PartyBid is Implementation, PartyCrowdfund {
         // Note: cannot rely on ownerOf because it might be transferred to Party
         // if `createParty()` was called.
         // ...
-    }
-
-    function _transferSharedAssetsTo(address recipient) internal override {
-        nftContract.transfer(recipient, nftTokenId);
+        revert("not implemented");
     }
 
     function _getFinalPrice()

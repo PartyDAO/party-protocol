@@ -1,6 +1,12 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8;
 
+import "../utils/LibRawResult.sol";
+import "../party/Party.sol";
+import "../globals/IGlobals.sol";
+
+import "./PartyCrowdfundNFT.sol";
+
 // Base contract for PartyBid/PartyBuy.
 // Holds post-win/loss logic. E.g., burning contribution NFTs and creating a
 // party after winning.
@@ -145,7 +151,14 @@ abstract contract PartyCrowdfund is PartyCrowdfundNFT {
     // and transfers the bought NFT to it.
     // After calling this, anyone can burn CF tokens on a contributor's behalf
     // with the `burn()` function.
-    function _createParty(Party.PartyOptions opts) internal returns (Party party_) {
+    function _createParty(
+        Party.PartyOptions opts,
+        IERC721 preciousToken,
+        uint256 preciousTokenId
+    )
+        internal
+        returns (Party party_)
+    {
         if (party!== Party(address(0))) {
             revert PartyAlreadyExistsError(party);
         }
@@ -157,8 +170,8 @@ abstract contract PartyCrowdfund is PartyCrowdfundNFT {
         }
         party = party_ =
             PartyFactory(_GLOBALS.getAddress(LibGlobals.GLOBAL_PARTY_FACTORY))
-                ._createParty(address(this), opts);
-        _transferSharedAssetsTo(address(party_));
+                ._createParty(address(this), opts, preciousToken, preciousTokenId);
+        preciousToken.transfer(address(party_), preciousTokenId);
         emit PartyCreated(party_);
     }
 
@@ -173,15 +186,15 @@ abstract contract PartyCrowdfund is PartyCrowdfundNFT {
         // Hash in place.
         assembly {
             let oldGovernanceOptsHostFieldValue := mload(opts)
-            let oldNameFieldValue := mload(add(opts, 0xE0))
-            let oldSymbolFieldValue := mload(add(opts, 0x100))
+            let oldNameFieldValue := mload(add(opts, 0xA0))
+            let oldSymbolFieldValue := mload(add(opts, 0xC0))
             mstore(opts, governanceOptsHostsHash)
-            mstore(add(opts, 0xE0), nameHash)
-            mstore(add(opts, 0x100), symbolHash)
-            h := keccak256(opts, 0x120)
+            mstore(add(opts, 0xA0), nameHash)
+            mstore(add(opts, 0xC0), symbolHash)
+            h := keccak256(opts, 0xE0)
             mstore(opts, oldGovernanceOptsHostFieldValue)
-            mstore(add(opts, 0xE0), oldNameFieldValue)
-            mstore(add(opts, 0x100), oldSymbolFieldValue)
+            mstore(add(opts, 0xA0), oldNameFieldValue)
+            mstore(add(opts, 0xC0), oldSymbolFieldValue)
         }
     }
 

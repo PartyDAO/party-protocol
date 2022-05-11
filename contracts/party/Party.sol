@@ -9,16 +9,24 @@ contract Party is Implementation, PartyGovernanceNFT {
         string symbol;
     }
 
+    struct PartyInitData {
+        PartyOptions options;
+        IERC721 preciousToken;
+        uint256 preciousTokenId;
+    }
+
     function initialize(bytes memory initData)
         public
         override
         onlyDelegateCall
     {
-        PartyOptions memory opts = abi.decode(initData, (PartyOptions));
+        PartyInitData memory initData_ = abi.decode(initData_, (PartyInitData));
         PartyGovernanceNFT.initialize(
-            opts.name,
-            opts.symbol,
-            opts.governance
+            initData_.name,
+            initData_.symbol,
+            initData_.governance,
+            initData_.preciousToken,
+            initData_.preciousTokenId
         );
     }
 }
