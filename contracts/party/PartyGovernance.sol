@@ -183,58 +183,6 @@ contract PartyGovernance is
         return shot.intrinsicVotingPower + shot.delegatedVotingPower;
     }
 
-    // Get the most recent voting power snapshot <= timestamp.
-    function _getVotingPowerSnapshotAt(address voter, uint40 timestamp)
-        external
-        view
-        returns (VotingPowerSnapshot memory shot)
-    {
-        VotingPowerSnapshot[] storage snaps = _votingPowerSnapshotsByVoter[voter];
-        uint256 n = snaps.length;
-        uint256 p = n / 2; // Search index.
-        while (n != 0) {
-            VotingPowerSnapshot memory shot_ = snaps[p];
-            if (timestamp == shot_.timestamp) {
-                // Entry at exact time.
-                votingPower = shot_;
-                break;
-            }
-            n /= 2;
-            if (timestamp > shot_.timestamp) {
-                // Entry is older. This is our best guess for now.
-                votingPower = shot_;
-                p += (n + 1) / 2; // Move search index to middle of lower half.
-            } else /* if (timestamp < timestamp_) */ {
-                // Entry is too recent.
-                p -= (n + 1) / 2; // Move search index to middle of upper half.
-            }
-        }
-    }
-
-    function _getProposalHash(Proposal calldata proposal)
-        internal
-        view
-        returns (bytes32 h)
-    {
-        // Hash the proposal in-place. Equivalent to:
-        // keccak256(abi.encode(
-        //   proposal.minExecutableTime,
-        //   proposal.nonce,
-        //   keccak256(proposal.proposalData)
-        // ))
-        bytes32 dataHash = keccak256(proposal.proposalData);
-        assembly {
-            // Overwrite the data field with the hash of its contents and then
-            // hash the struct.
-            let dataPos = add(proposal, 0x40)
-            let t := mload(dataPos)
-            mstore(dataPos, dataHash)
-            h := keccak256(proposal, 0x60)
-            // Restore the data field.
-            mstore(dataPos, t)
-        }
-    }
-
     function getProposalStates(uint256 proposalId)
         external
         view
@@ -448,6 +396,59 @@ contract PartyGovernance is
         );
     }
 
+    // Get the most recent voting power snapshot <= timestamp.
+    function _getVotingPowerSnapshotAt(address voter, uint40 timestamp)
+        private
+        view
+        returns (VotingPowerSnapshot memory shot)
+    {
+        VotingPowerSnapshot[] storage snaps = _votingPowerSnapshotsByVoter[voter];
+        uint256 n = snaps.length;
+        uint256 p = n / 2; // Search index.
+        while (n != 0) {
+            VotingPowerSnapshot memory shot_ = snaps[p];
+            if (timestamp == shot_.timestamp) {
+                // Entry at exact time.
+                votingPower = shot_;
+                break;
+            }
+            n /= 2;
+            if (timestamp > shot_.timestamp) {
+                // Entry is older. This is our best guess for now.
+                votingPower = shot_;
+                p += (n + 1) / 2; // Move search index to middle of lower half.
+            } else /* if (timestamp < timestamp_) */ {
+                // Entry is too recent.
+                p -= (n + 1) / 2; // Move search index to middle of upper half.
+            }
+        }
+    }
+
+    function _getProposalHash(Proposal calldata proposal)
+        private
+        view
+        returns (bytes32 h)
+    {
+        // Hash the proposal in-place. Equivalent to:
+        // keccak256(abi.encode(
+        //   proposal.minExecutableTime,
+        //   proposal.nonce,
+        //   keccak256(proposal.proposalData)
+        // ))
+        bytes32 dataHash = keccak256(proposal.proposalData);
+        assembly {
+            // Overwrite the data field with the hash of its contents and then
+            // hash the struct.
+            let dataPos = add(proposal, 0x40)
+            let t := mload(dataPos)
+            mstore(dataPos, dataHash)
+            h := keccak256(proposal, 0x60)
+            // Restore the data field.
+            mstore(dataPos, t)
+        }
+    }
+
+
     // Transfers some voting power of `from` to `to`. The total voting power of
     // their respective delegates will be updated as well.
     function _transferVotingPower(address from, address to, uint256 power)
@@ -460,7 +461,7 @@ contract PartyGovernance is
 
     // Increase `voter`'s intrinsic voting power and update their delegate if delegate is nonzero.
     function _adjustVotingPower(address voter, int192 votingPower, address delegate)
-        internal
+        private
     {
         VotingPowerSnapshot[] storage voterSnaps = _votingPowerSnapshotsByVoter[voter];
         VotingPowerSnapshot memory oldSnap = _getLastVotingPowerSnapshot(voterSnaps);
@@ -493,7 +494,7 @@ contract PartyGovernance is
         VotingPowerSnapshot memory oldSnap,
         VotingPowerSnapshot memory newSnap
     )
-        internal
+        private
     {
         if (newDelegate == address(0)) {
             revert InvalidDelegateError(delegate);
