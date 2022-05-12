@@ -17,11 +17,11 @@ contract ReadOnlyDelegateCall {
     }
 
     // Perform a delegateCallAndRevert() then return the raw result data.
-    function _readOnlyDelegateCall(address impl, bytes memory r)
+    function _readOnlyDelegateCall(address impl, bytes memory callData)
         internal
         returns (bool success, bytes memory resultData)
     {
-        try this.delegateCallAndRevert(impl, r) {
+        try this.delegateCallAndRevert(impl, callData) {
             assert(false);
         }
         catch (bytes memory r) {

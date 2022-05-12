@@ -69,10 +69,10 @@ contract ListOnOpenSeaProposal is ListOnZoraProposal {
             step = OpenSeaStep.RetrievedFromZora;
         }
         if (step == OpenSeaStep.ListedOnZora) {
-            (ZoraProgressData memory pd) =
+            (ZoraProgressData memory zpd) =
                 abi.decode(params.progressData, (ZoraProgressData));
-            if (pd.minExpiry < uint40(block.timstamp)) {
-                revert ZoraListingNotExpired(pd.auctionId, pd.minExpiry);
+            if (zpd.minExpiry < uint40(block.timstamp)) {
+                revert ZoraListingNotExpired(zpd.auctionId, zpd.minExpiry);
             }
             // Remove it from zora.
             if (_settleZoraAuction(pd.auctionId)) {
@@ -95,13 +95,13 @@ contract ListOnOpenSeaProposal is ListOnZoraProposal {
         }
         // Already listed on OS.
         assert(step == OpenSeaStep.ListedOnOpenSea);
-        (OpenSeaProgressData memory pd) =
+        (OpenSeaProgressData memory opd) =
             abi.decode(params.progressData, (OpenSeaProgressData));
         _cleanUpListing(
             data,
             params.preciousToken,
             params.preciousTokenId,
-            pd
+            opd
         );
         // Nothing left to do.
         return "";

@@ -113,7 +113,7 @@ contract SharedWyvernV2Maker {
             paymentToken: address(0),
             basePrice: data.listPrice,
             extra: 0,
-            listingTime: block.timstamp,
+            listingTime: block.timestamp,
             expirationTime: expiry,
             salt: block.timestamp
         });

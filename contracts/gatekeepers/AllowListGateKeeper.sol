@@ -6,8 +6,9 @@ import "./IGateKeeper.sol";
 // A GateKeeper that implements a simple allow list (really a mapping) per gate.
 contract AllowListGateKeeper is IGateKeeper {
 
-    uint256 private _lastId;
-    mapping (bytes12 id => mapping (address => bool)) _isAllowedByGateId;
+    uint96 private _lastId;
+    // ID =>
+    mapping (uint96 => mapping (address => bool)) _isAllowedByGateId;
 
     function isAllowed(
         address participant,
@@ -25,9 +26,10 @@ contract AllowListGateKeeper is IGateKeeper {
         external
         returns (bytes12 id)
     {
-        id = ++_lastId;
+        uint96 id_ = ++_lastId;
+        id = bytes12(id);
         for (uint256 i = 0; i < members.length; ++i) {
-            _isAllowedByGateId[id][members[i]] = true;
+            _isAllowedByGateId[id_][members[i]] = true;
         }
     }
 }

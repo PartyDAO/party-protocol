@@ -26,7 +26,7 @@ contract Party is Implementation, PartyGovernanceNFT {
         override
         onlyDelegateCall
     {
-        PartyInitData memory initData_ = abi.decode(initData_, (PartyInitData));
+        PartyInitData memory initData_ = abi.decode(initData, (PartyInitData));
         PartyGovernanceNFT.initialize(
             initData_.name,
             initData_.symbol,

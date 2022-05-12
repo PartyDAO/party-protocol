@@ -4,6 +4,7 @@ pragma solidity ^0.8;
 import "../tokens/IERC721.sol";
 import "../utils/ReadOnlyDelegateCall.sol";
 import "../globals/IGlobals.sol";
+import "../globals/LibGlobals.sol";
 
 // NFT functionality for PartyBid/Buy contributions.
 // This NFT is soulbound and read-only.
@@ -29,7 +30,7 @@ contract PartyCrowdfundNFT is IERC721, ReadOnlyDelegateCall {
     }
 
     // Must be called once by freshly deployed PartyProxy instances.
-    function initialize(string name, string symbol)
+    function initialize(string name_, string symbol_)
         public
         virtual
     {
@@ -87,7 +88,7 @@ contract PartyCrowdfundNFT is IERC721, ReadOnlyDelegateCall {
     {
         _readOnlyDelegateCall(
             // An instance of IERC721Renderer
-            _GLOBALS.getAddress(LibGobals.GLOBAL_CF_NFT_RENDER_IMPL),
+            _GLOBALS.getAddress(LibGlobals.GLOBAL_CF_NFT_RENDER_IMPL),
             msg.data
         );
     }
@@ -100,7 +101,7 @@ contract PartyCrowdfundNFT is IERC721, ReadOnlyDelegateCall {
     }
 
     function _doesTokenExistFor(address owner) internal view returns (bool) {
-        return _owners[uint256(uint160(tokenId))] != address(0);
+        return _owners[uint256(uint160(owner))] != address(0);
     }
 
     function _mint(address owner) internal returns (uint256 tokenId)

@@ -125,6 +125,7 @@ contract PartyGovernance is
     error ExecutionTimeExceededError(uint40 maxExecutableTime, uint40 timestamp);
     error OnlyPartyHostError();
     error OnlyActiveMemberError();
+    error InvalidDelegateError();
 
     IGlobals private immutable _GLOBALS;
 
@@ -164,8 +165,8 @@ contract PartyGovernance is
 
     function initialize(
         GovernanceOpts memory opts,
-        IERC721 preciousToken,
-        uint256 preciousTokenId
+        IERC721 preciousToken_,
+        uint256 preciousTokenId_
     )
         public
         virtual
@@ -179,8 +180,8 @@ contract PartyGovernance is
             passThresholdBps: opts.passThresholdBps,
             totalVotingPower: opts.totalVotingPower
         });
-        preciousToken = preciousToken;
-        preciousTokenId = preciousTokenId;
+        preciousToken = preciousToken_;
+        preciousTokenId = preciousTokenId_;
     }
 
     fallback() external {
@@ -196,14 +197,14 @@ contract PartyGovernance is
     function getProposalExecutionEngine()
         external
         view
-        returns (address IProposalExecutionEngine)
+        returns (IProposalExecutionEngine)
     {
         return LibProposal.getProposalExecutionEngine();
     }
 
     // Get the total (delegated + intrinsic) voting power of `voter` by a timestamp.
     function getVotingPowerAt(address voter, uint40 timestamp)
-        external
+        public
         view
         returns (uint96 votingPower)
     {
@@ -265,7 +266,7 @@ contract PartyGovernance is
         external
         returns (uint256 proposalId)
     {
-        uint256 proposalId = ++lastProposalId;
+        proposalId = ++lastProposalId;
         (
             _proposalInfoByProposalId[proposalId].values,
             _proposalInfoByProposalId[proposalId].hash
@@ -307,8 +308,7 @@ contract PartyGovernance is
         require(!info.hasVoted[msg.sender], 'ALREADY_VOTED');
         info.hasVoted[msg.sender] = true;
 
-        uint96 votingPower =
-            getVotingPowerAt(msg.sender, values.proposedTime);
+        uint96 votingPower = getVotingPowerAt(msg.sender, values.proposedTime);
         values.votes += votingPower;
         info.values = values;
         emit ProposalAccepted(proposalId, msg.sender, votingPower);
@@ -386,7 +386,8 @@ contract PartyGovernance is
             _executeProposal(
                 proposalId,
                 proposal,
-                _getProposalFlags(infoValues)
+                _getProposalFlags(infoValues),
+                progressData
             );
         emit ProposalExecuted(proposalId, msg.sender);
         if (es == IProposalExecutionEngine.ProposalExecutionStatus.Complete) {
@@ -398,7 +399,8 @@ contract PartyGovernance is
     function _executeProposal(
         uint256 proposalId,
         Proposal memory proposal,
-        uint32 flags
+        uint32 flags,
+        bytes memory progressData
     )
         private
         returns (IProposalExecutionEngine.ProposalExecutionStatus es)
@@ -440,13 +442,13 @@ contract PartyGovernance is
             VotingPowerSnapshot memory shot_ = snaps[p];
             if (timestamp == shot_.timestamp) {
                 // Entry at exact time.
-                votingPower = shot_;
+                shot = shot_;
                 break;
             }
             n /= 2;
             if (timestamp > shot_.timestamp) {
                 // Entry is older. This is our best guess for now.
-                votingPower = shot_;
+                shot = shot_;
                 p += (n + 1) / 2; // Move search index to middle of lower half.
             } else /* if (timestamp < timestamp_) */ {
                 // Entry is too recent.
@@ -492,7 +494,7 @@ contract PartyGovernance is
 
     // Increase `voter`'s intrinsic voting power and update their delegate if delegate is nonzero.
     function _adjustVotingPower(address voter, int192 votingPower, address delegate)
-        private
+        internal
     {
         VotingPowerSnapshot[] storage voterSnaps = _votingPowerSnapshotsByVoter[voter];
         VotingPowerSnapshot memory oldSnap = _getLastVotingPowerSnapshot(voterSnaps);
@@ -501,7 +503,7 @@ contract PartyGovernance is
         delegate = delegate == address(0) ? oldDelegate : delegate;
         // If `delegate` is still zero (`voter` never delegated), set the delegate
         // to themself.
-        delegate = delgate == address(0) ? voter : delegate;
+        delegate = delegate == address(0) ? voter : delegate;
         VotingPowerSnapshot memory newSnap = VotingPowerSnapshot({
             timestamp: block.timestamp,
             delegatedVotingPower: oldSnap.delegatedVotingPower,
@@ -510,10 +512,14 @@ contract PartyGovernance is
             ),
             isDelegated: delegate != voter
         });
-        voerSnaps.push(newSnap);
+        voterSnaps.push(newSnap);
         delegationsByVoter[voter] = delegate;
         // Handle rebalancing delegates.
         _rebalanceDelegates(voter, oldDelegate, delegate, oldSnap, newSnap);
+    }
+
+    function _getTotalVotingPower() internal view returns (uint256) {
+        return governanceValues.totalVotingPower;
     }
 
     // Update the delegated voting power of the old and new delegates delegated to
@@ -528,7 +534,7 @@ contract PartyGovernance is
         private
     {
         if (newDelegate == address(0)) {
-            revert InvalidDelegateError(delegate);
+            revert InvalidDelegateError();
         }
         {
             if (oldDelegate != address(0) && oldDelegate != newDelegate) {
@@ -548,10 +554,10 @@ contract PartyGovernance is
                 }));
             }
         }
-        if (delegate != voter) { // Not delegating to self.
+        if (newDelegate != voter) { // Not delegating to self.
             // Add new voting power to new delegate.
             VotingPowerSnapshot[] storage newDelegateSnaps =
-                _votingPowerSnapshotsByVoter[delegate];
+                _votingPowerSnapshotsByVoter[newDelegate];
             VotingPowerSnapshot memory newDelegateShot =
                 _getLastVotingPowerSnapshot(newDelegateSnaps);
             newDelegateSnaps.push(VotingPowerSnapshot({
@@ -564,7 +570,7 @@ contract PartyGovernance is
                 isDelegated: newDelegateShot.isDelegated
             }));
         }
-        emit VotingPowerDelegated(owner, delegate, newSnap.intrinsicVotingPower);
+        emit VotingPowerDelegated(voter, newDelegate, newSnap.intrinsicVotingPower);
     }
 
     function _getLastVotingPowerSnapshot(VotingPowerSnapshot[] storage snaps)
