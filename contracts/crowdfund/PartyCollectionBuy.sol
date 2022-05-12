@@ -5,8 +5,8 @@ import "../tokens/IERC721.sol";
 import "../party/Party.sol";
 import "../utils/Implementation.sol";
 import "../globals/IGlobals.sol";
+import "../gatekeepers/IGateKeeper.sol";
 
-import "./IGateKeeper.sol";
 import "./IMarketWrapper.sol";
 import "./PartyCrowdfund.sol";
 
