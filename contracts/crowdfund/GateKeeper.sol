@@ -1,14 +1,7 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8;
 
-// import "./IGateKeeper.sol";
 import "../tokens/IERC20.sol";
-
-//able to flex to different types of gatekeeping logic
-//bytes calldata encoded 
-//based on type of gatekeeping
-//decode the data you expect
-//which should be token address and minimum balance
 
 /**
  * @notice defines whether or not a user can access party
@@ -17,9 +10,11 @@ contract GateKeeper {
 
     address tokenAddress;
     uint256 minimumBalance;
-
+  
+  //encoded calldata
   constructor (bytes memory _callData) {
-    
+      //TODO decode the calldata
+      //TODO assign it to tokenAddress, minimumBalance
   }
 
     /**
@@ -31,8 +26,6 @@ contract GateKeeper {
      */
     function isAllowed(
         address _participant,
-        // uint256 _minimumBalance,
-        // address _tokenAddress,
         bytes12 _id,
         bytes memory _userData
     ) external view returns (bool) {
