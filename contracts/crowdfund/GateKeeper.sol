@@ -11,11 +11,11 @@ contract GateKeeper {
     address tokenAddress;
     uint256 minimumBalance;
   
-  //encoded calldata
-  constructor (bytes memory _callData) {
+    //encoded calldata
+    constructor (bytes memory _callData) {
       //TODO decode the calldata
       //TODO assign it to tokenAddress, minimumBalance
-  }
+    }
 
     /**
      * @notice defines whether or not a user can access party
