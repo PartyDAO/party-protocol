@@ -2,7 +2,7 @@
 pragma solidity ^0.8;
 
 // Single registry of global values controlled by multisig.
-// See `LibGobals` for all valid keys.
+// See `LibGlobals` for all valid keys.
 interface IGlobals {
     function getAddress(uint256 id) external view returns (address);
     function getUint256(uint256 id) external view returns (uint256);

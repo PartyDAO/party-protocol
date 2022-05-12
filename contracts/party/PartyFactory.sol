@@ -6,6 +6,7 @@ import "../tokens/IERC721.sol";
 
 import "./Party.sol";
 import "./IPartyFactory.sol";
+import "./PartyProxy.sol";
 
 // Creates generic Party instances.
 contract PartyFactory is IPartyFactory {
@@ -54,7 +55,7 @@ contract PartyFactory is IPartyFactory {
     // Mint governance tokens on a party created through this factory.
     // Only the authortiy set in `createParty()` can call this function.
     function mint(
-        IParty party,
+        Party party,
         address owner,
         uint256 amount,
         address delegate

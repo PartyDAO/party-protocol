@@ -15,7 +15,6 @@ contract ProposalExecutionEngine is
     IProposalExecutionEngine,
     Implementation,
     ListOnOpenSeaProposal,
-    ListOnZoraProposal,
     FractionalizeProposal,
     ArbitraryCallsProposal
 {
@@ -53,6 +52,10 @@ contract ProposalExecutionEngine is
 
     event ProposalExecutionProgress(bytes32 proposalId, bytes progressData);
 
+    error ZeroProposalIdError();
+    error ProposalAlreadyCompleteError(bytes32 proposalId);
+    error ProposalExecutionBlockedError(bytes32 proposalId, bytes32 currentInProgressProposalId);
+
     bytes32 private constant EMPTY_HASH = keccak256("");
     IGlobals private immutable _GLOBALS;
     // Storage slot for `Storage`.
@@ -83,32 +86,39 @@ contract ProposalExecutionEngine is
         external
         returns (ProposalExecutionStatus status)
     {
-        // Must have a valid proposal ID.
-        require(params.proposalId != bytes32(0));
-        // Proposal must not be completed.
-        require(
-            _getProposalExecutionStatus(proposalId, progressDataHash)
-                != ProposalExecutionStatus.Complete
-        );
         Storage storage stor = _getStorage();
+        // Must have a valid proposal ID.
+        if (params.proposalId == bytes32(0)) {
+            revert ZeroProposalIdError();
+        }
+        // Proposal must not be completed.
+        {
+            bytes32 nextProgressDataHash =
+                stor.proposalProgressDataHashByProposalId[params.proposalId];
+            ProposalExecutionStatus status =
+                _getProposalExecutionStatus(params.proposalId, nextProgressDataHash);
+            if (status == ProposalExecutionStatus.Complete) {
+                revert ProposalAlreadyCompleteError();
+            }
+        }
         // Only one proposal can be in progress at a time.
+        bytes32 currentInProgressProposalId = stor.currentInProgressProposalId;
         if (currentInProgressProposalId != bytes32(0)) {
-            bytes32 currentInProgressProposalId = stor.currentInProgressProposalId;
             if (currentInProgressProposalId != params.proposalId) {
-                revert ProposalExecutionBlocked(
+                revert ProposalExecutionBlockedError(
                     params.proposalId,
-                    currentIncompleteProposalId
+                    currentInProgressProposalId
                 );
             }
         }
-        stor.currentIncompleteProposalId = params.proposalId;
+        stor.currentInProgressProposalId = params.proposalId;
 
         // Execute the proposal.
         bytes memory nextProgressData = _execute(params);
-        emit ProposalExecutionProgress(proposalId, nextProgressData);
+        emit ProposalExecutionProgress(params.proposalId, nextProgressData);
 
         // Remember the next progress data.
-        stor.proposalProgressDataHashByProposalId[proposalInfo] =
+        stor.proposalProgressDataHashByProposalId[params.proposalId] =
             keccak256(nextProgressData);
 
         // If progress data is empty, the propsal is complete,
@@ -168,7 +178,7 @@ contract ProposalExecutionEngine is
         LibProposal.setProposalsImpl(newImpl);
         (bool s, bytes memory r) = address(newImpl)
             .delegatecall(abi.encodeCall(
-                IPartyProposals.initialize,
+                ProposalExecutionEngine.initialize,
                 abi.encode(IMPL)
             ));
         if (!s) {

@@ -43,11 +43,10 @@ abstract contract PartyCrowdfund is PartyCrowdfundNFT {
 
     event DaoClaimed(address recipient, uint256 amount);
     event Burned(address contributor, uint256 ethUsed, uint256 votingPower);
+    event Contributed(address contributor, uint256 amount, address delegate);
 
     IGlobals private immutable _GLOBALS;
 
-    // When this crowdfund expires.
-    uint40 expiry;
     // The party instance created by `_createParty()`, if any.
     Party public party;
     // How much governance power to reserve for `splitRecipient`,
@@ -58,6 +57,8 @@ abstract contract PartyCrowdfund is PartyCrowdfundNFT {
     // Hash of PartyOptions passed into initialize().
     // The PartyOptions passed into `_createParty()` must match.
     bytes32 public partyOptionsHash;
+    // The total (recorded) ETH contributed to this crowdfund.
+    uint256 public totalContributions;
     // Who a contributor last delegated to.
     mapping (address => address) private _delegationsByContributor;
     // Array of contributions by a contributor.
@@ -69,8 +70,8 @@ abstract contract PartyCrowdfund is PartyCrowdfundNFT {
     }
 
     // Must be called once by freshly deployed PartyCrowdfundProxy instances.
-    function initialize(CrowdfundInitOptions memory opts)
-        public
+    function _initialize(CrowdfundInitOptions memory opts)
+        internal
         override
     {
         PartyCrowdfundNFT.initialize(opts.name, opts.symbol);
@@ -100,7 +101,6 @@ abstract contract PartyCrowdfund is PartyCrowdfundNFT {
     function batchBurn(address[] calldata contributors)
         external
     {
-        ethRefunded = new uint256[](contributors.length);
         Party party_ = party;
         CrowdfundLifecycle lc = getCrowdfundLifecycle();
         for (uint256 i = 0; i < contributors.length; ++i) {
@@ -128,14 +128,36 @@ abstract contract PartyCrowdfund is PartyCrowdfundNFT {
     receive() external payable {
         // If the sender already delegated before then use that delegate.
         // Otherwise delegate to the sender.
-        address delegate = delegationsByContributor[msg.sender];
+        address delegate = _delegationsByContributor[msg.sender];
         delegate = delegate == address(0) ? msg.sender : delegate;
         _addContribution(
-            contributor,
+            msg.sender,
             msg.value,
             delegate,
             address(this).balance - msg.value
         );
+    }
+
+    // This will only be called off-chain so doesn't have to be optimal.
+    function getContributorInfo(address contributor)
+        external
+        view
+        returns (
+            uint256 ethContributed,
+            uint256 ethUsed,
+            uint256 ethOwed,
+            uint256 votingPower
+        )
+    {
+        CrowdfundLifecycle lc = getCrowdfundLifecycle();
+        Contribution[] storage contributions = _contributionsByContributor[contributor];
+        uint256 numContributions = contributions.length;
+        for (uint256 i = 0; i < numContributions; ++i) {
+            ethContributed += contributions[i].amount;
+        }
+        if (lc == CrowdfundLifecycle.Won || lc == CrowdfundLifecycle.Lost) {
+            (ethUsed, ethOwed, votingPower) = _getFinalContribution(contributor);
+        }
     }
 
     function getCrowdfundLifecycle() public virtual view returns (CrowdfundLifecycle);
@@ -150,7 +172,7 @@ abstract contract PartyCrowdfund is PartyCrowdfundNFT {
     // After calling this, anyone can burn CF tokens on a contributor's behalf
     // with the `burn()` function.
     function _createParty(
-        Party.PartyOptions opts,
+        Party.PartyOptions memory opts,
         IERC721 preciousToken,
         uint256 preciousTokenId
     )
@@ -167,10 +189,9 @@ abstract contract PartyCrowdfund is PartyCrowdfundNFT {
             }
         }
         party = party_ =
-            PartyFactory(_GLOBALS.getAddress(LibGlobals.GLOBAL_PARTY_FACTORY))
+            IPartyFactory(_GLOBALS.getAddress(LibGlobals.GLOBAL_PARTY_FACTORY))
                 ._createParty(address(this), opts, preciousToken, preciousTokenId);
         preciousToken.transfer(address(party_), preciousTokenId);
-        emit PartyCreated(party_);
     }
 
     function _hashPartyOptions(Party.PartyOptions memory opts)
@@ -258,8 +279,8 @@ abstract contract PartyCrowdfund is PartyCrowdfundNFT {
             Contribution[] storage contributions = _contributionsByContributor[contributor];
             uint256 numContributions = contributions.length;
             if (numContributions >= 1) {
-                lastContribution = contributions[numContributions - 1];
-                if (lastContribution.previousTotalContribution == previousTotalContribution) {
+                Contribution memory lastContribution = contributions[numContributions - 1];
+                if (lastContribution.previousTotalContribution == totalContributions) {
                     // No one else has contributed since so just reuse the last entry.
                     lastContribution.contribution += amount;
                     contributions[numContributions - 1] = lastContribution;
@@ -268,7 +289,7 @@ abstract contract PartyCrowdfund is PartyCrowdfundNFT {
             }
             // Add a new contribution entry.
             contributions.push(Contribution({
-                previousTotalContribution: previousTotalContribution,
+                previousTotalContribution: totalContributions,
                 amount: amount
             }));
             if (numContributions == 0) {
@@ -307,7 +328,7 @@ abstract contract PartyCrowdfund is PartyCrowdfundNFT {
                 party_,
                 contributor,
                 votingPower,
-                delegationsByContributor[contributor] // TODO: Might be 0 for split recipient
+                _delegationsByContributor[contributor] // TODO: Might be 0 for split recipient
             );
         }
         _transferEth(contributor, ethOwed);

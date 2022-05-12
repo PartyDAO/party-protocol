@@ -40,8 +40,9 @@ contract PartyCollectionBuy is Implementation, PartyCrowdfund {
         override
         onlyDelegateCall
     {
-        PartyCollectionBuyOptions memory opts = abi.decode(rawInitOpts, (PartyBuyOptions));
-        PartyCrowdfund.initialize(CrowdfundInitOptions({
+        PartyCollectionBuyOptions memory opts =
+            abi.decode(rawInitOpts, (PartyCollectionBuyOptions));
+        PartyCrowdfund._initialize(CrowdfundInitOptions({
             name: opts.name,
             symbol: opts.symbol,
             partyOptions: opts.partyOptions,
@@ -56,13 +57,13 @@ contract PartyCollectionBuy is Implementation, PartyCrowdfund {
         expiry = uint40(opts.durationInSeconds + block.timestamp);
     }
 
-    function contribute(address contributor, address delegate, bytes gateData)
+    function contribute(address contributor, address delegate, bytes memory gateData)
         public
         override
         payable
     {
         if (gateKeeper != IGateKeeper(address(0))) {
-            require(gateKeeper.isAllowed(contributor, gatkeeperId, gateData), 'NOT_ALLOWED');
+            require(gateKeeper.isAllowed(contributor, gateKeeperId, gateData), 'NOT_ALLOWED');
         }
         PartyCrowdfund.contribute(contributor, delegate);
     }

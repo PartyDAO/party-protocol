@@ -30,8 +30,8 @@ contract PartyCrowdfundNFT is IERC721, ReadOnlyDelegateCall {
     }
 
     // Must be called once by freshly deployed PartyProxy instances.
-    function initialize(string name_, string symbol_)
-        public
+    function initialize(string calldata name_, string calldata symbol_)
+        internal
         virtual
     {
         name = name_;
@@ -84,7 +84,7 @@ contract PartyCrowdfundNFT is IERC721, ReadOnlyDelegateCall {
         return interfaceId == 0x5b5e139f; // ERC721Metadata
     }
 
-    function tokenURI(uint256 tokenId) external /* view */ returns (string)
+    function tokenURI(uint256 tokenId) external /* view */ returns (string memory)
     {
         _readOnlyDelegateCall(
             // An instance of IERC721Renderer

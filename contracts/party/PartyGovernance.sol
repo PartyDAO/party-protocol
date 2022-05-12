@@ -16,7 +16,7 @@ import "../proposals/LibProposal.sol";
 import "./IPartyFactory.sol";
 
 // Base contract for a Party encapsulating all governance functionality.
-contract PartyGovernance is
+abstract contract PartyGovernance is
     ITokenDistributorParty,
     ReadOnlyDelegateCall
 {
@@ -160,15 +160,15 @@ contract PartyGovernance is
     }
 
     constructor() {
-        _GLOBALS = IPartyFactory(msg.sender)._GLOBALS();
+        _GLOBALS = IPartyFactory(msg.sender).GLOBALS();
     }
 
-    function initialize(
+    function _initialize(
         GovernanceOpts memory opts,
         IERC721 preciousToken_,
         uint256 preciousTokenId_
     )
-        public
+        internal
         virtual
     {
         LibProposal.initProposalImpl(IProposalExecutionEngine(
@@ -252,7 +252,7 @@ contract PartyGovernance is
             _GLOBALS.getAddress(LibGlobals.GLOBAL_TOKEN_DISTRIBUTOR)
         );
         uint256 value = 0;
-        if (token != IERC20(0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee)) {
+        if (token != IERC20(0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE)) {
             token.compatTransfer(address(distributor), token.balanceOf(address(this)));
         } else {
             value = address(this).balance;
@@ -405,7 +405,7 @@ contract PartyGovernance is
         private
         returns (IProposalExecutionEngine.ProposalExecutionStatus es)
     {
-        IProposalExecutionEngine.ExecuteProposalParams executeParams =
+        IProposalExecutionEngine.ExecuteProposalParams memory executeParams =
             IProposalExecutionEngine.ExecuteProposalParams({
                 proposalId: bytes32(proposalId),
                 proposalData: proposal.proposalData,

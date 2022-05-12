@@ -31,7 +31,7 @@ contract PartyBid is Implementation, PartyCrowdfund {
     IERC721 public nftContract;
     uint40 public expiry;
     IGateKeeper public gateKeeper;
-    bytes12 public gatkeeperId;
+    bytes12 public gateKeeperId;
     IMarketWrapper public market;
     uint256 public highestBid;
 
@@ -43,7 +43,7 @@ contract PartyBid is Implementation, PartyCrowdfund {
         onlyDelegateCall
     {
         PartyBidOptions memory opts = abi.decode(rawInitOpts, (PartyBidOptions));
-        PartyCrowdfund.initialize(CrowdfundInitOptions({
+        PartyCrowdfund._initialize(CrowdfundInitOptions({
             name: opts.name,
             symbol: opts.symbol,
             partyOptions: opts.partyOptions,
@@ -59,7 +59,7 @@ contract PartyBid is Implementation, PartyCrowdfund {
         expiry = uint40(opts.durationInSeconds + block.timestamp);
     }
 
-    function contribute(address contributor, address delegate, bytes gateData)
+    function contribute(address contributor, address delegate, bytes memory gateData)
         public
         override
         payable

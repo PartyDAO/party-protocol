@@ -10,7 +10,7 @@ contract Proxy {
 
     Implementation public immutable IMPL;
 
-    constructor(Implementation impl, bytes calldata initData) payable {
+    constructor(Implementation impl, bytes memory initData) payable {
         IMPL = impl;
         (bool s, bytes memory r) = address(impl).delegatecall(
             abi.encodeCall(impl.initialize, initData)

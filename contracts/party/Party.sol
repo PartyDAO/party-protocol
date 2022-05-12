@@ -22,12 +22,12 @@ contract Party is Implementation, PartyGovernanceNFT {
     }
 
     function initialize(bytes memory initData)
-        public
+        external
         override
         onlyDelegateCall
     {
         PartyInitData memory initData_ = abi.decode(initData, (PartyInitData));
-        PartyGovernanceNFT.initialize(
+        PartyGovernanceNFT._initialize(
             initData_.name,
             initData_.symbol,
             initData_.governance,

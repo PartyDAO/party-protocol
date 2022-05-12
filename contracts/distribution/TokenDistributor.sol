@@ -4,11 +4,13 @@ pragma solidity ^0.8;
 import "../globals/IGlobals.sol";
 import "../globals/LibGlobals.sol";
 import "../tokens/IERC20.sol";
+import "../utils/LibERC20Compat.sol";
 
 import "./ITokenDistributorParty.sol";
 
 // Token and ETH distributor contract.
 contract TokenDistributor {
+    using LibERC20Compat for IERC20;
 
     struct DistributionInfo {
         uint256 distributionId;
@@ -38,7 +40,7 @@ contract TokenDistributor {
     event DistributionClaimedByPartyDao(DistributionInfo info, address recipient, uint256 amountClaimed);
     event DistributionClaimedByToken(DistributionInfo info, uint256 tokenId, address recipient, uint256 amountClaimed);
 
-    IERC20 constant private ETH_TOKEN = IERC20(0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee);
+    IERC20 constant private ETH_TOKEN = IERC20(0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE);
 
     IGlobals public immutable GLOBALS;
 
@@ -94,7 +96,7 @@ contract TokenDistributor {
             IGlobals.getUint256(LibGlobals.GLOBAL_DAO_DISTRIBUTION_SPLIT) / 1e18;
         assert(daoSupply <= supply);
         uint256 memberSupply = supply - daoSupply;
-        info = new DistributionInfo({
+        info = DistributionInfo({
             distributionId: distId,
             token: token,
             party: party,

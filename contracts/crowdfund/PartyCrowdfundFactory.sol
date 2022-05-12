@@ -6,6 +6,7 @@ import "../globals/IGlobals.sol";
 import "./PartyBid.sol";
 import "./PartyBuy.sol";
 import "./PartyCollectionBuy.sol";
+import "./PartyCrowdfundProxy.sol";
 
 contract PartyCrowdfundFactory {
     event PartyBuyCreated(PartyBuy.PartyBuyOptions opts);
@@ -20,13 +21,13 @@ contract PartyCrowdfundFactory {
     constructor(
         IGlobals globals,
         uint256 partyBuyImplGlobalKey,
-        uint256 partyBidGlobalKey,
+        uint256 partyBidImplGlobalKey,
         uint256 partyCollectionBuyImplGlobalKey
     ) {
         _GLOBALS = globals;
         _PARTY_BUY_IMPL_GLOBAL_KEY = partyBuyImplGlobalKey;
         _PARTY_BID_IMPL_GLOBAL_KEY = partyBidImplGlobalKey;
-        _PARTY_COLLECTION_BUY_IMPL_GLOBAL_KEY = partyCollectionBuyGlobalKey;
+        _PARTY_COLLECTION_BUY_IMPL_GLOBAL_KEY = partyCollectionBuyImplGlobalKey;
     }
 
     function createPartyBuy(PartyBuy.PartyBuyOptions calldata opts)
@@ -53,7 +54,9 @@ contract PartyCrowdfundFactory {
         emit PartyBidCreated(opts);
     }
 
-    function createPartyCollectionBuy(PartyBuy.PartyCollectionBuyOptions calldata opts)
+    function createPartyCollectionBuy(
+        PartyCollectionBuy.PartyCollectionBuyOptions calldata opts
+    )
         external
         returns (PartyBuy inst)
     {

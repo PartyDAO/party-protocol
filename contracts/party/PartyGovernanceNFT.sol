@@ -57,17 +57,16 @@ contract PartyGovernanceNFT is
     }
 
     // Initialize storage for proxy contracts.
-    function initialize(
-        string name_,
-        string symbol_,
+    function _initialize(
+        string calldata name_,
+        string calldata symbol_,
         PartyGovernance.GovernanceOpts memory governanceOpts,
         IERC721 preciousToken,
         uint256 preciousTokenId
     )
-        public
-        override
+        internal
     {
-        PartyGovernance.initialize(governanceOpts, preciousToken, preciousTokenId);
+        PartyGovernance._initialize(governanceOpts, preciousToken, preciousTokenId);
         name = name_;
         symbol = symbol_;
     }
@@ -162,7 +161,7 @@ contract PartyGovernanceNFT is
         return _tokens[tokenId].votingPower;
     }
 
-    function tokenURI(uint256 tokenId) external /* view */ returns (string)
+    function tokenURI(uint256 tokenId) external /* view */ returns (string memory)
     {
         // An instance of IERC721Renderer
         _readOnlyDelegateCall(

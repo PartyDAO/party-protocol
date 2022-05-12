@@ -5,13 +5,14 @@ import "../tokens/IERC721.sol";
 
 import "./opensea/SharedWyvernV2Maker.sol";
 import "./ListOnZoraProposal.sol";
+import "./LibProposal.sol";
 
 // Implements arbitrary call proposals.
 contract ListOnOpenSeaProposal is ListOnZoraProposal {
     enum OpenSeaStep {
         None,
         ListedOnZora,
-        ZoraListingFailed,
+        RetrievedFromZora,
         ListedOnOpenSea
     }
 
@@ -66,6 +67,7 @@ contract ListOnOpenSeaProposal is ListOnZoraProposal {
                     minExpiry: minExpiry
                 }));
             }
+            // Unanimous vote. Advance pas the zora phase.
             step = OpenSeaStep.RetrievedFromZora;
         }
         if (step == OpenSeaStep.ListedOnZora) {
@@ -75,14 +77,14 @@ contract ListOnOpenSeaProposal is ListOnZoraProposal {
                 revert ZoraListingNotExpired(zpd.auctionId, zpd.minExpiry);
             }
             // Remove it from zora.
-            if (_settleZoraAuction(pd.auctionId)) {
+            if (_settleZoraAuction(zpd.auctionId)) {
                 // Auction sold. Nothing left to do.
                 return "";
             }
             // No bids. Move on.
-            step = OpenSeaStep.ZoraListingFailed;
+            step = OpenSeaStep.RetrievedFromZora;
         }
-        if (step == OpenSeaStep.ZoraListingFailed) {
+        if (step == OpenSeaStep.RetrievedFromZora) {
             // Either a unanimous vote or retrieved from zora (no bids).
             uint256 expiry = block.timestamp + uint256(data.durationInSeconds);
             bytes32 orderHash = _listOnOpenSea(
@@ -122,7 +124,7 @@ contract ListOnOpenSeaProposal is ListOnZoraProposal {
         orderHash = SHARED_WYVERN_MAKER.createListing(
             token,
             tokenId,
-            listPrice,
+            data.listPrice,
             expiry
         );
     }

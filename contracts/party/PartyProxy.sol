@@ -9,7 +9,7 @@ import "./IPartyFactory.sol";
 // The Party instance. Just a thin proxy that delegatecalls into previously deployed
 // implementation logic.
 contract PartyProxy is Proxy {
-    constructor(bytes calldata initData)
+    constructor(bytes memory initData)
         Proxy(
             IPartyFactory(msg.sender)
                 .GLOBALS()

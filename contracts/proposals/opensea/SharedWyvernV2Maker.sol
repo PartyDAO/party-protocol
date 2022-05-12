@@ -15,7 +15,7 @@ contract SharedWyvernV2Maker {
     using LibRawResult for bytes;
 
     error NoDirectCallsError();
-    error InvalidProofError(address notOwner, address owner);
+    error InvalidProofError(address notOwner, bytes32 orderHash, uint256 listPrice, uint256 expiry);
     error ListingAlreadyExistsError(IERC721 token, uint256 tokenId);
     error TokenNotOwnedError(IERC721 token, uint256 tokenId);
 
@@ -111,7 +111,7 @@ contract SharedWyvernV2Maker {
             staticTarget: address(0),
             staticExtraData: "",
             paymentToken: address(0),
-            basePrice: data.listPrice,
+            basePrice: listPrice,
             extra: 0,
             listingTime: block.timestamp,
             expirationTime: expiry,
@@ -139,7 +139,7 @@ contract SharedWyvernV2Maker {
             // Make sure all details form the correct proof for this NFT.
             bytes32 proof = _toProof(msg.sender, orderHash, listPrice, expiry);
             if (proofsByNft[token][tokenId] != proof) {
-                revert InvalidProofError(msg.sender, owner);
+                revert InvalidProofError(msg.sender, orderHash, listPrice, expiry);
             }
         }
         proofsByNft[token][tokenId] = 0x0; // No claiming twice.

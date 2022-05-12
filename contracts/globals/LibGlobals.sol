@@ -15,4 +15,5 @@ library LibGlobals {
     uint256 internal constant GLOBAL_DAO_CF_SPLIT               = 9;
     uint256 internal constant GLOBAL_DAO_DISTRIBUTION_SPLIT     = 10;
     uint256 internal constant GLOBAL_DAO_WALLET                 = 11;
+    uint256 internal constant GLOBAL_TOKEN_DISTRIBUTOR          = 12;
 }

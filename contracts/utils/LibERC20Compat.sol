@@ -12,7 +12,7 @@ library LibERC20Compat {
         internal
     {
         (bool s, bytes memory r) =
-            address(token).call(abi.encodeCalll(IERC20.transfer, to, amount));
+            address(token).call(abi.encodeCall(IERC20.transfer, to, amount));
         if (s) {
             if (r.length == 0) {
                 uint256 cs;

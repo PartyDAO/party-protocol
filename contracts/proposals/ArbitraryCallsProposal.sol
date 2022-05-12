@@ -92,8 +92,7 @@ contract ArbitraryCallsProposal {
         view
         returns (bool hasPrecious)
     {
-        hasPrecious =
-            params.preciousToken.ownerOf(params.preciousTokenId) == address(this);
+        hasPrecious = preciousToken.ownerOf(preciousTokenId) == address(this);
     }
 
     function _isCallProhibited(
