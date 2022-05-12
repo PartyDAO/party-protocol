@@ -14,7 +14,7 @@ contract GateKeeper {
     //bytes calldata encoded
     constructor (bytes memory _callData) {
       //TODO abidecode the calldata
-      abi.decode(_callData, (address, uint256));
+      abi.decode(_callData, (address, uint256)); // I was just playing around with this
       //TODO assign it to tokenAddress, minimumBalance
     }
 
