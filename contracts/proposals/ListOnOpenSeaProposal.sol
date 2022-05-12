@@ -1,6 +1,11 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8;
 
+import "../tokens/IERC721.sol";
+
+import "./opensea/SharedWyvernV2Maker.sol";
+import "./ListOnZoraProposal.sol";
+
 // Implements arbitrary call proposals.
 contract ListOnOpenSeaProposal is ListOnZoraProposal {
     enum OpenSeaStep {
@@ -27,7 +32,7 @@ contract ListOnOpenSeaProposal is ListOnZoraProposal {
     // Shared OS/Wyvern maker contract for all parties.
     // This allows all parties to avoid having to create a new transfer proxy
     // when listing on opensea for the first time.
-    WyvernProxy public immutable SHARED_WYVERN_MAKER;
+    SharedWyvernV2Maker public immutable SHARED_WYVERN_MAKER;
 
     constructor(SharedWyvernV2Maker sharedMaker) {
         SHARED_WYVERN_MAKER = sharedMaker;
@@ -37,7 +42,9 @@ contract ListOnOpenSeaProposal is ListOnZoraProposal {
     // Creates a listing on Zora AH for list price first. When that ends,
     // calling this function again will list in on OpenSea. When that ends,
     // calling this function again will cancel the listing.
-    function _executeListOnOpenSea(ExecuteProposalParams memory params)
+    function _executeListOnOpenSea(
+        IProposalExecutionEngine.ExecuteProposalParams memory params
+    )
         internal
         returns (bytes memory nextProgressData)
     {

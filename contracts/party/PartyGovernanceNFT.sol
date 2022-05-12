@@ -1,6 +1,12 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8;
 
+import "../utils/ReadOnlyDelegateCall.sol";
+import "../globals/IGlobals.sol";
+import "../globals/IGlobals.sol";
+
+import "./PartyGovernance.sol";
+
 // ERC721 functionality built on top of PartyGovernance.
 contract PartyGovernanceNFT is
     PartyGovernance,
@@ -62,7 +68,7 @@ contract PartyGovernanceNFT is
     // immediately delegate voting power to `delegate.`
     function mint(address owner, uint256 votingPower, address delegate) external
     {
-        require(msg.sender == _FACTORY); // Only factory can mint.
+        require(msg.sender == address(_FACTORY)); // Only factory can mint.
         uint256 tokenId = _tokenCounter++;
         _tokens[tokenId] = TokenInfo({
             owner: owner,
@@ -148,7 +154,7 @@ contract PartyGovernanceNFT is
         return _tokens[tokenId].votingPower;
     }
 
-    function tokenURI(uint256 tokenId) external external /* view */ returns (string)
+    function tokenURI(uint256 tokenId) external /* view */ returns (string)
     {
         // An instance of IERC721Renderer
         _readOnlyDelegateCall(

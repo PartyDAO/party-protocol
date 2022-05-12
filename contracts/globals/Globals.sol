@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8;
 
+import "./IGlobals.sol";
+
 // TODO: create2 upgradeable? 😉
 contract Globals is IGlobals {
     address public immutable MULTISIG;

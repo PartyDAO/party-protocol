@@ -21,6 +21,7 @@ contract PartyCrowdfundNFT is IERC721, ReadOnlyDelegateCall {
 
     modifier alwaysRevert() {
         revert('ALWAYS FAILING');
+        _; // Compiler requires this.
     }
 
     constructor(IGlobals globals) {

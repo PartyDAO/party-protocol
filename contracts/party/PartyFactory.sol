@@ -1,9 +1,14 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8;
 
+import "../globals/IGlobals.sol";
+import "../tokens/IERC721.sol";
+
+import "./Party.sol";
+import "./IPartyFactory.sol";
+
 // Creates generic Party instances.
-contract PartyFactory {
-    event PartyCreated(Party party, address creator);
+contract PartyFactory is IPartyFactory {
 
     IGlobals public immutable GLOBALS;
 

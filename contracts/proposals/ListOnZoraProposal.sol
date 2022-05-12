@@ -1,6 +1,12 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8;
 
+import "../globals/IGlobals.sol";
+import "../tokens/IERC721.sol";
+
+import "./zora/IZoraAuctionHouse.sol";
+import "./IProposalExecutionEngine.sol";
+
 // Implements arbitrary call proposals.
 contract ListOnZoraProposal {
     enum ZoraStep {
@@ -27,7 +33,6 @@ contract ListOnZoraProposal {
     IGlobals private immutable _GLOBALS;
     IZoraAuctionHouse public immutable ZORA;
 
-
     constructor(IGblobals globals, IZoraAuctionHouse zoraAuctionHouse) {
         _GLOBALS = globals;
         ZORA = zoraAuctionHouse;
@@ -37,7 +42,9 @@ contract ListOnZoraProposal {
     // Creates a listing on Zora AH for list price first. When that ends,
     // calling this function again will list in on OpenSea. When that ends,
     // calling this function again will cancel the listing.
-    function _executeListOnZora(ExecuteProposalParams memory params)
+    function _executeListOnZora(
+        IProposalExecutionEngine.ExecuteProposalParams memory params
+    )
         internal
         returns (bytes memory nextProgressData)
     {

@@ -1,6 +1,9 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8;
 
+import "../../tokens/IERC721.sol";
+import "../../tokens/IERC20.sol";
+
 interface IZoraAuctionHouse {
     struct Auction {
         // ID for the ERC721 token

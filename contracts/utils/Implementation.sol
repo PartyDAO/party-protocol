@@ -7,7 +7,7 @@ abstract contract Implementation {
 
     constructor() { IMPL = address(this); }
 
-    modifier onlyDelegateCall() internal {
+    modifier onlyDelegateCall() {
         require(address(this) != IMPL);
         _;
     }
@@ -15,5 +15,5 @@ abstract contract Implementation {
     // Delegatecalled once when a proxy is deployed.
     function initialize(bytes calldata initializeData)
         external
-        abstract;
+        virtual;
 }

@@ -1,7 +1,12 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8;
 
+import "./IProposalExecutionEngine.sol";
+import "../utils/LibRawResult.sol";
+
 library LibProposal {
+    using LibRawResult for bytes;
+
     uint256 internal constant PROPOSAL_ENGINE_SLOT = uint256(keccak256("proposalExectionEngine"));
     uint256 internal constant PROPOSAL_FLAG_UNANIMOUS = 0x1;
 
@@ -19,13 +24,13 @@ library LibProposal {
         assembly { sstore(slot, and(impl, 0xffffffffffffffffffffffffffffffffffffffff)) }
     }
 
-    function initProposalImpl(IProposalExecutionEngine proposalEngine)
+    function initProposalImpl(IProposalExecutionEngine impl)
         internal
     {
         setProposalExecutionEngine(impl);
-        (bool s, bytes memory r) = address(proposalEngine).delegatecall(abi.encodeCall(
+        (bool s, bytes memory r) = address(impl).delegatecall(abi.encodeCall(
             IProposalExecutionEngine.initialize,
-            getProposalExecutionEngine(),
+            getProposalExecutionEngine()
         ));
         if (!s) {
             r.rawRevert();

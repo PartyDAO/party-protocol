@@ -1,12 +1,18 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8;
 
+import "../globals/IGlobals.sol";
+import "../globals/LibGlobals.sol";
+import "../tokens/IERC20.sol";
+
+import "./ITokenDistributorParty.sol";
+
 // Token and ETH distributor contract.
-contract TokenDistributor is ITokenDistributor {
+contract TokenDistributor {
 
     struct DistributionInfo {
         uint256 distributionId;
-        IERC20Token token;
+        IERC20 token;
         ITokenDistributorParty party;
         uint256 memberSupply;
         uint256 daoSupply;
@@ -48,7 +54,7 @@ contract TokenDistributor is ITokenDistributor {
 
     modifier onlyPartyDao() {
         {
-            address partyDao = IGlobals.getAddress(LibGlobals.GLOBAL_DAO_WALLET)
+            address partyDao = IGlobals.getAddress(LibGlobals.GLOBAL_DAO_WALLET);
             if (msg.sender != partyDao) {
                 revert OnlyPartyDaoError(msg.sender, partyDao);
             }
@@ -99,7 +105,7 @@ contract TokenDistributor is ITokenDistributor {
             _distributionStateById[distId].distributionHash15,
             _distributionStateById[distId].remainingMembersupply,
         ) = (_getDistributionHash(info), memberSupply);
-        emit DistributionCreated(distributionInfo);
+        emit DistributionCreated(info);
     }
 
     // Claim a distribution as a party member based on the weight of a
@@ -114,7 +120,7 @@ contract TokenDistributor is ITokenDistributor {
         external
         returns (uint256 amountClaimed)
     {
-        DistributionState storage state = _distributionStateById[distributionId];
+        DistributionState storage state = _distributionStateById[info.distributionId];
         if (state.distributionHash15 != _getDistributionHash(info)) {
             revert InvalidDistributionInfoError(info);
         }
@@ -124,7 +130,7 @@ contract TokenDistributor is ITokenDistributor {
         state.hasTokenClaimed[tokenId] = true;
         // When paying out, reserve a portion based on token's distribution share.
         // This value is denominated in fractions of 1e18, where 1e18 = 100%.
-        uint256 tokenSplit = party.getDistributionShareOf(governanceTokenId);
+        uint256 tokenSplit = info.party.getDistributionShareOf(tokenId);
         amountClaimed = tokenSplit * info.memberSupply / 1e18;
         uint256 remainingMembersupply = state.remainingMembersupply;
         // Cap at the remaining member supply. Otherwise a malicious
@@ -146,7 +152,7 @@ contract TokenDistributor is ITokenDistributor {
         onlyPartyDao
         returns (uint256 amountClaimed)
     {
-        DistributionState storage state = _distributionStateById[distributionId];
+        DistributionState storage state = _distributionStateById[info.distributionId];
         if (state.distributionHash15 != _getDistributionHash(info)) {
             revert InvalidDistributionInfoError(info);
         }

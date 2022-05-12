@@ -1,6 +1,11 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8;
 
+import "../../utils/LibRawResult.sol";
+import "../../tokens/IERC721.sol";
+
+import "./IWyvernExchangeV2.sol";
+
 // Holds the NFT being sold on OS/wyvern.
 // This allows parties to list on OS without having to deploy a new personal proxy
 // because this contract will be the maker instead of the party.
@@ -41,7 +46,7 @@ contract SharedWyvernV2Maker {
 
     mapping (IERC721 => mapping (uint256 => bytes32)) proofsByNft;
 
-    modifer noDirectCalls() {
+    modifier noDirectCalls() {
         if (tx.origin == msg.sender) {
             revert NoDirectCallsError();
         }
@@ -74,7 +79,7 @@ contract SharedWyvernV2Maker {
             revert ListingAlreadyExistsError(token, tokenId);
         }
         if (token.ownerOf(tokenId) != address(this)) {
-            // Should also revert on token.approve()
+            // Should also revert on token.approve() so perhaps not necessary.
             revert TokenNotOwnedError(token, tokenId);
         }
         IWyvernExchangeV2.Order memory order = IWyvernExchangeV2.Order({
@@ -91,7 +96,7 @@ contract SharedWyvernV2Maker {
             saleKind: IWyvernExchangeV2.SaleKind.FixedPrice,
             target: address(token),
             howToCall: IWyvernExchangeV2.HowToCall.Call,
-            calldata: abi.encodeCall(
+            callData: abi.encodeCall(
                 IERC721.safeTransferFrom,
                 address(this),
                 address(0),
@@ -104,7 +109,7 @@ contract SharedWyvernV2Maker {
                 0
             ),
             staticTarget: address(0),
-            staticExtradata: "",
+            staticExtraData: "",
             paymentToken: address(0),
             basePrice: data.listPrice,
             extra: 0,
@@ -157,7 +162,7 @@ contract SharedWyvernV2Maker {
 
     function _toProof(
         address owner,
-        bytes32 orderHash
+        bytes32 orderHash,
         uint256 listPrice,
         uint256 expiry
     )
@@ -175,11 +180,59 @@ contract SharedWyvernV2Maker {
         }
     }
 
+    // Compute EIP712 hash of order.
     function _hashOrder(IWyvernExchangeV2.Order memory order)
         internal
         pure
-    returns (bytes32 hash)
+        returns (bytes32 hash)
     {
-        // ...
+        {
+            bytes32 callDataHash = keccak256(order.callData);
+            bytes32 replacementPatternHash = keccak256(order.replacementPattern);
+            bytes32 staticExtraData = keccak256(order.staticExtraData);
+            // Hash in-place.
+            // TODO: consider cleaning dirty bits.
+            assembly {
+                if lt(order, 0x20) {
+                    // We overwite the word before `order` so `order` must be at least
+                    // a word away from 0.
+                    invalid()
+                }
+                let oldHiddenPrefixField := mload(sub(order, 0x20))
+                let oldCallDataField := mload(add(order, 0x1C0))
+                let oldReplacementPatternField := mload(add(order, 0x1E0))
+                let oldStaticExtraDataField := mload(add(order, 0x220))
+                let oldHiddenNonceField := mload(add(order, 0x2E0))
+                mstore(
+                    sub(order, 0x20),
+                    // Order typehash
+                    0xdba08a88a748f356e8faf8578488343eab21b1741728779c9dcfdc782bc800f8
+                )
+                mstore(add(order, 0x1C0), callDataHash)
+                mstore(add(order, 0x1E0), replacementPatternHash)
+                mstore(add(order, 0x220), staticExtraData)
+                mstore(add(order, 0x2E0), 0) // We never increment nonce so it's always 0
+                hash := keccak256(order, 0x300)
+                mstore(sub(order, 0x20), oldHiddenPrefixField)
+                mstore(add(order, 0x1C0), oldCallDataField)
+                mstore(add(order, 0x1E0), oldReplacementPatternField)
+                mstore(add(order, 0x220), oldStaticExtraDataField)
+                mstore(add(order, 0x2E0), oldHiddenNonceField)
+            }
+        }
+        // Equivalent to:
+        //   keccak256(
+        //    abi.encodePacked("\x19\x01", DOMAIN_SEPARATOR, hashOrder(order, nonce))
+        //   );
+        assembly {
+            let p := mload(0x40)
+            mstore(p, 0x1901000000000000000000000000000000000000000000000000000000000000)
+            mstore(
+                add(p, 0x02),
+                0x72982d92449bfb3d338412ce4738761aff47fb975ceb17a1bc3712ec716a5a68
+            )
+            mstore(add(p, 0x34), hash)
+            hash := keccak256(p, 0x46)
+        }
     }
 }

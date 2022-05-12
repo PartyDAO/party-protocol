@@ -1,10 +1,12 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8;
 
+import "../tokens/IERC20.sol";
+
 // Compatibility helpers for ERC20s.
-Library LibERC20Compat {
+library LibERC20Compat {
     error NotATokenError(address token);
-    error TokenTransferFailed(address token, to, amount);
+    error TokenTransferFailed(address token, address to, uint256 amount);
 
     function compatTransfer(IERC20 token, address to, uint256 amount)
         internal
@@ -24,6 +26,6 @@ Library LibERC20Compat {
                 return;
             }
         }
-        revert TokenTransferFailed(token, to, amount)
+        revert TokenTransferFailed(token, to, amount);
     }
 }

@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8;
 
+import "./IWyvernV2MakerProxyRegistry.sol";
+
 interface IWyvernExchangeV2 {
 
      /* An ECDSA signature. */
@@ -47,13 +49,13 @@ interface IWyvernExchangeV2 {
         /* HowToCall. */
         HowToCall howToCall;
         /* Calldata. */
-        bytes calldata;
+        bytes callData; // Offset 14
         /* Calldata replacement pattern, or an empty byte array for no replacement. */
-        bytes replacementPattern;
+        bytes replacementPattern; // Offset 15
         /* Static call target, zero-address for no static call. */
         address staticTarget;
         /* Static call extra data. */
-        bytes staticExtradata;
+        bytes staticExtraData; // Offset 17
         /* Token used to pay for the order, or the zero-address as a sentinel value for Ether. */
         address paymentToken;
         /* Base price of the order (in paymentTokens). */

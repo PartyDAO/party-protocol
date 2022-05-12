@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8;
 
+import "../tokens/IERC721.sol";
+
 // Upgradeable proposals logic contract interface.
 interface IProposalExecutionEngine {
     enum ProposalExecutionStatus {
@@ -16,8 +18,8 @@ interface IProposalExecutionEngine {
 
     struct ExecuteProposalParams {
         bytes32 proposalId;
-        bytes memory proposalData;
-        bytes memory progressData;
+        bytes proposalData;
+        bytes progressData;
         uint256 flags;
         IERC721 preciousToken;
         uint256 preciousTokenId;
@@ -27,7 +29,7 @@ interface IProposalExecutionEngine {
     function getProposalExecutionStatus(bytes32 proposalId)
         external
         view
-        returns (getProposalExecutionState);
+        returns (ProposalExecutionStatus);
     function executeProposal(ExecuteProposalParams calldata params)
         external returns (bool completed);
 }

@@ -1,8 +1,18 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8;
 
+import "../utils/Implementation.sol";
+import "../globals/IGlobals.sol";
+
+import "./IProposalExecutionEngine.sol";
+import "./ListOnOpenSeaProposal.sol";
+import "./ListOnZoraProposal.sol";
+import "./FractionalizeProposal.sol";
+import "./ArbitraryCallsProposal.sol";
+import "./LibProposal.sol";
+
 contract ProposalExecutionEngine is
-    IPartyProposals,
+    IProposalExecutionEngine,
     Implementation,
     ListOnOpenSeaProposal,
     ListOnZoraProposal,
@@ -114,16 +124,15 @@ contract ProposalExecutionEngine is
         private
         returns (bytes memory progressData)
     {
-        (ProposalType pt, params.proposalData) =
-            _getProposalType(params.proposalData);
-        bytes memory proposalData = params
+        ProposalType pt;
+        (pt, params.proposalData) = _getProposalType(params.proposalData);
         if (pt == ProposalType.ListOnOpenSea) {
             progressData = _executeListOnOpenSea(params);
-        if (pt == ProposalType.ListOnZora) {
+        } else if (pt == ProposalType.ListOnZora) {
             _executeListOnZora(params);
-        if (pt == ProposalType.Fractionalize) {
+        } else if (pt == ProposalType.Fractionalize) {
             _executeFractionalize(params);
-        if (pt == ProposalType.ArbitraryCalls) {
+        } else if (pt == ProposalType.ArbitraryCalls) {
             _executeArbitraryCalls(params);
         } else if (pt == ProposalType.UpgradeProposalImplementation) {
             _executeUpgradeProposalsImplementation();

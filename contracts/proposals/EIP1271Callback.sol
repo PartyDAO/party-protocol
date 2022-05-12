@@ -25,7 +25,7 @@ contract EIP1271Callback {
     {
         // TODO: Gate msg.sender to OS contract?
         // TODO: Check signature?
-        require(hash === _getStorage().validSignedHash, 'INVALID_SIGNED_HASH');
+        require(hash == _getStorage().validSignedHash, 'INVALID_SIGNED_HASH');
         return SUCCESS;
     }
 

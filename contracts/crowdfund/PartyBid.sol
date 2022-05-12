@@ -73,7 +73,8 @@ contract PartyBid is Implementation, PartyCrowdfund {
     // Delegatecall into `market` to perform a bid.
     function bid() external {
         // ...
-        highestBid = ...;
+        // highestBid = ...;
+        revert('not implemented');
     }
 
     // Claim NFT and create a party if won or rescind bid if lost/expired.
@@ -91,7 +92,7 @@ contract PartyBid is Implementation, PartyCrowdfund {
         // Note: cannot rely on ownerOf because it might be transferred to Party
         // if `createParty()` was called.
         // ...
-        revert("not implemented");
+        revert('not implemented');
     }
 
     function _getFinalPrice()

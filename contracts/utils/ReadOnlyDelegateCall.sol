@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8;
 
+import "./LibRawResult.sol";
+
 // Performs read-only delegate calls.
 contract ReadOnlyDelegateCall {
     using LibRawResult for bytes;
@@ -20,7 +22,7 @@ contract ReadOnlyDelegateCall {
         returns (bool success, bytes memory resultData)
     {
         try this.delegateCallAndRevert(impl, r) {
-            invalid();
+            assert(false);
         }
         catch (bytes memory r) {
             (success, resultData) = abi.decode(r, (bool, bytes));

@@ -1,11 +1,28 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8;
 
+import "../distribution/ITokenDistributorParty.sol";
+import "../distribution/TokenDistributor.sol";
+import "../utils/ReadOnlyDelegateCall.sol";
+import "../tokens/IERC721.sol";
+import "../tokens/IERC20.sol";
+import "../utils/LibERC20Compat.sol";
+import "../utils/LibRawResult.sol";
+import "../globals/IGlobals.sol";
+import "../globals/LibGlobals.sol";
+import "../proposals/IProposalExecutionEngine.sol";
+import "../proposals/LibProposal.sol";
+
+import "./IPartyFactory.sol";
+
 // Base contract for a Party encapsulating all governance functionality.
 contract PartyGovernance is
     ITokenDistributorParty,
     ReadOnlyDelegateCall
 {
+    using LibERC20Compat for IERC20;
+    using LibRawResult for bytes;
+
     enum ProposalState {
         Invalid,
         Voting,
@@ -98,7 +115,7 @@ contract PartyGovernance is
     event ProposalExecuted(uint256 proposalId, address executor);
     event ProposalCompleted(uint256 proposalId);
     event DistributionCreated(uint256 distributionId, IERC20 token);
-    event VotingPowerDelegated(address owner, address delegate, uint256 votingPower)
+    event VotingPowerDelegated(address owner, address delegate, uint256 votingPower);
 
     error BadProposalStateError(ProposalState state);
     error ProposalExistsError(uint256 proposalId);
@@ -106,6 +123,8 @@ contract PartyGovernance is
     error ProposalHasNoVotesError(uint256 proposalId);
     error Int192ToUint96CastOutOfRange(int192 i192);
     error ExecutionTimeExceededError(uint40 maxExecutableTime, uint40 timestamp);
+    error OnlyPartyHostError();
+    error OnlyActiveMemberError();
 
     IGlobals private immutable _GLOBALS;
 
@@ -126,7 +145,16 @@ contract PartyGovernance is
     mapping(address => VotingPowerSnapshot[]) private _votingPowerSnapshotsByVoter;
 
     modifier onlyHost() {
-        require(isHost[msg.sender], "ONLY_HOST");
+        if (!isHost[msg.sender]) {
+            revert OnlyPartyHostError();
+        }
+        _;
+    }
+
+    modifier onlyActiveMember() {
+        if (_getLastVotingPowerSnapshot(msg.sender).intrinsicVotingPower == 0) {
+            revert OnlyActiveMemberError();
+        }
         _;
     }
 
@@ -202,7 +230,7 @@ contract PartyGovernance is
             _votingPowerSnapshotsByVoter[msg.sender]
         );
         _rebalanceDelegates(msg.sender, oldDelegate, delegate, snap, snap);
-        emit VotingPowerDelegated(msg.sender, delegate, votingPower)
+        emit VotingPowerDelegated(msg.sender, delegate, snap.intrinsicVotingPower);
     }
 
     // Transfer party host status to another.
@@ -219,12 +247,12 @@ contract PartyGovernance is
         onlyActiveMember
         returns (uint256 distributionId)
     {
-        ITokenDistributor distributor = ITokenDistributor(
-            _GLOBALS.getAddress(LibGobals.GLOBAL_TOKEN_DISTRIBUTOR)
+        TokenDistributor distributor = TokenDistributor(
+            _GLOBALS.getAddress(LibGlobals.GLOBAL_TOKEN_DISTRIBUTOR)
         );
         uint256 value = 0;
-        if (token != 0xeee...) {
-            _safeTransferERC20(address(distributor), token.balanceOf(address(this)));
+        if (token != IERC20(0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee)) {
+            token.compatTransfer(address(distributor), token.balanceOf(address(this)));
         } else {
             value = address(this).balance;
         }
@@ -233,7 +261,10 @@ contract PartyGovernance is
     }
 
     // Will also cast sender's votes for proposal.
-    function propose(bytes memory proposal) external returns (uint256 proposalId) {
+    function propose(Proposal calldata proposal)
+        external
+        returns (uint256 proposalId)
+    {
         uint256 proposalId = ++lastProposalId;
         (
             _proposalInfoByProposalId[proposalId].values,
@@ -439,7 +470,7 @@ contract PartyGovernance is
         assembly {
             // Overwrite the data field with the hash of its contents and then
             // hash the struct.
-            let dataPos = add(proposal, 0x40)
+            let dataPos := add(proposal, 0x40)
             let t := mload(dataPos)
             mstore(dataPos, dataHash)
             h := keccak256(proposal, 0x60)

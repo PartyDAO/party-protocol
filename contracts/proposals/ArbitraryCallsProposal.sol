@@ -1,6 +1,11 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8;
 
+import "../tokens/IERC721.sol";
+
+import "./LibProposal.sol";
+import "./IProposalExecutionEngine.sol";
+
 // Implements arbitrary call proposals.
 contract ArbitraryCallsProposal {
     struct ArbitraryCall {
@@ -20,7 +25,9 @@ contract ArbitraryCallsProposal {
     error UnexpectedCallResultHashError(uint256 idx, bytes32 resultHash, bytes32 expectedResultHash);
     error NotEnoughEthAttachedError(uint256 callValue, uint256 ethAvailable);
 
-    function _executeArbitraryCalls(ExecuteProposalParams memory params)
+    function _executeArbitraryCalls(
+        IProposalExecutionEngine.ExecuteProposalParams memory params
+    )
         internal
     {
         (ArbitraryCall[] memory calls) = abi.decode(params.proposalData, (ArbitraryCall[]));
@@ -39,7 +46,7 @@ contract ArbitraryCallsProposal {
         }
         // If we had the precious beforehand, check that we still have it now.
         if (hadPrecious) {
-            if (!_getHasPrecious(params.preciousToken, params.preciousTokenId))) {
+            if (!_getHasPrecious(params.preciousToken, params.preciousTokenId)) {
                 revert PreciousLostError();
             }
         }
@@ -49,7 +56,7 @@ contract ArbitraryCallsProposal {
         uint256 idx,
         ArbitraryCall memory call,
         IERC721 preciousToken,
-        uint256 preciousTokenId
+        uint256 preciousTokenId,
         uint256 flags,
         uint256 ethAvailable
     )
@@ -64,7 +71,7 @@ contract ArbitraryCallsProposal {
         (bool s, bytes memory r) = call.target.call{ value: call.value }(call.data);
         if (!s) {
             if (!call.optional) {
-                error ArbitraryCallFailedError(r);
+                revert ArbitraryCallFailedError(r);
             }
         } else {
             if (call.expectedResultHash != bytes32(0)) {
@@ -112,14 +119,17 @@ contract ArbitraryCallsProposal {
                 bytes memory callData = call.data;
                 assembly { selector := and(mload(add(callData, 4)), 0xffffffff) }
             }
-            // Cannot call approve() or setApprovalForAll()
+            // Cannot call approve() or setApprovalForAll() on the precious
             // unless it's to revoke approvals.
             if (selector == IERC721.approve.selector) {
-                (, uint256 a) abi.decode(IERC721.approve.selector, (bytes32, uint256));
-                return a != 0;
+                (address op, uint256 t) = abi.decode(IERC721.approve.selector, (address, uint256));
+                if (t == preciousTokenId) {
+                    return op != address(0);
+                }
+                return true;
             }
             if (selector == IERC721.setApprovalForAll.selector) {
-                (, bool b) abi.decode(IERC721.approve.setApprovalForAll, (bytes32, bool));
+                (, bool b) = abi.decode(IERC721.approve.setApprovalForAll, (address, bool));
                 return b;
             }
         }

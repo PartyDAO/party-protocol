@@ -1,6 +1,12 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8;
 
+import "../utils/Implementation.sol";
+import "../tokens/IERC721.sol";
+
+import "./PartyGovernanceNFT.sol";
+import "./PartyGovernance.sol";
+
 // Party implementation.
 contract Party is Implementation, PartyGovernanceNFT {
     struct PartyOptions {

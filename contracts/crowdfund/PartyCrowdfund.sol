@@ -138,13 +138,11 @@ abstract contract PartyCrowdfund is PartyCrowdfundNFT {
         );
     }
 
-    function getCrowdfundLifecycle() public abstract view returns (CrowdfundLifecycle);
+    function getCrowdfundLifecycle() public virtual view returns (CrowdfundLifecycle);
 
-    // Transfer the bought asset(s) to a recipient.
-    function _transferSharedAssetsTo(address recipient) internal abstract;
     // Get the final sale price (not including party fees, splits, etc) of the
     // bought assets.
-    function _getFinalPrice() internal abstract view returns (uint256);
+    function _getFinalPrice() internal virtual view returns (uint256);
 
     // Can be called after a party has won.
     // Deploys and initializes a a `Party` instance via the `PartyFactory`
@@ -159,11 +157,11 @@ abstract contract PartyCrowdfund is PartyCrowdfundNFT {
         internal
         returns (Party party_)
     {
-        if (party!== Party(address(0))) {
+        if (party != Party(address(0))) {
             revert PartyAlreadyExistsError(party);
         }
         {
-            bytes32 partyOptionsHash_ = _hashPartyOptions(opts)
+            bytes32 partyOptionsHash_ = _hashPartyOptions(opts);
             if (partyOptionsHash_ != partyOptionsHash) {
                 revert InvalidPartyOptionsError(partyOptionsHash_, partyOptionsHash);
             }
