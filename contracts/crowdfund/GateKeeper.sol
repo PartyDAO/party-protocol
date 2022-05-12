@@ -11,16 +11,17 @@ contract GateKeeper {
     address tokenAddress;
     uint256 minimumBalance;
   
-    //encoded calldata
+    //bytes calldata encoded
     constructor (bytes memory _callData) {
-      //TODO decode the calldata
+      //TODO abidecode the calldata
+      abi.decode(_callData, (address, uint256));
       //TODO assign it to tokenAddress, minimumBalance
     }
 
     /**
      * @notice defines whether or not a user can access party
      * @param _participant contributor address
-     * @param _id user id
+     * @param _id to determine the specific gatekeeping strategy
      * @param _userData optional arb data that verifies proof of membership
      * @return bool true of false depeing if the user has enough tokens
      */
