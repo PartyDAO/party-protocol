@@ -150,7 +150,12 @@ contract PartyGovernanceNFT is
         return _tokens[tokenId].operator;
     }
 
-    function ownerOf(uint256 tokenId) external view returns (address owner) {
+    function ownerOf(uint256 tokenId)
+        external
+        view
+        override(IERC721, ITokenDistributorParty)
+        returns (address owner)
+    {
         owner = _tokens[tokenId].owner;
         if (owner == address(0)) {
             revert InvalidTokenError(tokenId);

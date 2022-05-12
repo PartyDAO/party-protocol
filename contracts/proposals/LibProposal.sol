@@ -30,7 +30,7 @@ library LibProposal {
         setProposalExecutionEngine(impl);
         (bool s, bytes memory r) = address(impl).delegatecall(abi.encodeCall(
             IProposalExecutionEngine.initialize,
-            getProposalExecutionEngine()
+            address(getProposalExecutionEngine())
         ));
         if (!s) {
             r.rawRevert();

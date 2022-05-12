@@ -35,7 +35,11 @@ contract ListOnOpenSeaProposal is ListOnZoraProposal {
     // when listing on opensea for the first time.
     SharedWyvernV2Maker public immutable SHARED_WYVERN_MAKER;
 
-    constructor(SharedWyvernV2Maker sharedMaker) {
+    constructor(
+        IGlobals globals,
+        SharedWyvernV2Maker sharedMaker,
+        IZoraAuctionHouse zoraAuctionHouse
+    ) ListOnZoraProposal(globals, zoraAuctionHouse) {
         SHARED_WYVERN_MAKER = sharedMaker;
     }
 

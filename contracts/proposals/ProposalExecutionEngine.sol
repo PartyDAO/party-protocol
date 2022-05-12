@@ -68,7 +68,10 @@ contract ProposalExecutionEngine is
         _STORAGE_SLOT = keccak256(type(ProposalExecutionEngine).runtimeCode);
     }
 
-    function initialize(bytes calldata initializeData) external { /* NOOP */ }
+    function initialize(bytes calldata initializeData)
+        external
+        override(Implementation, IProposalExecutionEngine)
+    { /* NOOP */ }
 
     function getProposalExecutionStatus(bytes32 proposalId)
         external

@@ -7,8 +7,8 @@ interface IERC721 {
     event Approval(address indexed owner, address indexed operator, uint256 indexed tokenId);
     event ApprovalForAll(address indexed owner, address indexed operator, bool approved);
 
-    function transfer(address to, uint256 tokenId) external;
     function transferFrom(address from, address to, uint256 tokenId) external;
+    function safeTransferFrom(address from, address to, uint256 tokenId, bytes calldata data) external;
     function approve(address operator, uint256 tokenId) external;
     function setApprovalForAll(address operator, bool isApproved) external;
     function name() external view returns (string memory);

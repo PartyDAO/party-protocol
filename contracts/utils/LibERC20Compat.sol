@@ -5,14 +5,14 @@ import "../tokens/IERC20.sol";
 
 // Compatibility helpers for ERC20s.
 library LibERC20Compat {
-    error NotATokenError(address token);
-    error TokenTransferFailed(address token, address to, uint256 amount);
+    error NotATokenError(IERC20 token);
+    error TokenTransferFailedError(IERC20 token, address to, uint256 amount);
 
     function compatTransfer(IERC20 token, address to, uint256 amount)
         internal
     {
         (bool s, bytes memory r) =
-            address(token).call(abi.encodeCall(IERC20.transfer, to, amount));
+            address(token).call(abi.encodeCall(IERC20.transfer, (to, amount)));
         if (s) {
             if (r.length == 0) {
                 uint256 cs;
@@ -26,6 +26,6 @@ library LibERC20Compat {
                 return;
             }
         }
-        revert TokenTransferFailed(token, to, amount);
+        revert TokenTransferFailedError(token, to, amount);
     }
 }

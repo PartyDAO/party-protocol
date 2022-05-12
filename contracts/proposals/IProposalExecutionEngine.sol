@@ -25,11 +25,11 @@ interface IProposalExecutionEngine {
         uint256 preciousTokenId;
     }
 
-    function initialize(address oldImpl) external;
+    function initialize(bytes calldata initData) external;
     function getProposalExecutionStatus(bytes32 proposalId)
         external
         view
         returns (ProposalExecutionStatus);
     function executeProposal(ExecuteProposalParams calldata params)
-        external returns (bool completed);
+        external returns (ProposalExecutionStatus);
 }

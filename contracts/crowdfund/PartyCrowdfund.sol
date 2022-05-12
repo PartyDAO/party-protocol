@@ -72,7 +72,6 @@ abstract contract PartyCrowdfund is PartyCrowdfundNFT {
     // Must be called once by freshly deployed PartyCrowdfundProxy instances.
     function _initialize(CrowdfundInitOptions memory opts)
         internal
-        override
     {
         PartyCrowdfundNFT.initialize(opts.name, opts.symbol);
         partyOptionsHash = _hashPartyOptions(opts.partyOptions);
@@ -112,7 +111,6 @@ abstract contract PartyCrowdfund is PartyCrowdfundNFT {
     // TODO: Should contributor not be a param?
     function contribute(address contributor, address delegate)
         public
-        virtual
         payable
     {
         _addContribution(

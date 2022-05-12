@@ -35,6 +35,7 @@ contract TokenDistributor {
     error InvalidDistributionInfoError(DistributionInfo info);
     error DistributionAlreadyClaimedByTokenError(uint256 distributionId, uint256 tokenId);
     error DistributionAlreadyClaimedByPartyDaoError(uint256 distributionId);
+    error Uint256ToUint128CastOutOfRangeError(uint256 value);
 
     event DistributionCreated(DistributionInfo info);
     event DistributionClaimedByPartyDao(DistributionInfo info, address recipient, uint256 amountClaimed);
@@ -56,7 +57,7 @@ contract TokenDistributor {
 
     modifier onlyPartyDao() {
         {
-            address partyDao = IGlobals.getAddress(LibGlobals.GLOBAL_DAO_WALLET);
+            address partyDao = GLOBALS.getAddress(LibGlobals.GLOBAL_DAO_WALLET);
             if (msg.sender != partyDao) {
                 revert OnlyPartyDaoError(msg.sender, partyDao);
             }
@@ -93,7 +94,7 @@ contract TokenDistributor {
         uint256 distId = lastDistributionIdPerParty[party]++;
         // Compute the portion of the supply reserved for the DAO
         uint256 daoSupply = supply *
-            IGlobals.getUint256(LibGlobals.GLOBAL_DAO_DISTRIBUTION_SPLIT) / 1e18;
+            GLOBALS.getUint256(LibGlobals.GLOBAL_DAO_DISTRIBUTION_SPLIT) / 1e18;
         assert(daoSupply <= supply);
         uint256 memberSupply = supply - daoSupply;
         info = DistributionInfo({
@@ -105,8 +106,8 @@ contract TokenDistributor {
         });
         (
             _distributionStateById[distId].distributionHash15,
-            _distributionStateById[distId].remainingMembersupply,
-        ) = (_getDistributionHash(info), memberSupply);
+            _distributionStateById[distId].remainingMembersupply
+        ) = (_getDistributionHash(info), _safeCastToUint128(memberSupply));
         emit DistributionCreated(info);
     }
 
@@ -134,13 +135,13 @@ contract TokenDistributor {
         // This value is denominated in fractions of 1e18, where 1e18 = 100%.
         uint256 tokenSplit = info.party.getDistributionShareOf(tokenId);
         amountClaimed = tokenSplit * info.memberSupply / 1e18;
-        uint256 remainingMembersupply = state.remainingMembersupply;
+        uint128 remainingMembersupply = state.remainingMembersupply;
         // Cap at the remaining member supply. Otherwise a malicious
         // distribution creator could drain more than the distribution supply.
         amountClaimed = amountClaimed > remainingMembersupply
             ? remainingMembersupply
             : amountClaimed;
-        state.remainingMembersupply = remainingMembersupply - amountClaimed;
+        state.remainingMembersupply = remainingMembersupply - _safeCastToUint128(amountClaimed);
         _transfer(info.token, recipient, amountClaimed);
         emit DistributionClaimedByToken(info, tokenId, recipient, amountClaimed);
     }
@@ -190,5 +191,16 @@ contract TokenDistributor {
                 0x0000000000000000000000000000000000ffffffffffffffffffffffffffffff
             )
         }
+    }
+
+    function _safeCastToUint128(uint256 x)
+        private
+        pure
+        returns (uint128)
+    {
+        if (x > type(uint128).max) {
+            revert Uint256ToUint128CastOutOfRangeError(x);
+        }
+        return uint128(x);
     }
 }

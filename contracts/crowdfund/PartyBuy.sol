@@ -60,7 +60,6 @@ contract PartyBuy is Implementation, PartyCrowdfund {
 
     function contribute(address contributor, address delegate, bytes memory gateData)
         public
-        override
         payable
     {
         if (gateKeeper != IGateKeeper(address(0))) {
