@@ -51,6 +51,8 @@ contract TokenDistributor {
 
     IGlobals public immutable GLOBALS;
 
+    // Last distribution ID for a party.
+    mapping(ITokenDistributorParty => uint256) public lastDistributionIdPerParty;
     // Last known amount of a token. Gets lazily updated
     // when creating and claiming a distribution.
     // Allows one to simply transfer and call `createDistribution()` without
@@ -58,8 +60,6 @@ contract TokenDistributor {
     mapping(IERC20 => uint256) private _storedBalances;
     // distributionId => DistributionState
     mapping(uint256 => DistributionState) private _distributionStateById;
-    // Last distribution ID for a party.
-    mapping(ITokenDistributorParty => uint256) public lastDistributionIdPerParty;
 
     modifier onlyPartyDao() {
         {
@@ -97,7 +97,7 @@ contract TokenDistributor {
         _storedBalances[token] = bal;
 
         ITokenDistributorParty party = ITokenDistributorParty(msg.sender);
-        uint256 distId = lastDistributionIdPerParty[party]++;
+        uint256 distId = ++lastDistributionIdPerParty[party];
         // Compute the portion of the supply reserved for the DAO
         uint256 daoSupply = supply *
             GLOBALS.getUint256(LibGlobals.GLOBAL_DAO_DISTRIBUTION_SPLIT) / 1e18;
