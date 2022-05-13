@@ -32,9 +32,10 @@ contract PartyCrowdfundFactory {
 
     function createPartyBuy(PartyBuy.PartyBuyOptions calldata opts)
         external
+        payable
         returns (PartyBuy inst)
     {
-        inst = PartyBuy(payable(new PartyCrowdfundProxy(
+        inst = PartyBuy(payable(new PartyCrowdfundProxy{ value: msg.value }(
             _GLOBALS,
             _PARTY_BUY_IMPL_GLOBAL_KEY,
             abi.encode(opts)
@@ -44,9 +45,10 @@ contract PartyCrowdfundFactory {
 
     function createPartyBid(PartyBid.PartyBidOptions calldata opts)
         external
+        payable
         returns (PartyBid inst)
     {
-        inst = PartyBid(payable(new PartyCrowdfundProxy(
+        inst = PartyBid(payable(new PartyCrowdfundProxy{ value: msg.value }(
             _GLOBALS,
             _PARTY_BID_IMPL_GLOBAL_KEY,
             abi.encode(opts)
@@ -58,9 +60,10 @@ contract PartyCrowdfundFactory {
         PartyCollectionBuy.PartyCollectionBuyOptions calldata opts
     )
         external
+        payable
         returns (PartyCollectionBuy inst)
     {
-        inst = PartyCollectionBuy(payable(new PartyCrowdfundProxy(
+        inst = PartyCollectionBuy(payable(new PartyCrowdfundProxy{ value: msg.value }(
             _GLOBALS,
             _PARTY_COLLECTION_BUY_IMPL_GLOBAL_KEY,
             abi.encode(opts)
