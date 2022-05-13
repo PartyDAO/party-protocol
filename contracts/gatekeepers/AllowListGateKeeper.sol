@@ -27,7 +27,7 @@ contract AllowListGateKeeper is IGateKeeper {
         returns (bytes12 id)
     {
         uint96 id_ = ++_lastId;
-        id = bytes12(id);
+        id = bytes12(id_);
         for (uint256 i = 0; i < members.length; ++i) {
             _isAllowedByGateId[id_][members[i]] = true;
         }
