@@ -16,8 +16,6 @@ contract GateKeeperERC20 is IGateKeeper {
     // gateId => (token, minimumBalance) tuple
     mapping(uint96 => TokenGate) _isAllowedByGateId;
 
-    // gate ID -> contributor -> isAllowed
-    // mapping (uint96 => mapping (address => bool)) _isAllowedByGateId;
 
     function isAllowed(
         address participant,
