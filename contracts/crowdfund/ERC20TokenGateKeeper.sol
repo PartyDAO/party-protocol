@@ -14,7 +14,7 @@ contract GateKeeperERC20 is IGateKeeper {
     }
 
     // gateId => (token, minimumBalance) tuple
-    mapping(uint96 => TokenGate) _isAllowedByGateId;
+    mapping(uint96 => TokenGate) _gateInfo;
 
 
     function isAllowed(
@@ -32,13 +32,13 @@ contract GateKeeperERC20 is IGateKeeper {
         returns (bytes12 id)
     {
         // decode the arbitrary gate data based on the types it expects --> TokenGate
-        TokenGate memory tokengate = abi.decode(
+        TokenGate memory gate = abi.decode(
             _arbitraryGateData,
             (TokenGate)
         );
         uint96 id_ = ++_lastId;
         id = bytes12(id);
         // store the information it needs in the mapping
-        _isAllowedByGateId[id_] = [tokengate];
+        _gateInfo[id_] = gate;
     }
 }
