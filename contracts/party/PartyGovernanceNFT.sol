@@ -195,7 +195,7 @@ contract PartyGovernanceNFT is
         return _tokens[tokenId].votingPower;
     }
 
-    function tokenURI(uint256 tokenId) external /* view */ returns (string memory)
+    function tokenURI(uint256) external /* view */ returns (string memory)
     {
         // An instance of IERC721Renderer
         _readOnlyDelegateCall(
@@ -220,7 +220,7 @@ contract PartyGovernanceNFT is
         --_numTokensHeldyOwner[owner];
         ++_numTokensHeldyOwner[to];
         _transferVotingPower(owner, to, _tokens[tokenId].votingPower);
-        Transfer(owner, to, tokenId);
+        emit Transfer(owner, to, tokenId);
     }
 
     function _consumeApproval(address owner, address operator, uint256 tokenId)

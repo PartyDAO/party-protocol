@@ -21,6 +21,7 @@ contract PartyBuy is Implementation, PartyCrowdfund {
         address payable splitRecipient;
         uint16 splitBps;
         Party.PartyOptions partyOptions;
+        address initialContributor;
         address initialDelegate;
         IGateKeeper gateKeeper;
         bytes12 gateKeeperId;
@@ -48,6 +49,7 @@ contract PartyBuy is Implementation, PartyCrowdfund {
             partyOptions: opts.partyOptions,
             splitRecipient: opts.splitRecipient,
             splitBps: opts.splitBps,
+            initialContributor: opts.initialContributor,
             initialDelegate: opts.initialDelegate
         }));
         price = opts.price;
@@ -135,7 +137,7 @@ contract PartyBuy is Implementation, PartyCrowdfund {
         internal
         override
         view
-        returns (uint256 price)
+        returns (uint256)
     {
         return settledPrice;
     }

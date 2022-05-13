@@ -229,7 +229,7 @@ abstract contract PartyGovernance is
 
     // Pledge your intrinsic voting power to a new delegate, removing it from
     // the old one (if any).
-    function delegateVotingPower(address delegate) external view returns (uint256)
+    function delegateVotingPower(address delegate) external
     {
         address oldDelegate = delegationsByVoter[msg.sender];
         delegationsByVoter[msg.sender] = delegate;
@@ -464,7 +464,7 @@ abstract contract PartyGovernance is
 
     function _getProposalHash(Proposal calldata proposal)
         private
-        view
+        pure
         returns (bytes32 h)
     {
         // Hash the proposal in-place. Equivalent to:

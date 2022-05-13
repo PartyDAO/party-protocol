@@ -7,7 +7,7 @@ import "./IGateKeeper.sol";
 contract AllowListGateKeeper is IGateKeeper {
 
     uint96 private _lastId;
-    // ID =>
+    // gate ID -> contributor -> isAllowed
     mapping (uint96 => mapping (address => bool)) _isAllowedByGateId;
 
     function isAllowed(

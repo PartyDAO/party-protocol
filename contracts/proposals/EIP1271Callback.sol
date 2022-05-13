@@ -18,7 +18,7 @@ contract EIP1271Callback {
         STORAGE_SLOT = uint256(keccak256('EIP1271Callback_V1'));
     }
 
-    function isValidSignature(bytes32 hash, bytes memory signature)
+    function isValidSignature(bytes32 hash, bytes memory /* signature */ )
         external
         view
         returns (bytes4)
@@ -36,7 +36,7 @@ contract EIP1271Callback {
     // Retrieve the explicit storage bucket for the ProposalExecutionEngine logic.
     function _getStorage()
         private
-        pure
+        view
         returns (EIP1271CallbackStorage storage stor)
     {
         uint256 slot = STORAGE_SLOT;

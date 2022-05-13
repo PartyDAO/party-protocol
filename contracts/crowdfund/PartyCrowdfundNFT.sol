@@ -38,27 +38,27 @@ contract PartyCrowdfundNFT is IERC721, ReadOnlyDelegateCall {
         symbol = symbol_;
     }
 
-    function transferFrom(address owner, address to, uint256 tokenId)
+    function transferFrom(address, address, uint256)
         external
         alwaysRevert
     {}
 
-    function safeTransferFrom(address owner, address to, uint256 tokenId, bytes calldata data)
+    function safeTransferFrom(address, address, uint256, bytes calldata)
         external
         alwaysRevert
     {}
 
-    function approve(address spender, uint256 tokenId)
+    function approve(address, uint256)
         external
         alwaysRevert
     {}
 
-    function setApprovalForAll(address spender, bool approved)
+    function setApprovalForAll(address, bool)
         external
         alwaysRevert
     {}
 
-    function getApproved(uint256 tokenId)
+    function getApproved(uint256)
         external
         pure
         returns (address)
@@ -66,7 +66,7 @@ contract PartyCrowdfundNFT is IERC721, ReadOnlyDelegateCall {
         return address(0);
     }
 
-    function isApprovedForAll(address owner, address operator)
+    function isApprovedForAll(address, address)
         external
         pure
         returns (bool)
@@ -84,7 +84,7 @@ contract PartyCrowdfundNFT is IERC721, ReadOnlyDelegateCall {
         return interfaceId == 0x5b5e139f; // ERC721Metadata
     }
 
-    function tokenURI(uint256 tokenId) external /* view */ returns (string memory)
+    function tokenURI(uint256) external /* view */ returns (string memory)
     {
         _readOnlyDelegateCall(
             // An instance of IERC721Renderer

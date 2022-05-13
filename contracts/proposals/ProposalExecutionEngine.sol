@@ -88,7 +88,6 @@ contract ProposalExecutionEngine is
         returns (ProposalExecutionStatus)
     {
         return _getProposalExecutionStatus(
-            proposalId,
             _getStorage().proposalProgressDataHashByProposalId[proposalId]
         );
     }
@@ -107,10 +106,7 @@ contract ProposalExecutionEngine is
         {
             bytes32 nextProgressDataHash =
                 stor.proposalProgressDataHashByProposalId[params.proposalId];
-            status = _getProposalExecutionStatus(
-                params.proposalId,
-                nextProgressDataHash
-            );
+            status = _getProposalExecutionStatus(nextProgressDataHash);
             if (status == ProposalExecutionStatus.Complete) {
                 revert ProposalAlreadyCompleteError(params.proposalId);
             }
@@ -170,6 +166,7 @@ contract ProposalExecutionEngine is
     // pointer to it.
     function _getProposalType(bytes memory proposalData)
         private
+        pure
         returns (ProposalType proposalType, bytes memory offsetProposalData)
     {
         // First 4 bytes is propsal type.
@@ -203,13 +200,12 @@ contract ProposalExecutionEngine is
     }
 
     // Retrieve the explicit storage bucket for the ProposalExecutionEngine logic.
-    function _getStorage() private pure returns (Storage storage stor) {
+    function _getStorage() private view returns (Storage storage stor) {
         uint256 slot = _STORAGE_SLOT;
         assembly { stor.slot := slot }
     }
 
     function _getProposalExecutionStatus(
-        bytes32 proposalId,
         bytes32 storedProgressDataHash
     )
         private

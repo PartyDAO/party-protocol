@@ -30,11 +30,12 @@ abstract contract PartyCrowdfund is PartyCrowdfundNFT {
         Party.PartyOptions partyOptions;
         address payable splitRecipient;
         uint16 splitBps;
+        address initialContributor;
         address initialDelegate;
     }
 
     struct Contribution {
-        uint128 previousTotalContribution;
+        uint128 previousTotalContributions;
         uint128 amount;
     }
 
@@ -82,9 +83,11 @@ abstract contract PartyCrowdfund is PartyCrowdfundNFT {
         splitRecipient = opts.splitRecipient;
         splitBps = opts.splitBps;
         // If the deployer passed in some ETH during deployment, credit them.
-        uint128 initialBalance = uint128(address(this).balance);
+        uint128 initialBalance = address(this).balance.safeCastUint256ToUint128();
         if (initialBalance > 0) {
-            _addContribution(msg.sender, initialBalance, opts.initialDelegate, 0);
+            // If this contract has ETH, either passed in during deployment or
+            // pre-existing, credit it to the `initialContributor`.
+            _addContribution(opts.initialContributor, initialBalance, opts.initialDelegate, 0);
         }
     }
 
@@ -121,6 +124,13 @@ abstract contract PartyCrowdfund is PartyCrowdfundNFT {
             contributor,
             msg.value.safeCastUint256ToUint128(),
             delegate,
+            // Use this.balance instead of separately tracking registered
+            // total contributions. Sure, someone could force ETH into
+            // this contract which would effectively create a contribution that
+            // can never result in a governance NFT, meaning the party
+            // can never reach 100% consensus. But they perform the same
+            // grief by contributing normally and never participating in
+            // governance.
             (address(this).balance - msg.value).safeCastUint256ToUint128()
         );
     }
@@ -197,7 +207,7 @@ abstract contract PartyCrowdfund is PartyCrowdfundNFT {
 
     function _hashPartyOptions(Party.PartyOptions memory opts)
         private
-        view
+        pure
         returns (bytes32 h)
     {
         bytes32 governanceOptsHostsHash = keccak256(abi.encode(opts.governance.hosts));
@@ -233,13 +243,13 @@ abstract contract PartyCrowdfund is PartyCrowdfundNFT {
             uint256 numContributions = contributions.length;
             for (uint256 i = 0; i < numContributions; ++i) {
                 Contribution memory c = contributions[i];
-                if (c.previousTotalContribution >= totalEthUsed) {
+                if (c.previousTotalContributions >= totalEthUsed) {
                     break;
                 }
-                if (c.previousTotalContribution + c.amount <= totalEthUsed) {
+                if (c.previousTotalContributions + c.amount <= totalEthUsed) {
                     ethUsed += c.amount;
                 } else {
-                    ethUsed = totalEthUsed - c.previousTotalContribution;
+                    ethUsed = totalEthUsed - c.previousTotalContributions;
                     ethOwed = c.amount - ethUsed;
                 }
             }
@@ -281,7 +291,7 @@ abstract contract PartyCrowdfund is PartyCrowdfundNFT {
             uint256 numContributions = contributions.length;
             if (numContributions >= 1) {
                 Contribution memory lastContribution = contributions[numContributions - 1];
-                if (lastContribution.previousTotalContribution == totalContributions) {
+                if (lastContribution.previousTotalContributions == previousTotalContributions) {
                     // No one else has contributed since so just reuse the last entry.
                     lastContribution.amount += amount;
                     contributions[numContributions - 1] = lastContribution;
@@ -290,7 +300,7 @@ abstract contract PartyCrowdfund is PartyCrowdfundNFT {
             }
             // Add a new contribution entry.
             contributions.push(Contribution({
-                previousTotalContribution: totalContributions,
+                previousTotalContributions: previousTotalContributions,
                 amount: amount
             }));
             if (numContributions == 0) {

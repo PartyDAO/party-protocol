@@ -20,6 +20,7 @@ contract PartyCollectionBuy is Implementation, PartyCrowdfund {
         address payable splitRecipient;
         uint16 splitBps;
         Party.PartyOptions partyOptions;
+        address initialContributor;
         address initialDelegate;
         IGateKeeper gateKeeper;
         bytes12 gateKeeperId;
@@ -48,6 +49,7 @@ contract PartyCollectionBuy is Implementation, PartyCrowdfund {
             partyOptions: opts.partyOptions,
             splitRecipient: opts.splitRecipient,
             splitBps: opts.splitBps,
+            initialContributor: opts.initialContributor,
             initialDelegate: opts.initialDelegate
         }));
         price = opts.price;
@@ -98,10 +100,10 @@ contract PartyCollectionBuy is Implementation, PartyCrowdfund {
 
     function getCrowdfundLifecycle() public override view returns (CrowdfundLifecycle) {
         // If there is a settled price then we tried to buy the NFT.
-        if (settledPrice) {
+        if (settledPrice != 0) {
             // If there's a party, we will no longer hold the NFT, but it means we
             // did at one point.
-            if (_getParty() != Party(address(0))) {
+            if (_getParty() != Party(payable(address(0)))) {
                 return CrowdfundLifecycle.Won;
             }
             // Otherwise check if we hold the NFT now.
@@ -128,7 +130,7 @@ contract PartyCollectionBuy is Implementation, PartyCrowdfund {
         internal
         override
         view
-        returns (uint256 price)
+        returns (uint256)
     {
         return settledPrice;
     }

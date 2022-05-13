@@ -22,6 +22,7 @@ contract PartyBid is Implementation, PartyCrowdfund {
         address payable splitRecipient;
         uint16 splitBps;
         Party.PartyOptions partyOptions;
+        address initialContributor;
         address initialDelegate;
         IGateKeeper gateKeeper;
         bytes12 gateKeeperId;
@@ -49,6 +50,7 @@ contract PartyBid is Implementation, PartyCrowdfund {
             partyOptions: opts.partyOptions,
             splitRecipient: opts.splitRecipient,
             splitBps: opts.splitBps,
+            initialContributor: opts.initialContributor,
             initialDelegate: opts.initialDelegate
         }));
         nftContract = opts.nftContract;
