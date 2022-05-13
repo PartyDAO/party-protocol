@@ -15,7 +15,7 @@ contract EIP1271Callback {
     constructor() {
         // First version is just the hash of the runtime code. Later versions
         // might hardcode this value if they intend to reuse storage.
-        STORAGE_SLOT = keccak256(type(EIP1271Callback).runtimeCode);
+        STORAGE_SLOT = uint256(keccak256('EIP1271Callback_V1'));
     }
 
     function isValidSignature(bytes32 hash, bytes memory signature)
@@ -40,6 +40,6 @@ contract EIP1271Callback {
         returns (EIP1271CallbackStorage storage stor)
     {
         uint256 slot = STORAGE_SLOT;
-        assembly { stor := slot }
+        assembly { stor.slot := slot }
     }
 }

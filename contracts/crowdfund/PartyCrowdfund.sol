@@ -1,7 +1,9 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8;
 
+import "../utils/LibAddress.sol";
 import "../utils/LibRawResult.sol";
+import "../utils/LibSafeCast.sol";
 import "../party/Party.sol";
 import "../globals/IGlobals.sol";
 
@@ -12,6 +14,8 @@ import "./PartyCrowdfundNFT.sol";
 // party after winning.
 abstract contract PartyCrowdfund is PartyCrowdfundNFT {
     using LibRawResult for bytes;
+    using LibSafeCast for uint256;
+    using LibAddress for address payable;
 
     enum CrowdfundLifecycle {
         Invalid,
@@ -31,7 +35,7 @@ abstract contract PartyCrowdfund is PartyCrowdfundNFT {
 
     struct Contribution {
         uint128 previousTotalContribution;
-        uint128 contribution;
+        uint128 amount;
     }
 
     error PartyAlreadyExistsError(Party party);
@@ -58,7 +62,7 @@ abstract contract PartyCrowdfund is PartyCrowdfundNFT {
     // The PartyOptions passed into `_createParty()` must match.
     bytes32 public partyOptionsHash;
     // The total (recorded) ETH contributed to this crowdfund.
-    uint256 public totalContributions;
+    uint128 public totalContributions;
     // Who a contributor last delegated to.
     mapping (address => address) private _delegationsByContributor;
     // Array of contributions by a contributor.
@@ -90,14 +94,14 @@ abstract contract PartyCrowdfund is PartyCrowdfundNFT {
     // given `contributor`.
     // If the party has lost, this will only refund unused ETH (all of it) for
     // the given `contributor`.
-    function burn(address contributor)
+    function burn(address payable contributor)
         public
     {
         return _burn(contributor, getCrowdfundLifecycle(), party);
     }
 
     // `burn()` in batch form.
-    function batchBurn(address[] calldata contributors)
+    function batchBurn(address payable[] calldata contributors)
         external
     {
         Party party_ = party;
@@ -115,9 +119,9 @@ abstract contract PartyCrowdfund is PartyCrowdfundNFT {
     {
         _addContribution(
             contributor,
-            msg.value,
+            msg.value.safeCastUint256ToUint128(),
             delegate,
-            address(this).balance - msg.value
+            (address(this).balance - msg.value).safeCastUint256ToUint128()
         );
     }
 
@@ -130,9 +134,9 @@ abstract contract PartyCrowdfund is PartyCrowdfundNFT {
         delegate = delegate == address(0) ? msg.sender : delegate;
         _addContribution(
             msg.sender,
-            msg.value,
+            msg.value.safeCastUint256ToUint128(),
             delegate,
-            address(this).balance - msg.value
+            (address(this).balance - msg.value).safeCastUint256ToUint128()
         );
     }
 
@@ -177,7 +181,7 @@ abstract contract PartyCrowdfund is PartyCrowdfundNFT {
         internal
         returns (Party party_)
     {
-        if (party != Party(address(0))) {
+        if (party != Party(payable(0))) {
             revert PartyAlreadyExistsError(party);
         }
         {
@@ -186,10 +190,9 @@ abstract contract PartyCrowdfund is PartyCrowdfundNFT {
                 revert InvalidPartyOptionsError(partyOptionsHash_, partyOptionsHash);
             }
         }
-        party = party_ =
-            IPartyFactory(_GLOBALS.getAddress(LibGlobals.GLOBAL_PARTY_FACTORY))
-                ._createParty(address(this), opts, preciousToken, preciousTokenId);
-        preciousToken.transfer(address(party_), preciousTokenId);
+        party = party_ = _getPartyFactory()
+            .createParty(address(this), opts, preciousToken, preciousTokenId);
+        preciousToken.transferFrom(address(this), address(party_), preciousTokenId);
     }
 
     function _hashPartyOptions(Party.PartyOptions memory opts)
@@ -197,9 +200,9 @@ abstract contract PartyCrowdfund is PartyCrowdfundNFT {
         view
         returns (bytes32 h)
     {
-        bytes32 governanceOptsHostsHash = keccak256(abi.encode(opts.hosts));
-        bytes32 nameHash = keccak256(opts.name);
-        bytes32 symbolHash = keccak256(opts.symbol);
+        bytes32 governanceOptsHostsHash = keccak256(abi.encode(opts.governance.hosts));
+        bytes32 nameHash = keccak256(bytes(opts.name));
+        bytes32 symbolHash = keccak256(bytes(opts.symbol));
         // Hash in place.
         assembly {
             let oldGovernanceOptsHostFieldValue := mload(opts)
@@ -280,7 +283,7 @@ abstract contract PartyCrowdfund is PartyCrowdfundNFT {
                 Contribution memory lastContribution = contributions[numContributions - 1];
                 if (lastContribution.previousTotalContribution == totalContributions) {
                     // No one else has contributed since so just reuse the last entry.
-                    lastContribution.contribution += amount;
+                    lastContribution.amount += amount;
                     contributions[numContributions - 1] = lastContribution;
                     return;
                 }
@@ -306,7 +309,7 @@ abstract contract PartyCrowdfund is PartyCrowdfundNFT {
     {
         // If the CF has won, a party must have been created prior.
         if (lc == CrowdfundLifecycle.Won) {
-            if (party_ == Party(address(0))) {
+            if (party_ == Party(payable(0))) {
                 revert NoPartyError();
             }
         } else {
@@ -321,25 +324,20 @@ abstract contract PartyCrowdfund is PartyCrowdfundNFT {
         }
         (uint256 ethUsed, uint256 ethOwed, uint256 votingPower) =
             _getFinalContribution(contributor);
-        if (party_ && votingPower > 0) {
-            party_.mint(
+        if (party_ != Party(payable(0)) && votingPower > 0) {
+            _getPartyFactory().mint(
                 party_,
                 contributor,
                 votingPower,
                 _delegationsByContributor[contributor] // TODO: Might be 0 for split recipient
             );
         }
-        _transferEth(contributor, ethOwed);
+        contributor.transferEth(ethOwed);
         emit Burned(contributor, ethUsed, votingPower);
     }
 
-    // Transfer ETH with full gas stipend.
-    function _transferEth(address payable to, uint256 amount)
-        private
-    {
-        (bool s, bytes memory r) = to.call{ value: amount }(amount);
-        if (!s) {
-            r.rawRevert();
-        }
+    function _getPartyFactory() private view returns (IPartyFactory) {
+        return IPartyFactory(_GLOBALS.getAddress(LibGlobals.GLOBAL_PARTY_FACTORY));
     }
+
 }

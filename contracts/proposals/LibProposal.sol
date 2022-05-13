@@ -27,11 +27,17 @@ library LibProposal {
     function initProposalImpl(IProposalExecutionEngine impl)
         internal
     {
+        IProposalExecutionEngine oldImpl = getProposalExecutionEngine();
         setProposalExecutionEngine(impl);
-        (bool s, bytes memory r) = address(impl).delegatecall(abi.encodeCall(
-            IProposalExecutionEngine.initialize,
-            address(getProposalExecutionEngine())
-        ));
+        (bool s, bytes memory r) = address(impl).delegatecall(
+            // HACK: encodeCall() complains about converting the first parameter
+            // from `bytes memory` to `bytes calldata` (wut), so use
+            // encodeWithSelector().
+            abi.encodeWithSelector(
+                IProposalExecutionEngine.initialize.selector,
+                abi.encode(oldImpl)
+            )
+        );
         if (!s) {
             r.rawRevert();
         }

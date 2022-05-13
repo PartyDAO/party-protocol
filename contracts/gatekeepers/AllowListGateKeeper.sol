@@ -19,7 +19,7 @@ contract AllowListGateKeeper is IGateKeeper {
         view
         returns (bool)
     {
-        return _isAllowedByGateId[id][participant];
+        return _isAllowedByGateId[uint96(id)][participant];
     }
 
     function createGate(address[] memory members)

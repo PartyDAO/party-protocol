@@ -39,7 +39,9 @@ contract ListOnOpenSeaProposal is ListOnZoraProposal {
         IGlobals globals,
         SharedWyvernV2Maker sharedMaker,
         IZoraAuctionHouse zoraAuctionHouse
-    ) ListOnZoraProposal(globals, zoraAuctionHouse) {
+    )
+        ListOnZoraProposal(globals, zoraAuctionHouse)
+    {
         SHARED_WYVERN_MAKER = sharedMaker;
     }
 
@@ -77,11 +79,15 @@ contract ListOnOpenSeaProposal is ListOnZoraProposal {
         if (step == OpenSeaStep.ListedOnZora) {
             (ZoraProgressData memory zpd) =
                 abi.decode(params.progressData, (ZoraProgressData));
-            if (zpd.minExpiry < uint40(block.timstamp)) {
+            if (zpd.minExpiry < uint40(block.timestamp)) {
                 revert ZoraListingNotExpired(zpd.auctionId, zpd.minExpiry);
             }
             // Remove it from zora.
-            if (_settleZoraAuction(zpd.auctionId)) {
+            if (_settleZoraAuction(
+                zpd.auctionId,
+                params.preciousToken,
+                params.preciousTokenId
+            )) {
                 // Auction sold. Nothing left to do.
                 return "";
             }
@@ -124,7 +130,7 @@ contract ListOnOpenSeaProposal is ListOnZoraProposal {
     {
         // The shared maker requires us to transfer in the NFT being sold
         // first.
-        token.transfer(address(SHARED_WYVERN_MAKER), tokenId);
+        token.transferFrom(address(this), address(SHARED_WYVERN_MAKER), tokenId);
         orderHash = SHARED_WYVERN_MAKER.createListing(
             token,
             tokenId,

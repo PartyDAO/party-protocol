@@ -2,6 +2,7 @@
 pragma solidity ^0.8;
 
 import "../utils/Implementation.sol";
+import "../utils/LibRawResult.sol";
 import "../globals/IGlobals.sol";
 
 import "./IProposalExecutionEngine.sol";
@@ -18,6 +19,8 @@ contract ProposalExecutionEngine is
     FractionalizeProposal,
     ArbitraryCallsProposal
 {
+    using LibRawResult for bytes;
+
     error UnsupportedProposalTypeError(uint32 proposalType);
 
     // The types of proposals supported.
@@ -61,11 +64,17 @@ contract ProposalExecutionEngine is
     // Storage slot for `Storage`.
     uint256 private immutable _STORAGE_SLOT;
 
-    constructor(IGlobals globals) ListOnOpenSeaProposal(globals) {
+    constructor(
+        IGlobals globals,
+        SharedWyvernV2Maker sharedWyvernMaker,
+        IZoraAuctionHouse zoraAuctionHouse
+    )
+        ListOnOpenSeaProposal(globals, sharedWyvernMaker, zoraAuctionHouse)
+    {
         _GLOBALS = globals;
         // First version is just the hash of the runtime code. Later versions
         // might hardcode this value if they intend to reuse storage.
-        _STORAGE_SLOT = keccak256(type(ProposalExecutionEngine).runtimeCode);
+        _STORAGE_SLOT = uint256(keccak256('ProposalExecutionEngine_V1'));
     }
 
     function initialize(bytes calldata initializeData)
@@ -98,10 +107,12 @@ contract ProposalExecutionEngine is
         {
             bytes32 nextProgressDataHash =
                 stor.proposalProgressDataHashByProposalId[params.proposalId];
-            ProposalExecutionStatus status =
-                _getProposalExecutionStatus(params.proposalId, nextProgressDataHash);
+            status = _getProposalExecutionStatus(
+                params.proposalId,
+                nextProgressDataHash
+            );
             if (status == ProposalExecutionStatus.Complete) {
-                revert ProposalAlreadyCompleteError();
+                revert ProposalAlreadyCompleteError(params.proposalId);
             }
         }
         // Only one proposal can be in progress at a time.
@@ -177,12 +188,14 @@ contract ProposalExecutionEngine is
         private
     {
         // Always upgrade to latest implementation stored in _GLOBALS.
-        address newImpl = _GLOBALS.getAddress(IGlobals.GLOBAL_PARTY_PROPOSAL_IMPL);
-        LibProposal.setProposalsImpl(newImpl);
+        IProposalExecutionEngine newImpl = IProposalExecutionEngine(
+            _GLOBALS.getAddress(LibGlobals.GLOBAL_PROPOSAL_ENGINE_IMPL)
+        );
+        LibProposal.setProposalExecutionEngine(newImpl);
         (bool s, bytes memory r) = address(newImpl)
-            .delegatecall(abi.encodeCall(
-                ProposalExecutionEngine.initialize,
-                abi.encode(IMPL)
+            .delegatecall(abi.encodeWithSelector(
+                ProposalExecutionEngine.initialize.selector,
+                abi.encode(IMPL) // This impl is the old version.
             ));
         if (!s) {
             r.rawRevert();
@@ -192,7 +205,7 @@ contract ProposalExecutionEngine is
     // Retrieve the explicit storage bucket for the ProposalExecutionEngine logic.
     function _getStorage() private pure returns (Storage storage stor) {
         uint256 slot = _STORAGE_SLOT;
-        assembly { stor := slot }
+        assembly { stor.slot := slot }
     }
 
     function _getProposalExecutionStatus(

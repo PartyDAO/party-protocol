@@ -2,6 +2,7 @@
 pragma solidity ^0.8;
 
 import "../../utils/LibRawResult.sol";
+import "../../utils/LibAddress.sol";
 import "../../tokens/IERC721.sol";
 
 import "./IWyvernExchangeV2.sol";
@@ -13,11 +14,13 @@ import "./IWyvernExchangeV2.sol";
 // that is shared across all Party instances.
 contract SharedWyvernV2Maker {
     using LibRawResult for bytes;
+    using LibAddress for address payable;
 
     error NoDirectCallsError();
     error InvalidProofError(address notOwner, bytes32 orderHash, uint256 listPrice, uint256 expiry);
     error ListingAlreadyExistsError(IERC721 token, uint256 tokenId);
     error TokenNotOwnedError(IERC721 token, uint256 tokenId);
+    error OpenSeaOrderStillActiveError(bytes32 orderHash);
 
     event OpenSeaOrderListed(
         address seller,
@@ -39,7 +42,6 @@ contract SharedWyvernV2Maker {
         uint256 tokenId,
         uint256 listPrice
     );
-    event OpenSeaOrderStillActiveError(bytes32 orderHash);
 
     IWyvernExchangeV2 public immutable EXCHANGE;
     address public immutable TRANSFER_PROXY;
@@ -90,22 +92,23 @@ contract SharedWyvernV2Maker {
             takerRelayerFee: 0, // TODO: necessary for OS to pick up?
             makerProtocolFee: 0,
             takerProtocolFee: 0,
-            feeRecipient: 0,
+            feeRecipient: address(0),
             feeMethod: IWyvernExchangeV2.FeeMethod.SplitFee, // TODO: correct???
             side: IWyvernExchangeV2.Side.Sell,
             saleKind: IWyvernExchangeV2.SaleKind.FixedPrice,
             target: address(token),
             howToCall: IWyvernExchangeV2.HowToCall.Call,
-            callData: abi.encodeCall(
-                IERC721.safeTransferFrom,
+            callData: abi.encodeWithSelector(
+                IERC721.safeTransferFrom.selector,
                 address(this),
                 address(0),
-                tokenId
+                tokenId,
+                ""
             ),
             replacementPattern: abi.encodeWithSelector(
                 bytes4(0),
                 address(0),
-                type(address).max,
+                address(type(uint160).max),
                 0
             ),
             staticTarget: address(0),
@@ -118,7 +121,8 @@ contract SharedWyvernV2Maker {
             salt: block.timestamp
         });
         orderHash = _hashOrder(order);
-        proofsByNft[token][tokenId] = _toProof(msg.sender, token, tokenId, listPrice);
+        proofsByNft[token][tokenId] =
+            _toProof(msg.sender, orderHash, listPrice, expiry);
         EXCHANGE.approveOrder_(order, true);
         token.approve(address(TRANSFER_PROXY), tokenId);
         emit OpenSeaOrderListed(msg.sender, token, tokenId, order);
@@ -146,7 +150,7 @@ contract SharedWyvernV2Maker {
         if (EXCHANGE.cancelledOrFinalized(orderHash)) {
             // We never cancel so it must have been filled.
             // Pay out the listPrice to sender.
-            payable(msg.sender).call{ value: listPrice }("");
+            payable(msg.sender).transferEth(listPrice);
             emit OpenSeaOrderSold(orderHash, msg.sender, token, tokenId, listPrice);
         } else if (expiry <= block.timestamp) {
             // Listing expired.

@@ -30,7 +30,7 @@ contract PartyCrowdfundNFT is IERC721, ReadOnlyDelegateCall {
     }
 
     // Must be called once by freshly deployed PartyProxy instances.
-    function initialize(string calldata name_, string calldata symbol_)
+    function initialize(string memory name_, string memory symbol_)
         internal
         virtual
     {
@@ -98,6 +98,10 @@ contract PartyCrowdfundNFT is IERC721, ReadOnlyDelegateCall {
         if (owner == address(0)) {
             revert InvalidTokenError(tokenId);
         }
+    }
+
+    function balanceOf(address owner) external view returns (uint256 numTokens) {
+        return _doesTokenExistFor(owner) ? 1 : 0;
     }
 
     function _doesTokenExistFor(address owner) internal view returns (bool) {

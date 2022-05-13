@@ -4,12 +4,15 @@ pragma solidity ^0.8;
 import "../globals/IGlobals.sol";
 import "../globals/LibGlobals.sol";
 import "../tokens/IERC721.sol";
+import "../utils/LibRawResult.sol";
 
 import "./zora/IZoraAuctionHouse.sol";
 import "./IProposalExecutionEngine.sol";
 
 // Implements arbitrary call proposals.
 contract ListOnZoraProposal {
+    using LibRawResult for bytes;
+    
     enum ZoraStep {
         None,
         ListedOnZora
@@ -63,13 +66,13 @@ contract ListOnZoraProposal {
                 minExpiry: minExpiry
             }));
         }
-        assert(step == ZoraStep.ListOnZora);
+        assert(step == ZoraStep.ListedOnZora);
         (ZoraProgressData memory pd) =
             abi.decode(params.progressData, (ZoraProgressData));
-        if (pd.minExpiry < uint40(block.timstamp)) {
+        if (pd.minExpiry < uint40(block.timestamp)) {
             revert ZoraListingNotExpired(pd.auctionId, pd.minExpiry);
         }
-        _settleZoraAuction(pd.auctionId);
+        _settleZoraAuction(pd.auctionId, params.preciousToken, params.preciousTokenId);
         // Nothing left to do.
         return "";
     }
@@ -87,7 +90,7 @@ contract ListOnZoraProposal {
             token,
             duration,
             listPrice,
-            address(0),
+            payable(address(0)),
             0,
             IERC20(address(0)) // Indicates ETH sale
         );

@@ -19,20 +19,26 @@ contract Party is Implementation, PartyGovernanceNFT {
         PartyOptions options;
         IERC721 preciousToken;
         uint256 preciousTokenId;
+        address mintAuthority;
     }
 
-    function initialize(bytes memory initData)
+    constructor(IGlobals globals) PartyGovernanceNFT(globals) {}
+
+    function initialize(bytes memory rawInitData)
         external
         override
         onlyDelegateCall
     {
-        PartyInitData memory initData_ = abi.decode(initData, (PartyInitData));
+        PartyInitData memory initData = abi.decode(rawInitData, (PartyInitData));
         PartyGovernanceNFT._initialize(
-            initData_.name,
-            initData_.symbol,
-            initData_.governance,
-            initData_.preciousToken,
-            initData_.preciousTokenId
+            initData.options.name,
+            initData.options.symbol,
+            initData.options.governance,
+            initData.preciousToken,
+            initData.preciousTokenId,
+            initData.mintAuthority
         );
     }
+
+    receive() external payable {}
 }

@@ -4,13 +4,19 @@ pragma solidity ^0.8;
 import "../globals/IGlobals.sol";
 import "../globals/LibGlobals.sol";
 import "../tokens/IERC20.sol";
+import "../utils/LibAddress.sol";
 import "../utils/LibERC20Compat.sol";
+import "../utils/LibRawResult.sol";
+import "../utils/LibSafeCast.sol";
 
 import "./ITokenDistributorParty.sol";
 
 // Token and ETH distributor contract.
 contract TokenDistributor {
+    using LibAddress for address payable;
     using LibERC20Compat for IERC20;
+    using LibRawResult for bytes;
+    using LibSafeCast for uint256;
 
     struct DistributionInfo {
         uint256 distributionId;
@@ -107,7 +113,7 @@ contract TokenDistributor {
         (
             _distributionStateById[distId].distributionHash15,
             _distributionStateById[distId].remainingMembersupply
-        ) = (_getDistributionHash(info), _safeCastToUint128(memberSupply));
+        ) = (_getDistributionHash(info), memberSupply.safeCastUint256ToUint128());
         emit DistributionCreated(info);
     }
 
@@ -141,7 +147,8 @@ contract TokenDistributor {
         amountClaimed = amountClaimed > remainingMembersupply
             ? remainingMembersupply
             : amountClaimed;
-        state.remainingMembersupply = remainingMembersupply - _safeCastToUint128(amountClaimed);
+        state.remainingMembersupply =
+            remainingMembersupply - amountClaimed.safeCastUint256ToUint128();
         _transfer(info.token, recipient, amountClaimed);
         emit DistributionClaimedByToken(info, tokenId, recipient, amountClaimed);
     }
@@ -173,7 +180,7 @@ contract TokenDistributor {
         // Reduce stored token balance.
         _storedBalances[token] -= amount;
         if (token == ETH_TOKEN) {
-            recipient.call{ value: amount }("");
+            recipient.transferEth(amount);
         } else {
             token.compatTransfer(recipient, amount);
         }
@@ -191,16 +198,5 @@ contract TokenDistributor {
                 0x0000000000000000000000000000000000ffffffffffffffffffffffffffffff
             )
         }
-    }
-
-    function _safeCastToUint128(uint256 x)
-        private
-        pure
-        returns (uint128)
-    {
-        if (x > type(uint128).max) {
-            revert Uint256ToUint128CastOutOfRangeError(x);
-        }
-        return uint128(x);
     }
 }

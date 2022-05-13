@@ -24,6 +24,7 @@ contract ArbitraryCallsProposal {
     error ArbitraryCallFailedError(bytes revertData);
     error UnexpectedCallResultHashError(uint256 idx, bytes32 resultHash, bytes32 expectedResultHash);
     error NotEnoughEthAttachedError(uint256 callValue, uint256 ethAvailable);
+    error InvalidApproveCallDataError(bytes callData);
 
     function _executeArbitraryCalls(
         IProposalExecutionEngine.ExecuteProposalParams memory params
@@ -78,6 +79,7 @@ contract ArbitraryCallsProposal {
                 bytes32 resultHash = keccak256(r);
                 if (resultHash != call.expectedResultHash) {
                     revert UnexpectedCallResultHashError(
+                        idx,
                         resultHash,
                         call.expectedResultHash
                     );
@@ -112,7 +114,7 @@ contract ArbitraryCallsProposal {
         bool isUnanimous = flags & LibProposal.PROPOSAL_FLAG_UNANIMOUS
             == LibProposal.PROPOSAL_FLAG_UNANIMOUS;
         // Unanimous proposals can call any function.
-        if (!isUnanimous && (call.data.length >= 4 && call.target == preciousToken)) {
+        if (!isUnanimous && (call.data.length >= 4 && call.target == address(preciousToken))) {
             bytes4 selector;
             {
                 bytes memory callData = call.data;
@@ -121,18 +123,51 @@ contract ArbitraryCallsProposal {
             // Cannot call approve() or setApprovalForAll() on the precious
             // unless it's to revoke approvals.
             if (selector == IERC721.approve.selector) {
-                (address op, uint256 t) = abi.decode(IERC721.approve.selector, (address, uint256));
-                if (t == preciousTokenId) {
+                (address op, uint256 tokenId) = _decodeApproveCallDataArgs(call.data);
+                if (tokenId == preciousTokenId) {
                     return op != address(0);
                 }
                 return true;
-            }
-            if (selector == IERC721.setApprovalForAll.selector) {
-                (, bool b) = abi.decode(IERC721.approve.setApprovalForAll, (address, bool));
-                return b;
+            } else if (selector == IERC721.setApprovalForAll.selector) {
+                (, bool isApproved) = _decodeSetApprovalForAllCallDataArgs(call.data);
+                return isApproved;
             }
         }
         // TODO: Do we need to block TokenDistributor contract too?
         return true;
+    }
+
+    function _decodeApproveCallDataArgs(bytes memory callData)
+        private
+        pure
+        returns (address operator, uint256 tokenId)
+    {
+        if (callData.length < 68) {
+            revert InvalidApproveCallDataError(callData);
+        }
+        assembly {
+            operator := and(
+                mload(add(callData, 36)),
+                0xffffffffffffffffffffffffffffffffffffffff
+            )
+            tokenId := mload(add(callData, 68))
+        }
+    }
+
+    function _decodeSetApprovalForAllCallDataArgs(bytes memory callData)
+        private
+        pure
+        returns (address operator, bool isApproved)
+    {
+        if (callData.length < 68) {
+            revert InvalidApproveCallDataError(callData);
+        }
+        assembly {
+            operator := and(
+                mload(add(callData, 36)),
+                0xffffffffffffffffffffffffffffffffffffffff
+            )
+            isApproved := not(iszero(mload(add(callData, 68))))
+        }
     }
 }

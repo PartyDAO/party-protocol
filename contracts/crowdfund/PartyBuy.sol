@@ -105,10 +105,10 @@ contract PartyBuy is Implementation, PartyCrowdfund {
     // tracking.
     function getCrowdfundLifecycle() public override view returns (CrowdfundLifecycle) {
         // If there is a settled price then we tried to buy the NFT.
-        if (settledPrice) {
+        if (settledPrice != 0) {
             // If there's a party, we will no longer hold the NFT, but it means we
             // did at one point.
-            if (_getParty() != Party(address(0))) {
+            if (_getParty() != Party(payable(address(0)))) {
                 return CrowdfundLifecycle.Won;
             }
             // Otherwise check if we hold the NFT now.

@@ -11,9 +11,11 @@ import "./IPartyFactory.sol";
 contract PartyProxy is Proxy {
     constructor(bytes memory initData)
         Proxy(
-            IPartyFactory(msg.sender)
-                .GLOBALS()
-                .getAddress(LibGlobals.GLOBAL_PARTY_IMPL),
+            Implementation(
+                IPartyFactory(msg.sender)
+                    .GLOBALS()
+                    .getAddress(LibGlobals.GLOBAL_PARTY_IMPL)
+            ),
             initData
         )
     {}

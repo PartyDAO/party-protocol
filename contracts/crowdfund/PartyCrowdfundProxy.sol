@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8;
 
+import "../utils/Implementation.sol";
 import "../utils/Proxy.sol";
 import "../globals/IGlobals.sol";
 
@@ -16,6 +17,6 @@ contract PartyCrowdfundProxy is Proxy {
         bytes memory initData
     )
         payable
-        Proxy(globals.getAddress(implGlobalKey), initData)
+        Proxy(Implementation(globals.getAddress(implGlobalKey)), initData)
     {}
 }

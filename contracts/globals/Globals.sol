@@ -6,7 +6,7 @@ import "./IGlobals.sol";
 // TODO: create2 upgradeable? 😉
 contract Globals is IGlobals {
     address public immutable MULTISIG;
-    mapping(bytes32 => bytes32) private _wordValues;
+    mapping(uint256 => bytes32) private _wordValues;
 
     modifier onlyMultisig() {
         require(msg.sender == MULTISIG);
@@ -30,6 +30,6 @@ contract Globals is IGlobals {
     }
 
     function setUint256(uint256 id, uint256 value) external onlyMultisig {
-        _wordValues[id] = uint256(uint160(value));
+        _wordValues[id] = bytes32(value);
     }
 }

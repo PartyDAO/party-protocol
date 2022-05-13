@@ -37,12 +37,13 @@ contract PartyFactory is IPartyFactory {
         returns (Party party)
     {
         require(authority != address(0));
-        Party.PartyInitData memory initData = new Party.PartyInitData({
+        Party.PartyInitData memory initData = Party.PartyInitData({
             options: opts,
             preciousToken: preciousToken,
-            preciousTokenId: preciousTokenId
+            preciousTokenId: preciousTokenId,
+            mintAuthority: msg.sender
         });
-        party = Party(address(new PartyProxy(abi.encode(initData))));
+        party = Party(payable(new PartyProxy(abi.encode(initData))));
         partyAuthorities[party] = authority;
         emit PartyCreated(party, msg.sender);
     }

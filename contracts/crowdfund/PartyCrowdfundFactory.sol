@@ -34,11 +34,11 @@ contract PartyCrowdfundFactory {
         external
         returns (PartyBuy inst)
     {
-        inst = new PartyCrowdfundProxy(
+        inst = PartyBuy(payable(new PartyCrowdfundProxy(
             _GLOBALS,
             _PARTY_BUY_IMPL_GLOBAL_KEY,
             abi.encode(opts)
-        );
+        )));
         emit PartyBuyCreated(opts);
     }
 
@@ -46,11 +46,11 @@ contract PartyCrowdfundFactory {
         external
         returns (PartyBid inst)
     {
-        inst = new PartyCrowdfundProxy(
+        inst = PartyBid(payable(new PartyCrowdfundProxy(
             _GLOBALS,
             _PARTY_BID_IMPL_GLOBAL_KEY,
             abi.encode(opts)
-        );
+        )));
         emit PartyBidCreated(opts);
     }
 
@@ -58,13 +58,13 @@ contract PartyCrowdfundFactory {
         PartyCollectionBuy.PartyCollectionBuyOptions calldata opts
     )
         external
-        returns (PartyBuy inst)
+        returns (PartyCollectionBuy inst)
     {
-        inst = new PartyCrowdfundProxy(
+        inst = PartyCollectionBuy(payable(new PartyCrowdfundProxy(
             _GLOBALS,
             _PARTY_COLLECTION_BUY_IMPL_GLOBAL_KEY,
             abi.encode(opts)
-        );
+        )));
         emit PartyCollectionBuyCreated(opts);
     }
 }

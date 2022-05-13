@@ -2,6 +2,7 @@
 pragma solidity ^0.8;
 
 import "../utils/ReadOnlyDelegateCall.sol";
+import "../utils/LibSafeCast.sol";
 import "../globals/IGlobals.sol";
 import "../globals/IGlobals.sol";
 import "../tokens/IERC721.sol";
@@ -14,6 +15,8 @@ contract PartyGovernanceNFT is
     PartyGovernance,
     IERC721
 {
+    using LibSafeCast for uint256;
+
     struct TokenInfo {
         address owner;
         address operator;
@@ -25,18 +28,22 @@ contract PartyGovernanceNFT is
     error NotTokenOwnerError(address notOWner, address owner, uint256 tokenId);
     error NotApprovedError(address notOperator, address operator, uint256 tokenId);
     error InvalidERC721ReceiverResultError(address receiver);
-    error Uint256ToInt128CastOutOfRangeError(uint256 u256);
+    error OnlyMintAuthorityError(address actual, address expected);
 
-    address private immutable _GLOBALS;
-    IPartyFactory private immutable _FACTORY;
+    IGlobals private immutable _GLOBALS;
 
     string public name;
     string public symbol;
+    // Who can call mint()
+    address public mintAuthority;
 
     uint256 private _tokenCounter;
     // owner -> operator -> isApproved
     mapping (address => mapping (address => bool)) public isApprovedForAll;
+    // tokenId -> TokenInfo
     mapping (uint256 => TokenInfo) private _tokens;
+    // owner -> numTokensHeldyOwner
+    mapping (address => uint256) private _numTokensHeldyOwner;
 
     modifier mustOwnToken(uint256 tokenId, address whom) {
         {
@@ -51,38 +58,52 @@ contract PartyGovernanceNFT is
         _;
     }
 
-    constructor() {
-        _FACTORY = IPartyFactory(msg.sender);
-        _GLOBALS = _FACTORY._GLOBALS();
+    modifier onlyMinter() {
+        if (msg.sender != mintAuthority) {
+            revert OnlyMintAuthorityError(msg.sender, mintAuthority);
+        }
+        _;
+    }
+
+    constructor(IGlobals globals) {
+        _GLOBALS = globals;
     }
 
     // Initialize storage for proxy contracts.
     function _initialize(
-        string calldata name_,
-        string calldata symbol_,
+        string memory name_,
+        string memory symbol_,
         PartyGovernance.GovernanceOpts memory governanceOpts,
         IERC721 preciousToken,
-        uint256 preciousTokenId
+        uint256 preciousTokenId,
+        address mintAuthority_
     )
         internal
     {
         PartyGovernance._initialize(governanceOpts, preciousToken, preciousTokenId);
         name = name_;
         symbol = symbol_;
+        mintAuthority = mintAuthority_;
     }
 
     // Mint a governance NFT for `owner` with `votingPower` and
     // immediately delegate voting power to `delegate.`
-    function mint(address owner, uint256 votingPower, address delegate) external
+    function mint(
+        address owner,
+        uint256 votingPower,
+        address delegate
+    )
+        onlyMinter
+        external
     {
-        require(msg.sender == address(_FACTORY)); // Only factory can mint.
         uint256 tokenId = ++_tokenCounter;
         _tokens[tokenId] = TokenInfo({
             owner: owner,
             votingPower: votingPower,
             operator: address(0)
         });
-        _adjustVotingPower(owner, _safeCastToInt128(votingPower), delegate);
+        ++_numTokensHeldyOwner[owner];
+        _adjustVotingPower(owner, votingPower.safeCastUint256ToInt128(), delegate);
         emit Transfer(address(0), owner, tokenId);
     }
 
@@ -162,6 +183,14 @@ contract PartyGovernanceNFT is
         }
     }
 
+    function balanceOf(address owner)
+        external
+        view
+        returns (uint256 numTokens)
+    {
+        return _numTokensHeldyOwner[owner];
+    }
+
     function getVotingPowerOfToken(uint256 tokenId) external view returns (uint256) {
         return _tokens[tokenId].votingPower;
     }
@@ -188,6 +217,8 @@ contract PartyGovernanceNFT is
         _consumeApproval(owner, msg.sender, tokenId);
         _tokens[tokenId].owner = to;
         _tokens[tokenId].operator = address(0); // Don't persist individual approvals.
+        --_numTokensHeldyOwner[owner];
+        ++_numTokensHeldyOwner[to];
         _transferVotingPower(owner, to, _tokens[tokenId].votingPower);
         Transfer(owner, to, tokenId);
     }
@@ -206,16 +237,5 @@ contract PartyGovernanceNFT is
                 revert NotApprovedError(operator, approvedOperator, tokenId);
             }
         }
-    }
-
-    function _safeCastToInt128(uint256 x)
-        private
-        pure
-        returns (int128)
-    {
-        if (x > type(int128).max) {
-            revert Uint256ToInt128CastOutOfRangeError(x);
-        }
-        return int128(int256(x));
     }
 }

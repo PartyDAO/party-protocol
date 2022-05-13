@@ -8,6 +8,7 @@ import "../tokens/IERC721.sol";
 import "../tokens/IERC20.sol";
 import "../utils/LibERC20Compat.sol";
 import "../utils/LibRawResult.sol";
+import "../utils/LibSafeCast.sol";
 import "../globals/IGlobals.sol";
 import "../globals/LibGlobals.sol";
 import "../proposals/IProposalExecutionEngine.sol";
@@ -22,6 +23,9 @@ abstract contract PartyGovernance is
 {
     using LibERC20Compat for IERC20;
     using LibRawResult for bytes;
+    using LibSafeCast for uint256;
+    using LibSafeCast for int192;
+    using LibSafeCast for uint96;
 
     enum ProposalState {
         Invalid,
@@ -121,7 +125,6 @@ abstract contract PartyGovernance is
     error ProposalExistsError(uint256 proposalId);
     error BadProposalHashError(bytes32 proposalHash, bytes32 actualHash);
     error ProposalHasNoVotesError(uint256 proposalId);
-    error Int192ToUint96CastOutOfRange(int192 i192);
     error ExecutionTimeExceededError(uint40 maxExecutableTime, uint40 timestamp);
     error OnlyPartyHostError();
     error OnlyActiveMemberError();
@@ -153,7 +156,10 @@ abstract contract PartyGovernance is
     }
 
     modifier onlyActiveMember() {
-        if (_getLastVotingPowerSnapshot(msg.sender).intrinsicVotingPower == 0) {
+        if (_getLastVotingPowerSnapshotIn(
+                _votingPowerSnapshotsByVoter[msg.sender]
+            ).intrinsicVotingPower == 0)
+        {
             revert OnlyActiveMemberError();
         }
         _;
@@ -227,7 +233,7 @@ abstract contract PartyGovernance is
     {
         address oldDelegate = delegationsByVoter[msg.sender];
         delegationsByVoter[msg.sender] = delegate;
-        VotingPowerSnapshot memory snap = _getLastVotingPowerSnapshot(
+        VotingPowerSnapshot memory snap = _getLastVotingPowerSnapshotIn(
             _votingPowerSnapshotsByVoter[msg.sender]
         );
         _rebalanceDelegates(msg.sender, oldDelegate, delegate, snap, snap);
@@ -246,7 +252,7 @@ abstract contract PartyGovernance is
     function distribute(IERC20 token)
         external
         onlyActiveMember
-        returns (uint256 distributionId)
+        returns (TokenDistributor.DistributionInfo memory distInfo)
     {
         TokenDistributor distributor = TokenDistributor(
             _GLOBALS.getAddress(LibGlobals.GLOBAL_TOKEN_DISTRIBUTOR)
@@ -257,8 +263,7 @@ abstract contract PartyGovernance is
         } else {
             value = address(this).balance;
         }
-        distributionId = distributor.createDistribution{ value: value }(token);
-        emit DistributionCreated(distributionId, token);
+        distInfo = distributor.createDistribution{ value: value }(token);
     }
 
     // Will also cast sender's votes for proposal.
@@ -278,7 +283,7 @@ abstract contract PartyGovernance is
                 completedTime: 0,
                 votes: 0
             }),
-            _getProposalHash(proposal),
+            _getProposalHash(proposal)
         );
         emit Proposed(proposalId, msg.sender, proposal);
         if (accept(proposalId) == 0) {
@@ -399,7 +404,7 @@ abstract contract PartyGovernance is
     function _executeProposal(
         uint256 proposalId,
         Proposal memory proposal,
-        uint32 flags,
+        uint256 flags,
         bytes memory progressData
     )
         private
@@ -416,8 +421,8 @@ abstract contract PartyGovernance is
             });
         (bool success, bytes memory revertData) =
             address(LibProposal.getProposalExecutionEngine())
-                .delegatecall(abi.encodeCall(
-                    IProposalExecutionEngine.executeProposal,
+                .delegatecall(abi.encodeWithSelector(
+                    IProposalExecutionEngine.executeProposal.selector,
                     executeParams
                 ));
         if (!success) {
@@ -487,9 +492,9 @@ abstract contract PartyGovernance is
     function _transferVotingPower(address from, address to, uint256 power)
         internal
     {
-        assert(power <= type(int192).max);
-        _adjustVotingPower(from, -int192(power), address(0));
-        _adjustVotingPower(to, int192(power), address(0));
+        int192 powerI192 = power.safeCastUint256ToInt192();
+        _adjustVotingPower(from, -powerI192, address(0));
+        _adjustVotingPower(to, powerI192, address(0));
     }
 
     // Increase `voter`'s intrinsic voting power and update their delegate if delegate is nonzero.
@@ -497,19 +502,19 @@ abstract contract PartyGovernance is
         internal
     {
         VotingPowerSnapshot[] storage voterSnaps = _votingPowerSnapshotsByVoter[voter];
-        VotingPowerSnapshot memory oldSnap = _getLastVotingPowerSnapshot(voterSnaps);
-        uint256 oldDelegate = delegationsByVoter[voter];
+        VotingPowerSnapshot memory oldSnap = _getLastVotingPowerSnapshotIn(voterSnaps);
+        address oldDelegate = delegationsByVoter[voter];
         // If `delegate` is zero, use the current delegate.
         delegate = delegate == address(0) ? oldDelegate : delegate;
         // If `delegate` is still zero (`voter` never delegated), set the delegate
         // to themself.
         delegate = delegate == address(0) ? voter : delegate;
         VotingPowerSnapshot memory newSnap = VotingPowerSnapshot({
-            timestamp: block.timestamp,
+            timestamp: uint40(block.timestamp),
             delegatedVotingPower: oldSnap.delegatedVotingPower,
-            intrinsicVotingPower: _safeCastToUint96(
-                int192(oldSnap.intrinsicVotingPower) + votingPower
-            ),
+            intrinsicVotingPower: (
+                    oldSnap.intrinsicVotingPower.safeCastUint96ToInt192() + votingPower
+                ).safeCastInt192ToUint96(),
             isDelegated: delegate != voter
         });
         voterSnaps.push(newSnap);
@@ -542,13 +547,12 @@ abstract contract PartyGovernance is
                 VotingPowerSnapshot[] storage oldDelegateSnaps =
                     _votingPowerSnapshotsByVoter[oldDelegate];
                 VotingPowerSnapshot memory oldDelegateShot =
-                    _getLastVotingPowerSnapshot(oldDelegateSnaps);
+                    _getLastVotingPowerSnapshotIn(oldDelegateSnaps);
                 oldDelegateSnaps.push(VotingPowerSnapshot({
-                    timestamp: block.timstamp,
-                    delegatedVotingPower: _safeCastToUint96(
-                        int192(oldDelegateShot.delegatedVotingPower) +
-                            oldSnap.intrinsicVotingPower
-                    ),
+                    timestamp: uint40(block.timestamp),
+                    delegatedVotingPower:
+                        oldDelegateShot.delegatedVotingPower -
+                            oldSnap.intrinsicVotingPower,
                     intrinsicVotingPower: oldDelegateShot.intrinsicVotingPower,
                     isDelegated: oldDelegateShot.isDelegated
                 }));
@@ -559,13 +563,12 @@ abstract contract PartyGovernance is
             VotingPowerSnapshot[] storage newDelegateSnaps =
                 _votingPowerSnapshotsByVoter[newDelegate];
             VotingPowerSnapshot memory newDelegateShot =
-                _getLastVotingPowerSnapshot(newDelegateSnaps);
+                _getLastVotingPowerSnapshotIn(newDelegateSnaps);
             newDelegateSnaps.push(VotingPowerSnapshot({
-                timstamp: block.timstamp,
-                delegatedVotingPower: _safeCastToUint96(
-                    int192(newDelegateShot.delegatedVotingPower) +
-                        newSnap.intrinsicVotingPower
-                ),
+                timestamp: uint40(block.timestamp),
+                delegatedVotingPower:
+                    newDelegateShot.delegatedVotingPower +
+                        newSnap.intrinsicVotingPower,
                 intrinsicVotingPower: newDelegateShot.intrinsicVotingPower,
                 isDelegated: newDelegateShot.isDelegated
             }));
@@ -573,7 +576,7 @@ abstract contract PartyGovernance is
         emit VotingPowerDelegated(voter, newDelegate, newSnap.intrinsicVotingPower);
     }
 
-    function _getLastVotingPowerSnapshot(VotingPowerSnapshot[] storage snaps)
+    function _getLastVotingPowerSnapshotIn(VotingPowerSnapshot[] storage snaps)
         private
         view
         returns (VotingPowerSnapshot memory shot)
@@ -613,7 +616,7 @@ abstract contract PartyGovernance is
                 : ProposalState.InProgress;
         }
         // Vetoed.
-        if (pv.votes == uint96(int128(-1))) {
+        if (pv.votes == uint96(int96(-1))) {
             return ProposalState.Defeated;
         }
         uint40 t = uint40(block.timestamp);
@@ -644,12 +647,5 @@ abstract contract PartyGovernance is
     {
           return uint256(voteCount) * 1e4
             / uint256(totalVotingPower) >= uint256(passThresholdBps);
-    }
-
-    function _safeCastToUint96(int192 i192) private pure returns (uint96) {
-        if (i192 < 0 || i192 > type(uint96).max) {
-            revert Int192ToUint96CastOutOfRange(i192);
-        }
-        return uint96(uint192(i192));
     }
 }
