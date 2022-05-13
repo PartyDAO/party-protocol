@@ -31,7 +31,7 @@ contract GateKeeperERC20 is IGateKeeper {
         external
         returns (bytes12 id)
     {
-        // decode the arbitrary gate data based on the types it expects --> tokenAddress, minimumAmount
+        // decode the arbitrary gate data based on the types it expects --> TokenGate
         TokenGate memory tokengate = abi.decode(
             _arbitraryGateData,
             (TokenGate)
