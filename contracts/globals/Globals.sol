@@ -8,8 +8,12 @@ contract Globals is IGlobals {
     address public immutable MULTISIG;
     mapping(uint256 => bytes32) private _wordValues;
 
+    error OnlyMultisigError();
+
     modifier onlyMultisig() {
-        require(msg.sender == MULTISIG);
+        if (msg.sender != MULTISIG) {
+            revert OnlyMultisigError();
+        }
         _;
     }
 
