@@ -65,7 +65,7 @@ contract PartyGovernanceNFT is
         _;
     }
 
-    constructor(IGlobals globals) {
+    constructor(IGlobals globals) PartyGovernance(globals) {
         _GLOBALS = globals;
     }
 
