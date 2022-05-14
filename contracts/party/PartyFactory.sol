@@ -2,11 +2,12 @@
 pragma solidity ^0.8;
 
 import "../globals/IGlobals.sol";
+import "../globals/LibGlobals.sol";
 import "../tokens/IERC721.sol";
+import "../utils/Proxy.sol";
 
 import "./Party.sol";
 import "./IPartyFactory.sol";
-import "./PartyProxy.sol";
 
 // Creates generic Party instances.
 contract PartyFactory is IPartyFactory {
@@ -43,7 +44,12 @@ contract PartyFactory is IPartyFactory {
             preciousTokenId: preciousTokenId,
             mintAuthority: msg.sender
         });
-        party = Party(payable(new PartyProxy(abi.encode(initData))));
+        party = Party(payable(
+            new Proxy(
+                GLOBALS.getImplementation(LibGlobals.GLOBAL_PARTY_IMPL),
+                abi.encodeCall(Party.initialize, (initData))
+            )
+        ));
         partyAuthorities[party] = authority;
         emit PartyCreated(party, msg.sender);
     }

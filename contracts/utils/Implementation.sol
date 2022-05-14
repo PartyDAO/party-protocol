@@ -11,9 +11,4 @@ abstract contract Implementation {
         require(address(this) != IMPL);
         _;
     }
-
-    // Delegatecalled once when a proxy is deployed.
-    function initialize(bytes calldata initializeData)
-        external
-        virtual;
 }

@@ -79,7 +79,7 @@ contract ProposalExecutionEngine is
 
     function initialize(bytes calldata initializeData)
         external
-        override(Implementation, IProposalExecutionEngine)
+        override
     { /* NOOP */ }
 
     function getProposalExecutionStatus(bytes32 proposalId)

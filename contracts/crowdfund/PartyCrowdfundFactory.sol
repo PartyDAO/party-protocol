@@ -3,11 +3,11 @@ pragma solidity ^0.8;
 
 import "../globals/IGlobals.sol";
 import "../utils/LibRawResult.sol";
+import "../utils/Proxy.sol";
 
 import "./PartyBid.sol";
 import "./PartyBuy.sol";
 import "./PartyCollectionBuy.sol";
-import "./PartyCrowdfundProxy.sol";
 
 contract PartyCrowdfundFactory {
     using LibRawResult for bytes;
@@ -17,20 +17,9 @@ contract PartyCrowdfundFactory {
     event PartyCollectionBuyCreated(PartyCollectionBuy.PartyCollectionBuyOptions opts);
 
     IGlobals private immutable _GLOBALS;
-    uint256 private immutable _PARTY_BUY_IMPL_GLOBAL_KEY;
-    uint256 private immutable _PARTY_BID_IMPL_GLOBAL_KEY;
-    uint256 private immutable _PARTY_COLLECTION_BUY_IMPL_GLOBAL_KEY;
 
-    constructor(
-        IGlobals globals,
-        uint256 partyBuyImplGlobalKey,
-        uint256 partyBidImplGlobalKey,
-        uint256 partyCollectionBuyImplGlobalKey
-    ) {
+    constructor(IGlobals globals) {
         _GLOBALS = globals;
-        _PARTY_BUY_IMPL_GLOBAL_KEY = partyBuyImplGlobalKey;
-        _PARTY_BID_IMPL_GLOBAL_KEY = partyBidImplGlobalKey;
-        _PARTY_COLLECTION_BUY_IMPL_GLOBAL_KEY = partyCollectionBuyImplGlobalKey;
     }
 
     function createPartyBuy(
@@ -46,10 +35,9 @@ contract PartyCrowdfundFactory {
             opts.gateKeeperId,
             createGateCallData
         );
-        inst = PartyBuy(payable(new PartyCrowdfundProxy{ value: msg.value }(
-            _GLOBALS,
-            _PARTY_BUY_IMPL_GLOBAL_KEY,
-            abi.encode(opts)
+        inst = PartyBuy(payable(new Proxy{ value: msg.value }(
+            _GLOBALS.getImplementation(LibGlobals.GLOBAL_PARTY_BUY_IMPL),
+            abi.encodeCall(PartyBuy.initialize, (opts))
         )));
         emit PartyBuyCreated(opts);
     }
@@ -67,10 +55,9 @@ contract PartyCrowdfundFactory {
             opts.gateKeeperId,
             createGateCallData
         );
-        inst = PartyBid(payable(new PartyCrowdfundProxy{ value: msg.value }(
-            _GLOBALS,
-            _PARTY_BID_IMPL_GLOBAL_KEY,
-            abi.encode(opts)
+        inst = PartyBid(payable(new Proxy{ value: msg.value }(
+            _GLOBALS.getImplementation(LibGlobals.GLOBAL_PARTY_BID_IMPL),
+            abi.encodeCall(PartyBid.initialize, (opts))
         )));
         emit PartyBidCreated(opts);
     }
@@ -88,10 +75,9 @@ contract PartyCrowdfundFactory {
             opts.gateKeeperId,
             createGateCallData
         );
-        inst = PartyCollectionBuy(payable(new PartyCrowdfundProxy{ value: msg.value }(
-            _GLOBALS,
-            _PARTY_COLLECTION_BUY_IMPL_GLOBAL_KEY,
-            abi.encode(opts)
+        inst = PartyCollectionBuy(payable(new Proxy{ value: msg.value }(
+            _GLOBALS.getImplementation(LibGlobals.GLOBAL_PARTY_COLLECTION_BUY_IMPL),
+            abi.encodeCall(PartyCollectionBuy.initialize, (opts))
         )));
         emit PartyCollectionBuyCreated(opts);
     }

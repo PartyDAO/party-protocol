@@ -38,27 +38,25 @@ contract PartyBid is Implementation, PartyCrowdfund {
 
     constructor(IGlobals globals) PartyCrowdfund(globals) {}
 
-    function initialize(bytes calldata rawInitOpts)
+    function initialize(PartyBidOptions memory initOpts)
         external
-        override
         onlyDelegateCall
     {
-        PartyBidOptions memory opts = abi.decode(rawInitOpts, (PartyBidOptions));
         PartyCrowdfund._initialize(CrowdfundInitOptions({
-            name: opts.name,
-            symbol: opts.symbol,
-            partyOptions: opts.partyOptions,
-            splitRecipient: opts.splitRecipient,
-            splitBps: opts.splitBps,
-            initialContributor: opts.initialContributor,
-            initialDelegate: opts.initialDelegate
+            name: initOpts.name,
+            symbol: initOpts.symbol,
+            partyOptions: initOpts.partyOptions,
+            splitRecipient: initOpts.splitRecipient,
+            splitBps: initOpts.splitBps,
+            initialContributor: initOpts.initialContributor,
+            initialDelegate: initOpts.initialDelegate
         }));
-        nftContract = opts.nftContract;
-        nftTokenId = opts.nftTokenId;
-        market = opts.market;
-        gateKeeper = opts.gateKeeper;
-        gateKeeperId = opts.gateKeeperId;
-        expiry = uint40(opts.durationInSeconds + block.timestamp);
+        nftContract = initOpts.nftContract;
+        nftTokenId = initOpts.nftTokenId;
+        market = initOpts.market;
+        gateKeeper = initOpts.gateKeeper;
+        gateKeeperId = initOpts.gateKeeperId;
+        expiry = uint40(initOpts.durationInSeconds + block.timestamp);
     }
 
     function contribute(address contributor, address delegate, bytes memory gateData)

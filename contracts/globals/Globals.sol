@@ -21,6 +21,10 @@ contract Globals is IGlobals {
         return address(uint160(uint256(_wordValues[id])));
     }
 
+    function getImplementation(uint256 id) external view returns (Implementation) {
+        return Implementation(address(uint160(uint256(_wordValues[id]))));
+    }
+
     function getUint256(uint256 id) external view returns (uint256) {
         return uint256(_wordValues[id]);
     }
