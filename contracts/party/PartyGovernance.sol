@@ -165,8 +165,8 @@ abstract contract PartyGovernance is
         _;
     }
 
-    constructor() {
-        _GLOBALS = IPartyFactory(msg.sender).GLOBALS();
+    constructor(IGlobals globals) {
+        _GLOBALS = globals;
     }
 
     function _initialize(
