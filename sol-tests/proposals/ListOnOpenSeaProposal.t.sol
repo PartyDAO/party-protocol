@@ -14,7 +14,7 @@ contract ListOnOpenSeaProposalTest is Test, TestUtils {
     uint256 constant ZORA_LISTING_DURATION = 60 * 60 * 24;
     TestableListOnOpenSeaProposal impl;
     Globals globals;
-    SharedWyvernV2Maker sharedMaer;
+    SharedWyvernV2Maker sharedMaker;
     IWyvernExchangeV2 OS =
         IWyvernExchangeV2(0x7f268357A8c2552623316e2562D90e642bB538E5);
     IZoraAuctionHouse ZORA =
@@ -30,10 +30,10 @@ contract ListOnOpenSeaProposalTest is Test, TestUtils {
         );
         preciousToken = new DummyERC721();
         preciousTokenId = preciousToken.mint(address(this));
-        sharedMaer = new SharedWyvernV2Maker(OS);
+        sharedMaker = new SharedWyvernV2Maker(OS);
         impl = new TestableListOnOpenSeaProposal(
             globals,
-            sharedMaer,
+            sharedMaker,
             ZORA
         );
         preciousToken.transferFrom(address(this), address(impl), preciousTokenId);
@@ -41,6 +41,7 @@ contract ListOnOpenSeaProposalTest is Test, TestUtils {
 
     function _createTestProposal()
         private
+        view
         returns (
             ListOnOpenSeaProposal.OpenSeaProposalData memory proposalData,
             IProposalExecutionEngine.ExecuteProposalParams memory executeParams
@@ -62,7 +63,9 @@ contract ListOnOpenSeaProposalTest is Test, TestUtils {
             });
     }
 
-    function testForkedExecutionAllExpiring() public onlyForked {
+    // Test complete proposal execution steps, with all listings
+    // expiring.
+    function testForkedExecution_AllExpiring() public onlyForked {
         (
             ListOnOpenSeaProposal.OpenSeaProposalData memory proposalData,
             IProposalExecutionEngine.ExecuteProposalParams memory executeParams
@@ -103,11 +106,46 @@ contract ListOnOpenSeaProposalTest is Test, TestUtils {
             assertTrue(orderHash != bytes32(0));
             assertTrue(expiry == block.timestamp + proposalData.durationInSeconds);
         }
-        // Precious should be held by the shared wyvern sharedMaer.
-        assertTrue(preciousToken.ownerOf(preciousTokenId) == address(sharedMaer));
+        // Precious should be held by the shared wyvern sharedMaker.
+        assertTrue(preciousToken.ownerOf(preciousTokenId) == address(sharedMaker));
         // Expire the OS listing.
         skip(proposalData.durationInSeconds);
         executeParams.progressData = impl.executeListOnOpenSea(executeParams);
         assertTrue(executeParams.progressData.length == 0);
+        // Done
+    }
+
+    // Test complete proposal execution steps, with unanimous votes, all listings
+    // expiring.
+    function testForkedExecution_UnanimousVote_AllExpiring() public onlyForked {
+        (
+            ListOnOpenSeaProposal.OpenSeaProposalData memory proposalData,
+            IProposalExecutionEngine.ExecuteProposalParams memory executeParams
+        ) = _createTestProposal();
+        executeParams.flags |= LibProposal.PROPOSAL_FLAG_UNANIMOUS;
+        // This will list straight on OS because it was a unanmous vote.
+        executeParams.progressData = impl.executeListOnOpenSea(executeParams);
+        assertTrue(executeParams.progressData.length != 0);
+        {
+            (
+                ListOnOpenSeaProposal.OpenSeaStep step,
+                bytes32 orderHash,
+                uint256 expiry
+            ) = abi.decode(executeParams.progressData, (
+                ListOnOpenSeaProposal.OpenSeaStep,
+                bytes32,
+                uint256
+            ));
+            assertTrue(step == ListOnOpenSeaProposal.OpenSeaStep.ListedOnOpenSea);
+            assertTrue(orderHash != bytes32(0));
+            assertTrue(expiry == block.timestamp + proposalData.durationInSeconds);
+        }
+        // Precious should be held by the shared wyvern sharedMaker.
+        assertTrue(preciousToken.ownerOf(preciousTokenId) == address(sharedMaker));
+        // Expire the OS listing.
+        skip(proposalData.durationInSeconds);
+        executeParams.progressData = impl.executeListOnOpenSea(executeParams);
+        assertTrue(executeParams.progressData.length == 0);
+        // Done
     }
 }

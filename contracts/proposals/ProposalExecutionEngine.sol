@@ -3,6 +3,7 @@ pragma solidity ^0.8;
 
 import "../utils/Implementation.sol";
 import "../utils/LibRawResult.sol";
+import "../utils/ReentrancyGuard.sol";
 import "../globals/IGlobals.sol";
 
 import "./IProposalExecutionEngine.sol";
@@ -15,6 +16,7 @@ import "./LibProposal.sol";
 contract ProposalExecutionEngine is
     IProposalExecutionEngine,
     Implementation,
+    ReentrancyGuard,
     ListOnOpenSeaProposal,
     FractionalizeProposal,
     ArbitraryCallsProposal
@@ -95,6 +97,7 @@ contract ProposalExecutionEngine is
     // Execute a proposal. Returns the execution status of the proposal.
     function executeProposal(ExecuteProposalParams calldata params)
         external
+        nonReentrant
         returns (ProposalExecutionStatus status)
     {
         Storage storage stor = _getStorage();

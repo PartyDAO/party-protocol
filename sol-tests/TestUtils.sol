@@ -35,11 +35,11 @@ contract TestUtils {
         return keccak256(seed);
     }
 
-    function _randomUint256() internal returns (uint256) {
+    function _randomUint256() internal view returns (uint256) {
         return uint256(_randomBytes32());
     }
 
-    function _randomAddress() internal returns (address payable) {
+    function _randomAddress() internal view returns (address payable) {
         return payable(address(uint160(_randomUint256())));
     }
 }
