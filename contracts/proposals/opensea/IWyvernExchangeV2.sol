@@ -3,6 +3,8 @@ pragma solidity ^0.8;
 
 import "./IWyvernV2MakerProxyRegistry.sol";
 
+// Based on https://etherscan.io/address/0x7f268357a8c2552623316e2562d90e642bb538e5#code
+
 interface IWyvernExchangeV2 {
 
      /* An ECDSA signature. */
@@ -79,9 +81,24 @@ interface IWyvernExchangeV2 {
         HowToCall howToCall,
         bytes memory callData,
         bytes memory replacementPattern,
-        bytes memory staticExtradata,
+        bytes memory staticExtraData,
         bool orderbookInclusionDesired
     ) external;
+    function atomicMatch_(
+        address[14] memory addrs,
+        uint256[18] memory uints,
+        uint8[8] memory feeMethodsSidesKindsHowToCalls,
+        bytes memory callDataBuy,
+        bytes memory callDataSell,
+        bytes memory replacementPatternBuy,
+        bytes memory replacementPatternSell,
+        bytes memory staticExtraDataBuy,
+        bytes memory staticExtraDataSell,
+        uint8[2] memory vs,
+        bytes32[5] memory rssMetadata
+    )
+        external
+        payable;
     function registry() external view returns (IWyvernV2MakerProxyRegistry);
     function cancelledOrFinalized(bytes32 orderHash) external view returns (bool);
 }

@@ -4,6 +4,7 @@ pragma solidity ^0.8;
 import "../../tokens/IERC721.sol";
 import "../../tokens/IERC20.sol";
 
+// Based on https://etherscan.io/address/0xe468ce99444174bd3bbbed09209577d25d1ad673#code
 interface IZoraAuctionHouse {
     struct Auction {
         // ID for the ERC721 token
