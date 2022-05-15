@@ -51,13 +51,13 @@ interface IWyvernExchangeV2 {
         /* HowToCall. */
         HowToCall howToCall;
         /* Calldata. */
-        bytes callData; // Offset 14
+        bytes callData; // Offset 13
         /* Calldata replacement pattern, or an empty byte array for no replacement. */
-        bytes replacementPattern; // Offset 15
+        bytes replacementPattern; // Offset 14
         /* Static call target, zero-address for no static call. */
         address staticTarget;
         /* Static call extra data. */
-        bytes staticExtraData; // Offset 17
+        bytes staticExtraData; // Offset 16
         /* Token used to pay for the order, or the zero-address as a sentinel value for Ether. */
         address paymentToken;
         /* Base price of the order (in paymentTokens). */
@@ -101,4 +101,5 @@ interface IWyvernExchangeV2 {
         payable;
     function registry() external view returns (IWyvernV2MakerProxyRegistry);
     function cancelledOrFinalized(bytes32 orderHash) external view returns (bool);
+    function approvedOrders(bytes32 hash) external view returns (bool approved);
 }

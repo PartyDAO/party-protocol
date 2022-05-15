@@ -197,7 +197,7 @@ contract SharedWyvernV2Maker is ERC721Receiver {
         {
             bytes32 callDataHash = keccak256(order.callData);
             bytes32 replacementPatternHash = keccak256(order.replacementPattern);
-            bytes32 staticExtraData = keccak256(order.staticExtraData);
+            bytes32 staticExtraDataHash = keccak256(order.staticExtraData);
             // Hash in-place.
             // TODO: consider cleaning dirty bits.
             assembly {
@@ -207,24 +207,24 @@ contract SharedWyvernV2Maker is ERC721Receiver {
                     invalid()
                 }
                 let oldHiddenPrefixField := mload(sub(order, 0x20))
-                let oldCallDataField := mload(add(order, 0x1C0))
-                let oldReplacementPatternField := mload(add(order, 0x1E0))
-                let oldStaticExtraDataField := mload(add(order, 0x220))
+                let oldCallDataField := mload(add(order, 0x1A0))
+                let oldReplacementPatternField := mload(add(order, 0x1C0))
+                let oldStaticExtraDataField := mload(add(order, 0x200))
                 let oldHiddenNonceField := mload(add(order, 0x2E0))
                 mstore(
                     sub(order, 0x20),
                     // Order typehash
                     0xdba08a88a748f356e8faf8578488343eab21b1741728779c9dcfdc782bc800f8
                 )
-                mstore(add(order, 0x1C0), callDataHash)
-                mstore(add(order, 0x1E0), replacementPatternHash)
-                mstore(add(order, 0x220), staticExtraData)
+                mstore(add(order, 0x1A0), callDataHash)
+                mstore(add(order, 0x1C0), replacementPatternHash)
+                mstore(add(order, 0x200), staticExtraDataHash)
                 mstore(add(order, 0x2E0), 0) // We never increment nonce so it's always 0
-                hash := keccak256(order, 0x300)
+                hash := keccak256(sub(order, 0x20), 0x320)
                 mstore(sub(order, 0x20), oldHiddenPrefixField)
-                mstore(add(order, 0x1C0), oldCallDataField)
-                mstore(add(order, 0x1E0), oldReplacementPatternField)
-                mstore(add(order, 0x220), oldStaticExtraDataField)
+                mstore(add(order, 0x1A0), oldCallDataField)
+                mstore(add(order, 0x1C0), oldReplacementPatternField)
+                mstore(add(order, 0x200), oldStaticExtraDataField)
                 mstore(add(order, 0x2E0), oldHiddenNonceField)
             }
         }
@@ -239,8 +239,8 @@ contract SharedWyvernV2Maker is ERC721Receiver {
                 add(p, 0x02),
                 0x72982d92449bfb3d338412ce4738761aff47fb975ceb17a1bc3712ec716a5a68
             )
-            mstore(add(p, 0x34), hash)
-            hash := keccak256(p, 0x46)
+            mstore(add(p, 0x22), hash)
+            hash := keccak256(p, 0x42)
         }
     }
 

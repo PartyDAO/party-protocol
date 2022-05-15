@@ -105,6 +105,8 @@ contract ListOnOpenSeaProposalTest is Test, TestUtils {
             assertTrue(step == ListOnOpenSeaProposal.OpenSeaStep.ListedOnOpenSea);
             assertTrue(orderHash != bytes32(0));
             assertTrue(expiry == block.timestamp + proposalData.duration);
+            // Order should be approved on the exchange.
+            assertTrue(OS.approvedOrders(orderHash));
         }
         // Precious should be held by the shared wyvern sharedMaker.
         assertTrue(preciousToken.ownerOf(preciousTokenId) == address(sharedMaker));
@@ -139,6 +141,8 @@ contract ListOnOpenSeaProposalTest is Test, TestUtils {
             assertTrue(step == ListOnOpenSeaProposal.OpenSeaStep.ListedOnOpenSea);
             assertTrue(orderHash != bytes32(0));
             assertTrue(expiry == block.timestamp + proposalData.duration);
+            // Order should be approved on the exchange.
+            assertTrue(OS.approvedOrders(orderHash));
         }
         // Precious should be held by the shared wyvern sharedMaker.
         assertTrue(preciousToken.ownerOf(preciousTokenId) == address(sharedMaker));
