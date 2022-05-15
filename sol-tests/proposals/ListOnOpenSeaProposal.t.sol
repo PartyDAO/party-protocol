@@ -50,7 +50,7 @@ contract ListOnOpenSeaProposalTest is Test, TestUtils {
         proposalData =
             ListOnOpenSeaProposal.OpenSeaProposalData({
                 listPrice: 1e18,
-                durationInSeconds: uint40(ZORA_LISTING_DURATION * 7)
+                duration: uint40(ZORA_LISTING_DURATION * 7)
             });
         executeParams =
             IProposalExecutionEngine.ExecuteProposalParams({
@@ -104,12 +104,12 @@ contract ListOnOpenSeaProposalTest is Test, TestUtils {
             ));
             assertTrue(step == ListOnOpenSeaProposal.OpenSeaStep.ListedOnOpenSea);
             assertTrue(orderHash != bytes32(0));
-            assertTrue(expiry == block.timestamp + proposalData.durationInSeconds);
+            assertTrue(expiry == block.timestamp + proposalData.duration);
         }
         // Precious should be held by the shared wyvern sharedMaker.
         assertTrue(preciousToken.ownerOf(preciousTokenId) == address(sharedMaker));
         // Expire the OS listing.
-        skip(proposalData.durationInSeconds);
+        skip(proposalData.duration);
         executeParams.progressData = impl.executeListOnOpenSea(executeParams);
         assertTrue(executeParams.progressData.length == 0);
         // Done
@@ -138,12 +138,12 @@ contract ListOnOpenSeaProposalTest is Test, TestUtils {
             ));
             assertTrue(step == ListOnOpenSeaProposal.OpenSeaStep.ListedOnOpenSea);
             assertTrue(orderHash != bytes32(0));
-            assertTrue(expiry == block.timestamp + proposalData.durationInSeconds);
+            assertTrue(expiry == block.timestamp + proposalData.duration);
         }
         // Precious should be held by the shared wyvern sharedMaker.
         assertTrue(preciousToken.ownerOf(preciousTokenId) == address(sharedMaker));
         // Expire the OS listing.
-        skip(proposalData.durationInSeconds);
+        skip(proposalData.duration);
         executeParams.progressData = impl.executeListOnOpenSea(executeParams);
         assertTrue(executeParams.progressData.length == 0);
         // Done

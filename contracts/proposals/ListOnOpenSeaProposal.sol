@@ -19,7 +19,7 @@ contract ListOnOpenSeaProposal is ListOnZoraProposal {
     // ABI-encoded `proposalData` passed into execute.
     struct OpenSeaProposalData {
         uint256 listPrice;
-        uint40 durationInSeconds;
+        uint40 duration;
     }
 
     // ABI-encoded `progressData` passed into execute in the `ListedOnOpenSea` step.
@@ -34,14 +34,16 @@ contract ListOnOpenSeaProposal is ListOnZoraProposal {
     // This allows all parties to avoid having to create a new transfer proxy
     // when listing on opensea for the first time.
     SharedWyvernV2Maker public immutable SHARED_WYVERN_MAKER;
+    IGlobals private immutable _GLOBALS;
 
     constructor(
         IGlobals globals,
         SharedWyvernV2Maker sharedMaker,
         IZoraAuctionHouse zoraAuctionHouse
     )
-        ListOnZoraProposal(globals, zoraAuctionHouse)
+        ListOnZoraProposal(zoraAuctionHouse)
     {
+        _GLOBALS =globals;
         SHARED_WYVERN_MAKER = sharedMaker;
     }
 
@@ -64,18 +66,25 @@ contract ListOnOpenSeaProposal is ListOnZoraProposal {
         if (step == OpenSeaStep.None) {
             // Proposal hasn't executed yet.
             if (!isUnanimous) {
-                // Not a unanimous vote so list on zora first.
-                (uint256 auctionId, uint40 minExpiry) = _createZoraAuction(
-                    data.listPrice,
-                    params.preciousToken,
-                    params.preciousTokenId
-                );
-                return abi.encode(OpenSeaStep.ListedOnZora, ZoraProgressData({
-                    auctionId: auctionId,
-                    minExpiry: minExpiry
-                }));
+                // TODO: Should this be just executionDelay?
+                uint256 zoraDuration =
+                    _GLOBALS.getUint256(LibGlobals.GLOBAL_OS_ZORA_AUCTION_DURATION);
+                if (zoraDuration != 0) {
+                    // Not a unanimous vote and the zora duration is nonzero
+                    // so list on zora first.
+                    (uint256 auctionId, uint40 minExpiry) = _createZoraAuction(
+                        data.listPrice,
+                        zoraDuration,
+                        params.preciousToken,
+                        params.preciousTokenId
+                    );
+                    return abi.encode(OpenSeaStep.ListedOnZora, ZoraProgressData({
+                        auctionId: auctionId,
+                        minExpiry: minExpiry
+                    }));
+                }
             }
-            // Unanimous vote. Advance pas the zora phase.
+            // Unanimous vote or no zora duration. Advance pas the zora phase.
             step = OpenSeaStep.RetrievedFromZora;
         }
         if (step == OpenSeaStep.ListedOnZora) {
@@ -98,7 +107,7 @@ contract ListOnOpenSeaProposal is ListOnZoraProposal {
         }
         if (step == OpenSeaStep.RetrievedFromZora) {
             // Either a unanimous vote or retrieved from zora (no bids).
-            uint256 expiry = block.timestamp + uint256(data.durationInSeconds);
+            uint256 expiry = block.timestamp + uint256(data.duration);
             bytes32 orderHash = _listOnOpenSea(
                 data,
                 params.preciousToken,

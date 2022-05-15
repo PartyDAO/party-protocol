@@ -43,10 +43,10 @@ abstract contract PartyGovernance is
         // Address of initial party hosts.
         address[] hosts;
         // How long people can vote on a proposal.
-        uint40 voteDurationInSeconds;
+        uint40 voteDuration;
         // How long to wait after a proposal passes before it can be
         // executed.
-        uint40 executionDelayInSeconds;
+        uint40 executionDelay;
         // Minimum ratio of accept votes to consider a proposal passed,
         // in bps, where 1000 == 100%.
         uint16 passThresholdBps;
@@ -58,10 +58,10 @@ abstract contract PartyGovernance is
     // efficiency.
     struct GovernanceValues {
         // How long people can vote on a proposal.
-        uint40 voteDurationInSeconds;
+        uint40 voteDuration;
         // How long to wait after a proposal passes before it can be
         // executed.
-        uint40 executionDelayInSeconds;
+        uint40 executionDelay;
         // Minimum ratio of accept votes to consider a proposal passed,
         // in bps, where 1000 == 100%.
         uint16 passThresholdBps;
@@ -183,8 +183,8 @@ abstract contract PartyGovernance is
             _GLOBALS.getAddress(LibGlobals.GLOBAL_PROPOSAL_ENGINE_IMPL)
         ));
         governanceValues = GovernanceValues({
-            voteDurationInSeconds: opts.voteDurationInSeconds,
-            executionDelayInSeconds: opts.executionDelayInSeconds,
+            voteDuration: opts.voteDuration,
+            executionDelay: opts.executionDelay,
             passThresholdBps: opts.passThresholdBps,
             totalVotingPower: opts.totalVotingPower
         });
@@ -625,14 +625,14 @@ abstract contract PartyGovernance is
         GovernanceValues memory gv = governanceValues;
         if (pv.passedTime != 0) {
             // Ready.
-            if (pv.passedTime + gv.executionDelayInSeconds <= t) {
+            if (pv.passedTime + gv.executionDelay <= t) {
                 return ProposalState.Ready;
             }
             // Passed.
             return ProposalState.Passed;
         }
         // Voting window expired.
-        if (pv.proposedTime + gv.voteDurationInSeconds <= t) {
+        if (pv.proposedTime + gv.voteDuration <= t) {
             return ProposalState.Defeated;
         }
         return ProposalState.Voting;

@@ -21,7 +21,7 @@ contract ListOnZoraProposal {
     // ABI-encoded `proposalData` passed into execute.
     struct ZoraProposalData {
         uint256 listPrice;
-        uint40 durationInSeconds;
+        uint40 duration;
     }
 
     // ABI-encoded `progressData` passed into execute in the `ListedOnZora` step.
@@ -36,11 +36,9 @@ contract ListOnZoraProposal {
 
     bytes32 constant internal AUCTION_HASNT_BEGUN_ERROR_HASH =
         0x54a53788b7942d79bb6fcd40012c5e867208839fa1607e1f245558ee354e9565;
-    IGlobals private immutable _GLOBALS;
     IZoraAuctionHouse public immutable ZORA;
 
-    constructor(IGlobals globals, IZoraAuctionHouse zoraAuctionHouse) {
-        _GLOBALS = globals;
+    constructor(IZoraAuctionHouse zoraAuctionHouse) {
         ZORA = zoraAuctionHouse;
     }
 
@@ -62,6 +60,7 @@ contract ListOnZoraProposal {
             // Proposal hasn't executed yet.
             (uint256 auctionId, uint40 minExpiry) = _createZoraAuction(
                 data.listPrice,
+                data.duration,
                 params.preciousToken,
                 params.preciousTokenId
             );
@@ -81,12 +80,15 @@ contract ListOnZoraProposal {
         return "";
     }
 
-    function _createZoraAuction(uint256 listPrice, IERC721 token, uint256 tokenId)
+    function _createZoraAuction(
+        uint256 listPrice,
+        uint256 duration,
+        IERC721 token,
+        uint256 tokenId
+    )
         internal
         returns (uint256 auctionId, uint40 minExpiry)
     {
-        // TODO: Should this be passed in/per party?
-        uint256 duration = _GLOBALS.getUint256(LibGlobals.GLOBAL_OS_ZORA_AUCTION_DURATION);
         minExpiry = uint40(block.timestamp) + uint40(duration);
         token.approve(address(ZORA), tokenId);
         auctionId = ZORA.createAuction(
