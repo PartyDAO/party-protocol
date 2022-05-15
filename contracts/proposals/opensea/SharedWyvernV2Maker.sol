@@ -3,8 +3,8 @@ pragma solidity ^0.8;
 
 import "../../utils/LibRawResult.sol";
 import "../../utils/LibAddress.sol";
+import "../../tokens/ERC721Receiver.sol";
 import "../../tokens/IERC721.sol";
-import "../../tokens/IERC721Receiver.sol";
 
 import "./IWyvernExchangeV2.sol";
 
@@ -13,7 +13,7 @@ import "./IWyvernExchangeV2.sol";
 // because this contract will be the maker instead of the party.
 // https://etherscan.io/address/0x7f268357a8c2552623316e2562d90e642bb538e5#code
 // that is shared across all Party instances.
-contract SharedWyvernV2Maker is IERC721Receiver {
+contract SharedWyvernV2Maker is ERC721Receiver {
     using LibRawResult for bytes;
     using LibAddress for address payable;
 
@@ -66,36 +66,6 @@ contract SharedWyvernV2Maker is IERC721Receiver {
     }
 
     receive() external payable {}
-
-    // TODO: refactor this out
-    function supportsInterface(bytes4 interfaceId)
-        public
-        virtual
-        pure
-        returns (bool)
-    {
-        // EIP165
-        if (interfaceId == 0x01ffc9a7) {
-            return true;
-        }
-        if (interfaceId == 0xffffffff) {
-            return false;
-        }
-        return interfaceId == 0x150b7a02; // IERC721Receiver
-    }
-
-    function onERC721Received(
-        address operator,
-        address from,
-        uint256 tokenId,
-        bytes calldata data
-    )
-        external
-        virtual
-        returns (bytes4)
-    {
-        return IERC721Receiver.onERC721Received.selector;
-    }
 
     // Seller should transfer the NFT being sold to this contract
     // (using transferFrom()) before calling this function.

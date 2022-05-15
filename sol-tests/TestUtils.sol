@@ -2,7 +2,7 @@
 pragma solidity ^0.8;
 
 contract TestUtils {
-    uint256 private _nonce;
+    uint256 private immutable _nonce;
 
     constructor() {
         _nonce = uint256(keccak256(abi.encode(
@@ -26,10 +26,11 @@ contract TestUtils {
         _;
     }
 
-    function _randomBytes32() internal returns (bytes32) {
+    function _randomBytes32() internal view returns (bytes32) {
         bytes memory seed = abi.encode(
+            _nonce,
             block.timestamp,
-            _nonce++
+            gasleft()
         );
         return keccak256(seed);
     }

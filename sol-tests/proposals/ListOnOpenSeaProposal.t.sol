@@ -14,7 +14,7 @@ contract ListOnOpenSeaProposalTest is Test, TestUtils {
     uint256 constant ZORA_LISTING_DURATION = 60 * 60 * 24;
     TestableListOnOpenSeaProposal impl;
     Globals globals;
-    SharedWyvernV2Maker maker;
+    SharedWyvernV2Maker sharedMaer;
     IWyvernExchangeV2 OS =
         IWyvernExchangeV2(0x7f268357A8c2552623316e2562D90e642bB538E5);
     IZoraAuctionHouse ZORA =
@@ -30,22 +30,28 @@ contract ListOnOpenSeaProposalTest is Test, TestUtils {
         );
         preciousToken = new DummyERC721();
         preciousTokenId = preciousToken.mint(address(this));
-        maker = new SharedWyvernV2Maker(OS);
+        sharedMaer = new SharedWyvernV2Maker(OS);
         impl = new TestableListOnOpenSeaProposal(
             globals,
-            maker,
+            sharedMaer,
             ZORA
         );
         preciousToken.transferFrom(address(this), address(impl), preciousTokenId);
     }
 
-    function testForkedExecution() public onlyForked {
-        ListOnOpenSeaProposal.OpenSeaProposalData memory proposalData =
+    function _createTestProposal()
+        private
+        returns (
+            ListOnOpenSeaProposal.OpenSeaProposalData memory proposalData,
+            IProposalExecutionEngine.ExecuteProposalParams memory executeParams
+        )
+    {
+        proposalData =
             ListOnOpenSeaProposal.OpenSeaProposalData({
                 listPrice: 1e18,
                 durationInSeconds: uint40(ZORA_LISTING_DURATION * 7)
             });
-        IProposalExecutionEngine.ExecuteProposalParams memory executeParams =
+        executeParams =
             IProposalExecutionEngine.ExecuteProposalParams({
                 proposalId: _randomBytes32(),
                 proposalData: abi.encode(proposalData),
@@ -54,14 +60,21 @@ contract ListOnOpenSeaProposalTest is Test, TestUtils {
                 preciousToken: preciousToken,
                 preciousTokenId: preciousTokenId
             });
+    }
+
+    function testForkedExecutionAllExpiring() public onlyForked {
+        (
+            ListOnOpenSeaProposal.OpenSeaProposalData memory proposalData,
+            IProposalExecutionEngine.ExecuteProposalParams memory executeParams
+        ) = _createTestProposal();
         // This will list on zora because the proposal was not passed unanimously.
-        bytes memory rawProgressData = impl.executeListOnOpenSea(executeParams);
-        assertTrue(rawProgressData.length != 0);
+        executeParams.progressData = impl.executeListOnOpenSea(executeParams);
+        assertTrue(executeParams.progressData.length != 0);
         {
             (
                 ListOnOpenSeaProposal.OpenSeaStep step,
                 ListOnZoraProposal.ZoraProgressData memory progressData
-            ) = abi.decode(rawProgressData, (
+            ) = abi.decode(executeParams.progressData, (
                 ListOnOpenSeaProposal.OpenSeaStep,
                 ListOnZoraProposal.ZoraProgressData
             ));
@@ -69,11 +82,32 @@ contract ListOnOpenSeaProposalTest is Test, TestUtils {
             assertTrue(progressData.auctionId != 0);
             assertTrue(progressData.minExpiry == block.timestamp + ZORA_LISTING_DURATION);
         }
+        // Precious should be held by zora.
+        assertTrue(preciousToken.ownerOf(preciousTokenId) == address(ZORA));
         // Expire the zora listing.
         skip(ZORA_LISTING_DURATION);
         // Next, retrieve from zora and list on OS.
-        executeParams.progressData = rawProgressData;
-        rawProgressData = impl.executeListOnOpenSea(executeParams);
-        // TODO: other steps...
+        executeParams.progressData = impl.executeListOnOpenSea(executeParams);
+        assertTrue(executeParams.progressData.length != 0);
+        {
+            (
+                ListOnOpenSeaProposal.OpenSeaStep step,
+                bytes32 orderHash,
+                uint256 expiry
+            ) = abi.decode(executeParams.progressData, (
+                ListOnOpenSeaProposal.OpenSeaStep,
+                bytes32,
+                uint256
+            ));
+            assertTrue(step == ListOnOpenSeaProposal.OpenSeaStep.ListedOnOpenSea);
+            assertTrue(orderHash != bytes32(0));
+            assertTrue(expiry == block.timestamp + proposalData.durationInSeconds);
+        }
+        // Precious should be held by the shared wyvern sharedMaer.
+        assertTrue(preciousToken.ownerOf(preciousTokenId) == address(sharedMaer));
+        // Expire the OS listing.
+        skip(proposalData.durationInSeconds);
+        executeParams.progressData = impl.executeListOnOpenSea(executeParams);
+        assertTrue(executeParams.progressData.length == 0);
     }
 }

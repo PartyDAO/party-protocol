@@ -5,8 +5,8 @@ import "../distribution/ITokenDistributorParty.sol";
 import "../distribution/TokenDistributor.sol";
 import "../utils/ReadOnlyDelegateCall.sol";
 import "../tokens/IERC721.sol";
-import "../tokens/IERC721Receiver.sol";
 import "../tokens/IERC20.sol";
+import "../tokens/ERC721Receiver.sol";
 import "../utils/LibERC20Compat.sol";
 import "../utils/LibRawResult.sol";
 import "../utils/LibSafeCast.sol";
@@ -20,7 +20,7 @@ import "./IPartyFactory.sol";
 // Base contract for a Party encapsulating all governance functionality.
 abstract contract PartyGovernance is
     ITokenDistributorParty,
-    IERC721Receiver,
+    ERC721Receiver,
     ReadOnlyDelegateCall
 {
     using LibERC20Compat for IERC20;
@@ -201,22 +201,6 @@ abstract contract PartyGovernance is
         );
     }
 
-    function supportsInterface(bytes4 interfaceId)
-        public
-        virtual
-        pure
-        returns (bool)
-    {
-        // EIP165
-        if (interfaceId == 0x01ffc9a7) {
-            return true;
-        }
-        if (interfaceId == 0xffffffff) {
-            return false;
-        }
-        return interfaceId == 0x150b7a02; // IERC721Receiver
-    }
-
     // Get the current IProposalExecutionEngine instance.
     function getProposalExecutionEngine()
         external
@@ -243,20 +227,6 @@ abstract contract PartyGovernance is
     {
         values = _proposalInfoByProposalId[proposalId].values;
         state = _getProposalState(values);
-    }
-
-    // TODO: refactor this out.
-    function onERC721Received(
-        address operator,
-        address from,
-        uint256 tokenId,
-        bytes calldata data
-    )
-        external
-        virtual
-        returns (bytes4)
-    {
-        return IERC721Receiver.onERC721Received.selector;
     }
 
     // Pledge your intrinsic voting power to a new delegate, removing it from

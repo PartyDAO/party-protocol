@@ -3,12 +3,13 @@ pragma solidity ^0.8;
 
 import "../tokens/IERC721.sol";
 import "../utils/ReadOnlyDelegateCall.sol";
+import "../utils/EIP165.sol";
 import "../globals/IGlobals.sol";
 import "../globals/LibGlobals.sol";
 
 // NFT functionality for PartyBid/Buy contributions.
 // This NFT is soulbound and read-only.
-contract PartyCrowdfundNFT is IERC721, ReadOnlyDelegateCall {
+contract PartyCrowdfundNFT is IERC721, EIP165, ReadOnlyDelegateCall {
 
     error AlreadyBurnedError(address owner, uint256 tokenId);
     error InvalidTokenError(uint256 tokenId);
@@ -82,21 +83,15 @@ contract PartyCrowdfundNFT is IERC721, ReadOnlyDelegateCall {
     function supportsInterface(bytes4 interfaceId)
         public
         virtual
+        override
         pure
         returns (bool)
     {
-        // EIP165
-        if (interfaceId == 0x01ffc9a7) {
-            return true;
-        }
         // IERC721
         if (interfaceId == 0x80ac58cd) {
             return true;
         }
-        if (interfaceId == 0xffffffff) {
-            return false;
-        }
-        return interfaceId == 0x5b5e139f; // ERC721Metadata
+        return super.supportsInterface(interfaceId);
     }
 
     function tokenURI(uint256) external /* view */ returns (string memory)

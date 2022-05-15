@@ -109,8 +109,8 @@ contract ListOnOpenSeaProposal is ListOnZoraProposal {
         }
         // Already listed on OS.
         assert(step == OpenSeaStep.ListedOnOpenSea);
-        (OpenSeaProgressData memory opd) =
-            abi.decode(params.progressData, (OpenSeaProgressData));
+        (, OpenSeaProgressData memory opd) =
+            abi.decode(params.progressData, (uint8, OpenSeaProgressData));
         _cleanUpListing(
             data,
             params.preciousToken,

@@ -18,5 +18,4 @@ interface IERC721 {
     function isApprovedForAll(address owner, address operator) external view returns (bool);
     function ownerOf(uint256 tokenId) external view returns (address);
     function balanceOf(address owner) external view returns (uint256);
-    function supportsInterface(bytes4 interfaceId) external view returns (bool);
 }

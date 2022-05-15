@@ -9,6 +9,4 @@ interface IERC721Receiver {
         uint256 tokenId,
         bytes calldata data
     ) external returns (bytes4);
-
-    function supportsInterface(bytes4 interfaceId) external view returns (bool);
 }
