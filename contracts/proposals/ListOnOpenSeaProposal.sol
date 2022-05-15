@@ -58,7 +58,9 @@ contract ListOnOpenSeaProposal is ListOnZoraProposal {
         (OpenSeaProposalData memory data) = abi.decode(params.proposalData, (OpenSeaProposalData));
         bool isUnanimous = params.flags & LibProposal.PROPOSAL_FLAG_UNANIMOUS
             == LibProposal.PROPOSAL_FLAG_UNANIMOUS;
-        (OpenSeaStep step) = abi.decode(params.progressData, (OpenSeaStep));
+        OpenSeaStep step = params.progressData.length == 0
+            ? OpenSeaStep.None
+            : abi.decode(params.progressData, (OpenSeaStep));
         if (step == OpenSeaStep.None) {
             // Proposal hasn't executed yet.
             if (!isUnanimous) {

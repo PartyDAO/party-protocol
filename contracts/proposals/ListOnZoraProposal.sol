@@ -12,7 +12,7 @@ import "./IProposalExecutionEngine.sol";
 // Implements arbitrary call proposals.
 contract ListOnZoraProposal {
     using LibRawResult for bytes;
-    
+
     enum ZoraStep {
         None,
         ListedOnZora
@@ -53,7 +53,9 @@ contract ListOnZoraProposal {
         returns (bytes memory nextProgressData)
     {
         (ZoraProposalData memory data) = abi.decode(params.proposalData, (ZoraProposalData));
-        (ZoraStep step) = abi.decode(params.progressData, (ZoraStep));
+        ZoraStep step = params.progressData.length == 0
+            ? ZoraStep.None
+            : abi.decode(params.progressData, (ZoraStep));
         if (step == ZoraStep.None) {
             // Proposal hasn't executed yet.
             (uint256 auctionId, uint40 minExpiry) = _createZoraAuction(

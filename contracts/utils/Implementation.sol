@@ -7,7 +7,7 @@ abstract contract Implementation {
 
     constructor() { IMPL = address(this); }
 
-    modifier onlyDelegateCall() {
+    modifier onlyDelegateCall() virtual {
         require(address(this) != IMPL);
         _;
     }

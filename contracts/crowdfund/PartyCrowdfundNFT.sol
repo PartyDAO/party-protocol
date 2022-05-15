@@ -78,6 +78,9 @@ contract PartyCrowdfundNFT is IERC721, ReadOnlyDelegateCall {
         if (interfaceId == 0x01ffc9a7) {
             return true;
         }
+        if (interfaceId == 0x80ac58cd) {
+            return true;
+        }
         if (interfaceId == 0xffffffff) {
             return false;
         }

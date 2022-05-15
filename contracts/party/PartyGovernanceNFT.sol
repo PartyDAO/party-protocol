@@ -36,14 +36,14 @@ contract PartyGovernanceNFT is
     string public symbol;
     // Who can call mint()
     address public mintAuthority;
+    // owner -> numTokensHeldyOwner
+    mapping (address => uint256) public balanceOf;
 
     uint256 private _tokenCounter;
     // owner -> operator -> isApproved
     mapping (address => mapping (address => bool)) public isApprovedForAll;
     // tokenId -> TokenInfo
     mapping (uint256 => TokenInfo) private _tokens;
-    // owner -> numTokensHeldyOwner
-    mapping (address => uint256) private _numTokensHeldyOwner;
 
     modifier mustOwnToken(uint256 tokenId, address whom) {
         {
@@ -102,7 +102,7 @@ contract PartyGovernanceNFT is
             votingPower: votingPower,
             operator: address(0)
         });
-        ++_numTokensHeldyOwner[owner];
+        ++balanceOf[owner];
         _adjustVotingPower(owner, votingPower.safeCastUint256ToInt128(), delegate);
         emit Transfer(address(0), owner, tokenId);
     }
@@ -157,6 +157,9 @@ contract PartyGovernanceNFT is
         if (interfaceId == 0x01ffc9a7) {
             return true;
         }
+        if (interfaceId == 0x80ac58cd) {
+            return true;
+        }
         if (interfaceId == 0xffffffff) {
             return false;
         }
@@ -181,14 +184,6 @@ contract PartyGovernanceNFT is
         if (owner == address(0)) {
             revert InvalidTokenError(tokenId);
         }
-    }
-
-    function balanceOf(address owner)
-        external
-        view
-        returns (uint256 numTokens)
-    {
-        return _numTokensHeldyOwner[owner];
     }
 
     function getVotingPowerOfToken(uint256 tokenId) external view returns (uint256) {
@@ -217,8 +212,8 @@ contract PartyGovernanceNFT is
         _consumeApproval(owner, msg.sender, tokenId);
         _tokens[tokenId].owner = to;
         _tokens[tokenId].operator = address(0); // Don't persist individual approvals.
-        --_numTokensHeldyOwner[owner];
-        ++_numTokensHeldyOwner[to];
+        --balanceOf[owner];
+        ++balanceOf[to];
         _transferVotingPower(owner, to, _tokens[tokenId].votingPower);
         emit Transfer(owner, to, tokenId);
     }
@@ -226,13 +221,11 @@ contract PartyGovernanceNFT is
     function _consumeApproval(address owner, address operator, uint256 tokenId)
         private
     {
-        // Always consume individual approvals.
-        address approvedOperator = _tokens[tokenId].operator;
-        _tokens[tokenId].operator = address(0);
         if (operator != owner) {
             if (isApprovedForAll[owner][operator]) {
                 return;
             }
+            address approvedOperator = _tokens[tokenId].operator;
             if (approvedOperator != operator) {
                 revert NotApprovedError(operator, approvedOperator, tokenId);
             }

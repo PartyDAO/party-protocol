@@ -1,25 +1,16 @@
 // SPDX-License-Identifier: UNLICENSED
-pragma solidity ^0.8.13;
+pragma solidity ^0.8;
 
 import "forge-std/Test.sol";
 
 import "../../contracts/gatekeepers/AllowListGateKeeper.sol";
+import "../TestUtils.sol";
 
-contract AllowListGateKeeperTest is Test {
+contract AllowListGateKeeperTest is Test, TestUtils {
     AllowListGateKeeper gk;
-    uint256 nonce;
 
     function setUp() public {
         gk = new AllowListGateKeeper();
-    }
-
-    function _randomAddress() private returns (address payable) {
-        bytes memory seed = abi.encode(
-            block.timestamp,
-            nonce++,
-            type(AllowListGateKeeper).runtimeCode
-        );
-        return payable(address(uint160(uint256(keccak256(seed)))));
     }
 
     function testUniqueGateIds() public {
