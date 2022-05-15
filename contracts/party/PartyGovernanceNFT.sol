@@ -132,8 +132,14 @@ contract PartyGovernanceNFT is
         _transferFrom(owner, to, tokenId);
     }
 
-    function safeTransferFrom(address owner, address to, uint256 tokenId, bytes calldata data)
+    function safeTransferFrom(address owner, address to, uint256 tokenId)
         external
+    {
+        safeTransferFrom(owner, to, tokenId, "");
+    }
+
+    function safeTransferFrom(address owner, address to, uint256 tokenId, bytes memory data)
+        public
         mustOwnToken(tokenId, owner)
     {
         if (to == owner) {
@@ -153,17 +159,17 @@ contract PartyGovernanceNFT is
         }
     }
 
-    function supportsInterface(bytes4 interfaceId) external pure returns (bool) {
-        if (interfaceId == 0x01ffc9a7) {
-            return true;
-        }
+    function supportsInterface(bytes4 interfaceId)
+        public
+        pure
+        override(PartyGovernance, IERC721)
+        returns (bool)
+    {
+        // IERC721
         if (interfaceId == 0x80ac58cd) {
             return true;
         }
-        if (interfaceId == 0xffffffff) {
-            return false;
-        }
-        return interfaceId == 0x5b5e139f; // ERC721Metadata
+        return super.supportsInterface(interfaceId);
     }
 
     function getApproved(uint256 tokenId)

@@ -4,6 +4,7 @@ pragma solidity ^0.8;
 import "../utils/LibAddress.sol";
 import "../utils/LibRawResult.sol";
 import "../utils/LibSafeCast.sol";
+import "../tokens/IERC721Receiver.sol";
 import "../party/Party.sol";
 import "../globals/IGlobals.sol";
 
@@ -12,7 +13,7 @@ import "./PartyCrowdfundNFT.sol";
 // Base contract for PartyBid/PartyBuy.
 // Holds post-win/loss logic. E.g., burning contribution NFTs and creating a
 // party after winning.
-abstract contract PartyCrowdfund is PartyCrowdfundNFT {
+abstract contract PartyCrowdfund is IERC721Receiver, PartyCrowdfundNFT {
     using LibRawResult for bytes;
     using LibSafeCast for uint256;
     using LibAddress for address payable;
@@ -135,6 +136,19 @@ abstract contract PartyCrowdfund is PartyCrowdfundNFT {
         );
     }
 
+    function onERC721Received(
+        address operator,
+        address from,
+        uint256 tokenId,
+        bytes calldata data
+    )
+        external
+        virtual
+        returns (bytes4)
+    {
+        return IERC721Receiver.onERC721Received.selector;
+    }
+
     // Contribute, reusing the last delegate of the sender or
     // the sender itself if not set.
     receive() external payable {
@@ -148,6 +162,19 @@ abstract contract PartyCrowdfund is PartyCrowdfundNFT {
             delegate,
             (address(this).balance - msg.value).safeCastUint256ToUint128()
         );
+    }
+
+    function supportsInterface(bytes4 interfaceId)
+        public
+        pure
+        override(PartyCrowdfundNFT, IERC721Receiver)
+        returns (bool)
+    {
+        // IERC721Receiver
+        if (interfaceId == 0x150b7a02) {
+            return true;
+        }
+        return super.supportsInterface(interfaceId);
     }
 
     // This will only be called off-chain so doesn't have to be optimal.

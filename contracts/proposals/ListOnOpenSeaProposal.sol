@@ -79,9 +79,9 @@ contract ListOnOpenSeaProposal is ListOnZoraProposal {
             step = OpenSeaStep.RetrievedFromZora;
         }
         if (step == OpenSeaStep.ListedOnZora) {
-            (ZoraProgressData memory zpd) =
-                abi.decode(params.progressData, (ZoraProgressData));
-            if (zpd.minExpiry < uint40(block.timestamp)) {
+            (, ZoraProgressData memory zpd) =
+                abi.decode(params.progressData, (uint8, ZoraProgressData));
+            if (zpd.minExpiry > uint40(block.timestamp)) {
                 revert ZoraListingNotExpired(zpd.auctionId, zpd.minExpiry);
             }
             // Remove it from zora.

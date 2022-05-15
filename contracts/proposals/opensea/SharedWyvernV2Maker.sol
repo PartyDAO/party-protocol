@@ -4,6 +4,7 @@ pragma solidity ^0.8;
 import "../../utils/LibRawResult.sol";
 import "../../utils/LibAddress.sol";
 import "../../tokens/IERC721.sol";
+import "../../tokens/IERC721Receiver.sol";
 
 import "./IWyvernExchangeV2.sol";
 
@@ -12,7 +13,7 @@ import "./IWyvernExchangeV2.sol";
 // because this contract will be the maker instead of the party.
 // https://etherscan.io/address/0x7f268357a8c2552623316e2562d90e642bb538e5#code
 // that is shared across all Party instances.
-contract SharedWyvernV2Maker {
+contract SharedWyvernV2Maker is IERC721Receiver {
     using LibRawResult for bytes;
     using LibAddress for address payable;
 
@@ -43,6 +44,8 @@ contract SharedWyvernV2Maker {
         uint256 listPrice
     );
 
+    bytes4 private constant SAFE_TRANSFER_FROM_SELECTOR = 0xb88d4fde;
+
     IWyvernExchangeV2 public immutable EXCHANGE;
     address public immutable TRANSFER_PROXY;
 
@@ -64,6 +67,36 @@ contract SharedWyvernV2Maker {
 
     receive() external payable {}
 
+    // TODO: refactor this out
+    function supportsInterface(bytes4 interfaceId)
+        public
+        virtual
+        pure
+        returns (bool)
+    {
+        // EIP165
+        if (interfaceId == 0x01ffc9a7) {
+            return true;
+        }
+        if (interfaceId == 0xffffffff) {
+            return false;
+        }
+        return interfaceId == 0x150b7a02; // IERC721Receiver
+    }
+
+    function onERC721Received(
+        address operator,
+        address from,
+        uint256 tokenId,
+        bytes calldata data
+    )
+        external
+        virtual
+        returns (bytes4)
+    {
+        return IERC721Receiver.onERC721Received.selector;
+    }
+
     // Seller should transfer the NFT being sold to this contract
     // (using transferFrom()) before calling this function.
     // LOL VULNS GALORE
@@ -84,6 +117,7 @@ contract SharedWyvernV2Maker {
             // Should also revert on token.approve() so perhaps not necessary.
             revert TokenNotOwnedError(token, tokenId);
         }
+        // Generate an OS order.
         IWyvernExchangeV2.Order memory order = IWyvernExchangeV2.Order({
             exchange: address(EXCHANGE),
             maker: address(this),
@@ -99,7 +133,7 @@ contract SharedWyvernV2Maker {
             target: address(token),
             howToCall: IWyvernExchangeV2.HowToCall.Call,
             callData: abi.encodeWithSelector(
-                IERC721.safeTransferFrom.selector,
+                SAFE_TRANSFER_FROM_SELECTOR,
                 address(this),
                 address(0),
                 tokenId,
@@ -123,8 +157,8 @@ contract SharedWyvernV2Maker {
         orderHash = _hashOrder(order);
         proofsByNft[token][tokenId] =
             _toProof(msg.sender, orderHash, listPrice, expiry);
-        EXCHANGE.approveOrder_(order, true);
         token.approve(address(TRANSFER_PROXY), tokenId);
+        _callApproveOrder(order);
         emit OpenSeaOrderListed(msg.sender, token, tokenId, order);
     }
 
@@ -238,5 +272,40 @@ contract SharedWyvernV2Maker {
             mstore(add(p, 0x34), hash)
             hash := keccak256(p, 0x46)
         }
+    }
+
+    function _callApproveOrder(IWyvernExchangeV2.Order memory order)
+        private
+    {
+        address[7] memory addrs;
+        addrs[0] = address(order.exchange);
+        addrs[1] = address(order.maker);
+        addrs[2] = address(order.taker);
+        addrs[3] = address(order.feeRecipient);
+        addrs[4] = address(order.target);
+        addrs[5] = address(order.staticTarget);
+        addrs[6] = address(order.paymentToken);
+        uint256[9] memory uints;
+        uints[0] = order.makerRelayerFee;
+        uints[1] = order.takerRelayerFee;
+        uints[2] = order.makerProtocolFee;
+        uints[3] = order.takerProtocolFee;
+        uints[4] = order.basePrice;
+        uints[5] = order.extra;
+        uints[6] = order.listingTime;
+        uints[7] = order.expirationTime;
+        uints[8] = order.salt;
+        EXCHANGE.approveOrder_(
+            addrs,
+            uints,
+            order.feeMethod,
+            order.side,
+            order.saleKind,
+            order.howToCall,
+            order.callData,
+            order.replacementPattern,
+            order.staticExtraData,
+            true
+        );
     }
 }

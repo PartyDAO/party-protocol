@@ -64,8 +64,14 @@ contract DummyERC721 is IERC721 {
         _transferFrom(owner, to, tokenId);
     }
 
-    function safeTransferFrom(address owner, address to, uint256 tokenId, bytes memory data)
+    function safeTransferFrom(address owner, address to, uint256 tokenId)
         external
+    {
+        safeTransferFrom(owner, to, tokenId, "");
+    }
+
+    function safeTransferFrom(address owner, address to, uint256 tokenId, bytes memory data)
+        public
     {
         _transferFrom(owner, to, tokenId);
         uint256 toCodeSize;

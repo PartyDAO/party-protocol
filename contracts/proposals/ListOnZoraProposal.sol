@@ -34,6 +34,8 @@ contract ListOnZoraProposal {
 
     error ZoraListingNotExpired(uint256 auctionId, uint40 expiry);
 
+    bytes32 constant internal AUCTION_HASNT_BEGUN_ERROR_HASH =
+        0x54a53788b7942d79bb6fcd40012c5e867208839fa1607e1f245558ee354e9565;
     IGlobals private immutable _GLOBALS;
     IZoraAuctionHouse public immutable ZORA;
 
@@ -98,6 +100,7 @@ contract ListOnZoraProposal {
         );
     }
 
+
     function _settleZoraAuction(uint256 auctionId, IERC721 token, uint256 tokenId)
         internal
         returns (bool sold)
@@ -107,7 +110,7 @@ contract ListOnZoraProposal {
         try ZORA.endAuction(auctionId) {
         } catch (bytes memory errData) {
             bytes32 errHash = keccak256(errData);
-            if (errHash == keccak256("Auction hasn't begun")) {
+            if (errHash == AUCTION_HASNT_BEGUN_ERROR_HASH) {
                 // No bids placed. Just cancel it.
                 ZORA.cancelAuction(auctionId);
                 return false;

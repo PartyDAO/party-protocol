@@ -15,6 +15,8 @@ contract ListOnOpenSeaProposalTest is Test, TestUtils {
     TestableListOnOpenSeaProposal impl;
     Globals globals;
     SharedWyvernV2Maker maker;
+    IWyvernExchangeV2 OS =
+        IWyvernExchangeV2(0x7f268357A8c2552623316e2562D90e642bB538E5);
     IZoraAuctionHouse ZORA =
         IZoraAuctionHouse(0xE468cE99444174Bd3bBBEd09209577d25D1ad673);
     DummyERC721 preciousToken;
@@ -28,6 +30,7 @@ contract ListOnOpenSeaProposalTest is Test, TestUtils {
         );
         preciousToken = new DummyERC721();
         preciousTokenId = preciousToken.mint(address(this));
+        maker = new SharedWyvernV2Maker(OS);
         impl = new TestableListOnOpenSeaProposal(
             globals,
             maker,
@@ -51,7 +54,7 @@ contract ListOnOpenSeaProposalTest is Test, TestUtils {
                 preciousToken: preciousToken,
                 preciousTokenId: preciousTokenId
             });
-        // This will list on zora.
+        // This will list on zora because the proposal was not passed unanimously.
         bytes memory rawProgressData = impl.executeListOnOpenSea(executeParams);
         assertTrue(rawProgressData.length != 0);
         {
@@ -66,6 +69,11 @@ contract ListOnOpenSeaProposalTest is Test, TestUtils {
             assertTrue(progressData.auctionId != 0);
             assertTrue(progressData.minExpiry == block.timestamp + ZORA_LISTING_DURATION);
         }
+        // Expire the zora listing.
+        skip(ZORA_LISTING_DURATION);
+        // Next, retrieve from zora and list on OS.
+        executeParams.progressData = rawProgressData;
+        rawProgressData = impl.executeListOnOpenSea(executeParams);
         // TODO: other steps...
     }
 }

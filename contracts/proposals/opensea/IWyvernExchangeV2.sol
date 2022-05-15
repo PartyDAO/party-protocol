@@ -70,7 +70,18 @@ interface IWyvernExchangeV2 {
         uint256 salt;
     }
 
-    function approveOrder_(Order calldata order, bool approved) external;
+    function approveOrder_(
+        address[7] memory addrs,
+        uint256[9] memory uints,
+        FeeMethod feeMethod,
+        Side side,
+        SaleKind saleKind,
+        HowToCall howToCall,
+        bytes memory callData,
+        bytes memory replacementPattern,
+        bytes memory staticExtradata,
+        bool orderbookInclusionDesired
+    ) external;
     function registry() external view returns (IWyvernV2MakerProxyRegistry);
     function cancelledOrFinalized(bytes32 orderHash) external view returns (bool);
 }
