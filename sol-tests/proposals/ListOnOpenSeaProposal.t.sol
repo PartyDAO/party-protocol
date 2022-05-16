@@ -77,7 +77,7 @@ contract ListOnOpenSeaProposalTest is
 
     // Test complete proposal execution steps, with all listings
     // expiring.
-    function testForkedExecution_AllExpiring() public onlyForked {
+    function testForked_Execution_AllExpiring() public onlyForked {
         (
             ListOnOpenSeaProposal.OpenSeaProposalData memory proposalData,
             IProposalExecutionEngine.ExecuteProposalParams memory executeParams
@@ -133,7 +133,7 @@ contract ListOnOpenSeaProposalTest is
 
     // Test complete proposal execution steps, with unanimous votes, all listings
     // expiring.
-    function testForkedExecution_UnanimousVote_AllExpiring() public onlyForked {
+    function testForked_Execution_UnanimousVote_AllExpiring() public onlyForked {
         (
             ListOnOpenSeaProposal.OpenSeaProposalData memory proposalData,
             IProposalExecutionEngine.ExecuteProposalParams memory executeParams
@@ -168,7 +168,7 @@ contract ListOnOpenSeaProposalTest is
     }
 
     // Zora listing was bid on but not finalized.
-    function testForkedExecution_ZoraBidUp() public onlyForked {
+    function testForked_Execution_ZoraBidUp() public onlyForked {
         (
             ListOnOpenSeaProposal.OpenSeaProposalData memory proposalData,
             IProposalExecutionEngine.ExecuteProposalParams memory executeParams
@@ -197,7 +197,7 @@ contract ListOnOpenSeaProposalTest is
     }
 
     // OS listing was bought.
-    function testForkedExecution_OSBought() public onlyForked {
+    function testForked_Execution_OSBought() public onlyForked {
         (
             ListOnOpenSeaProposal.OpenSeaProposalData memory proposalData,
             IProposalExecutionEngine.ExecuteProposalParams memory executeParams
@@ -237,4 +237,6 @@ contract ListOnOpenSeaProposalTest is
         // Proposal contract should have the listing amount.
         assertTrue(address(impl).balance == LIST_PRICE);
     }
+
+    // TODO: test failing conditions (e.g., executing next step before expirations, etc.)
 }

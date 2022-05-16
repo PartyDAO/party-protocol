@@ -34,7 +34,7 @@ contract ProposalExecutionEngine is
         ListOnZora,
         Fractionalize,
         ArbitraryCalls,
-        UpgradeProposalImplementation,
+        UpgradeProposalEngineImpl,
         NumProposalTypes
     }
 
@@ -56,10 +56,13 @@ contract ProposalExecutionEngine is
     }
 
     event ProposalExecutionProgress(bytes32 proposalId, bytes progressData);
+    event ProposalEngineImplementationUpgraded(address oldImpl, address newImpl);
 
     error ZeroProposalIdError();
+    error MalformedProposalDataError();
     error ProposalAlreadyCompleteError(bytes32 proposalId);
     error ProposalExecutionBlockedError(bytes32 proposalId, bytes32 currentInProgressProposalId);
+    error ProposalProgressDataInvalidError(bytes32 actualProgressDataHash, bytes32 expectedProgressDataHash);
 
     bytes32 private constant EMPTY_HASH = keccak256("");
     IGlobals private immutable _GLOBALS;
@@ -79,7 +82,7 @@ contract ProposalExecutionEngine is
         _STORAGE_SLOT = uint256(keccak256('ProposalExecutionEngine_V1'));
     }
 
-    function initialize(bytes calldata initializeData)
+    function initialize(address oldImpl, bytes calldata initializeData)
         external
         override
     { /* NOOP */ }
@@ -94,8 +97,16 @@ contract ProposalExecutionEngine is
         );
     }
 
+    function getCurrentInProgressProposalId()
+        external
+        view
+        returns (bytes32 id)
+    {
+        return _getStorage().currentInProgressProposalId;
+    }
+
     // Execute a proposal. Returns the execution status of the proposal.
-    function executeProposal(ExecuteProposalParams calldata params)
+    function executeProposal(ExecuteProposalParams memory params)
         external
         nonReentrant
         returns (ProposalExecutionStatus status)
@@ -105,11 +116,23 @@ contract ProposalExecutionEngine is
         if (params.proposalId == bytes32(0)) {
             revert ZeroProposalIdError();
         }
-        // Proposal must not be completed.
         {
             bytes32 nextProgressDataHash =
                 stor.proposalProgressDataHashByProposalId[params.proposalId];
+             {
+                 bytes32 progressDataHash = keccak256(params.progressData);
+                 // Progress data must match the one stored.
+                 if (nextProgressDataHash != 0 &&
+                     nextProgressDataHash != progressDataHash)
+                 {
+                     revert ProposalProgressDataInvalidError(
+                         progressDataHash,
+                         nextProgressDataHash
+                     );
+                 }
+            }
             status = _getProposalExecutionStatus(nextProgressDataHash);
+            // Proposal must not be completed.
             if (status == ProposalExecutionStatus.Complete) {
                 revert ProposalAlreadyCompleteError(params.proposalId);
             }
@@ -127,7 +150,9 @@ contract ProposalExecutionEngine is
         stor.currentInProgressProposalId = params.proposalId;
 
         // Execute the proposal.
-        bytes memory nextProgressData = _execute(params);
+        ProposalType pt;
+        (pt, params.proposalData) = _getProposalType(params.proposalData);
+        bytes memory nextProgressData = _execute(pt, params);
         emit ProposalExecutionProgress(params.proposalId, nextProgressData);
 
         // Remember the next progress data.
@@ -143,12 +168,11 @@ contract ProposalExecutionEngine is
         return ProposalExecutionStatus.InProgress;
     }
 
-    function _execute(ExecuteProposalParams memory params)
-        private
+    function _execute(ProposalType pt, ExecuteProposalParams memory params)
+        internal
+        virtual
         returns (bytes memory progressData)
     {
-        ProposalType pt;
-        (pt, params.proposalData) = _getProposalType(params.proposalData);
         if (pt == ProposalType.ListOnOpenSea) {
             progressData = _executeListOnOpenSea(params);
         } else if (pt == ProposalType.ListOnZora) {
@@ -157,8 +181,8 @@ contract ProposalExecutionEngine is
             _executeFractionalize(params);
         } else if (pt == ProposalType.ArbitraryCalls) {
             _executeArbitraryCalls(params);
-        } else if (pt == ProposalType.UpgradeProposalImplementation) {
-            _executeUpgradeProposalsImplementation();
+        } else if (pt == ProposalType.UpgradeProposalEngineImpl) {
+            _executeUpgradeProposalsImplementation(params.proposalData);
         } else {
             revert UnsupportedProposalTypeError(uint32(pt));
         }
@@ -173,7 +197,9 @@ contract ProposalExecutionEngine is
         returns (ProposalType proposalType, bytes memory offsetProposalData)
     {
         // First 4 bytes is propsal type.
-        require(proposalData.length >= 4);
+        if (proposalData.length < 4) {
+            revert MalformedProposalDataError();
+        }
         assembly {
             proposalType := and(mload(add(proposalData, 4)), 0xffffffff)
             mstore(add(proposalData, 4), sub(mload(proposalData), 4))
@@ -184,9 +210,10 @@ contract ProposalExecutionEngine is
     }
 
     // Upgrade the implementation of IPartyProposals to the latest version.
-    function _executeUpgradeProposalsImplementation()
+    function _executeUpgradeProposalsImplementation(bytes memory proposalData)
         private
     {
+        bytes memory initData = abi.decode(proposalData, (bytes));
         // Always upgrade to latest implementation stored in _GLOBALS.
         IProposalExecutionEngine newImpl = IProposalExecutionEngine(
             _GLOBALS.getAddress(LibGlobals.GLOBAL_PROPOSAL_ENGINE_IMPL)
@@ -195,11 +222,13 @@ contract ProposalExecutionEngine is
         (bool s, bytes memory r) = address(newImpl)
             .delegatecall(abi.encodeWithSelector(
                 ProposalExecutionEngine.initialize.selector,
-                abi.encode(IMPL) // This impl is the old version.
+                IMPL, // This impl is the old version.
+                initData
             ));
         if (!s) {
             r.rawRevert();
         }
+        emit ProposalEngineImplementationUpgraded(address(IMPL), address(newImpl));
     }
 
     // Retrieve the explicit storage bucket for the ProposalExecutionEngine logic.
