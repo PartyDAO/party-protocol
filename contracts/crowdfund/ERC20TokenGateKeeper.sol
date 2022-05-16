@@ -8,13 +8,13 @@ import "../tokens/IERC20.sol";
 contract GateKeeperERC20 is IGateKeeper {
     uint96 private _lastId;
 
-    struct TokenGate {
+    struct  TokenGate {
         address token;
         uint256 minimumBalance;
     }
 
     // gateId => (token, minimumBalance) tuple
-    mapping(uint96 => TokenGate) _gateInfo;
+    mapping(uint96 => bytes) _gateInfo;
 
 
     function isAllowed(
@@ -22,23 +22,24 @@ contract GateKeeperERC20 is IGateKeeper {
         bytes12 id,
         bytes memory /* userData */
     ) external view returns (bool) {
-        // logic goes here
+        TokenGate memory _gate = abi.decode(_gateInfo[uint96(id)], (TokenGate));
         //it has enogh tokens return true 
-        //else return false
+          //else return false
+          if (IERC20(_gate.token).balanceOf(participant) >= _gate.minimumBalance) {
+            return true;
+        } else {
+            return false;
+        }
     }
 
-    function createGate(bytes calldata _arbitraryGateData)
+    function createGate(address tokenAddress, uint256 minimumbalance)
         external
         returns (bytes12 id)
     {
-        // decode the arbitrary gate data based on the types it expects --> TokenGate
-        TokenGate memory gate = abi.decode(
-            _arbitraryGateData,
-            (TokenGate)
-        );
+        TokenGate  memory _gate = TokenGate(tokenAddress, minimumbalance);
         uint96 id_ = ++_lastId;
         id = bytes12(id);
-        // store the information it needs in the mapping
-        _gateInfo[id_] = gate;
+        // store the struct(token, minimumbalance) it needs in the mapping
+        _gateInfo[id_] = abi.encode(_gate);
     }
 }
