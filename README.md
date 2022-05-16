@@ -2,13 +2,23 @@
 
 ## Building
 
-Install [foundry](https://book.getfoundry.sh/getting-started/installation.html)
+First install [foundry](https://book.getfoundry.sh/getting-started/installation.html)
 
 ```
 forge install
-forge build
+yarn -D
+yarn build
 ```
 
 ## Testing
 
-`forge test`
+``
+# run all tests (except fork tests)
+yarn test
+# run only ts tests
+yarn test:ts
+# run only solidity tests
+yarn test:sol
+# run fork tests
+forge test --fork-url $YOUR_RPC_URL
+```
