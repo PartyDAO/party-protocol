@@ -11,6 +11,8 @@ contract TestableListOnOpenSeaProposal is ListOnOpenSeaProposal, ERC721Receiver 
         ListOnOpenSeaProposal(globals, maker, zora)
     {}
 
+    fallback() external payable {}
+
     function executeListOnOpenSea(
         IProposalExecutionEngine.ExecuteProposalParams memory params
     )

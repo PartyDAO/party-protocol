@@ -5,13 +5,23 @@ import "forge-std/Test.sol";
 
 import "../../contracts/globals/Globals.sol";
 import "../../contracts/globals/LibGlobals.sol";
+import "../../contracts/proposals/opensea/LibWyvernExchangeV2.sol";
 
 import "../TestUtils.sol";
 import "../DummyERC721.sol";
 import "./TestableListOnOpenSeaProposal.sol";
+import "./ZoraTestUtils.sol";
+import "./OpenSeaTestUtils.sol";
 
-contract ListOnOpenSeaProposalTest is Test, TestUtils {
+contract ListOnOpenSeaProposalTest is
+    Test,
+    TestUtils,
+    ZoraTestUtils,
+    OpenSeaTestUtils
+{
+    address constant BUYER = 0xf40d7A893a7Fe7d9dae086c662f4233Ae3Df9EC4;
     uint256 constant ZORA_LISTING_DURATION = 60 * 60 * 24;
+    uint256 constant LIST_PRICE = 1e18;
     TestableListOnOpenSeaProposal impl;
     Globals globals;
     SharedWyvernV2Maker sharedMaker;
@@ -21,6 +31,8 @@ contract ListOnOpenSeaProposalTest is Test, TestUtils {
         IZoraAuctionHouse(0xE468cE99444174Bd3bBBEd09209577d25D1ad673);
     DummyERC721 preciousToken;
     uint256 preciousTokenId;
+
+    constructor() ZoraTestUtils(ZORA) OpenSeaTestUtils(OS) {}
 
     function setUp() public onlyForked {
         globals = new Globals(address(this));
@@ -49,7 +61,7 @@ contract ListOnOpenSeaProposalTest is Test, TestUtils {
     {
         proposalData =
             ListOnOpenSeaProposal.OpenSeaProposalData({
-                listPrice: 1e18,
+                listPrice: LIST_PRICE,
                 duration: uint40(ZORA_LISTING_DURATION * 7)
             });
         executeParams =
@@ -114,6 +126,8 @@ contract ListOnOpenSeaProposalTest is Test, TestUtils {
         skip(proposalData.duration);
         executeParams.progressData = impl.executeListOnOpenSea(executeParams);
         assertTrue(executeParams.progressData.length == 0);
+        // Precious should be held by the proposal contract.
+        assertTrue(preciousToken.ownerOf(preciousTokenId) == address(impl));
         // Done
     }
 
@@ -151,5 +165,76 @@ contract ListOnOpenSeaProposalTest is Test, TestUtils {
         executeParams.progressData = impl.executeListOnOpenSea(executeParams);
         assertTrue(executeParams.progressData.length == 0);
         // Done
+    }
+
+    // Zora listing was bid on but not finalized.
+    function testForkedExecution_ZoraBidUp() public onlyForked {
+        (
+            ListOnOpenSeaProposal.OpenSeaProposalData memory proposalData,
+            IProposalExecutionEngine.ExecuteProposalParams memory executeParams
+        ) = _createTestProposal();
+        // This will list on zora because the proposal was not passed unanimously.
+        executeParams.progressData = impl.executeListOnOpenSea(executeParams);
+        uint256 auctionId;
+        {
+            (, ListOnZoraProposal.ZoraProgressData memory progressData) =
+                abi.decode(executeParams.progressData, (
+                    ListOnOpenSeaProposal.OpenSeaStep,
+                    ListOnZoraProposal.ZoraProgressData
+                ));
+            auctionId = progressData.auctionId;
+        }
+        _bidOnZoraListing(auctionId, BUYER, LIST_PRICE);
+        // Skip to the end of the auction.
+        skip(ZORA_LISTING_DURATION);
+        // Finalize the auction.
+        executeParams.progressData = impl.executeListOnOpenSea(executeParams);
+        assertTrue(executeParams.progressData.length == 0);
+        // Buyer should own precious.
+        assertTrue(preciousToken.ownerOf(preciousTokenId) == BUYER);
+        // Proposal contract should have the bid amount.
+        assertTrue(address(impl).balance == LIST_PRICE);
+    }
+
+    // OS listing was bought.
+    function testForkedExecution_OSBought() public onlyForked {
+        (
+            ListOnOpenSeaProposal.OpenSeaProposalData memory proposalData,
+            IProposalExecutionEngine.ExecuteProposalParams memory executeParams
+        ) = _createTestProposal();
+        // This will list on zora because the proposal was not passed unanimously.
+        executeParams.progressData = impl.executeListOnOpenSea(executeParams);
+        // Expire the zora listing.
+        skip(ZORA_LISTING_DURATION);
+        // Next, retrieve from zora and list on OS.
+        executeParams.progressData = impl.executeListOnOpenSea(executeParams);
+        bytes32 orderHash;
+        uint256 expiry;
+        {
+            (, orderHash, expiry) = abi.decode(executeParams.progressData, (
+                ListOnOpenSeaProposal.OpenSeaStep,
+                bytes32,
+                uint256
+            ));
+        }
+        // Buy the OS listing.
+        IWyvernExchangeV2.Order memory order = LibWyvernExchangeV2.createSellOrder(
+            OS,
+            address(sharedMaker),
+            preciousToken,
+            preciousTokenId,
+            LIST_PRICE,
+            expiry
+        );
+        skip(1); // Cannot fill an order at listing time.
+        assertEq(LibWyvernExchangeV2.hashOrder(order), orderHash);
+        _buyOpenSeaListing(order, BUYER, preciousToken, preciousTokenId);
+        // Finalize the listing.
+        executeParams.progressData = impl.executeListOnOpenSea(executeParams);
+        assertTrue(executeParams.progressData.length == 0);
+        // Buyer should own precious.
+        assertTrue(preciousToken.ownerOf(preciousTokenId) == BUYER);
+        // Proposal contract should have the listing amount.
+        assertTrue(address(impl).balance == LIST_PRICE);
     }
 }
