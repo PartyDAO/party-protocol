@@ -196,6 +196,8 @@ contract ListOnOpenSeaProposalTest is
         assertTrue(address(impl).balance == LIST_PRICE);
     }
 
+    // TODO: test zora listing being bid and finalized by someone else.
+
     // OS listing was bought.
     function testForked_Execution_OSBought() public onlyForked {
         (

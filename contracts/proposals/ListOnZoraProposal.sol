@@ -34,8 +34,12 @@ contract ListOnZoraProposal {
 
     error ZoraListingNotExpired(uint256 auctionId, uint40 expiry);
 
+    // keccak256(abi.encodeWithSignature('Error(string)', "Auction hasn't begun"))
     bytes32 constant internal AUCTION_HASNT_BEGUN_ERROR_HASH =
         0x54a53788b7942d79bb6fcd40012c5e867208839fa1607e1f245558ee354e9565;
+    // keccak256(abi.encodeWithSignature('Error(string)', "Auction doesn't exit"))
+    bytes32 constant internal AUCTION_DOESNT_EXIST_ERROR_HASH =
+        0x474ba0184a7cd5de777156a56f3859150719340a6974b6ee50f05c58139f4dc2;
     IZoraAuctionHouse public immutable ZORA;
 
     constructor(IZoraAuctionHouse zoraAuctionHouse) {
@@ -116,7 +120,7 @@ contract ListOnZoraProposal {
                 // No bids placed. Just cancel it.
                 ZORA.cancelAuction(auctionId);
                 return false;
-            } else if (errHash != keccak256("Auction doesn't exist")) {
+            } else if (errHash != AUCTION_DOESNT_EXIST_ERROR_HASH) {
                 errData.rawRevert();
             }
             // Already settled by someone else. Nothing to do.
