@@ -17,8 +17,8 @@ contract Party is Implementation, PartyGovernanceNFT {
 
     struct PartyInitData {
         PartyOptions options;
-        IERC721 preciousToken;
-        uint256 preciousTokenId;
+        IERC721[] preciousTokens;
+        uint256[] preciousTokenIds;
         address mintAuthority;
     }
 
@@ -32,8 +32,8 @@ contract Party is Implementation, PartyGovernanceNFT {
             initData.options.name,
             initData.options.symbol,
             initData.options.governance,
-            initData.preciousToken,
-            initData.preciousTokenId,
+            initData.preciousTokens,
+            initData.preciousTokenIds,
             initData.mintAuthority
         );
     }

@@ -20,6 +20,8 @@ contract ListOnOpenSeaProposal is ListOnZoraProposal {
     struct OpenSeaProposalData {
         uint256 listPrice;
         uint40 duration;
+        IERC721 token;
+        uint256 tokenId;
     }
 
     // ABI-encoded `progressData` passed into execute in the `ListedOnOpenSea` step.
@@ -65,18 +67,25 @@ contract ListOnOpenSeaProposal is ListOnZoraProposal {
             : abi.decode(params.progressData, (OpenSeaStep));
         if (step == OpenSeaStep.None) {
             // Proposal hasn't executed yet.
-            if (!isUnanimous) {
+            if (
+                !isUnanimous &&
+                LibProposal.isTokenIdPrecious(
+                    data.token,
+                    data.tokenId,
+                    params.preciousTokens,
+                    params.preciousTokenIds
+                )
+            ) {
+                // Not a unanimous vote and the token is precious.
                 // TODO: Should this be just executionDelay?
                 uint256 zoraDuration =
                     _GLOBALS.getUint256(LibGlobals.GLOBAL_OS_ZORA_AUCTION_DURATION);
                 if (zoraDuration != 0) {
-                    // Not a unanimous vote and the zora duration is nonzero
-                    // so list on zora first.
                     (uint256 auctionId, uint40 minExpiry) = _createZoraAuction(
                         data.listPrice,
                         zoraDuration,
-                        params.preciousToken,
-                        params.preciousTokenId
+                        data.token,
+                        data.tokenId
                     );
                     return abi.encode(OpenSeaStep.ListedOnZora, ZoraProgressData({
                         auctionId: auctionId,
@@ -84,7 +93,8 @@ contract ListOnOpenSeaProposal is ListOnZoraProposal {
                     }));
                 }
             }
-            // Unanimous vote or no zora duration. Advance pas the zora phase.
+            // Unanimous vote, not a precious, or no zora duration.
+            // Advance pas the zora phase.
             step = OpenSeaStep.RetrievedFromZora;
         }
         if (step == OpenSeaStep.ListedOnZora) {
@@ -96,8 +106,8 @@ contract ListOnOpenSeaProposal is ListOnZoraProposal {
             // Remove it from zora.
             if (_settleZoraAuction(
                 zpd.auctionId,
-                params.preciousToken,
-                params.preciousTokenId
+                data.token,
+                data.tokenId
             )) {
                 // Auction sold. Nothing left to do.
                 return "";
@@ -109,9 +119,9 @@ contract ListOnOpenSeaProposal is ListOnZoraProposal {
             // Either a unanimous vote or retrieved from zora (no bids).
             uint256 expiry = block.timestamp + uint256(data.duration);
             bytes32 orderHash = _listOnOpenSea(
-                data,
-                params.preciousToken,
-                params.preciousTokenId,
+                data.token,
+                data.tokenId,
+                data.listPrice,
                 expiry
             );
             return abi.encode(OpenSeaStep.ListedOnOpenSea, orderHash, expiry);
@@ -121,9 +131,9 @@ contract ListOnOpenSeaProposal is ListOnZoraProposal {
         (, OpenSeaProgressData memory opd) =
             abi.decode(params.progressData, (uint8, OpenSeaProgressData));
         _cleanUpListing(
-            data,
-            params.preciousToken,
-            params.preciousTokenId,
+            data.token,
+            data.tokenId,
+            data.listPrice,
             opd
         );
         // Nothing left to do.
@@ -131,9 +141,9 @@ contract ListOnOpenSeaProposal is ListOnZoraProposal {
     }
 
     function _listOnOpenSea(
-        OpenSeaProposalData memory data,
         IERC721 token,
         uint256 tokenId,
+        uint256 listPrice,
         uint256 expiry
     )
         private
@@ -145,15 +155,15 @@ contract ListOnOpenSeaProposal is ListOnZoraProposal {
         orderHash = SHARED_WYVERN_MAKER.createListing(
             token,
             tokenId,
-            data.listPrice,
+            listPrice,
             expiry
         );
     }
 
     function _cleanUpListing(
-        OpenSeaProposalData memory data,
         IERC721 token,
         uint256 tokenId,
+        uint256 listPrice,
         OpenSeaProgressData memory pd
     )
         private
@@ -164,7 +174,7 @@ contract ListOnOpenSeaProposal is ListOnZoraProposal {
             pd.orderHash,
             token,
             tokenId,
-            data.listPrice,
+            listPrice,
             pd.expiry
         );
     }

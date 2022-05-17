@@ -14,6 +14,7 @@ import "../globals/IGlobals.sol";
 import "../globals/LibGlobals.sol";
 import "../proposals/IProposalExecutionEngine.sol";
 import "../proposals/LibProposal.sol";
+import "../proposals/ProposalStorage.sol";
 
 import "./IPartyFactory.sol";
 
@@ -21,6 +22,7 @@ import "./IPartyFactory.sol";
 abstract contract PartyGovernance is
     ITokenDistributorParty,
     ERC721Receiver,
+    ProposalStorage,
     ReadOnlyDelegateCall
 {
     using LibERC20Compat for IERC20;
@@ -122,6 +124,7 @@ abstract contract PartyGovernance is
     event ProposalCompleted(uint256 proposalId);
     event DistributionCreated(uint256 distributionId, IERC20 token);
     event VotingPowerDelegated(address owner, address delegate, uint256 votingPower);
+    event PreciousListSet(IERC721[] tokens, uint256[] tokenIds);
 
     error BadProposalStateError(ProposalState state);
     error ProposalExistsError(uint256 proposalId);
@@ -131,14 +134,13 @@ abstract contract PartyGovernance is
     error OnlyPartyHostError();
     error OnlyActiveMemberError();
     error InvalidDelegateError();
+    error BadPreciousListError();
 
     IGlobals private immutable _GLOBALS;
 
     GovernanceValues public governanceValues;
-    // The contract of the NFT we're trying to protect.
-    IERC721 public preciousToken;
-    // The id of the NFT we're trying to protect.
-    uint256 public preciousTokenId;
+    // The hash of the list of precious NFTs guarded by the party.
+    bytes32 public preciousListHash;
     // The last proposal ID that was used. 0 means no proposals have been made.
     uint256 public lastProposalId;
     // Whether an address is a party host.
@@ -173,30 +175,32 @@ abstract contract PartyGovernance is
 
     function _initialize(
         GovernanceOpts memory opts,
-        IERC721 preciousToken_,
-        uint256 preciousTokenId_
+        IERC721[] memory preciousTokens,
+        uint256[] memory preciousTokenIds
     )
         internal
         virtual
     {
-        LibProposal.initProposalImpl(IProposalExecutionEngine(
-            _GLOBALS.getAddress(LibGlobals.GLOBAL_PROPOSAL_ENGINE_IMPL)
-        ));
+        _initProposalImpl(
+            IProposalExecutionEngine(
+                _GLOBALS.getAddress(LibGlobals.GLOBAL_PROPOSAL_ENGINE_IMPL)
+            ),
+            ""
+        );
         governanceValues = GovernanceValues({
             voteDuration: opts.voteDuration,
             executionDelay: opts.executionDelay,
             passThresholdBps: opts.passThresholdBps,
             totalVotingPower: opts.totalVotingPower
         });
-        preciousToken = preciousToken_;
-        preciousTokenId = preciousTokenId_;
+        _setPreciousList(preciousTokens, preciousTokenIds);
     }
 
     fallback() external {
         // Forward all unknown read-only calls to the proposal execution engine.
         // Initial use case is to facilitate eip-1271 signatures.
         _readOnlyDelegateCall(
-            address(LibProposal.getProposalExecutionEngine()),
+            address(_getProposalExecutionEngine()),
             msg.data
         );
     }
@@ -207,7 +211,7 @@ abstract contract PartyGovernance is
         view
         returns (IProposalExecutionEngine)
     {
-        return LibProposal.getProposalExecutionEngine();
+        return _getProposalExecutionEngine();
     }
 
     // Get the total (delegated + intrinsic) voting power of `voter` by a timestamp.
@@ -363,7 +367,13 @@ abstract contract PartyGovernance is
     // No other proposals may be executed if there is a an incomplete proposal.
     // When the proposal has completed (no more further execute calls necessary),
     // a `ProposalCompleted` event will be emitted.
-    function execute(uint256 proposalId, Proposal calldata proposal, bytes memory progressData)
+    function execute(
+        uint256 proposalId,
+        Proposal memory proposal,
+        IERC721[] memory preciousTokens,
+        uint256[] memory preciousTokenIds,
+        bytes memory progressData
+    )
         external
         payable
     {
@@ -389,10 +399,16 @@ abstract contract PartyGovernance is
             }
             proposalInfo.values.executedTime = uint40(block.timestamp);
         }
+        // Check that the precious list is valid.
+        if (!_isPreciousListCorrect(preciousTokens, preciousTokenIds)) {
+            revert BadPreciousListError();
+        }
         IProposalExecutionEngine.ProposalExecutionStatus es =
             _executeProposal(
                 proposalId,
                 proposal,
+                preciousTokens,
+                preciousTokenIds,
                 _getProposalFlags(infoValues),
                 progressData
             );
@@ -406,6 +422,8 @@ abstract contract PartyGovernance is
     function _executeProposal(
         uint256 proposalId,
         Proposal memory proposal,
+        IERC721[] memory preciousTokens,
+        uint256[] memory preciousTokenIds,
         uint256 flags,
         bytes memory progressData
     )
@@ -417,12 +435,12 @@ abstract contract PartyGovernance is
                 proposalId: bytes32(proposalId),
                 proposalData: proposal.proposalData,
                 progressData: progressData,
-                preciousToken: preciousToken,
-                preciousTokenId: preciousTokenId,
+                preciousTokens: preciousTokens,
+                preciousTokenIds: preciousTokenIds,
                 flags: flags
             });
         (bool success, bytes memory revertData) =
-            address(LibProposal.getProposalExecutionEngine())
+            address(_getProposalExecutionEngine())
                 .delegatecall(abi.encodeWithSelector(
                     IProposalExecutionEngine.executeProposal.selector,
                     executeParams
@@ -464,7 +482,7 @@ abstract contract PartyGovernance is
         }
     }
 
-    function _getProposalHash(Proposal calldata proposal)
+    function _getProposalHash(Proposal memory proposal)
         private
         pure
         returns (bytes32 h)
@@ -649,5 +667,42 @@ abstract contract PartyGovernance is
     {
           return uint256(voteCount) * 1e4
             / uint256(totalVotingPower) >= uint256(passThresholdBps);
+    }
+
+    function _setPreciousList(
+        IERC721[] memory preciousTokens,
+        uint256[] memory preciousTokenIds
+    )
+        private
+    {
+        assert(preciousTokens.length == preciousTokenIds.length);
+        preciousListHash = _hashPreciousList(preciousTokens, preciousTokenIds);
+        emit PreciousListSet(preciousTokens, preciousTokenIds);
+    }
+
+    function _isPreciousListCorrect(
+        IERC721[] memory preciousTokens,
+        uint256[] memory preciousTokenIds
+    )
+        private
+        view
+        returns (bool)
+    {
+        return preciousListHash == _hashPreciousList(preciousTokens, preciousTokenIds);
+    }
+
+    function _hashPreciousList(
+        IERC721[] memory preciousTokens,
+        uint256[] memory preciousTokenIds
+    )
+        private
+        pure
+        returns (bytes32)
+    {
+        // TODO: in asm...
+        return keccak256(abi.encode(
+            abi.encode(preciousTokens),
+            abi.encode(preciousTokenIds)
+        ));
     }
 }

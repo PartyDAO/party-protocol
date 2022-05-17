@@ -5,6 +5,7 @@ import "../globals/IGlobals.sol";
 import "../globals/LibGlobals.sol";
 import "../tokens/IERC721.sol";
 import "../utils/LibRawResult.sol";
+import "../utils/LibSafeERC721.sol";
 
 import "./zora/IZoraAuctionHouse.sol";
 import "./IProposalExecutionEngine.sol";
@@ -12,6 +13,7 @@ import "./IProposalExecutionEngine.sol";
 // Implements arbitrary call proposals.
 contract ListOnZoraProposal {
     using LibRawResult for bytes;
+    using LibSafeERC721 for IERC721;
 
     enum ZoraStep {
         None,
@@ -22,6 +24,8 @@ contract ListOnZoraProposal {
     struct ZoraProposalData {
         uint256 listPrice;
         uint40 duration;
+        IERC721 token;
+        uint256 tokenId;
     }
 
     // ABI-encoded `progressData` passed into execute in the `ListedOnZora` step.
@@ -65,8 +69,8 @@ contract ListOnZoraProposal {
             (uint256 auctionId, uint40 minExpiry) = _createZoraAuction(
                 data.listPrice,
                 data.duration,
-                params.preciousToken,
-                params.preciousTokenId
+                data.token,
+                data.tokenId
             );
             return abi.encode(ZoraStep.ListedOnZora, ZoraProgressData({
                 auctionId: auctionId,
@@ -79,7 +83,7 @@ contract ListOnZoraProposal {
         if (pd.minExpiry < uint40(block.timestamp)) {
             revert ZoraListingNotExpired(pd.auctionId, pd.minExpiry);
         }
-        _settleZoraAuction(pd.auctionId, params.preciousToken, params.preciousTokenId);
+        _settleZoraAuction(pd.auctionId, data.token, data.tokenId);
         // Nothing left to do.
         return "";
     }
@@ -125,6 +129,6 @@ contract ListOnZoraProposal {
             }
             // Already settled by someone else. Nothing to do.
         }
-        return token.ownerOf(tokenId) != address(this);
+        return token.safeOwnerOf(tokenId) != address(this);
     }
 }

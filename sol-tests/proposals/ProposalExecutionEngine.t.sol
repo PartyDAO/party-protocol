@@ -24,12 +24,8 @@ contract ProposalExecutionEngineTest is
     TestableProposalExecutionEngine eng;
     DummyProposalEngineImpl newEngImpl;
     Globals globals;
-    IERC721 immutable PRECIOUS_TOKEN;
-    uint256 immutable PRECIOUS_TOKEN_ID;
 
     constructor() {
-        PRECIOUS_TOKEN = IERC721(_randomAddress());
-        PRECIOUS_TOKEN_ID = _randomUint256() & 0xFF;
     }
 
     function setUp() public {
@@ -60,8 +56,8 @@ contract ProposalExecutionEngineTest is
                 proposalData: proposalData,
                 progressData: "",
                 flags: 0,
-                preciousToken: PRECIOUS_TOKEN,
-                preciousTokenId: PRECIOUS_TOKEN_ID
+                preciousTokens: new IERC721[](0),
+                preciousTokenIds: new uint256[](0)
             });
     }
 
