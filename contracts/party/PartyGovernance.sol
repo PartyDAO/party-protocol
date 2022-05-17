@@ -181,7 +181,6 @@ abstract contract PartyGovernance is
         internal
         virtual
     {
-        assert(preciousTokens.length == preciousTokenIds.length);
         _initProposalImpl(
             IProposalExecutionEngine(
                 _GLOBALS.getAddress(LibGlobals.GLOBAL_PROPOSAL_ENGINE_IMPL)
