@@ -257,7 +257,7 @@ abstract contract PartyGovernance is
         returns (TokenDistributor.DistributionInfo memory distInfo)
     {
         TokenDistributor distributor = TokenDistributor(
-            _GLOBALS.getAddress(LibGlobals.GLOBAL_TOKEN_DISTRIBUTOR)
+            payable(_GLOBALS.getAddress(LibGlobals.GLOBAL_TOKEN_DISTRIBUTOR))
         );
         uint256 value = 0;
         if (token != IERC20(0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE)) {
