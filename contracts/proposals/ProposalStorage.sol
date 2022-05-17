@@ -34,13 +34,9 @@ contract ProposalStorage {
         IProposalExecutionEngine oldImpl = stor.engineImpl;
         stor.engineImpl = impl;
         (bool s, bytes memory r) = address(impl).delegatecall(
-            // HACK: encodeCall() complains about converting the first parameter
-            // from `bytes memory` to `bytes calldata` (wut), so use
-            // encodeWithSelector().
-            abi.encodeWithSelector(
-                IProposalExecutionEngine.initialize.selector,
-                abi.encode(oldImpl),
-                initData
+            abi.encodeCall(
+                IProposalExecutionEngine.initialize,
+                (address(oldImpl), initData)
             )
         );
         if (!s) {

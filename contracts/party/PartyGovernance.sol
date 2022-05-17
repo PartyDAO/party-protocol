@@ -674,13 +674,10 @@ abstract contract PartyGovernance is
         IERC721[] memory preciousTokens,
         uint256[] memory preciousTokenIds
     )
-        internal
+        private
     {
         assert(preciousTokens.length == preciousTokenIds.length);
-        preciousListHash = keccak256(abi.encode(
-            abi.encode(preciousTokens),
-            abi.encode(preciousTokenIds)
-        ));
+        preciousListHash = _hashPreciousList(preciousTokens, preciousTokenIds);
         emit PreciousListSet(preciousTokens, preciousTokenIds);
     }
 
@@ -688,11 +685,23 @@ abstract contract PartyGovernance is
         IERC721[] memory preciousTokens,
         uint256[] memory preciousTokenIds
     )
-        internal
+        private
         view
         returns (bool)
     {
-        return preciousListHash == keccak256(abi.encode(
+        return preciousListHash == _hashPreciousList(preciousTokens, preciousTokenIds);
+    }
+
+    function _hashPreciousList(
+        IERC721[] memory preciousTokens,
+        uint256[] memory preciousTokenIds
+    )
+        private
+        pure
+        returns (bytes32)
+    {
+        // TODO: in asm...
+        return keccak256(abi.encode(
             abi.encode(preciousTokens),
             abi.encode(preciousTokenIds)
         ));
