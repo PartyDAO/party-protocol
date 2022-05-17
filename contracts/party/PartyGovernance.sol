@@ -269,7 +269,7 @@ abstract contract PartyGovernance is
         } else {
             value = address(this).balance;
         }
-        distInfo = distributor.createDistribution{ value: value }(token, this);
+        distInfo = distributor.createDistribution{ value: value }(token);
     }
 
     // Will also cast sender's votes for proposal.
