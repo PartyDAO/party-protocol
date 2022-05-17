@@ -27,14 +27,15 @@ contract TokenDistributorTest is Test, TestUtils {
   }
   
   function testEthDistributionSimple() public {
-    vm.startPrank(ADMIN_ADDRESS);
-    
+    vm.prank(ADMIN_ADDRESS);
     globals.setUint256(LibGlobals.GLOBAL_DAO_DISTRIBUTION_SPLIT, 0.025 ether); // 2.5%
 
     payable(address(distributor)).transfer(1.337 ether);
-    TokenDistributor.DistributionInfo memory ds = distributor.createDistribution(ETH_TOKEN, dummyParty);
+    vm.prank(address(dummyParty)); // must create from party
+    TokenDistributor.DistributionInfo memory ds = distributor.createDistribution(ETH_TOKEN);
     
     assertEq(DISTRIBUTION_ADDRESS.balance, 0);
+    vm.prank(ADMIN_ADDRESS);
     distributor.partyDaoClaim(ds, DISTRIBUTION_ADDRESS);
     assertEq(DISTRIBUTION_ADDRESS.balance, 0.033425 ether);
     
@@ -44,11 +45,9 @@ contract TokenDistributorTest is Test, TestUtils {
     
     // 0.4432155
     
-    vm.stopPrank();
-    vm.startPrank(address(3));
-    
     console.log(address(3).balance);
     uint256 startGas = gasleft();
+    vm.prank(address(3));
     distributor.claim(ds, 3, payable(address(3)));
     uint256 endGas = gasleft();
     
