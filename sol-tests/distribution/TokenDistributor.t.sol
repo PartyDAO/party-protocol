@@ -15,7 +15,7 @@ contract TokenDistributorTest is Test, TestUtils {
   IERC20 immutable ETH_TOKEN = IERC20(0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE);
   Globals globals;
   TokenDistributor distributor;
-  ITokenDistributorParty dummyParty = new DummyTokenDistributorParty();
+  DummyTokenDistributorParty dummyParty = new DummyTokenDistributorParty();
   
   function setUp() public {
     vm.deal(ADMIN_ADDRESS, 500 ether);
@@ -32,14 +32,36 @@ contract TokenDistributorTest is Test, TestUtils {
     globals.setUint256(LibGlobals.GLOBAL_DAO_DISTRIBUTION_SPLIT, 0.025 ether); // 2.5%
 
     payable(address(distributor)).transfer(1.337 ether);
-    TokenDistributor.DistributionInfo memory ds = distributor.createDistribution(ETH_TOKEN);
+    TokenDistributor.DistributionInfo memory ds = distributor.createDistribution(ETH_TOKEN, dummyParty);
     
     assertEq(DISTRIBUTION_ADDRESS.balance, 0);
     distributor.partyDaoClaim(ds, DISTRIBUTION_ADDRESS);
     assertEq(DISTRIBUTION_ADDRESS.balance, 0.033425 ether);
     
+    vm.deal(address(3), 5 ether);
+    dummyParty.setOwner(address(3), 3);
+    dummyParty.setShare(3, 0.34 ether);
+    
+    // 0.4432155
+    
+    vm.stopPrank();
+    vm.startPrank(address(3));
+    
+    console.log(address(3).balance);
+    uint256 startGas = gasleft();
+    distributor.claim(ds, 3, payable(address(3)));
+    uint256 endGas = gasleft();
+    
+    // uint256 gasUsed = endGas - startGas;
+    // console.log(gasUsed);
+    // console.log(address(3).balance);
+    
+    
+    
     // TODO: need to check ownerOf?
   }
+  
+  // TODO: emergency fns?
   
   // TODO: ERC 20
   
