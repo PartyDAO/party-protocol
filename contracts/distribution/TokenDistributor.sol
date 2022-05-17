@@ -81,7 +81,10 @@ contract TokenDistributor {
     // function. ETH can be attached to this call for ETH payouts.
     // The caller should implement the `ITokenDistributorParty` interface
     // (ie, be a `Party` instance).
-    function createDistribution(IERC20 token)
+    function createDistribution(
+        IERC20 token,
+        ITokenDistributorParty party
+    )
         external
         payable
         returns (DistributionInfo memory info)
@@ -96,8 +99,8 @@ contract TokenDistributor {
         // distribution supply.
         uint256 supply = bal - _storedBalances[token];
         _storedBalances[token] = bal;
-
-        ITokenDistributorParty party = ITokenDistributorParty(msg.sender);
+        
+        
         uint256 distId = ++lastDistributionIdPerParty[party];
         // Compute the portion of the supply reserved for the DAO
         uint256 daoSupply = supply *
