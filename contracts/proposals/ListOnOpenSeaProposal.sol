@@ -93,7 +93,8 @@ contract ListOnOpenSeaProposal is ListOnZoraProposal {
                     }));
                 }
             }
-            // Unanimous vote or no zora duration. Advance pas the zora phase.
+            // Unanimous vote, not a precious, or no zora duration.
+            // Advance pas the zora phase.
             step = OpenSeaStep.RetrievedFromZora;
         }
         if (step == OpenSeaStep.ListedOnZora) {
