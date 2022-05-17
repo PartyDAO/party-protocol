@@ -42,4 +42,8 @@ contract TestUtils {
     function _randomAddress() internal view returns (address payable) {
         return payable(address(uint160(_randomUint256())));
     }
+
+    function _randomRange(uint256 lo, uint256 hi) internal view returns (uint256) {
+        return lo + (_randomUint256() % (hi - lo));
+    }
 }

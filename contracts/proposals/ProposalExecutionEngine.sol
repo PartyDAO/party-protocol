@@ -12,11 +12,13 @@ import "./ListOnZoraProposal.sol";
 import "./FractionalizeProposal.sol";
 import "./ArbitraryCallsProposal.sol";
 import "./LibProposal.sol";
+import "./ProposalStorage.sol";
 
 contract ProposalExecutionEngine is
     IProposalExecutionEngine,
     Implementation,
     ReentrancyGuard,
+    ProposalStorage,
     ListOnOpenSeaProposal,
     FractionalizeProposal,
     ArbitraryCallsProposal
@@ -79,7 +81,7 @@ contract ProposalExecutionEngine is
         _GLOBALS = globals;
         // First version is just the hash of the runtime code. Later versions
         // might hardcode this value if they intend to reuse storage.
-        _STORAGE_SLOT = uint256(keccak256('ProposalExecutionEngine_V1'));
+        _STORAGE_SLOT = uint256(keccak256('ProposalExecutionEngine.Storage'));
     }
 
     function initialize(address oldImpl, bytes calldata initializeData)
@@ -218,16 +220,7 @@ contract ProposalExecutionEngine is
         IProposalExecutionEngine newImpl = IProposalExecutionEngine(
             _GLOBALS.getAddress(LibGlobals.GLOBAL_PROPOSAL_ENGINE_IMPL)
         );
-        LibProposal.setProposalExecutionEngine(newImpl);
-        (bool s, bytes memory r) = address(newImpl)
-            .delegatecall(abi.encodeWithSelector(
-                ProposalExecutionEngine.initialize.selector,
-                IMPL, // This impl is the old version.
-                initData
-            ));
-        if (!s) {
-            r.rawRevert();
-        }
+        _initProposalImpl(newImpl, initData);
         emit ProposalEngineImplementationUpgraded(address(IMPL), address(newImpl));
     }
 

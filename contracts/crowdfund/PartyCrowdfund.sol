@@ -199,8 +199,8 @@ abstract contract PartyCrowdfund is ERC721Receiver, PartyCrowdfundNFT {
     // with the `burn()` function.
     function _createParty(
         Party.PartyOptions memory opts,
-        IERC721 preciousToken,
-        uint256 preciousTokenId
+        IERC721[] memory preciousTokens,
+        uint256[] memory preciousTokenIds
     )
         internal
         returns (Party party_)
@@ -215,8 +215,26 @@ abstract contract PartyCrowdfund is ERC721Receiver, PartyCrowdfundNFT {
             }
         }
         party = party_ = _getPartyFactory()
-            .createParty(address(this), opts, preciousToken, preciousTokenId);
-        preciousToken.transferFrom(address(this), address(party_), preciousTokenId);
+            .createParty(address(this), opts, preciousTokens, preciousTokenIds);
+        for (uint256 i = 0; i < preciousTokens.length; ++i) {
+            preciousTokens[i].transferFrom(address(this), address(party_), preciousTokenIds[i]);
+        }
+    }
+
+    // Overloaded single token wrapper for _createParty()
+    function _createParty(
+        Party.PartyOptions memory opts,
+        IERC721 preciousToken,
+        uint256 preciousTokenId
+    )
+        internal
+        returns (Party party_)
+    {
+        IERC721[] memory tokens = new IERC721[](1);
+        tokens[0] = preciousToken;
+        uint256[] memory tokenIds = new uint256[](1);
+        tokenIds[0] = preciousTokenId;
+        return _createParty(opts, tokens, tokenIds);
     }
 
     function _hashPartyOptions(Party.PartyOptions memory opts)

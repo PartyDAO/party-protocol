@@ -21,8 +21,8 @@ interface IProposalExecutionEngine {
         bytes proposalData;
         bytes progressData;
         uint256 flags;
-        IERC721 preciousToken;
-        uint256 preciousTokenId;
+        IERC721[] preciousTokens;
+        uint256[] preciousTokenIds;
     }
 
     function initialize(address oldImpl, bytes memory initData) external;

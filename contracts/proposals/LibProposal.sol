@@ -1,45 +1,39 @@
 // SPDX-License-Identifier: Apache-2.0
 pragma solidity ^0.8;
 
-import "./IProposalExecutionEngine.sol";
-import "../utils/LibRawResult.sol";
+import "../tokens/IERC721.sol";
 
 library LibProposal {
-    using LibRawResult for bytes;
-
-    uint256 internal constant PROPOSAL_ENGINE_SLOT = uint256(keccak256("proposalExectionEngine"));
     uint256 internal constant PROPOSAL_FLAG_UNANIMOUS = 0x1;
 
-    function getProposalExecutionEngine()
+    function isTokenPrecious(IERC721 token, IERC721[] memory preciousTokens)
         internal
-        view
-        returns (IProposalExecutionEngine impl)
+        pure
+        returns (bool)
     {
-        uint256 slot = PROPOSAL_ENGINE_SLOT;
-        assembly { impl := and(sload(slot), 0xffffffffffffffffffffffffffffffffffffffff) }
-    }
-
-    function setProposalExecutionEngine(IProposalExecutionEngine impl) internal {
-        uint256 slot = PROPOSAL_ENGINE_SLOT;
-        assembly { sstore(slot, and(impl, 0xffffffffffffffffffffffffffffffffffffffff)) }
-    }
-
-    function initProposalImpl(IProposalExecutionEngine impl)
-        internal
-    {
-        IProposalExecutionEngine oldImpl = getProposalExecutionEngine();
-        setProposalExecutionEngine(impl);
-        (bool s, bytes memory r) = address(impl).delegatecall(
-            // HACK: encodeCall() complains about converting the first parameter
-            // from `bytes memory` to `bytes calldata` (wut), so use
-            // encodeWithSelector().
-            abi.encodeWithSelector(
-                IProposalExecutionEngine.initialize.selector,
-                abi.encode(oldImpl)
-            )
-        );
-        if (!s) {
-            r.rawRevert();
+        for (uint256 i = 0; i < preciousTokens.length; ++i) {
+            if (token == preciousTokens[i]) {
+                return true;
+            }
         }
+        return false;
+    }
+
+    function isTokenIdPrecious(
+        IERC721 token,
+        uint256 tokenId,
+        IERC721[] memory preciousTokens,
+        uint256[] memory preciousTokenIds
+    )
+        internal
+        pure
+        returns (bool)
+    {
+        for (uint256 i = 0; i < preciousTokens.length; ++i) {
+            if (token == preciousTokens[i] && tokenId == preciousTokenIds[i]) {
+                return true;
+            }
+        }
+        return false;
     }
 }

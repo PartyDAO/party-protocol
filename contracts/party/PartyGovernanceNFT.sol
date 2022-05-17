@@ -73,13 +73,13 @@ contract PartyGovernanceNFT is
         string memory name_,
         string memory symbol_,
         PartyGovernance.GovernanceOpts memory governanceOpts,
-        IERC721 preciousToken,
-        uint256 preciousTokenId,
+        IERC721[] memory preciousTokens,
+        uint256[] memory preciousTokenIds,
         address mintAuthority_
     )
         internal
     {
-        PartyGovernance._initialize(governanceOpts, preciousToken, preciousTokenId);
+        PartyGovernance._initialize(governanceOpts, preciousTokens, preciousTokenIds);
         name = name_;
         symbol = symbol_;
         mintAuthority = mintAuthority_;

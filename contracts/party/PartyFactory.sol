@@ -31,8 +31,8 @@ contract PartyFactory is IPartyFactory {
     function createParty(
         address authority,
         Party.PartyOptions calldata opts,
-        IERC721 preciousToken,
-        uint256 preciousTokenId
+        IERC721[] memory preciousTokens,
+        uint256[] memory preciousTokenIds
     )
         external
         returns (Party party)
@@ -40,8 +40,8 @@ contract PartyFactory is IPartyFactory {
         require(authority != address(0));
         Party.PartyInitData memory initData = Party.PartyInitData({
             options: opts,
-            preciousToken: preciousToken,
-            preciousTokenId: preciousTokenId,
+            preciousTokens: preciousTokens,
+            preciousTokenIds: preciousTokenIds,
             mintAuthority: msg.sender
         });
         party = Party(payable(

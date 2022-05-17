@@ -20,7 +20,7 @@ contract TestableProposalExecutionEngine is ProposalExecutionEngine {
         view
         returns (IProposalExecutionEngine)
     {
-        return LibProposal.getProposalExecutionEngine();
+        return _getProposalExecutionEngine();
     }
 
     function _execute(

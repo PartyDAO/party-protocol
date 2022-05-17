@@ -4,6 +4,7 @@ pragma solidity ^0.8;
 import "../tokens/IERC721.sol";
 import "../party/Party.sol";
 import "../utils/Implementation.sol";
+import "../utils/LibSafeERC721.sol";
 import "../globals/IGlobals.sol";
 import "../gatekeepers/IGateKeeper.sol";
 
@@ -11,6 +12,8 @@ import "./IMarketWrapper.sol";
 import "./PartyCrowdfund.sol";
 
 contract PartyBuy is Implementation, PartyCrowdfund {
+    using LibSafeERC721 for IERC721;
+
     struct PartyBuyOptions {
         string name;
         string symbol;
@@ -112,14 +115,10 @@ contract PartyBuy is Implementation, PartyCrowdfund {
                 return CrowdfundLifecycle.Won;
             }
             // Otherwise check if we hold the NFT now.
-            try
-                nftContract.ownerOf(nftTokenId) returns (address owner)
-            {
-                // We hold the token so we must have won.
-                if (owner == address(this)) {
-                    return CrowdfundLifecycle.Won;
-                }
-            } catch {}
+            // We hold the token so we must have won.
+            if (nftContract.safeOwnerOf(nftTokenId) == address(this)) {
+                return CrowdfundLifecycle.Won;
+            }
             // We can get here if the arbitrary call in buy() fails
             // to acquire the NFT, then it calls finalize().
             // This is an invalid state so we want to revert the buy().
