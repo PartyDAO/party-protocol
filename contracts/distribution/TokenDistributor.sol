@@ -59,8 +59,8 @@ contract TokenDistributor {
     // Allows one to simply transfer and call `createDistribution()` without
     // fussing with allowances.
     mapping(IERC20 => uint256) private _storedBalances;
-    // distributionId => DistributionState
-    mapping(uint256 => DistributionState) private _distributionStateById;
+    // tokenDistributorParty => distributionId => DistributionState
+    mapping(ITokenDistributorParty => mapping(uint256 => DistributionState)) public distributionStates;
 
     modifier onlyPartyDao() {
         {
@@ -112,8 +112,8 @@ contract TokenDistributor {
             daoSupply: daoSupply
         });
         (
-            _distributionStateById[distId].distributionHash15,
-            _distributionStateById[distId].remainingMembersupply
+            distributionStates[party][distId].distributionHash15,
+            distributionStates[party][distId].remainingMembersupply
         ) = (_getDistributionHash(info), memberSupply.safeCastUint256ToUint128());
         emit DistributionCreated(info);
     }
@@ -134,7 +134,7 @@ contract TokenDistributor {
         if (msg.sender != ownerOfToken) {
             revert MustOwnTokenError(msg.sender, ownerOfToken, tokenId);
         }
-        DistributionState storage state = _distributionStateById[info.distributionId];
+        DistributionState storage state = distributionStates[info.party][info.distributionId];
         if (state.distributionHash15 != _getDistributionHash(info)) {
             revert InvalidDistributionInfoError(info);
         }
@@ -149,9 +149,11 @@ contract TokenDistributor {
         uint128 remainingMembersupply = state.remainingMembersupply;
         // Cap at the remaining member supply. Otherwise a malicious
         // distribution creator could drain more than the distribution supply.
+        
         amountClaimed = amountClaimed > remainingMembersupply
             ? remainingMembersupply
             : amountClaimed;
+
         state.remainingMembersupply =
             remainingMembersupply - amountClaimed.safeCastUint256ToUint128();
         _transfer(info.token, recipient, amountClaimed);
@@ -167,7 +169,7 @@ contract TokenDistributor {
         onlyPartyDao
         returns (uint256 amountClaimed)
     {
-        DistributionState storage state = _distributionStateById[info.distributionId];
+        DistributionState storage state = distributionStates[info.party][info.distributionId];
         if (state.distributionHash15 != _getDistributionHash(info)) {
             revert InvalidDistributionInfoError(info);
         }
@@ -177,6 +179,14 @@ contract TokenDistributor {
         state.hasPartyDaoClaimed = true;
         _transfer(info.token, recipient, info.daoSupply);
         emit DistributionClaimedByPartyDao(info, recipient, amountClaimed);
+    }
+
+    function hasPartyDaoClaimed(ITokenDistributorParty party, uint256 distributionId) external view returns (bool) {
+        return distributionStates[party][distributionId].hasPartyDaoClaimed;
+    }
+
+    function hasTokenIdClaimed(ITokenDistributorParty party, uint256 tokenId, uint256 distributionId) external view returns (bool) {
+        return distributionStates[party][distributionId].hasTokenClaimed[tokenId];
     }
 
     // For receiving ETH
