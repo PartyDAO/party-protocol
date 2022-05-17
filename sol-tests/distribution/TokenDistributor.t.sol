@@ -51,7 +51,11 @@ contract TokenDistributorTest is Test, TestUtils {
     
     uint256 ethGained2 = _getEthGained(ds, address(4), 4, address(4));
     assertApproxEqAbs(ethGained2, 0.8603595 ether, 0.0000000000001 ether); // weird rounding error
+    
+    assertEq(address(distributor).balance, 0);
   }
+  
+  // TODO: tokenDistribution info?
   
   // TODO: emergency fns?
   
