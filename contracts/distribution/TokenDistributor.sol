@@ -42,6 +42,7 @@ contract TokenDistributor {
     error DistributionAlreadyClaimedByTokenError(uint256 distributionId, uint256 tokenId);
     error DistributionAlreadyClaimedByPartyDaoError(uint256 distributionId);
     error Uint256ToUint128CastOutOfRangeError(uint256 value);
+    error MustOwnTokenError(address sender, address expectedOwner, uint256 tokenId);
 
     event DistributionCreated(DistributionInfo info);
     event DistributionClaimedByPartyDao(DistributionInfo info, address recipient, uint256 amountClaimed);
@@ -129,6 +130,10 @@ contract TokenDistributor {
         external
         returns (uint256 amountClaimed)
     {
+        address ownerOfToken = info.party.ownerOf(tokenId);
+        if (msg.sender != ownerOfToken) {
+            revert MustOwnTokenError(msg.sender, ownerOfToken, tokenId);
+        }
         DistributionState storage state = _distributionStateById[info.distributionId];
         if (state.distributionHash15 != _getDistributionHash(info)) {
             revert InvalidDistributionInfoError(info);
@@ -173,6 +178,9 @@ contract TokenDistributor {
         _transfer(info.token, recipient, info.daoSupply);
         emit DistributionClaimedByPartyDao(info, recipient, amountClaimed);
     }
+
+    // For receiving ETH
+    fallback() external payable {}
 
     function _transfer(IERC20 token, address payable recipient, uint256 amount)
         private
