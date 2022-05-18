@@ -60,7 +60,7 @@ contract TokenDistributor {
     // fussing with allowances.
     mapping(IERC20 => uint256) private _storedBalances;
     // tokenDistributorParty => distributionId => DistributionState
-    mapping(ITokenDistributorParty => mapping(uint256 => DistributionState)) public distributionStates;
+    mapping(ITokenDistributorParty => mapping(uint256 => DistributionState)) private _distributionStates;
 
     modifier onlyPartyDao() {
         {
@@ -112,8 +112,8 @@ contract TokenDistributor {
             daoSupply: daoSupply
         });
         (
-            distributionStates[party][distId].distributionHash15,
-            distributionStates[party][distId].remainingMembersupply
+            _distributionStates[party][distId].distributionHash15,
+            _distributionStates[party][distId].remainingMembersupply
         ) = (_getDistributionHash(info), memberSupply.safeCastUint256ToUint128());
         emit DistributionCreated(info);
     }
@@ -134,7 +134,7 @@ contract TokenDistributor {
         if (msg.sender != ownerOfToken) {
             revert MustOwnTokenError(msg.sender, ownerOfToken, tokenId);
         }
-        DistributionState storage state = distributionStates[info.party][info.distributionId];
+        DistributionState storage state = _distributionStates[info.party][info.distributionId];
         if (state.distributionHash15 != _getDistributionHash(info)) {
             revert InvalidDistributionInfoError(info);
         }
@@ -169,7 +169,7 @@ contract TokenDistributor {
         onlyPartyDao
         returns (uint256 amountClaimed)
     {
-        DistributionState storage state = distributionStates[info.party][info.distributionId];
+        DistributionState storage state = _distributionStates[info.party][info.distributionId];
         if (state.distributionHash15 != _getDistributionHash(info)) {
             revert InvalidDistributionInfoError(info);
         }
@@ -182,11 +182,11 @@ contract TokenDistributor {
     }
 
     function hasPartyDaoClaimed(ITokenDistributorParty party, uint256 distributionId) external view returns (bool) {
-        return distributionStates[party][distributionId].hasPartyDaoClaimed;
+        return _distributionStates[party][distributionId].hasPartyDaoClaimed;
     }
 
     function hasTokenIdClaimed(ITokenDistributorParty party, uint256 tokenId, uint256 distributionId) external view returns (bool) {
-        return distributionStates[party][distributionId].hasTokenClaimed[tokenId];
+        return _distributionStates[party][distributionId].hasTokenClaimed[tokenId];
     }
 
     // For receiving ETH
