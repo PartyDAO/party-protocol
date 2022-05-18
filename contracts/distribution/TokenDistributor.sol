@@ -191,6 +191,7 @@ contract TokenDistributor {
 
     // For receiving ETH
     fallback() external payable {}
+    receive() external payable {}
 
     function _transfer(IERC20 token, address payable recipient, uint256 amount)
         private
