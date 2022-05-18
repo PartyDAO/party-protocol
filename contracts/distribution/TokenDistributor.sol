@@ -167,7 +167,7 @@ contract TokenDistributor {
     )
         external
         onlyPartyDao
-        returns (uint256 amountClaimed)
+        returns (uint256 amountToSend)
     {
         DistributionState storage state = _distributionStates[info.party][info.distributionId];
         if (state.distributionHash15 != _getDistributionHash(info)) {
@@ -177,8 +177,9 @@ contract TokenDistributor {
             revert DistributionAlreadyClaimedByPartyDaoError(info.distributionId);
         }
         state.hasPartyDaoClaimed = true;
-        _transfer(info.token, recipient, info.daoSupply);
-        emit DistributionClaimedByPartyDao(info, recipient, amountClaimed);
+        amountToSend = info.daoSupply;
+        _transfer(info.token, recipient, amountToSend);
+        emit DistributionClaimedByPartyDao(info, recipient, amountToSend);
     }
 
     function hasPartyDaoClaimed(ITokenDistributorParty party, uint256 distributionId) external view returns (bool) {
