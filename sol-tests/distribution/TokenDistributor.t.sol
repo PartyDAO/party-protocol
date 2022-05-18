@@ -34,9 +34,11 @@ contract TokenDistributorTest is Test, TestUtils {
     TokenDistributor.DistributionInfo memory ds = distributor.createDistribution(ETH_TOKEN);
     
     assertEq(DISTRIBUTION_ADDRESS.balance, 0);
+    assert(!distributor.hasPartyDaoClaimed(dummyParty, ds.distributionId));
     vm.prank(ADMIN_ADDRESS);
     distributor.partyDaoClaim(ds, DISTRIBUTION_ADDRESS);
     assertEq(DISTRIBUTION_ADDRESS.balance, 0.033425 ether);
+    assert(distributor.hasPartyDaoClaimed(dummyParty, ds.distributionId));
     
     vm.deal(address(3), 100 ether);
     dummyParty.setOwner(address(3), 3);
@@ -46,7 +48,9 @@ contract TokenDistributorTest is Test, TestUtils {
     dummyParty.setOwner(address(4), 4);
     dummyParty.setShare(4, 0.66 ether);
     
+    assert(!distributor.hasTokenIdClaimed(dummyParty, 3, ds.distributionId));
     uint256 ethGained1 = _getEthGained(ds, address(3), 3, address(3));
+    assert(distributor.hasTokenIdClaimed(dummyParty, 3, ds.distributionId));
     assertApproxEqAbs(ethGained1, 0.4432155 ether, 0.0000000000001 ether); // weird rounding error
     
     uint256 ethGained2 = _getEthGained(ds, address(4), 4, address(4));
@@ -54,6 +58,8 @@ contract TokenDistributorTest is Test, TestUtils {
     
     assertEq(address(distributor).balance, 0);
   }
+
+  // TODO: ensure claiming one id doesnt claim another
   
   // TODO: tokenDistribution info?
   
