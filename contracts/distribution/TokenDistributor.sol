@@ -11,6 +11,8 @@ import "../utils/LibSafeCast.sol";
 
 import "./ITokenDistributorParty.sol";
 
+import "forge-std/console.sol";
+
 // Token and ETH distributor contract.
 contract TokenDistributor {
     using LibAddress for address payable;
@@ -44,6 +46,7 @@ contract TokenDistributor {
     error Uint256ToUint128CastOutOfRangeError(uint256 value);
     error MustOwnTokenError(address sender, address expectedOwner, uint256 tokenId);
     error EmergencyActionsNotAllowed();
+    error InvalidDistributionSupply(uint256 supplyAmount, uint256 daoSupply);
 
     event DistributionCreated(DistributionInfo info);
     event DistributionClaimedByPartyDao(DistributionInfo info, address recipient, uint256 amountClaimed);
@@ -105,14 +108,23 @@ contract TokenDistributor {
         // Used the delta between actual balance _storedBalances as the
         // distribution supply.
         uint256 supply = bal - _storedBalances[token];
+
+        if (supply == 0) {
+            revert InvalidDistributionSupply(0, 0);
+        }
+
         _storedBalances[token] = bal;
 
         ITokenDistributorParty party = ITokenDistributorParty(msg.sender);
         uint256 distId = ++lastDistributionIdPerParty[party];
         // Compute the portion of the supply reserved for the DAO
-        uint256 daoSupply = supply *
-            GLOBALS.getUint256(LibGlobals.GLOBAL_DAO_DISTRIBUTION_SPLIT) / 1e18;
-        assert(daoSupply <= supply);
+        uint256 daoSplitPercent = GLOBALS.getUint256(LibGlobals.GLOBAL_DAO_DISTRIBUTION_SPLIT);
+        uint256 daoSupply = supply * daoSplitPercent / 1e18;
+        if (daoSupply > supply) {
+            revert InvalidDistributionSupply(supply, daoSupply);
+        }
+        
+
         uint256 memberSupply = supply - daoSupply;
         info = DistributionInfo({
             distributionId: distId,

@@ -225,14 +225,38 @@ contract TokenDistributorTest is Test, TestUtils {
       dummyParty1, 1
     );
   }
-  
-  // TODO: what happens if called with zero amount?
+
+  function testZeroSupplyDistributionCreation() public {
+    // ensure amount needs to be > 0
+    vm.prank(address(dummyParty1)); // must create from party
+
+    vm.expectRevert(
+      abi.encodeWithSignature("InvalidDistributionSupply(uint256,uint256)", 0, 0)
+    );
+    distributor.createDistribution(ETH_TOKEN);
+
+    // ensure needs to be able to take fee
+    vm.prank(ADMIN_ADDRESS);
+    globals.setUint256(LibGlobals.GLOBAL_DAO_DISTRIBUTION_SPLIT, 1.5 ether); // 110%
+    vm.deal(address(distributor), 4);
+    vm.expectRevert(
+      abi.encodeWithSignature("InvalidDistributionSupply(uint256,uint256)", 4, 6)
+    );
+    vm.prank(address(dummyParty1));
+    distributor.createDistribution(ETH_TOKEN);
+  }
 
   // TODO: what happens if you try to claim but get 0 amount?
+
+  // TODO: what if you have a dust amount?
 
   // TODO: way to get total amount and token from render contract?
 
   // TODO: test that malicioius party cant claim more than total member supply
+
+  // TODO: public method to get claimable amount by user?
+
+  // TODO: what if send in amount that is a small enough gwei amount where DAO doesnt get a %?
 
   // to handle weird rounding error
   function _assertEthApprox(uint256 givenAmount, uint256 expectedAmount) private {
