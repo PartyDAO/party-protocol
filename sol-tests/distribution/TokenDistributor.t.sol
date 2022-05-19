@@ -275,7 +275,6 @@ contract TokenDistributorTest is Test, TestUtils {
       ds, address(5), 420
     );
     _assertEthApprox(ethDiff, 0.475 ether); // should max out
-
   }
 
   // to handle weird rounding error

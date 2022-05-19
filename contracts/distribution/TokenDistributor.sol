@@ -30,7 +30,7 @@ contract TokenDistributor {
 
     struct DistributionState {
         // The remaining member supply.
-        uint128 remainingMembersupply;
+        uint128 remainingMemberSupply;
         // The 15-byte hash of the DistributionInfo.
         bytes15 distributionHash15;
         // Whether partyDao has claimed its distribution share.
@@ -135,14 +135,14 @@ contract TokenDistributor {
         });
         (
             _distributionStates[party][distId].distributionHash15,
-            _distributionStates[party][distId].remainingMembersupply
+            _distributionStates[party][distId].remainingMemberSupply
         ) = (_getDistributionHash(info), memberSupply.safeCastUint256ToUint128());
         emit DistributionCreated(info);
     }
 
     // Claim a distribution as a party member based on the weight of a
     // PartyGovernanceNFT owned by the caller.
-    // The amount sent to `recipient` will be based on
+    // The amount sent will be based on
     // `ITokenDistributorParty.getDistributionShareOf()`.
     function claim(
         DistributionInfo calldata info,
@@ -166,15 +166,15 @@ contract TokenDistributor {
 
         amountClaimed = claimAmount(info, tokenId);
 
-        uint128 remainingMembersupply = state.remainingMembersupply;
+        uint128 remainingMemberSupply = state.remainingMemberSupply;
         // Cap at the remaining member supply. Otherwise a malicious
         // distribution creator could drain more than the distribution supply.
-        amountClaimed = amountClaimed > remainingMembersupply
-            ? remainingMembersupply
+        amountClaimed = amountClaimed > remainingMemberSupply
+            ? remainingMemberSupply
             : amountClaimed;
 
-        state.remainingMembersupply =
-            remainingMembersupply - amountClaimed.safeCastUint256ToUint128();
+        state.remainingMemberSupply =
+            remainingMemberSupply - amountClaimed.safeCastUint256ToUint128();
         _transfer(info.token, payable(ownerOfToken), amountClaimed);
         emit DistributionClaimedByToken(info, tokenId, ownerOfToken, amountClaimed);
     }
@@ -220,7 +220,7 @@ contract TokenDistributor {
     }
 
     function remainingMemberSupply(ITokenDistributorParty party, uint256 distributionId) public view returns (uint256) {
-        return _distributionStates[party][distributionId].remainingMembersupply;
+        return _distributionStates[party][distributionId].remainingMemberSupply;
     }
 
     function emergencyRemoveDistribution(ITokenDistributorParty party, uint256 distributionId) onlyPartyDao onlyIfEmergencyActionsAllowed public {
