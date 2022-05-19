@@ -229,7 +229,6 @@ contract TokenDistributorTest is Test, TestUtils {
   function testZeroSupplyDistributionCreation() public {
     // ensure amount needs to be > 0
     vm.prank(address(dummyParty1)); // must create from party
-
     vm.expectRevert(
       abi.encodeWithSignature("InvalidDistributionSupply(uint256,uint256)", 0, 0)
     );
@@ -246,17 +245,40 @@ contract TokenDistributorTest is Test, TestUtils {
     distributor.createDistribution(ETH_TOKEN);
   }
 
-  // TODO: what happens if you try to claim but get 0 amount?
+  function testDistributeZero() public {
+    vm.deal(address(distributor), 100 ether);
 
-  // TODO: what if you have a dust amount?
+    vm.prank(address(dummyParty1)); // must send from party
+    TokenDistributor.DistributionInfo memory ds = distributor.createDistribution(ETH_TOKEN);
 
-  // TODO: way to get total amount and token from render contract?
+    _createDummyNft(dummyParty1, address(5), 420, 0);
 
-  // TODO: test that malicioius party cant claim more than total member supply
+    vm.prank(address(address(5)));
+    distributor.claim(ds, 420);
+    assertEq(address(5).balance, 0);
+  }
+
+  function testMaliciousDistributor() public {
+     // test that malicioius party cant claim more than total member supply
+    vm.deal(address(distributor), 0.5 ether);
+
+    vm.prank(ADMIN_ADDRESS);
+    globals.setUint256(LibGlobals.GLOBAL_DAO_DISTRIBUTION_SPLIT, 0.05 ether); // 5%
+
+    vm.prank(address(dummyParty1));
+    TokenDistributor.DistributionInfo memory ds = distributor.createDistribution(ETH_TOKEN);
+    _createDummyNft(dummyParty1, address(5), 420, 2 ether); // malicious amount 2x
+
+    vm.deal(address(distributor), 100 ether);
+    
+    uint256 ethDiff = _claimAndReturnDiff(
+      ds, address(5), 420
+    );
+    _assertEthApprox(ethDiff, 0.475 ether); // should max out
+
+  }
 
   // TODO: public method to get claimable amount by user?
-
-  // TODO: what if send in amount that is a small enough gwei amount where DAO doesnt get a %?
 
   // to handle weird rounding error
   function _assertEthApprox(uint256 givenAmount, uint256 expectedAmount) private {
