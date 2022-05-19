@@ -39,8 +39,8 @@ contract TokenDistributorTest is Test, TestUtils {
     assertEq(DISTRIBUTION_ADDRESS.balance, 0.033425 ether);
     assert(distributor.hasPartyDaoClaimed(dummyParty1, ds.distributionId));
 
-    _createDummyToken(dummyParty1, address(3), 3, 0.34 ether);
-    _createDummyToken(dummyParty1, address(4), 4, 0.66 ether);
+    _createDummyNft(dummyParty1, address(3), 3, 0.34 ether);
+    _createDummyNft(dummyParty1, address(4), 4, 0.66 ether);
     
     assert(!distributor.hasTokenIdClaimed(dummyParty1, 3, ds.distributionId));
     uint256 ethGained1 = _claimAndReturnDiff(ds, address(3), 3);
@@ -57,18 +57,24 @@ contract TokenDistributorTest is Test, TestUtils {
     vm.prank(ADMIN_ADDRESS);
     globals.setUint256(LibGlobals.GLOBAL_DAO_DISTRIBUTION_SPLIT, 0.05 ether); // 5%
 
-    // distribution 1
+    // distribution 1 (ds1, ETH)
     payable(address(distributor)).transfer(0.1 ether);
     vm.prank(address(dummyParty1)); // must create from party
     TokenDistributor.DistributionInfo memory ds1 = distributor.createDistribution(ETH_TOKEN);
-    _createDummyToken(dummyParty1, address(1), 1337, 0.7 ether);
-    _createDummyToken(dummyParty1, address(2), 1338, 0.3 ether);
-    // distribution 2
+    _createDummyNft(dummyParty1, address(1), 1337, 0.7 ether);
+    _createDummyNft(dummyParty1, address(2), 1338, 0.3 ether);
+    // distribution 2 (ds2, ETH)
     payable(address(distributor)).transfer(0.25 ether);
     vm.prank(address(dummyParty2)); // must create from party
     TokenDistributor.DistributionInfo memory ds2 = distributor.createDistribution(ETH_TOKEN);
-    _createDummyToken(dummyParty2, address(1), 1337, 0.33 ether);
-    _createDummyToken(dummyParty2, address(3), 1338, 0.66 ether);
+    _createDummyNft(dummyParty2, address(1), 1337, 0.33 ether);
+    _createDummyNft(dummyParty2, address(3), 1338, 0.66 ether);
+    // distribution 3 (ds1, dummyToken1)
+    dummyToken1.deal(address(distributor), 300 ether);
+    vm.prank(address(dummyParty1)); // must create from party
+    TokenDistributor.DistributionInfo memory ds3 = distributor.createDistribution(IERC20(address(dummyToken1)));
+
+
 
     // ****** DISTRIBUTION 1 *****
     // receive for id 1
@@ -112,6 +118,26 @@ contract TokenDistributorTest is Test, TestUtils {
       _claimAndReturnDiff(ds2, address(3), 1338),
       0.15675 ether
     );
+
+    // **** DISTRIBUTION 3 (ERC20) ***** 
+    assertEq(dummyToken1.balanceOf((address(1))), 0);
+    assertEq(dummyToken1.balanceOf((address(2))), 0);
+    assertEq(dummyToken1.balanceOf((address(distributor))), 300 ether);
+    vm.prank(address(1));
+    distributor.claim(ds3, 1337);
+    assertEq(dummyToken1.balanceOf((address(1))), 199.5 ether);
+    assertEq(dummyToken1.balanceOf((address(2))), 0 ether);
+    assertEq(dummyToken1.balanceOf((address(distributor))), 100.5 ether);
+    vm.prank(address(2));
+    distributor.claim(ds3, 1338);
+    assertEq(dummyToken1.balanceOf((address(1))), 199.5 ether);
+    assertEq(dummyToken1.balanceOf((address(2))), 85.5 ether);
+    assertEq(dummyToken1.balanceOf((address(distributor))), 15 ether);
+    assertEq(dummyToken1.balanceOf(address(9)), 0 ether);
+    vm.prank(ADMIN_ADDRESS);
+    distributor.partyDaoClaim(ds3, payable(address(9)));
+    assertEq(dummyToken1.balanceOf(address(9)), 15 ether);
+
   }
 
   function testEmergencyDistributionFunctions() public {
@@ -200,9 +226,13 @@ contract TokenDistributorTest is Test, TestUtils {
     );
   }
   
-  // TODO: ERC 20
-
   // TODO: what happens if called with zero amount?
+
+  // TODO: what happens if you try to claim but get 0 amount?
+
+  // TODO: way to get total amount and token from render contract?
+
+  // TODO: test that malicioius party cant claim more than total member supply
 
   // to handle weird rounding error
   function _assertEthApprox(uint256 givenAmount, uint256 expectedAmount) private {
@@ -219,7 +249,7 @@ contract TokenDistributorTest is Test, TestUtils {
       return afterBal - beforeBal;
   }
 
-  function _createDummyToken(
+  function _createDummyNft(
     DummyTokenDistributorParty dummyParty,
     address user,
     uint256 tokenId,
