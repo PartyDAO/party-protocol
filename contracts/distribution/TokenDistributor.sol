@@ -50,7 +50,7 @@ contract TokenDistributor {
 
     event DistributionCreated(DistributionInfo info);
     event DistributionClaimedByPartyDao(DistributionInfo info, address recipient, uint256 amountClaimed);
-    event DistributionClaimedByToken(DistributionInfo info, uint256 tokenId, address recipient, uint256 amountClaimed, uint256 tokenSplit);
+    event DistributionClaimedByToken(DistributionInfo info, uint256 tokenId, address recipient, uint256 amountClaimed);
 
     IERC20 constant private ETH_TOKEN = IERC20(0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE);
 
@@ -163,14 +163,12 @@ contract TokenDistributor {
             revert DistributionAlreadyClaimedByTokenError(info.distributionId, tokenId);
         }
         state.hasTokenClaimed[tokenId] = true;
-        // When paying out, reserve a portion based on token's distribution share.
-        // This value is denominated in fractions of 1e18, where 1e18 = 100%.
-        uint256 tokenSplit = info.party.getDistributionShareOf(tokenId);
-        amountClaimed = tokenSplit * info.memberSupply / 1e18;
+
+        amountClaimed = claimAmount(info, tokenId);
+
         uint128 remainingMembersupply = state.remainingMembersupply;
         // Cap at the remaining member supply. Otherwise a malicious
         // distribution creator could drain more than the distribution supply.
-        
         amountClaimed = amountClaimed > remainingMembersupply
             ? remainingMembersupply
             : amountClaimed;
@@ -178,7 +176,17 @@ contract TokenDistributor {
         state.remainingMembersupply =
             remainingMembersupply - amountClaimed.safeCastUint256ToUint128();
         _transfer(info.token, payable(ownerOfToken), amountClaimed);
-        emit DistributionClaimedByToken(info, tokenId, ownerOfToken, amountClaimed, tokenSplit);
+        emit DistributionClaimedByToken(info, tokenId, ownerOfToken, amountClaimed);
+    }
+
+    function claimAmount(
+        DistributionInfo calldata info,
+        uint256 tokenId
+    ) public view returns (uint256) {
+        // When paying out, reserve a portion based on token's distribution share.
+        // This value is denominated in fractions of 1e18, where 1e18 = 100%.
+        uint256 tokenSplit = info.party.getDistributionShareOf(tokenId);
+        return tokenSplit * info.memberSupply / 1e18;
     }
 
     // Claim a distribution based on a

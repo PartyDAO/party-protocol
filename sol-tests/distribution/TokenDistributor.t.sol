@@ -278,8 +278,6 @@ contract TokenDistributorTest is Test, TestUtils {
 
   }
 
-  // TODO: public method to get claimable amount by user?
-
   // to handle weird rounding error
   function _assertEthApprox(uint256 givenAmount, uint256 expectedAmount) private {
     assertApproxEqAbs(givenAmount, expectedAmount, 0.0000000000001 ether);
