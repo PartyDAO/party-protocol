@@ -6,7 +6,9 @@ import "forge-std/Test.sol";
 import "../../contracts/distribution/TokenDistributor.sol";
 import "../../contracts/distribution/ITokenDistributorParty.sol";
 import "../../contracts/globals/Globals.sol";
+
 import "../TestUtils.sol";
+import "../DummyERC20.sol";
 import "./DummyTokenDistributorParty.sol";
 
 contract TokenDistributorTest is Test, TestUtils {
@@ -17,6 +19,7 @@ contract TokenDistributorTest is Test, TestUtils {
   TokenDistributor distributor;
   DummyTokenDistributorParty dummyParty1 = new DummyTokenDistributorParty();
   DummyTokenDistributorParty dummyParty2 = new DummyTokenDistributorParty();
+  DummyERC20 dummyToken1 = new DummyERC20();
   
   function setUp() public {
     vm.deal(ADMIN_ADDRESS, 500 ether);
@@ -111,8 +114,62 @@ contract TokenDistributorTest is Test, TestUtils {
     );
   }
 
+  function testEmergencyWithdraw() public {
+    vm.prank(ADMIN_ADDRESS);
+    globals.setUint256(LibGlobals.GLOBAL_DAO_DISTRIBUTION_SPLIT, 0.05 ether); // 5%
 
-  // TODO: emergency fns?
+    // ETH
+    payable(address(distributor)).transfer(50 ether);
+    vm.prank(address(dummyParty1)); // must create from party
+    distributor.createDistribution(ETH_TOKEN);
+
+    // ERC 20
+    dummyToken1.deal(address(distributor), 19 ether);
+    vm.prank(address(dummyParty1));
+    distributor.createDistribution(IERC20(address(dummyToken1)));
+
+    // cant withdraw as non-admin
+    vm.expectRevert(
+      abi.encodeWithSignature("OnlyPartyDaoError(address,address)", address(3), ADMIN_ADDRESS)
+    );
+    vm.prank(address(3));
+    distributor.emergencyWithdraw(
+      ETH_TOKEN,
+      payable(address(1)),
+      10 ether
+    );
+
+
+    vm.startPrank(ADMIN_ADDRESS);
+    // withdraw ETH
+    assertEq(address(5).balance, 0);
+    distributor.emergencyWithdraw(ETH_TOKEN, payable(address(5)), 10 ether);
+    assertEq(address(5).balance, 10 ether);
+    // withdraw ERC20
+    assertEq(dummyToken1.balanceOf(address(4)), 0);
+    distributor.emergencyWithdraw(
+      IERC20(address(dummyToken1)),
+      payable(address(4)),
+      19 ether
+    );
+    assertEq(dummyToken1.balanceOf(address(4)), 19 ether);
+    vm.stopPrank();
+
+    // non-admin can't disable
+    vm.expectRevert(
+      abi.encodeWithSignature("OnlyPartyDaoError(address,address)", address(3), ADMIN_ADDRESS)
+    );
+    vm.prank(address(3));
+    distributor.disableEmergencyActions();
+
+    // cant withdraw when emergency actions disabled
+    vm.startPrank(ADMIN_ADDRESS);
+    distributor.disableEmergencyActions();
+    vm.expectRevert(
+      abi.encodeWithSignature("EmergencyActionsNotAllowed()")
+    );
+    distributor.emergencyWithdraw(ETH_TOKEN, payable(address(5)), 1 ether);
+  }
   
   // TODO: ERC 20
 

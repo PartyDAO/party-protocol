@@ -43,6 +43,7 @@ contract TokenDistributor {
     error DistributionAlreadyClaimedByPartyDaoError(uint256 distributionId);
     error Uint256ToUint128CastOutOfRangeError(uint256 value);
     error MustOwnTokenError(address sender, address expectedOwner, uint256 tokenId);
+    error EmergencyActionsNotAllowed();
 
     event DistributionCreated(DistributionInfo info);
     event DistributionClaimedByPartyDao(DistributionInfo info, address recipient, uint256 amountClaimed);
@@ -51,6 +52,8 @@ contract TokenDistributor {
     IERC20 constant private ETH_TOKEN = IERC20(0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE);
 
     IGlobals public immutable GLOBALS;
+
+    bool public allowEmergencyActions = true;
 
     // Last distribution ID for a party.
     mapping(ITokenDistributorParty => uint256) public lastDistributionIdPerParty;
@@ -68,6 +71,13 @@ contract TokenDistributor {
             if (msg.sender != partyDao) {
                 revert OnlyPartyDaoError(msg.sender, partyDao);
             }
+        }
+        _;
+    }
+
+    modifier onlyIfEmergencyActionsAllowed() {
+        if (!allowEmergencyActions) {
+            revert EmergencyActionsNotAllowed();
         }
         _;
     }
@@ -192,6 +202,18 @@ contract TokenDistributor {
 
     function remainingMemberSupply(ITokenDistributorParty party, uint256 distributionId) public view returns (uint256) {
         return _distributionStates[party][distributionId].remainingMembersupply;
+    }
+
+    // TODO: emergency remove _distributionStates
+
+    function emergencyWithdraw(
+        IERC20 token, address payable recipient, uint256 amount
+    ) onlyPartyDao onlyIfEmergencyActionsAllowed public {
+        _transfer(token, recipient, amount);
+    }
+
+    function disableEmergencyActions() onlyPartyDao public {
+        allowEmergencyActions = false;
     }
 
     // For receiving ETH
