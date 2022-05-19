@@ -43,11 +43,11 @@ contract TokenDistributorTest is Test, TestUtils {
     _createDummyToken(dummyParty1, address(4), 4, 0.66 ether);
     
     assert(!distributor.hasTokenIdClaimed(dummyParty1, 3, ds.distributionId));
-    uint256 ethGained1 = _claimAndReturnDiff(ds, address(3), 3, address(3));
+    uint256 ethGained1 = _claimAndReturnDiff(ds, address(3), 3);
     assert(distributor.hasTokenIdClaimed(dummyParty1, 3, ds.distributionId));
     _assertEthApprox(ethGained1, 0.4432155 ether);
     
-    uint256 ethGained2 = _claimAndReturnDiff(ds, address(4), 4, address(4));
+    uint256 ethGained2 = _claimAndReturnDiff(ds, address(4), 4);
     _assertEthApprox(ethGained2, 0.8603595 ether);
     
     assertEq(address(distributor).balance, 0);
@@ -73,7 +73,7 @@ contract TokenDistributorTest is Test, TestUtils {
     // ****** DISTRIBUTION 1 *****
     // receive for id 1
     _assertEthApprox(
-      _claimAndReturnDiff(ds1, address(1), 1337, address(1)),
+      _claimAndReturnDiff(ds1, address(1), 1337),
       0.0665 ether
     );
     assertEq(
@@ -86,7 +86,7 @@ contract TokenDistributorTest is Test, TestUtils {
           abi.encodeWithSignature("DistributionAlreadyClaimedByTokenError(uint256,uint256)", 1, 1337)
     );
     vm.prank(address(1));
-    distributor.claim(ds1, 1337, payable(address(1)));
+    distributor.claim(ds1, 1337);
 
     // partydao cant claim again
     vm.expectRevert(
@@ -101,15 +101,15 @@ contract TokenDistributorTest is Test, TestUtils {
     vm.expectRevert(
           abi.encodeWithSignature("MustOwnTokenError(address,address,uint256)", address(3), address(1), 1337)
     );
-    distributor.claim(ds2, 1337, payable(address(3)));
+    distributor.claim(ds2, 1337);
     // claim one
     _assertEthApprox(
-      _claimAndReturnDiff(ds2, address(1), 1337, address(1)),
+      _claimAndReturnDiff(ds2, address(1), 1337),
       0.078375 ether
     );
     // claim another
     _assertEthApprox(
-      _claimAndReturnDiff(ds2, address(3), 1338, address(3)),
+      _claimAndReturnDiff(ds2, address(3), 1338),
       0.15675 ether
     );
   }
@@ -246,16 +246,15 @@ contract TokenDistributorTest is Test, TestUtils {
   function _claimAndReturnDiff(
     TokenDistributor.DistributionInfo memory ds,
     address prankAs,
-    uint256 tokenId,
-    address recipient
+    uint256 tokenId
   ) private returns (uint256) {
-    uint256 initialEth = recipient.balance;
-    uint256 startGas = gasleft();
+    uint256 initialEth = prankAs.balance;
     vm.prank(prankAs);
-    distributor.claim(ds, tokenId, payable(recipient));
+    uint256 startGas = gasleft();
+    distributor.claim(ds, tokenId);
     uint256 endGas = gasleft();
     uint256 gasUsed = startGas - endGas;
-    uint256 newBalance = recipient.balance;
+    uint256 newBalance = prankAs.balance;
     uint256 ethGained = newBalance - (initialEth + gasUsed);
     return ethGained;
   }

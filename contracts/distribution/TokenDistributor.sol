@@ -134,8 +134,7 @@ contract TokenDistributor {
     // `ITokenDistributorParty.getDistributionShareOf()`.
     function claim(
         DistributionInfo calldata info,
-        uint256 tokenId,
-        address payable recipient
+        uint256 tokenId
     )
         external
         returns (uint256 amountClaimed)
@@ -166,8 +165,8 @@ contract TokenDistributor {
 
         state.remainingMembersupply =
             remainingMembersupply - amountClaimed.safeCastUint256ToUint128();
-        _transfer(info.token, recipient, amountClaimed);
-        emit DistributionClaimedByToken(info, tokenId, recipient, amountClaimed, tokenSplit);
+        _transfer(info.token, payable(ownerOfToken), amountClaimed);
+        emit DistributionClaimedByToken(info, tokenId, ownerOfToken, amountClaimed, tokenSplit);
     }
 
     // Claim a distribution based on a
