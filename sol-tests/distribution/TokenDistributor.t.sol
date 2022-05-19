@@ -62,11 +62,10 @@ contract TokenDistributorTest is Test, TestUtils {
     _createDummyToken(dummyParty1, address(2), 1338, 0.3 ether);
     // distribution 2
     payable(address(distributor)).transfer(0.25 ether);
-    vm.prank(address(dummyParty1)); // must create from party
+    vm.prank(address(dummyParty2)); // must create from party
     TokenDistributor.DistributionInfo memory ds2 = distributor.createDistribution(ETH_TOKEN);
     _createDummyToken(dummyParty2, address(1), 1337, 0.33 ether);
     _createDummyToken(dummyParty2, address(3), 1338, 0.66 ether);
-    // distribution 3
 
     // ****** DISTRIBUTION 1 *****
     // receive for id 1
@@ -94,23 +93,32 @@ contract TokenDistributorTest is Test, TestUtils {
     distributor.partyDaoClaim(ds1, DISTRIBUTION_ADDRESS);
 
     // ****** DISTRIBUTION 2 *****
-    // _assertEthApprox(
-    //   _claimAndReturnDiff(ds2, address(1), 1337, address(1)),
-    //   0.004125 ether
-    // );
-
-
+    // cant claim if not right user
+    vm.prank(address(3));
+    vm.expectRevert(
+          abi.encodeWithSignature("MustOwnTokenError(address,address,uint256)", address(3), address(1), 1337)
+    );
+    distributor.claim(ds2, 1337, payable(address(3)));
+    // claim one
+    _assertEthApprox(
+      _claimAndReturnDiff(ds2, address(1), 1337, address(1)),
+      0.078375 ether
+    );
+    // claim another
+    _assertEthApprox(
+      _claimAndReturnDiff(ds2, address(3), 1338, address(3)),
+      0.15675 ether
+    );
   }
 
-  // TODO: ensure claiming one id doesnt claim another
-  
-  
+
   // TODO: emergency fns?
   
   // TODO: ERC 20
 
   
   // TODO: what happens if called with zero amount?
+
   
 
   // to handle weird rounding error

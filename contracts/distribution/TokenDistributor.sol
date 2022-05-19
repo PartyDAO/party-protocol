@@ -46,7 +46,7 @@ contract TokenDistributor {
 
     event DistributionCreated(DistributionInfo info);
     event DistributionClaimedByPartyDao(DistributionInfo info, address recipient, uint256 amountClaimed);
-    event DistributionClaimedByToken(DistributionInfo info, uint256 tokenId, address recipient, uint256 amountClaimed);
+    event DistributionClaimedByToken(DistributionInfo info, uint256 tokenId, address recipient, uint256 amountClaimed, uint256 tokenSplit);
 
     IERC20 constant private ETH_TOKEN = IERC20(0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE);
 
@@ -157,7 +157,7 @@ contract TokenDistributor {
         state.remainingMembersupply =
             remainingMembersupply - amountClaimed.safeCastUint256ToUint128();
         _transfer(info.token, recipient, amountClaimed);
-        emit DistributionClaimedByToken(info, tokenId, recipient, amountClaimed);
+        emit DistributionClaimedByToken(info, tokenId, recipient, amountClaimed, tokenSplit);
     }
 
     // Claim a distribution based on a
@@ -188,6 +188,10 @@ contract TokenDistributor {
 
     function hasTokenIdClaimed(ITokenDistributorParty party, uint256 tokenId, uint256 distributionId) external view returns (bool) {
         return _distributionStates[party][distributionId].hasTokenClaimed[tokenId];
+    }
+
+    function remainingMemberSupply(ITokenDistributorParty party, uint256 distributionId) public view returns (uint256) {
+        return _distributionStates[party][distributionId].remainingMembersupply;
     }
 
     // For receiving ETH
