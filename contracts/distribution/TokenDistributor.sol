@@ -204,7 +204,9 @@ contract TokenDistributor {
         return _distributionStates[party][distributionId].remainingMembersupply;
     }
 
-    // TODO: emergency remove _distributionStates
+    function emergencyRemoveDistribution(ITokenDistributorParty party, uint256 distributionId) onlyPartyDao onlyIfEmergencyActionsAllowed public {
+        delete _distributionStates[party][distributionId];
+    }
 
     function emergencyWithdraw(
         IERC20 token, address payable recipient, uint256 amount

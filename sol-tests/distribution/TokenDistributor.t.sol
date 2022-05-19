@@ -114,7 +114,7 @@ contract TokenDistributorTest is Test, TestUtils {
     );
   }
 
-  function testEmergencyWithdraw() public {
+  function testEmergencyDistributionFunctions() public {
     vm.prank(ADMIN_ADDRESS);
     globals.setUint256(LibGlobals.GLOBAL_DAO_DISTRIBUTION_SPLIT, 0.05 ether); // 5%
 
@@ -140,6 +140,7 @@ contract TokenDistributorTest is Test, TestUtils {
     );
 
 
+    // emergency withdraw
     vm.startPrank(ADMIN_ADDRESS);
     // withdraw ETH
     assertEq(address(5).balance, 0);
@@ -155,10 +156,30 @@ contract TokenDistributorTest is Test, TestUtils {
     assertEq(dummyToken1.balanceOf(address(4)), 19 ether);
     vm.stopPrank();
 
+    // emergency remove distribution
+    assertEq(distributor.remainingMemberSupply(dummyParty1, 1), 47.5 ether);
+    // non admin can't delete
+    vm.prank(address(7));
+    vm.expectRevert(
+      abi.encodeWithSignature("OnlyPartyDaoError(address,address)", address(7), ADMIN_ADDRESS)
+    );
+    distributor.emergencyRemoveDistribution(
+      dummyParty1, 1
+    );
+    // admin can remove distribution
+    vm.prank(ADMIN_ADDRESS);
+    distributor.emergencyRemoveDistribution(
+      dummyParty1, 1
+    );
+    assertEq(distributor.remainingMemberSupply(dummyParty1, 1), 0 ether);
+
+
     // non-admin can't disable
     vm.expectRevert(
       abi.encodeWithSignature("OnlyPartyDaoError(address,address)", address(3), ADMIN_ADDRESS)
     );
+
+    // disable emergency acitons
     vm.prank(address(3));
     distributor.disableEmergencyActions();
 
@@ -169,14 +190,19 @@ contract TokenDistributorTest is Test, TestUtils {
       abi.encodeWithSignature("EmergencyActionsNotAllowed()")
     );
     distributor.emergencyWithdraw(ETH_TOKEN, payable(address(5)), 1 ether);
+
+    // cant remove when emergency actions disabled
+    vm.expectRevert(
+      abi.encodeWithSignature("EmergencyActionsNotAllowed()")
+    );
+    distributor.emergencyRemoveDistribution(
+      dummyParty1, 1
+    );
   }
   
   // TODO: ERC 20
 
-  
   // TODO: what happens if called with zero amount?
-
-  
 
   // to handle weird rounding error
   function _assertEthApprox(uint256 givenAmount, uint256 expectedAmount) private {
