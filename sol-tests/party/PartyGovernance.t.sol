@@ -86,6 +86,21 @@ contract PartyGovernanceTest is Test,TestUtils {
       49,
       address(3)
     );
+    assertEq(party.getVotingPowerOfToken(1), 49);
+    assertEq(party.ownerOf(1), address(3));
+    assertEq(party.getDistributionShareOf(1), 0.49 ether);
+    party.mint(
+      address(4),
+      10,
+      address(3)
+    );
+    assertEq(party.getVotingPowerOfToken(2), 10);
+    assertEq(party.ownerOf(2), address(4));
+    assertEq(party.getDistributionShareOf(2), 0.10 ether);
+
+    uint256 vp3 = party.getVotingPowerAt(address(3), uint40(block.timestamp));
+    assertEq(vp3, 59);
+    
 
   }
 }
