@@ -43,11 +43,11 @@ contract TokenDistributorTest is Test, TestUtils {
     _createDummyNft(dummyParty1, address(4), 4, 0.66 ether);
     
     assert(!distributor.hasTokenIdClaimed(dummyParty1, 3, ds.distributionId));
-    uint256 ethGained1 = _claimAndReturnDiff(ds, address(3), 3);
+    uint256 ethGained1 = _claim(ds, address(3), 3);
     assert(distributor.hasTokenIdClaimed(dummyParty1, 3, ds.distributionId));
     _assertEthApprox(ethGained1, 0.4432155 ether);
     
-    uint256 ethGained2 = _claimAndReturnDiff(ds, address(4), 4);
+    uint256 ethGained2 = _claim(ds, address(4), 4);
     _assertEthApprox(ethGained2, 0.8603595 ether);
     
     assertEq(address(distributor).balance, 0);
@@ -79,7 +79,7 @@ contract TokenDistributorTest is Test, TestUtils {
     // ****** DISTRIBUTION 1 *****
     // receive for id 1
     _assertEthApprox(
-      _claimAndReturnDiff(ds1, address(1), 1337),
+      _claim(ds1, address(1), 1337),
       0.0665 ether
     );
     assertEq(
@@ -110,12 +110,12 @@ contract TokenDistributorTest is Test, TestUtils {
     distributor.claim(ds2, 1337);
     // claim one
     _assertEthApprox(
-      _claimAndReturnDiff(ds2, address(1), 1337),
+      _claim(ds2, address(1), 1337),
       0.078375 ether
     );
     // claim another
     _assertEthApprox(
-      _claimAndReturnDiff(ds2, address(3), 1338),
+      _claim(ds2, address(3), 1338),
       0.15675 ether
     );
 
@@ -271,7 +271,7 @@ contract TokenDistributorTest is Test, TestUtils {
 
     vm.deal(address(distributor), 100 ether);
     
-    uint256 ethDiff = _claimAndReturnDiff(
+    uint256 ethDiff = _claim(
       ds, address(5), 420
     );
     _assertEthApprox(ethDiff, 0.475 ether); // should max out
@@ -316,7 +316,7 @@ contract TokenDistributorTest is Test, TestUtils {
     return distributor.createDistribution(ETH_TOKEN);
   }
 
-  function _claimAndReturnDiff(
+  function _claim(
     TokenDistributor.DistributionInfo memory ds,
     address prankAs,
     uint256 tokenId
