@@ -75,11 +75,17 @@ contract PartyGovernanceTest is Test,TestUtils {
     uint256[] memory preciousTokenIds = new uint256[](1);
     preciousTokenIds[0] = 1;
 
-    partyFactory.createParty(
+    Party party = partyFactory.createParty(
       address(1),
       po,
       preciousTokens,
       preciousTokenIds
     );
+    party.mint(
+      address(3),
+      49,
+      address(3)
+    );
+
   }
 }
