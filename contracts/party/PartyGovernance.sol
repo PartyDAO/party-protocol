@@ -50,7 +50,7 @@ abstract contract PartyGovernance is
         // executed.
         uint40 executionDelay;
         // Minimum ratio of accept votes to consider a proposal passed,
-        // in bps, where 1000 == 100%.
+        // in bps, where 10,000 == 100%.
         uint16 passThresholdBps;
         // Total voting power of governance NFTs.
         uint96 totalVotingPower;
@@ -59,15 +59,9 @@ abstract contract PartyGovernance is
     // Subset of `GovernanceOpts` that are commonly needed together for
     // efficiency.
     struct GovernanceValues {
-        // How long people can vote on a proposal.
         uint40 voteDuration;
-        // How long to wait after a proposal passes before it can be
-        // executed.
         uint40 executionDelay;
-        // Minimum ratio of accept votes to consider a proposal passed,
-        // in bps, where 1000 == 100%.
         uint16 passThresholdBps;
-        // Total voting power of governance NFTs.
         uint96 totalVotingPower;
     }
 
@@ -159,6 +153,7 @@ abstract contract PartyGovernance is
         _;
     }
 
+    // should this allow for a user w delevated votes too?
     modifier onlyActiveMember() {
         if (_getLastVotingPowerSnapshotIn(
                 _votingPowerSnapshotsByVoter[msg.sender]
