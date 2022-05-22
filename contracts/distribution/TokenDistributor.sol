@@ -11,8 +11,6 @@ import "../utils/LibSafeCast.sol";
 
 import "./ITokenDistributorParty.sol";
 
-import "forge-std/console.sol";
-
 // Token and ETH distributor contract.
 contract TokenDistributor {
     using LibAddress for address payable;
