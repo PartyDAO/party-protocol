@@ -219,7 +219,7 @@ contract TokenDistributor {
         return _distributionStates[party][distributionId].hasTokenClaimed[tokenId];
     }
 
-    function remainingMemberSupply(ITokenDistributorParty party, uint256 distributionId) public view returns (uint256) {
+    function getRemainingMemberSupply(ITokenDistributorParty party, uint256 distributionId) public view returns (uint256) {
         return _distributionStates[party][distributionId].remainingMemberSupply;
     }
 

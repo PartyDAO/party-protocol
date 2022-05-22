@@ -183,7 +183,7 @@ contract TokenDistributorTest is Test, TestUtils {
     vm.stopPrank();
 
     // emergency remove distribution
-    assertEq(distributor.remainingMemberSupply(dummyParty1, 1), 47.5 ether);
+    assertEq(distributor.getRemainingMemberSupply(dummyParty1, 1), 47.5 ether);
     // non admin can't delete
     vm.prank(address(7));
     vm.expectRevert(
@@ -197,7 +197,7 @@ contract TokenDistributorTest is Test, TestUtils {
     distributor.emergencyRemoveDistribution(
       dummyParty1, 1
     );
-    assertEq(distributor.remainingMemberSupply(dummyParty1, 1), 0 ether);
+    assertEq(distributor.getRemainingMemberSupply(dummyParty1, 1), 0 ether);
 
 
     // non-admin can't disable
