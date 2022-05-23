@@ -453,6 +453,17 @@ abstract contract PartyGovernance is
         );
     }
 
+    function _logSnapshot(VotingPowerSnapshot memory vp) internal view {
+        console.log('-------');
+        console.log(vp.timestamp);
+        console.log('delegated');
+        console.log(vp.delegatedVotingPower);
+        console.log('intrinsic');
+        console.log(vp.intrinsicVotingPower);
+        console.log('isDelegated');
+        console.log(vp.isDelegated);
+    }
+
     // Get the most recent voting power snapshot <= timestamp.
     function _getVotingPowerSnapshotAt(address voter, uint40 timestamp)
         private
@@ -465,16 +476,11 @@ abstract contract PartyGovernance is
         // uint96 intrinsicVotingPower;
         // bool isDelegated;
 
-        console.log('num snaps');
+        console.log('snapshots');
         console.log(snaps.length);
-        console.log('vp 0');
-        console.log(snaps[0].delegatedVotingPower);
-        console.log(snaps[0].intrinsicVotingPower);
-        console.log(snaps[0].isDelegated);
-        console.log('------');
-        console.log(snaps[1].delegatedVotingPower);
-        console.log(snaps[1].intrinsicVotingPower);
-        console.log(snaps[1].isDelegated);
+        for (uint256 i=0; i<snaps.length; i++) {
+            _logSnapshot(snaps[i]);
+        }
 
         uint256 n = snaps.length;
         uint256 p = n / 2; // Search index.
