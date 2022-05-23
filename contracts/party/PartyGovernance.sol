@@ -593,7 +593,19 @@ abstract contract PartyGovernance is
                 }));
             }
         }
-        if (newDelegate != voter) { // Not delegating to self.
+        if (newDelegate == voter) { // Delegating to self
+            VotingPowerSnapshot[] storage newDelegateSnaps =
+                _votingPowerSnapshotsByVoter[newDelegate];
+            VotingPowerSnapshot memory newDelegateShot =
+                _getLastVotingPowerSnapshotIn(newDelegateSnaps);
+            newDelegateSnaps.push(VotingPowerSnapshot({
+                timestamp: uint40(block.timestamp),
+                delegatedVotingPower:
+                    newDelegateShot.delegatedVotingPower,
+                intrinsicVotingPower: newDelegateShot.intrinsicVotingPower,
+                isDelegated: false
+            }));
+        } else { // Not delegating to self.
             // Add new voting power to new delegate.
             VotingPowerSnapshot[] storage newDelegateSnaps =
                 _votingPowerSnapshotsByVoter[newDelegate];

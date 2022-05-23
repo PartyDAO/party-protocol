@@ -108,11 +108,11 @@ contract PartyGovernanceTest is Test,TestUtils {
     vm.stopPrank();
     vm.prank(address(4));
     party.delegateVotingPower(address(4));
-    console.log('delegated');
-    // assertEq(party.getVotingPowerAt(address(3), firstTime), 59); // stays same for old time
-    // assertEq(party.getVotingPowerAt(address(4), firstTime), 0); // stays same for old time
-    // assertEq(block.timestamp, nextTime);
-    // assertEq(party.getVotingPowerAt(address(3), nextTime), 49); // diff for new time
+
+    assertEq(party.getVotingPowerAt(address(3), firstTime), 59); // stays same for old time
+    assertEq(party.getVotingPowerAt(address(4), firstTime), 0); // stays same for old time
+    assertEq(block.timestamp, nextTime);
+    assertEq(party.getVotingPowerAt(address(3), nextTime), 49); // diff for new time
     assertEq(party.getVotingPowerAt(address(4), nextTime), 10); // diff for new time
 
 
