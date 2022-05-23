@@ -627,7 +627,6 @@ abstract contract PartyGovernance is
             }));
         }
         emit VotingPowerDelegated(voter, newDelegate, newSnap.intrinsicVotingPower);
-        // TODO: what about bringing voting power back to self? new snapshot with isDelegated = false?
     }
 
     function _getLastVotingPowerSnapshotIn(VotingPowerSnapshot[] storage snaps)
