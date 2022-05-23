@@ -18,6 +18,8 @@ import "../proposals/ProposalStorage.sol";
 
 import "./IPartyFactory.sol";
 
+import "forge-std/console.sol";
+
 // Base contract for a Party encapsulating all governance functionality.
 abstract contract PartyGovernance is
     ITokenDistributorParty,
@@ -209,14 +211,16 @@ abstract contract PartyGovernance is
         return _getProposalExecutionEngine();
     }
 
-    // Get the total (delegated + intrinsic) voting power of `voter` by a timestamp.
+    // Get the total voting power of `voter` by a timestamp.
     function getVotingPowerAt(address voter, uint40 timestamp)
         public
         view
         returns (uint96 votingPower)
     {
         VotingPowerSnapshot memory shot = _getVotingPowerSnapshotAt(voter, timestamp);
-        return shot.intrinsicVotingPower + shot.delegatedVotingPower;
+
+        // TODO: confirm this is correct change
+        return ((shot.isDelegated ? 0 : shot.intrinsicVotingPower) + shot.delegatedVotingPower);
     }
 
     function getProposalStates(uint256 proposalId)
@@ -456,6 +460,22 @@ abstract contract PartyGovernance is
         returns (VotingPowerSnapshot memory shot)
     {
         VotingPowerSnapshot[] storage snaps = _votingPowerSnapshotsByVoter[voter];
+
+        // uint96 delegatedVotingPower;
+        // uint96 intrinsicVotingPower;
+        // bool isDelegated;
+
+        console.log('num snaps');
+        console.log(snaps.length);
+        console.log('vp 0');
+        console.log(snaps[0].delegatedVotingPower);
+        console.log(snaps[0].intrinsicVotingPower);
+        console.log(snaps[0].isDelegated);
+        console.log('------');
+        console.log(snaps[1].delegatedVotingPower);
+        console.log(snaps[1].intrinsicVotingPower);
+        console.log(snaps[1].isDelegated);
+
         uint256 n = snaps.length;
         uint256 p = n / 2; // Search index.
         while (n != 0) {
@@ -589,6 +609,7 @@ abstract contract PartyGovernance is
             }));
         }
         emit VotingPowerDelegated(voter, newDelegate, newSnap.intrinsicVotingPower);
+        // TODO: what about bringing voting power back to self? new snapshot with isDelegated = false?
     }
 
     function _getLastVotingPowerSnapshotIn(VotingPowerSnapshot[] storage snaps)

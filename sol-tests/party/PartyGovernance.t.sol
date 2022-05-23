@@ -98,8 +98,25 @@ contract PartyGovernanceTest is Test,TestUtils {
     assertEq(party.ownerOf(2), address(4));
     assertEq(party.getDistributionShareOf(2), 0.10 ether);
 
-    uint256 vp3 = party.getVotingPowerAt(address(3), uint40(block.timestamp));
-    assertEq(vp3, 59);
+    uint40 firstTime = uint40(block.timestamp);
+
+    // assertEq(party.getVotingPowerAt(address(3), firstTime), 59);
+    // assertEq(party.getVotingPowerAt(address(4), firstTime), 0);
+
+    uint40 nextTime = firstTime + 10;
+    vm.warp(nextTime);
+    vm.stopPrank();
+    vm.prank(address(4));
+    party.delegateVotingPower(address(4));
+    console.log('delegated');
+    // assertEq(party.getVotingPowerAt(address(3), firstTime), 59); // stays same for old time
+    // assertEq(party.getVotingPowerAt(address(4), firstTime), 0); // stays same for old time
+    // assertEq(block.timestamp, nextTime);
+    // assertEq(party.getVotingPowerAt(address(3), nextTime), 49); // diff for new time
+    assertEq(party.getVotingPowerAt(address(4), nextTime), 10); // diff for new time
+
+
+
     
 
   }
