@@ -89,6 +89,8 @@ contract PartyGovernanceTest is Test,TestUtils {
     assertEq(party.getVotingPowerOfToken(1), 49);
     assertEq(party.ownerOf(1), address(3));
     assertEq(party.getDistributionShareOf(1), 0.49 ether);
+
+    vm.warp(block.timestamp + 1);
     party.mint(
       address(4),
       10,
@@ -100,8 +102,8 @@ contract PartyGovernanceTest is Test,TestUtils {
 
     uint40 firstTime = uint40(block.timestamp);
 
-    // assertEq(party.getVotingPowerAt(address(3), firstTime), 59);
-    // assertEq(party.getVotingPowerAt(address(4), firstTime), 0);
+    assertEq(party.getVotingPowerAt(address(3), firstTime), 59);
+    assertEq(party.getVotingPowerAt(address(4), firstTime), 0);
 
     uint40 nextTime = firstTime + 10;
     vm.warp(nextTime);
@@ -114,10 +116,5 @@ contract PartyGovernanceTest is Test,TestUtils {
     assertEq(block.timestamp, nextTime);
     assertEq(party.getVotingPowerAt(address(3), nextTime), 49); // diff for new time
     assertEq(party.getVotingPowerAt(address(4), nextTime), 10); // diff for new time
-
-
-
-    
-
   }
 }

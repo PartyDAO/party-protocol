@@ -472,15 +472,11 @@ abstract contract PartyGovernance is
     {
         VotingPowerSnapshot[] storage snaps = _votingPowerSnapshotsByVoter[voter];
 
-        // uint96 delegatedVotingPower;
-        // uint96 intrinsicVotingPower;
-        // bool isDelegated;
-
-        console.log('snapshots');
-        console.log(snaps.length);
-        for (uint256 i=0; i<snaps.length; i++) {
-            _logSnapshot(snaps[i]);
-        }
+        // console.log('snapshots');
+        // console.log(snaps.length);
+        // for (uint256 i=0; i<snaps.length; i++) {
+        //     _logSnapshot(snaps[i]);
+        // }
 
         uint256 n = snaps.length;
         uint256 p = n / 2; // Search index.
