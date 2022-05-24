@@ -253,9 +253,10 @@ contract TokenDistributorTest is Test, TestUtils {
 
     _createDummyNft(dummyParty1, address(5), 420, 0);
 
+    uint256 balanceBefore = address(5).balance;
     vm.prank(address(address(5)));
     distributor.claim(ds, 420);
-    assertEq(address(5).balance, 0);
+    assertEq(address(5).balance, balanceBefore);
   }
 
   function testMaliciousDistributor() public {

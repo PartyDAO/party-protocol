@@ -162,7 +162,7 @@ contract TokenDistributor {
         }
         state.hasTokenClaimed[tokenId] = true;
 
-        amountClaimed = claimAmount(info, tokenId);
+        amountClaimed = getClaimAmount(info, tokenId);
 
         uint128 remainingMemberSupply = state.remainingMemberSupply;
         // Cap at the remaining member supply. Otherwise a malicious
@@ -177,7 +177,7 @@ contract TokenDistributor {
         emit DistributionClaimedByToken(info, tokenId, ownerOfToken, amountClaimed);
     }
 
-    function claimAmount(
+    function getClaimAmount(
         DistributionInfo calldata info,
         uint256 tokenId
     ) public view returns (uint256) {
