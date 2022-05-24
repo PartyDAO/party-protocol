@@ -194,7 +194,6 @@ contract TokenDistributor {
     )
         external
         onlyPartyDao
-        returns (uint256 amountToSend)
     {
         DistributionState storage state = _distributionStates[info.party][info.distributionId];
         if (state.distributionHash15 != _getDistributionHash(info)) {
@@ -204,9 +203,9 @@ contract TokenDistributor {
             revert DistributionAlreadyClaimedByPartyDaoError(info.distributionId);
         }
         state.hasPartyDaoClaimed = true;
-        amountToSend = info.daoSupply;
-        _transfer(info.token, recipient, amountToSend);
-        emit DistributionClaimedByPartyDao(info, recipient, amountToSend);
+        uint256 amountClaimed = info.daoSupply;
+        _transfer(info.token, recipient, amountClaimed);
+        emit DistributionClaimedByPartyDao(info, recipient, amountClaimed);
     }
 
     function hasPartyDaoClaimed(ITokenDistributorParty party, uint256 distributionId) external view returns (bool) {
@@ -236,7 +235,6 @@ contract TokenDistributor {
     }
 
     // For receiving ETH
-    fallback() external payable {}
     receive() external payable {}
 
     function _transfer(IERC20 token, address payable recipient, uint256 amount)
