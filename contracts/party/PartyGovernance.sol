@@ -418,6 +418,10 @@ abstract contract PartyGovernance is
         }
     }
 
+    function getGovernanceValues() public view returns (GovernanceValues memory gv) {
+        return governanceValues;
+    }
+
     function _executeProposal(
         uint256 proposalId,
         Proposal memory proposal,
@@ -734,4 +738,6 @@ abstract contract PartyGovernance is
             abi.encode(preciousTokenIds)
         ));
     }
+
+    // TODO: emergency withdrawals
 }

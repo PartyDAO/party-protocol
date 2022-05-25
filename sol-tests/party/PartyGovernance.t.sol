@@ -57,7 +57,7 @@ contract PartyGovernanceTest is Test,TestUtils {
       hosts: hosts,
       voteDuration: 99,
       executionDelay: 300,
-      passThresholdBps: 51,
+      passThresholdBps: 5100,
       totalVotingPower: 100
     });
     Party.PartyOptions memory po = Party.PartyOptions({
@@ -116,5 +116,31 @@ contract PartyGovernanceTest is Test,TestUtils {
     assertEq(block.timestamp, nextTime);
     assertEq(party.getVotingPowerAt(address(3), nextTime), 49); // diff for new time
     assertEq(party.getVotingPowerAt(address(4), nextTime), 10); // diff for new time
+
+    vm.startPrank(address(3));
+
+    PartyGovernance.Proposal memory p1 = PartyGovernance.Proposal({
+      maxExecutableTime: 999999999,
+      nonce: 1,
+      proposalData: abi.encodePacked([0])
+    });
+    party.propose(p1);
+
+    (PartyGovernance.ProposalState ps1, PartyGovernance.ProposalInfoValues memory pv1) = party.getProposalStates(1);
+    assert(ps1 == PartyGovernance.ProposalState.Voting);
+    assertEq(party.getGovernanceValues().totalVotingPower, 100);
+    assertEq(pv1.votes, 49);
+
+    vm.stopPrank();
+    vm.startPrank(address(4));
+    party.accept(1);
+
+    (PartyGovernance.ProposalState ps2, PartyGovernance.ProposalInfoValues memory pv2) = party.getProposalStates(1);
+    assert(ps2 == PartyGovernance.ProposalState.Passed);
+    assertEq(pv2.votes, 59);
+    vm.stopPrank();
+
+
+
   }
 }
