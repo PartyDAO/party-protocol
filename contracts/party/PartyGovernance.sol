@@ -220,7 +220,7 @@ abstract contract PartyGovernance is
         VotingPowerSnapshot memory shot = _getVotingPowerSnapshotAt(voter, timestamp);
 
         // TODO: confirm this is correct change
-        return ((shot.isDelegated ? 0 : shot.intrinsicVotingPower) + shot.delegatedVotingPower);
+        return (shot.isDelegated ? 0 : shot.intrinsicVotingPower) + shot.delegatedVotingPower;
     }
 
     function getProposalStates(uint256 proposalId)
