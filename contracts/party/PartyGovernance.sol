@@ -665,8 +665,8 @@ abstract contract PartyGovernance is
         // Executed at least once.
         if (pv.executedTime != 0) {
             return pv.completedTime == 0
-                ? ProposalState.Complete
-                : ProposalState.InProgress;
+                ? ProposalState.InProgress
+                : ProposalState.Complete;
         }
         // Vetoed.
         if (pv.votes == uint96(int96(-1))) {
