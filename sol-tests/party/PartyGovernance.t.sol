@@ -76,26 +76,15 @@ contract PartyGovernanceTest is Test,TestUtils {
     preciousTokenIds[0] = 1;
 
     Party party = partyFactory.createParty(
-      address(1),
-      po,
-      preciousTokens,
-      preciousTokenIds
+      address(1), po, preciousTokens, preciousTokenIds
     );
-    party.mint(
-      address(3),
-      49,
-      address(3)
-    );
+    party.mint(address(3), 49,address(3));
     assertEq(party.getVotingPowerOfToken(1), 49);
     assertEq(party.ownerOf(1), address(3));
     assertEq(party.getDistributionShareOf(1), 0.49 ether);
 
     vm.warp(block.timestamp + 1);
-    party.mint(
-      address(4),
-      10,
-      address(3)
-    );
+    party.mint(address(4), 10, address(3));
     assertEq(party.getVotingPowerOfToken(2), 10);
     assertEq(party.ownerOf(2), address(4));
     assertEq(party.getDistributionShareOf(2), 0.10 ether);
@@ -117,30 +106,41 @@ contract PartyGovernanceTest is Test,TestUtils {
     assertEq(party.getVotingPowerAt(address(3), nextTime), 49); // diff for new time
     assertEq(party.getVotingPowerAt(address(4), nextTime), 10); // diff for new time
 
-    vm.startPrank(address(3));
-
     PartyGovernance.Proposal memory p1 = PartyGovernance.Proposal({
       maxExecutableTime: 999999999,
       nonce: 1,
       proposalData: abi.encodePacked([0])
     });
+    vm.prank(address(3));
     party.propose(p1);
 
-    (PartyGovernance.ProposalState ps1, PartyGovernance.ProposalInfoValues memory pv1) = party.getProposalStates(1);
-    assert(ps1 == PartyGovernance.ProposalState.Voting);
     assertEq(party.getGovernanceValues().totalVotingPower, 100);
-    assertEq(pv1.votes, 49);
+    _assertProposalState(party, 1, PartyGovernance.ProposalState.Voting, 49);
 
-    vm.stopPrank();
-    vm.startPrank(address(4));
+
+    vm.prank(address(4));
     party.accept(1);
+    _assertProposalState(party, 1, PartyGovernance.ProposalState.Passed, 59);
 
-    (PartyGovernance.ProposalState ps2, PartyGovernance.ProposalInfoValues memory pv2) = party.getProposalStates(1);
-    assert(ps2 == PartyGovernance.ProposalState.Passed);
-    assertEq(pv2.votes, 59);
-    vm.stopPrank();
+    // execution time hasn't passed
+    vm.warp(block.timestamp + 299);
+    _assertProposalState(party, 1, PartyGovernance.ProposalState.Passed, 59);
 
-
-
+    // execution time has passed
+    vm.warp(block.timestamp + 2);
+    _assertProposalState(party, 1, PartyGovernance.ProposalState.Ready, 59);
   }
+
+function _assertProposalState(
+  Party party,
+  uint256 proposalId,
+  PartyGovernance.ProposalState expectedProposalState,
+  uint256 expectedNumVotes
+) private {
+    (PartyGovernance.ProposalState ps, PartyGovernance.ProposalInfoValues memory pv) = party.getProposalStates(proposalId);
+    assert(ps == expectedProposalState);
+    assertEq(pv.votes, expectedNumVotes);
 }
+
+}
+
