@@ -6,7 +6,7 @@ import "forge-std/Test.sol";
 import "../../contracts/party/PartyFactory.sol";
 import "../../contracts/party/Party.sol";
 import "../../contracts/globals/Globals.sol";
-import "../proposals/TestableProposalExecutionEngine.sol";
+import "../proposals/DummySimpleProposalEngineImpl.sol";
 import "../proposals/DummyProposalEngineImpl.sol";
 import "../TestUtils.sol";
 import "../DummyERC721.sol";
@@ -20,28 +20,15 @@ contract PartyGovernanceTest is Test,TestUtils {
     vm.deal(GLOBALS_ADMIN, 100 ether);
     globals = new Globals(GLOBALS_ADMIN);
 
-    DummyProposalEngineImpl newEngImpl = new DummyProposalEngineImpl();
-
     Party partyImpl = new Party(globals);
+    DummySimpleProposalEngineImpl eng = new DummySimpleProposalEngineImpl();
+
     vm.startPrank(GLOBALS_ADMIN);
-    globals.setAddress(
-        LibGlobals.GLOBAL_PROPOSAL_ENGINE_IMPL,
-        // We will test upgrades to this impl.
-        address(newEngImpl)
-    );
-    globals.setAddress(
-      LibGlobals.GLOBAL_PARTY_IMPL,
-      address(partyImpl)
-    );
+    globals.setAddress(LibGlobals.GLOBAL_PARTY_IMPL, address(partyImpl));
+    globals.setAddress(LibGlobals.GLOBAL_PROPOSAL_ENGINE_IMPL, address(eng));
     vm.stopPrank();
 
     partyFactory = new PartyFactory(globals);
-
-    // TestableProposalExecutionEngine eng = new TestableProposalExecutionEngine(
-    //         globals,
-    //         SharedWyvernV2Maker(_randomAddress()),
-    //         IZoraAuctionHouse(_randomAddress())
-    //     );
 
   }
 
@@ -117,7 +104,6 @@ contract PartyGovernanceTest is Test,TestUtils {
     assertEq(party.getGovernanceValues().totalVotingPower, 100);
     _assertProposalState(party, 1, PartyGovernance.ProposalState.Voting, 49);
 
-
     vm.prank(address(4));
     party.accept(1);
     _assertProposalState(party, 1, PartyGovernance.ProposalState.Passed, 59);
@@ -129,18 +115,22 @@ contract PartyGovernanceTest is Test,TestUtils {
     // execution time has passed
     vm.warp(block.timestamp + 2);
     _assertProposalState(party, 1, PartyGovernance.ProposalState.Ready, 59);
+
+    vm.prank(address(4));
+    party.execute(1, p1, preciousTokens, preciousTokenIds, abi.encodePacked([address(0)]));
+    _assertProposalState(party, 1, PartyGovernance.ProposalState.Complete, 59);
   }
 
-function _assertProposalState(
-  Party party,
-  uint256 proposalId,
-  PartyGovernance.ProposalState expectedProposalState,
-  uint256 expectedNumVotes
-) private {
-    (PartyGovernance.ProposalState ps, PartyGovernance.ProposalInfoValues memory pv) = party.getProposalStates(proposalId);
-    assert(ps == expectedProposalState);
-    assertEq(pv.votes, expectedNumVotes);
-}
+  function _assertProposalState(
+    Party party,
+    uint256 proposalId,
+    PartyGovernance.ProposalState expectedProposalState,
+    uint256 expectedNumVotes
+  ) private {
+      (PartyGovernance.ProposalState ps, PartyGovernance.ProposalInfoValues memory pv) = party.getProposalStates(proposalId);
+      assert(ps == expectedProposalState);
+      assertEq(pv.votes, expectedNumVotes);
+  }
 
 }
 
