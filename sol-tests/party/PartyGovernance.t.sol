@@ -121,13 +121,13 @@ contract PartyGovernanceTest is Test,TestUtils {
     DummySimpleProposalEngineImpl engInstance = DummySimpleProposalEngineImpl(address(party));
 
     assertEq(engInstance.getLastExecutedProposalId(), 0);
-    assertEq(engInstance.getLastExecutedProposalId(), 0);
+    assertEq(engInstance.getNumExecutedProposals(), 0);
 
     party.execute(1, p1, preciousTokens, preciousTokenIds, abi.encodePacked([address(0)]));
     _assertProposalState(party, 1, PartyGovernance.ProposalState.Complete, 59);
 
     assertEq(engInstance.getLastExecutedProposalId(), 1);
-    assertEq(engInstance.getLastExecutedProposalId(), 1);
+    assertEq(engInstance.getNumExecutedProposals(), 1);
 
   }
 

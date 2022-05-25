@@ -242,6 +242,10 @@ abstract contract PartyGovernance is
             _votingPowerSnapshotsByVoter[msg.sender]
         );
         _rebalanceDelegates(msg.sender, oldDelegate, delegate, snap, snap);
+        if (delegate == address(0) || delegate == msg.sender) {
+            // delegating to self, push new snapshot
+            _adjustVotingPower(msg.sender, 0, delegate);
+        }
         emit VotingPowerDelegated(msg.sender, delegate, snap.intrinsicVotingPower);
     }
 
@@ -599,19 +603,7 @@ abstract contract PartyGovernance is
                 }));
             }
         }
-        if (newDelegate == voter) { // Delegating to self
-            VotingPowerSnapshot[] storage newDelegateSnaps =
-                _votingPowerSnapshotsByVoter[newDelegate];
-            VotingPowerSnapshot memory newDelegateShot =
-                _getLastVotingPowerSnapshotIn(newDelegateSnaps);
-            newDelegateSnaps.push(VotingPowerSnapshot({
-                timestamp: uint40(block.timestamp),
-                delegatedVotingPower:
-                    newDelegateShot.delegatedVotingPower,
-                intrinsicVotingPower: newDelegateShot.intrinsicVotingPower,
-                isDelegated: false
-            }));
-        } else { // Not delegating to self.
+        if (newDelegate != voter) { // Not delegating to self.
             // Add new voting power to new delegate.
             VotingPowerSnapshot[] storage newDelegateSnaps =
                 _votingPowerSnapshotsByVoter[newDelegate];
