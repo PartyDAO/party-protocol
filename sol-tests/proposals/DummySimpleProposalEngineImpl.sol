@@ -7,24 +7,51 @@ import "../../contracts/proposals/IProposalExecutionEngine.sol";
 
 contract DummySimpleProposalEngineImpl is IProposalExecutionEngine {
 
-    mapping (uint256 => bool) proposalExecuted;
+    struct DummySimpleProposalEngineImplStorage {
+        uint256 lastExecutedProposalId;
+        uint256 executedProposals;
+    }
 
-    constructor() {}
+    // Storage slot for `DummySimpleProposalEngineImplStorage`.
+    uint256 private immutable STORAGE_SLOT;
+
+    constructor() {
+        STORAGE_SLOT = uint256(keccak256('DummySimpleProposalEngineImpl_V1'));
+    }
 
     function initialize(address oldImpl, bytes memory initData) external { }
 
     function getProposalExecutionStatus(bytes32 proposalId)
         external
-        view
+        pure
         returns (ProposalExecutionStatus)
     {
         revert('not implemented 1');
     }
 
+    function getLastExecutedProposalId() public view returns (uint256) {
+        return _getStorage().lastExecutedProposalId;
+    }
+
+    function getNumExecutedProposals() public view returns (uint256) {
+        return _getStorage().executedProposals;
+    }
+
     function executeProposal(ExecuteProposalParams memory params)
         external returns (ProposalExecutionStatus)
     {
-       proposalExecuted[uint256(params.proposalId)] = true;
-       return ProposalExecutionStatus.Complete;
+        _getStorage().lastExecutedProposalId = uint256(params.proposalId);
+        _getStorage().executedProposals += 1;
+        return ProposalExecutionStatus.Complete;
+    }
+
+    // Retrieve the explicit storage bucket for the ProposalExecutionEngine logic.
+    function _getStorage()
+        private
+        view
+        returns (DummySimpleProposalEngineImplStorage storage stor)
+    {
+        uint256 slot = STORAGE_SLOT;
+        assembly { stor.slot := slot }
     }
 }

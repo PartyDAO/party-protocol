@@ -15,13 +15,14 @@ contract PartyGovernanceTest is Test,TestUtils {
   Globals globals;
   address immutable GLOBALS_ADMIN = address(99);
   PartyFactory partyFactory;
+  DummySimpleProposalEngineImpl eng;
 
   function setUp() public {
     vm.deal(GLOBALS_ADMIN, 100 ether);
     globals = new Globals(GLOBALS_ADMIN);
 
     Party partyImpl = new Party(globals);
-    DummySimpleProposalEngineImpl eng = new DummySimpleProposalEngineImpl();
+    eng = new DummySimpleProposalEngineImpl();
 
     vm.startPrank(GLOBALS_ADMIN);
     globals.setAddress(LibGlobals.GLOBAL_PARTY_IMPL, address(partyImpl));
@@ -116,9 +117,18 @@ contract PartyGovernanceTest is Test,TestUtils {
     vm.warp(block.timestamp + 2);
     _assertProposalState(party, 1, PartyGovernance.ProposalState.Ready, 59);
 
-    vm.prank(address(4));
+
+    DummySimpleProposalEngineImpl engInstance = DummySimpleProposalEngineImpl(address(party));
+
+    assertEq(engInstance.getLastExecutedProposalId(), 0);
+    assertEq(engInstance.getLastExecutedProposalId(), 0);
+
     party.execute(1, p1, preciousTokens, preciousTokenIds, abi.encodePacked([address(0)]));
     _assertProposalState(party, 1, PartyGovernance.ProposalState.Complete, 59);
+
+    assertEq(engInstance.getLastExecutedProposalId(), 1);
+    assertEq(engInstance.getLastExecutedProposalId(), 1);
+
   }
 
   function _assertProposalState(
