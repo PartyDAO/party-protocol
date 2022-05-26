@@ -7,6 +7,17 @@ import "../contracts/globals/LibGlobals.sol";
 import "../contracts/party/Party.sol";
 import "../contracts/party/PartyFactory.sol";
 
+contract ERC721Holder {
+    function onERC721Received(
+        address,
+        address,
+        uint256,
+        bytes memory
+    ) public virtual returns (bytes4) {
+        return this.onERC721Received.selector;
+    }
+}
+
 contract GlobalsAdmin is Test {
   Globals public globals;
 
@@ -74,5 +85,43 @@ contract PartyAdmin is Test {
     address delegateTo
   ) public {
     party.mint(mintTo, votingPower, delegateTo);
+  }
+}
+
+contract PartyParticipant is ERC721Holder, Test  {
+
+  constructor() {
+    vm.deal(address(this), 100 ether);
+  }
+
+  struct ExecutionOptions {
+    uint256 proposalId;
+    PartyGovernance.Proposal proposal;
+    IERC721[] preciousTokens;
+    uint256[] preciousTokenIds;
+    bytes progressData;
+  }
+
+  function makeProposal(
+    Party party, PartyGovernance.Proposal memory proposal
+  ) public {
+    party.propose(proposal);
+  }
+
+  function vote(Party party, uint256 proposalId) public {
+    party.accept(proposalId);
+  }
+
+  function delegate(Party party, address newDelegate) public {
+    party.delegateVotingPower(newDelegate);
+  }
+
+  function executeProposal(
+    Party party,
+    ExecutionOptions memory eo
+  ) public {
+    party.execute(
+      eo.proposalId, eo.proposal, eo.preciousTokens, eo.preciousTokenIds, eo.progressData
+    );
   }
 }
