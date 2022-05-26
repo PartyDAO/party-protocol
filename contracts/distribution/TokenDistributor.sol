@@ -28,7 +28,7 @@ contract TokenDistributor {
 
     struct DistributionState {
         // The remaining member supply.
-        uint128 remainingMembersupply;
+        uint128 remainingMemberSupply;
         // The 15-byte hash of the DistributionInfo.
         bytes15 distributionHash15;
         // Whether partyDao has claimed its distribution share.
@@ -43,6 +43,8 @@ contract TokenDistributor {
     error DistributionAlreadyClaimedByPartyDaoError(uint256 distributionId);
     error Uint256ToUint128CastOutOfRangeError(uint256 value);
     error MustOwnTokenError(address sender, address expectedOwner, uint256 tokenId);
+    error EmergencyActionsNotAllowed();
+    error InvalidDistributionSupply(uint256 supplyAmount, uint256 daoSupply);
 
     event DistributionCreated(DistributionInfo info);
     event DistributionClaimedByPartyDao(DistributionInfo info, address recipient, uint256 amountClaimed);
@@ -51,6 +53,8 @@ contract TokenDistributor {
     IERC20 constant private ETH_TOKEN = IERC20(0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE);
 
     IGlobals public immutable GLOBALS;
+
+    bool public allowEmergencyActions = true;
 
     // Last distribution ID for a party.
     mapping(ITokenDistributorParty => uint256) public lastDistributionIdPerParty;
@@ -68,6 +72,13 @@ contract TokenDistributor {
             if (msg.sender != partyDao) {
                 revert OnlyPartyDaoError(msg.sender, partyDao);
             }
+        }
+        _;
+    }
+
+    modifier onlyIfEmergencyActionsAllowed() {
+        if (!allowEmergencyActions) {
+            revert EmergencyActionsNotAllowed();
         }
         _;
     }
@@ -95,14 +106,23 @@ contract TokenDistributor {
         // Used the delta between actual balance _storedBalances as the
         // distribution supply.
         uint256 supply = bal - _storedBalances[token];
+
+        if (supply == 0) {
+            revert InvalidDistributionSupply(0, 0);
+        }
+
         _storedBalances[token] = bal;
 
         ITokenDistributorParty party = ITokenDistributorParty(msg.sender);
         uint256 distId = ++lastDistributionIdPerParty[party];
         // Compute the portion of the supply reserved for the DAO
-        uint256 daoSupply = supply *
-            GLOBALS.getUint256(LibGlobals.GLOBAL_DAO_DISTRIBUTION_SPLIT) / 1e18;
-        assert(daoSupply <= supply);
+        uint256 daoSplitPercent = GLOBALS.getUint256(LibGlobals.GLOBAL_DAO_DISTRIBUTION_SPLIT);
+        uint256 daoSupply = supply * daoSplitPercent / 1e18;
+        if (daoSupply > supply) {
+            revert InvalidDistributionSupply(supply, daoSupply);
+        }
+        
+
         uint256 memberSupply = supply - daoSupply;
         info = DistributionInfo({
             distributionId: distId,
@@ -113,19 +133,18 @@ contract TokenDistributor {
         });
         (
             _distributionStates[party][distId].distributionHash15,
-            _distributionStates[party][distId].remainingMembersupply
+            _distributionStates[party][distId].remainingMemberSupply
         ) = (_getDistributionHash(info), memberSupply.safeCastUint256ToUint128());
         emit DistributionCreated(info);
     }
 
     // Claim a distribution as a party member based on the weight of a
     // PartyGovernanceNFT owned by the caller.
-    // The amount sent to `recipient` will be based on
+    // The amount sent will be based on
     // `ITokenDistributorParty.getDistributionShareOf()`.
     function claim(
         DistributionInfo calldata info,
-        uint256 tokenId,
-        address payable recipient
+        uint256 tokenId
     )
         external
         returns (uint256 amountClaimed)
@@ -142,22 +161,30 @@ contract TokenDistributor {
             revert DistributionAlreadyClaimedByTokenError(info.distributionId, tokenId);
         }
         state.hasTokenClaimed[tokenId] = true;
+
+        amountClaimed = getClaimAmount(info, tokenId);
+
+        uint128 remainingMemberSupply = state.remainingMemberSupply;
+        // Cap at the remaining member supply. Otherwise a malicious
+        // distribution creator could drain more than the distribution supply.
+        amountClaimed = amountClaimed > remainingMemberSupply
+            ? remainingMemberSupply
+            : amountClaimed;
+
+        state.remainingMemberSupply =
+            remainingMemberSupply - amountClaimed.safeCastUint256ToUint128();
+        _transfer(info.token, payable(ownerOfToken), amountClaimed);
+        emit DistributionClaimedByToken(info, tokenId, ownerOfToken, amountClaimed);
+    }
+
+    function getClaimAmount(
+        DistributionInfo calldata info,
+        uint256 tokenId
+    ) public view returns (uint256) {
         // When paying out, reserve a portion based on token's distribution share.
         // This value is denominated in fractions of 1e18, where 1e18 = 100%.
         uint256 tokenSplit = info.party.getDistributionShareOf(tokenId);
-        amountClaimed = tokenSplit * info.memberSupply / 1e18;
-        uint128 remainingMembersupply = state.remainingMembersupply;
-        // Cap at the remaining member supply. Otherwise a malicious
-        // distribution creator could drain more than the distribution supply.
-        
-        amountClaimed = amountClaimed > remainingMembersupply
-            ? remainingMembersupply
-            : amountClaimed;
-
-        state.remainingMembersupply =
-            remainingMembersupply - amountClaimed.safeCastUint256ToUint128();
-        _transfer(info.token, recipient, amountClaimed);
-        emit DistributionClaimedByToken(info, tokenId, recipient, amountClaimed);
+        return tokenSplit * info.memberSupply / 1e18;
     }
 
     // Claim a distribution based on a
@@ -167,7 +194,6 @@ contract TokenDistributor {
     )
         external
         onlyPartyDao
-        returns (uint256 amountClaimed)
     {
         DistributionState storage state = _distributionStates[info.party][info.distributionId];
         if (state.distributionHash15 != _getDistributionHash(info)) {
@@ -177,7 +203,8 @@ contract TokenDistributor {
             revert DistributionAlreadyClaimedByPartyDaoError(info.distributionId);
         }
         state.hasPartyDaoClaimed = true;
-        _transfer(info.token, recipient, info.daoSupply);
+        uint256 amountClaimed = info.daoSupply;
+        _transfer(info.token, recipient, amountClaimed);
         emit DistributionClaimedByPartyDao(info, recipient, amountClaimed);
     }
 
@@ -189,8 +216,27 @@ contract TokenDistributor {
         return _distributionStates[party][distributionId].hasTokenClaimed[tokenId];
     }
 
+
+    function getRemainingMemberSupply(ITokenDistributorParty party, uint256 distributionId) public view returns (uint256) {
+        return _distributionStates[party][distributionId].remainingMemberSupply;
+    }
+
+    function emergencyRemoveDistribution(ITokenDistributorParty party, uint256 distributionId) onlyPartyDao onlyIfEmergencyActionsAllowed public {
+        delete _distributionStates[party][distributionId];
+    }
+
+    function emergencyWithdraw(
+        IERC20 token, address payable recipient, uint256 amount
+    ) onlyPartyDao onlyIfEmergencyActionsAllowed public {
+        _transfer(token, recipient, amount);
+    }
+
+    function disableEmergencyActions() onlyPartyDao public {
+        allowEmergencyActions = false;
+    }
+
     // For receiving ETH
-    fallback() external payable {}
+    receive() external payable {}
 
     function _transfer(IERC20 token, address payable recipient, uint256 amount)
         private
