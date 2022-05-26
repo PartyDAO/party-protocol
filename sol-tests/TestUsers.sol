@@ -4,6 +4,8 @@ pragma solidity ^0.8;
 import "forge-std/Test.sol";
 import "../contracts/globals/Globals.sol";
 import "../contracts/globals/LibGlobals.sol";
+import "../contracts/party/Party.sol";
+import "../contracts/party/PartyFactory.sol";
 
 contract GlobalsAdmin is Test {
   Globals public globals;
@@ -19,5 +21,58 @@ contract GlobalsAdmin is Test {
 
   function setProposalEng(address proposalEngAddress) public {
     globals.setAddress(LibGlobals.GLOBAL_PROPOSAL_ENGINE_IMPL, proposalEngAddress);
+  }
+}
+
+contract PartyAdmin is Test {
+
+  struct PartyCreationMinimalOptions {
+    address host1;
+    address host2;
+    uint16 passThresholdBps;
+    uint96 totalVotingPower;
+    address preciousTokenAddress;
+    uint256 preciousTokenId;
+  }
+
+  function createParty(
+    PartyFactory partyFactory,
+    PartyCreationMinimalOptions calldata opts
+  ) public returns (Party, IERC721[] memory, uint256[] memory) {
+    address[] memory hosts = new address[](2);
+    hosts[0] = opts.host1;
+    hosts[1] = opts.host2;
+
+    PartyGovernance.GovernanceOpts memory govOpts = PartyGovernance.GovernanceOpts({
+      hosts: hosts,
+      voteDuration: 99,
+      executionDelay: 300,
+      passThresholdBps: opts.passThresholdBps,
+      totalVotingPower: opts.totalVotingPower
+    });
+    Party.PartyOptions memory po = Party.PartyOptions({
+      governance: govOpts,
+      name: 'Dope party',
+      symbol: 'DOPE'
+    });
+    IERC721[] memory preciousTokens = new IERC721[](1);
+    preciousTokens[0] = IERC721(opts.preciousTokenAddress);
+
+    uint256[] memory preciousTokenIds = new uint256[](1);
+    preciousTokenIds[0] = opts.preciousTokenId;
+
+    Party party = partyFactory.createParty(
+      address(this), po, preciousTokens, preciousTokenIds
+    );
+    return (party, preciousTokens, preciousTokenIds);
+  }
+
+  function mintGovNft(
+    Party party,
+    address mintTo,
+    uint256 votingPower,
+    address delegateTo
+  ) public {
+    party.mint(mintTo, votingPower, delegateTo);
   }
 }

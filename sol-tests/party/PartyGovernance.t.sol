@@ -34,42 +34,57 @@ contract PartyGovernanceTest is Test, TestUtils {
     vm.deal(address(1), 100 ether);
     vm.startPrank(address(1));
 
-    address[] memory hosts = new address[](2);
-    hosts[0] = address(2);
-    hosts[1] = address(1);
+    // address[] memory hosts = new address[](2);
+    // hosts[0] = address(2);
+    // hosts[1] = address(1);
 
-    PartyGovernance.GovernanceOpts memory govOpts = PartyGovernance.GovernanceOpts({
-      hosts: hosts,
-      voteDuration: 99,
-      executionDelay: 300,
-      passThresholdBps: 5100,
-      totalVotingPower: 100
-    });
-    Party.PartyOptions memory po = Party.PartyOptions({
-      governance: govOpts,
-      name: 'Dope party',
-      symbol: 'DOPE'
-    });
+    // PartyGovernance.GovernanceOpts memory govOpts = PartyGovernance.GovernanceOpts({
+    //   hosts: hosts,
+    //   voteDuration: 99,
+    //   executionDelay: 300,
+    //   passThresholdBps: 5100,
+    //   totalVotingPower: 100
+    // });
+    // Party.PartyOptions memory po = Party.PartyOptions({
+    //   governance: govOpts,
+    //   name: 'Dope party',
+    //   symbol: 'DOPE'
+    // });
 
     DummyERC721 dummyErc721 = new DummyERC721();
     dummyErc721.mint(address(1));
 
-    IERC721[] memory preciousTokens = new IERC721[](1);
-    preciousTokens[0] = IERC721(address(dummyErc721));
+    // IERC721[] memory preciousTokens = new IERC721[](1);
+    // preciousTokens[0] = IERC721(address(dummyErc721));
 
-    uint256[] memory preciousTokenIds = new uint256[](1);
-    preciousTokenIds[0] = 1;
+    // uint256[] memory preciousTokenIds = new uint256[](1);
+    // preciousTokenIds[0] = 1;
 
-    Party party = partyFactory.createParty(
-      address(1), po, preciousTokens, preciousTokenIds
+    // Party party = partyFactory.createParty(
+    //   address(1), po, preciousTokens, preciousTokenIds
+    // );
+
+
+    PartyAdmin partyAdmin = new PartyAdmin();
+    (Party party, IERC721[] memory preciousTokens, uint256[] memory preciousTokenIds) = partyAdmin.createParty(
+      partyFactory,
+      PartyAdmin.PartyCreationMinimalOptions({
+        host1: address(this),
+        host2: address(0),
+        passThresholdBps: 5100,
+        totalVotingPower: 100,
+        preciousTokenAddress: address(dummyErc721),
+        preciousTokenId: 1
+      })
     );
-    party.mint(address(3), 49,address(3));
+
+    partyAdmin.mintGovNft(party, address(3), 49,address(3));
     assertEq(party.getVotingPowerOfToken(1), 49);
     assertEq(party.ownerOf(1), address(3));
     assertEq(party.getDistributionShareOf(1), 0.49 ether);
 
     vm.warp(block.timestamp + 1);
-    party.mint(address(4), 10, address(3));
+    partyAdmin.mintGovNft(party, address(4), 10, address(3));
     assertEq(party.getVotingPowerOfToken(2), 10);
     assertEq(party.ownerOf(2), address(4));
     assertEq(party.getDistributionShareOf(2), 0.10 ether);
