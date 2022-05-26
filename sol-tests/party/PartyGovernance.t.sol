@@ -10,25 +10,22 @@ import "../proposals/DummySimpleProposalEngineImpl.sol";
 import "../proposals/DummyProposalEngineImpl.sol";
 import "../TestUtils.sol";
 import "../DummyERC721.sol";
+import "../TestUsers.sol";
 
-contract PartyGovernanceTest is Test,TestUtils {
-  Globals globals;
-  address immutable GLOBALS_ADMIN = address(99);
+contract PartyGovernanceTest is Test, TestUtils {
   PartyFactory partyFactory;
   DummySimpleProposalEngineImpl eng;
 
   function setUp() public {
-    vm.deal(GLOBALS_ADMIN, 100 ether);
-    globals = new Globals(GLOBALS_ADMIN);
-
+    GlobalsAdmin globalsAdmin = new GlobalsAdmin();
+    Globals globals = globalsAdmin.globals();
+  
     Party partyImpl = new Party(globals);
+    globalsAdmin.setPartyImpl(address(partyImpl));
+
     eng = new DummySimpleProposalEngineImpl();
-
-    vm.startPrank(GLOBALS_ADMIN);
-    globals.setAddress(LibGlobals.GLOBAL_PARTY_IMPL, address(partyImpl));
-    globals.setAddress(LibGlobals.GLOBAL_PROPOSAL_ENGINE_IMPL, address(eng));
-    vm.stopPrank();
-
+    globalsAdmin.setProposalEng(address(eng));
+  
     partyFactory = new PartyFactory(globals);
 
   }
