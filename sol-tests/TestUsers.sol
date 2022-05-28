@@ -86,6 +86,14 @@ contract PartyAdmin is Test {
   ) public {
     party.mint(mintTo, votingPower, delegateTo);
   }
+
+  function mintGovNft(
+    Party party,
+    address mintTo,
+    uint256 votingPower
+  ) public {
+    party.mint(mintTo, votingPower, mintTo);
+  }
 }
 
 contract PartyParticipant is ERC721Holder, Test  {
@@ -123,5 +131,12 @@ contract PartyParticipant is ERC721Holder, Test  {
     party.execute(
       eo.proposalId, eo.proposal, eo.preciousTokens, eo.preciousTokenIds, eo.progressData
     );
+  }
+
+  function vetoProposal(
+    Party party,
+    uint256 proposalId
+  ) public {
+    party.veto(proposalId);
   }
 }

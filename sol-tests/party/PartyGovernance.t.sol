@@ -17,6 +17,8 @@ contract PartyGovernanceTest is Test, TestUtils {
   DummySimpleProposalEngineImpl eng;
   PartyParticipant john;
   PartyParticipant danny;
+  PartyParticipant steve;
+  PartyParticipant nicholas;
   DummyERC721 toadz;
   PartyAdmin partyAdmin;
 
@@ -34,6 +36,8 @@ contract PartyGovernanceTest is Test, TestUtils {
 
     john = new PartyParticipant();
     danny = new PartyParticipant();
+    steve = new PartyParticipant();
+    nicholas = new PartyParticipant();
     partyAdmin = new PartyAdmin();
 
     // Mint dummy NFT
@@ -60,7 +64,7 @@ contract PartyGovernanceTest is Test, TestUtils {
     DummySimpleProposalEngineImpl engInstance = DummySimpleProposalEngineImpl(address(party));
 
     // Mint first governance NFT
-    partyAdmin.mintGovNft(party, address(john), 49,address(john));
+    partyAdmin.mintGovNft(party, address(john), 49, address(john));
     assertEq(party.getVotingPowerOfToken(1), 49);
     assertEq(party.ownerOf(1), address(john));
     assertEq(party.getDistributionShareOf(1), 0.49 ether);
@@ -131,17 +135,65 @@ contract PartyGovernanceTest is Test, TestUtils {
   }
 
   function testVeto() public {
+    // Create party
+    (Party party, IERC721[] memory preciousTokens, uint256[] memory preciousTokenIds) = partyAdmin.createParty(
+      partyFactory,
+      PartyAdmin.PartyCreationMinimalOptions({
+        host1: address(nicholas),
+        host2: address(0),
+        passThresholdBps: 5100,
+        totalVotingPower: 300,
+        preciousTokenAddress: address(toadz),
+        preciousTokenId: 1
+      })
+    );
+    DummySimpleProposalEngineImpl propEng = DummySimpleProposalEngineImpl(address(party));
+
+    // Mint governance NFTs
+    partyAdmin.mintGovNft(party, address(john), 100);
+    partyAdmin.mintGovNft(party, address(danny), 50);
+    partyAdmin.mintGovNft(party, address(steve), 4);
+
+
+    vm.warp(block.timestamp + 1);
+
+    // Generate proposal
+    PartyGovernance.Proposal memory p1 = PartyGovernance.Proposal({
+      maxExecutableTime: 999999999,
+      nonce: 1,
+      proposalData: abi.encodePacked([0])
+    });
+    john.makeProposal(party, p1);
+    danny.vote(party, 1);
+
+    _assertProposalState(party, 1, PartyGovernance.ProposalState.Voting, 150);
+
+    steve.vote(party, 1);
+    _assertProposalState(party, 1, PartyGovernance.ProposalState.Passed, 154);
+
+    // veto
+    nicholas.vetoProposal(party, 1);
+    // ensure defeated
+    _assertProposalState(party, 1, PartyGovernance.ProposalState.Defeated, uint96(int96(-1)));
+    // TODO: ensure can't execute
+
 
   }
+
+  // TODO: veto fater ready
+
+  // TODO: ensure only one in progress propsosal at a time
+
+  // TODO: can't veto with non-hosts
 
   function _assertProposalState(
     Party party,
     uint256 proposalId,
     PartyGovernance.ProposalState expectedProposalState,
-    uint256 expectedNumVotes
+    uint96 expectedNumVotes
   ) private {
       (PartyGovernance.ProposalState ps, PartyGovernance.ProposalInfoValues memory pv) = party.getProposalStates(proposalId);
-      assert(ps == expectedProposalState);
+      assertEq(uint256(ps), uint256(expectedProposalState));
       assertEq(pv.votes, expectedNumVotes);
   }
 
