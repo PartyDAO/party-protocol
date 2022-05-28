@@ -15,6 +15,9 @@ import "../TestUsers.sol";
 contract PartyGovernanceTest is Test, TestUtils {
   PartyFactory partyFactory;
   DummySimpleProposalEngineImpl eng;
+  PartyParticipant john;
+  PartyParticipant danny;
+  DummyERC721 toadz;
 
   function setUp() public {
     GlobalsAdmin globalsAdmin = new GlobalsAdmin();
@@ -28,18 +31,17 @@ contract PartyGovernanceTest is Test, TestUtils {
   
     partyFactory = new PartyFactory(globals);
 
+    john = new PartyParticipant();
+    danny = new PartyParticipant();
+
+    // Mint dummy NFT
+    address nftHolderAddress = address(1);
+    toadz = new DummyERC721();
+    toadz.mint(nftHolderAddress);
+
   }
 
   function testSimpleGovernance() public {
-    // Set up users
-    PartyParticipant john = new PartyParticipant();
-    PartyParticipant danny = new PartyParticipant();
-    address nftHolderAddress = address(1);
-
-    // Mint dummy NFT
-    DummyERC721 dummyErc721 = new DummyERC721();
-    dummyErc721.mint(nftHolderAddress);
-
     // Create party
     PartyAdmin partyAdmin = new PartyAdmin();
     (Party party, IERC721[] memory preciousTokens, uint256[] memory preciousTokenIds) = partyAdmin.createParty(
@@ -49,7 +51,7 @@ contract PartyGovernanceTest is Test, TestUtils {
         host2: address(0),
         passThresholdBps: 5100,
         totalVotingPower: 100,
-        preciousTokenAddress: address(dummyErc721),
+        preciousTokenAddress: address(toadz),
         preciousTokenId: 1
       })
     );
@@ -124,6 +126,10 @@ contract PartyGovernanceTest is Test, TestUtils {
     _assertProposalState(party, 1, PartyGovernance.ProposalState.Complete, 59);
     assertEq(engInstance.getLastExecutedProposalId(), 1);
     assertEq(engInstance.getNumExecutedProposals(), 1);
+  }
+
+  function testVeto() public {
+
   }
 
   function _assertProposalState(
