@@ -191,6 +191,9 @@ abstract contract PartyGovernance is
             totalVotingPower: opts.totalVotingPower
         });
         _setPreciousList(preciousTokens, preciousTokenIds);
+        for (uint256 i=0; i < opts.hosts.length; ++i) {
+            isHost[opts.hosts[i]] = true;
+        }
     }
 
     fallback() external {
