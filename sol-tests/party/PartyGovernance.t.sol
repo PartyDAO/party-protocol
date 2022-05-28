@@ -18,6 +18,7 @@ contract PartyGovernanceTest is Test, TestUtils {
   PartyParticipant john;
   PartyParticipant danny;
   DummyERC721 toadz;
+  PartyAdmin partyAdmin;
 
   function setUp() public {
     GlobalsAdmin globalsAdmin = new GlobalsAdmin();
@@ -33,17 +34,18 @@ contract PartyGovernanceTest is Test, TestUtils {
 
     john = new PartyParticipant();
     danny = new PartyParticipant();
+    partyAdmin = new PartyAdmin();
 
     // Mint dummy NFT
     address nftHolderAddress = address(1);
     toadz = new DummyERC721();
     toadz.mint(nftHolderAddress);
 
+
   }
 
   function testSimpleGovernance() public {
     // Create party
-    PartyAdmin partyAdmin = new PartyAdmin();
     (Party party, IERC721[] memory preciousTokens, uint256[] memory preciousTokenIds) = partyAdmin.createParty(
       partyFactory,
       PartyAdmin.PartyCreationMinimalOptions({
