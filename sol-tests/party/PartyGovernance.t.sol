@@ -175,12 +175,22 @@ contract PartyGovernanceTest is Test, TestUtils {
     nicholas.vetoProposal(party, 1);
     // ensure defeated
     _assertProposalState(party, 1, PartyGovernance.ProposalState.Defeated, uint96(int96(-1)));
-    // TODO: ensure can't execute
 
+    // ensure can't execute proposal
+    vm.expectRevert(
+      abi.encodeWithSignature("BadProposalStateError(uint256)", 2)
+    );
+    john.executeProposal(party, PartyParticipant.ExecutionOptions({
+      proposalId: 1,
+      proposal: p1,
+      preciousTokens: preciousTokens,
+      preciousTokenIds: preciousTokenIds,
+      progressData: abi.encodePacked([address(0)])
+    }));
 
   }
 
-  // TODO: veto fater ready
+  // TODO: veto after ready
 
   // TODO: ensure only one in progress propsosal at a time
 

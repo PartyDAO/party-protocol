@@ -122,7 +122,7 @@ abstract contract PartyGovernance is
     event VotingPowerDelegated(address owner, address delegate, uint256 votingPower);
     event PreciousListSet(IERC721[] tokens, uint256[] tokenIds);
 
-    error BadProposalStateError(ProposalState state);
+    error BadProposalStateError(uint256 state);
     error ProposalExistsError(uint256 proposalId);
     error BadProposalHashError(bytes32 proposalHash, bytes32 actualHash);
     error ProposalHasNoVotesError(uint256 proposalId);
@@ -317,7 +317,7 @@ abstract contract PartyGovernance is
                 state != ProposalState.Passed &&
                 state != ProposalState.Ready
             ) {
-                revert BadProposalStateError(state);
+                revert BadProposalStateError(uint256(state));
             }
         }
 
@@ -354,7 +354,7 @@ abstract contract PartyGovernance is
                 state != ProposalState.Passed &&
                 state != ProposalState.Ready
             ) {
-                revert BadProposalStateError(state);
+                revert BadProposalStateError(uint256(state));
             }
         }
 
@@ -394,7 +394,7 @@ abstract contract PartyGovernance is
         ProposalInfoValues memory infoValues = proposalInfo.values;
         ProposalState state = _getProposalState(infoValues);
         if (state != ProposalState.Ready && state != ProposalState.InProgress) {
-            revert BadProposalStateError(state);
+            revert BadProposalStateError(uint256(state));
         }
         if (state == ProposalState.Ready) {
             if (proposal.maxExecutableTime < block.timestamp) {
