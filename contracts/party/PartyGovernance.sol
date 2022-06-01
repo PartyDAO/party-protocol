@@ -492,10 +492,6 @@ abstract contract PartyGovernance is
         uint256 n = snaps.length;
         uint256 p = n / 2; // Search index.
         while (n != 0) {
-            // prevent search index from going out of bounds past the length of snaps
-            if (p >= snaps.length) {
-                break;
-            }
             VotingPowerSnapshot memory shot_ = snaps[p];
             if (timestamp == shot_.timestamp) {
                 // Entry at exact time.
@@ -507,6 +503,11 @@ abstract contract PartyGovernance is
                 // Entry is older. This is our best guess for now.
                 shot = shot_;
                 p += (n + 1) / 2; // Move search index to middle of lower half.
+
+                // prevent search index from going out of bounds past the length of snaps
+                if (p >= snaps.length) {
+                    break;
+                }
             } else /* if (timestamp < timestamp_) */ {
                 // Entry is too recent.
                 p -= (n + 1) / 2; // Move search index to middle of upper half.
