@@ -253,14 +253,16 @@ abstract contract PartyCrowdfund is ERC721Receiver, PartyCrowdfundNFT {
         party = party_ = _getPartyFactory()
             .createParty(
                 address(this),
-                name,
-                symbol,
-                PartyGovernance.GovernanceOpts({
-                    hosts: governanceOpts.hosts,
-                    voteDuration: governanceOpts.voteDuration,
-                    executionDelay: governanceOpts.executionDelay,
-                    passThresholdBps: governanceOpts.passThresholdBps,
-                    totalVotingPower: _getFinalPrice()
+                Party.PartyOptions({
+                    name: name,
+                    symbol: symbol,
+                    governance: PartyGovernance.GovernanceOpts({
+                        hosts: governanceOpts.hosts,
+                        voteDuration: governanceOpts.voteDuration,
+                        executionDelay: governanceOpts.executionDelay,
+                        passThresholdBps: governanceOpts.passThresholdBps,
+                        totalVotingPower: _getFinalPrice()
+                    })
                 }),
                 preciousTokens,
                 preciousTokenIds
