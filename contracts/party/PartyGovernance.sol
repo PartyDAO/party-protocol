@@ -511,6 +511,8 @@ abstract contract PartyGovernance is
             } else /* if (timestamp < timestamp_) */ {
                 // Entry is too recent.
                 p -= (n + 1) / 2; // Move search index to middle of upper half.
+
+                // todo: prevent underflow here?
             }
         }
     }
