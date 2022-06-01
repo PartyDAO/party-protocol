@@ -235,14 +235,6 @@ contract TokenDistributor {
         allowEmergencyActions = false;
     }
 
-    function hasPartyDaoClaimed(ITokenDistributorParty party, uint256 distributionId) external view returns (bool) {
-        return _distributionStates[party][distributionId].hasPartyDaoClaimed;
-    }
-
-    function hasTokenIdClaimed(ITokenDistributorParty party, uint256 tokenId, uint256 distributionId) external view returns (bool) {
-        return _distributionStates[party][distributionId].hasTokenClaimed[tokenId];
-    }
-
     // For receiving ETH
     receive() external payable {}
 
