@@ -204,7 +204,6 @@ contract TokenDistributor {
         }
         state.hasPartyDaoClaimed = true;
         uint256 amountClaimed = info.daoSupply;
-        _transfer(info.token, recipient, amountClaimed);
         emit DistributionClaimedByPartyDao(info, recipient, amountClaimed);
     }
 
