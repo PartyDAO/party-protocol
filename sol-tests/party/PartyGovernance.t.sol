@@ -134,7 +134,7 @@ contract PartyGovernanceTest is Test, TestUtils {
     assertEq(engInstance.getNumExecutedProposals(), 1);
   }
 
-  function testSimpleGovernance2() public {
+  function testSimpleGovernanceUnanimous() public {
     // Create party
     (Party party, IERC721[] memory preciousTokens, uint256[] memory preciousTokenIds) = partyAdmin.createParty(
       partyFactory,
