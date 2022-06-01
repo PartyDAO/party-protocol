@@ -33,7 +33,9 @@ contract PartyFactory is IPartyFactory {
     // `authority` is the address that can call `mint()`.
     function createParty(
         address authority,
-        Party.PartyOptions calldata opts,
+        string name,
+        string symbol,
+        PartyGovernance.GovernanceOpts calldata governanceOpts,
         IERC721[] memory preciousTokens,
         uint256[] memory preciousTokenIds
     )
@@ -42,7 +44,11 @@ contract PartyFactory is IPartyFactory {
     {
         require(authority != address(0));
         Party.PartyInitData memory initData = Party.PartyInitData({
-            options: opts,
+            options: PartyOptions({
+                name: name,
+                symbol: symbol,
+                governance: governanceOpts
+            }),
             preciousTokens: preciousTokens,
             preciousTokenIds: preciousTokenIds,
             // authority must call mint() through this contract

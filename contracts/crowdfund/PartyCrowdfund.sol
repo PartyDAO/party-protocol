@@ -7,6 +7,7 @@ import "../utils/LibSafeCast.sol";
 import "../tokens/ERC721Receiver.sol";
 import "../party/Party.sol";
 import "../globals/IGlobals.sol";
+import "../gatekeepers/IGateKeeper.sol";
 
 import "./PartyCrowdfundNFT.sol";
 
@@ -21,18 +22,35 @@ abstract contract PartyCrowdfund is ERC721Receiver, PartyCrowdfundNFT {
     enum CrowdfundLifecycle {
         Invalid,
         Active,
+        Expired,
         Lost,
         Won
+    }
+
+    // PartyGovernance options that must be known and fixed at crowdfund creation.
+    struct FixedGovernanceOpts {
+        // Address of initial party hosts.
+        address[] hosts;
+        // How long people can vote on a proposal.
+        uint40 voteDuration;
+        // How long to wait after a proposal passes before it can be
+        // executed.
+        uint40 executionDelay;
+        // Minimum ratio of accept votes to consider a proposal passed,
+        // in bps, where 10,000 == 100%.
+        uint16 passThresholdBps;
     }
 
     struct CrowdfundInitOptions {
         string name;
         string symbol;
-        Party.PartyOptions partyOptions;
         address payable splitRecipient;
         uint16 splitBps;
         address initialContributor;
         address initialDelegate;
+        IGateKeeper gateKeeper;
+        bytes12 gateKeeperId;
+        FixedGovernanceOpts governanceOpts;
     }
 
     struct Contribution {
@@ -43,9 +61,11 @@ abstract contract PartyCrowdfund is ERC721Receiver, PartyCrowdfundNFT {
     error PartyAlreadyExistsError(Party party);
     error WrongLifecycleError(CrowdfundLifecycle lc);
     error CrowdfundNotOverError(CrowdfundLifecycle lc);
-    error InvalidPartyOptionsError(bytes32 partyOptionsHash, bytes32 expectedPartyOptionsHash);
+    error InvalidPartyOptionsError(bytes32 actualHash, bytes32 expectedHash);
     error InvalidDelegateError();
     error NoPartyError();
+    error OnlyContributorAllowedError();
+    error NotAllowedByGateKeeperError(IGateKeeper gateKeeper, bytes12 gateKeeperId, bytes gateData);
 
     event DaoClaimed(address recipient, uint256 amount);
     event Burned(address contributor, uint256 ethUsed, uint256 votingPower);
@@ -60,16 +80,28 @@ abstract contract PartyCrowdfund is ERC721Receiver, PartyCrowdfundNFT {
     uint16 public splitBps;
     // Who will receive a reserved portion of governance power.
     address payable public splitRecipient;
-    // Hash of PartyOptions passed into initialize().
-    // The PartyOptions passed into `_createParty()` must match.
-    bytes32 public partyOptionsHash;
+    // Hash of party governance options passed into initialize().
+    // The GovernanceOpts passed into `_createParty()` must match.
+    bytes32 public governanceOptsHash;
     // The total (recorded) ETH contributed to this crowdfund.
     uint128 public totalContributions;
+    // The gatekeeper contract to use (if non-null) to restrict who can
+    // contribute to this crowdfund.
+    IGateKeeper public gateKeeper;
+    // The gatekeeper contract to use (if non-null).
+    bytes12 public gateKeeperId;
     // Who a contributor last delegated to.
     mapping (address => address) private _delegationsByContributor;
     // Array of contributions by a contributor.
     // One is created for every contribution made.
     mapping (address => Contribution[]) private _contributionsByContributor;
+
+    modifier onlyContributor() {
+        if (_contributionsByContributor[msg.sender].amount == 0) {
+            revert OnlyContributorAllowedError();
+        }
+        _;
+    }
 
     constructor(IGlobals globals) PartyCrowdfundNFT(globals) {
         _GLOBALS = globals;
@@ -80,15 +112,17 @@ abstract contract PartyCrowdfund is ERC721Receiver, PartyCrowdfundNFT {
         internal
     {
         PartyCrowdfundNFT.initialize(opts.name, opts.symbol);
-        partyOptionsHash = _hashPartyOptions(opts.partyOptions);
+        governanceOptsHash = _hashFixedGovernanceOpts(opts.governanceOpts);
         splitRecipient = opts.splitRecipient;
         splitBps = opts.splitBps;
+        gateKeeper = opts.gateKeeper;
+        gateKeeperId = opts.gateKeeperId;
         // If the deployer passed in some ETH during deployment, credit them.
         uint128 initialBalance = address(this).balance.safeCastUint256ToUint128();
         if (initialBalance > 0) {
             // If this contract has ETH, either passed in during deployment or
             // pre-existing, credit it to the `initialContributor`.
-            _addContribution(opts.initialContributor, initialBalance, opts.initialDelegate, 0);
+            _contribute(opts.initialContributor, initialBalance, opts.initialDelegate, 0);
         }
     }
 
@@ -116,13 +150,13 @@ abstract contract PartyCrowdfund is ERC721Receiver, PartyCrowdfundNFT {
     }
 
     // Contribute and/or delegate.
-    // TODO: Should contributor not be a param?
-    function contribute(address contributor, address delegate)
+    function contribute(address delegate, bytes memory gateData)
         public
+        virtual
         payable
     {
-        _addContribution(
-            contributor,
+        _contribute(
+            msg.sender,
             msg.value.safeCastUint256ToUint128(),
             delegate,
             // Use this.balance instead of separately tracking registered
@@ -132,22 +166,24 @@ abstract contract PartyCrowdfund is ERC721Receiver, PartyCrowdfundNFT {
             // can never reach 100% consensus. But they perform the same
             // grief by contributing normally and never participating in
             // governance.
-            (address(this).balance - msg.value).safeCastUint256ToUint128()
+            (address(this).balance - msg.value).safeCastUint256ToUint128(),
+            gateData
         );
     }
 
     // Contribute, reusing the last delegate of the sender or
     // the sender itself if not set.
-    receive() external payable {
+    receive() external virtual payable {
         // If the sender already delegated before then use that delegate.
         // Otherwise delegate to the sender.
         address delegate = _delegationsByContributor[msg.sender];
         delegate = delegate == address(0) ? msg.sender : delegate;
-        _addContribution(
+        _contribute(
             msg.sender,
             msg.value.safeCastUint256ToUint128(),
             delegate,
-            (address(this).balance - msg.value).safeCastUint256ToUint128()
+            (address(this).balance - msg.value).safeCastUint256ToUint128(),
+            "" // No gatedata supported with naked contribution
         );
     }
 
@@ -198,7 +234,7 @@ abstract contract PartyCrowdfund is ERC721Receiver, PartyCrowdfundNFT {
     // After calling this, anyone can burn CF tokens on a contributor's behalf
     // with the `burn()` function.
     function _createParty(
-        Party.PartyOptions memory opts,
+        FixedGovernanceOpts memory governanceOpts,
         IERC721[] memory preciousTokens,
         uint256[] memory preciousTokenIds
     )
@@ -209,13 +245,27 @@ abstract contract PartyCrowdfund is ERC721Receiver, PartyCrowdfundNFT {
             revert PartyAlreadyExistsError(party);
         }
         {
-            bytes32 partyOptionsHash_ = _hashPartyOptions(opts);
-            if (partyOptionsHash_ != partyOptionsHash) {
-                revert InvalidPartyOptionsError(partyOptionsHash_, partyOptionsHash);
+            bytes32 governanceOptsHash_ = _hashFixedGovernanceOpts(governanceOpts);
+            if (governanceOptsHash_ != governanceOptsHash) {
+                revert InvalidPartyOptionsError(governanceOptsHash_, governanceOptsHash);
             }
         }
         party = party_ = _getPartyFactory()
-            .createParty(address(this), opts, preciousTokens, preciousTokenIds);
+            .createParty(
+                address(this),
+                name,
+                symbol,
+                PartyGovernance.GovernanceOpts({
+                    hosts: governanceOpts.hosts,
+                    voteDuration: governanceOpts.voteDuration,
+                    executionDelay: governanceOpts.executionDelay,
+                    passThresholdBps: governanceOpts.passThresholdBps,
+                    totalVotingPower: _getFinalPrice()
+                }),
+                preciousTokens,
+                preciousTokenIds
+            );
+        // Transfer the acquired NFTs to the new party.
         for (uint256 i = 0; i < preciousTokens.length; ++i) {
             preciousTokens[i].transferFrom(address(this), address(party_), preciousTokenIds[i]);
         }
@@ -223,7 +273,7 @@ abstract contract PartyCrowdfund is ERC721Receiver, PartyCrowdfundNFT {
 
     // Overloaded single token wrapper for _createParty()
     function _createParty(
-        Party.PartyOptions memory opts,
+        FixedGovernanceOpts memory governanceOpts,
         IERC721 preciousToken,
         uint256 preciousTokenId
     )
@@ -234,34 +284,21 @@ abstract contract PartyCrowdfund is ERC721Receiver, PartyCrowdfundNFT {
         tokens[0] = preciousToken;
         uint256[] memory tokenIds = new uint256[](1);
         tokenIds[0] = preciousTokenId;
-        return _createParty(opts, tokens, tokenIds);
+        return _createParty(governanceOpts, tokens, tokenIds);
     }
 
-    function _hashPartyOptions(Party.PartyOptions memory opts)
+    function _hashFixedGovernanceOpts(FixedGovernanceOpts memory opts)
         private
         pure
         returns (bytes32 h)
     {
-        bytes32 governanceOptsHostsHash = keccak256(abi.encode(opts.governance.hosts));
-        bytes32 nameHash = keccak256(bytes(opts.name));
-        bytes32 symbolHash = keccak256(bytes(opts.symbol));
         // Hash in place.
         assembly {
-            let oldGovernanceOptsHostFieldValue := mload(opts)
-            let oldNameFieldValue := mload(add(opts, 0xA0))
-            let oldSymbolFieldValue := mload(add(opts, 0xC0))
-            mstore(opts, governanceOptsHostsHash)
-            mstore(add(opts, 0xA0), nameHash)
-            mstore(add(opts, 0xC0), symbolHash)
-            h := keccak256(opts, 0xE0)
-            mstore(opts, oldGovernanceOptsHostFieldValue)
-            mstore(add(opts, 0xA0), oldNameFieldValue)
-            mstore(add(opts, 0xC0), oldSymbolFieldValue)
+            let oldHostsFieldValue := mload(opts)
+            mstore(opts, keccak256(add(mload(opts), 0x20), mul(mload(mload(opts)), 32)))
+            h := keccak256(opts, 0x80)
+            mstore(opts, oldHostsFieldValue)
         }
-    }
-
-    function _getParty() internal view returns (Party) {
-        return party;
     }
 
     function _getFinalContribution(address contributor)
@@ -295,16 +332,28 @@ abstract contract PartyCrowdfund is ERC721Receiver, PartyCrowdfundNFT {
         }
     }
 
-    function _addContribution(
+    function _contribute(
         address contributor,
         uint128 amount,
         address delegate,
-        uint128 previousTotalContributions
+        uint128 previousTotalContributions,
+        bytes memory gateData
     )
         internal
     {
         if (delegate == address(0)) {
             revert InvalidDelegateError();
+        }
+        // Must not be blocked by gatekeeper.
+        if (gateKeeper != IGateKeeper(address(0))) {
+            if (!gateKeeper.isAllowed(contributor, gateKeeperId, gateData)) {
+                revert NotAllowedByGateKeeperError(
+                    gateKeeper,
+                    gateKeeperId,
+                    contributor,
+                    gateData
+                );
+            }
         }
         // Update delegate.
         _delegationsByContributor[contributor] = delegate;
@@ -381,5 +430,4 @@ abstract contract PartyCrowdfund is ERC721Receiver, PartyCrowdfundNFT {
     function _getPartyFactory() private view returns (IPartyFactory) {
         return IPartyFactory(_GLOBALS.getAddress(LibGlobals.GLOBAL_PARTY_FACTORY));
     }
-
 }

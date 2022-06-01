@@ -4,6 +4,7 @@ pragma solidity ^0.8;
 import "../tokens/IERC721.sol";
 import "../party/Party.sol";
 import "../utils/Implementation.sol";
+import "../utils/LibSafeERC721.sol";
 import "../globals/IGlobals.sol";
 import "../gatekeepers/IGateKeeper.sol";
 
@@ -11,87 +12,166 @@ import "./IMarketWrapper.sol";
 import "./PartyCrowdfund.sol";
 
 contract PartyBid is Implementation, PartyCrowdfund {
+    using LibSafeERC721 for IERC721;
+
     struct PartyBidOptions {
+        // The name of the crowdfund.
+        // This will also carry over to the governance party.
         string name;
+        // The token symbol for both the crowdfund and the governance NFTs.
         string symbol;
+        // The auction ID (specific to the IMarketWrapper).
         uint256 auctionId;
+        // IMarketWrapper contract that handles interactions with auction markets.
         IMarketWrapper market;
+        // The ERC721 contract of the NFT being bought.
         IERC721 nftContract;
+        // ID of the NFT being bought.
         uint256 nftTokenId;
-        uint40 durationInSeconds;
+        // How long this crowdfund has to bid on the NFT, in seconds.
+        uint40 duration;
+        // Maximum bid allowed.
+        uint256 maximumBid;
+        // An address that receieves an extra share of the final voting power
+        // when the party transitions into governance.
         address payable splitRecipient;
+        // What percentage (in bps) of the final total voting power `splitRecipient`
+        // receives.
         uint16 splitBps;
-        Party.PartyOptions partyOptions;
+        // If ETH is attached during deployment, it will be interpreted
+        // as a contribution. This is who gets credit for that contribution.
         address initialContributor;
+        // If there is an initial contribution, this is who they will delegate their
+        // voting power to when the crowdfund transitions to governance.
         address initialDelegate;
+        // The gatekeeper contract to use (if non-null) to restrict who can
+        // contribute to this crowdfund.
         IGateKeeper gateKeeper;
+        // The gatekeeper contract to use (if non-null).
         bytes12 gateKeeperId;
+        // Governance options.
+        FixedGovernanceOpts governanceOpts;
     }
+
+    event Bid(uint256 bidAmount);
+    event Won(uint256 bid, Party party);
+    event Lost();
+
+    error InvalidAuctionIdError();
+    error AuctionFinalizedError(uint256 auctionId);
+    error AlreadyHighestBidderError();
+    error ExceedsMaximumBidError(uint256 bidAmount, uint256 maximumBid);
+    error CouldNotFinalizeError();
 
     uint256 public nftTokenId;
     IERC721 public nftContract;
     uint40 public expiry;
-    IGateKeeper public gateKeeper;
-    bytes12 public gateKeeperId;
     IMarketWrapper public market;
-    uint256 public highestBid;
+    uint256 public lastBid;
+    uint256 public maximumBid;
+    uint256 public auctionId;
+    bool private _wasFinalized;
 
     constructor(IGlobals globals) PartyCrowdfund(globals) {}
 
-    function initialize(PartyBidOptions memory initOpts)
+    function initialize(PartyBidOptions memory opts)
         external
         onlyDelegateCall
     {
         PartyCrowdfund._initialize(CrowdfundInitOptions({
-            name: initOpts.name,
-            symbol: initOpts.symbol,
-            partyOptions: initOpts.partyOptions,
-            splitRecipient: initOpts.splitRecipient,
-            splitBps: initOpts.splitBps,
-            initialContributor: initOpts.initialContributor,
-            initialDelegate: initOpts.initialDelegate
+            name: opts.name,
+            symbol: opts.symbol,
+            splitRecipient: opts.splitRecipient,
+            splitBps: opts.splitBps,
+            initialContributor: opts.initialContributor,
+            initialDelegate: opts.initialDelegate,
+            gateKeeper: opts.gateKeeper,
+            gateKeeperId: opts.gateKeeperId,
+            governanceOpts: opts.governanceOpts
+
         }));
-        nftContract = initOpts.nftContract;
-        nftTokenId = initOpts.nftTokenId;
-        market = initOpts.market;
-        gateKeeper = initOpts.gateKeeper;
-        gateKeeperId = initOpts.gateKeeperId;
-        expiry = uint40(initOpts.durationInSeconds + block.timestamp);
-    }
+        nftContract = opts.nftContract;
+        nftTokenId = opts.nftTokenId;
+        market = opts.market;
+        expiry = uint40(opts.durationInSeconds + block.timestamp);
+        auctionId = opts.auctionId;
+        maximumBid = opts.maximumBid;
 
-    function contribute(address contributor, address delegate, bytes memory gateData)
-        public
-        payable
-    {
-        if (gateKeeper != IGateKeeper(address(0))) {
-            require(gateKeeper.isAllowed(contributor, gateKeeperId, gateData), 'NOT_ALLOWED');
+        if (!market.auctionIdMatchesToken(
+            opts.auctionId,
+            opts.nftContract,
+            opts.nftTokenId))
+        {
+            revert InvalidAuctionIdError();
         }
-        PartyCrowdfund.contribute(contributor, delegate);
     }
 
-    // Delegatecall into `market` to perform a bid.
-    function bid() external pure {
-        // ...
-        // highestBid = ...;
-        revert('not implemented');
+    function bid() external onlyContributor {
+        {
+            CrowdfundLifecycle lc = getCrowdfundLifecycle();
+            if (lc != CrowdfundLifecycle.Active) {
+                revert WrongLifecycleError(lc);
+            }
+        }
+        if (market.isFinalized(auctionId)) {
+            revert AuctionFinalizedError(auctionId);
+        }
+        if (market.getCurrentHighestBidder(auctionId) == address(this)) {
+            revert AlreadyHighestBidderError();
+        }
+        uint256 bidAmount = market.getMinimumBid();
+        if (bidAmount > maximumBid) {
+            revert ExceedsMaximumBidError(bidAmount, maximumBid);
+        }
+        lastBid = bidAmount;
+        (bool s, bytes memory r) = address(market).delegatecall(abi.encodeCall(
+            IMarketWrapper.bid,
+            auctionId,
+            bidAmount
+        ));
+        if (!s) {
+            r.rawRevert();
+        }
+        emit Bid(bidAmount);
     }
 
     // Claim NFT and create a party if won or rescind bid if lost/expired.
-    function finalize(Party.PartyOptions calldata partyOptions) external {
+    function finalize(FixedGovernanceOpts memory governanceOpts) external {
         CrowdfundLifecycle lc = getCrowdfundLifecycle();
-        if (lc == CrowdfundLifecycle.Won) {
-            _createParty(partyOptions, nftContract, nftTokenId);
-        } else if (lc == CrowdfundLifecycle.Lost) {
-            // Rescind bid...
+        if (lc != CrowdfundLifecycle.Active || lc != CrowdfundLifecycle.Expired) {
+            revert WrongLifecycleError(lc);
         }
-        revert WrongLifecycleError(lc);
+        _wasFinalized = true;
+        (bool s, bytes memory r) = address(market).delegatecall(abi.encodeCall(
+            IMarketWrapper.finalize,
+            auctionId
+        ));
+        if (!s) {
+            r.rawRevert();
+        }
+        if (!abi.decode(r, (bool))) {
+            revert CouldNotFinalizeError();
+        }
+        if (nftContract.safeOwnerOf(nftTokenId) == address(this)) {
+            Party party_ = _createParty(governanceOpts, nftContract, nftTokenId);
+            emit Won(lastBid, party_);
+        } else {
+            emit Lost();
+        }
     }
 
     function getCrowdfundLifecycle() public override view returns (CrowdfundLifecycle) {
-        // Note: cannot rely on ownerOf because it might be transferred to Party
-        // if `createParty()` was called.
-        // ...
-        revert('not implemented');
+        // Use/check _wasFinalized instead of `market.isFinalized()`
+        // in case `auctionId` gets reused.
+        if (_wasFinalized) {
+            return address(party) != address(0)
+                ? CrowdfundLifecycle.Won
+                : CrowdfundLifecycle.Lost;
+        }
+        if (block.timestamp >= expiry) {
+            return CrowdfundLifecycle.Expired;
+        }
+        return CrowdfundLifecycle.Active;
     }
 
     function _getFinalPrice()
@@ -100,6 +180,6 @@ contract PartyBid is Implementation, PartyCrowdfund {
         view
         returns (uint256 price)
     {
-        return highestBid;
+        return lastBid;
     }
 }
