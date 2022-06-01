@@ -492,6 +492,10 @@ abstract contract PartyGovernance is
         uint256 n = snaps.length;
         uint256 p = n / 2; // Search index.
         while (n != 0) {
+            // prevent search index from going out of bounds past the length of snaps
+            if (p >= snaps.length) {
+                break;
+            }
             VotingPowerSnapshot memory shot_ = snaps[p];
             if (timestamp == shot_.timestamp) {
                 // Entry at exact time.
