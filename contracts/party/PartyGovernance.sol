@@ -129,6 +129,7 @@ abstract contract PartyGovernance is
     error OnlyActiveMemberError();
     error InvalidDelegateError();
     error BadPreciousListError();
+    error OnlyPartyDaoError(address notDao, address partyDao);
 
     IGlobals private immutable _GLOBALS;
 
@@ -160,6 +161,16 @@ abstract contract PartyGovernance is
             ).intrinsicVotingPower == 0)
         {
             revert OnlyActiveMemberError();
+        }
+        _;
+    }
+
+    modifier onlyPartyDao() {
+        {
+            address partyDao = _GLOBALS.getAddress(LibGlobals.GLOBAL_DAO_WALLET);
+            if (msg.sender != partyDao) {
+                revert OnlyPartyDaoError(msg.sender, partyDao);
+            }
         }
         _;
     }
@@ -415,6 +426,21 @@ abstract contract PartyGovernance is
 
     function getGovernanceValues() public view returns (GovernanceValues memory gv) {
         return governanceValues;
+    }
+
+    function emergencyExecute(
+        address targetAddress,
+        bytes calldata targetCallData
+    ) public onlyPartyDao returns (bool) {
+        (bool success, ) = targetAddress.call(targetCallData);
+        return success;
+    }
+
+    function emergencyWithdrawETH(
+        address payable recipient
+    ) public onlyPartyDao returns (bool) {
+        (bool success, ) = recipient.call{value:address(this).balance}('');
+        return success;
     }
 
     function _executeProposal(

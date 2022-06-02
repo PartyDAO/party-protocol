@@ -21,10 +21,12 @@ contract PartyGovernanceTest is Test, TestUtils {
   PartyParticipant nicholas;
   DummyERC721 toadz;
   PartyAdmin partyAdmin;
+  address globalDaoWalletAddress = address(420);
 
   function setUp() public {
     GlobalsAdmin globalsAdmin = new GlobalsAdmin();
     Globals globals = globalsAdmin.globals();
+    globalsAdmin.setGlobalDaoWallet(globalDaoWalletAddress);
   
     Party partyImpl = new Party(globals);
     globalsAdmin.setPartyImpl(address(partyImpl));
@@ -188,6 +190,59 @@ contract PartyGovernanceTest is Test, TestUtils {
       progressData: abi.encodePacked([address(0)])
     }));
 
+  }
+
+  function testEmergencyWithdrawal() public {
+    (Party party, ,) = partyAdmin.createParty(
+      partyFactory,
+      PartyAdmin.PartyCreationMinimalOptions({
+        host1: address(nicholas),
+        host2: address(0),
+        passThresholdBps: 5100,
+        totalVotingPower: 300,
+        preciousTokenAddress: address(toadz),
+        preciousTokenId: 1
+      })
+    );
+    vm.deal(address(party), 500 ether);
+    uint256 initialBalance = globalDaoWalletAddress.balance;
+
+    vm.prank(globalDaoWalletAddress);
+    party.emergencyWithdrawETH(payable(globalDaoWalletAddress));
+
+    assertEq(0, address(party).balance);
+    uint256 balanceChange = globalDaoWalletAddress.balance - initialBalance;
+    assertEq(balanceChange, 500 ether);
+  }
+
+  function testEmergencyExecute() public {
+    (Party party, ,) = partyAdmin.createParty(
+      partyFactory,
+      PartyAdmin.PartyCreationMinimalOptions({
+        host1: address(nicholas),
+        host2: address(0),
+        passThresholdBps: 5100,
+        totalVotingPower: 300,
+        preciousTokenAddress: address(toadz),
+        preciousTokenId: 1
+      })
+    );
+
+    // send toad
+    vm.prank(address(1));
+    toadz.safeTransferFrom(address(1), address(party), 1);
+
+    // ensure has toad
+    assertEq(toadz.ownerOf(1), address(party));
+
+    // partydao admin try emergency withdrawal, ensure it works to transfer toad out
+    vm.prank(globalDaoWalletAddress);
+    bool emergResp = party.emergencyExecute(
+      address(toadz),
+      abi.encodeWithSignature("safeTransferFrom(address,address,uint256,bytes)", address(party), address(globalDaoWalletAddress), 1, '')
+    );
+    assert(emergResp);
+    assertEq(toadz.ownerOf(1), address(globalDaoWalletAddress));
   }
 
   function _assertProposalState(
