@@ -10,7 +10,6 @@ import "../tokens/ERC721Receiver.sol";
 import "../utils/LibERC20Compat.sol";
 import "../utils/LibRawResult.sol";
 import "../utils/LibSafeCast.sol";
-import "../utils/Math.sol";
 import "../globals/IGlobals.sol";
 import "../globals/LibGlobals.sol";
 import "../proposals/IProposalExecutionEngine.sol";
@@ -490,45 +489,13 @@ abstract contract PartyGovernance is
         //     _logSnapshot(snaps[i]);
         // }
 
-        // uint256 n = snaps.length;
-        // uint256 p = n / 2; // Search index.
-        // while (n != 0) {
-        //     VotingPowerSnapshot memory shot_ = snaps[p];
-        //     if (timestamp == shot_.timestamp) {
-        //         // Entry at exact time.
-        //         shot = shot_;
-        //         break;
-        //     }
-        //     n /= 2;
-        //     if (timestamp > shot_.timestamp) {
-        //         // Entry is older. This is our best guess for now.
-        //         shot = shot_;
-        //         p += (n + 1) / 2; // Move search index to middle of lower half.
-
-        //         // prevent search index from going out of bounds past the length of snaps
-        //         if (p >= snaps.length) {
-        //             break;
-        //         }
-        //     } else /* if (timestamp < timestamp_) */ {
-        //         // Entry is too recent.
-        //         p -= (n + 1) / 2; // Move search index to middle of upper half.
-
-        //         // todo: prevent underflow here?
-        //     }
-        // }
-
-        //// open zepplin
+        // Open Zepplin binary search https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/utils/Checkpoints.sol#L39
 
         uint256 high = snaps.length;
         uint256 low = 0;
         while (low < high) {
-            uint256 mid = Math.average(low, high);
+            uint256 mid = (low + high) / 2;
             VotingPowerSnapshot memory shot_ = snaps[mid];
-            if (shot_.timestamp == timestamp) {
-                // Entry at exact time.
-                shot = shot_;
-                break;
-            }
             if (shot_.timestamp > timestamp) {
                 // Entry is too recent.
                 high = mid;
@@ -539,8 +506,9 @@ abstract contract PartyGovernance is
             }
         }
 
-        // todo: one last check?
-        // return high == 0 ? 0 : self._checkpoints[high - 1]._value;
+        if (high == 0) {
+            // set `shot` to an empty snapshot
+        }
     }
 
     function _getProposalHash(Proposal memory proposal)
