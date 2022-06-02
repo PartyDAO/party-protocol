@@ -188,6 +188,8 @@ contract PartyGovernanceTest is Test, TestUtils {
       progressData: abi.encodePacked([address(0)])
     }));
 
+    // TODO: test proposal executed correctly
+
   }
 
   // TODO: emergency fn for partydao to mark a proposal as complete?

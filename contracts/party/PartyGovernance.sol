@@ -119,7 +119,7 @@ abstract contract PartyGovernance is
     event ProposalExecuted(uint256 proposalId, address executor);
     event ProposalCompleted(uint256 proposalId);
     event DistributionCreated(uint256 distributionId, IERC20 token);
-    event VotingPowerDelegated(address owner, address delegate, uint256 votingPower);
+    event VotingPowerDelegated(address owner, address delegate);
     event PreciousListSet(IERC721[] tokens, uint256[] tokenIds);
 
     error BadProposalStateError(uint256 state);
@@ -239,17 +239,8 @@ abstract contract PartyGovernance is
     // the old one (if any).
     function delegateVotingPower(address delegate) external
     {
-        address oldDelegate = delegationsByVoter[msg.sender];
-        delegationsByVoter[msg.sender] = delegate;
-        VotingPowerSnapshot memory snap = _getLastVotingPowerSnapshotIn(
-            _votingPowerSnapshotsByVoter[msg.sender]
-        );
-        _rebalanceDelegates(msg.sender, oldDelegate, delegate, snap, snap);
-        if (delegate == address(0) || delegate == msg.sender) {
-            // delegating to self, push new snapshot
-            _adjustVotingPower(msg.sender, 0, delegate);
-        }
-        emit VotingPowerDelegated(msg.sender, delegate, snap.intrinsicVotingPower);
+        _adjustVotingPower(msg.sender, 0, delegate);
+        emit VotingPowerDelegated(msg.sender, delegate);
     }
 
     // Transfer party host status to another.
@@ -621,7 +612,6 @@ abstract contract PartyGovernance is
                 isDelegated: newDelegateShot.isDelegated
             }));
         }
-        emit VotingPowerDelegated(voter, newDelegate, newSnap.intrinsicVotingPower);
     }
 
     function _getLastVotingPowerSnapshotIn(VotingPowerSnapshot[] storage snaps)
