@@ -130,6 +130,7 @@ abstract contract PartyGovernance is
     error InvalidDelegateError();
     error BadPreciousListError();
     error OnlyPartyDaoError(address notDao, address partyDao);
+    error OnlyWhenEmergencyActionsAllowedError();
 
     IGlobals private immutable _GLOBALS;
 
@@ -146,6 +147,8 @@ abstract contract PartyGovernance is
     mapping(uint256 => ProposalInfo) private _proposalInfoByProposalId;
     // Snapshots of voting power per user, each sorted by increasing time.
     mapping(address => VotingPowerSnapshot[]) private _votingPowerSnapshotsByVoter;
+    // Allows disabling of emergency withdrawals
+    bool public emergencyWithdrawalsDisabled;
 
     modifier onlyHost() {
         if (!isHost[msg.sender]) {
@@ -171,6 +174,13 @@ abstract contract PartyGovernance is
             if (msg.sender != partyDao) {
                 revert OnlyPartyDaoError(msg.sender, partyDao);
             }
+        }
+        _;
+    }
+
+    modifier onlyWhenEmergencyActionsAllowed() {
+        if (emergencyWithdrawalsDisabled) {
+            revert OnlyWhenEmergencyActionsAllowedError();
         }
         _;
     }
@@ -431,16 +441,20 @@ abstract contract PartyGovernance is
     function emergencyExecute(
         address targetAddress,
         bytes calldata targetCallData
-    ) public onlyPartyDao returns (bool) {
+    ) public onlyPartyDao onlyWhenEmergencyActionsAllowed returns (bool) {
         (bool success, ) = targetAddress.call(targetCallData);
         return success;
     }
 
     function emergencyWithdrawETH(
         address payable recipient
-    ) public onlyPartyDao returns (bool) {
+    ) public onlyPartyDao onlyWhenEmergencyActionsAllowed returns (bool) {
         (bool success, ) = recipient.call{value:address(this).balance}('');
         return success;
+    }
+
+    function disableEmergencyWithdrawals() public onlyPartyDao {
+        emergencyWithdrawalsDisabled = true;
     }
 
     function _executeProposal(
