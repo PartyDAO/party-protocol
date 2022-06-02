@@ -220,7 +220,6 @@ abstract contract PartyGovernance is
     {
         VotingPowerSnapshot memory shot = _getVotingPowerSnapshotAt(voter, timestamp);
 
-        // TODO: confirm this is correct change
         return (shot.isDelegated ? 0 : shot.intrinsicVotingPower) + shot.delegatedVotingPower;
     }
 
@@ -453,17 +452,6 @@ abstract contract PartyGovernance is
         );
     }
 
-    function _logSnapshot(VotingPowerSnapshot memory vp) internal view {
-        console.log('-------');
-        console.log(vp.timestamp);
-        console.log('delegated');
-        console.log(vp.delegatedVotingPower);
-        console.log('intrinsic');
-        console.log(vp.intrinsicVotingPower);
-        console.log('isDelegated');
-        console.log(vp.isDelegated);
-    }
-
     // Get the most recent voting power snapshot <= timestamp.
     function _getVotingPowerSnapshotAt(address voter, uint40 timestamp)
         private
@@ -471,12 +459,6 @@ abstract contract PartyGovernance is
         returns (VotingPowerSnapshot memory shot)
     {
         VotingPowerSnapshot[] storage snaps = _votingPowerSnapshotsByVoter[voter];
-
-        // console.log('snapshots');
-        // console.log(snaps.length);
-        // for (uint256 i=0; i<snaps.length; i++) {
-        //     _logSnapshot(snaps[i]);
-        // }
 
         uint256 n = snaps.length;
         uint256 p = n / 2; // Search index.
@@ -721,6 +703,4 @@ abstract contract PartyGovernance is
             abi.encode(preciousTokenIds)
         ));
     }
-
-    // TODO: emergency withdrawals
 }
