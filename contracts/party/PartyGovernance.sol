@@ -18,8 +18,6 @@ import "../proposals/ProposalStorage.sol";
 
 import "./IPartyFactory.sol";
 
-import "forge-std/console.sol";
-
 // Base contract for a Party encapsulating all governance functionality.
 abstract contract PartyGovernance is
     ITokenDistributorParty,
