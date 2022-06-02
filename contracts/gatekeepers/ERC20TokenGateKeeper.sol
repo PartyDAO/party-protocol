@@ -4,6 +4,7 @@ pragma solidity ^0.8;
 import {IGateKeeper} from "./IGateKeeper.sol";
 import {IERC20} from "../tokens/IERC20.sol";
 
+
 /**
  * @notice a contract that implements an ERC20 gatekeeper
  */
@@ -34,8 +35,11 @@ contract ERC20TokenGateKeeper is IGateKeeper {
         bytes memory /* userData */
     ) external view returns (bool) {
         TokenGate memory _gate = _gateInfo[uint96(id)];
-        return
-            IERC20(_gate.token).balanceOf(participant) >= _gate.minimumBalance;
+        uint256 bal = _gate.token ==
+            address(0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE)
+            ? participant.balance
+            : IERC20(_gate.token).balanceOf(participant);
+        return bal >= _gate.minimumBalance;
     }
 
     /**
