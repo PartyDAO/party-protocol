@@ -300,16 +300,6 @@ contract PartyGovernanceTest is Test, TestUtils {
 
   }
 
-  // TODO: emergency fn for partydao to mark a proposal as complete?
-
-  // TODO: ensure proposals are marked as complete afterwards
-
-  // TODO: veto after ready
-
-  // TODO: ensure only one in progress propsosal at a time
-
-  // TODO: can't veto with non-hosts
-
   function _assertProposalState(
     Party party,
     uint256 proposalId,

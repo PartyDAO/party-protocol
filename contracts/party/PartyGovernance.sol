@@ -18,8 +18,6 @@ import "../proposals/ProposalStorage.sol";
 
 import "./IPartyFactory.sol";
 
-import "forge-std/console.sol";
-
 // Base contract for a Party encapsulating all governance functionality.
 abstract contract PartyGovernance is
     ITokenDistributorParty,
@@ -119,7 +117,7 @@ abstract contract PartyGovernance is
     event ProposalExecuted(uint256 proposalId, address executor);
     event ProposalCompleted(uint256 proposalId);
     event DistributionCreated(uint256 distributionId, IERC20 token);
-    event VotingPowerDelegated(address owner, address delegate, uint256 votingPower);
+    event VotingPowerDelegated(address owner, address delegate);
     event PreciousListSet(IERC721[] tokens, uint256[] tokenIds);
 
     error BadProposalStateError(uint256 state);
@@ -222,7 +220,6 @@ abstract contract PartyGovernance is
     {
         VotingPowerSnapshot memory shot = _getVotingPowerSnapshotAt(voter, timestamp);
 
-        // TODO: confirm this is correct change
         return (shot.isDelegated ? 0 : shot.intrinsicVotingPower) + shot.delegatedVotingPower;
     }
 
@@ -239,17 +236,8 @@ abstract contract PartyGovernance is
     // the old one (if any).
     function delegateVotingPower(address delegate) external
     {
-        address oldDelegate = delegationsByVoter[msg.sender];
-        delegationsByVoter[msg.sender] = delegate;
-        VotingPowerSnapshot memory snap = _getLastVotingPowerSnapshotIn(
-            _votingPowerSnapshotsByVoter[msg.sender]
-        );
-        _rebalanceDelegates(msg.sender, oldDelegate, delegate, snap, snap);
-        if (delegate == address(0) || delegate == msg.sender) {
-            // delegating to self, push new snapshot
-            _adjustVotingPower(msg.sender, 0, delegate);
-        }
-        emit VotingPowerDelegated(msg.sender, delegate, snap.intrinsicVotingPower);
+        _adjustVotingPower(msg.sender, 0, delegate);
+        emit VotingPowerDelegated(msg.sender, delegate);
     }
 
     // Transfer party host status to another.
@@ -464,17 +452,6 @@ abstract contract PartyGovernance is
         );
     }
 
-    function _logSnapshot(VotingPowerSnapshot memory vp) internal view {
-        console.log('-------');
-        console.log(vp.timestamp);
-        console.log('delegated');
-        console.log(vp.delegatedVotingPower);
-        console.log('intrinsic');
-        console.log(vp.intrinsicVotingPower);
-        console.log('isDelegated');
-        console.log(vp.isDelegated);
-    }
-
     // Get the most recent voting power snapshot <= timestamp.
     function _getVotingPowerSnapshotAt(address voter, uint40 timestamp)
         private
@@ -622,7 +599,6 @@ abstract contract PartyGovernance is
                 isDelegated: newDelegateShot.isDelegated
             }));
         }
-        emit VotingPowerDelegated(voter, newDelegate, newSnap.intrinsicVotingPower);
     }
 
     function _getLastVotingPowerSnapshotIn(VotingPowerSnapshot[] storage snaps)
@@ -734,6 +710,4 @@ abstract contract PartyGovernance is
             abi.encode(preciousTokenIds)
         ));
     }
-
-    // TODO: emergency withdrawals
 }

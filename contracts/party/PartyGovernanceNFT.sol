@@ -95,7 +95,6 @@ contract PartyGovernanceNFT is
         onlyMinter
         external
     {
-        // TODO: should we ensure this is lt or eq to total voting power?
         uint256 tokenId = ++_tokenCounter;
         _tokens[tokenId] = TokenInfo({
             owner: owner,
