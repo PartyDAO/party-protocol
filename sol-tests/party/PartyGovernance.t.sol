@@ -244,6 +244,123 @@ contract PartyGovernanceTest is Test, TestUtils {
     assertEq(engInstance.getNumExecutedProposals(), 1);
   }
 
+  function testSimpleGovernanceVotingPower() public {
+    // Create party
+    (Party party, IERC721[] memory preciousTokens, uint256[] memory preciousTokenIds) = partyAdmin.createParty(
+      partyFactory,
+      PartyAdmin.PartyCreationMinimalOptions({
+        host1: address(this),
+        host2: address(0),
+        passThresholdBps: 9900,
+        totalVotingPower: 12345,
+        preciousTokenAddress: address(toadz),
+        preciousTokenId: 1
+      })
+    );
+    DummySimpleProposalEngineImpl engInstance = DummySimpleProposalEngineImpl(address(party));
+
+    // Mint first governance NFT
+    partyAdmin.mintGovNft(party, address(john), 12000, address(john));
+    assertEq(party.getVotingPowerOfToken(1), 12000);
+    assertEq(party.ownerOf(1), address(john));
+    assertEq(party.getDistributionShareOf(1), 0.972053462940461725 ether);
+
+    // Increase time and mint another governance NFT
+    vm.warp(block.timestamp + 1);
+    partyAdmin.mintGovNft(party, address(danny), 193, address(danny));
+    assertEq(party.getVotingPowerOfToken(2), 193);
+    assertEq(party.ownerOf(2), address(danny));
+    assertEq(party.getDistributionShareOf(2), 0.015633859862292426 ether);
+
+    // Increase time and mint another governance NFT
+    vm.warp(block.timestamp + 1);
+    partyAdmin.mintGovNft(party, address(steve), 7, address(steve));
+    assertEq(party.getVotingPowerOfToken(3), 7);
+    assertEq(party.ownerOf(3), address(steve));
+    assertEq(party.getDistributionShareOf(3), 0.000567031186715269 ether);
+
+    // Increase time and mint another governance NFT
+    vm.warp(block.timestamp + 3);
+    partyAdmin.mintGovNft(party, address(nicholas), 107, address(nicholas));
+    assertEq(party.getVotingPowerOfToken(4), 107);
+    assertEq(party.ownerOf(4), address(nicholas));
+    assertEq(party.getDistributionShareOf(4), 8667476711219117);
+
+    // Generate proposal
+    PartyGovernance.Proposal memory p1 = PartyGovernance.Proposal({
+      maxExecutableTime: 999999999,
+      nonce: 1,
+      proposalData: abi.encodePacked([0])
+    });
+    john.makeProposal(party, p1);
+
+    // Ensure John's votes show up
+    assertEq(party.getGovernanceValues().totalVotingPower, 12345);
+    _assertProposalState(party, 1, PartyGovernance.ProposalState.Voting, 12000);
+
+    // Danny votes on proposal
+    danny.vote(party, 1);
+    _assertProposalState(party, 1, PartyGovernance.ProposalState.Voting, 12193);
+
+    // Steve votes on proposal
+    steve.vote(party, 1);
+    _assertProposalState(party, 1, PartyGovernance.ProposalState.Voting, 12200);
+
+    // Nicholas does not vote, and executionTime has passed
+    vm.warp(block.timestamp + 500);
+    _assertProposalState(party, 1, PartyGovernance.ProposalState.Defeated, 12200);
+
+    // Generate new proposal
+    PartyGovernance.Proposal memory p2 = PartyGovernance.Proposal({
+      maxExecutableTime: 999999999,
+      nonce: 2,
+      proposalData: abi.encodePacked([0])
+    });
+    john.makeProposal(party, p2);
+
+    assertEq(party.getGovernanceValues().totalVotingPower, 12345);
+    _assertProposalState(party, 2, PartyGovernance.ProposalState.Voting, 12000);
+
+    danny.vote(party, 2);
+    _assertProposalState(party, 2, PartyGovernance.ProposalState.Voting, 12193);
+
+    steve.vote(party, 2);
+    _assertProposalState(party, 2, PartyGovernance.ProposalState.Voting, 12200);
+
+    // This time, Nicholas votes on proposal
+    nicholas.vote(party, 2);
+    _assertProposalState(party, 2, PartyGovernance.ProposalState.Voting, 12307);
+
+    // todo: this should be Passed but it is still Voting
+    // Can't execute before execution time passes
+    vm.warp(block.timestamp + 299);
+    _assertProposalState(party, 2, PartyGovernance.ProposalState.Passed, 12307);
+
+    // Nicholas does not vote, and executionTime has passed
+    vm.warp(block.timestamp + 500);
+    _assertProposalState(party, 2, PartyGovernance.ProposalState.Ready, 12307);
+
+    // // Ensure can execute when exeuctionTime is passed
+    // vm.warp(block.timestamp + 2);
+    // _assertProposalState(party, 1, PartyGovernance.ProposalState.Ready, 100);
+    // assertEq(engInstance.getLastExecutedProposalId(), 0);
+    // assertEq(engInstance.getNumExecutedProposals(), 0);
+
+    // Execute proposal
+    john.executeProposal(party, PartyParticipant.ExecutionOptions({
+      proposalId: 2,
+      proposal: p2,
+      preciousTokens: preciousTokens,
+      preciousTokenIds: preciousTokenIds,
+      progressData: abi.encodePacked([address(0)])
+    }));
+
+    // Ensure execution occurred
+    _assertProposalState(party, 2, PartyGovernance.ProposalState.Complete, 12307);
+    assertEq(engInstance.getLastExecutedProposalId(), 2);
+    assertEq(engInstance.getNumExecutedProposals(), 1);
+  }
+
   function testVeto() public {
     // Create party
     (Party party, IERC721[] memory preciousTokens, uint256[] memory preciousTokenIds) = partyAdmin.createParty(
@@ -307,7 +424,13 @@ contract PartyGovernanceTest is Test, TestUtils {
     uint96 expectedNumVotes
   ) private {
       (PartyGovernance.ProposalState ps, PartyGovernance.ProposalInfoValues memory pv) = party.getProposalStates(proposalId);
+      console.log('');
+      console.log('ps',uint256(ps));
+      console.log('expectedProposalState', uint256(expectedProposalState));
       assertEq(uint256(ps), uint256(expectedProposalState));
+      console.log('pv.votes', pv.votes);
+      console.log('expectedNumVotes', expectedNumVotes);
+      console.log('');
       assertEq(pv.votes, expectedNumVotes);
   }
 
