@@ -482,7 +482,14 @@ abstract contract PartyGovernance is
             }
         }
 
-        return high == 0 ? VotingPowerSnapshot({ timestamp: 0, delegatedVotingPower: 0, intrinsicVotingPower: 0, isDelegated: false }) : snaps[high - 1];
+        return high == 0
+            ? VotingPowerSnapshot({
+                timestamp: 0,
+                delegatedVotingPower: 0,
+                intrinsicVotingPower: 0,
+                isDelegated: false
+                })
+            : snaps[high - 1];
     }
 
     function _getProposalHash(Proposal memory proposal)
