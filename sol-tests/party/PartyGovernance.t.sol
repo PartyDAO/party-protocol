@@ -132,6 +132,7 @@ contract PartyGovernanceTest is Test, TestUtils {
     _assertProposalState(party, 1, PartyGovernance.ProposalState.Complete, 59);
     assertEq(engInstance.getLastExecutedProposalId(), 1);
     assertEq(engInstance.getNumExecutedProposals(), 1);
+    assertEq(engInstance.getFlagsForProposalId(1), 0);
   }
 
   function testSimpleGovernanceUnanimous() public {
