@@ -478,14 +478,11 @@ abstract contract PartyGovernance is
                 high = mid;
             } else {
                 // Entry is older. This is our best guess for now.
-                shot = shot_;
                 low = mid + 1;
             }
         }
 
-        if (high == 0) {
-            // set `shot` to an empty snapshot
-        }
+        return high == 0 ? VotingPowerSnapshot({ timestamp: 0, delegatedVotingPower: 0, intrinsicVotingPower: 0, isDelegated: false }) : snaps[high - 1];
     }
 
     function _getProposalHash(Proposal memory proposal)
