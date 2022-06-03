@@ -460,12 +460,6 @@ abstract contract PartyGovernance is
     {
         VotingPowerSnapshot[] storage snaps = _votingPowerSnapshotsByVoter[voter];
 
-        // console.log('snapshots');
-        // console.log(snaps.length);
-        // for (uint256 i=0; i<snaps.length; i++) {
-        //     _logSnapshot(snaps[i]);
-        // }
-
         // Open Zepplin binary search https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/utils/Checkpoints.sol#L39
 
         uint256 high = snaps.length;
