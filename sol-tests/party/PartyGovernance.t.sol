@@ -424,13 +424,7 @@ contract PartyGovernanceTest is Test, TestUtils {
     uint96 expectedNumVotes
   ) private {
       (PartyGovernance.ProposalState ps, PartyGovernance.ProposalInfoValues memory pv) = party.getProposalStates(proposalId);
-      console.log('');
-      console.log('ps',uint256(ps));
-      console.log('expectedProposalState', uint256(expectedProposalState));
       assertEq(uint256(ps), uint256(expectedProposalState));
-      console.log('pv.votes', pv.votes);
-      console.log('expectedNumVotes', expectedNumVotes);
-      console.log('');
       assertEq(pv.votes, expectedNumVotes);
   }
 
