@@ -5,6 +5,7 @@ import "../tokens/IERC721.sol";
 import "../party/Party.sol";
 import "../utils/Implementation.sol";
 import "../utils/LibSafeERC721.sol";
+import "../utils/LibRawResult.sol";
 import "../globals/IGlobals.sol";
 import "../gatekeepers/IGateKeeper.sol";
 
@@ -13,6 +14,14 @@ import "./PartyCrowdfund.sol";
 
 contract PartyBid is Implementation, PartyCrowdfund {
     using LibSafeERC721 for IERC721;
+    using LibSafeCast for uint256;
+    using LibRawResult for bytes;
+
+    enum FinalizeState {
+        None,
+        Finalizing,
+        Finalized
+    }
 
     struct PartyBidOptions {
         // The name of the crowdfund.
@@ -31,7 +40,7 @@ contract PartyBid is Implementation, PartyCrowdfund {
         // How long this crowdfund has to bid on the NFT, in seconds.
         uint40 duration;
         // Maximum bid allowed.
-        uint256 maximumBid;
+        uint128 maximumBid;
         // An address that receieves an extra share of the final voting power
         // when the party transitions into governance.
         address payable splitRecipient;
@@ -62,15 +71,16 @@ contract PartyBid is Implementation, PartyCrowdfund {
     error AlreadyHighestBidderError();
     error ExceedsMaximumBidError(uint256 bidAmount, uint256 maximumBid);
     error CouldNotFinalizeError();
+    error NoContributionsError();
 
-    uint256 public nftTokenId;
     IERC721 public nftContract;
-    uint40 public expiry;
-    IMarketWrapper public market;
-    uint256 public lastBid;
-    uint256 public maximumBid;
+    uint256 public nftTokenId;
     uint256 public auctionId;
-    bool private _wasFinalized;
+    uint128 public lastBid;
+    uint128 public maximumBid;
+    IMarketWrapper public market;
+    uint40 public expiry;
+    FinalizeState private _finalizeState;
 
     constructor(IGlobals globals) PartyCrowdfund(globals) {}
 
@@ -88,46 +98,45 @@ contract PartyBid is Implementation, PartyCrowdfund {
             gateKeeper: opts.gateKeeper,
             gateKeeperId: opts.gateKeeperId,
             governanceOpts: opts.governanceOpts
-
         }));
         nftContract = opts.nftContract;
         nftTokenId = opts.nftTokenId;
         market = opts.market;
-        expiry = uint40(opts.durationInSeconds + block.timestamp);
+        expiry = uint40(opts.duration + block.timestamp);
         auctionId = opts.auctionId;
         maximumBid = opts.maximumBid;
 
         if (!market.auctionIdMatchesToken(
             opts.auctionId,
-            opts.nftContract,
+            address(opts.nftContract),
             opts.nftTokenId))
         {
             revert InvalidAuctionIdError();
         }
     }
 
-    function bid() external onlyContributor {
+    function bid() external {
         {
             CrowdfundLifecycle lc = getCrowdfundLifecycle();
             if (lc != CrowdfundLifecycle.Active) {
                 revert WrongLifecycleError(lc);
             }
         }
-        if (market.isFinalized(auctionId)) {
-            revert AuctionFinalizedError(auctionId);
+        uint256 auctionId_ = auctionId;
+        if (market.isFinalized(auctionId_)) {
+            revert AuctionFinalizedError(auctionId_);
         }
-        if (market.getCurrentHighestBidder(auctionId) == address(this)) {
+        if (market.getCurrentHighestBidder(auctionId_) == address(this)) {
             revert AlreadyHighestBidderError();
         }
-        uint256 bidAmount = market.getMinimumBid();
+        uint128 bidAmount = market.getMinimumBid(auctionId_).safeCastUint256ToUint128();
         if (bidAmount > maximumBid) {
             revert ExceedsMaximumBidError(bidAmount, maximumBid);
         }
         lastBid = bidAmount;
         (bool s, bytes memory r) = address(market).delegatecall(abi.encodeCall(
             IMarketWrapper.bid,
-            auctionId,
-            bidAmount
+            (auctionId_, bidAmount)
         ));
         if (!s) {
             r.rawRevert();
@@ -141,34 +150,57 @@ contract PartyBid is Implementation, PartyCrowdfund {
         if (lc != CrowdfundLifecycle.Active || lc != CrowdfundLifecycle.Expired) {
             revert WrongLifecycleError(lc);
         }
-        _wasFinalized = true;
-        (bool s, bytes memory r) = address(market).delegatecall(abi.encodeCall(
-            IMarketWrapper.finalize,
-            auctionId
-        ));
-        if (!s) {
-            r.rawRevert();
-        }
-        if (!abi.decode(r, (bool))) {
-            revert CouldNotFinalizeError();
+        // Mark as finalizing to prevent burn(), bid(), and contribute()
+        // getting called.
+        _finalizeState = FinalizeState.Finalizing;
+        uint128 lastBid_ = lastBid;
+        // Only finalize on the market if we placed a bid.
+        if (lastBid_ != 0) {
+            // Can reenter and call burn() because _wasFinalized && party == 0 -> Lost
+            (bool s, bytes memory r) = address(market).delegatecall(abi.encodeCall(
+                IMarketWrapper.finalize,
+                auctionId
+            ));
+            if (!s) {
+                r.rawRevert();
+            }
+            if (!abi.decode(r, (bool))) {
+                revert CouldNotFinalizeError();
+            }
         }
         if (nftContract.safeOwnerOf(nftTokenId) == address(this)) {
+            if (lastBid_ == 0) {
+                // The NFT was gifted to us. Everyone wins.
+                lastBid_ = totalContributions;
+                if (lastBid_ == 0) {
+                    revert NoContributionsError();
+                }
+                lastBid = lastBid_;
+            }
             Party party_ = _createParty(governanceOpts, nftContract, nftTokenId);
-            emit Won(lastBid, party_);
+            emit Won(lastBid_, party_);
         } else {
             emit Lost();
         }
+        _finalizeState = FinalizeState.Finalized;
     }
 
     function getCrowdfundLifecycle() public override view returns (CrowdfundLifecycle) {
-        // Use/check _wasFinalized instead of `market.isFinalized()`
-        // in case `auctionId` gets reused.
-        if (_wasFinalized) {
+        // Do not rely on `market.isFinalized()` in case `auctionId` gets reused.
+        FinalizeState finalizeState_ = _finalizeState;
+        if (finalizeState_ == FinalizeState.Finalized) {
             return address(party) != address(0)
+                // If we're fully finalized and we have a party instance then we won.
                 ? CrowdfundLifecycle.Won
+                // Otherwise we lost.
                 : CrowdfundLifecycle.Lost;
         }
+        if (finalizeState_ == FinalizeState.Finalizing) {
+            // In the midst of finalizing (trying to reenter).
+            return CrowdfundLifecycle.Busy;
+        }
         if (block.timestamp >= expiry) {
+            // Expired. finalize() needs to be called.
             return CrowdfundLifecycle.Expired;
         }
         return CrowdfundLifecycle.Active;
