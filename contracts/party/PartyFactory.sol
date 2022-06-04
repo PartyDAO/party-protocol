@@ -12,7 +12,9 @@ import "./IPartyFactory.sol";
 // Creates generic Party instances.
 contract PartyFactory is IPartyFactory {
 
-    error OnlyAuthorityError();
+    error InvalidAuthorityError(address authority);
+
+    IGlobals public immutable GLOBALS;
 
     IGlobals public immutable GLOBALS;
     mapping (Party => address) public partyAuthorities;
@@ -40,7 +42,9 @@ contract PartyFactory is IPartyFactory {
         external
         returns (Party party)
     {
-        require(authority != address(0));
+        if (authority == address(0)) {
+            revert InvalidAuthorityError(authority);
+        }
         Party.PartyInitData memory initData = Party.PartyInitData({
             options: opts,
             preciousTokens: preciousTokens,
