@@ -460,25 +460,30 @@ abstract contract PartyGovernance is
     {
         VotingPowerSnapshot[] storage snaps = _votingPowerSnapshotsByVoter[voter];
 
-        uint256 n = snaps.length;
-        uint256 p = n / 2; // Search index.
-        while (n != 0) {
-            VotingPowerSnapshot memory shot_ = snaps[p];
-            if (timestamp == shot_.timestamp) {
-                // Entry at exact time.
-                shot = shot_;
-                break;
-            }
-            n /= 2;
-            if (timestamp > shot_.timestamp) {
-                // Entry is older. This is our best guess for now.
-                shot = shot_;
-                p += (n + 1) / 2; // Move search index to middle of lower half.
-            } else /* if (timestamp < timestamp_) */ {
+        // Open Zepplin binary search https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/utils/Checkpoints.sol#L39
+
+        uint256 high = snaps.length;
+        uint256 low = 0;
+        while (low < high) {
+            uint256 mid = (low + high) / 2;
+            VotingPowerSnapshot memory shot_ = snaps[mid];
+            if (shot_.timestamp > timestamp) {
                 // Entry is too recent.
-                p -= (n + 1) / 2; // Move search index to middle of upper half.
+                high = mid;
+            } else {
+                // Entry is older. This is our best guess for now.
+                low = mid + 1;
             }
         }
+
+        return high == 0
+            ? VotingPowerSnapshot({
+                timestamp: 0,
+                delegatedVotingPower: 0,
+                intrinsicVotingPower: 0,
+                isDelegated: false
+                })
+            : snaps[high - 1];
     }
 
     function _getProposalHash(Proposal memory proposal)
