@@ -264,7 +264,6 @@ contract PartyGovernanceTest is Test, TestUtils {
     partyAdmin.mintGovNft(party, address(danny), 50);
     partyAdmin.mintGovNft(party, address(steve), 4);
 
-
     vm.warp(block.timestamp + 1);
 
     // Generate proposal
@@ -298,6 +297,43 @@ contract PartyGovernanceTest is Test, TestUtils {
       progressData: abi.encodePacked([address(0)])
     }));
 
+  }
+
+  function testPartyMemberCannotVoteTwice() public {
+    // Create party + mock proposal engine
+    (Party party, IERC721[] memory preciousTokens, uint256[] memory preciousTokenIds) = partyAdmin.createParty(
+      partyFactory,
+      PartyAdmin.PartyCreationMinimalOptions({
+        host1: address(nicholas),
+        host2: address(0),
+        passThresholdBps: 5100,
+        totalVotingPower: 300,
+        preciousTokenAddress: address(toadz),
+        preciousTokenId: 1
+      })
+    );
+    DummySimpleProposalEngineImpl propEng = DummySimpleProposalEngineImpl(address(party));
+
+    // Mint governance NFTs
+    partyAdmin.mintGovNft(party, address(john), 100);
+    partyAdmin.mintGovNft(party, address(danny), 50);
+
+    vm.warp(block.timestamp + 1);
+
+    // Generate and submit proposal
+    PartyGovernance.Proposal memory p1 = PartyGovernance.Proposal({
+      maxExecutableTime: 999999999,
+      nonce: 1,
+      proposalData: abi.encodePacked([0])
+    });
+    john.makeProposal(party, p1);
+
+    // Vote
+    danny.vote(party, 1);
+
+    // Ensure that the same member cannot vote twice
+    vm.expectRevert(bytes('ALREADY_VOTED'));
+    danny.vote(party, 1);
   }
 
   function _assertProposalState(
