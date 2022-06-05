@@ -70,7 +70,6 @@ contract PartyBid is Implementation, PartyCrowdfund {
     error AuctionFinalizedError(uint256 auctionId);
     error AlreadyHighestBidderError();
     error ExceedsMaximumBidError(uint256 bidAmount, uint256 maximumBid);
-    error CouldNotFinalizeError();
     error NoContributionsError();
 
     IERC721 public nftContract;
@@ -145,9 +144,12 @@ contract PartyBid is Implementation, PartyCrowdfund {
     }
 
     // Claim NFT and create a party if won or rescind bid if lost/expired.
-    function finalize(FixedGovernanceOpts memory governanceOpts) external {
+    function finalize(FixedGovernanceOpts memory governanceOpts)
+        external
+        returns (Party party_)
+    {
         CrowdfundLifecycle lc = getCrowdfundLifecycle();
-        if (lc != CrowdfundLifecycle.Active || lc != CrowdfundLifecycle.Expired) {
+        if (lc != CrowdfundLifecycle.Active && lc != CrowdfundLifecycle.Expired) {
             revert WrongLifecycleError(lc);
         }
         // Mark as finalizing to prevent burn(), bid(), and contribute()
@@ -157,15 +159,12 @@ contract PartyBid is Implementation, PartyCrowdfund {
         // Only finalize on the market if we placed a bid.
         if (lastBid_ != 0) {
             // Can reenter and call burn() because _wasFinalized && party == 0 -> Lost
-            (bool s, bytes memory r) = address(market).delegatecall(abi.encodeCall(
+            (bool s, bytes memory r) = address(market).call(abi.encodeCall(
                 IMarketWrapper.finalize,
                 auctionId
             ));
             if (!s) {
                 r.rawRevert();
-            }
-            if (!abi.decode(r, (bool))) {
-                revert CouldNotFinalizeError();
             }
         }
         if (nftContract.safeOwnerOf(nftTokenId) == address(this)) {
@@ -177,7 +176,7 @@ contract PartyBid is Implementation, PartyCrowdfund {
                 }
                 lastBid = lastBid_;
             }
-            Party party_ = _createParty(governanceOpts, nftContract, nftTokenId);
+            party_ = _createParty(governanceOpts, nftContract, nftTokenId);
             emit Won(lastBid_, party_);
         } else {
             emit Lost();

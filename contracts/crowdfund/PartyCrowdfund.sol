@@ -320,9 +320,14 @@ abstract contract PartyCrowdfund is ERC721Receiver, PartyCrowdfundNFT {
                 }
             }
         }
-        uint256 splitBps_ = uint256(splitBps);
+        // one SLOAD with optimizer on
+        address splitRecipient_ = splitRecipient;
+        uint256 splitBps_ = splitBps;
+        if (splitRecipient_ == address(0)) {
+            splitBps_ = 0;
+        }
         votingPower = (1e4 - splitBps_) * totalEthUsed / 1e4;
-        if (splitRecipient == contributor) {
+        if (splitRecipient_ == contributor) {
             // Split recipient is also the contributor so just add the split
             // voting power.
              votingPower += splitBps_ * totalEthUsed / 1e4;
