@@ -68,7 +68,7 @@ abstract contract PartyBuyBase is Implementation, PartyCrowdfund {
     function _initialize(PartyBuyBaseOptions memory opts)
         internal
     {
-        PartyCrowdfund._initialize(CrowdfundInitOptions({
+        PartyCrowdfund._initialize(PartyCrowdfundOptions({
             name: opts.name,
             symbol: opts.symbol,
             splitRecipient: opts.splitRecipient,

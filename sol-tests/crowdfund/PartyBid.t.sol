@@ -31,6 +31,18 @@ contract PartyBidTest is Test, TestUtils {
         address delegate
     );
 
+    event MockMarketWrapperBid(
+        address bidder,
+        uint256 auctionId,
+        uint256 bidAmount
+    );
+
+    event MockMarketWrapperFinalize(
+        address caller,
+        address winner,
+        uint256 topBid
+    );
+
     string defaultName = 'PartyBid';
     string defaultSymbol = 'PBID';
     uint40 defaultDuration = 60 * 60;
@@ -106,8 +118,12 @@ contract PartyBidTest is Test, TestUtils {
         vm.prank(contributor);
         pb.contribute{ value: 1e18 }(delegate, "");
         // Bid on the auction.
+        vm.expectEmit(false, false, false, true);
+        emit MockMarketWrapperBid(address(pb), auctionId, 1337);
         pb.bid();
         // End the auction.
+        vm.expectEmit(false, false, false, true);
+        emit MockMarketWrapperFinalize(address(pb), address(pb), 1337);
         market.mockEndAuction(auctionId);
         // Finalize the PartyBid.
         vm.expectEmit(false, false, false, true);

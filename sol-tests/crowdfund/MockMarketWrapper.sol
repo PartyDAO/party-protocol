@@ -25,6 +25,18 @@ contract MockMarketWrapper is IMarketWrapper, Test {
         AuctionState state;
     }
 
+    event MockMarketWrapperBid(
+        address bidder,
+        uint256 auctionId,
+        uint256 bidAmount
+    );
+
+    event MockMarketWrapperFinalize(
+        address caller,
+        address winner,
+        uint256 topBid
+    );
+
     DummyERC721 public nftContract = new DummyERC721();
     mapping (uint256 => MockAuction) _auctionByAuctionId;
     address immutable _impl;
@@ -67,6 +79,7 @@ contract MockMarketWrapper is IMarketWrapper, Test {
         if (lastBidder != address(0)) {
             lastBidder.transfer(topBid);
         }
+        emit MockMarketWrapperBid(bidder, auctionId, bidAmount);
     }
 
     function mockCancelAuction(uint256 auctionId)
@@ -140,8 +153,9 @@ contract MockMarketWrapper is IMarketWrapper, Test {
             if (state == AuctionState.Cancelled) {
                 auc.winner.transfer(auc.topBid);
             } else { // Ended
-                nftContract.transferFrom(address(this), auc.winner, auc.tokenId);
+                nftContract.safeTransferFrom(address(this), auc.winner, auc.tokenId, "");
             }
         }
+        emit MockMarketWrapperFinalize(msg.sender, auc.winner, auc.topBid);
     }
 }
