@@ -93,6 +93,7 @@ abstract contract PartyBuyBase is Implementation, PartyCrowdfund {
         FixedGovernanceOpts memory governanceOpts
     )
         internal
+        returns (Party party_)
     {
         CrowdfundLifecycle lc = getCrowdfundLifecycle();
         if (lc != CrowdfundLifecycle.Active) {
@@ -120,7 +121,7 @@ abstract contract PartyBuyBase is Implementation, PartyCrowdfund {
         if (token.safeOwnerOf(tokenId) != address(this)) {
             revert FailedToBuyNFTError(token, tokenId);
         }
-        emit Won(_createParty(governanceOpts, token, tokenId));
+        emit Won(party_ = _createParty(governanceOpts, token, tokenId));
     }
 
     function getCrowdfundLifecycle() public override view returns (CrowdfundLifecycle) {

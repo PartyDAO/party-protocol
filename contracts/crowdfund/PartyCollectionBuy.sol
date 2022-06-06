@@ -84,7 +84,15 @@ contract PartyCollectionBuy is PartyBuyBase {
         FixedGovernanceOpts memory governanceOpts
     )
         external
+        returns (Party party_)
     {
-        _buy(nftContract, tokenId, callTarget, callValue, callData, governanceOpts);
+        party_ = _buy(
+            nftContract,
+            tokenId,
+            callTarget,
+            callValue,
+            callData,
+            governanceOpts
+        );
     }
 }

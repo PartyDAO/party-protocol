@@ -3,7 +3,7 @@ pragma solidity ^0.8;
 
 import "forge-std/Test.sol";
 
-import "../../contracts/crowdfund/PartyBid.sol";
+import "../../contracts/crowdfund/PartyCollectionBuy.sol";
 import "../../contracts/globals/Globals.sol";
 import "../../contracts/globals/LibGlobals.sol";
 import "../../contracts/utils/Proxy.sol";
@@ -12,9 +12,9 @@ import "../DummyERC721.sol";
 import "../TestUtils.sol";
 
 import "./MockPartyFactory.sol";
-import "./MockMarketWrapper.sol";
+import "./TestERC721Vault.sol";
 
-contract PartyBidTest is Test, TestUtils {
+contract PartyCollectionBuyTest is Test, TestUtils {
     event MockPartyFactoryCreateParty(
         address caller,
         address authority,
@@ -31,22 +31,10 @@ contract PartyBidTest is Test, TestUtils {
         address delegate
     );
 
-    event MockMarketWrapperBid(
-        address bidder,
-        uint256 auctionId,
-        uint256 bidAmount
-    );
-
-    event MockMarketWrapperFinalize(
-        address caller,
-        address winner,
-        uint256 topBid
-    );
-
-    string defaultName = 'PartyBid';
+    string defaultName = 'PartyCollectionBuy';
     string defaultSymbol = 'PBID';
     uint40 defaultDuration = 60 * 60;
-    uint128 defaultMaxBid = 10e18;
+    uint128 defaultMaxPrice = 10e18;
     address payable defaultSplitRecipient = payable(0);
     uint16 defaultSplitBps = 0.1e4;
     address defaultInitialDelegate;
@@ -56,42 +44,33 @@ contract PartyBidTest is Test, TestUtils {
 
     Globals globals = new Globals(address(this));
     MockPartyFactory partyFactory = new MockPartyFactory();
-    MockMarketWrapper market = new MockMarketWrapper();
-    DummyERC721 tokenToBuy;
-    PartyBid partyBidImpl;
+    TestERC721Vault erc721Vault = new TestERC721Vault();
+    PartyCollectionBuy partyCollectionBuyImpl;
     Party party;
 
     constructor() {
         globals.setAddress(LibGlobals.GLOBAL_PARTY_FACTORY, address(partyFactory));
-        tokenToBuy = market.nftContract();
         party = partyFactory.mockParty();
-        partyBidImpl = new PartyBid(globals);
+        partyCollectionBuyImpl = new PartyCollectionBuy(globals);
     }
 
     function setUp() public {
     }
 
-    function _createCrowdfund(
-        uint256 auctionId,
-        uint256 tokenId,
-        uint128 initialContribution
-    )
+    function _createCrowdfund(uint128 initialContribution)
         private
-        returns (PartyBid pb)
+        returns (PartyCollectionBuy pb)
     {
-        pb = PartyBid(payable(address(new Proxy{ value: initialContribution }(
-            partyBidImpl,
+        pb = PartyCollectionBuy(payable(address(new Proxy{ value: initialContribution }(
+            partyCollectionBuyImpl,
             abi.encodeCall(
-                PartyBid.initialize,
-                PartyBid.PartyBidOptions({
+                PartyCollectionBuy.initialize,
+                PartyCollectionBuy.PartyCollectionBuyOptions({
                     name: defaultName,
                     symbol: defaultSymbol,
-                    auctionId: auctionId,
-                    market: market,
-                    nftContract: tokenToBuy,
-                    nftTokenId: tokenId,
+                    nftContract: erc721Vault.token(),
                     duration: defaultDuration,
-                    maximumBid: defaultMaxBid,
+                    maximumPrice: defaultMaxPrice,
                     splitRecipient: defaultSplitRecipient,
                     splitBps: defaultSplitBps,
                     initialContributor: address(this),
@@ -122,34 +101,31 @@ contract PartyBidTest is Test, TestUtils {
     }
 
     function testHappyPath() public {
-        // Create a token and auction with min bid of 1337 wei.
-        (uint256 auctionId, uint256 tokenId) = market.createAuction(1337);
-        // Create a PartyBid instance.
-        PartyBid pb = _createCrowdfund(auctionId, tokenId, 0);
+        uint256 tokenId = erc721Vault.mint();
+        // Create a PartyCollectionBuy instance.
+        PartyCollectionBuy pb = _createCrowdfund(0);
         // Contribute and delegate.
         address payable contributor = _randomAddress();
         address delegate = _randomAddress();
         vm.deal(contributor, 1e18);
         vm.prank(contributor);
-        pb.contribute{ value: 1e18 }(delegate, "");
-        // Bid on the auction.
-        vm.expectEmit(false, false, false, true);
-        emit MockMarketWrapperBid(address(pb), auctionId, 1337);
-        pb.bid();
-        // End the auction.
-        vm.expectEmit(false, false, false, true);
-        emit MockMarketWrapperFinalize(address(pb), address(pb), 1337);
-        market.mockEndAuction(auctionId);
-        // Finalize the PartyBid.
+        pb.contribute{ value: contributor.balance }(delegate, "");
+        // Buy the token.
         vm.expectEmit(false, false, false, true);
         emit MockPartyFactoryCreateParty(
             address(pb),
             address(pb),
-            _createExpectedPartyOptions(1337),
-            _toERC721Array(tokenToBuy),
+            _createExpectedPartyOptions(0.5e18),
+            _toERC721Array(erc721Vault.token()),
             _toUint256Array(tokenId)
         );
-        Party party_ = pb.finalize(defaultGovernanceOpts);
+        Party party_ = pb.buy(
+            tokenId,
+            payable(address(erc721Vault)),
+            0.5e18,
+            abi.encodeCall(erc721Vault.claim, (tokenId)),
+            defaultGovernanceOpts
+        );
         assertEq(address(party), address(party_));
         // Burn contributor's NFT, mock minting governance tokens and returning
         // unused contribution.
@@ -158,10 +134,10 @@ contract PartyBidTest is Test, TestUtils {
             address(pb),
             party_,
             contributor,
-            1337,
+            0.5e18,
             delegate
         );
         pb.burn(contributor);
-        assertEq(contributor.balance, 1e18 - 1337);
+        assertEq(contributor.balance, 0.5e18);
     }
 }

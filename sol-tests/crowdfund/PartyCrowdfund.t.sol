@@ -115,6 +115,24 @@ contract PartyCrowdfundTest is Test, TestUtils {
         });
     }
 
+    function _getAmountWithoutSplit(uint256 contribution)
+        private
+        view
+        returns (uint256 r)
+    {
+        return (uint256(1e4 - defaultSplitBps) * contribution) / 1e4;
+    }
+
+    function _getAmountWithSplit(uint256 contribution, uint256 totalContributions)
+        private
+        view
+        returns (uint256 r)
+    {
+        return _getAmountWithoutSplit(contribution) +
+            (uint256(defaultSplitBps) * totalContributions) / (1e4 - 1);
+    }
+
+
     // One person contributes, their entire contribution is used.
     function testWin_oneContributor() public {
         TestablePartyCrowdfund cf = _createCrowdfund(0);
@@ -615,24 +633,6 @@ contract PartyCrowdfundTest is Test, TestUtils {
         assertEq(contributor1.balance, 0);
     }
 
-    function _getAmountWithoutSplit(uint256 contribution)
-        private
-        view
-        returns (uint256 r)
-    {
-        return (uint256(1e4 - defaultSplitBps) * contribution) / 1e4;
-    }
-
-    function _getAmountWithSplit(uint256 contribution, uint256 totalContributions)
-        private
-        view
-        returns (uint256 r)
-    {
-        return _getAmountWithoutSplit(contribution) +
-            (uint256(defaultSplitBps) * totalContributions) / (1e4 - 1);
-    }
-
-
     // Split recipient set but does not contribute.
     // Half of contributor's contribution used.
     function testWin_nonParticipatingSplitRecipient() public {
@@ -784,4 +784,5 @@ contract PartyCrowdfundTest is Test, TestUtils {
     }
 
     // TODO: intiial contribution tests
+    // TODO: test gatekeeper
 }
