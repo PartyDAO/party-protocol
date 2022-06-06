@@ -34,7 +34,6 @@ contract ERC20TokenGateKeeper is IGateKeeper {
         bytes12 id,
         bytes memory /* userData */
     ) external view returns (bool) {
-        require(participant != address(0), "participant attempted to join with address 0x0");
         TokenGate memory _gate = _gateInfo[uint96(id)];
         return IERC20(_gate.token).balanceOf(participant) >= _gate.minimumBalance;
     }
