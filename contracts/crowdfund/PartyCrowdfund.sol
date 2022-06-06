@@ -148,7 +148,6 @@ abstract contract PartyCrowdfund is ERC721Receiver, PartyCrowdfundNFT {
     // Contribute and/or delegate.
     function contribute(address delegate, bytes memory gateData)
         public
-        virtual
         payable
     {
         _contribute(
@@ -169,7 +168,7 @@ abstract contract PartyCrowdfund is ERC721Receiver, PartyCrowdfundNFT {
 
     // Contribute, reusing the last delegate of the sender or
     // the sender itself if not set.
-    receive() external virtual payable {
+    receive() external payable {
         // If the sender already delegated before then use that delegate.
         // Otherwise delegate to the sender.
         address delegate = _delegationsByContributor[msg.sender];
