@@ -24,6 +24,14 @@ contract ERC20TokenGateKeeperTest is Test, TestUtils {
         assertTrue(gateId1 != gateId2);
     }
 
+    function testDifferentMinimumBalance() public {
+        uint256 min_balance = 7e24;
+        bytes12 gateId = gk.createGate(address(dummyToken1), min_balance);
+        address user = _randomAddress();
+        dummyToken1.deal(user, 8e24);
+        assertEq(gk.isAllowed(user, gateId, ""), true);
+    }
+
     function testEqualToMinimumBalance() public {
         bytes12 gateId = gk.createGate(address(dummyToken1), MIN_BALANCE);
         address user = _randomAddress();
@@ -47,7 +55,6 @@ contract ERC20TokenGateKeeperTest is Test, TestUtils {
 
     function testSeparateGateAccess() public {
         bytes12 gateId1 = gk.createGate(address(dummyToken1), MIN_BALANCE);
-        console.log(dummyToken1 == dummyToken2);
         bytes12 gateId2 = gk.createGate(address(dummyToken2), MIN_BALANCE);
         address user1 = _randomAddress();
         address user2 = _randomAddress();
