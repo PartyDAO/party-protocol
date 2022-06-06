@@ -4,6 +4,7 @@ pragma solidity ^0.8;
 import "forge-std/Test.sol";
 
 import "../../contracts/crowdfund/PartyBid.sol";
+import "../../contracts/gatekeepers/AllowListGateKeeper.sol";
 import "../../contracts/globals/Globals.sol";
 import "../../contracts/globals/LibGlobals.sol";
 import "../../contracts/utils/Proxy.sol";
@@ -784,5 +785,35 @@ contract PartyCrowdfundTest is Test, TestUtils {
     }
 
     // TODO: intiial contribution tests
-    // TODO: test gatekeeper
+
+    // Two contributors, one is blocked
+    function test_twoContributors_oneBlockedByGateKeeper() public {
+        address delegate1 = _randomAddress();
+        address delegate2 = _randomAddress();
+        address payable contributor1 = _randomAddress();
+        address payable contributor2 = _randomAddress();
+
+        AllowListGateKeeper gk = new AllowListGateKeeper();
+        bytes12 gateId = gk.createGate(_toAddressArray(contributor1));
+        defaultGateKeeper = gk;
+        defaultGateKeeperId = gateId;
+        TestablePartyCrowdfund cf = _createCrowdfund(0);
+
+        // contributor1 contributes 1 ETH
+        vm.deal(contributor1, 1e18);
+        vm.prank(contributor1);
+        cf.contribute{ value: contributor1.balance }(delegate1, "");
+
+        // contributor2 contributes 0.5 ETH but will be blocked by the gatekeeper.
+        vm.deal(contributor2, 0.5e18);
+        vm.prank(contributor2);
+        vm.expectRevert(abi.encodeWithSelector(
+            PartyCrowdfund.NotAllowedByGateKeeperError.selector,
+            contributor2,
+            defaultGateKeeper,
+            gateId,
+            ""
+        ));
+        cf.contribute{ value: contributor2.balance }(delegate2, "");
+    }
 }

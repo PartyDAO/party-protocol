@@ -49,7 +49,7 @@ abstract contract PartyBuyBase is Implementation, PartyCrowdfund {
         FixedGovernanceOpts governanceOpts;
     }
 
-    event Won(Party party, IERC721 token, uint256 tokenId);
+    event Won(Party party, IERC721 token, uint256);
 
     error MaximumPriceError(uint128 callValue, uint128 maximumPrice);
     error NoContributionsError();
