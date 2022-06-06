@@ -49,7 +49,7 @@ abstract contract PartyBuyBase is Implementation, PartyCrowdfund {
         FixedGovernanceOpts governanceOpts;
     }
 
-    event Won(Party party);
+    event Won(Party party, IERC721 token, uint256 tokenId);
 
     error MaximumPriceError(uint128 callValue, uint128 maximumPrice);
     error NoContributionsError();
@@ -121,7 +121,7 @@ abstract contract PartyBuyBase is Implementation, PartyCrowdfund {
         if (token.safeOwnerOf(tokenId) != address(this)) {
             revert FailedToBuyNFTError(token, tokenId);
         }
-        emit Won(party_ = _createParty(governanceOpts, token, tokenId));
+        emit Won(party_ = _createParty(governanceOpts, token, tokenId), token, tokenId);
     }
 
     function getCrowdfundLifecycle() public override view returns (CrowdfundLifecycle) {

@@ -140,4 +140,33 @@ contract PartyCollectionBuyTest is Test, TestUtils {
         pb.burn(contributor);
         assertEq(contributor.balance, 0.5e18);
     }
+
+    // The call to buy() does not transfer the token.
+    function testBuyDoesNotTransferToken() public {
+        uint256 tokenId = erc721Vault.mint();
+        // Create a PartyBuy instance.
+        PartyCollectionBuy pb = _createCrowdfund(0);
+        // Contribute and delegate.
+        address payable contributor = _randomAddress();
+        address delegate = _randomAddress();
+        vm.deal(contributor, 1e18);
+        vm.prank(contributor);
+        pb.contribute{ value: contributor.balance }(delegate, "");
+        // Pretend to buy the token.
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                PartyBuyBase.FailedToBuyNFTError.selector,
+                erc721Vault.token(),
+                tokenId
+            )
+        );
+        pb.buy(
+            tokenId,
+            _randomAddress(), // Call random EOA, which will succeed but do nothing
+            0.5e18,
+            "",
+            defaultGovernanceOpts
+        );
+        assertTrue(pb.getCrowdfundLifecycle() == PartyCrowdfund.CrowdfundLifecycle.Active);
+    }
 }
