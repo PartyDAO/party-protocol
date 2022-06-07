@@ -437,6 +437,10 @@ contract PartyGovernanceTest is Test, TestUtils {
     vm.warp(block.timestamp + 300);
     _assertProposalState(party, 1, PartyGovernance.ProposalState.Ready, 51);
 
+    // warp to maxExecutabletime
+    vm.warp(999999999);
+    _assertProposalState(party, 1, PartyGovernance.ProposalState.Ready, 51);
+    
     // warp past maxExecutabletime
     vm.warp(999999999 + 1);
 
