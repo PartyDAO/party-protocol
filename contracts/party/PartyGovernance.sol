@@ -129,6 +129,7 @@ abstract contract PartyGovernance is
     error OnlyActiveMemberError();
     error InvalidDelegateError();
     error BadPreciousListError();
+    error AlreadyVotedError(address voter);
 
     IGlobals private immutable _GLOBALS;
 
@@ -154,13 +155,15 @@ abstract contract PartyGovernance is
         _;
     }
 
-    // should this allow for a user w delevated votes too?
     modifier onlyActiveMember() {
-        if (_getLastVotingPowerSnapshotIn(
-                _votingPowerSnapshotsByVoter[msg.sender]
-            ).intrinsicVotingPower == 0)
         {
-            revert OnlyActiveMemberError();
+            VotingPowerSnapshot memory shot = _getLastVotingPowerSnapshotIn(
+                _votingPowerSnapshotsByVoter[msg.sender]
+            );
+            // Must have either delegated voting power or intrinsic voting power.
+            if (shot.intrinsicVotingPower == 0 && shot.delegatedVotingPower == 0) {
+                revert OnlyActiveMemberError();
+            }
         }
         _;
     }
@@ -270,6 +273,7 @@ abstract contract PartyGovernance is
     // Will also cast sender's votes for proposal.
     function propose(Proposal calldata proposal)
         external
+        onlyActiveMember
         returns (uint256 proposalId)
     {
         proposalId = ++lastProposalId;
@@ -287,9 +291,7 @@ abstract contract PartyGovernance is
             _getProposalHash(proposal)
         );
         emit Proposed(proposalId, msg.sender, proposal);
-        if (accept(proposalId) == 0) {
-            revert ProposalHasNoVotesError(proposalId);
-        }
+        accept(proposalId);
     }
 
     function accept(uint256 proposalId)
@@ -311,7 +313,9 @@ abstract contract PartyGovernance is
         }
 
         // Cannot vote twice.
-        require(!info.hasVoted[msg.sender], 'ALREADY_VOTED');
+        if (info.hasVoted[msg.sender]) {
+            revert AlreadyVotedError(msg.sender);
+        }
         info.hasVoted[msg.sender] = true;
 
         uint96 votingPower = getVotingPowerAt(msg.sender, values.proposedTime);
@@ -376,9 +380,9 @@ abstract contract PartyGovernance is
         ProposalInfo storage proposalInfo = _proposalInfoByProposalId[proposalId];
         {
             bytes32 actualHash = _getProposalHash(proposal);
-            bytes32 proposalHash = proposalInfo.hash;
-            if (proposalHash != proposalHash) {
-                revert BadProposalHashError(proposalHash, actualHash);
+            bytes32 expectedHash = proposalInfo.hash;
+            if (expectedHash != actualHash) {
+                revert BadProposalHashError(actualHash, expectedHash);
             }
         }
         ProposalInfoValues memory infoValues = proposalInfo.values;
@@ -489,7 +493,7 @@ abstract contract PartyGovernance is
     }
 
     function _getProposalHash(Proposal memory proposal)
-        private
+        internal
         pure
         returns (bytes32 h)
     {
