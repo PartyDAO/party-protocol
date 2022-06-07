@@ -120,7 +120,7 @@ abstract contract PartyGovernance is
     event VotingPowerDelegated(address owner, address delegate);
     event PreciousListSet(IERC721[] tokens, uint256[] tokenIds);
 
-    error BadProposalStateError(uint256 state);
+    error BadProposalStateError(ProposalState state);
     error ProposalExistsError(uint256 proposalId);
     error BadProposalHashError(bytes32 proposalHash, bytes32 actualHash);
     error ProposalHasNoVotesError(uint256 proposalId);
@@ -132,7 +132,6 @@ abstract contract PartyGovernance is
 
     IGlobals private immutable _GLOBALS;
 
-    GovernanceValues public governanceValues;
     // The hash of the list of precious NFTs guarded by the party.
     bytes32 public preciousListHash;
     // The last proposal ID that was used. 0 means no proposals have been made.
@@ -141,6 +140,8 @@ abstract contract PartyGovernance is
     mapping(address => bool) public isHost;
     // The last person a voter delegated its voting power to.
     mapping(address => address) public delegationsByVoter;
+    // Constant governance parameters, fixed from the inception of this party.
+    GovernanceValues private _governanceValues;
     // ProposalInfo by proposal ID.
     mapping(uint256 => ProposalInfo) private _proposalInfoByProposalId;
     // Snapshots of voting power per user, each sorted by increasing time.
@@ -182,7 +183,7 @@ abstract contract PartyGovernance is
             ),
             ""
         );
-        governanceValues = GovernanceValues({
+        _governanceValues = GovernanceValues({
             voteDuration: opts.voteDuration,
             executionDelay: opts.executionDelay,
             passThresholdBps: opts.passThresholdBps,
@@ -305,7 +306,7 @@ abstract contract PartyGovernance is
                 state != ProposalState.Passed &&
                 state != ProposalState.Ready
             ) {
-                revert BadProposalStateError(uint256(state));
+                revert BadProposalStateError(state);
             }
         }
 
@@ -320,8 +321,8 @@ abstract contract PartyGovernance is
 
         if (values.passedTime == 0 && _areVotesPassing(
             values.votes,
-            governanceValues.totalVotingPower,
-            governanceValues.passThresholdBps))
+            _governanceValues.totalVotingPower,
+            _governanceValues.passThresholdBps))
         {
             info.values.passedTime = uint40(block.timestamp);
             emit ProposalPassed(proposalId);
@@ -342,7 +343,7 @@ abstract contract PartyGovernance is
                 state != ProposalState.Passed &&
                 state != ProposalState.Ready
             ) {
-                revert BadProposalStateError(uint256(state));
+                revert BadProposalStateError(state);
             }
         }
 
@@ -370,6 +371,7 @@ abstract contract PartyGovernance is
     )
         external
         payable
+        onlyActiveMember
     {
         ProposalInfo storage proposalInfo = _proposalInfoByProposalId[proposalId];
         {
@@ -382,7 +384,7 @@ abstract contract PartyGovernance is
         ProposalInfoValues memory infoValues = proposalInfo.values;
         ProposalState state = _getProposalState(infoValues);
         if (state != ProposalState.Ready && state != ProposalState.InProgress) {
-            revert BadProposalStateError(uint256(state));
+            revert BadProposalStateError(state);
         }
         if (state == ProposalState.Ready) {
             if (proposal.maxExecutableTime < block.timestamp) {
@@ -414,7 +416,7 @@ abstract contract PartyGovernance is
     }
 
     function getGovernanceValues() public view returns (GovernanceValues memory gv) {
-        return governanceValues;
+        return _governanceValues;
     }
 
     function _executeProposal(
@@ -548,7 +550,7 @@ abstract contract PartyGovernance is
     }
 
     function _getTotalVotingPower() internal view returns (uint256) {
-        return governanceValues.totalVotingPower;
+        return _governanceValues.totalVotingPower;
     }
 
     // Update the delegated voting power of the old and new delegates delegated to
@@ -616,7 +618,7 @@ abstract contract PartyGovernance is
         view
         returns (uint256)
     {
-        if (pv.votes >= governanceValues.totalVotingPower) {
+        if (pv.votes >= _governanceValues.totalVotingPower) {
             // Passed unanimously.
             return LibProposal.PROPOSAL_FLAG_UNANIMOUS;
         }
@@ -643,7 +645,7 @@ abstract contract PartyGovernance is
             return ProposalState.Defeated;
         }
         uint40 t = uint40(block.timestamp);
-        GovernanceValues memory gv = governanceValues;
+        GovernanceValues memory gv = _governanceValues;
         if (pv.passedTime != 0) {
             // Ready.
             if (pv.passedTime + gv.executionDelay <= t) {

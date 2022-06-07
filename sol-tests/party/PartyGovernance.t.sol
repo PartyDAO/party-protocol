@@ -25,13 +25,13 @@ contract PartyGovernanceTest is Test, TestUtils {
   function setUp() public {
     GlobalsAdmin globalsAdmin = new GlobalsAdmin();
     Globals globals = globalsAdmin.globals();
-  
+
     Party partyImpl = new Party(globals);
     globalsAdmin.setPartyImpl(address(partyImpl));
 
     eng = new DummySimpleProposalEngineImpl();
     globalsAdmin.setProposalEng(address(eng));
-  
+
     partyFactory = new PartyFactory(globals);
 
     john = new PartyParticipant();
@@ -290,7 +290,10 @@ contract PartyGovernanceTest is Test, TestUtils {
 
     // ensure can't execute proposal
     vm.expectRevert(
-      abi.encodeWithSignature("BadProposalStateError(uint256)", 2)
+      abi.encodeWithSelector(
+          PartyGovernance.BadProposalStateError.selector,
+          PartyGovernance.ProposalState.Defeated
+      )
     );
     john.executeProposal(party, PartyParticipant.ExecutionOptions({
       proposalId: 1,
