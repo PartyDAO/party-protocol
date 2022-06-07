@@ -341,9 +341,7 @@ contract PartyGovernanceTest is Test, TestUtils {
     danny.vote(party, 1);
   }
 
-  // 1. The voting period is over, so the proposal expired without passing
-  // 2. The proposal passed, but it's now too late to execute because it went over the maxExecutableTime or whatever that variable is called
-
+  // The voting period is over, so the proposal expired without passing
   function testExpiresWithoutPassing() public {
     // Create party
     (Party party, IERC721[] memory preciousTokens, uint256[] memory preciousTokenIds) = partyAdmin.createParty(
@@ -387,6 +385,67 @@ contract PartyGovernanceTest is Test, TestUtils {
       abi.encodeWithSelector(
           PartyGovernance.BadProposalStateError.selector,
           PartyGovernance.ProposalState.Defeated
+      )
+    );
+    john.executeProposal(party, PartyParticipant.ExecutionOptions({
+      proposalId: 1,
+      proposal: p1,
+      preciousTokens: preciousTokens,
+      preciousTokenIds: preciousTokenIds,
+      progressData: abi.encodePacked([address(0)])
+    }));
+  }
+
+  // The proposal passed, but it's now too late to execute because it went over the maxExecutableTime or whatever that variable is called
+  function testExpiresWithPassing() public {
+    // Create party
+    (Party party, IERC721[] memory preciousTokens, uint256[] memory preciousTokenIds) = partyAdmin.createParty(
+      partyFactory,
+      PartyAdmin.PartyCreationMinimalOptions({
+        host1: address(john),
+        host2: address(danny),
+        passThresholdBps: 5100,
+        totalVotingPower: 100,
+        preciousTokenAddress: address(toadz),
+        preciousTokenId: 1
+      })
+    );
+    DummySimpleProposalEngineImpl propEng = DummySimpleProposalEngineImpl(address(party));
+
+    // Mint governance NFTs
+    partyAdmin.mintGovNft(party, address(john), 1);
+    partyAdmin.mintGovNft(party, address(danny), 50);
+    partyAdmin.mintGovNft(party, address(steve), 49);
+
+    vm.warp(block.timestamp + 1);
+
+    // Generate proposal
+    PartyGovernance.Proposal memory p1 = PartyGovernance.Proposal({
+      maxExecutableTime: 999999999,
+      nonce: 1,
+      proposalData: abi.encodePacked([0])
+    });
+    john.makeProposal(party, p1);
+    _assertProposalState(party, 1, PartyGovernance.ProposalState.Voting, 1);
+    
+    danny.vote(party, 1);
+    _assertProposalState(party, 1, PartyGovernance.ProposalState.Passed, 51);
+
+    vm.warp(block.timestamp + 98);
+    _assertProposalState(party, 1, PartyGovernance.ProposalState.Passed, 51);
+
+    vm.warp(block.timestamp + 300);
+    _assertProposalState(party, 1, PartyGovernance.ProposalState.Ready, 51);
+
+    // warp past maxExecutabletime
+    vm.warp(999999999 + 1);
+
+    // ensure can't execute proposal due to maxExecutableTime
+    vm.expectRevert(
+      abi.encodeWithSelector(
+          PartyGovernance.ExecutionTimeExceededError.selector,
+          999999999,
+          block.timestamp
       )
     );
     john.executeProposal(party, PartyParticipant.ExecutionOptions({
