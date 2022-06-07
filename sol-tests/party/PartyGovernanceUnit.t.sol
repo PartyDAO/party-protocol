@@ -619,6 +619,59 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
         );
     }
 
+    // Try to execute a proposal that has already completed.
+    function testProposalLifecycle_cannotExecuteCompletedProposal() external {
+        TestablePartyGovernance gov;
+        (IERC721[] memory preciousTokens, uint256[] memory preciousTokenIds) =
+            _createPreciousTokens(2);
+        gov = _createGovernance(100e18, preciousTokens, preciousTokenIds);
+        address undelegatedVoter = _randomAddress();
+        // undelegatedVoter has 51/100 intrinsic VP (delegated to no one/self)
+        gov.mockAdjustVotingPower(undelegatedVoter, 51e18, address(0));
+
+        // Create a one-step proposal.
+        PartyGovernance.Proposal memory proposal = _createProposal(1);
+        uint256 proposalId = gov.lastProposalId() + 1;
+
+        // Undelegated voter submits proposal.
+        // Voter has majority VP so it also passes immediately.
+        vm.expectEmit(false, false, false, true);
+        emit ProposalPassed(proposalId);
+        vm.prank(undelegatedVoter);
+        assertEq(gov.propose(proposal), proposalId);
+
+        // Skip past execution delay.
+        skip(defaultGovernanceOpts.executionDelay);
+
+        // Execute (1/1).
+        vm.prank(undelegatedVoter);
+        gov.execute(
+            proposalId,
+            proposal,
+            preciousTokens,
+            preciousTokenIds,
+            ""
+        );
+
+        (PartyGovernance.ProposalState propState,) = gov.getProposalStates(proposalId);
+        assertTrue(propState == PartyGovernance.ProposalState.Complete);
+
+        // Try to execute again.
+        bytes32 expectedHash = gov.getProposalHash(proposal);
+        vm.expectRevert(abi.encodeWithSelector(
+            PartyGovernance.BadProposalStateError.selector,
+            PartyGovernance.ProposalState.Complete
+        ));
+        vm.prank(undelegatedVoter);
+        gov.execute(
+            proposalId,
+            proposal,
+            preciousTokens,
+            preciousTokenIds,
+            ""
+        );
+    }
+
     // Try to execute a proposal that has been modified.
     function testProposalLifecycle_cannotExecuteIfModified() external {
         TestablePartyGovernance gov;
