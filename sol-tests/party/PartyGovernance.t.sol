@@ -471,5 +471,4 @@ contract PartyGovernanceTest is Test, TestUtils {
       assertEq(uint256(ps), uint256(expectedProposalState));
       assertEq(pv.votes, expectedNumVotes);
   }
-
 }
