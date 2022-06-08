@@ -38,6 +38,7 @@ contract TokenDistributor {
     }
 
     error OnlyPartyDaoError(address notDao, address partyDao);
+    error OnlyPartyDaoAuthorityError(address notDaoAuthority);
     error InvalidDistributionInfoError(DistributionInfo info);
     error DistributionAlreadyClaimedByTokenError(uint256 distributionId, uint256 tokenId);
     error DistributionAlreadyClaimedByPartyDaoError(uint256 distributionId);
@@ -71,6 +72,19 @@ contract TokenDistributor {
             address partyDao = GLOBALS.getAddress(LibGlobals.GLOBAL_DAO_WALLET);
             if (msg.sender != partyDao) {
                 revert OnlyPartyDaoError(msg.sender, partyDao);
+            }
+        }
+        _;
+    }
+
+    modifier onlyPartyDaoAuthority() {
+        {
+            bool isPartyDaoAuthority = GLOBALS.getIncludesAddress(
+                LibGlobals.GLOBAL_DAO_AUTHORITIES,
+                msg.sender
+            );
+            if (!isPartyDaoAuthority) {
+                revert OnlyPartyDaoAuthorityError(msg.sender);
             }
         }
         _;
@@ -121,7 +135,7 @@ contract TokenDistributor {
         if (daoSupply > supply) {
             revert InvalidDistributionSupply(supply, daoSupply);
         }
-        
+
 
         uint256 memberSupply = supply - daoSupply;
         info = DistributionInfo({
@@ -193,7 +207,7 @@ contract TokenDistributor {
         address payable recipient
     )
         external
-        onlyPartyDao
+        onlyPartyDaoAuthority
     {
         DistributionState storage state = _distributionStates[info.party][info.distributionId];
         if (state.distributionHash15 != _getDistributionHash(info)) {
