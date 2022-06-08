@@ -16,7 +16,7 @@ contract Deploy is Test {
 
   // TODO: verify these constants
   // constants
-  address constant DEPLOYER_ADDRESS = 0x0000000000000000000000000000000000001337;
+  address constant DEPLOYER_ADDRESS = 0x00a329c0648769A73afAc7F9381E08FB43dBEA72;
   address constant OPENSEA_EXCHANGE_ADDRESS = 0x7f268357A8c2552623316e2562D90e642bB538E5;
   address constant PARTY_DAO_MULTISIG = 0xF7f52Dd34bc21eDA08c0b804C7c1dbc48375820f;
   uint256 constant PARTY_DAO_DISTRIBUTION_SPLIT_BPS = 250;
@@ -36,8 +36,8 @@ contract Deploy is Test {
 
   function run() public {
     console.log('Starting deploy script.');
+    console.log('DEPLOYER_ADDRESS', DEPLOYER_ADDRESS);
     vm.startBroadcast();
-
 
     // DEPLOY_GLOBALS
     console.log('');

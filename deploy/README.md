@@ -1,7 +1,7 @@
 # deploy
 
 ```sh
-forge script ./deploy/deploy.sol -vvv --fork-url $RPC_URL
+forge script ./deploy/deploy.sol -vvv --fork-url https://eth-mainnet.alchemyapi.io/v2/$ALCHEMY_API_KEY --optimize --optimizer-runs 999999
 ```
 
 [`forge script` docs](https://book.getfoundry.sh/reference/forge/forge-script.html?highlight=script#forge-script)
