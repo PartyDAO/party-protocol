@@ -13,7 +13,7 @@ contract ERC20TokenGateKeeper is IGateKeeper {
     uint96 private _lastId;
 
     struct TokenGate {
-        address token;
+        IERC20 token;
         uint256 minimumBalance;
     }
 
