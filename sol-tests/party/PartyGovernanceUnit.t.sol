@@ -1546,4 +1546,40 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
         assertEq(gov.getVotingPowerAt(voter1, uint40(block.timestamp)), 50e18);
         assertEq(gov.getVotingPowerAt(voter2, uint40(block.timestamp)), 25e18);
     }
+
+    // Hosts can transfer their host status to another address
+    function testHostPower_transferHostStatus() external {
+        TestablePartyGovernance gov;
+        (IERC721[] memory preciousTokens, uint256[] memory preciousTokenIds) =
+            _createPreciousTokens(2);
+        gov = _createGovernance(100e18, preciousTokens, preciousTokenIds);
+
+        address newHost = _randomAddress();
+
+        // Transfer host status to another address
+        address host = _getRandomDefaultHost();
+        vm.prank(host);
+        gov.abdicate(newHost);
+
+        // Assert old host is no longer host
+        assertEq(gov.isHost(host), false);
+
+        // Assert new host is host
+        assertEq(gov.isHost(newHost), true);
+    }
+
+    // You cannot transfer host status to an existing host
+    function testHostPower_cannotTransferHostStatusToExistingHost() external {
+        TestablePartyGovernance gov;
+        (IERC721[] memory preciousTokens, uint256[] memory preciousTokenIds) =
+            _createPreciousTokens(2);
+        gov = _createGovernance(100e18, preciousTokens, preciousTokenIds);
+
+        address host = _getRandomDefaultHost();
+
+        // try to transfer host status to an existing host
+        vm.prank(host);
+        vm.expectRevert();
+        gov.abdicate(host);
+    }
 }
