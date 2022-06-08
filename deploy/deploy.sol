@@ -11,17 +11,15 @@ import '../contracts/party/Party.sol';
 import '../contracts/party/PartyFactory.sol';
 import '../contracts/proposals/ProposalExecutionEngine.sol';
 import '../contracts/proposals/opensea/SharedWyvernV2Maker.sol';
+import './LibDeployAddresses.sol';
 
 contract Deploy is Test {
 
   // TODO: verify these constants
   // constants
   address constant DEPLOYER_ADDRESS = 0x00a329c0648769A73afAc7F9381E08FB43dBEA72;
-  address constant OPENSEA_EXCHANGE_ADDRESS = 0x7f268357A8c2552623316e2562D90e642bB538E5;
-  address constant PARTY_DAO_MULTISIG = 0xF7f52Dd34bc21eDA08c0b804C7c1dbc48375820f;
   uint256 constant PARTY_DAO_DISTRIBUTION_SPLIT_BPS = 250;
   uint256 constant OS_ZORA_AUCTION_DURATION = 86400; // 60 * 60 * 24 = 86400 seconds = 24 hours
-  address constant ZORA_AUCTION_HOUSE_ADDRESS = 0xE468cE99444174Bd3bBBEd09209577d25D1ad673;
 
   // temporary variables to store deployed contract addresses
   // PartyCrowdfundFactory partyCrowdfundFactoryAddress;
@@ -34,7 +32,7 @@ contract Deploy is Test {
   SharedWyvernV2Maker sharedWyvernV2Maker;
   TokenDistributor tokenDistributor;
 
-  function run() public {
+  function run(LibDeployAddresses.DeployAddresses memory deployAddresses) public {
     console.log('Starting deploy script.');
     console.log('DEPLOYER_ADDRESS', DEPLOYER_ADDRESS);
     vm.startBroadcast();
@@ -49,8 +47,8 @@ contract Deploy is Test {
     console.log('');
     console.log('  Globals - setting PartyDao Multi-sig address');
     // TODO: setAddress or setUint256?
-    globals.setAddress(LibGlobals.GLOBAL_DAO_WALLET, PARTY_DAO_MULTISIG);
-    console.log('  Globals - successfully set PartyDao multi-sig address', PARTY_DAO_MULTISIG);
+    globals.setAddress(LibGlobals.GLOBAL_DAO_WALLET, deployAddresses.partyDaoMultisig);
+    console.log('  Globals - successfully set PartyDao multi-sig address', deployAddresses.partyDaoMultisig);
 
     console.log('  Globals - setting PartyDao split basis points');
     globals.setUint256(LibGlobals.GLOBAL_DAO_DISTRIBUTION_SPLIT, PARTY_DAO_DISTRIBUTION_SPLIT_BPS);
@@ -74,7 +72,7 @@ contract Deploy is Test {
     console.log('');
     console.log('### SharedWyvernV2Maker');
     console.log('  Deploying - SharedWyvernV2Maker');
-    openseaExchange = IWyvernExchangeV2(OPENSEA_EXCHANGE_ADDRESS);
+    openseaExchange = IWyvernExchangeV2(deployAddresses.openSeaExchangeAddress);
     sharedWyvernV2Maker = new SharedWyvernV2Maker(openseaExchange);
     console.log('  Deployed - SharedWyvernV2Maker', address(sharedWyvernV2Maker));
 
@@ -88,7 +86,7 @@ contract Deploy is Test {
     console.log('');
     console.log('### ProposalExecutionEngine');
     console.log('  Deploying - ProposalExecutionEngine');
-    zoraAuctionHouse = IZoraAuctionHouse(ZORA_AUCTION_HOUSE_ADDRESS);
+    zoraAuctionHouse = IZoraAuctionHouse(deployAddresses.zoraAuctionHouseAddress);
     proposalEngineImpl = new ProposalExecutionEngine(globals, sharedWyvernV2Maker, zoraAuctionHouse);
     console.log('  Deployed - ProposalExecutionEngine', address(proposalEngineImpl));
     console.log('    with wyvern', address(sharedWyvernV2Maker));
