@@ -41,10 +41,6 @@ contract PartyFactoryTest is Test, TestUtils {
         globals.setAddress(LibGlobals.GLOBAL_PARTY_IMPL, address(partyImpl));
     }
 
-    function setUp() external {
-        // ...
-    }
-
     function _createPreciouses(uint256 count)
         private
         view
