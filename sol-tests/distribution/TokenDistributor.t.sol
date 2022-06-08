@@ -13,6 +13,7 @@ import "./DummyTokenDistributorParty.sol";
 
 contract TokenDistributorTest is Test, TestUtils {
   address immutable ADMIN_ADDRESS = address(1);
+  address immutable DAO_ADDRESS = address(999);
   address payable immutable DISTRIBUTION_ADDRESS = payable(address(2));
   IERC20 immutable ETH_TOKEN = IERC20(0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE);
   Globals globals;
@@ -20,18 +21,19 @@ contract TokenDistributorTest is Test, TestUtils {
   DummyTokenDistributorParty dummyParty1 = new DummyTokenDistributorParty();
   DummyTokenDistributorParty dummyParty2 = new DummyTokenDistributorParty();
   DummyERC20 dummyToken1 = new DummyERC20();
-  
+
   function setUp() public {
-    vm.deal(ADMIN_ADDRESS, 500 ether);
-    globals = new Globals(ADMIN_ADDRESS);
-    vm.prank(ADMIN_ADDRESS);
-    globals.setAddress(LibGlobals.GLOBAL_DAO_WALLET, ADMIN_ADDRESS);
+    globals = new Globals(DAO_ADDRESS);
+    vm.prank(DAO_ADDRESS);
+    globals.setAddress(LibGlobals.GLOBAL_DAO_WALLET, DAO_ADDRESS);
+    vm.prank(DAO_ADDRESS);
+    globals.setIncludesAddress(LibGlobals.GLOBAL_DAO_AUTHORITIES, ADMIN_ADDRESS, true);
     distributor = new TokenDistributor(globals);
   }
-  
+
   function testEthDistributionSimple() public {
     TokenDistributor.DistributionInfo memory ds = _createEthDistribution(dummyParty1, 0.025 ether, 1.337 ether);
-    
+
     assertEq(DISTRIBUTION_ADDRESS.balance, 0);
     assert(!distributor.hasPartyDaoClaimed(dummyParty1, ds.distributionId));
     vm.prank(ADMIN_ADDRESS);
@@ -41,20 +43,20 @@ contract TokenDistributorTest is Test, TestUtils {
 
     _createDummyNft(dummyParty1, address(3), 3, 0.34 ether);
     _createDummyNft(dummyParty1, address(4), 4, 0.66 ether);
-    
+
     assert(!distributor.hasTokenIdClaimed(dummyParty1, 3, ds.distributionId));
     uint256 ethGained1 = _claim(ds, address(3), 3);
     assert(distributor.hasTokenIdClaimed(dummyParty1, 3, ds.distributionId));
     _assertEthApprox(ethGained1, 0.4432155 ether);
-    
+
     uint256 ethGained2 = _claim(ds, address(4), 4);
     _assertEthApprox(ethGained2, 0.8603595 ether);
-    
+
     assertEq(address(distributor).balance, 0);
   }
 
   function testMultiplePartyDistributions() public {
-    vm.prank(ADMIN_ADDRESS);
+    vm.prank(DAO_ADDRESS);
     globals.setUint256(LibGlobals.GLOBAL_DAO_DISTRIBUTION_SPLIT, 0.05 ether); // 5%
 
     // distribution 1 (ds1, ETH)
@@ -119,7 +121,7 @@ contract TokenDistributorTest is Test, TestUtils {
       0.15675 ether
     );
 
-    // **** DISTRIBUTION 3 (ERC20) ***** 
+    // **** DISTRIBUTION 3 (ERC20) *****
     assertEq(dummyToken1.balanceOf((address(1))), 0);
     assertEq(dummyToken1.balanceOf((address(2))), 0);
     assertEq(dummyToken1.balanceOf((address(distributor))), 300 ether);
@@ -141,7 +143,7 @@ contract TokenDistributorTest is Test, TestUtils {
   }
 
   function testEmergencyDistributionFunctions() public {
-    vm.prank(ADMIN_ADDRESS);
+    vm.prank(DAO_ADDRESS);
     globals.setUint256(LibGlobals.GLOBAL_DAO_DISTRIBUTION_SPLIT, 0.05 ether); // 5%
 
     // ETH
@@ -155,9 +157,11 @@ contract TokenDistributorTest is Test, TestUtils {
     distributor.createDistribution(IERC20(address(dummyToken1)));
 
     // cant withdraw as non-admin
-    vm.expectRevert(
-      abi.encodeWithSignature("OnlyPartyDaoError(address,address)", address(3), ADMIN_ADDRESS)
-    );
+    vm.expectRevert(abi.encodeWithSelector(
+          TokenDistributor.OnlyPartyDaoError.selector,
+          address(3),
+          DAO_ADDRESS
+    ));
     vm.prank(address(3));
     distributor.emergencyWithdraw(
       ETH_TOKEN,
@@ -167,7 +171,7 @@ contract TokenDistributorTest is Test, TestUtils {
 
 
     // emergency withdraw
-    vm.startPrank(ADMIN_ADDRESS);
+    vm.startPrank(DAO_ADDRESS);
     // withdraw ETH
     assertEq(address(5).balance, 0);
     distributor.emergencyWithdraw(ETH_TOKEN, payable(address(5)), 10 ether);
@@ -186,14 +190,16 @@ contract TokenDistributorTest is Test, TestUtils {
     assertEq(distributor.getRemainingMemberSupply(dummyParty1, 1), 47.5 ether);
     // non admin can't delete
     vm.prank(address(7));
-    vm.expectRevert(
-      abi.encodeWithSignature("OnlyPartyDaoError(address,address)", address(7), ADMIN_ADDRESS)
-    );
+    vm.expectRevert(abi.encodeWithSelector(
+          TokenDistributor.OnlyPartyDaoError.selector,
+          address(7),
+          DAO_ADDRESS
+    ));
     distributor.emergencyRemoveDistribution(
       dummyParty1, 1
     );
     // admin can remove distribution
-    vm.prank(ADMIN_ADDRESS);
+    vm.prank(DAO_ADDRESS);
     distributor.emergencyRemoveDistribution(
       dummyParty1, 1
     );
@@ -201,16 +207,18 @@ contract TokenDistributorTest is Test, TestUtils {
 
 
     // non-admin can't disable
-    vm.expectRevert(
-      abi.encodeWithSignature("OnlyPartyDaoError(address,address)", address(3), ADMIN_ADDRESS)
-    );
+    vm.expectRevert(abi.encodeWithSelector(
+          TokenDistributor.OnlyPartyDaoError.selector,
+          address(3),
+          DAO_ADDRESS
+    ));
 
     // disable emergency acitons
     vm.prank(address(3));
     distributor.disableEmergencyActions();
 
     // cant withdraw when emergency actions disabled
-    vm.startPrank(ADMIN_ADDRESS);
+    vm.startPrank(DAO_ADDRESS);
     distributor.disableEmergencyActions();
     vm.expectRevert(
       abi.encodeWithSignature("EmergencyActionsNotAllowed()")
@@ -235,7 +243,7 @@ contract TokenDistributorTest is Test, TestUtils {
     distributor.createDistribution(ETH_TOKEN);
 
     // ensure needs to be able to take fee
-    vm.prank(ADMIN_ADDRESS);
+    vm.prank(DAO_ADDRESS);
     globals.setUint256(LibGlobals.GLOBAL_DAO_DISTRIBUTION_SPLIT, 1.5 ether); // 110%
     vm.deal(address(distributor), 4);
     vm.expectRevert(
@@ -263,7 +271,7 @@ contract TokenDistributorTest is Test, TestUtils {
      // test that malicioius party cant claim more than total member supply
     vm.deal(address(distributor), 0.5 ether);
 
-    vm.prank(ADMIN_ADDRESS);
+    vm.prank(DAO_ADDRESS);
     globals.setUint256(LibGlobals.GLOBAL_DAO_DISTRIBUTION_SPLIT, 0.05 ether); // 5%
 
     vm.prank(address(dummyParty1));
@@ -271,7 +279,7 @@ contract TokenDistributorTest is Test, TestUtils {
     _createDummyNft(dummyParty1, address(5), 420, 2 ether); // malicious amount 2x
 
     vm.deal(address(distributor), 100 ether);
-    
+
     uint256 ethDiff = _claim(
       ds, address(5), 420
     );
@@ -303,13 +311,13 @@ contract TokenDistributorTest is Test, TestUtils {
     dummyParty.setOwner(user, tokenId);
     dummyParty.setShare(tokenId, shareAmount);
   }
-  
+
   function _createEthDistribution(
     DummyTokenDistributorParty dummyParty,
     uint256 globalSplit,
     uint256 ethAmount
   ) private returns (TokenDistributor.DistributionInfo memory) {
-    vm.prank(ADMIN_ADDRESS);
+    vm.prank(DAO_ADDRESS);
     globals.setUint256(LibGlobals.GLOBAL_DAO_DISTRIBUTION_SPLIT, globalSplit);
 
     payable(address(distributor)).transfer(ethAmount);
