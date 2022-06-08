@@ -119,6 +119,19 @@ contract TestablePartyGovernance is PartyGovernance {
     function getDistributionShareOf(uint256 tokenId) external view returns (uint256 s) {}
 
     function ownerOf(uint256 tokenId) external view returns (address o) {}
+
+    function getVotes(uint256 proposalId) external view returns (uint96) {
+        (, ProposalInfoValues memory v) = this.getProposalStates(proposalId);
+        return v.votes;
+    }
+
+    function getVotingPowerSnapshotAt(address voter, uint256 timestamp)
+        external
+        view
+        returns (VotingPowerSnapshot memory snap)
+    {
+        return _getVotingPowerSnapshotAt(voter, uint40(timestamp));
+    }
 }
 
 contract PartyGovernanceUnitTest is Test, TestUtils {
@@ -800,6 +813,59 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
         gov.veto(proposalId);
     }
 
+    // An InProgress proposal that has expired is still executable.
+    function testProposalLifecycle_canStillExecuteExpiredInProgressProposal() external {
+        TestablePartyGovernance gov;
+        (IERC721[] memory preciousTokens, uint256[] memory preciousTokenIds) =
+            _createPreciousTokens(2);
+        gov = _createGovernance(100e18, preciousTokens, preciousTokenIds);
+        address undelegatedVoter = _randomAddress();
+        // undelegatedVoter has 51/100 intrinsic VP (delegated to no one/self)
+        gov.mockAdjustVotingPower(undelegatedVoter, 51e18, address(0));
+
+        // Create a two-step proposal.
+        // By default the proposal expires 1 second after the executable delay.
+        PartyGovernance.Proposal memory proposal = _createProposal(2);
+        uint256 proposalId = gov.lastProposalId() + 1;
+
+        // Undelegated voter submits proposal.
+        // Voter has majority VP so it also passes immediately.
+        vm.expectEmit(false, false, false, true);
+        emit ProposalPassed(proposalId);
+        vm.prank(undelegatedVoter);
+        assertEq(gov.propose(proposal), proposalId);
+
+        // Skip past execution delay.
+        skip(defaultGovernanceOpts.executionDelay);
+
+        // Execute (1/2)
+        vm.prank(undelegatedVoter);
+        gov.execute(
+            proposalId,
+            proposal,
+            preciousTokens,
+            preciousTokenIds,
+            ""
+        );
+
+        // Skip past the proposal's maxExecutableTime.
+        vm.warp(proposal.maxExecutableTime + 1);
+        (PartyGovernance.ProposalState propState,) = gov.getProposalStates(proposalId);
+        assertTrue(propState == PartyGovernance.ProposalState.InProgress);
+
+        // Execute (2/2)
+        vm.prank(undelegatedVoter);
+        gov.execute(
+            proposalId,
+            proposal,
+            preciousTokens,
+            preciousTokenIds,
+            abi.encode(1)
+        );
+        (propState,) = gov.getProposalStates(proposalId);
+        assertTrue(propState == PartyGovernance.ProposalState.Complete);
+    }
+
     // Try to execute a proposal after the voting window has expired and it has not passed.
     function testProposalLifecycle_cannotExecuteIfVotingWindowExpired() external {
         TestablePartyGovernance gov;
@@ -1101,5 +1167,238 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
         ));
         vm.prank(undelegatedVoter2);
         gov.accept(proposalId);
+    }
+
+    // Vote using VP from proposal time.
+    function testVoting_votingUsesProposalTimeVotingPower() external {
+        TestablePartyGovernance gov;
+        (IERC721[] memory preciousTokens, uint256[] memory preciousTokenIds) =
+            _createPreciousTokens(2);
+        gov = _createGovernance(100e18, preciousTokens, preciousTokenIds);
+        address delegate = _randomAddress();
+        address undelegatedVoter = _randomAddress();
+        address delegatedVoter = _randomAddress();
+        address proposer = _randomAddress();
+        // proposer has 1 wei of intrinsic VP (just enough to propose), delegated to
+        // an address we won't use.
+        gov.mockAdjustVotingPower(proposer, 1, address(0xbadb01));
+        // delegate has 30 intrinsic, 50 delegated VP
+        gov.mockAdjustVotingPower(delegate, 30e18, address(0));
+        // delegatedVoter has 20 intrinsic delegated to delegate.
+        gov.mockAdjustVotingPower(delegatedVoter, 20e18, delegate);
+        // undelegatedVoter has 1 intrinsing VP, delegated to no one/self.
+        gov.mockAdjustVotingPower(undelegatedVoter, 1e18, address(0));
+
+        // Create a one-step proposal.
+        PartyGovernance.Proposal memory proposal = _createProposal(1);
+        uint256 proposalId = gov.lastProposalId() + 1;
+
+        // Propose it from proposer, locking in the proposal time
+        // and not casting any votes because proposer has delegated to
+        // someone else.
+        vm.prank(proposer);
+        assertEq(gov.propose(proposal), proposalId);
+
+        // Advance time, moving VP around each time.
+        skip(1);
+        // Delegate transfers all voting power to undelegatedVoter.
+        gov.transferVotingPower(delegate, undelegatedVoter, 30e18);
+        skip(1);
+        // delegatedVoter transfers all voting power to undelegatedVoter.
+        gov.transferVotingPower(delegatedVoter, undelegatedVoter, 20e18);
+        skip(1);
+        // Now undelegatedVoter has enough VP (51) to pass on their own and
+        // will accept the proposal, but accept will use their VP at proposal
+        // time so it will only count as 1 VP.
+        vm.expectEmit(false, false, false, true);
+        emit ProposalAccepted(
+            proposalId,
+            undelegatedVoter,
+            1e18 // Proposal time VP.
+        );
+        vm.prank(undelegatedVoter);
+        gov.accept(proposalId);
+
+        // delegatedVoter will vote, who does not have any VP now and also had
+        // no VP at proposal time.
+        vm.expectEmit(false, false, false, true);
+        emit ProposalAccepted(
+            proposalId,
+            delegatedVoter,
+            0 // Proposal time VP.
+        );
+        vm.prank(delegatedVoter);
+        gov.accept(proposalId);
+
+        (PartyGovernance.ProposalState propState,) = gov.getProposalStates(proposalId);
+        assertTrue(propState == PartyGovernance.ProposalState.Voting);
+
+        // Delegate will vote, who does not have any VP now but at proposal time
+        // had a total of 50, which will make the proposal pass.
+        vm.expectEmit(false, false, false, true);
+        emit ProposalAccepted(
+            proposalId,
+            delegate,
+            50e18 // Proposal time VP.
+        );
+        vm.expectEmit(false, false, false, true);
+        emit ProposalPassed(proposalId);
+        vm.prank(delegate);
+        gov.accept(proposalId);
+    }
+
+    // Circular delegation.
+    function testVoting_circularDelegation() external {
+        TestablePartyGovernance gov;
+        (IERC721[] memory preciousTokens, uint256[] memory preciousTokenIds) =
+            _createPreciousTokens(2);
+        gov = _createGovernance(100e18, preciousTokens, preciousTokenIds);
+        address delegate1 = _randomAddress();
+        address delegate2 = _randomAddress();
+        // Set up circular delegation just to be extra tricky.
+        // delegate has 1 intrinsic, 51 delegated VP
+        gov.mockAdjustVotingPower(delegate1, 1e18, delegate2);
+        // delegate2 has 50 intrinsic, 1 delegated VP
+        gov.mockAdjustVotingPower(delegate2, 50e18, delegate1);
+
+        // Create a one-step proposal.
+        PartyGovernance.Proposal memory proposal = _createProposal(1);
+        uint256 proposalId = gov.lastProposalId() + 1;
+
+        // delegate2 proposes and votes with their 1 effective VP.
+        vm.expectEmit(false, false, false, true);
+        emit ProposalAccepted(
+            proposalId,
+            delegate2,
+            1e18
+        );
+        vm.prank(delegate2);
+        gov.propose(proposal);
+
+        assertEq(uint256(gov.getVotes(proposalId)), 1e18);
+
+        // delegate1 votes with their 50 effective VP.
+        vm.expectEmit(false, false, false, true);
+        emit ProposalAccepted(
+            proposalId,
+            delegate1,
+            50e18
+        );
+        // With 51 total, the proposal will pass.
+        vm.expectEmit(false, false, false, true);
+        emit ProposalPassed(proposalId);
+        vm.prank(delegate1);
+        gov.accept(proposalId);
+
+        assertEq(uint256(gov.getVotes(proposalId)), 51e18);
+    }
+
+    // Cannot adjust voting power below 0.
+    function testVotingPower_cannotAdjustVotingPowerBelowZero() external {
+        TestablePartyGovernance gov;
+        (IERC721[] memory preciousTokens, uint256[] memory preciousTokenIds) =
+            _createPreciousTokens(2);
+        gov = _createGovernance(100e18, preciousTokens, preciousTokenIds);
+        address undelegatedVoter = _randomAddress();
+        // undelegatedVoter has 51 intrinsic VP
+        gov.mockAdjustVotingPower(undelegatedVoter, 51e18, address(0));
+
+        // Try to adjust below 0.
+        vm.expectRevert(abi.encodeWithSelector(
+            LibSafeCast.Int192ToUint96CastOutOfRange.selector,
+            int192(-1)
+        ));
+        gov.mockAdjustVotingPower(undelegatedVoter, -51e18 - 1, address(0));
+    }
+
+    // _adjustVotingPower() updates delegated VP correctly
+    function testVotingPower_adjustVotingPowerUpdatesDelegatesCorrectly() external {
+        TestablePartyGovernance gov;
+        (IERC721[] memory preciousTokens, uint256[] memory preciousTokenIds) =
+            _createPreciousTokens(2);
+        gov = _createGovernance(100e18, preciousTokens, preciousTokenIds);
+        address delegate1 = _randomAddress();
+        address delegate2 = _randomAddress();
+        address voter = _randomAddress();
+        // voter has 50 intrinsic VP, delegated to delegate1.
+        gov.mockAdjustVotingPower(voter, 50e18, delegate1);
+        // delegate1 has 10 intrinsic VP, delegated to delegate2.
+        gov.mockAdjustVotingPower(delegate1, 10e18, delegate2);
+        // delegate2 has 20 intrinsic VP, delegated to self.
+        gov.mockAdjustVotingPower(delegate2, 20e18, address(0));
+
+        // Remove 5 intrinsic VP from voter and redelegate to delegate2.
+        gov.mockAdjustVotingPower(voter, -5e18, delegate2);
+        // Add 5 intrinsic VP to delegate1 and keep delegation to delegate2.
+        gov.mockAdjustVotingPower(delegate1, 5e18, delegate2);
+        // Remove 3 intrinsic VP from delegate1 and keep delegation to delegate2.
+        gov.mockAdjustVotingPower(delegate1, -3e18, delegate2);
+        // Redelegate delegate2 to delegate1.
+        gov.mockAdjustVotingPower(delegate2, 0, delegate1);
+
+        // Now check total VPs.
+        // voter: 50 - 5 = 45 intrinsic (delegated: delegate2) + 0 delegated -> 0
+        assertEq(
+            uint256(gov.getVotingPowerAt(voter, uint40(block.timestamp))),
+            0e18
+        );
+        // delegate1: 10 + 5 - 3 = 12 intrinsic (delegated: delegate2) + 20 delegated -> 20
+        assertEq(
+            uint256(gov.getVotingPowerAt(delegate1, uint40(block.timestamp))),
+            20e18
+        );
+        // delegate2: 20 intrinsic (delegated: deleate1) + 45 + 12 = 57 delegated -> 57
+        assertEq(
+            uint256(gov.getVotingPowerAt(delegate2, uint40(block.timestamp))),
+            57e18
+        );
+
+        // Check internal accounting for voter.
+        {
+            PartyGovernance.VotingPowerSnapshot memory snap =
+                gov.getVotingPowerSnapshotAt(voter, block.timestamp);
+            assertEq(uint256(snap.intrinsicVotingPower), 45e18);
+            assertEq(uint256(snap.delegatedVotingPower), 0);
+        }
+        // Check internal accounting for delegate1.
+        {
+            PartyGovernance.VotingPowerSnapshot memory snap =
+                gov.getVotingPowerSnapshotAt(delegate1, block.timestamp);
+            assertEq(uint256(snap.intrinsicVotingPower), 12e18);
+            assertEq(uint256(snap.delegatedVotingPower), 20e18);
+        }
+        // Check internal accounting for delegate2.
+        {
+            PartyGovernance.VotingPowerSnapshot memory snap =
+                gov.getVotingPowerSnapshotAt(delegate2, block.timestamp);
+            assertEq(uint256(snap.intrinsicVotingPower), 20e18);
+            assertEq(uint256(snap.delegatedVotingPower), 57e18);
+        }
+    }
+
+    // delegate(self) == delegate(0) if no prior delegate
+    function testVotingPower_delegateSelfIsSameAsDelegateZero() external {
+        TestablePartyGovernance gov;
+        (IERC721[] memory preciousTokens, uint256[] memory preciousTokenIds) =
+            _createPreciousTokens(2);
+        gov = _createGovernance(100e18, preciousTokens, preciousTokenIds);
+        address voter1 = _randomAddress();
+        address voter2 = _randomAddress();
+        // voter has 50 intrinsic VP, delegated to zero.
+        gov.mockAdjustVotingPower(voter1, 50e18, address(0));
+        // voter has 25 intrinsic VP, delegated to self.
+        gov.mockAdjustVotingPower(voter2, 25e18, voter2);
+
+        assertEq(gov.getVotingPowerAt(voter1, uint40(block.timestamp)), 50e18);
+        assertEq(gov.getVotingPowerAt(voter2, uint40(block.timestamp)), 25e18);
+
+        // Now flip it via delegateVotingPower()
+        vm.prank(voter1);
+        gov.delegateVotingPower(voter1);
+        vm.prank(voter2);
+        gov.delegateVotingPower(address(0));
+
+        assertEq(gov.getVotingPowerAt(voter1, uint40(block.timestamp)), 50e18);
+        assertEq(gov.getVotingPowerAt(voter2, uint40(block.timestamp)), 25e18);
     }
 }

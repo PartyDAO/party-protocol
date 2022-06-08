@@ -157,11 +157,11 @@ abstract contract PartyGovernance is
 
     modifier onlyActiveMember() {
         {
-            VotingPowerSnapshot memory shot = _getLastVotingPowerSnapshotIn(
+            VotingPowerSnapshot memory snap = _getLastVotingPowerSnapshotIn(
                 _votingPowerSnapshotsByVoter[msg.sender]
             );
             // Must have either delegated voting power or intrinsic voting power.
-            if (shot.intrinsicVotingPower == 0 && shot.delegatedVotingPower == 0) {
+            if (snap.intrinsicVotingPower == 0 && snap.delegatedVotingPower == 0) {
                 revert OnlyActiveMemberError();
             }
         }
@@ -222,9 +222,8 @@ abstract contract PartyGovernance is
         view
         returns (uint96 votingPower)
     {
-        VotingPowerSnapshot memory shot = _getVotingPowerSnapshotAt(voter, timestamp);
-
-        return (shot.isDelegated ? 0 : shot.intrinsicVotingPower) + shot.delegatedVotingPower;
+        VotingPowerSnapshot memory snap = _getVotingPowerSnapshotAt(voter, timestamp);
+        return (snap.isDelegated ? 0 : snap.intrinsicVotingPower) + snap.delegatedVotingPower;
     }
 
     function getProposalStates(uint256 proposalId)
@@ -460,9 +459,9 @@ abstract contract PartyGovernance is
 
     // Get the most recent voting power snapshot <= timestamp.
     function _getVotingPowerSnapshotAt(address voter, uint40 timestamp)
-        private
+        internal
         view
-        returns (VotingPowerSnapshot memory shot)
+        returns (VotingPowerSnapshot memory snap)
     {
         VotingPowerSnapshot[] storage snaps = _votingPowerSnapshotsByVoter[voter];
 
@@ -539,6 +538,7 @@ abstract contract PartyGovernance is
         // If `delegate` is still zero (`voter` never delegated), set the delegate
         // to themself.
         delegate = delegate == address(0) ? voter : delegate;
+        oldDelegate = oldDelegate == address(0) ? voter : oldDelegate;
         VotingPowerSnapshot memory newSnap = VotingPowerSnapshot({
             timestamp: uint40(block.timestamp),
             delegatedVotingPower: oldSnap.delegatedVotingPower,
@@ -547,7 +547,12 @@ abstract contract PartyGovernance is
                 ).safeCastInt192ToUint96(),
             isDelegated: delegate != voter
         });
-        voterSnaps.push(newSnap);
+        // If same timestamp, overwrite last snapshot, otherwise append.
+        if (oldSnap.timestamp != newSnap.timestamp) {
+            voterSnaps.push(newSnap);
+        } else {
+            voterSnaps[voterSnaps.length - 1] = newSnap;
+        }
         delegationsByVoter[voter] = delegate;
         // Handle rebalancing delegates.
         _rebalanceDelegates(voter, oldDelegate, delegate, oldSnap, newSnap);
@@ -568,51 +573,69 @@ abstract contract PartyGovernance is
     )
         private
     {
-        if (newDelegate == address(0)) {
+        if (newDelegate == address(0) || oldDelegate == address(0)) {
             revert InvalidDelegateError();
         }
-        {
-            if (oldDelegate != address(0) && oldDelegate != newDelegate) {
-                // Remove past voting power from old delegate.
-                VotingPowerSnapshot[] storage oldDelegateSnaps =
-                    _votingPowerSnapshotsByVoter[oldDelegate];
-                VotingPowerSnapshot memory oldDelegateShot =
-                    _getLastVotingPowerSnapshotIn(oldDelegateSnaps);
-                oldDelegateSnaps.push(VotingPowerSnapshot({
+        if (oldDelegate != voter && oldDelegate != newDelegate) {
+            // Remove past voting power from old delegate.
+            VotingPowerSnapshot[] storage oldDelegateSnaps =
+                _votingPowerSnapshotsByVoter[oldDelegate];
+            VotingPowerSnapshot memory oldDelegateSnap =
+                _getLastVotingPowerSnapshotIn(oldDelegateSnaps);
+            VotingPowerSnapshot memory updatedOldDelegateSnap =
+                VotingPowerSnapshot({
                     timestamp: uint40(block.timestamp),
                     delegatedVotingPower:
-                        oldDelegateShot.delegatedVotingPower -
+                        oldDelegateSnap.delegatedVotingPower -
                             oldSnap.intrinsicVotingPower,
-                    intrinsicVotingPower: oldDelegateShot.intrinsicVotingPower,
-                    isDelegated: oldDelegateShot.isDelegated
-                }));
+                    intrinsicVotingPower: oldDelegateSnap.intrinsicVotingPower,
+                    isDelegated: oldDelegateSnap.isDelegated
+                });
+            // If same timestamp, overwrite last snapshot, otherwise append.
+            if (oldDelegateSnap.timestamp != updatedOldDelegateSnap.timestamp) {
+                oldDelegateSnaps.push(updatedOldDelegateSnap);
+            } else {
+                oldDelegateSnaps[oldDelegateSnaps.length - 1] = updatedOldDelegateSnap;
             }
         }
         if (newDelegate != voter) { // Not delegating to self.
             // Add new voting power to new delegate.
             VotingPowerSnapshot[] storage newDelegateSnaps =
                 _votingPowerSnapshotsByVoter[newDelegate];
-            VotingPowerSnapshot memory newDelegateShot =
+            VotingPowerSnapshot memory newDelegateSnap =
                 _getLastVotingPowerSnapshotIn(newDelegateSnaps);
-            newDelegateSnaps.push(VotingPowerSnapshot({
-                timestamp: uint40(block.timestamp),
-                delegatedVotingPower:
-                    newDelegateShot.delegatedVotingPower +
-                        newSnap.intrinsicVotingPower,
-                intrinsicVotingPower: newDelegateShot.intrinsicVotingPower,
-                isDelegated: newDelegateShot.isDelegated
-            }));
+            uint96 newDelegateDelegatedVotingPower =
+                newDelegateSnap.delegatedVotingPower + newSnap.intrinsicVotingPower;
+            if (newDelegate == oldDelegate) {
+                // If the old and new delegate are the same, subtract the old
+                // intrinsic voting power of the voter, or else we will double
+                // count a portion of it.
+                newDelegateDelegatedVotingPower -= oldSnap.intrinsicVotingPower;
+            }
+            VotingPowerSnapshot memory updatedNewDelegateSnap =
+                VotingPowerSnapshot({
+                    timestamp: uint40(block.timestamp),
+                    delegatedVotingPower: newDelegateDelegatedVotingPower,
+                    intrinsicVotingPower: newDelegateSnap.intrinsicVotingPower,
+                    isDelegated: newDelegateSnap.isDelegated
+                });
+            // If same timestamp, overwrite last snapshot, otherwise append.
+            if (newDelegateSnap.timestamp != updatedNewDelegateSnap.timestamp) {
+                newDelegateSnaps.push(updatedNewDelegateSnap);
+            } else {
+                newDelegateSnaps[newDelegateSnaps.length - 1] = updatedNewDelegateSnap;
+            }
         }
     }
 
     function _getLastVotingPowerSnapshotIn(VotingPowerSnapshot[] storage snaps)
         private
         view
-        returns (VotingPowerSnapshot memory shot)
+        returns (VotingPowerSnapshot memory snap)
     {
         uint256 n = snaps.length;
         if (n != 0) {
-            shot = snaps[snaps.length - 1];
+            snap = snaps[snaps.length - 1];
         }
     }
 
