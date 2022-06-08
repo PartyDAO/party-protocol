@@ -10,12 +10,12 @@ import '../contracts/party/PartyFactory.sol';
 contract Deploy is Test {
 
   // constants
-  address partydaoMultisig = 0xf7f52dd34bc21eda08c0b804c7c1dbc48375820f;
+  address partydaoMultisig = 0xF7f52Dd34bc21eDA08c0b804C7c1dbc48375820f;
 
   // temporary variables to store deployed contract addresses
   // PartyCrowdfundFactory partyCrowdfundFactoryAddress;
   PartyFactory partyFactoryAddress;
-  Globals globalsAddress;
+  Globals globals;
 
   function run() public {
     vm.startBroadcast();
