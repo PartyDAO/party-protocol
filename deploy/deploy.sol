@@ -135,9 +135,9 @@ contract Deploy is Test {
 
     // TODO: TRANSFER_OWNERSHIP_TO_PARTYDAO_MULTISIG
     // console.log('');
-    // console.log('### PartyCrowdfundFactory');
+    // console.log('### Transfer MultiSig');
     // console.log('  Transferring ownership to PartyDAO multi-sig', PARTY_DAO_MULTISIG);
-    // globals.transferOwnership(PARTY_DAO_MULTISIG);
+    // globals.transferMultiSig(PARTY_DAO_MULTISIG);
     // console.log('  Transferred ownership to', PARTY_DAO_MULTISIG);
 
     vm.stopBroadcast();
