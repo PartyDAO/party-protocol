@@ -16,11 +16,11 @@ contract Deploy is Test {
 
   // TODO: verify these constants
   // constants
-  address OPENSEA_EXCHANGE_ADDRESS = 0x7f268357A8c2552623316e2562D90e642bB538E5;
-  address PARTY_DAO_MULTISIG = 0xF7f52Dd34bc21eDA08c0b804C7c1dbc48375820f;
-  uint256 PARTY_DAO_DISTRIBUTION_SPLIT_BPS = 250;
-  uint256 OS_ZORA_AUCTION_DURATION = 86400; // 86400 seconds = 24 hours
-  address ZORA_AUCTION_HOUSE_ADDRESS = 0xE468cE99444174Bd3bBBEd09209577d25D1ad673;
+  address constant OPENSEA_EXCHANGE_ADDRESS = 0x7f268357A8c2552623316e2562D90e642bB538E5;
+  address constant PARTY_DAO_MULTISIG = 0xF7f52Dd34bc21eDA08c0b804C7c1dbc48375820f;
+  uint256 constant PARTY_DAO_DISTRIBUTION_SPLIT_BPS = 250;
+  uint256 constant OS_ZORA_AUCTION_DURATION = 86400; // 60 * 60 * 24 = 86400 seconds = 24 hours
+  address constant ZORA_AUCTION_HOUSE_ADDRESS = 0xE468cE99444174Bd3bBBEd09209577d25D1ad673;
 
   // temporary variables to store deployed contract addresses
   // PartyCrowdfundFactory partyCrowdfundFactoryAddress;
@@ -69,7 +69,7 @@ contract Deploy is Test {
     console.log('');
     console.log('Deploying - SharedWyvernV2Maker');
     openseaExchange = IWyvernExchangeV2(OPENSEA_EXCHANGE_ADDRESS);
-    sharedWyvernV2Maker = new SharedWyvernV2Maker(openseaExchange);
+    // sharedWyvernV2Maker = new SharedWyvernV2Maker(openseaExchange);
     console.log('Deployed - SharedWyvernV2Maker', address(sharedWyvernV2Maker));
 
     console.log('  Globals - setting OpenSea Zora auction duration');
@@ -82,7 +82,9 @@ contract Deploy is Test {
     console.log('Deploying - ProposalExecutionEngine');
     zoraAuctionHouse = IZoraAuctionHouse(ZORA_AUCTION_HOUSE_ADDRESS);
     proposalEngineImpl = new ProposalExecutionEngine(globals, sharedWyvernV2Maker, zoraAuctionHouse);
-    console.log('Deployed - ProposalExecutionEngine', address(sharedWyvernV2Maker));
+    console.log('Deployed - ProposalExecutionEngine', address(proposalEngineImpl));
+    console.log('  with wyvern', address(sharedWyvernV2Maker));
+    console.log('  with zora auction house', address(zoraAuctionHouse));
 
     console.log('  Globals - setting Proposal engine implementation address');
     globals.setAddress(LibGlobals.GLOBAL_PROPOSAL_ENGINE_IMPL, address(proposalEngineImpl));
