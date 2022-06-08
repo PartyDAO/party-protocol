@@ -44,14 +44,14 @@ contract ERC20TokenGateKeeper is IGateKeeper {
      * @param  minimumBalance minimum balance allowed for participation
      * @return id gate id
      */
-    function createGate(address tokenAddress, uint256 minimumBalance)
+    function createGate(IERC20 token, uint256 minimumBalance)
         external
         returns (bytes12 id)
     {
         uint96 id_ = ++_lastId;
         id = bytes12(id_);
-        _gateInfo[id_].token = tokenAddress;
+        _gateInfo[id_].token = token;
         _gateInfo[id_].minimumBalance = minimumBalance;
-        emit ERC20TokenGateCreated(tokenAddress, minimumBalance);
+        emit ERC20TokenGateCreated(token, minimumBalance);
     }
 }
