@@ -3,25 +3,28 @@ pragma solidity ^0.8;
 
 import "./IGlobals.sol";
 
-// TODO: create2 upgradeable? 😉
 contract Globals is IGlobals {
-    address public immutable MULTISIG;
+    address public multiSig;
     // key -> word value
     mapping(uint256 => bytes32) private _wordValues;
     // key -> word value -> isIncluded
     mapping(uint256 => mapping(bytes32 => bool)) private _includedWordValues;
 
-    error OnlyMultisigError();
+    error OnlyMultiSigError();
 
     modifier onlyMultisig() {
-        if (msg.sender != MULTISIG) {
-            revert OnlyMultisigError();
+        if (msg.sender != multiSig) {
+            revert OnlyMultiSigError();
         }
         _;
     }
 
-    constructor(address multiSig) {
-        MULTISIG = multiSig;
+    constructor(address multiSig_) {
+        multiSig = multiSig_;
+    }
+
+    function transferMultiSig(address newMultiSig) external onlyMultisig {
+        multiSig = newMultiSig;
     }
 
     function getBytes32(uint256 key) external view returns (bytes32) {
