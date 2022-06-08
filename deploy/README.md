@@ -1,7 +1,7 @@
 # deploy
 
 ```sh
-forge script ./script/deploy.sol -vvv --fork-url $RPC_URL
+forge script ./deploy/deploy.sol -vvv --fork-url $RPC_URL
 ```
 
 [`forge script` docs](https://book.getfoundry.sh/reference/forge/forge-script.html?highlight=script#forge-script)
