@@ -337,7 +337,10 @@ contract PartyGovernanceTest is Test, TestUtils {
     danny.vote(party, 1);
 
     // Ensure that the same member cannot vote twice
-    vm.expectRevert(bytes('ALREADY_VOTED'));
+    vm.expectRevert(abi.encodeWithSelector(
+        PartyGovernance.AlreadyVotedError.selector,
+        address(danny)
+    ));
     danny.vote(party, 1);
   }
 
@@ -375,7 +378,7 @@ contract PartyGovernanceTest is Test, TestUtils {
 
     vm.warp(block.timestamp + 98);
     _assertProposalState(party, 1, PartyGovernance.ProposalState.Voting, 50);
-    
+
     // ensure defeated
     vm.warp(block.timestamp + 1);
     _assertProposalState(party, 1, PartyGovernance.ProposalState.Defeated, 50);
@@ -427,7 +430,7 @@ contract PartyGovernanceTest is Test, TestUtils {
     });
     john.makeProposal(party, p1);
     _assertProposalState(party, 1, PartyGovernance.ProposalState.Voting, 1);
-    
+
     danny.vote(party, 1);
     _assertProposalState(party, 1, PartyGovernance.ProposalState.Passed, 51);
 
@@ -440,7 +443,7 @@ contract PartyGovernanceTest is Test, TestUtils {
     // warp to maxExecutabletime
     vm.warp(999999999);
     _assertProposalState(party, 1, PartyGovernance.ProposalState.Ready, 51);
-    
+
     // warp past maxExecutabletime
     vm.warp(999999999 + 1);
 
