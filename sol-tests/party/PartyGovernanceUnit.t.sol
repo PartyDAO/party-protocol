@@ -727,6 +727,151 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
         );
     }
 
+    // only host can veto
+    function testProposalLifecycle_onlyHostCanVeto() external {
+        TestablePartyGovernance gov;
+        (IERC721[] memory preciousTokens, uint256[] memory preciousTokenIds) =
+            _createPreciousTokens(2);
+        gov = _createGovernance(100e18, preciousTokens, preciousTokenIds);
+        address undelegatedVoter = _randomAddress();
+        // undelegatedVoter has 50/100 intrinsic VP (delegated to no one/self)
+        gov.mockAdjustVotingPower(undelegatedVoter, 50e18, address(0));
+
+        // Create a one-step proposal.
+        PartyGovernance.Proposal memory proposal = _createProposal(1);
+        uint256 proposalId = gov.lastProposalId() + 1;
+
+        // Undelegated voter submits proposal and votes, but does not have enough
+        // to pass on their own.
+        vm.prank(undelegatedVoter);
+        assertEq(gov.propose(proposal), proposalId);
+
+        // Non-host tries to veto.
+        vm.expectRevert(abi.encodeWithSelector(
+            PartyGovernance.OnlyPartyHostError.selector
+        ));
+        vm.prank(undelegatedVoter);
+        gov.veto(proposalId);
+    }
+
+    // cannot veto invalid proposal
+    function testProposalLifecycle_cannotVetoInvalidProposal() external {
+        TestablePartyGovernance gov;
+        (IERC721[] memory preciousTokens, uint256[] memory preciousTokenIds) =
+            _createPreciousTokens(2);
+        gov = _createGovernance(100e18, preciousTokens, preciousTokenIds);
+        address undelegatedVoter = _randomAddress();
+        // undelegatedVoter has 50/100 intrinsic VP (delegated to no one/self)
+        gov.mockAdjustVotingPower(undelegatedVoter, 50e18, address(0));
+
+        uint256 proposalId = gov.lastProposalId() + 1;
+        address host = _getRandomDefaultHost();
+        vm.expectRevert(abi.encodeWithSelector(
+            PartyGovernance.BadProposalStateError.selector,
+            PartyGovernance.ProposalState.Invalid
+        ));
+        vm.prank(host);
+        gov.veto(proposalId);
+    }
+
+    // can veto a proposal that's in vote.
+    function testProposalLifecycle_canVetoVotingProposal() external {
+        TestablePartyGovernance gov;
+        (IERC721[] memory preciousTokens, uint256[] memory preciousTokenIds) =
+            _createPreciousTokens(2);
+        gov = _createGovernance(100e18, preciousTokens, preciousTokenIds);
+        address undelegatedVoter = _randomAddress();
+        // undelegatedVoter has 50/100 intrinsic VP (delegated to no one/self)
+        gov.mockAdjustVotingPower(undelegatedVoter, 50e18, address(0));
+
+        // Create a one-step proposal.
+        PartyGovernance.Proposal memory proposal = _createProposal(1);
+        uint256 proposalId = gov.lastProposalId() + 1;
+
+        // Undelegated voter submits proposal and votes, but does not have enough
+        // to pass on their own.
+        vm.prank(undelegatedVoter);
+        assertEq(gov.propose(proposal), proposalId);
+
+        (PartyGovernance.ProposalState propState,) = gov.getProposalStates(proposalId);
+        assertTrue(propState == PartyGovernance.ProposalState.Voting);
+
+        // Host vetos.
+        address host = _getRandomDefaultHost();
+        vm.prank(host);
+        gov.veto(proposalId);
+
+        (propState,) = gov.getProposalStates(proposalId);
+        assertTrue(propState == PartyGovernance.ProposalState.Defeated);
+
+        // Skip past execution delay.
+        skip(defaultGovernanceOpts.executionDelay);
+
+        // Fails to execute.
+        vm.expectRevert(abi.encodeWithSelector(
+            PartyGovernance.BadProposalStateError.selector,
+            PartyGovernance.ProposalState.Defeated
+        ));
+        vm.prank(undelegatedVoter);
+        gov.execute(
+            proposalId,
+            proposal,
+            preciousTokens,
+            preciousTokenIds,
+            ""
+        );
+    }
+
+    // can veto a proposal that's ready.
+    function testProposalLifecycle_canVetoReadyProposal() external {
+        TestablePartyGovernance gov;
+        (IERC721[] memory preciousTokens, uint256[] memory preciousTokenIds) =
+            _createPreciousTokens(2);
+        gov = _createGovernance(100e18, preciousTokens, preciousTokenIds);
+        address undelegatedVoter = _randomAddress();
+        // undelegatedVoter has 51/100 intrinsic VP (delegated to no one/self)
+        gov.mockAdjustVotingPower(undelegatedVoter, 51e18, address(0));
+
+        // Create a one-step proposal.
+        PartyGovernance.Proposal memory proposal = _createProposal(1);
+        uint256 proposalId = gov.lastProposalId() + 1;
+
+        // Undelegated voter submits proposal.
+        // Voter has majority VP so it also passes immediately.
+        vm.expectEmit(false, false, false, true);
+        emit ProposalPassed(proposalId);
+        vm.prank(undelegatedVoter);
+        assertEq(gov.propose(proposal), proposalId);
+
+        // Skip past execution delay.
+        skip(defaultGovernanceOpts.executionDelay);
+
+        (PartyGovernance.ProposalState propState,) = gov.getProposalStates(proposalId);
+        assertTrue(propState == PartyGovernance.ProposalState.Ready);
+
+        // Host vetos.
+        address host = _getRandomDefaultHost();
+        vm.prank(host);
+        gov.veto(proposalId);
+
+        (propState,) = gov.getProposalStates(proposalId);
+        assertTrue(propState == PartyGovernance.ProposalState.Defeated);
+
+        // Fails to execute.
+        vm.expectRevert(abi.encodeWithSelector(
+            PartyGovernance.BadProposalStateError.selector,
+            PartyGovernance.ProposalState.Defeated
+        ));
+        vm.prank(undelegatedVoter);
+        gov.execute(
+            proposalId,
+            proposal,
+            preciousTokens,
+            preciousTokenIds,
+            ""
+        );
+    }
+
     // try to veto a proposal that's in progress.
     function testProposalLifecycle_cannotVetoInProgressProposal() external {
         TestablePartyGovernance gov;
