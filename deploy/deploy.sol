@@ -133,11 +133,11 @@ contract Deploy is Test {
 
 
     // TODO: TRANSFER_OWNERSHIP_TO_PARTYDAO_MULTISIG
-    // console.log('');
-    // console.log('### Transfer MultiSig');
-    // console.log('  Transferring ownership to PartyDAO multi-sig', PARTY_DAO_MULTISIG);
-    // globals.transferMultiSig(PARTY_DAO_MULTISIG);
-    // console.log('  Transferred ownership to', PARTY_DAO_MULTISIG);
+    console.log('');
+    console.log('### Transfer MultiSig');
+    console.log('  Transferring ownership to PartyDAO multi-sig', deployAddresses.partyDaoMultisig);
+    globals.transferMultiSig(deployAddresses.partyDaoMultisig);
+    console.log('  Transferred ownership to', deployAddresses.partyDaoMultisig);
 
     vm.stopBroadcast();
     console.log('');
