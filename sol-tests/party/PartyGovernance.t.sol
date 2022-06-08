@@ -38,7 +38,7 @@ contract PartyGovernanceTest is Test, TestUtils {
     danny = new PartyParticipant();
     steve = new PartyParticipant();
     nicholas = new PartyParticipant();
-    partyAdmin = new PartyAdmin();
+    partyAdmin = new PartyAdmin(partyFactory);
 
     // Mint dummy NFT
     address nftHolderAddress = address(1);
@@ -51,7 +51,6 @@ contract PartyGovernanceTest is Test, TestUtils {
   function testSimpleGovernance() public {
     // Create party
     (Party party, IERC721[] memory preciousTokens, uint256[] memory preciousTokenIds) = partyAdmin.createParty(
-      partyFactory,
       PartyAdmin.PartyCreationMinimalOptions({
         host1: address(this),
         host2: address(0),
@@ -138,7 +137,6 @@ contract PartyGovernanceTest is Test, TestUtils {
   function testSimpleGovernanceUnanimous() public {
     // Create party
     (Party party, IERC721[] memory preciousTokens, uint256[] memory preciousTokenIds) = partyAdmin.createParty(
-      partyFactory,
       PartyAdmin.PartyCreationMinimalOptions({
         host1: address(this),
         host2: address(0),
@@ -249,7 +247,6 @@ contract PartyGovernanceTest is Test, TestUtils {
   function testVeto() public {
     // Create party
     (Party party, IERC721[] memory preciousTokens, uint256[] memory preciousTokenIds) = partyAdmin.createParty(
-      partyFactory,
       PartyAdmin.PartyCreationMinimalOptions({
         host1: address(nicholas),
         host2: address(0),
@@ -307,7 +304,6 @@ contract PartyGovernanceTest is Test, TestUtils {
   function testPartyMemberCannotVoteTwice() public {
     // Create party + mock proposal engine
     (Party party, IERC721[] memory preciousTokens, uint256[] memory preciousTokenIds) = partyAdmin.createParty(
-      partyFactory,
       PartyAdmin.PartyCreationMinimalOptions({
         host1: address(nicholas),
         host2: address(0),
@@ -348,7 +344,6 @@ contract PartyGovernanceTest is Test, TestUtils {
   function testExpiresWithoutPassing() public {
     // Create party
     (Party party, IERC721[] memory preciousTokens, uint256[] memory preciousTokenIds) = partyAdmin.createParty(
-      partyFactory,
       PartyAdmin.PartyCreationMinimalOptions({
         host1: address(john),
         host2: address(danny),
@@ -403,7 +398,6 @@ contract PartyGovernanceTest is Test, TestUtils {
   function testExpiresWithPassing() public {
     // Create party
     (Party party, IERC721[] memory preciousTokens, uint256[] memory preciousTokenIds) = partyAdmin.createParty(
-      partyFactory,
       PartyAdmin.PartyCreationMinimalOptions({
         host1: address(john),
         host2: address(danny),
