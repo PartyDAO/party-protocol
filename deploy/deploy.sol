@@ -50,6 +50,11 @@ contract Deploy is Test {
     globals.setAddress(LibGlobals.GLOBAL_DAO_WALLET, deployAddresses.partyDaoMultisig);
     console.log('  Globals - successfully set PartyDao multi-sig address', deployAddresses.partyDaoMultisig);
 
+    console.log('');
+    console.log('  Globals - setting DAO authority addresses');
+    globals.setIncludesAddress(LibGlobals.GLOBAL_DAO_AUTHORITIES, deployAddresses.adminAddress, true);
+    console.log('  Globals - successfully set DAO authority addresses', deployAddresses.adminAddress);
+
     console.log('  Globals - setting PartyDao split basis points');
     globals.setUint256(LibGlobals.GLOBAL_DAO_DISTRIBUTION_SPLIT, PARTY_DAO_DISTRIBUTION_SPLIT_BPS);
     console.log('  Globals - successfully set PartyDao split basis points', PARTY_DAO_DISTRIBUTION_SPLIT_BPS);
