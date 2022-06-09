@@ -10,6 +10,7 @@ contract DummySimpleProposalEngineImpl is IProposalExecutionEngine {
     struct DummySimpleProposalEngineImplStorage {
         uint256 lastExecutedProposalId;
         uint256 executedProposals;
+        mapping (uint256 => uint256) proposalIdToFlags;
     }
 
     // Storage slot for `DummySimpleProposalEngineImplStorage`.
@@ -33,6 +34,10 @@ contract DummySimpleProposalEngineImpl is IProposalExecutionEngine {
         return _getStorage().lastExecutedProposalId;
     }
 
+    function getFlagsForProposalId(uint256 proposalId) public view returns (uint256) {
+        return _getStorage().proposalIdToFlags[proposalId];
+    }
+
     function getNumExecutedProposals() public view returns (uint256) {
         return _getStorage().executedProposals;
     }
@@ -40,7 +45,9 @@ contract DummySimpleProposalEngineImpl is IProposalExecutionEngine {
     function executeProposal(ExecuteProposalParams memory params)
         external returns (ProposalExecutionStatus)
     {
-        _getStorage().lastExecutedProposalId = uint256(params.proposalId);
+        uint256 proposalId = uint256(params.proposalId);
+        _getStorage().lastExecutedProposalId = proposalId;
+        _getStorage().proposalIdToFlags[proposalId] = uint256(params.flags);
         _getStorage().executedProposals += 1;
         return ProposalExecutionStatus.Complete;
     }

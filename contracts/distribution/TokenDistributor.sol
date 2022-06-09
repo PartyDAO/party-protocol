@@ -38,6 +38,7 @@ contract TokenDistributor {
     }
 
     error OnlyPartyDaoError(address notDao, address partyDao);
+    error OnlyPartyDaoAuthorityError(address notDaoAuthority);
     error InvalidDistributionInfoError(DistributionInfo info);
     error DistributionAlreadyClaimedByTokenError(uint256 distributionId, uint256 tokenId);
     error DistributionAlreadyClaimedByPartyDaoError(uint256 distributionId);
@@ -71,6 +72,19 @@ contract TokenDistributor {
             address partyDao = GLOBALS.getAddress(LibGlobals.GLOBAL_DAO_WALLET);
             if (msg.sender != partyDao) {
                 revert OnlyPartyDaoError(msg.sender, partyDao);
+            }
+        }
+        _;
+    }
+
+    modifier onlyPartyDaoAuthority() {
+        {
+            bool isPartyDaoAuthority = GLOBALS.getIncludesAddress(
+                LibGlobals.GLOBAL_DAO_AUTHORITIES,
+                msg.sender
+            );
+            if (!isPartyDaoAuthority) {
+                revert OnlyPartyDaoAuthorityError(msg.sender);
             }
         }
         _;
@@ -121,7 +135,7 @@ contract TokenDistributor {
         if (daoSupply > supply) {
             revert InvalidDistributionSupply(supply, daoSupply);
         }
-        
+
 
         uint256 memberSupply = supply - daoSupply;
         info = DistributionInfo({
@@ -162,7 +176,7 @@ contract TokenDistributor {
         }
         state.hasTokenClaimed[tokenId] = true;
 
-        amountClaimed = claimAmount(info, tokenId);
+        amountClaimed = getClaimAmount(info, tokenId);
 
         uint128 remainingMemberSupply = state.remainingMemberSupply;
         // Cap at the remaining member supply. Otherwise a malicious
@@ -177,7 +191,7 @@ contract TokenDistributor {
         emit DistributionClaimedByToken(info, tokenId, ownerOfToken, amountClaimed);
     }
 
-    function claimAmount(
+    function getClaimAmount(
         DistributionInfo calldata info,
         uint256 tokenId
     ) public view returns (uint256) {
@@ -193,8 +207,7 @@ contract TokenDistributor {
         address payable recipient
     )
         external
-        onlyPartyDao
-        returns (uint256 amountToSend)
+        onlyPartyDaoAuthority
     {
         DistributionState storage state = _distributionStates[info.party][info.distributionId];
         if (state.distributionHash15 != _getDistributionHash(info)) {
@@ -204,9 +217,9 @@ contract TokenDistributor {
             revert DistributionAlreadyClaimedByPartyDaoError(info.distributionId);
         }
         state.hasPartyDaoClaimed = true;
-        amountToSend = info.daoSupply;
-        _transfer(info.token, recipient, amountToSend);
-        emit DistributionClaimedByPartyDao(info, recipient, amountToSend);
+        uint256 amountClaimed = info.daoSupply;
+        _transfer(info.token, recipient, amountClaimed);
+        emit DistributionClaimedByPartyDao(info, recipient, amountClaimed);
     }
 
     function hasPartyDaoClaimed(ITokenDistributorParty party, uint256 distributionId) external view returns (bool) {
@@ -216,6 +229,7 @@ contract TokenDistributor {
     function hasTokenIdClaimed(ITokenDistributorParty party, uint256 tokenId, uint256 distributionId) external view returns (bool) {
         return _distributionStates[party][distributionId].hasTokenClaimed[tokenId];
     }
+
 
     function getRemainingMemberSupply(ITokenDistributorParty party, uint256 distributionId) public view returns (uint256) {
         return _distributionStates[party][distributionId].remainingMemberSupply;
@@ -236,7 +250,6 @@ contract TokenDistributor {
     }
 
     // For receiving ETH
-    fallback() external payable {}
     receive() external payable {}
 
     function _transfer(IERC20 token, address payable recipient, uint256 amount)
