@@ -1585,6 +1585,20 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
         gov.abdicate(host);
     }
 
+    function testHostPower_cannotTransferHostAsNonHost() external {
+        TestablePartyGovernance gov;
+        (IERC721[] memory preciousTokens, uint256[] memory preciousTokenIds) =
+            _createPreciousTokens(2);
+        gov = _createGovernance(100e18, preciousTokens, preciousTokenIds);
+
+        address nonHost = _randomAddress();
+        address nonHost2 = _randomAddress();
+
+        vm.prank(nonHost);
+        vm.expectRevert(abi.encodeWithSelector(PartyGovernance.OnlyPartyHostError.selector));
+        gov.abdicate(nonHost2);
+    }
+
     // voting power of past member is 0 at current time.
     function testVotingPower_votingPowerOfPastMemberIsZeroAtCurrentTime() external {
         (IERC721[] memory preciousTokens, uint256[] memory preciousTokenIds) =
