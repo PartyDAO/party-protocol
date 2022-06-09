@@ -5,6 +5,7 @@ import "forge-std/Test.sol";
 
 import "../../contracts/party/PartyGovernance.sol";
 import "../../contracts/globals/Globals.sol";
+import "../DummyERC20.sol";
 import "../TestUtils.sol";
 
 contract DummyProposalExecutionEngine is IProposalExecutionEngine {
@@ -55,10 +56,12 @@ contract DummyTokenDistributor {
     event DummyTokenDistributor_createDistributionCalled(
         address caller,
         IERC20 token,
-        uint256 amount
+        uint256 amount,
+        uint256 id
     );
 
-    uint256 _lastId;
+    address payable public SINK = payable(address(12345678));
+    uint256 public lastId;
 
     function createDistribution(IERC20 token)
         external
@@ -68,16 +71,17 @@ contract DummyTokenDistributor {
         uint256 amount;
         if (address(token) == 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE) {
             amount = address(this).balance;
-            payable(0).transfer(amount);  // Burn it all to keep balances fresh.
+            SINK.transfer(amount);  // Burn it all to keep balances fresh.
         } else {
             amount = token.balanceOf(address(this));
-            token.transfer(address(0), amount); // Burn it all to keep balances fresh.
+            token.transfer(SINK, amount); // Burn it all to keep balances fresh.
         }
-        distInfo.distributionId = ++_lastId;
+        distInfo.distributionId = ++lastId;
         emit DummyTokenDistributor_createDistributionCalled(
             msg.sender,
             token,
-            amount
+            amount,
+            distInfo.distributionId
         );
     }
 }
@@ -165,6 +169,14 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
         IProposalExecutionEngine.ProposalExecutionStatus status,
         IProposalExecutionEngine.ExecuteProposalParams params
     );
+    event DummyTokenDistributor_createDistributionCalled(
+        address caller,
+        IERC20 token,
+        uint256 amount,
+        uint256 id
+    );
+
+    IERC20 constant ETH_TOKEN = IERC20(0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE);
 
     PartyGovernance.GovernanceOpts defaultGovernanceOpts;
     Globals globals = new Globals(address(this));
@@ -1537,6 +1549,96 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
         assertEq(gov.getVotingPowerAt(voter2, uint40(block.timestamp)), 25e18);
     }
 
+    // voting power of past member is 0 at current time.
+    function testVotingPower_votingPowerOfPastMemberIsZeroAtCurrentTime() external {
+        (IERC721[] memory preciousTokens, uint256[] memory preciousTokenIds) =
+            _createPreciousTokens(2);
+        TestablePartyGovernance gov =
+            _createGovernance(100e18, preciousTokens, preciousTokenIds);
+        address pastMember = _randomAddress();
+        // Uesd to have VP.
+        gov.mockAdjustVotingPower(pastMember, 50e18, address(0));
+
+        skip(1);
+        // pastMember loses all their voting power.
+        gov.mockAdjustVotingPower(pastMember, -50e18, pastMember);
+        assertEq(gov.getVotingPowerAt(pastMember, uint40(block.timestamp)), 0);
+    }
+
+    // voting power of never member is 0 at current time.
+    function testVotingPower_votingPowerOfNeverMemberIsZeroAtCurrentTime() external {
+        (IERC721[] memory preciousTokens, uint256[] memory preciousTokenIds) =
+            _createPreciousTokens(2);
+        TestablePartyGovernance gov =
+            _createGovernance(100e18, preciousTokens, preciousTokenIds);
+        skip(1);
+        address nonMember = _randomAddress();
+        assertEq(gov.getVotingPowerAt(nonMember, uint40(block.timestamp)), 0);
+    }
+
+    // voting power of past member is nonzero at past time.
+    function testVotingPower_votingPowerOfPastMemberIsNonZeroInPastTime() external {
+        (IERC721[] memory preciousTokens, uint256[] memory preciousTokenIds) =
+            _createPreciousTokens(2);
+        TestablePartyGovernance gov =
+            _createGovernance(100e18, preciousTokens, preciousTokenIds);
+        address pastMember = _randomAddress();
+        // Uesd to have VP.
+        gov.mockAdjustVotingPower(pastMember, 50e18, address(0));
+
+        // Move ahead 100 seconds.
+        skip(100);
+        // pastMember loses all their voting power.
+        gov.mockAdjustVotingPower(pastMember, -50e18, pastMember);
+        // 1 seconds ago pastMember still had original voting power.
+        assertEq(gov.getVotingPowerAt(pastMember, uint40(block.timestamp - 2)), 50e18);
+    }
+
+    // voting power of past member is nonzero at past time.
+    function testVotingPower_votingPowerOfAdjustedVoterAndDelegateIsCorrectAtDifferentTimes() external {
+        (IERC721[] memory preciousTokens, uint256[] memory preciousTokenIds) =
+            _createPreciousTokens(2);
+        TestablePartyGovernance gov =
+            _createGovernance(100e18, preciousTokens, preciousTokenIds);
+        address voter1 = _randomAddress();
+        address voter2 = _randomAddress();
+
+        // 40s ago
+        gov.mockAdjustVotingPower(voter1, 50e18, voter1);
+        gov.mockAdjustVotingPower(voter2, 1, voter1);
+        skip(10);
+        // 30s ago
+        // address(0) after initial minting reuses current chosen delegate
+        gov.mockAdjustVotingPower(voter1, -50e18, address(0));
+        skip(10);
+        // 20s ago
+        gov.mockAdjustVotingPower(voter1, 75e18, address(0));
+        gov.mockAdjustVotingPower(voter2, 1, address(0));
+        skip(10);
+        // 10s ago
+        gov.mockAdjustVotingPower(voter1, -10e18, voter2);
+        skip(10);
+        // 0s ago
+        gov.mockAdjustVotingPower(voter1, -10e18, voter1);
+        gov.mockAdjustVotingPower(voter2, -1, voter2);
+
+        // 35s ago
+        assertEq(gov.getVotingPowerAt(voter1, uint40(block.timestamp - 35)), 50e18 + 1);
+        assertEq(gov.getVotingPowerAt(voter2, uint40(block.timestamp - 35)), 0);
+        // 25s ago
+        assertEq(gov.getVotingPowerAt(voter1, uint40(block.timestamp - 25)), 1);
+        assertEq(gov.getVotingPowerAt(voter2, uint40(block.timestamp - 25)), 0);
+        // 15s ago
+        assertEq(gov.getVotingPowerAt(voter1, uint40(block.timestamp - 15)), 75e18 + 2);
+        assertEq(gov.getVotingPowerAt(voter2, uint40(block.timestamp - 15)), 0);
+        // 5s ago
+        assertEq(gov.getVotingPowerAt(voter1, uint40(block.timestamp - 5)), 2);
+        assertEq(gov.getVotingPowerAt(voter2, uint40(block.timestamp - 5)), 65e18);
+        // 0s ago
+        assertEq(gov.getVotingPowerAt(voter1, uint40(block.timestamp)), 55e18);
+        assertEq(gov.getVotingPowerAt(voter2, uint40(block.timestamp)), 1);
+    }
+
     // voting smoke test with random governance params.
     function testVotingPower_paramsSmokeTest() external {
         uint256 totalVotingPower = 100e18 * (_randomUint256() % 1e4) / 1e4;
@@ -1572,5 +1674,79 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
         vm.prank(voter2);
         gov.accept(proposalId);
         _assertProposalStateEq(gov, proposalId, PartyGovernance.ProposalState.Passed);
+    }
+
+    // distribute ETH balance
+    function testDistribute_worksWithEth() external {
+        (IERC721[] memory preciousTokens, uint256[] memory preciousTokenIds) =
+            _createPreciousTokens(2);
+        TestablePartyGovernance gov =
+            _createGovernance(100e18, preciousTokens, preciousTokenIds);
+
+        // Only a member with VP can call distribute().
+        address member = _randomAddress();
+        gov.mockAdjustVotingPower(member, 1e18, member);
+
+        // Create a distribution.
+        vm.deal(address(gov), 1337e18);
+        vm.expectEmit(false, false, false, true);
+        emit DummyTokenDistributor_createDistributionCalled(
+            address(gov),
+            ETH_TOKEN,
+            1337e18,
+            tokenDistributor.lastId() + 1
+        );
+        vm.prank(member);
+        gov.distribute(ETH_TOKEN);
+        assertEq(tokenDistributor.SINK().balance, 1337e18);
+    }
+
+    // distribute ERC20 balance
+    function testDistribute_worksWithErc20() external {
+        (IERC721[] memory preciousTokens, uint256[] memory preciousTokenIds) =
+            _createPreciousTokens(2);
+        TestablePartyGovernance gov =
+            _createGovernance(100e18, preciousTokens, preciousTokenIds);
+
+        // Only a member with VP can call distribute().
+        address member = _randomAddress();
+        gov.mockAdjustVotingPower(member, 1e18, member);
+
+        DummyERC20 erc20 = new DummyERC20();
+        erc20.deal(address(gov), 1337e18);
+
+        // Create a distribution.
+        vm.expectEmit(false, false, false, true);
+        emit DummyTokenDistributor_createDistributionCalled(
+            address(gov),
+            IERC20(address(erc20)),
+            1337e18,
+            tokenDistributor.lastId() + 1
+        );
+        vm.prank(member);
+        gov.distribute(IERC20(address(erc20)));
+        assertEq(erc20.balanceOf(tokenDistributor.SINK()), 1337e18);
+    }
+
+    // try to distribute from a no longer active member.
+    function testDistribute_onlyActiveMemberCanDistribute() external {
+        (IERC721[] memory preciousTokens, uint256[] memory preciousTokenIds) =
+            _createPreciousTokens(2);
+        TestablePartyGovernance gov =
+            _createGovernance(100e18, preciousTokens, preciousTokenIds);
+
+        address member = _randomAddress();
+        gov.mockAdjustVotingPower(member, 1e18, member);
+        // Transfer all VP so they're no longer a member.
+        skip(1);
+        gov.mockAdjustVotingPower(member, -1e18, member);
+
+        // Try to create a distribution.
+        vm.deal(address(gov), 1337e18);
+        vm.expectRevert(abi.encodeWithSelector(
+            PartyGovernance.OnlyActiveMemberError.selector
+        ));
+        vm.prank(member);
+        gov.distribute(ETH_TOKEN);
     }
 }
