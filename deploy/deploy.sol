@@ -11,15 +11,12 @@ import '../contracts/party/Party.sol';
 import '../contracts/party/PartyFactory.sol';
 import '../contracts/proposals/ProposalExecutionEngine.sol';
 import '../contracts/proposals/opensea/SharedWyvernV2Maker.sol';
-import './LibDeployAddresses.sol';
+import './LibDeployConstants.sol';
 
 contract Deploy is Test {
 
-  // TODO: verify these constants
   // constants
   address constant DEPLOYER_ADDRESS = 0x00a329c0648769A73afAc7F9381E08FB43dBEA72;
-  uint256 constant PARTY_DAO_DISTRIBUTION_SPLIT_BPS = 250;
-  uint256 constant OS_ZORA_AUCTION_DURATION = 86400; // 60 * 60 * 24 = 86400 seconds = 24 hours
 
   // temporary variables to store deployed contract addresses
   // PartyCrowdfundFactory partyCrowdfundFactoryAddress;
@@ -32,7 +29,7 @@ contract Deploy is Test {
   SharedWyvernV2Maker sharedWyvernV2Maker;
   TokenDistributor tokenDistributor;
 
-  function run(LibDeployAddresses.DeployAddresses memory deployAddresses) public {
+  function run(LibDeployConstants.DeployConstants memory deployConstants) public {
     console.log('Starting deploy script.');
     console.log('DEPLOYER_ADDRESS', DEPLOYER_ADDRESS);
     vm.startBroadcast();
@@ -47,17 +44,17 @@ contract Deploy is Test {
     console.log('');
     console.log('  Globals - setting PartyDao Multi-sig address');
     // TODO: setAddress or setUint256?
-    globals.setAddress(LibGlobals.GLOBAL_DAO_WALLET, deployAddresses.partyDaoMultisig);
-    console.log('  Globals - successfully set PartyDao multi-sig address', deployAddresses.partyDaoMultisig);
+    globals.setAddress(LibGlobals.GLOBAL_DAO_WALLET, deployConstants.partyDaoMultisig);
+    console.log('  Globals - successfully set PartyDao multi-sig address', deployConstants.partyDaoMultisig);
 
     console.log('');
     console.log('  Globals - setting DAO authority addresses');
-    globals.setIncludesAddress(LibGlobals.GLOBAL_DAO_AUTHORITIES, deployAddresses.adminAddress, true);
-    console.log('  Globals - successfully set DAO authority addresses', deployAddresses.adminAddress);
+    globals.setIncludesAddress(LibGlobals.GLOBAL_DAO_AUTHORITIES, deployConstants.adminAddress, true);
+    console.log('  Globals - successfully set DAO authority addresses', deployConstants.adminAddress);
 
     console.log('  Globals - setting PartyDao split basis points');
-    globals.setUint256(LibGlobals.GLOBAL_DAO_DISTRIBUTION_SPLIT, PARTY_DAO_DISTRIBUTION_SPLIT_BPS);
-    console.log('  Globals - successfully set PartyDao split basis points', PARTY_DAO_DISTRIBUTION_SPLIT_BPS);
+    globals.setUint256(LibGlobals.GLOBAL_DAO_DISTRIBUTION_SPLIT, deployConstants.partyDaoDistributionSplitBps);
+    console.log('  Globals - successfully set PartyDao split basis points', deployConstants.partyDaoDistributionSplitBps);
 
 
     // DEPLOY_TOKEN_DISTRIBUTOR
@@ -77,21 +74,21 @@ contract Deploy is Test {
     console.log('');
     console.log('### SharedWyvernV2Maker');
     console.log('  Deploying - SharedWyvernV2Maker');
-    openseaExchange = IWyvernExchangeV2(deployAddresses.openSeaExchangeAddress);
+    openseaExchange = IWyvernExchangeV2(deployConstants.openSeaExchangeAddress);
     sharedWyvernV2Maker = new SharedWyvernV2Maker(openseaExchange);
     console.log('  Deployed - SharedWyvernV2Maker', address(sharedWyvernV2Maker));
 
     console.log('');
     console.log('  Globals - setting OpenSea Zora auction duration');
-    globals.setUint256(LibGlobals.GLOBAL_OS_ZORA_AUCTION_DURATION, OS_ZORA_AUCTION_DURATION);
-    console.log('  Globals - successfully set OpenSea Zora auction duration', OS_ZORA_AUCTION_DURATION);
+    globals.setUint256(LibGlobals.GLOBAL_OS_ZORA_AUCTION_DURATION, deployConstants.osZoraAuctionDuration);
+    console.log('  Globals - successfully set OpenSea Zora auction duration', deployConstants.osZoraAuctionDuration);
 
 
     // DEPLOY_PROPOSAL_EXECUTION_ENGINE
     console.log('');
     console.log('### ProposalExecutionEngine');
     console.log('  Deploying - ProposalExecutionEngine');
-    zoraAuctionHouse = IZoraAuctionHouse(deployAddresses.zoraAuctionHouseAddress);
+    zoraAuctionHouse = IZoraAuctionHouse(deployConstants.zoraAuctionHouseAddress);
     proposalEngineImpl = new ProposalExecutionEngine(globals, sharedWyvernV2Maker, zoraAuctionHouse);
     console.log('  Deployed - ProposalExecutionEngine', address(proposalEngineImpl));
     console.log('    with wyvern', address(sharedWyvernV2Maker));
@@ -140,9 +137,9 @@ contract Deploy is Test {
     // TODO: TRANSFER_OWNERSHIP_TO_PARTYDAO_MULTISIG
     console.log('');
     console.log('### Transfer MultiSig');
-    console.log('  Transferring ownership to PartyDAO multi-sig', deployAddresses.partyDaoMultisig);
-    globals.transferMultiSig(deployAddresses.partyDaoMultisig);
-    console.log('  Transferred ownership to', deployAddresses.partyDaoMultisig);
+    console.log('  Transferring ownership to PartyDAO multi-sig', deployConstants.partyDaoMultisig);
+    globals.transferMultiSig(deployConstants.partyDaoMultisig);
+    console.log('  Transferred ownership to', deployConstants.partyDaoMultisig);
 
     vm.stopBroadcast();
     console.log('');

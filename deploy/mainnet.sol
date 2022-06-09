@@ -4,14 +4,14 @@ pragma solidity ^0.8;
 import 'forge-std/Test.sol';
 
 import './deploy.sol';
-import './LibDeployAddresses.sol';
+import './LibDeployConstants.sol';
 
 contract MainnetDeploy is Test {
   function run() public {
     console.log('Starting mainnet deploy script.');
 
     Deploy deploy = new Deploy();
-    deploy.run(LibDeployAddresses.mainnet());
+    deploy.run(LibDeployConstants.mainnet());
     
     console.log('Ending mainnet deploy script.');
   }
