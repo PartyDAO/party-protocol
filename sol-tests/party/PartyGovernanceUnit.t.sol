@@ -164,6 +164,7 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
     event DistributionCreated(uint256 distributionId, IERC20 token);
     event VotingPowerDelegated(address owner, address delegate);
     event PreciousListSet(IERC721[] tokens, uint256[] tokenIds);
+    event HostStatusTransferred(address oldHost, address newHost);
     event DummyProposalExecutionEngine_executeCalled(
         address context,
         IProposalExecutionEngine.ProposalExecutionStatus status,
@@ -279,6 +280,11 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
     function _expectProposalCompletedEvent(uint256 proposalId) private {
         vm.expectEmit(false, false, false, true);
         emit ProposalCompleted(proposalId);
+    }
+
+    function _expectHostStatusTransferredEvent(address oldHost, address newHost) private {
+        vm.expectEmit(false, false, false, true);
+        emit HostStatusTransferred(oldHost, newHost);
     }
 
     function _assertProposalStateEq(
@@ -1561,6 +1567,7 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
         // Transfer host status to another address
         address host = _getRandomDefaultHost();
         vm.prank(host);
+        _expectHostStatusTransferredEvent(host, newHost);
         gov.abdicate(newHost);
 
         // Assert old host is no longer host

@@ -112,6 +112,7 @@ abstract contract PartyGovernance is
         address voter,
         uint256 weight
     );
+
     event ProposalPassed(uint256 proposalId);
     event ProposalVetoed(uint256 proposalId, address host);
     event ProposalExecuted(uint256 proposalId, address executor);
@@ -119,6 +120,7 @@ abstract contract PartyGovernance is
     event DistributionCreated(uint256 distributionId, IERC20 token);
     event VotingPowerDelegated(address owner, address delegate);
     event PreciousListSet(IERC721[] tokens, uint256[] tokenIds);
+    event HostStatusTransferred(address oldHost, address newHost);
 
     error BadProposalStateError(ProposalState state);
     error ProposalExistsError(uint256 proposalId);
@@ -271,6 +273,7 @@ abstract contract PartyGovernance is
         require(!isHost[newPartyHost]);
         isHost[msg.sender] = false;
         isHost[newPartyHost] = true;
+        emit HostStatusTransferred(msg.sender, newPartyHost);
     }
 
     // Move all `token` funds into a distribution contract to be proportionally
