@@ -157,9 +157,8 @@ abstract contract PartyGovernance is
 
     modifier onlyActiveMember() {
         {
-            VotingPowerSnapshot memory snap = _getLastVotingPowerSnapshotIn(
-                _votingPowerSnapshotsByVoter[msg.sender]
-            );
+            VotingPowerSnapshot memory snap =
+                _getLastVotingPowerSnapshotForVoter(msg.sender);
             // Must have either delegated voting power or intrinsic voting power.
             if (snap.intrinsicVotingPower == 0 && snap.delegatedVotingPower == 0) {
                 revert OnlyActiveMemberError();
@@ -235,6 +234,30 @@ abstract contract PartyGovernance is
         state = _getProposalState(values);
     }
 
+    function getProposalHash(Proposal memory proposal)
+        public
+        pure
+        returns (bytes32 h)
+    {
+        // Hash the proposal in-place. Equivalent to:
+        // keccak256(abi.encode(
+        //   proposal.minExecutableTime,
+        //   proposal.nonce,
+        //   keccak256(proposal.proposalData)
+        // ))
+        bytes32 dataHash = keccak256(proposal.proposalData);
+        assembly {
+            // Overwrite the data field with the hash of its contents and then
+            // hash the struct.
+            let dataPos := add(proposal, 0x40)
+            let t := mload(dataPos)
+            mstore(dataPos, dataHash)
+            h := keccak256(proposal, 0x60)
+            // Restore the data field.
+            mstore(dataPos, t)
+        }
+    }
+
     // Pledge your intrinsic voting power to a new delegate, removing it from
     // the old one (if any).
     function delegateVotingPower(address delegate) external
@@ -287,7 +310,7 @@ abstract contract PartyGovernance is
                 completedTime: 0,
                 votes: 0
             }),
-            _getProposalHash(proposal)
+            getProposalHash(proposal)
         );
         emit Proposed(proposalId, msg.sender, proposal);
         accept(proposalId);
@@ -378,7 +401,7 @@ abstract contract PartyGovernance is
     {
         ProposalInfo storage proposalInfo = _proposalInfoByProposalId[proposalId];
         {
-            bytes32 actualHash = _getProposalHash(proposal);
+            bytes32 actualHash = getProposalHash(proposal);
             bytes32 expectedHash = proposalInfo.hash;
             if (expectedHash != actualHash) {
                 revert BadProposalHashError(actualHash, expectedHash);
@@ -491,31 +514,6 @@ abstract contract PartyGovernance is
             : snaps[high - 1];
     }
 
-    function _getProposalHash(Proposal memory proposal)
-        internal
-        pure
-        returns (bytes32 h)
-    {
-        // Hash the proposal in-place. Equivalent to:
-        // keccak256(abi.encode(
-        //   proposal.minExecutableTime,
-        //   proposal.nonce,
-        //   keccak256(proposal.proposalData)
-        // ))
-        bytes32 dataHash = keccak256(proposal.proposalData);
-        assembly {
-            // Overwrite the data field with the hash of its contents and then
-            // hash the struct.
-            let dataPos := add(proposal, 0x40)
-            let t := mload(dataPos)
-            mstore(dataPos, dataHash)
-            h := keccak256(proposal, 0x60)
-            // Restore the data field.
-            mstore(dataPos, t)
-        }
-    }
-
-
     // Transfers some voting power of `from` to `to`. The total voting power of
     // their respective delegates will be updated as well.
     function _transferVotingPower(address from, address to, uint256 power)
@@ -530,8 +528,8 @@ abstract contract PartyGovernance is
     function _adjustVotingPower(address voter, int192 votingPower, address delegate)
         internal
     {
-        VotingPowerSnapshot[] storage voterSnaps = _votingPowerSnapshotsByVoter[voter];
-        VotingPowerSnapshot memory oldSnap = _getLastVotingPowerSnapshotIn(voterSnaps);
+        VotingPowerSnapshot memory oldSnap =
+            _getLastVotingPowerSnapshotForVoter(voter);
         address oldDelegate = delegationsByVoter[voter];
         // If `delegate` is zero, use the current delegate.
         delegate = delegate == address(0) ? oldDelegate : delegate;
@@ -547,12 +545,7 @@ abstract contract PartyGovernance is
                 ).safeCastInt192ToUint96(),
             isDelegated: delegate != voter
         });
-        // If same timestamp, overwrite last snapshot, otherwise append.
-        if (oldSnap.timestamp != newSnap.timestamp) {
-            voterSnaps.push(newSnap);
-        } else {
-            voterSnaps[voterSnaps.length - 1] = newSnap;
-        }
+        _insertVotingPowerSnapshot(voter, newSnap);
         delegationsByVoter[voter] = delegate;
         // Handle rebalancing delegates.
         _rebalanceDelegates(voter, oldDelegate, delegate, oldSnap, newSnap);
@@ -578,10 +571,8 @@ abstract contract PartyGovernance is
         }
         if (oldDelegate != voter && oldDelegate != newDelegate) {
             // Remove past voting power from old delegate.
-            VotingPowerSnapshot[] storage oldDelegateSnaps =
-                _votingPowerSnapshotsByVoter[oldDelegate];
             VotingPowerSnapshot memory oldDelegateSnap =
-                _getLastVotingPowerSnapshotIn(oldDelegateSnaps);
+                _getLastVotingPowerSnapshotForVoter(oldDelegate);
             VotingPowerSnapshot memory updatedOldDelegateSnap =
                 VotingPowerSnapshot({
                     timestamp: uint40(block.timestamp),
@@ -591,19 +582,12 @@ abstract contract PartyGovernance is
                     intrinsicVotingPower: oldDelegateSnap.intrinsicVotingPower,
                     isDelegated: oldDelegateSnap.isDelegated
                 });
-            // If same timestamp, overwrite last snapshot, otherwise append.
-            if (oldDelegateSnap.timestamp != updatedOldDelegateSnap.timestamp) {
-                oldDelegateSnaps.push(updatedOldDelegateSnap);
-            } else {
-                oldDelegateSnaps[oldDelegateSnaps.length - 1] = updatedOldDelegateSnap;
-            }
+            _insertVotingPowerSnapshot(oldDelegate, updatedOldDelegateSnap);
         }
         if (newDelegate != voter) { // Not delegating to self.
             // Add new voting power to new delegate.
-            VotingPowerSnapshot[] storage newDelegateSnaps =
-                _votingPowerSnapshotsByVoter[newDelegate];
             VotingPowerSnapshot memory newDelegateSnap =
-                _getLastVotingPowerSnapshotIn(newDelegateSnaps);
+                _getLastVotingPowerSnapshotForVoter(newDelegate);
             uint96 newDelegateDelegatedVotingPower =
                 newDelegateSnap.delegatedVotingPower + newSnap.intrinsicVotingPower;
             if (newDelegate == oldDelegate) {
@@ -619,23 +603,35 @@ abstract contract PartyGovernance is
                     intrinsicVotingPower: newDelegateSnap.intrinsicVotingPower,
                     isDelegated: newDelegateSnap.isDelegated
                 });
-            // If same timestamp, overwrite last snapshot, otherwise append.
-            if (newDelegateSnap.timestamp != updatedNewDelegateSnap.timestamp) {
-                newDelegateSnaps.push(updatedNewDelegateSnap);
-            } else {
-                newDelegateSnaps[newDelegateSnaps.length - 1] = updatedNewDelegateSnap;
-            }
+            _insertVotingPowerSnapshot(newDelegate, updatedNewDelegateSnap);
         }
     }
 
-    function _getLastVotingPowerSnapshotIn(VotingPowerSnapshot[] storage snaps)
+    function _insertVotingPowerSnapshot(address voter, VotingPowerSnapshot memory snap)
+        private
+    {
+        VotingPowerSnapshot[] storage voterSnaps = _votingPowerSnapshotsByVoter[voter];
+        uint256 n = voterSnaps.length;
+        // If same timestamp as last entry, overwrite the last snapshot, otherwise append.
+        if (n != 0) {
+            VotingPowerSnapshot memory lastSnap = voterSnaps[n - 1];
+            if (lastSnap.timestamp == snap.timestamp) {
+                voterSnaps[n - 1] = snap;
+                return;
+            }
+        }
+        voterSnaps.push(snap);
+    }
+
+    function _getLastVotingPowerSnapshotForVoter(address voter)
         private
         view
         returns (VotingPowerSnapshot memory snap)
     {
-        uint256 n = snaps.length;
+        VotingPowerSnapshot[] storage voterSnaps = _votingPowerSnapshotsByVoter[voter];
+        uint256 n = voterSnaps.length;
         if (n != 0) {
-            snap = snaps[snaps.length - 1];
+            snap = voterSnaps[n - 1];
         }
     }
 

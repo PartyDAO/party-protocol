@@ -5,6 +5,7 @@ import "forge-std/Test.sol";
 
 import "../../contracts/party/PartyGovernance.sol";
 import "../../contracts/globals/Globals.sol";
+import "../DummyERC20.sol";
 import "../TestUtils.sol";
 
 contract DummyProposalExecutionEngine is IProposalExecutionEngine {
@@ -55,10 +56,12 @@ contract DummyTokenDistributor {
     event DummyTokenDistributor_createDistributionCalled(
         address caller,
         IERC20 token,
-        uint256 amount
+        uint256 amount,
+        uint256 id
     );
 
-    uint256 _lastId;
+    address payable public SINK = payable(address(12345678));
+    uint256 public lastId;
 
     function createDistribution(IERC20 token)
         external
@@ -68,16 +71,17 @@ contract DummyTokenDistributor {
         uint256 amount;
         if (address(token) == 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE) {
             amount = address(this).balance;
-            payable(0).transfer(amount);  // Burn it all to keep balances fresh.
+            SINK.transfer(amount);  // Burn it all to keep balances fresh.
         } else {
             amount = token.balanceOf(address(this));
-            token.transfer(address(0), amount); // Burn it all to keep balances fresh.
+            token.transfer(SINK, amount); // Burn it all to keep balances fresh.
         }
-        distInfo.distributionId = ++_lastId;
+        distInfo.distributionId = ++lastId;
         emit DummyTokenDistributor_createDistributionCalled(
             msg.sender,
             token,
-            amount
+            amount,
+            distInfo.distributionId
         );
     }
 }
@@ -108,14 +112,6 @@ contract TestablePartyGovernance is PartyGovernance {
         _transferVotingPower(from, to, power);
     }
 
-    function getProposalHash(Proposal memory proposal)
-        external
-        pure
-        returns (bytes32 h)
-    {
-        return _getProposalHash(proposal);
-    }
-
     function getDistributionShareOf(uint256 tokenId) external view returns (uint256 s) {}
 
     function ownerOf(uint256 tokenId) external view returns (address o) {}
@@ -131,6 +127,22 @@ contract TestablePartyGovernance is PartyGovernance {
         returns (VotingPowerSnapshot memory snap)
     {
         return _getVotingPowerSnapshotAt(voter, uint40(timestamp));
+    }
+
+    function getProposalState(uint256 proposalId)
+        external
+        view
+        returns (PartyGovernance.ProposalState state)
+    {
+        (state,) = this.getProposalStates(proposalId);
+    }
+
+    function getNextProposalId()
+        external
+        view
+        returns (uint256)
+    {
+        return lastProposalId + 1;
     }
 }
 
@@ -157,6 +169,14 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
         IProposalExecutionEngine.ProposalExecutionStatus status,
         IProposalExecutionEngine.ExecuteProposalParams params
     );
+    event DummyTokenDistributor_createDistributionCalled(
+        address caller,
+        IERC20 token,
+        uint256 amount,
+        uint256 id
+    );
+
+    IERC20 constant ETH_TOKEN = IERC20(0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE);
 
     PartyGovernance.GovernanceOpts defaultGovernanceOpts;
     Globals globals = new Globals(address(this));
@@ -224,43 +244,84 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
         ];
     }
 
+    function _expectProposedEvent(
+        uint256 proposalId,
+        address proposer,
+        PartyGovernance.Proposal memory proposal
+    )
+        private
+    {
+        vm.expectEmit(false, false, false, true);
+        emit Proposed(proposalId, proposer, proposal);
+    }
+
+    function _expectProposalAcceptedEvent(
+        uint256 proposalId,
+        address voter,
+        uint256 votingPower
+    )
+        private
+    {
+        vm.expectEmit(false, false, false, true);
+        emit ProposalAccepted(proposalId, voter, votingPower);
+    }
+
+    function _expectProposalPassedEvent(uint256 proposalId) private {
+        vm.expectEmit(false, false, false, true);
+        emit ProposalPassed(proposalId);
+    }
+
+    function _expectProposalExecutedEvent(uint256 proposalId, address executor) private {
+        vm.expectEmit(false, false, false, true);
+        emit ProposalExecuted(proposalId, executor);
+    }
+
+    function _expectProposalCompletedEvent(uint256 proposalId) private {
+        vm.expectEmit(false, false, false, true);
+        emit ProposalCompleted(proposalId);
+    }
+
+    function _assertProposalStateEq(
+        TestablePartyGovernance gov,
+        uint256 proposalId,
+        PartyGovernance.ProposalState expected
+    )
+        private
+    {
+        assertEq(uint256(gov.getProposalState(proposalId)), uint256(expected));
+    }
+
     // One undelegated voter with 51/100 intrinsic VP.
     // One step proposal.
     function testProposalLifecycle_oneVoter() external {
-        TestablePartyGovernance gov;
         (IERC721[] memory preciousTokens, uint256[] memory preciousTokenIds) =
             _createPreciousTokens(2);
-        gov = _createGovernance(100e18, preciousTokens, preciousTokenIds);
+        TestablePartyGovernance gov =
+            _createGovernance(100e18, preciousTokens, preciousTokenIds);
         address undelegatedVoter = _randomAddress();
         // undelegatedVoter has 51/100 intrinsic VP (delegated to no one/self)
         gov.mockAdjustVotingPower(undelegatedVoter, 51e18, address(0));
 
         // Create a one-step proposal.
         PartyGovernance.Proposal memory proposal = _createProposal(1);
-        uint256 proposalId = gov.lastProposalId() + 1;
+        uint256 proposalId = gov.getNextProposalId();
 
-        (PartyGovernance.ProposalState propState,) = gov.getProposalStates(proposalId);
-        assertTrue(propState == PartyGovernance.ProposalState.Invalid);
+        _assertProposalStateEq(gov, proposalId, PartyGovernance.ProposalState.Invalid);
 
         // Undelegated voter submits proposal.
-        vm.expectEmit(false, false, false, true);
-        emit Proposed(proposalId, undelegatedVoter, proposal);
+        _expectProposedEvent(proposalId, undelegatedVoter, proposal);
         // Votes are automatically cast by proposer.
-        vm.expectEmit(false, false, false, true);
-        emit ProposalAccepted(proposalId, undelegatedVoter, 51e18);
+        _expectProposalAcceptedEvent(proposalId, undelegatedVoter, 51e18);
         // Voter has majority VP so it also passes immediately.
-        vm.expectEmit(false, false, false, true);
-        emit ProposalPassed(proposalId);
+        _expectProposalPassedEvent(proposalId);
         vm.prank(undelegatedVoter);
         assertEq(gov.propose(proposal), proposalId);
 
-        (propState,) = gov.getProposalStates(proposalId);
-        assertTrue(propState == PartyGovernance.ProposalState.Passed);
+        _assertProposalStateEq(gov, proposalId, PartyGovernance.ProposalState.Passed);
 
         // Skip past execution delay.
         skip(defaultGovernanceOpts.executionDelay);
-        (propState,) = gov.getProposalStates(proposalId);
-        assertTrue(propState == PartyGovernance.ProposalState.Ready);
+        _assertProposalStateEq(gov, proposalId, PartyGovernance.ProposalState.Ready);
 
         // Execute the proposal as the single voter.
         vm.expectEmit(false, false, false, true);
@@ -276,10 +337,8 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
                 preciousTokenIds: preciousTokenIds
             })
         );
-        vm.expectEmit(false, false, false, true);
-        emit ProposalExecuted(proposalId, undelegatedVoter);
-        vm.expectEmit(false, false, false, true);
-        emit ProposalCompleted(proposalId);
+        _expectProposalExecutedEvent(proposalId, undelegatedVoter);
+        _expectProposalCompletedEvent(proposalId);
         vm.prank(undelegatedVoter);
         gov.execute(
             proposalId,
@@ -289,34 +348,30 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
             ""
         );
 
-        (propState,) = gov.getProposalStates(proposalId);
-        assertTrue(propState == PartyGovernance.ProposalState.Complete);
+        _assertProposalStateEq(gov, proposalId, PartyGovernance.ProposalState.Complete);
     }
 
     // One undelegated voter with 51/100 intrinsic VP.
     // Two step proposal.
     function testProposalLifecycle_oneVoter_twoStep() external {
-        TestablePartyGovernance gov;
         (IERC721[] memory preciousTokens, uint256[] memory preciousTokenIds) =
             _createPreciousTokens(2);
-        gov = _createGovernance(100e18, preciousTokens, preciousTokenIds);
+        TestablePartyGovernance gov =
+            _createGovernance(100e18, preciousTokens, preciousTokenIds);
         address undelegatedVoter = _randomAddress();
         // undelegatedVoter has 51/100 intrinsic VP (delegated to no one/self)
         gov.mockAdjustVotingPower(undelegatedVoter, 51e18, address(0));
 
         // Create a two-step proposal.
         PartyGovernance.Proposal memory proposal = _createProposal(2);
-        uint256 proposalId = gov.lastProposalId() + 1;
+        uint256 proposalId = gov.getNextProposalId();
 
         // Undelegated voter submits proposal.
-        vm.expectEmit(false, false, false, true);
-        emit Proposed(proposalId, undelegatedVoter, proposal);
+        _expectProposedEvent(proposalId, undelegatedVoter, proposal);
         // Votes are automatically cast by proposer.
-        vm.expectEmit(false, false, false, true);
-        emit ProposalAccepted(proposalId, undelegatedVoter, 51e18);
+        _expectProposalAcceptedEvent(proposalId, undelegatedVoter, 51e18);
         // Voter has majority VP so it also passes immediately.
-        vm.expectEmit(false, false, false, true);
-        emit ProposalPassed(proposalId);
+        _expectProposalPassedEvent(proposalId);
         vm.prank(undelegatedVoter);
         assertEq(gov.propose(proposal), proposalId);
 
@@ -336,8 +391,7 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
                 preciousTokenIds: preciousTokenIds
             })
         );
-        vm.expectEmit(false, false, false, true);
-        emit ProposalExecuted(proposalId, undelegatedVoter);
+        _expectProposalExecutedEvent(proposalId, undelegatedVoter);
         vm.prank(undelegatedVoter);
         gov.execute(
             proposalId,
@@ -347,8 +401,7 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
             ""
         );
 
-        (PartyGovernance.ProposalState propState,) = gov.getProposalStates(proposalId);
-        assertTrue(propState == PartyGovernance.ProposalState.InProgress);
+        _assertProposalStateEq(gov, proposalId, PartyGovernance.ProposalState.InProgress);
 
         // Execute the proposal as the single voter. (2/2)
         vm.expectEmit(false, false, false, true);
@@ -364,10 +417,8 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
                 preciousTokenIds: preciousTokenIds
             })
         );
-        vm.expectEmit(false, false, false, true);
-        emit ProposalExecuted(proposalId, undelegatedVoter);
-        vm.expectEmit(false, false, false, true);
-        emit ProposalCompleted(proposalId);
+        _expectProposalExecutedEvent(proposalId, undelegatedVoter);
+        _expectProposalCompletedEvent(proposalId);
         vm.prank(undelegatedVoter);
         gov.execute(
             proposalId,
@@ -377,34 +428,30 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
             abi.encode(1)
         );
 
-        (propState,) = gov.getProposalStates(proposalId);
-        assertTrue(propState == PartyGovernance.ProposalState.Complete);
+        _assertProposalStateEq(gov, proposalId, PartyGovernance.ProposalState.Complete);
     }
 
     // One undelegated voter with 100/100 intrinsic VP.
     // One step proposal.
     function testProposalLifecycle_oneVoterUnanimous() external {
-        TestablePartyGovernance gov;
         (IERC721[] memory preciousTokens, uint256[] memory preciousTokenIds) =
             _createPreciousTokens(2);
-        gov = _createGovernance(100e18, preciousTokens, preciousTokenIds);
+        TestablePartyGovernance gov =
+            _createGovernance(100e18, preciousTokens, preciousTokenIds);
         address undelegatedVoter = _randomAddress();
         // undelegatedVoter has 100/100 intrinsic VP (delegated to no one/self)
         gov.mockAdjustVotingPower(undelegatedVoter, 100e18, address(0));
 
         // Create a one-step proposal.
         PartyGovernance.Proposal memory proposal = _createProposal(1);
-        uint256 proposalId = gov.lastProposalId() + 1;
+        uint256 proposalId = gov.getNextProposalId();
 
         // Undelegated voter submits proposal.
-        vm.expectEmit(false, false, false, true);
-        emit Proposed(proposalId, undelegatedVoter, proposal);
+        _expectProposedEvent(proposalId, undelegatedVoter, proposal);
         // Votes are automatically cast by proposer.
-        vm.expectEmit(false, false, false, true);
-        emit ProposalAccepted(proposalId, undelegatedVoter, 100e18);
+        _expectProposalAcceptedEvent(proposalId, undelegatedVoter, 100e18);
         // Voter has majority VP so it also passes immediately.
-        vm.expectEmit(false, false, false, true);
-        emit ProposalPassed(proposalId);
+        _expectProposalPassedEvent(proposalId);
         vm.prank(undelegatedVoter);
         assertEq(gov.propose(proposal), proposalId);
 
@@ -425,10 +472,8 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
                 preciousTokenIds: preciousTokenIds
             })
         );
-        vm.expectEmit(false, false, false, true);
-        emit ProposalExecuted(proposalId, undelegatedVoter);
-        vm.expectEmit(false, false, false, true);
-        emit ProposalCompleted(proposalId);
+        _expectProposalExecutedEvent(proposalId, undelegatedVoter);
+        _expectProposalCompletedEvent(proposalId);
         vm.prank(undelegatedVoter);
         gov.execute(
             proposalId,
@@ -443,10 +488,10 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
     // One undelegated voter with 25/100 intrinsic VP.
     // One step proposal.
     function testProposalLifecycle_twoVotersUnanimous() external {
-        TestablePartyGovernance gov;
         (IERC721[] memory preciousTokens, uint256[] memory preciousTokenIds) =
             _createPreciousTokens(2);
-        gov = _createGovernance(100e18, preciousTokens, preciousTokenIds);
+        TestablePartyGovernance gov =
+            _createGovernance(100e18, preciousTokens, preciousTokenIds);
         address undelegatedVoter1 = _randomAddress();
         address undelegatedVoter2 = _randomAddress();
         // undelegatedVoter1 has 75/100 intrinsic VP (delegated to no one/self)
@@ -456,23 +501,19 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
 
         // Create a one-step proposal.
         PartyGovernance.Proposal memory proposal = _createProposal(1);
-        uint256 proposalId = gov.lastProposalId() + 1;
+        uint256 proposalId = gov.getNextProposalId();
 
         // Undelegated voter 1 submits proposal.
-        vm.expectEmit(false, false, false, true);
-        emit Proposed(proposalId, undelegatedVoter1, proposal);
+        _expectProposedEvent(proposalId, undelegatedVoter1, proposal);
         // Votes are automatically cast by proposer.
-        vm.expectEmit(false, false, false, true);
-        emit ProposalAccepted(proposalId, undelegatedVoter1, 75e18);
+        _expectProposalAcceptedEvent(proposalId, undelegatedVoter1, 75e18);
         // Voter has majority VP so it also passes immediately.
-        vm.expectEmit(false, false, false, true);
-        emit ProposalPassed(proposalId);
+        _expectProposalPassedEvent(proposalId);
         vm.prank(undelegatedVoter1);
         assertEq(gov.propose(proposal), proposalId);
 
         // Undelegated voter 2 votes.
-        vm.expectEmit(false, false, false, true);
-        emit ProposalAccepted(proposalId, undelegatedVoter2, 25e18);
+        _expectProposalAcceptedEvent(proposalId, undelegatedVoter2, 25e18);
         vm.prank(undelegatedVoter2);
         gov.accept(proposalId);
 
@@ -493,10 +534,8 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
                 preciousTokenIds: preciousTokenIds
             })
         );
-        vm.expectEmit(false, false, false, true);
-        emit ProposalExecuted(proposalId, undelegatedVoter1);
-        vm.expectEmit(false, false, false, true);
-        emit ProposalCompleted(proposalId);
+        _expectProposalExecutedEvent(proposalId, undelegatedVoter1);
+        _expectProposalCompletedEvent(proposalId);
         vm.prank(undelegatedVoter1);
         gov.execute(
             proposalId,
@@ -509,17 +548,17 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
 
     // Try to execute a proposal that hasn't passed.
     function testProposalLifecycle_cannotExecuteWithoutPassing() external {
-        TestablePartyGovernance gov;
         (IERC721[] memory preciousTokens, uint256[] memory preciousTokenIds) =
             _createPreciousTokens(2);
-        gov = _createGovernance(100e18, preciousTokens, preciousTokenIds);
+        TestablePartyGovernance gov =
+            _createGovernance(100e18, preciousTokens, preciousTokenIds);
         address undelegatedVoter = _randomAddress();
         // undelegatedVoter has 50/100 intrinsic VP (delegated to no one/self)
         gov.mockAdjustVotingPower(undelegatedVoter, 50e18, address(0));
 
         // Create a one-step proposal.
         PartyGovernance.Proposal memory proposal = _createProposal(1);
-        uint256 proposalId = gov.lastProposalId() + 1;
+        uint256 proposalId = gov.getNextProposalId();
 
         // Undelegated voter submits proposal.
         vm.prank(undelegatedVoter);
@@ -558,22 +597,21 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
 
     // Try to execute a proposal before the execution delay has passed.
     function testProposalLifecycle_cannotExecuteBeforeExecutionDelay() external {
-        TestablePartyGovernance gov;
         (IERC721[] memory preciousTokens, uint256[] memory preciousTokenIds) =
             _createPreciousTokens(2);
-        gov = _createGovernance(100e18, preciousTokens, preciousTokenIds);
+        TestablePartyGovernance gov =
+            _createGovernance(100e18, preciousTokens, preciousTokenIds);
         address undelegatedVoter = _randomAddress();
         // undelegatedVoter has 51/100 intrinsic VP (delegated to no one/self)
         gov.mockAdjustVotingPower(undelegatedVoter, 51e18, address(0));
 
         // Create a one-step proposal.
         PartyGovernance.Proposal memory proposal = _createProposal(1);
-        uint256 proposalId = gov.lastProposalId() + 1;
+        uint256 proposalId = gov.getNextProposalId();
 
         // Undelegated voter submits proposal.
         // Voter has majority VP so it also passes immediately.
-        vm.expectEmit(false, false, false, true);
-        emit ProposalPassed(proposalId);
+        _expectProposalPassedEvent(proposalId);
         vm.prank(undelegatedVoter);
         assertEq(gov.propose(proposal), proposalId);
 
@@ -594,22 +632,21 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
 
     // Try to execute a proposal after its maxExecutableTime.
     function testProposalLifecycle_cannotExecuteAfterExpiration() external {
-        TestablePartyGovernance gov;
         (IERC721[] memory preciousTokens, uint256[] memory preciousTokenIds) =
             _createPreciousTokens(2);
-        gov = _createGovernance(100e18, preciousTokens, preciousTokenIds);
+        TestablePartyGovernance gov =
+            _createGovernance(100e18, preciousTokens, preciousTokenIds);
         address undelegatedVoter = _randomAddress();
         // undelegatedVoter has 51/100 intrinsic VP (delegated to no one/self)
         gov.mockAdjustVotingPower(undelegatedVoter, 51e18, address(0));
 
         // Create a one-step proposal.
         PartyGovernance.Proposal memory proposal = _createProposal(1);
-        uint256 proposalId = gov.lastProposalId() + 1;
+        uint256 proposalId = gov.getNextProposalId();
 
         // Undelegated voter submits proposal.
         // Voter has majority VP so it also passes immediately.
-        vm.expectEmit(false, false, false, true);
-        emit ProposalPassed(proposalId);
+        _expectProposalPassedEvent(proposalId);
         vm.prank(undelegatedVoter);
         assertEq(gov.propose(proposal), proposalId);
 
@@ -634,22 +671,21 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
 
     // Try to execute a proposal that has already completed.
     function testProposalLifecycle_cannotExecuteCompletedProposal() external {
-        TestablePartyGovernance gov;
         (IERC721[] memory preciousTokens, uint256[] memory preciousTokenIds) =
             _createPreciousTokens(2);
-        gov = _createGovernance(100e18, preciousTokens, preciousTokenIds);
+        TestablePartyGovernance gov =
+            _createGovernance(100e18, preciousTokens, preciousTokenIds);
         address undelegatedVoter = _randomAddress();
         // undelegatedVoter has 51/100 intrinsic VP (delegated to no one/self)
         gov.mockAdjustVotingPower(undelegatedVoter, 51e18, address(0));
 
         // Create a one-step proposal.
         PartyGovernance.Proposal memory proposal = _createProposal(1);
-        uint256 proposalId = gov.lastProposalId() + 1;
+        uint256 proposalId = gov.getNextProposalId();
 
         // Undelegated voter submits proposal.
         // Voter has majority VP so it also passes immediately.
-        vm.expectEmit(false, false, false, true);
-        emit ProposalPassed(proposalId);
+        _expectProposalPassedEvent(proposalId);
         vm.prank(undelegatedVoter);
         assertEq(gov.propose(proposal), proposalId);
 
@@ -666,8 +702,7 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
             ""
         );
 
-        (PartyGovernance.ProposalState propState,) = gov.getProposalStates(proposalId);
-        assertTrue(propState == PartyGovernance.ProposalState.Complete);
+        _assertProposalStateEq(gov, proposalId, PartyGovernance.ProposalState.Complete);
 
         // Try to execute again.
         bytes32 expectedHash = gov.getProposalHash(proposal);
@@ -687,22 +722,21 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
 
     // Try to execute a proposal that has been modified.
     function testProposalLifecycle_cannotExecuteIfModified() external {
-        TestablePartyGovernance gov;
         (IERC721[] memory preciousTokens, uint256[] memory preciousTokenIds) =
             _createPreciousTokens(2);
-        gov = _createGovernance(100e18, preciousTokens, preciousTokenIds);
+        TestablePartyGovernance gov =
+            _createGovernance(100e18, preciousTokens, preciousTokenIds);
         address undelegatedVoter = _randomAddress();
         // undelegatedVoter has 51/100 intrinsic VP (delegated to no one/self)
         gov.mockAdjustVotingPower(undelegatedVoter, 51e18, address(0));
 
         // Create a one-step proposal.
         PartyGovernance.Proposal memory proposal = _createProposal(1);
-        uint256 proposalId = gov.lastProposalId() + 1;
+        uint256 proposalId = gov.getNextProposalId();
 
         // Undelegated voter submits proposal.
         // Voter has majority VP so it also passes immediately.
-        vm.expectEmit(false, false, false, true);
-        emit ProposalPassed(proposalId);
+        _expectProposalPassedEvent(proposalId);
         vm.prank(undelegatedVoter);
         assertEq(gov.propose(proposal), proposalId);
 
@@ -729,17 +763,17 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
 
     // only host can veto
     function testProposalLifecycle_onlyHostCanVeto() external {
-        TestablePartyGovernance gov;
         (IERC721[] memory preciousTokens, uint256[] memory preciousTokenIds) =
             _createPreciousTokens(2);
-        gov = _createGovernance(100e18, preciousTokens, preciousTokenIds);
+        TestablePartyGovernance gov =
+            _createGovernance(100e18, preciousTokens, preciousTokenIds);
         address undelegatedVoter = _randomAddress();
         // undelegatedVoter has 50/100 intrinsic VP (delegated to no one/self)
         gov.mockAdjustVotingPower(undelegatedVoter, 50e18, address(0));
 
         // Create a one-step proposal.
         PartyGovernance.Proposal memory proposal = _createProposal(1);
-        uint256 proposalId = gov.lastProposalId() + 1;
+        uint256 proposalId = gov.getNextProposalId();
 
         // Undelegated voter submits proposal and votes, but does not have enough
         // to pass on their own.
@@ -756,15 +790,15 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
 
     // cannot veto invalid proposal
     function testProposalLifecycle_cannotVetoInvalidProposal() external {
-        TestablePartyGovernance gov;
         (IERC721[] memory preciousTokens, uint256[] memory preciousTokenIds) =
             _createPreciousTokens(2);
-        gov = _createGovernance(100e18, preciousTokens, preciousTokenIds);
+        TestablePartyGovernance gov =
+            _createGovernance(100e18, preciousTokens, preciousTokenIds);
         address undelegatedVoter = _randomAddress();
         // undelegatedVoter has 50/100 intrinsic VP (delegated to no one/self)
         gov.mockAdjustVotingPower(undelegatedVoter, 50e18, address(0));
 
-        uint256 proposalId = gov.lastProposalId() + 1;
+        uint256 proposalId = gov.getNextProposalId();
         address host = _getRandomDefaultHost();
         vm.expectRevert(abi.encodeWithSelector(
             PartyGovernance.BadProposalStateError.selector,
@@ -776,33 +810,31 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
 
     // can veto a proposal that's in vote.
     function testProposalLifecycle_canVetoVotingProposal() external {
-        TestablePartyGovernance gov;
         (IERC721[] memory preciousTokens, uint256[] memory preciousTokenIds) =
             _createPreciousTokens(2);
-        gov = _createGovernance(100e18, preciousTokens, preciousTokenIds);
+        TestablePartyGovernance gov =
+            _createGovernance(100e18, preciousTokens, preciousTokenIds);
         address undelegatedVoter = _randomAddress();
         // undelegatedVoter has 50/100 intrinsic VP (delegated to no one/self)
         gov.mockAdjustVotingPower(undelegatedVoter, 50e18, address(0));
 
         // Create a one-step proposal.
         PartyGovernance.Proposal memory proposal = _createProposal(1);
-        uint256 proposalId = gov.lastProposalId() + 1;
+        uint256 proposalId = gov.getNextProposalId();
 
         // Undelegated voter submits proposal and votes, but does not have enough
         // to pass on their own.
         vm.prank(undelegatedVoter);
         assertEq(gov.propose(proposal), proposalId);
 
-        (PartyGovernance.ProposalState propState,) = gov.getProposalStates(proposalId);
-        assertTrue(propState == PartyGovernance.ProposalState.Voting);
+        _assertProposalStateEq(gov, proposalId, PartyGovernance.ProposalState.Voting);
 
         // Host vetos.
         address host = _getRandomDefaultHost();
         vm.prank(host);
         gov.veto(proposalId);
 
-        (propState,) = gov.getProposalStates(proposalId);
-        assertTrue(propState == PartyGovernance.ProposalState.Defeated);
+        _assertProposalStateEq(gov, proposalId, PartyGovernance.ProposalState.Defeated);
 
         // Skip past execution delay.
         skip(defaultGovernanceOpts.executionDelay);
@@ -824,38 +856,35 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
 
     // can veto a proposal that's ready.
     function testProposalLifecycle_canVetoReadyProposal() external {
-        TestablePartyGovernance gov;
         (IERC721[] memory preciousTokens, uint256[] memory preciousTokenIds) =
             _createPreciousTokens(2);
-        gov = _createGovernance(100e18, preciousTokens, preciousTokenIds);
+        TestablePartyGovernance gov =
+            _createGovernance(100e18, preciousTokens, preciousTokenIds);
         address undelegatedVoter = _randomAddress();
         // undelegatedVoter has 51/100 intrinsic VP (delegated to no one/self)
         gov.mockAdjustVotingPower(undelegatedVoter, 51e18, address(0));
 
         // Create a one-step proposal.
         PartyGovernance.Proposal memory proposal = _createProposal(1);
-        uint256 proposalId = gov.lastProposalId() + 1;
+        uint256 proposalId = gov.getNextProposalId();
 
         // Undelegated voter submits proposal.
         // Voter has majority VP so it also passes immediately.
-        vm.expectEmit(false, false, false, true);
-        emit ProposalPassed(proposalId);
+        _expectProposalPassedEvent(proposalId);
         vm.prank(undelegatedVoter);
         assertEq(gov.propose(proposal), proposalId);
 
         // Skip past execution delay.
         skip(defaultGovernanceOpts.executionDelay);
 
-        (PartyGovernance.ProposalState propState,) = gov.getProposalStates(proposalId);
-        assertTrue(propState == PartyGovernance.ProposalState.Ready);
+        _assertProposalStateEq(gov, proposalId, PartyGovernance.ProposalState.Ready);
 
         // Host vetos.
         address host = _getRandomDefaultHost();
         vm.prank(host);
         gov.veto(proposalId);
 
-        (propState,) = gov.getProposalStates(proposalId);
-        assertTrue(propState == PartyGovernance.ProposalState.Defeated);
+        _assertProposalStateEq(gov, proposalId, PartyGovernance.ProposalState.Defeated);
 
         // Fails to execute.
         vm.expectRevert(abi.encodeWithSelector(
@@ -874,22 +903,21 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
 
     // try to veto a proposal that's in progress.
     function testProposalLifecycle_cannotVetoInProgressProposal() external {
-        TestablePartyGovernance gov;
         (IERC721[] memory preciousTokens, uint256[] memory preciousTokenIds) =
             _createPreciousTokens(2);
-        gov = _createGovernance(100e18, preciousTokens, preciousTokenIds);
+        TestablePartyGovernance gov =
+            _createGovernance(100e18, preciousTokens, preciousTokenIds);
         address undelegatedVoter = _randomAddress();
         // undelegatedVoter has 51/100 intrinsic VP (delegated to no one/self)
         gov.mockAdjustVotingPower(undelegatedVoter, 51e18, address(0));
 
         // Create a two-step proposal.
         PartyGovernance.Proposal memory proposal = _createProposal(2);
-        uint256 proposalId = gov.lastProposalId() + 1;
+        uint256 proposalId = gov.getNextProposalId();
 
         // Undelegated voter submits proposal.
         // Voter has majority VP so it also passes immediately.
-        vm.expectEmit(false, false, false, true);
-        emit ProposalPassed(proposalId);
+        _expectProposalPassedEvent(proposalId);
         vm.prank(undelegatedVoter);
         assertEq(gov.propose(proposal), proposalId);
 
@@ -917,22 +945,21 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
 
     // try to veto a proposal that's completed.
     function testProposalLifecycle_cannotVetoCompleteProposal() external {
-        TestablePartyGovernance gov;
         (IERC721[] memory preciousTokens, uint256[] memory preciousTokenIds) =
             _createPreciousTokens(2);
-        gov = _createGovernance(100e18, preciousTokens, preciousTokenIds);
+        TestablePartyGovernance gov =
+            _createGovernance(100e18, preciousTokens, preciousTokenIds);
         address undelegatedVoter = _randomAddress();
         // undelegatedVoter has 51/100 intrinsic VP (delegated to no one/self)
         gov.mockAdjustVotingPower(undelegatedVoter, 51e18, address(0));
 
         // Create a one-step proposal.
         PartyGovernance.Proposal memory proposal = _createProposal(1);
-        uint256 proposalId = gov.lastProposalId() + 1;
+        uint256 proposalId = gov.getNextProposalId();
 
         // Undelegated voter submits proposal.
         // Voter has majority VP so it also passes immediately.
-        vm.expectEmit(false, false, false, true);
-        emit ProposalPassed(proposalId);
+        _expectProposalPassedEvent(proposalId);
         vm.prank(undelegatedVoter);
         assertEq(gov.propose(proposal), proposalId);
 
@@ -960,10 +987,10 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
 
     // An InProgress proposal that has expired is still executable.
     function testProposalLifecycle_canStillExecuteExpiredInProgressProposal() external {
-        TestablePartyGovernance gov;
         (IERC721[] memory preciousTokens, uint256[] memory preciousTokenIds) =
             _createPreciousTokens(2);
-        gov = _createGovernance(100e18, preciousTokens, preciousTokenIds);
+        TestablePartyGovernance gov =
+            _createGovernance(100e18, preciousTokens, preciousTokenIds);
         address undelegatedVoter = _randomAddress();
         // undelegatedVoter has 51/100 intrinsic VP (delegated to no one/self)
         gov.mockAdjustVotingPower(undelegatedVoter, 51e18, address(0));
@@ -971,12 +998,11 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
         // Create a two-step proposal.
         // By default the proposal expires 1 second after the executable delay.
         PartyGovernance.Proposal memory proposal = _createProposal(2);
-        uint256 proposalId = gov.lastProposalId() + 1;
+        uint256 proposalId = gov.getNextProposalId();
 
         // Undelegated voter submits proposal.
         // Voter has majority VP so it also passes immediately.
-        vm.expectEmit(false, false, false, true);
-        emit ProposalPassed(proposalId);
+        _expectProposalPassedEvent(proposalId);
         vm.prank(undelegatedVoter);
         assertEq(gov.propose(proposal), proposalId);
 
@@ -995,8 +1021,7 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
 
         // Skip past the proposal's maxExecutableTime.
         vm.warp(proposal.maxExecutableTime + 1);
-        (PartyGovernance.ProposalState propState,) = gov.getProposalStates(proposalId);
-        assertTrue(propState == PartyGovernance.ProposalState.InProgress);
+        _assertProposalStateEq(gov, proposalId, PartyGovernance.ProposalState.InProgress);
 
         // Execute (2/2)
         vm.prank(undelegatedVoter);
@@ -1007,32 +1032,30 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
             preciousTokenIds,
             abi.encode(1)
         );
-        (propState,) = gov.getProposalStates(proposalId);
-        assertTrue(propState == PartyGovernance.ProposalState.Complete);
+        _assertProposalStateEq(gov, proposalId, PartyGovernance.ProposalState.Complete);
     }
 
     // Try to execute a proposal after the voting window has expired and it has not passed.
     function testProposalLifecycle_cannotExecuteIfVotingWindowExpired() external {
-        TestablePartyGovernance gov;
         (IERC721[] memory preciousTokens, uint256[] memory preciousTokenIds) =
             _createPreciousTokens(2);
         defaultGovernanceOpts.executionDelay = 60;
         defaultGovernanceOpts.voteDuration = 61;
-        gov = _createGovernance(100e18, preciousTokens, preciousTokenIds);
+        TestablePartyGovernance gov =
+            _createGovernance(100e18, preciousTokens, preciousTokenIds);
         address undelegatedVoter = _randomAddress();
         // undelegatedVoter has 50/100 intrinsic VP (delegated to no one/self)
         gov.mockAdjustVotingPower(undelegatedVoter, 50e18, address(0));
 
         // Create a one-step proposal.
         PartyGovernance.Proposal memory proposal = _createProposal(1);
-        uint256 proposalId = gov.lastProposalId() + 1;
+        uint256 proposalId = gov.getNextProposalId();
 
         // Undelegated voter submits proposal.
         vm.prank(undelegatedVoter);
         assertEq(gov.propose(proposal), proposalId);
 
-        (PartyGovernance.ProposalState propState,) = gov.getProposalStates(proposalId);
-        assertTrue(propState == PartyGovernance.ProposalState.Voting);
+        _assertProposalStateEq(gov, proposalId, PartyGovernance.ProposalState.Voting);
 
         // Skip past voting window.
         skip(defaultGovernanceOpts.voteDuration);
@@ -1056,10 +1079,10 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
     // One delegated voter with 25/100 intrinsic VP
     // One delegate with 25/100 intrinsic + 25 delegated VP.
     function testVoting_passing_mixedVotes() external {
-        TestablePartyGovernance gov;
         (IERC721[] memory preciousTokens, uint256[] memory preciousTokenIds) =
             _createPreciousTokens(2);
-        gov = _createGovernance(100e18, preciousTokens, preciousTokenIds);
+        TestablePartyGovernance gov =
+            _createGovernance(100e18, preciousTokens, preciousTokenIds);
         address delegate = _randomAddress();
         address delegatedVoter = _randomAddress();
         address undelegatedVoter = _randomAddress();
@@ -1072,35 +1095,29 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
 
         // Create a one-step proposal.
         PartyGovernance.Proposal memory proposal = _createProposal(1);
-        uint256 proposalId = gov.lastProposalId() + 1;
+        uint256 proposalId = gov.getNextProposalId();
 
         // Delegated voter submits proposal.
         // No intrinsic or delegated votes so no vote cast during proposal.
-        vm.expectEmit(false, false, false, true);
-        emit ProposalAccepted(proposalId, delegatedVoter, 0);
+        _expectProposalAcceptedEvent(proposalId, delegatedVoter, 0);
         vm.prank(delegatedVoter);
         assertEq(gov.propose(proposal), proposalId);
 
-        (PartyGovernance.ProposalState propState,) = gov.getProposalStates(proposalId);
-        assertTrue(propState == PartyGovernance.ProposalState.Voting);
+        _assertProposalStateEq(gov, proposalId, PartyGovernance.ProposalState.Voting);
 
         // Undelegated (self-delegated) voter votes.
-        vm.expectEmit(false, false, false, true);
-        emit ProposalAccepted(proposalId, undelegatedVoter, 25e18);
+        _expectProposalAcceptedEvent(proposalId, undelegatedVoter, 25e18);
         vm.prank(undelegatedVoter);
         gov.accept(proposalId);
 
         // Delegate votes with delegated and intrinsic voting power.
-        vm.expectEmit(false, false, false, true);
-        emit ProposalAccepted(proposalId, delegate, 50e18);
+        _expectProposalAcceptedEvent(proposalId, delegate, 50e18);
         // Combined, votes are enough (75%) to push it over the pass threshold (50%).
-        vm.expectEmit(false, false, false, true);
-        emit ProposalPassed(proposalId);
+        _expectProposalPassedEvent(proposalId);
         vm.prank(delegate);
         gov.accept(proposalId);
 
-        (propState,) = gov.getProposalStates(proposalId);
-        assertTrue(propState == PartyGovernance.ProposalState.Passed);
+        _assertProposalStateEq(gov, proposalId, PartyGovernance.ProposalState.Passed);
     }
 
     // One undelegated voter with 10/100 intrinsic VP.
@@ -1108,10 +1125,10 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
     // One delegate with 30/100 intrinsic + 10 delegated VP.
     // Combined 10 + 10 + 30 -> 50 < 51 (no pass)
     function testVoting_notPassing_mixedVotes() external {
-        TestablePartyGovernance gov;
         (IERC721[] memory preciousTokens, uint256[] memory preciousTokenIds) =
             _createPreciousTokens(2);
-        gov = _createGovernance(100e18, preciousTokens, preciousTokenIds);
+        TestablePartyGovernance gov =
+            _createGovernance(100e18, preciousTokens, preciousTokenIds);
         address delegate = _randomAddress();
         address delegatedVoter = _randomAddress();
         address undelegatedVoter = _randomAddress();
@@ -1124,7 +1141,7 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
 
         // Create a one-step proposal.
         PartyGovernance.Proposal memory proposal = _createProposal(1);
-        uint256 proposalId = gov.lastProposalId() + 1;
+        uint256 proposalId = gov.getNextProposalId();
 
         // Delegated voter submits proposal.
         // No intrinsic or delegated votes so no vote cast during proposal.
@@ -1133,28 +1150,25 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
         assertEq(gov.propose(proposal), proposalId);
 
         // Undelegated (self-delegated) voter votes.
-        vm.expectEmit(false, false, false, true);
-        emit ProposalAccepted(proposalId, undelegatedVoter, 10e18);
+        _expectProposalAcceptedEvent(proposalId, undelegatedVoter, 10e18);
         vm.prank(undelegatedVoter);
         gov.accept(proposalId);
 
         // Delegate votes with delegated and intrinsic voting power.
-        vm.expectEmit(false, false, false, true);
-        emit ProposalAccepted(proposalId, delegate, 40e18);
+        _expectProposalAcceptedEvent(proposalId, delegate, 40e18);
         vm.prank(delegate);
         gov.accept(proposalId);
 
         // 10 + 10 + 30 = 50, but need 51/100 to pass.
-        (PartyGovernance.ProposalState propState,) = gov.getProposalStates(proposalId);
-        assertTrue(propState == PartyGovernance.ProposalState.Voting);
+        _assertProposalStateEq(gov, proposalId, PartyGovernance.ProposalState.Voting);
     }
 
     // Try to vote outside the voting window.
     function testVoting_cannotVoteOutsideVotingWindow() external {
-        TestablePartyGovernance gov;
         (IERC721[] memory preciousTokens, uint256[] memory preciousTokenIds) =
             _createPreciousTokens(2);
-        gov = _createGovernance(100e18, preciousTokens, preciousTokenIds);
+        TestablePartyGovernance gov =
+            _createGovernance(100e18, preciousTokens, preciousTokenIds);
         address undelegatedVoter1 = _randomAddress();
         address undelegatedVoter2 = _randomAddress();
         // undelegatedVoter1 has 50/100 intrinsic VP (delegated to no one/self)
@@ -1164,20 +1178,18 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
 
         // Create a one-step proposal.
         PartyGovernance.Proposal memory proposal = _createProposal(1);
-        uint256 proposalId = gov.lastProposalId() + 1;
+        uint256 proposalId = gov.getNextProposalId();
 
         // Undelegated voter 1 submits proposal (and votes).
         vm.prank(undelegatedVoter1);
         assertEq(gov.propose(proposal), proposalId);
 
-        (PartyGovernance.ProposalState propState,) = gov.getProposalStates(proposalId);
-        assertTrue(propState == PartyGovernance.ProposalState.Voting);
+        _assertProposalStateEq(gov, proposalId, PartyGovernance.ProposalState.Voting);
 
         // Skip past voting window.
         skip(defaultGovernanceOpts.voteDuration);
 
-        (propState,) = gov.getProposalStates(proposalId);
-        assertTrue(propState == PartyGovernance.ProposalState.Defeated);
+        _assertProposalStateEq(gov, proposalId, PartyGovernance.ProposalState.Defeated);
 
         // Undelegated voter 2 tries to vote.
         vm.expectRevert(abi.encodeWithSelector(
@@ -1190,17 +1202,17 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
 
     // Try to vote twice (undelegated voter)
     function testVoting_cannotVoteTwice() external {
-        TestablePartyGovernance gov;
         (IERC721[] memory preciousTokens, uint256[] memory preciousTokenIds) =
             _createPreciousTokens(2);
-        gov = _createGovernance(100e18, preciousTokens, preciousTokenIds);
+        TestablePartyGovernance gov =
+            _createGovernance(100e18, preciousTokens, preciousTokenIds);
         address undelegatedVoter = _randomAddress();
         // undelegatedVoter has 50/100 intrinsic VP (delegated to no one/self)
         gov.mockAdjustVotingPower(undelegatedVoter, 50e18, address(0));
 
         // Create a one-step proposal.
         PartyGovernance.Proposal memory proposal = _createProposal(1);
-        uint256 proposalId = gov.lastProposalId() + 1;
+        uint256 proposalId = gov.getNextProposalId();
 
         // Undelegated voter submits proposal (and votes).
         vm.prank(undelegatedVoter);
@@ -1217,10 +1229,10 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
 
     // Try to vote twice (delegate)
     function testVoting_delegateCannotVoteTwice() external {
-        TestablePartyGovernance gov;
         (IERC721[] memory preciousTokens, uint256[] memory preciousTokenIds) =
             _createPreciousTokens(2);
-        gov = _createGovernance(100e18, preciousTokens, preciousTokenIds);
+        TestablePartyGovernance gov =
+            _createGovernance(100e18, preciousTokens, preciousTokenIds);
         address delegate = _randomAddress();
         address delegatedVoter = _randomAddress();
         // delegatedVoter has 50/100 intrinsic VP (delegated to no one/self)
@@ -1228,7 +1240,7 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
 
         // Create a one-step proposal.
         PartyGovernance.Proposal memory proposal = _createProposal(1);
-        uint256 proposalId = gov.lastProposalId() + 1;
+        uint256 proposalId = gov.getNextProposalId();
 
         // Delegate submits proposal (and votes).
         vm.prank(delegate);
@@ -1245,10 +1257,10 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
 
     // Try to vote twice (delegated voter)
     function testVoting_delegatedVoterCannotVoteTwice() external {
-        TestablePartyGovernance gov;
         (IERC721[] memory preciousTokens, uint256[] memory preciousTokenIds) =
             _createPreciousTokens(2);
-        gov = _createGovernance(100e18, preciousTokens, preciousTokenIds);
+        TestablePartyGovernance gov =
+            _createGovernance(100e18, preciousTokens, preciousTokenIds);
         address delegate = _randomAddress();
         address delegatedVoter = _randomAddress();
         // delegatedVoter has 50/100 intrinsic VP (delegated to no one/self)
@@ -1256,7 +1268,7 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
 
         // Create a one-step proposal.
         PartyGovernance.Proposal memory proposal = _createProposal(1);
-        uint256 proposalId = gov.lastProposalId() + 1;
+        uint256 proposalId = gov.getNextProposalId();
 
         // Delegated voter submits proposal (and votes).
         vm.prank(delegatedVoter);
@@ -1273,10 +1285,10 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
 
     // Try to vote on a vetoed proposal.
     function testVoting_cannotVoteAfterVeto() external {
-        TestablePartyGovernance gov;
         (IERC721[] memory preciousTokens, uint256[] memory preciousTokenIds) =
             _createPreciousTokens(2);
-        gov = _createGovernance(100e18, preciousTokens, preciousTokenIds);
+        TestablePartyGovernance gov =
+            _createGovernance(100e18, preciousTokens, preciousTokenIds);
         address undelegatedVoter1 = _randomAddress();
         address undelegatedVoter2 = _randomAddress();
         // undelegatedVoter1 has 50/100 intrinsic VP (delegated to no one/self)
@@ -1286,14 +1298,13 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
 
         // Create a one-step proposal.
         PartyGovernance.Proposal memory proposal = _createProposal(1);
-        uint256 proposalId = gov.lastProposalId() + 1;
+        uint256 proposalId = gov.getNextProposalId();
 
         // Undelegated voter 1 submits proposal (and votes).
         vm.prank(undelegatedVoter1);
         assertEq(gov.propose(proposal), proposalId);
 
-        (PartyGovernance.ProposalState propState,) = gov.getProposalStates(proposalId);
-        assertTrue(propState == PartyGovernance.ProposalState.Voting);
+        _assertProposalStateEq(gov, proposalId, PartyGovernance.ProposalState.Voting);
 
         // Host vetos.
         address host = _getRandomDefaultHost();
@@ -1302,8 +1313,7 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
         vm.prank(host);
         gov.veto(proposalId);
 
-        (propState,) = gov.getProposalStates(proposalId);
-        assertTrue(propState == PartyGovernance.ProposalState.Defeated);
+        _assertProposalStateEq(gov, proposalId, PartyGovernance.ProposalState.Defeated);
 
         // Undelegated voter 2 tries to vote.
         vm.expectRevert(abi.encodeWithSelector(
@@ -1316,10 +1326,10 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
 
     // Vote using VP from proposal time.
     function testVoting_votingUsesProposalTimeVotingPower() external {
-        TestablePartyGovernance gov;
         (IERC721[] memory preciousTokens, uint256[] memory preciousTokenIds) =
             _createPreciousTokens(2);
-        gov = _createGovernance(100e18, preciousTokens, preciousTokenIds);
+        TestablePartyGovernance gov =
+            _createGovernance(100e18, preciousTokens, preciousTokenIds);
         address delegate = _randomAddress();
         address undelegatedVoter = _randomAddress();
         address delegatedVoter = _randomAddress();
@@ -1336,7 +1346,7 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
 
         // Create a one-step proposal.
         PartyGovernance.Proposal memory proposal = _createProposal(1);
-        uint256 proposalId = gov.lastProposalId() + 1;
+        uint256 proposalId = gov.getNextProposalId();
 
         // Propose it from proposer, locking in the proposal time
         // and not casting any votes because proposer has delegated to
@@ -1355,8 +1365,7 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
         // Now undelegatedVoter has enough VP (51) to pass on their own and
         // will accept the proposal, but accept will use their VP at proposal
         // time so it will only count as 1 VP.
-        vm.expectEmit(false, false, false, true);
-        emit ProposalAccepted(
+        _expectProposalAcceptedEvent(
             proposalId,
             undelegatedVoter,
             1e18 // Proposal time VP.
@@ -1366,8 +1375,7 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
 
         // delegatedVoter will vote, who does not have any VP now and also had
         // no VP at proposal time.
-        vm.expectEmit(false, false, false, true);
-        emit ProposalAccepted(
+        _expectProposalAcceptedEvent(
             proposalId,
             delegatedVoter,
             0 // Proposal time VP.
@@ -1375,29 +1383,26 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
         vm.prank(delegatedVoter);
         gov.accept(proposalId);
 
-        (PartyGovernance.ProposalState propState,) = gov.getProposalStates(proposalId);
-        assertTrue(propState == PartyGovernance.ProposalState.Voting);
+        _assertProposalStateEq(gov, proposalId, PartyGovernance.ProposalState.Voting);
 
         // Delegate will vote, who does not have any VP now but at proposal time
         // had a total of 50, which will make the proposal pass.
-        vm.expectEmit(false, false, false, true);
-        emit ProposalAccepted(
+        _expectProposalAcceptedEvent(
             proposalId,
             delegate,
             50e18 // Proposal time VP.
         );
-        vm.expectEmit(false, false, false, true);
-        emit ProposalPassed(proposalId);
+        _expectProposalPassedEvent(proposalId);
         vm.prank(delegate);
         gov.accept(proposalId);
     }
 
     // Circular delegation.
     function testVoting_circularDelegation() external {
-        TestablePartyGovernance gov;
         (IERC721[] memory preciousTokens, uint256[] memory preciousTokenIds) =
             _createPreciousTokens(2);
-        gov = _createGovernance(100e18, preciousTokens, preciousTokenIds);
+        TestablePartyGovernance gov =
+            _createGovernance(100e18, preciousTokens, preciousTokenIds);
         address delegate1 = _randomAddress();
         address delegate2 = _randomAddress();
         // Set up circular delegation just to be extra tricky.
@@ -1408,11 +1413,10 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
 
         // Create a one-step proposal.
         PartyGovernance.Proposal memory proposal = _createProposal(1);
-        uint256 proposalId = gov.lastProposalId() + 1;
+        uint256 proposalId = gov.getNextProposalId();
 
         // delegate2 proposes and votes with their 1 effective VP.
-        vm.expectEmit(false, false, false, true);
-        emit ProposalAccepted(
+        _expectProposalAcceptedEvent(
             proposalId,
             delegate2,
             1e18
@@ -1423,15 +1427,13 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
         assertEq(uint256(gov.getVotes(proposalId)), 1e18);
 
         // delegate1 votes with their 50 effective VP.
-        vm.expectEmit(false, false, false, true);
-        emit ProposalAccepted(
+        _expectProposalAcceptedEvent(
             proposalId,
             delegate1,
             50e18
         );
         // With 51 total, the proposal will pass.
-        vm.expectEmit(false, false, false, true);
-        emit ProposalPassed(proposalId);
+        _expectProposalPassedEvent(proposalId);
         vm.prank(delegate1);
         gov.accept(proposalId);
 
@@ -1440,10 +1442,10 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
 
     // Cannot adjust voting power below 0.
     function testVotingPower_cannotAdjustVotingPowerBelowZero() external {
-        TestablePartyGovernance gov;
         (IERC721[] memory preciousTokens, uint256[] memory preciousTokenIds) =
             _createPreciousTokens(2);
-        gov = _createGovernance(100e18, preciousTokens, preciousTokenIds);
+        TestablePartyGovernance gov =
+            _createGovernance(100e18, preciousTokens, preciousTokenIds);
         address undelegatedVoter = _randomAddress();
         // undelegatedVoter has 51 intrinsic VP
         gov.mockAdjustVotingPower(undelegatedVoter, 51e18, address(0));
@@ -1458,10 +1460,10 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
 
     // _adjustVotingPower() updates delegated VP correctly
     function testVotingPower_adjustVotingPowerUpdatesDelegatesCorrectly() external {
-        TestablePartyGovernance gov;
         (IERC721[] memory preciousTokens, uint256[] memory preciousTokenIds) =
             _createPreciousTokens(2);
-        gov = _createGovernance(100e18, preciousTokens, preciousTokenIds);
+        TestablePartyGovernance gov =
+            _createGovernance(100e18, preciousTokens, preciousTokenIds);
         address delegate1 = _randomAddress();
         address delegate2 = _randomAddress();
         address voter = _randomAddress();
@@ -1523,10 +1525,10 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
 
     // delegate(self) == delegate(0) if no prior delegate
     function testVotingPower_delegateSelfIsSameAsDelegateZero() external {
-        TestablePartyGovernance gov;
         (IERC721[] memory preciousTokens, uint256[] memory preciousTokenIds) =
             _createPreciousTokens(2);
-        gov = _createGovernance(100e18, preciousTokens, preciousTokenIds);
+        TestablePartyGovernance gov =
+            _createGovernance(100e18, preciousTokens, preciousTokenIds);
         address voter1 = _randomAddress();
         address voter2 = _randomAddress();
         // voter has 50 intrinsic VP, delegated to zero.
@@ -1581,5 +1583,206 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
         vm.prank(host);
         vm.expectRevert();
         gov.abdicate(host);
+    }
+
+    // voting power of past member is 0 at current time.
+    function testVotingPower_votingPowerOfPastMemberIsZeroAtCurrentTime() external {
+        (IERC721[] memory preciousTokens, uint256[] memory preciousTokenIds) =
+            _createPreciousTokens(2);
+        TestablePartyGovernance gov =
+            _createGovernance(100e18, preciousTokens, preciousTokenIds);
+        address pastMember = _randomAddress();
+        // Uesd to have VP.
+        gov.mockAdjustVotingPower(pastMember, 50e18, address(0));
+
+        skip(1);
+        // pastMember loses all their voting power.
+        gov.mockAdjustVotingPower(pastMember, -50e18, pastMember);
+        assertEq(gov.getVotingPowerAt(pastMember, uint40(block.timestamp)), 0);
+    }
+
+    // voting power of never member is 0 at current time.
+    function testVotingPower_votingPowerOfNeverMemberIsZeroAtCurrentTime() external {
+        (IERC721[] memory preciousTokens, uint256[] memory preciousTokenIds) =
+            _createPreciousTokens(2);
+        TestablePartyGovernance gov =
+            _createGovernance(100e18, preciousTokens, preciousTokenIds);
+        skip(1);
+        address nonMember = _randomAddress();
+        assertEq(gov.getVotingPowerAt(nonMember, uint40(block.timestamp)), 0);
+    }
+
+    // voting power of past member is nonzero at past time.
+    function testVotingPower_votingPowerOfPastMemberIsNonZeroInPastTime() external {
+        (IERC721[] memory preciousTokens, uint256[] memory preciousTokenIds) =
+            _createPreciousTokens(2);
+        TestablePartyGovernance gov =
+            _createGovernance(100e18, preciousTokens, preciousTokenIds);
+        address pastMember = _randomAddress();
+        // Uesd to have VP.
+        gov.mockAdjustVotingPower(pastMember, 50e18, address(0));
+
+        // Move ahead 100 seconds.
+        skip(100);
+        // pastMember loses all their voting power.
+        gov.mockAdjustVotingPower(pastMember, -50e18, pastMember);
+        // 1 seconds ago pastMember still had original voting power.
+        assertEq(gov.getVotingPowerAt(pastMember, uint40(block.timestamp - 2)), 50e18);
+    }
+
+    // voting power of past member is nonzero at past time.
+    function testVotingPower_votingPowerOfAdjustedVoterAndDelegateIsCorrectAtDifferentTimes() external {
+        (IERC721[] memory preciousTokens, uint256[] memory preciousTokenIds) =
+            _createPreciousTokens(2);
+        TestablePartyGovernance gov =
+            _createGovernance(100e18, preciousTokens, preciousTokenIds);
+        address voter1 = _randomAddress();
+        address voter2 = _randomAddress();
+
+        // 40s ago
+        gov.mockAdjustVotingPower(voter1, 50e18, voter1);
+        gov.mockAdjustVotingPower(voter2, 1, voter1);
+        skip(10);
+        // 30s ago
+        // address(0) after initial minting reuses current chosen delegate
+        gov.mockAdjustVotingPower(voter1, -50e18, address(0));
+        skip(10);
+        // 20s ago
+        gov.mockAdjustVotingPower(voter1, 75e18, address(0));
+        gov.mockAdjustVotingPower(voter2, 1, address(0));
+        skip(10);
+        // 10s ago
+        gov.mockAdjustVotingPower(voter1, -10e18, voter2);
+        skip(10);
+        // 0s ago
+        gov.mockAdjustVotingPower(voter1, -10e18, voter1);
+        gov.mockAdjustVotingPower(voter2, -1, voter2);
+
+        // 35s ago
+        assertEq(gov.getVotingPowerAt(voter1, uint40(block.timestamp - 35)), 50e18 + 1);
+        assertEq(gov.getVotingPowerAt(voter2, uint40(block.timestamp - 35)), 0);
+        // 25s ago
+        assertEq(gov.getVotingPowerAt(voter1, uint40(block.timestamp - 25)), 1);
+        assertEq(gov.getVotingPowerAt(voter2, uint40(block.timestamp - 25)), 0);
+        // 15s ago
+        assertEq(gov.getVotingPowerAt(voter1, uint40(block.timestamp - 15)), 75e18 + 2);
+        assertEq(gov.getVotingPowerAt(voter2, uint40(block.timestamp - 15)), 0);
+        // 5s ago
+        assertEq(gov.getVotingPowerAt(voter1, uint40(block.timestamp - 5)), 2);
+        assertEq(gov.getVotingPowerAt(voter2, uint40(block.timestamp - 5)), 65e18);
+        // 0s ago
+        assertEq(gov.getVotingPowerAt(voter1, uint40(block.timestamp)), 55e18);
+        assertEq(gov.getVotingPowerAt(voter2, uint40(block.timestamp)), 1);
+    }
+
+    // voting smoke test with random governance params.
+    function testVotingPower_paramsSmokeTest() external {
+        uint256 totalVotingPower = 100e18 * (_randomUint256() % 1e4) / 1e4;
+        assertTrue(totalVotingPower <= 100e18);
+        uint256 passThresholdBps = (_randomUint256() % (1e4-1)) + 1;
+        assertTrue(passThresholdBps <= 1e4);
+        defaultGovernanceOpts.passThresholdBps = uint16(passThresholdBps);
+        (IERC721[] memory preciousTokens, uint256[] memory preciousTokenIds) =
+            _createPreciousTokens(2);
+        TestablePartyGovernance gov =
+            _createGovernance(uint96(totalVotingPower), preciousTokens, preciousTokenIds);
+
+        address voter1 = _randomAddress();
+        address voter2 = _randomAddress();
+        // Rounded up.
+        uint256 votesNeededToPass = uint256(totalVotingPower) * passThresholdBps / (1e4 - 1);
+        assertTrue(votesNeededToPass < totalVotingPower);
+        // voter1 has half the votes needed to pass.
+        gov.mockAdjustVotingPower(voter1, int192(int256(votesNeededToPass / 2)), address(0));
+        // voter has half + 1 the votes needed to pass.
+        gov.mockAdjustVotingPower(voter2, int192(int256(votesNeededToPass / 2 + 1)), address(0));
+
+        // Create a one-step proposal.
+        PartyGovernance.Proposal memory proposal = _createProposal(1);
+        uint256 proposalId = gov.getNextProposalId();
+
+        // voter1 proposes and votes.
+        vm.prank(voter1);
+        gov.propose(proposal);
+        _assertProposalStateEq(gov, proposalId, PartyGovernance.ProposalState.Voting);
+
+        // voter2 votes, which gets it to pass.
+        vm.prank(voter2);
+        gov.accept(proposalId);
+        _assertProposalStateEq(gov, proposalId, PartyGovernance.ProposalState.Passed);
+    }
+
+    // distribute ETH balance
+    function testDistribute_worksWithEth() external {
+        (IERC721[] memory preciousTokens, uint256[] memory preciousTokenIds) =
+            _createPreciousTokens(2);
+        TestablePartyGovernance gov =
+            _createGovernance(100e18, preciousTokens, preciousTokenIds);
+
+        // Only a member with VP can call distribute().
+        address member = _randomAddress();
+        gov.mockAdjustVotingPower(member, 1e18, member);
+
+        // Create a distribution.
+        vm.deal(address(gov), 1337e18);
+        vm.expectEmit(false, false, false, true);
+        emit DummyTokenDistributor_createDistributionCalled(
+            address(gov),
+            ETH_TOKEN,
+            1337e18,
+            tokenDistributor.lastId() + 1
+        );
+        vm.prank(member);
+        gov.distribute(ETH_TOKEN);
+        assertEq(tokenDistributor.SINK().balance, 1337e18);
+    }
+
+    // distribute ERC20 balance
+    function testDistribute_worksWithErc20() external {
+        (IERC721[] memory preciousTokens, uint256[] memory preciousTokenIds) =
+            _createPreciousTokens(2);
+        TestablePartyGovernance gov =
+            _createGovernance(100e18, preciousTokens, preciousTokenIds);
+
+        // Only a member with VP can call distribute().
+        address member = _randomAddress();
+        gov.mockAdjustVotingPower(member, 1e18, member);
+
+        DummyERC20 erc20 = new DummyERC20();
+        erc20.deal(address(gov), 1337e18);
+
+        // Create a distribution.
+        vm.expectEmit(false, false, false, true);
+        emit DummyTokenDistributor_createDistributionCalled(
+            address(gov),
+            IERC20(address(erc20)),
+            1337e18,
+            tokenDistributor.lastId() + 1
+        );
+        vm.prank(member);
+        gov.distribute(IERC20(address(erc20)));
+        assertEq(erc20.balanceOf(tokenDistributor.SINK()), 1337e18);
+    }
+
+    // try to distribute from a no longer active member.
+    function testDistribute_onlyActiveMemberCanDistribute() external {
+        (IERC721[] memory preciousTokens, uint256[] memory preciousTokenIds) =
+            _createPreciousTokens(2);
+        TestablePartyGovernance gov =
+            _createGovernance(100e18, preciousTokens, preciousTokenIds);
+
+        address member = _randomAddress();
+        gov.mockAdjustVotingPower(member, 1e18, member);
+        // Transfer all VP so they're no longer a member.
+        skip(1);
+        gov.mockAdjustVotingPower(member, -1e18, member);
+
+        // Try to create a distribution.
+        vm.deal(address(gov), 1337e18);
+        vm.expectRevert(abi.encodeWithSelector(
+            PartyGovernance.OnlyActiveMemberError.selector
+        ));
+        vm.prank(member);
+        gov.distribute(ETH_TOKEN);
     }
 }
