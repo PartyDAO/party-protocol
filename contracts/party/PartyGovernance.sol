@@ -648,7 +648,11 @@ abstract contract PartyGovernance is
         view
         returns (uint256)
     {
-        if (pv.votes >= _governanceValues.totalVotingPower) {
+        uint256 acceptanceRatio = (pv.votes * 1e4) / _governanceValues.totalVotingPower;
+        // If >= 99.99% acceptance, consider it unanimous.
+        // The minting formula for voting power is a bit lossy, so we check
+        // for slightly less than 100%.
+        if (acceptanceRatio >= 0.9999e4) {
             // Passed unanimously.
             return LibProposal.PROPOSAL_FLAG_UNANIMOUS;
         }

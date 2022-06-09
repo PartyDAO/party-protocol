@@ -552,6 +552,59 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
         );
     }
 
+    // 99.99% acceptance counts as unanimous.
+    function testProposalLifecycle_9999BpsIsUnanimous() external {
+        (IERC721[] memory preciousTokens, uint256[] memory preciousTokenIds) =
+            _createPreciousTokens(2);
+        TestablePartyGovernance gov =
+            _createGovernance(100e18, preciousTokens, preciousTokenIds);
+        address undelegatedVoter = _randomAddress();
+        // undelegatedVoter has 99.99% of total voting supply.
+        uint256 vp = (100e18 * 0.9999e4) / 1e4;
+        gov.mockAdjustVotingPower(undelegatedVoter, int192(uint192(vp)), address(0));
+
+        // Create a one-step proposal.
+        PartyGovernance.Proposal memory proposal = _createProposal(1);
+        uint256 proposalId = gov.getNextProposalId();
+
+        // Undelegated voter submits proposal.
+        _expectProposedEvent(proposalId, undelegatedVoter, proposal);
+        // Votes are automatically cast by proposer.
+        _expectProposalAcceptedEvent(proposalId, undelegatedVoter, vp);
+        // Voter has majority VP so it also passes immediately.
+        _expectProposalPassedEvent(proposalId);
+        vm.prank(undelegatedVoter);
+        assertEq(gov.propose(proposal), proposalId);
+
+        // Skip past execution delay.
+        skip(defaultGovernanceOpts.executionDelay);
+        // Execute the proposal as the single voter.
+        vm.expectEmit(false, false, false, true);
+        emit DummyProposalExecutionEngine_executeCalled(
+            address(gov),
+            IProposalExecutionEngine.ProposalExecutionStatus.Complete,
+            IProposalExecutionEngine.ExecuteProposalParams({
+                proposalId: bytes32(proposalId),
+                proposalData: proposal.proposalData,
+                progressData: "",
+                // Should be flagged unanimous.
+                flags: LibProposal.PROPOSAL_FLAG_UNANIMOUS,
+                preciousTokens: preciousTokens,
+                preciousTokenIds: preciousTokenIds
+            })
+        );
+        _expectProposalExecutedEvent(proposalId, undelegatedVoter);
+        _expectProposalCompletedEvent(proposalId);
+        vm.prank(undelegatedVoter);
+        gov.execute(
+            proposalId,
+            proposal,
+            preciousTokens,
+            preciousTokenIds,
+            ""
+        );
+    }
+
     // Try to execute a proposal that hasn't passed.
     function testProposalLifecycle_cannotExecuteWithoutPassing() external {
         (IERC721[] memory preciousTokens, uint256[] memory preciousTokenIds) =
