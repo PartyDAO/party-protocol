@@ -112,6 +112,7 @@ abstract contract PartyGovernance is
         address voter,
         uint256 weight
     );
+
     event ProposalPassed(uint256 proposalId);
     event ProposalVetoed(uint256 proposalId, address host);
     event ProposalExecuted(uint256 proposalId, address executor);
@@ -119,6 +120,7 @@ abstract contract PartyGovernance is
     event DistributionCreated(uint256 distributionId, IERC20 token);
     event VotingPowerDelegated(address owner, address delegate);
     event PreciousListSet(IERC721[] tokens, uint256[] tokenIds);
+    event HostStatusTransferred(address oldHost, address newHost);
 
     error BadProposalStateError(ProposalState state);
     error ProposalExistsError(uint256 proposalId);
@@ -130,6 +132,7 @@ abstract contract PartyGovernance is
     error InvalidDelegateError();
     error BadPreciousListError();
     error AlreadyVotedError(address voter);
+    error InvalidNewHostError();
 
     IGlobals private immutable _GLOBALS;
 
@@ -268,9 +271,13 @@ abstract contract PartyGovernance is
 
     // Transfer party host status to another.
     function abdicate(address newPartyHost) external onlyHost {
-        require(!isHost[newPartyHost]);
+        // cannot transfer host status to an existing host
+        if(isHost[newPartyHost]) {
+            revert InvalidNewHostError();
+        }
         isHost[msg.sender] = false;
         isHost[newPartyHost] = true;
+        emit HostStatusTransferred(msg.sender, newPartyHost);
     }
 
     // Move all `token` funds into a distribution contract to be proportionally

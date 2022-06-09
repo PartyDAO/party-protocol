@@ -164,6 +164,7 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
     event DistributionCreated(uint256 distributionId, IERC20 token);
     event VotingPowerDelegated(address owner, address delegate);
     event PreciousListSet(IERC721[] tokens, uint256[] tokenIds);
+    event HostStatusTransferred(address oldHost, address newHost);
     event DummyProposalExecutionEngine_executeCalled(
         address context,
         IProposalExecutionEngine.ProposalExecutionStatus status,
@@ -279,6 +280,11 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
     function _expectProposalCompletedEvent(uint256 proposalId) private {
         vm.expectEmit(false, false, false, true);
         emit ProposalCompleted(proposalId);
+    }
+
+    function _expectHostStatusTransferredEvent(address oldHost, address newHost) private {
+        vm.expectEmit(false, false, false, true);
+        emit HostStatusTransferred(oldHost, newHost);
     }
 
     function _assertProposalStateEq(
@@ -1547,6 +1553,58 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
 
         assertEq(gov.getVotingPowerAt(voter1, uint40(block.timestamp)), 50e18);
         assertEq(gov.getVotingPowerAt(voter2, uint40(block.timestamp)), 25e18);
+    }
+
+    // Hosts can transfer their host status to another address
+    function testHostPower_transferHostStatus() external {
+        TestablePartyGovernance gov;
+        (IERC721[] memory preciousTokens, uint256[] memory preciousTokenIds) =
+            _createPreciousTokens(2);
+        gov = _createGovernance(100e18, preciousTokens, preciousTokenIds);
+
+        address newHost = _randomAddress();
+
+        // Transfer host status to another address
+        address host = _getRandomDefaultHost();
+        vm.prank(host);
+        _expectHostStatusTransferredEvent(host, newHost);
+        gov.abdicate(newHost);
+
+        // Assert old host is no longer host
+        assertEq(gov.isHost(host), false);
+
+        // Assert new host is host
+        assertEq(gov.isHost(newHost), true);
+    }
+
+    // You cannot transfer host status to an existing host
+    function testHostPower_cannotTransferHostStatusToExistingHost() external {
+        TestablePartyGovernance gov;
+        (IERC721[] memory preciousTokens, uint256[] memory preciousTokenIds) =
+            _createPreciousTokens(2);
+        gov = _createGovernance(100e18, preciousTokens, preciousTokenIds);
+
+        address host = _getRandomDefaultHost();
+
+        // try to transfer host status to an existing host
+        vm.prank(host);
+        vm.expectRevert(abi.encodeWithSelector(PartyGovernance.InvalidNewHostError.selector));
+        gov.abdicate(host);
+    }
+
+    // Cannot transfer host status as a non-host
+    function testHostPower_cannotTransferHostAsNonHost() external {
+        TestablePartyGovernance gov;
+        (IERC721[] memory preciousTokens, uint256[] memory preciousTokenIds) =
+            _createPreciousTokens(2);
+        gov = _createGovernance(100e18, preciousTokens, preciousTokenIds);
+
+        address nonHost = _randomAddress();
+        address nonHost2 = _randomAddress();
+
+        vm.prank(nonHost);
+        vm.expectRevert(abi.encodeWithSelector(PartyGovernance.OnlyPartyHostError.selector));
+        gov.abdicate(nonHost2);
     }
 
     // voting power of past member is 0 at current time.
