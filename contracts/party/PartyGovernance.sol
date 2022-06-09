@@ -464,7 +464,7 @@ abstract contract PartyGovernance is
         return success;
     }
 
-    function disableEmergencyWithdrawals() public onlyPartyDao {
+    function disableEmergencyWithdrawals() public onlyPartyDaoOrHost {
         emergencyWithdrawalsDisabled = true;
     }
 
