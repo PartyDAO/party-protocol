@@ -538,12 +538,12 @@ abstract contract PartyGovernance is
         VotingPowerSnapshot memory oldSnap =
             _getLastVotingPowerSnapshotForVoter(voter);
         address oldDelegate = delegationsByVoter[voter];
-        // If `delegate` is zero, use the current delegate.
-        delegate = delegate == address(0) ? oldDelegate : delegate;
-        // If `delegate` is still zero (`voter` never delegated), set the delegate
-        // to themself.
-        delegate = delegate == address(0) ? voter : delegate;
+        // If `oldDelegate` is zero, `voter` never delegated, set the it to
+        // themself.
         oldDelegate = oldDelegate == address(0) ? voter : oldDelegate;
+        // If the new `delegate` is zero, use the current (old) delegate.
+        delegate = delegate == address(0) ? oldDelegate : delegate;
+
         VotingPowerSnapshot memory newSnap = VotingPowerSnapshot({
             timestamp: uint40(block.timestamp),
             delegatedVotingPower: oldSnap.delegatedVotingPower,
