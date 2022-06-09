@@ -1592,6 +1592,7 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
         gov.abdicate(host);
     }
 
+    // Cannot transfer host status as a non-host
     function testHostPower_cannotTransferHostAsNonHost() external {
         TestablePartyGovernance gov;
         (IERC721[] memory preciousTokens, uint256[] memory preciousTokenIds) =
