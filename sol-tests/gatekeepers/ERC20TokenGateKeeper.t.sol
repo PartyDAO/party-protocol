@@ -19,8 +19,8 @@ contract ERC20TokenGateKeeperTest is Test, TestUtils {
     }
 
     function testUniqueGateIds() public {
-        bytes12 gateId1 = gk.createGate(address(dummyToken1), MIN_BALANCE);
-        bytes12 gateId2 = gk.createGate(address(dummyToken1), MIN_BALANCE);
+        bytes12 gateId1 = gk.createGate(dummyToken1, MIN_BALANCE);
+        bytes12 gateId2 = gk.createGate(dummyToken1, MIN_BALANCE);
         assertTrue(gateId1 != gateId2);
     }
 
