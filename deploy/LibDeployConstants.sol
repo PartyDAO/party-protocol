@@ -8,7 +8,7 @@ library LibDeployConstants {
   uint256 constant OS_ZORA_AUCTION_DURATION = 86400; // 60 * 60 * 24 = 86400 seconds = 24 hours
 
   struct DeployConstants {
-    address adminAddress;
+    address[3] adminAddresses; // todo: change size of array based on deploy
     address openSeaExchangeAddress;
     uint256 osZoraAuctionDuration;
     address partyDaoMultisig;
@@ -18,7 +18,11 @@ library LibDeployConstants {
 
   function mainnet() public pure returns (DeployConstants memory) {
     DeployConstants memory mainnetDeployConstants = DeployConstants({
-      adminAddress: 0xF7f52Dd34bc21eDA08c0b804C7c1dbc48375820f,
+      adminAddresses: [
+        0x0000000000000000000000000000000000000000,
+        0x000000000000000000000000000000000000dEaD,
+        0x0000000000000000000000000000000000001337
+      ],
       openSeaExchangeAddress: 0x7f268357A8c2552623316e2562D90e642bB538E5,
       osZoraAuctionDuration: OS_ZORA_AUCTION_DURATION,
       partyDaoMultisig: 0xF7f52Dd34bc21eDA08c0b804C7c1dbc48375820f,
@@ -31,7 +35,11 @@ library LibDeployConstants {
 
   function rinkeby() public pure returns (DeployConstants memory) {
     DeployConstants memory rinkebyDeployConstants = DeployConstants({
-      adminAddress: 0xF7f52Dd34bc21eDA08c0b804C7c1dbc48375820f,
+      adminAddresses: [
+        0x0000000000000000000000000000000000000000,
+        0x000000000000000000000000000000000000dEaD,
+        0x0000000000000000000000000000000000001337
+      ],
       openSeaExchangeAddress: 0xdD54D660178B28f6033a953b0E55073cFA7e3744,
       osZoraAuctionDuration: OS_ZORA_AUCTION_DURATION,
       partyDaoMultisig: 0xF7f52Dd34bc21eDA08c0b804C7c1dbc48375820f,
