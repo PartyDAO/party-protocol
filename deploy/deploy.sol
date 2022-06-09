@@ -43,7 +43,6 @@ contract Deploy is Test {
 
     console.log('');
     console.log('  Globals - setting PartyDao Multi-sig address');
-    // TODO: setAddress or setUint256?
     globals.setAddress(LibGlobals.GLOBAL_DAO_WALLET, deployConstants.partyDaoMultisig);
     console.log('  Globals - successfully set PartyDao multi-sig address', deployConstants.partyDaoMultisig);
 
