@@ -1777,12 +1777,12 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
         vm.expectEmit(false, false, false, true);
         emit DummyTokenDistributor_createDistributionCalled(
             address(gov),
-            IERC20(address(erc20)),
+            erc20,
             1337e18,
             tokenDistributor.lastId() + 1
         );
         vm.prank(member);
-        gov.distribute(IERC20(address(erc20)));
+        gov.distribute(erc20);
         assertEq(erc20.balanceOf(tokenDistributor.SINK()), 1337e18);
     }
 
