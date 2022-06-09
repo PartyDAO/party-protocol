@@ -132,6 +132,7 @@ abstract contract PartyGovernance is
     error InvalidDelegateError();
     error BadPreciousListError();
     error AlreadyVotedError(address voter);
+    error InvalidNewHostError();
 
     IGlobals private immutable _GLOBALS;
 
@@ -270,7 +271,10 @@ abstract contract PartyGovernance is
 
     // Transfer party host status to another.
     function abdicate(address newPartyHost) external onlyHost {
-        require(!isHost[newPartyHost]);
+        // cannot transfer host status to an existing host
+        if(isHost[newPartyHost]) {
+            revert InvalidNewHostError();
+        }
         isHost[msg.sender] = false;
         isHost[newPartyHost] = true;
         emit HostStatusTransferred(msg.sender, newPartyHost);

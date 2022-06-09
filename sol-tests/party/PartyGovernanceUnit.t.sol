@@ -1588,7 +1588,7 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
 
         // try to transfer host status to an existing host
         vm.prank(host);
-        vm.expectRevert();
+        vm.expectRevert(abi.encodeWithSelector(PartyGovernance.InvalidNewHostError.selector));
         gov.abdicate(host);
     }
 
