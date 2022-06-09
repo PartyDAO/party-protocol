@@ -4,7 +4,6 @@ pragma solidity ^0.8;
 import {IGateKeeper} from "./IGateKeeper.sol";
 import {IERC20} from "../tokens/IERC20.sol";
 
-
 /**
  * @notice a contract that implements an ERC20 gatekeeper
  */
@@ -17,7 +16,7 @@ contract ERC20TokenGateKeeper is IGateKeeper {
         uint256 minimumBalance;
     }
 
-    event ERC20TokenGateCreated(address tokenAddress, uint256 minimumBalance);
+    event ERC20TokenGateCreated(IERC20 token, uint256 minimumBalance);
 
     // id -> TokenGate
     mapping(uint96 => TokenGate) public _gateInfo;
@@ -40,7 +39,7 @@ contract ERC20TokenGateKeeper is IGateKeeper {
 
     /**
      * @notice creates a gateway and returns id
-     * @param  tokenAddress ERC-20 token address
+     * @param  token ERC-20 token address
      * @param  minimumBalance minimum balance allowed for participation
      * @return id gate id
      */
