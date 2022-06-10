@@ -33,6 +33,10 @@ contract GlobalsAdmin is Test {
   function setProposalEng(address proposalEngAddress) public {
     globals.setAddress(LibGlobals.GLOBAL_PROPOSAL_ENGINE_IMPL, proposalEngAddress);
   }
+
+  function setGlobalDaoWallet(address anAddress) public {
+    globals.setAddress(LibGlobals.GLOBAL_DAO_WALLET, anAddress);
+  }
 }
 
 contract PartyAdmin is Test {

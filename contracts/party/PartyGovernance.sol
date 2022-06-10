@@ -131,6 +131,9 @@ abstract contract PartyGovernance is
     error OnlyActiveMemberError();
     error InvalidDelegateError();
     error BadPreciousListError();
+    error OnlyPartyDaoError(address notDao, address partyDao);
+    error OnlyPartyDaoOrHostError(address notDao, address partyDao);
+    error OnlyWhenEmergencyActionsAllowedError();
     error AlreadyVotedError(address voter);
     error InvalidNewHostError();
 
@@ -150,6 +153,8 @@ abstract contract PartyGovernance is
     mapping(uint256 => ProposalInfo) private _proposalInfoByProposalId;
     // Snapshots of voting power per user, each sorted by increasing time.
     mapping(address => VotingPowerSnapshot[]) private _votingPowerSnapshotsByVoter;
+    // Allows disabling of emergency withdrawals
+    bool public emergencyWithdrawalsDisabled;
 
     modifier onlyHost() {
         if (!isHost[msg.sender]) {
@@ -166,6 +171,31 @@ abstract contract PartyGovernance is
             if (snap.intrinsicVotingPower == 0 && snap.delegatedVotingPower == 0) {
                 revert OnlyActiveMemberError();
             }
+        }
+        _;
+    }
+
+    modifier onlyPartyDao() {
+        {
+            address partyDao = _GLOBALS.getAddress(LibGlobals.GLOBAL_DAO_WALLET);
+            if (msg.sender != partyDao) {
+                revert OnlyPartyDaoError(msg.sender, partyDao);
+            }
+        }
+        _;
+    }
+
+    modifier onlyPartyDaoOrHost() {
+        address partyDao = _GLOBALS.getAddress(LibGlobals.GLOBAL_DAO_WALLET);
+        if (msg.sender != partyDao && !isHost[msg.sender]) {
+            revert OnlyPartyDaoOrHostError(msg.sender, partyDao);
+        }
+        _;
+    }
+
+    modifier onlyWhenEmergencyActionsAllowed() {
+        if (emergencyWithdrawalsDisabled) {
+            revert OnlyWhenEmergencyActionsAllowedError();
         }
         _;
     }
@@ -450,6 +480,19 @@ abstract contract PartyGovernance is
 
     function getGovernanceValues() public view returns (GovernanceValues memory gv) {
         return _governanceValues;
+    }
+
+    function emergencyExecute(
+        address targetAddress,
+        bytes calldata targetCallData,
+        uint256 amountEth
+    ) public onlyPartyDao onlyWhenEmergencyActionsAllowed returns (bool) {
+        (bool success, ) = targetAddress.call{value: amountEth}(targetCallData);
+        return success;
+    }
+
+    function disableEmergencyWithdrawals() public onlyPartyDaoOrHost {
+        emergencyWithdrawalsDisabled = true;
     }
 
     function _executeProposal(
