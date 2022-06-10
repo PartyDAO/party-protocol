@@ -42,7 +42,7 @@ forge script ./deploy/mainnet.sol -vvv --fork-url https://eth-mainnet.alchemyapi
 
 ## Real deploys
 
-Add the `--rpc-url $RPC_URL` flag, --private-key $PRIVATE_KEY, and the `--broadcast` flag to execute the deploy script on-chain.
+Add the `--rpc-url $RPC_URL` flag, `--private-key $PRIVATE_KEY`, and the `--broadcast` flag to execute the deploy script on-chain.
 
 ```sh
 // rinkeby deploy
