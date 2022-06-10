@@ -38,7 +38,7 @@ contract PartyGovernanceTest is Test, TestUtils {
     danny = new PartyParticipant();
     steve = new PartyParticipant();
     nicholas = new PartyParticipant();
-    partyAdmin = new PartyAdmin();
+    partyAdmin = new PartyAdmin(partyFactory);
 
     // Mint dummy NFT
     address nftHolderAddress = address(1);
@@ -51,7 +51,6 @@ contract PartyGovernanceTest is Test, TestUtils {
   function testSimpleGovernance() public {
     // Create party
     (Party party, IERC721[] memory preciousTokens, uint256[] memory preciousTokenIds) = partyAdmin.createParty(
-      partyFactory,
       PartyAdmin.PartyCreationMinimalOptions({
         host1: address(this),
         host2: address(0),
@@ -138,7 +137,6 @@ contract PartyGovernanceTest is Test, TestUtils {
   function testSimpleGovernanceUnanimous() public {
     // Create party
     (Party party, IERC721[] memory preciousTokens, uint256[] memory preciousTokenIds) = partyAdmin.createParty(
-      partyFactory,
       PartyAdmin.PartyCreationMinimalOptions({
         host1: address(this),
         host2: address(0),
@@ -249,7 +247,6 @@ contract PartyGovernanceTest is Test, TestUtils {
   function testVeto() public {
     // Create party
     (Party party, IERC721[] memory preciousTokens, uint256[] memory preciousTokenIds) = partyAdmin.createParty(
-      partyFactory,
       PartyAdmin.PartyCreationMinimalOptions({
         host1: address(nicholas),
         host2: address(0),
@@ -307,7 +304,6 @@ contract PartyGovernanceTest is Test, TestUtils {
   function testPartyMemberCannotVoteTwice() public {
     // Create party + mock proposal engine
     (Party party, IERC721[] memory preciousTokens, uint256[] memory preciousTokenIds) = partyAdmin.createParty(
-      partyFactory,
       PartyAdmin.PartyCreationMinimalOptions({
         host1: address(nicholas),
         host2: address(0),
@@ -337,7 +333,10 @@ contract PartyGovernanceTest is Test, TestUtils {
     danny.vote(party, 1);
 
     // Ensure that the same member cannot vote twice
-    vm.expectRevert(bytes('ALREADY_VOTED'));
+    vm.expectRevert(abi.encodeWithSelector(
+        PartyGovernance.AlreadyVotedError.selector,
+        address(danny)
+    ));
     danny.vote(party, 1);
   }
 
@@ -345,7 +344,6 @@ contract PartyGovernanceTest is Test, TestUtils {
   function testExpiresWithoutPassing() public {
     // Create party
     (Party party, IERC721[] memory preciousTokens, uint256[] memory preciousTokenIds) = partyAdmin.createParty(
-      partyFactory,
       PartyAdmin.PartyCreationMinimalOptions({
         host1: address(john),
         host2: address(danny),
@@ -375,7 +373,7 @@ contract PartyGovernanceTest is Test, TestUtils {
 
     vm.warp(block.timestamp + 98);
     _assertProposalState(party, 1, PartyGovernance.ProposalState.Voting, 50);
-    
+
     // ensure defeated
     vm.warp(block.timestamp + 1);
     _assertProposalState(party, 1, PartyGovernance.ProposalState.Defeated, 50);
@@ -400,7 +398,6 @@ contract PartyGovernanceTest is Test, TestUtils {
   function testExpiresWithPassing() public {
     // Create party
     (Party party, IERC721[] memory preciousTokens, uint256[] memory preciousTokenIds) = partyAdmin.createParty(
-      partyFactory,
       PartyAdmin.PartyCreationMinimalOptions({
         host1: address(john),
         host2: address(danny),
@@ -427,7 +424,7 @@ contract PartyGovernanceTest is Test, TestUtils {
     });
     john.makeProposal(party, p1);
     _assertProposalState(party, 1, PartyGovernance.ProposalState.Voting, 1);
-    
+
     danny.vote(party, 1);
     _assertProposalState(party, 1, PartyGovernance.ProposalState.Passed, 51);
 
@@ -440,7 +437,7 @@ contract PartyGovernanceTest is Test, TestUtils {
     // warp to maxExecutabletime
     vm.warp(999999999);
     _assertProposalState(party, 1, PartyGovernance.ProposalState.Ready, 51);
-    
+
     // warp past maxExecutabletime
     vm.warp(999999999 + 1);
 
@@ -471,5 +468,4 @@ contract PartyGovernanceTest is Test, TestUtils {
       assertEq(uint256(ps), uint256(expectedProposalState));
       assertEq(pv.votes, expectedNumVotes);
   }
-
 }

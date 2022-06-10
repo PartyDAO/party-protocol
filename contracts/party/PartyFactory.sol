@@ -12,8 +12,9 @@ import "./IPartyFactory.sol";
 // Creates generic Party instances.
 contract PartyFactory is IPartyFactory {
 
-    IGlobals public immutable GLOBALS;
+    error OnlyAuthorityError();
 
+    IGlobals public immutable GLOBALS;
     mapping (Party => address) public partyAuthorities;
 
     constructor(IGlobals globals) {
@@ -21,7 +22,9 @@ contract PartyFactory is IPartyFactory {
     }
 
     modifier onlyAuthority(Party party) {
-        require(partyAuthorities[party] == msg.sender);
+        if (partyAuthorities[party] != msg.sender) {
+            revert OnlyAuthorityError();
+        }
         _;
     }
 
@@ -42,7 +45,8 @@ contract PartyFactory is IPartyFactory {
             options: opts,
             preciousTokens: preciousTokens,
             preciousTokenIds: preciousTokenIds,
-            mintAuthority: msg.sender
+            // authority must call mint() through this contract
+            mintAuthority: address(this)
         });
         party = Party(payable(
             new Proxy(

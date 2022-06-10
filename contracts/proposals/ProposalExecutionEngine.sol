@@ -87,6 +87,7 @@ contract ProposalExecutionEngine is
     function initialize(address oldImpl, bytes calldata initializeData)
         external
         override
+        onlyDelegateCall
     { /* NOOP */ }
 
     function getProposalExecutionStatus(bytes32 proposalId)
