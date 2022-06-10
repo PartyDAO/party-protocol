@@ -16,7 +16,7 @@ import './LibDeployConstants.sol';
 contract Deploy is Test {
 
   // constants
-  address constant DEPLOYER_ADDRESS = 0x00a329c0648769A73afAc7F9381E08FB43dBEA72;
+  address constant DEPLOYER_ADDRESS = 0x00a329c0648769A73afAc7F9381E08FB43dBEA72; // TODO: we can set this, or we can use tx.origin
 
   // temporary variables to store deployed contract addresses
   // PartyCrowdfundFactory partyCrowdfundFactoryAddress;
