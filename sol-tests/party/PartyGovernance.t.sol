@@ -478,7 +478,7 @@ function testEmergencyWithdrawal() public {
     uint256 initialBalance = globalDaoWalletAddress.balance;
 
     vm.prank(globalDaoWalletAddress);
-    party.emergencyWithdrawETH(payable(globalDaoWalletAddress));
+    party.emergencyExecute(payable(globalDaoWalletAddress), '', 500 ether);
 
     assertEq(0, address(party).balance);
     uint256 balanceChange = globalDaoWalletAddress.balance - initialBalance;
@@ -509,7 +509,8 @@ function testEmergencyWithdrawal() public {
     vm.prank(globalDaoWalletAddress);
     bool emergResp = party.emergencyExecute(
       address(toadz),
-      abi.encodeWithSignature("safeTransferFrom(address,address,uint256,bytes)", address(party), address(globalDaoWalletAddress), 1, '')
+      abi.encodeWithSignature("safeTransferFrom(address,address,uint256,bytes)", address(party), address(globalDaoWalletAddress), 1, ''),
+      0
     );
     assert(emergResp);
     assertEq(toadz.ownerOf(1), address(globalDaoWalletAddress));

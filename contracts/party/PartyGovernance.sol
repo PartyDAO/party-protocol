@@ -451,16 +451,10 @@ abstract contract PartyGovernance is
 
     function emergencyExecute(
         address targetAddress,
-        bytes calldata targetCallData
+        bytes calldata targetCallData,
+        uint256 amountEth
     ) public onlyPartyDao onlyWhenEmergencyActionsAllowed returns (bool) {
-        (bool success, ) = targetAddress.call(targetCallData);
-        return success;
-    }
-
-    function emergencyWithdrawETH(
-        address payable recipient
-    ) public onlyPartyDao onlyWhenEmergencyActionsAllowed returns (bool) {
-        (bool success, ) = recipient.call{value:address(this).balance}('');
+        (bool success, ) = targetAddress.call{value: amountEth}(targetCallData);
         return success;
     }
 
