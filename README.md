@@ -21,4 +21,7 @@ yarn test:ts
 yarn test:sol
 # run fork tests
 forge test --fork-url $YOUR_RPC_URL
+
+# console.log something in foundry tests
+import console.sol from forge-std and run forge test -vv
 ```

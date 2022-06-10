@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8;
 
+import "../contracts/tokens/IERC721.sol";
+
 contract TestUtils {
     uint256 private immutable _nonce;
 
@@ -45,5 +47,20 @@ contract TestUtils {
 
     function _randomRange(uint256 lo, uint256 hi) internal view returns (uint256) {
         return lo + (_randomUint256() % (hi - lo));
+    }
+
+    function _toAddressArray(address v) internal pure returns (address[] memory arr) {
+        arr = new address[](1);
+        arr[0] = v;
+    }
+
+    function _toERC721Array(IERC721 v) internal pure returns (IERC721[] memory arr) {
+        address[] memory arr_ = _toAddressArray(address(v));
+        assembly { arr := arr_ }
+    }
+
+    function _toUint256Array(uint256 v) internal pure returns (uint256[] memory arr) {
+        arr = new uint256[](1);
+        arr[0] = v;
     }
 }

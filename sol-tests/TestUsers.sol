@@ -50,8 +50,13 @@ contract PartyAdmin is Test {
     uint256 preciousTokenId;
   }
 
+  PartyFactory _partyFactory;
+
+  constructor(PartyFactory partyFactory) {
+      _partyFactory = partyFactory;
+  }
+
   function createParty(
-    PartyFactory partyFactory,
     PartyCreationMinimalOptions calldata opts
   ) public returns (Party, IERC721[] memory, uint256[] memory) {
     address[] memory hosts = new address[](2);
@@ -76,7 +81,7 @@ contract PartyAdmin is Test {
     uint256[] memory preciousTokenIds = new uint256[](1);
     preciousTokenIds[0] = opts.preciousTokenId;
 
-    Party party = partyFactory.createParty(
+    Party party = _partyFactory.createParty(
       address(this), po, preciousTokens, preciousTokenIds
     );
     return (party, preciousTokens, preciousTokenIds);
@@ -88,7 +93,7 @@ contract PartyAdmin is Test {
     uint256 votingPower,
     address delegateTo
   ) public {
-    party.mint(mintTo, votingPower, delegateTo);
+    _partyFactory.mint(party, mintTo, votingPower, delegateTo);
   }
 
   function mintGovNft(
@@ -96,7 +101,7 @@ contract PartyAdmin is Test {
     address mintTo,
     uint256 votingPower
   ) public {
-    party.mint(mintTo, votingPower, mintTo);
+    _partyFactory.mint(party, mintTo, votingPower, mintTo);
   }
 }
 
