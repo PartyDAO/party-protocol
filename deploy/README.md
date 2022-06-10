@@ -61,8 +61,13 @@ Other flag options
 ==================
 
 --broadcast # does a real deploy. if omitted, the command will be a dry-run
+--chain-id
+--gas-limit
+--gas-price
+--libraries
 --optimize
 --optimizer-runs 999999
+--use # solc version
 --verify # verifies contract source on etherscan. can also be done separately with the `forge verify-contract` command
 ```
 
