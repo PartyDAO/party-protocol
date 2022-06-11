@@ -16,7 +16,11 @@
         "test:sol:run": "forge test",
         "build:ts": "tsc -b",
         "test:ts": "yarn build:ts && yarn test:ts:run",
-        "test:ts:run": "mocha -t 10000 -b 'tests/built/**/*.t.js'"
+        "test:ts:run": "mocha -t 10000 -b 'tests/built/**/*.t.js'",
+        "deploy-dry:rinkeby": "forge script ./deploy/rinkeby.sol -vvv --fork-url https://eth-rinkeby.alchemyapi.io/v2/${ALCHEMY_API_KEY} --optimize --optimizer-runs 999999",
+        "deploy-dry:mainnet": "forge script ./deploy/mainnet.sol -vvv --fork-url https://eth-mainnet.alchemyapi.io/v2/${ALCHEMY_API_KEY} --optimize --optimizer-runs 999999",
+        "deploy:rinkeby": "forge script ./deploy/rinkeby.sol -vvv --rpc-url https://eth-rinkeby.alchemyapi.io/v2/${ALCHEMY_API_KEY} --private-key ${PRIVATE_KEY} --broadcast --optimize --optimizer-runs 999999",
+        "deploy:mainnet": "forge script ./deploy/mainnet.sol -vvv --rpc-url https://eth-mainnet.alchemyapi.io/v2/${ALCHEMY_API_KEY} --private-key ${PRIVATE_KEY} --broadcast --optimize --optimizer-runs 999999"
     },
     "devDependencies": {
         "@types/chai": "^4.3.1",
