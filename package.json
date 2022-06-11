@@ -1,35 +1,31 @@
 {
-  "name": "partybidV2",
-  "version": "1.0.0",
-  "description": "PartyBidV2 Contracts",
-  "main": "index.js",
-  "repository": "git@github.com:PartyDAO/partybidV2.git",
-  "author": "Lawrence Forman <me@merklejerk.com>",
-  "license": "Apache-2.0",
-  "private": true,
-  "scripts": {
-    "clean": "rm -rf out/ tests/built",
-    "build": "yarn build:sol && yarn build:ts",
-    "test": "yarn build && yarn test:sol:run && yarn test:ts:run",
-    "build:sol": "forge build",
-    "test:sol": "yarn build:sol && yarn test:sol:run",
-    "test:sol:run": "forge test",
-    "build:ts": "tsc -b",
-    "test:ts": "yarn build:ts && yarn test:ts:run",
-    "test:ts:run": "mocha -t 10000 -b 'tests/built/**/*.t.js'",
-    "deploy-dry:rinkeby": "forge script ./deploy/rinkeby.sol -vvv --fork-url https://eth-rinkeby.alchemyapi.io/v2/${ALCHEMY_API_KEY} --optimize --optimizer-runs 999999",
-    "deploy-dry:mainnet": "forge script ./deploy/mainnet.sol -vvv --fork-url https://eth-mainnet.alchemyapi.io/v2/${ALCHEMY_API_KEY} --optimize --optimizer-runs 999999",
-    "deploy:rinkeby": "forge script ./deploy/rinkeby.sol -vvv --rpc-url https://eth-rinkeby.alchemyapi.io/v2/${ALCHEMY_API_KEY} --private-key ${PRIVATE_KEY} --broadcast --optimize --optimizer-runs 999999",
-    "deploy:mainnet": "forge script ./deploy/mainnet.sol -vvv --rpc-url https://eth-mainnet.alchemyapi.io/v2/${ALCHEMY_API_KEY} --private-key ${PRIVATE_KEY} --broadcast --optimize --optimizer-runs 999999"
-  },
-  "devDependencies": {
-    "@types/chai": "^4.3.1",
-    "@types/mocha": "^9.1.1",
-    "@types/sinon-chai": "^3.2.8",
-    "chai": "^4.3.6",
-    "ethereum-waffle": "^3.4.4",
-    "ethers": "^5.6.5",
-    "mocha": "^10.0.0",
-    "typescript": "^4.6.4"
-  }
+    "name": "partybidV2",
+    "version": "1.0.0",
+    "description": "PartyBidV2 Contracts",
+    "main": "index.js",
+    "repository": "git@github.com:PartyDAO/partybidV2.git",
+    "author": "Lawrence Forman <me@merklejerk.com>",
+    "license": "Apache-2.0",
+    "private": true,
+    "scripts": {
+        "clean": "rm -rf out/ tests/built",
+        "build": "yarn build:sol && yarn build:ts",
+        "test": "yarn build && yarn test:sol:run && yarn test:ts:run",
+        "build:sol": "forge build",
+        "test:sol": "yarn build:sol && yarn test:sol:run",
+        "test:sol:run": "forge test",
+        "build:ts": "tsc -b",
+        "test:ts": "yarn build:ts && yarn test:ts:run",
+        "test:ts:run": "mocha -t 10000 -b 'tests/built/**/*.t.js'"
+    },
+    "devDependencies": {
+        "@types/chai": "^4.3.1",
+        "@types/mocha": "^9.1.1",
+        "@types/sinon-chai": "^3.2.8",
+        "chai": "^4.3.6",
+        "ethereum-waffle": "^3.4.4",
+        "ethers": "^5.6.5",
+        "mocha": "^10.0.0",
+        "typescript": "^4.6.4"
+    }
 }
