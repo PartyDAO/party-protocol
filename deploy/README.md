@@ -34,10 +34,10 @@ By default (without including the `--broadcast` flag), forge scripts are execute
 
 ```sh
 // rinkeby deploy
-forge script ./deploy/rinkeby.sol -vvv --fork-url https://eth-rinkeby.alchemyapi.io/v2/$ALCHEMY_API_KEY --optimize --optimizer-runs 999999
+ALCHEMY_API_KEY=<add-api-key> yarn deploy-dry:rinkeby
 
 // mainnet deploy
-forge script ./deploy/mainnet.sol -vvv --fork-url https://eth-mainnet.alchemyapi.io/v2/$ALCHEMY_API_KEY --optimize --optimizer-runs 999999
+ALCHEMY_API_KEY=<add-api-key> yarn deploy-dry:mainnet
 ```
 
 ## Real deploys
@@ -46,10 +46,10 @@ Add the `--rpc-url $RPC_URL` flag, `--private-key $PRIVATE_KEY` flag, and the `-
 
 ```sh
 // rinkeby deploy
-forge script ./deploy/deploy.sol -vvv --rpc-url https://eth-rinkeby.alchemyapi.io/v2/$ALCHEMY_API_KEY --private-key $PRIVATE_KEY --broadcast --optimize --optimizer-runs 999999
+ALCHEMY_API_KEY=<your-api-key> PRIVATE_KEY=<your-private-key> yarn deploy:rinkeby
 
 // mainnet deploy
-forge script ./deploy/deploy.sol -vvv --rpc-url https://eth-mainnet.alchemyapi.io/v2/$ALCHEMY_API_KEY --private-key $PRIVATE_KEY --broadcast --optimize --optimizer-runs 999999
+ALCHEMY_API_KEY=<your-api-key> PRIVATE_KEY=<your-private-key> yarn deploy:mainnet
 ```
 
 ### More info
