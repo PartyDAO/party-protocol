@@ -100,10 +100,6 @@ contract ListOnZoraProposalIntegrationTest is
       (PartyGovernance.ProposalState s, ) = party.getProposalStates(proposalId);
       assertEq(uint40(s), uint40(PartyGovernance.ProposalState.Ready));
 
-
-      // ListOnZoraProposal zp = new ListOnZoraProposal();
-      // uint256 proposalId = 
-
       PartyParticipant.ExecutionOptions memory eo = PartyParticipant.ExecutionOptions({
         proposalId: proposalId,
         proposal: proposal,
@@ -112,11 +108,8 @@ contract ListOnZoraProposalIntegrationTest is
         progressData: ''
       });
       
-
-
       john.executeProposal(party, eo);
 
-      console.log(proposalId);
-      console.log('simple zora 5');
+      assertEq(toadz.ownerOf(1), address(ZORA));
     }
 }
