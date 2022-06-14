@@ -154,17 +154,3 @@ contract PartyParticipant is ERC721Holder, Test  {
     party.veto(proposalId);
   }
 }
-
-contract ZoraUser is ERC721Holder, Test {
-  constructor() {
-    vm.deal(address(this), 100 ether);
-  }
-
-  function bid(IZoraAuctionHouse auctionHouse, uint256 auctionId, uint256 bidWei) public {
-    auctionHouse.createBid{ value: bidWei }(auctionId, bidWei);
-  }
-
-  function finalize(IZoraAuctionHouse auctionHouse, uint256 auctionId) public {
-    auctionHouse.endAuction(auctionId);
-  }
-}

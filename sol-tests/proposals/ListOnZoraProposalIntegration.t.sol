@@ -138,25 +138,22 @@ contract ListOnZoraProposalIntegrationTest is
         revert ZoraAuctionIdNotFound();
       }
 
-      console.log('proposalAuctionId', proposalAuctionId);
-
       // bid up zora auction
-      ZoraUser z1 = new ZoraUser();
-      ZoraUser z2 = new ZoraUser();
-      ZoraUser z3 = new ZoraUser();
-      z1.bid(ZORA, proposalAuctionId, 1.6 ether);
-      z2.bid(ZORA, proposalAuctionId, 4.2 ether);
-      z3.bid(ZORA, proposalAuctionId, 13.37 ether);
+      address auctionFinalizer = 0x000000000000000000000000000000000000dEaD;
+      address auctionWinner = 0x000000000000000000000000000000000000D00d;
+      _bidOnZoraListing(proposalAuctionId, auctionFinalizer, 1.6 ether);
+      _bidOnZoraListing(proposalAuctionId, 0x0000000000000000000000000000000000001337, 4.2 ether);
+      _bidOnZoraListing(proposalAuctionId, auctionWinner, 13.37 ether);
 
       // have zora auction finish
       // TODO: i tried +120, and +121 and the test failed with error "Reason: Auction hasn't completed"
       vm.warp(block.timestamp + 1000000000000);
 
       // finalize zora auction
-      z1.finalize(ZORA, proposalAuctionId);
+      _finalizeZoraListing(proposalAuctionId, auctionFinalizer);
 
       // ensure ETH is held by party
-      assertEq(toadz.ownerOf(1), address(z3));
+      assertEq(toadz.ownerOf(1), auctionWinner);
 
       // distribute ETH and claim distributions
       // TODO
