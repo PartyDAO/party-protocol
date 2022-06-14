@@ -22,6 +22,14 @@ contract ListOnZoraProposalIntegrationTest is
 {
     IZoraAuctionHouse ZORA =
         IZoraAuctionHouse(0xE468cE99444174Bd3bBBEd09209577d25D1ad673);
+    // HACK: hardcode the latest Zora auction id. Steps to update:
+    //   1. go to the Zora Auction House etherscan page
+    //   2. click on the latest "Create Auction" tx
+    //   3. click on the "Logs" tab on the tx page
+    //   4. cmd + f for "uint256 auctionId"
+    uint256 private constant latestZoraAuctionId = 5877;
+
+    error ZoraAuctionIdNotFound();
 
     constructor() ZoraTestUtils(ZORA) {}
 
@@ -106,10 +114,31 @@ contract ListOnZoraProposalIntegrationTest is
         preciousTokenIds: preciousTokenIds,
         progressData: ''
       });
-      
+
       john.executeProposal(party, eo);
 
       assertEq(toadz.ownerOf(1), address(ZORA));
+
+      // start at the latest known zora auction id and loop forward to find the auction id
+      // for the auction created by the proposal
+      uint256 proposalAuctionId;
+      for (uint256 i = 1; i <= 10; ++i) {
+        uint256 currAuctionId = latestZoraAuctionId + i;
+        address currAuctionTokenAddress = address(ZORA.auctions(currAuctionId).tokenContract);
+        uint256 currAuctionTokenId = ZORA.auctions(currAuctionId).tokenId;
+
+        if (currAuctionTokenAddress == address(toadz) && currAuctionTokenId == 1) {
+          // we have found our auction id
+          proposalAuctionId = currAuctionId;
+          break;
+        }
+      }
+
+      if (proposalAuctionId == 0) {
+        revert ZoraAuctionIdNotFound();
+      }
+
+      console.log('proposalAuctionId', proposalAuctionId);
 
       // bid up zora auction
 
