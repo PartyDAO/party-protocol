@@ -52,7 +52,7 @@ contract ListOnZoraProposalIntegrationTest is
       DummyERC721 toadz = new DummyERC721();
       toadz.mint(address(partyAdmin));
 
-      (Party party, ,) = partyAdmin.createParty(
+      (Party party, IERC721[] memory preciousTokens, uint256[] memory preciousTokenIds) = partyAdmin.createParty(
         PartyAdmin.PartyCreationMinimalOptions({
           host1: address(partyAdmin),
           host2: address(0),
@@ -76,11 +76,20 @@ contract ListOnZoraProposalIntegrationTest is
         tokenId: 1
       });
 
+
+      bytes memory experimentalData = abi.encodeWithSelector(
+          bytes4(uint32(ProposalExecutionEngine.ProposalType.ListOnZora)),
+          zpd
+      );
+
       PartyGovernance.Proposal memory proposal = PartyGovernance.Proposal({
         maxExecutableTime: uint40(block.timestamp + 10000 hours),
         nonce: 1,
-        proposalData: abi.encode(zpd)
+        //proposalData: abi.encode(zpd)
+        proposalData: experimentalData
       });
+
+
       uint256 proposalId = john.makeProposal(party, proposal);
 
       danny.vote(party, proposalId);
@@ -95,7 +104,19 @@ contract ListOnZoraProposalIntegrationTest is
       // ListOnZoraProposal zp = new ListOnZoraProposal();
       // uint256 proposalId = 
 
+      PartyParticipant.ExecutionOptions memory eo = PartyParticipant.ExecutionOptions({
+        proposalId: proposalId,
+        proposal: proposal,
+        preciousTokens: preciousTokens,
+        preciousTokenIds: preciousTokenIds,
+        progressData: ''
+      });
+      
+
+
+      john.executeProposal(party, eo);
+
       console.log(proposalId);
-      console.log('simple zora 4');
+      console.log('simple zora 5');
     }
 }
