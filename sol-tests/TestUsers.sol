@@ -125,8 +125,8 @@ contract PartyParticipant is ERC721Holder, Test  {
 
   function makeProposal(
     Party party, PartyGovernance.Proposal memory proposal
-  ) public {
-    party.propose(proposal);
+  ) public returns (uint256) {
+    return party.propose(proposal);
   }
 
   function vote(Party party, uint256 proposalId) public {

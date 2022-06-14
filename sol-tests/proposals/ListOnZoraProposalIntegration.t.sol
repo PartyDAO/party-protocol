@@ -69,6 +69,33 @@ contract ListOnZoraProposalIntegrationTest is
       partyAdmin.mintGovNft(party, address(danny), 50);
       partyAdmin.mintGovNft(party, address(steve), 50);
 
+      ListOnZoraProposal.ZoraProposalData memory zpd = ListOnZoraProposal.ZoraProposalData({
+        listPrice: 1.5 ether,
+        duration: 120,
+        token: toadz,
+        tokenId: 1
+      });
+
+      PartyGovernance.Proposal memory proposal = PartyGovernance.Proposal({
+        maxExecutableTime: uint40(block.timestamp + 10000 hours),
+        nonce: 1,
+        proposalData: abi.encode(zpd)
+      });
+      uint256 proposalId = john.makeProposal(party, proposal);
+
+      danny.vote(party, proposalId);
+      steve.vote(party, proposalId);
+
+      vm.warp(block.timestamp + 76 hours);
+
+      (PartyGovernance.ProposalState s, ) = party.getProposalStates(proposalId);
+      assertEq(uint40(s), uint40(PartyGovernance.ProposalState.Ready));
+
+
+      // ListOnZoraProposal zp = new ListOnZoraProposal();
+      // uint256 proposalId = 
+
+      console.log(proposalId);
       console.log('simple zora 4');
     }
 }
