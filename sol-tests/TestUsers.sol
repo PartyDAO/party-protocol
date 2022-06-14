@@ -6,6 +6,7 @@ import "../contracts/globals/Globals.sol";
 import "../contracts/globals/LibGlobals.sol";
 import "../contracts/party/Party.sol";
 import "../contracts/party/PartyFactory.sol";
+import "../contracts/proposals/zora/IZoraAuctionHouse.sol";
 
 contract ERC721Holder {
     function onERC721Received(
@@ -151,5 +152,19 @@ contract PartyParticipant is ERC721Holder, Test  {
     uint256 proposalId
   ) public {
     party.veto(proposalId);
+  }
+}
+
+contract ZoraUser is ERC721Holder, Test {
+  constructor() {
+    vm.deal(address(this), 100 ether);
+  }
+
+  function bid(IZoraAuctionHouse auctionHouse, uint256 auctionId, uint256 bidWei) public {
+    auctionHouse.createBid{ value: bidWei }(auctionId, bidWei);
+  }
+
+  function finalize(IZoraAuctionHouse auctionHouse, uint256 auctionId) public {
+    auctionHouse.endAuction(auctionId);
   }
 }
