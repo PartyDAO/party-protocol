@@ -141,14 +141,24 @@ contract ListOnZoraProposalIntegrationTest is
       console.log('proposalAuctionId', proposalAuctionId);
 
       // bid up zora auction
+      ZoraUser z1 = new ZoraUser();
+      ZoraUser z2 = new ZoraUser();
+      ZoraUser z3 = new ZoraUser();
+      z1.bid(ZORA, proposalAuctionId, 1.6 ether);
+      z2.bid(ZORA, proposalAuctionId, 4.2 ether);
+      z3.bid(ZORA, proposalAuctionId, 13.37 ether);
 
       // have zora auction finish
+      // TODO: i tried +120, and +121 and the test failed with error "Reason: Auction hasn't completed"
+      vm.warp(block.timestamp + 1000000000000);
 
       // finalize zora auction
+      z1.finalize(ZORA, proposalAuctionId);
 
       // ensure ETH is held by party
+      assertEq(toadz.ownerOf(1), address(z3));
 
       // distribute ETH and claim distributions
-
+      // TODO
     }
 }
