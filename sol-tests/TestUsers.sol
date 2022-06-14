@@ -56,6 +56,10 @@ contract PartyAdmin is Test {
       _partyFactory = partyFactory;
   }
 
+  function transferNft(IERC721 erc721Contract, uint256 tokenId, address sendTo) public {
+    erc721Contract.safeTransferFrom(address(this), sendTo, tokenId);
+  }
+
   function createParty(
     PartyCreationMinimalOptions calldata opts
   ) public returns (Party, IERC721[] memory, uint256[] memory) {
