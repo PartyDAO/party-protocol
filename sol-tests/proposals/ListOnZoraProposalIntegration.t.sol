@@ -77,7 +77,7 @@ contract ListOnZoraProposalIntegrationTest is
       });
 
 
-      bytes memory experimentalData = abi.encodeWithSelector(
+      bytes memory proposalData = abi.encodeWithSelector(
           bytes4(uint32(ProposalExecutionEngine.ProposalType.ListOnZora)),
           zpd
       );
@@ -85,8 +85,7 @@ contract ListOnZoraProposalIntegrationTest is
       PartyGovernance.Proposal memory proposal = PartyGovernance.Proposal({
         maxExecutableTime: uint40(block.timestamp + 10000 hours),
         nonce: 1,
-        //proposalData: abi.encode(zpd)
-        proposalData: experimentalData
+        proposalData: proposalData
       });
 
 
@@ -111,5 +110,16 @@ contract ListOnZoraProposalIntegrationTest is
       john.executeProposal(party, eo);
 
       assertEq(toadz.ownerOf(1), address(ZORA));
+
+      // bid up zora auction
+
+      // have zora auction finish
+
+      // finalize zora auction
+
+      // ensure ETH is held by party
+
+      // distribute ETH and claim distributions
+
     }
 }
