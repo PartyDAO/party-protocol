@@ -29,6 +29,10 @@ contract ListOnZoraProposalIntegrationTest is
     Party partyImpl;
     TokenDistributor tokenDistributor;
     PartyFactory partyFactory;
+    PartyParticipant john;
+    PartyParticipant danny;
+    PartyParticipant steve;
+    PartyAdmin partyAdmin;
     address johnAddress;
     address dannyAddress;
     address steveAddress;
@@ -57,10 +61,10 @@ contract ListOnZoraProposalIntegrationTest is
     }
 
     function testSimpleZora() public onlyForked {
-      PartyParticipant john = new PartyParticipant();
-      PartyParticipant danny = new PartyParticipant();
-      PartyParticipant steve = new PartyParticipant();
-      PartyAdmin partyAdmin = new PartyAdmin(partyFactory);
+      john = new PartyParticipant();
+      danny = new PartyParticipant();
+      steve = new PartyParticipant();
+      partyAdmin = new PartyAdmin(partyFactory);
 
       johnAddress = address(john);
       dannyAddress = address(danny);
@@ -132,7 +136,6 @@ contract ListOnZoraProposalIntegrationTest is
       assertEq(toadz.ownerOf(1), address(ZORA));
 
       // get the zora auction id created by the proposal
-      // TODO: off by 1?
       uint256 proposalAuctionId = uint256(vm.load(address(ZORA), 0x0000000000000000000000000000000000000000000000000000000000000005)) - 1;
       console.log('post: proposal auction id', proposalAuctionId);
 
