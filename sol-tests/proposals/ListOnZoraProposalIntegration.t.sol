@@ -176,7 +176,7 @@ contract ListOnZoraProposalIntegrationTest is
         vm.warp(block.timestamp + 1000000000000);
 
         // finalize zora auction
-        _finalizeZoraListing(proposalAuctionId, auctionFinalizer);
+        ZORA.endAuction(proposalAuctionId);
 
         // ensure ETH is held by party
         assertEq(toadz.ownerOf(1), auctionWinner);
