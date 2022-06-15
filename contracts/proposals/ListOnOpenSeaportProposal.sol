@@ -254,6 +254,7 @@ abstract contract ListOnOpenSeaportProposal is ZoraHelpers {
         // field's value before returning.
         uint256 origTotalOriginalConsiderationItems =
             orderParams.totalOriginalConsiderationItems;
+        orderParams.totalOriginalConsiderationItems = 0;
         ISeaportExchange.OrderComponents memory orderComps;
         assembly { orderComps := orderParams }
         orderHash = SEAPORT.getOrderHash(orderComps);
