@@ -146,7 +146,7 @@ contract ListOnZoraProposalIntegrationTest is
       // start at the latest known zora auction id and loop forward to find the auction id
       // for the auction created by the proposal
       uint256 proposalAuctionId;
-      for (uint256 i = 1; i <= 50; ++i) {
+      for (uint256 i = 1; i <= 500; ++i) {
         uint256 currAuctionId = latestZoraAuctionId + i;
         address currAuctionTokenAddress = address(ZORA.auctions(currAuctionId).tokenContract);
         uint256 currAuctionTokenId = ZORA.auctions(currAuctionId).tokenId;
