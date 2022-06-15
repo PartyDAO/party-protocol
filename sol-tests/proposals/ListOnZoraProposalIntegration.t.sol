@@ -22,31 +22,51 @@ contract ListOnZoraProposalIntegrationTest is
 {
     IZoraAuctionHouse ZORA =
         IZoraAuctionHouse(0xE468cE99444174Bd3bBBEd09209577d25D1ad673);
+    IERC20 private constant ETH_TOKEN = IERC20(0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE);
+
+    GlobalsAdmin globalsAdmin;
+    Globals globals;
+    Party partyImpl;
+    TokenDistributor tokenDistributor;
+    PartyFactory partyFactory;
+    PartyParticipant john;
+    PartyParticipant danny;
+    PartyParticipant steve;
+    PartyAdmin partyAdmin;
+    address johnAddress;
+    address dannyAddress;
+    address steveAddress;
 
     constructor() ZoraTestUtils(ZORA) {}
 
     function setUp() public onlyForked {
-    }
-
-    function testSimpleZora() public onlyForked {
-      GlobalsAdmin globalsAdmin = new GlobalsAdmin();
-      Globals globals = globalsAdmin.globals();
-      Party partyImpl = new Party(globals);
+      globalsAdmin = new GlobalsAdmin();
+      globals = globalsAdmin.globals();
+      partyImpl = new Party(globals);
       globalsAdmin.setPartyImpl(address(partyImpl));
       address globalDaoWalletAddress = address(420);
       globalsAdmin.setGlobalDaoWallet(globalDaoWalletAddress);
+
+      tokenDistributor = new TokenDistributor(globals);
+      globalsAdmin.setTokenDistributor(address(tokenDistributor));
 
       IWyvernExchangeV2 wyvern = IWyvernExchangeV2(address(0x7f268357A8c2552623316e2562D90e642bB538E5));
       SharedWyvernV2Maker wyvernMaker = new SharedWyvernV2Maker(wyvern);
       ProposalExecutionEngine pe = new ProposalExecutionEngine(globals, wyvernMaker, ZORA);
       globalsAdmin.setProposalEng(address(pe));
 
-      PartyFactory partyFactory = new PartyFactory(globals);
+      partyFactory = new PartyFactory(globals);
+    }
 
-      PartyParticipant john = new PartyParticipant();
-      PartyParticipant danny = new PartyParticipant();
-      PartyParticipant steve = new PartyParticipant();
-      PartyAdmin partyAdmin = new PartyAdmin(partyFactory);
+    function testSimpleZora() public onlyForked {
+      john = new PartyParticipant();
+      danny = new PartyParticipant();
+      steve = new PartyParticipant();
+      partyAdmin = new PartyAdmin(partyFactory);
+
+      johnAddress = address(john);
+      dannyAddress = address(danny);
+      steveAddress = address(steve);
 
       // Mint dummy NFT to partyAdmin
       DummyERC721 toadz = new DummyERC721();
@@ -57,7 +77,7 @@ contract ListOnZoraProposalIntegrationTest is
           host1: address(partyAdmin),
           host2: address(0),
           passThresholdBps: 5100,
-          totalVotingPower: 100,
+          totalVotingPower: 150,
           preciousTokenAddress: address(toadz),
           preciousTokenId: 1
         })
@@ -65,9 +85,9 @@ contract ListOnZoraProposalIntegrationTest is
       // transfer NFT to party
       partyAdmin.transferNft(toadz, 1, address(party));
 
-      partyAdmin.mintGovNft(party, address(john), 50);
-      partyAdmin.mintGovNft(party, address(danny), 50);
-      partyAdmin.mintGovNft(party, address(steve), 50);
+      partyAdmin.mintGovNft(party, johnAddress, 50);
+      partyAdmin.mintGovNft(party, dannyAddress, 50);
+      partyAdmin.mintGovNft(party, steveAddress, 50);
 
       ListOnZoraProposal.ZoraProposalData memory zpd = ListOnZoraProposal.ZoraProposalData({
         listPrice: 1.5 ether,
@@ -106,20 +126,56 @@ contract ListOnZoraProposalIntegrationTest is
         preciousTokenIds: preciousTokenIds,
         progressData: ''
       });
-      
+
       john.executeProposal(party, eo);
 
       assertEq(toadz.ownerOf(1), address(ZORA));
 
-      // bid up zora auction
+      // get the zora auction id created by the proposal
+      uint256 proposalAuctionId = uint256(vm.load(address(ZORA), 0x0000000000000000000000000000000000000000000000000000000000000005)) - 1;
 
-      // have zora auction finish
+      // zora auction lifecycle tests
+      {
+        // bid up zora auction
+        address auctionFinalizer = 0x000000000000000000000000000000000000dEaD;
+        address auctionWinner = 0x000000000000000000000000000000000000D00d;
+        _bidOnZoraListing(proposalAuctionId, auctionFinalizer, 1.6 ether);
+        _bidOnZoraListing(proposalAuctionId, 0x0000000000000000000000000000000000001337, 4.2 ether);
+        _bidOnZoraListing(proposalAuctionId, auctionWinner, 13.37 ether);
 
-      // finalize zora auction
+        // have zora auction finish
+        vm.warp(block.timestamp + ZORA.auctions(proposalAuctionId).duration);
+
+        // finalize zora auction
+        ZORA.endAuction(proposalAuctionId);
+        // TODO: test our code path by calling execute() again john.executeProposal(party, eo);
+
+        // ensure NFT is held by winner
+        assertEq(toadz.ownerOf(1), auctionWinner);
+      }
 
       // ensure ETH is held by party
+      assertEq(address(party).balance, 13.37 ether);
 
       // distribute ETH and claim distributions
+      {
+        vm.prank(johnAddress);
+        TokenDistributor.DistributionInfo memory distributionInfo = john.distributeEth(party, ETH_TOKEN);
 
+        uint256 johnPrevBalance = johnAddress.balance;
+        vm.prank(johnAddress);
+        tokenDistributor.claim(distributionInfo, 1);
+        assertEq(johnAddress.balance, (4.456666666666666662 ether) + johnPrevBalance);
+
+        uint256 dannyPrevBalance = dannyAddress.balance;
+        vm.prank(dannyAddress);
+        tokenDistributor.claim(distributionInfo, 2);
+        assertEq(dannyAddress.balance, (4.456666666666666662 ether) + dannyPrevBalance);
+
+        uint256 stevePrevBalance = steveAddress.balance;
+        vm.prank(steveAddress);
+        tokenDistributor.claim(distributionInfo, 3);
+        assertEq(steveAddress.balance, (4.456666666666666662 ether) + stevePrevBalance);
+      }
     }
 }

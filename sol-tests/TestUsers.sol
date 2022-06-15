@@ -6,6 +6,7 @@ import "../contracts/globals/Globals.sol";
 import "../contracts/globals/LibGlobals.sol";
 import "../contracts/party/Party.sol";
 import "../contracts/party/PartyFactory.sol";
+import "../contracts/proposals/zora/IZoraAuctionHouse.sol";
 
 contract ERC721Holder {
     function onERC721Received(
@@ -36,6 +37,10 @@ contract GlobalsAdmin is Test {
 
   function setGlobalDaoWallet(address anAddress) public {
     globals.setAddress(LibGlobals.GLOBAL_DAO_WALLET, anAddress);
+  }
+
+  function setTokenDistributor(address tokenDistributorAddress) public {
+    globals.setAddress(LibGlobals.GLOBAL_TOKEN_DISTRIBUTOR, tokenDistributorAddress);
   }
 }
 
@@ -115,6 +120,8 @@ contract PartyParticipant is ERC721Holder, Test  {
     vm.deal(address(this), 100 ether);
   }
 
+  receive() external payable {}
+
   struct ExecutionOptions {
     uint256 proposalId;
     PartyGovernance.Proposal proposal;
@@ -151,5 +158,12 @@ contract PartyParticipant is ERC721Holder, Test  {
     uint256 proposalId
   ) public {
     party.veto(proposalId);
+  }
+
+  function distributeEth(
+    Party party,
+    IERC20 token
+  ) public returns (TokenDistributor.DistributionInfo memory distInfo) {
+    return party.distribute(token);
   }
 }
