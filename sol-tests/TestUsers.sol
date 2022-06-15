@@ -38,6 +38,10 @@ contract GlobalsAdmin is Test {
   function setGlobalDaoWallet(address anAddress) public {
     globals.setAddress(LibGlobals.GLOBAL_DAO_WALLET, anAddress);
   }
+
+  function setTokenDistributor(address tokenDistributorAddress) public {
+    globals.setAddress(LibGlobals.GLOBAL_TOKEN_DISTRIBUTOR, tokenDistributorAddress);
+  }
 }
 
 contract PartyAdmin is Test {
