@@ -37,8 +37,6 @@ contract ListOnZoraProposalIntegrationTest is
     address dannyAddress;
     address steveAddress;
 
-    error ZoraAuctionIdNotFound();
-
     constructor() ZoraTestUtils(ZORA) {}
 
     function setUp() public onlyForked {
