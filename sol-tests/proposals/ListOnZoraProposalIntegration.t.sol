@@ -89,7 +89,7 @@ contract ListOnZoraProposalIntegrationTest is
           host1: address(partyAdmin),
           host2: address(0),
           passThresholdBps: 5100,
-          totalVotingPower: 100,
+          totalVotingPower: 150,
           preciousTokenAddress: address(toadz),
           preciousTokenId: 1
         })
@@ -194,23 +194,20 @@ contract ListOnZoraProposalIntegrationTest is
         vm.prank(address(party)); // must create from party
         TokenDistributor.DistributionInfo memory distributionInfo = tokenDistributor.createDistribution(ETH_TOKEN);
 
-        // TODO: (13.37 / 3) = 4.456, however the distribution is for 6.685?
-
         vm.prank(johnAddress);
         uint256 johnPrevBalance = johnAddress.balance;
         tokenDistributor.claim(distributionInfo, 1);
-        assertEq(johnAddress.balance, (6.685 ether) + johnPrevBalance);
+        assertEq(johnAddress.balance, (4.456666666666666662 ether) + johnPrevBalance);
 
         vm.prank(dannyAddress);
         uint256 dannyPrevBalance = dannyAddress.balance;
         tokenDistributor.claim(distributionInfo, 2);
-        assertEq(dannyAddress.balance, (6.685 ether) + dannyPrevBalance);
+        assertEq(dannyAddress.balance, (4.456666666666666662 ether) + dannyPrevBalance);
 
         vm.prank(steveAddress);
         uint256 stevePrevBalance = steveAddress.balance;
         tokenDistributor.claim(distributionInfo, 3);
-        // TODO: steve does not receive a distribution?
-        assertEq(steveAddress.balance, stevePrevBalance);
+        assertEq(steveAddress.balance, (4.456666666666666662 ether) + stevePrevBalance);
       }
     }
 }
