@@ -49,8 +49,4 @@ interface IZoraAuctionHouse {
     function createBid(uint256 auctionId, uint256 amount) external payable;
     function endAuction(uint256 auctionId) external;
     function cancelAuction(uint256 auctionId) external;
-
-    // HACK: added this so that we can access the auctions mapping.
-    // zora code: https://github.com/ourzora/auction-house/blob/9b6615608ebff9275ead1b90a7de2fe51c253ac0/contracts/AuctionHouse.sol#L47-L48
-    function auctions(uint256 auctionId) external returns(Auction memory auction);
 }

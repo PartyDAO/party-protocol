@@ -117,6 +117,8 @@ contract ListOnZoraProposalIntegrationTest is
       (PartyGovernance.ProposalState s, ) = party.getProposalStates(proposalId);
       assertEq(uint40(s), uint40(PartyGovernance.ProposalState.Ready));
 
+      console.log('pre: proposal auction id', uint256(vm.load(address(ZORA), 0x0000000000000000000000000000000000000000000000000000000000000005)));
+
       PartyParticipant.ExecutionOptions memory eo = PartyParticipant.ExecutionOptions({
         proposalId: proposalId,
         proposal: proposal,
@@ -130,8 +132,9 @@ contract ListOnZoraProposalIntegrationTest is
       assertEq(toadz.ownerOf(1), address(ZORA));
 
       // get the zora auction id created by the proposal
-      uint256 proposalAuctionId = uint256(vm.load(address(ZORA), 0x036b6384b5eca791c62761152d0c79bb0604c104a5fb6f4eb0703f3154bb3db0));
-      console.log('proposal auction id', proposalAuctionId);
+      // TODO: off by 1?
+      uint256 proposalAuctionId = uint256(vm.load(address(ZORA), 0x0000000000000000000000000000000000000000000000000000000000000005)) - 1;
+      console.log('post: proposal auction id', proposalAuctionId);
 
       // zora auction lifecycle tests
       {
@@ -149,10 +152,11 @@ contract ListOnZoraProposalIntegrationTest is
         // finalize zora auction
         ZORA.endAuction(proposalAuctionId);
 
-        // ensure ETH is held by party
+        // ensure NFT is held by winner
         assertEq(toadz.ownerOf(1), auctionWinner);
       }
 
+      // ensure ETH is held by party
       assertEq(address(party).balance, 13.37 ether);
 
       // distribute ETH and claim distributions
