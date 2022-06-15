@@ -2,6 +2,9 @@
 pragma solidity ^0.8;
 
 interface ISeaportExchange {
+
+    error InvalidTime();
+
     enum OrderType {
         FULL_OPEN,
         PARTIAL_OPEN,

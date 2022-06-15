@@ -27,14 +27,14 @@ contract OpenSeaportTestUtils is Test {
     {
         vm.deal(buyer, address(buyer).balance + listPrice);
         vm.prank(buyer);
-        assert(SEAPORT.fulfillBasicOrder{ value: 1e18 }(_createBasicOpenSeaportOrderParams(
+        SEAPORT.fulfillBasicOrder{ value: 1e18 }(_createBasicOpenSeaportOrderParams(
             maker,
             token,
             tokenId,
             listPrice,
             startTime,
             duration
-        )));
+        ));
     }
 
     function _createBasicOpenSeaportOrderParams(

@@ -98,12 +98,7 @@ abstract contract ListOnOpenSeaProposal is ZoraHelpers {
             (, ZoraProgressData memory zpd) =
                 abi.decode(params.progressData, (uint8, ZoraProgressData));
             // Remove it from zora.
-            if (_settleZoraAuction(
-                zpd.auctionId,
-                zpd.minExpiry,
-                data.token,
-                data.tokenId
-            )) {
+            if (_settleZoraAuction(zpd.auctionId, zpd.minExpiry)) {
                 // Auction sold. Nothing left to do.
                 return "";
             }

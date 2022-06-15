@@ -31,6 +31,16 @@ contract ListOnZoraProposal is ZoraHelpers {
 
     error ZoraListingNotExpired(uint256 auctionId, uint40 expiry);
 
+    event ZoraAuctionCreated(
+        uint256 auctionId,
+        IERC721 token,
+        uint256 tokenId,
+        uint256 startingPrice,
+        uint40 expiry
+    );
+    event ZoraAuctionExpired(uint256 auctionId, uint256 expiry);
+    event ZoraAuctionSold(uint256 auctionId);
+
     // keccak256(abi.encodeWithSignature('Error(string)', "Auction hasn't begun"))
     bytes32 constant internal AUCTION_HASNT_BEGUN_ERROR_HASH =
         0x54a53788b7942d79bb6fcd40012c5e867208839fa1607e1f245558ee354e9565;
@@ -73,7 +83,7 @@ contract ListOnZoraProposal is ZoraHelpers {
         assert(step == ZoraStep.ListedOnZora);
         (, ZoraProgressData memory pd) =
             abi.decode(params.progressData, (ZoraStep, ZoraProgressData));
-        _settleZoraAuction(pd.auctionId, pd.minExpiry, data.token, data.tokenId);
+        _settleZoraAuction(pd.auctionId, pd.minExpiry);
         // Nothing left to do.
         return "";
     }
@@ -99,14 +109,19 @@ contract ListOnZoraProposal is ZoraHelpers {
             0,
             IERC20(address(0)) // Indicates ETH sale
         );
+        emit ZoraAuctionCreated(
+            auctionId,
+            token,
+            tokenId,
+            listPrice,
+            minExpiry
+        );
     }
 
 
     function _settleZoraAuction(
         uint256 auctionId,
-        uint40 minExpiry,
-        IERC721 token,
-        uint256 tokenId
+        uint40 minExpiry
     )
         internal
         override
@@ -123,12 +138,14 @@ contract ListOnZoraProposal is ZoraHelpers {
             if (errHash == AUCTION_HASNT_BEGUN_ERROR_HASH) {
                 // No bids placed. Just cancel it.
                 ZORA.cancelAuction(auctionId);
+                emit ZoraAuctionExpired(auctionId, minExpiry);
                 return false;
             } else if (errHash != AUCTION_DOESNT_EXIST_ERROR_HASH) {
                 errData.rawRevert();
             }
-            // Already settled by someone else. Nothing to do.
+            // Already ended by someone else. Nothing to do.
         }
-        return token.safeOwnerOf(tokenId) != address(this);
+        emit ZoraAuctionSold(auctionId);
+        return true;
     }
 }

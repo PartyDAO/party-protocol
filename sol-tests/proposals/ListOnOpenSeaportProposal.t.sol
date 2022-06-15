@@ -19,6 +19,36 @@ contract ListOnOpenSeaportProposalTest is
     ZoraTestUtils,
     OpenSeaportTestUtils
 {
+    event OpenSeaportOrderListed(
+        ISeaportExchange.OrderParameters orderParams,
+        bytes32 orderHash,
+        IERC721 token,
+        uint256 tokenId,
+        uint256 listPrice,
+        uint256 expiry
+    );
+    event OpenSeaportOrderSold(
+        bytes32 orderHash,
+        IERC721 token,
+        uint256 tokenId,
+        uint256 listPrice
+    );
+    event OpenSeaportOrderExpired(
+        bytes32 orderHash,
+        IERC721 token,
+        uint256 tokenId,
+        uint256 expiry
+    );
+    event ZoraAuctionCreated(
+        uint256 auctionId,
+        IERC721 token,
+        uint256 tokenId,
+        uint256 startingPrice,
+        uint40 expiry
+    );
+    event ZoraAuctionExpired(uint256 auctionId, uint256 expiry);
+    event ZoraAuctionSold(uint256 auctionId);
+
     uint256 constant ZORA_LISTING_DURATION = 1 days;
     uint256 constant LIST_PRICE = 1e18;
     TestableListOnOpenSeaportProposal impl;
@@ -94,133 +124,8 @@ contract ListOnOpenSeaportProposalTest is
         return (preciousTokens[idx], preciousTokenIds[idx]);
     }
 
-    // // Test complete proposal execution steps, with all listings
-    // // expiring.
-    // function testForked_Execution_AllExpiring() public onlyForked {
-    //     (IERC721 token, uint256 tokenId) = _randomPreciousToken();
-    //     (
-    //         ListOnOpenSeaportProposal.OpenSeaportProposalData memory proposalData,
-    //         IProposalExecutionEngine.ExecuteProposalParams memory executeParams
-    //     ) = _createTestProposal(token, tokenId);
-    //     // This will list on zora because the proposal was not passed unanimously.
-    //     executeParams.progressData = impl.executeListOnOpenSeaport(executeParams);
-    //     assertTrue(executeParams.progressData.length != 0);
-    //     {
-    //         (
-    //             ListOnOpenSeaportProposal.OpenSeaStep step,
-    //             ZoraHelpers.ZoraProgressData memory progressData
-    //         ) = abi.decode(executeParams.progressData, (
-    //             ListOnOpenSeaportProposal.OpenSeaStep,
-    //             ZoraHelpers.ZoraProgressData
-    //         ));
-    //         assertTrue(step == ListOnOpenSeaportProposal.OpenSeaStep.ListedOnZora);
-    //         assertTrue(progressData.auctionId != 0);
-    //         assertTrue(progressData.minExpiry == block.timestamp + ZORA_LISTING_DURATION);
-    //     }
-    //     // Precious should be held by zora.
-    //     assertTrue(token.ownerOf(tokenId) == address(ZORA));
-    //     // Expire the zora listing.
-    //     skip(ZORA_LISTING_DURATION);
-    //     // Next, retrieve from zora and list on OS.
-    //     executeParams.progressData = impl.executeListOnOpenSeaport(executeParams);
-    //     assertTrue(executeParams.progressData.length != 0);
-    //     {
-    //         (
-    //             ListOnOpenSeaportProposal.OpenSeaStep step,
-    //             bytes32 orderHash,
-    //             uint256 expiry
-    //         ) = abi.decode(executeParams.progressData, (
-    //             ListOnOpenSeaportProposal.OpenSeaStep,
-    //             bytes32,
-    //             uint256
-    //         ));
-    //         assertTrue(step == ListOnOpenSeaportProposal.OpenSeaStep.ListedOnOpenSea);
-    //         assertTrue(orderHash != bytes32(0));
-    //         assertTrue(expiry == block.timestamp + proposalData.duration);
-    //         // Order should be approved on the exchange.
-    //         assertTrue(OS.approvedOrders(orderHash));
-    //     }
-    //     // Precious should be held by the shared wyvern sharedMaker.
-    //     assertTrue(token.ownerOf(tokenId) == address(sharedMaker));
-    //     // Expire the OS listing.
-    //     skip(proposalData.duration);
-    //     executeParams.progressData = impl.executeListOnOpenSeaport(executeParams);
-    //     assertTrue(executeParams.progressData.length == 0);
-    //     // Precious should be held by the proposal contract.
-    //     assertTrue(token.ownerOf(tokenId) == address(impl));
-    //     // Done
-    // }
-    //
-    // // Test complete proposal execution steps, with unanimous votes, all listings
-    // // expiring.
-    // function testForked_Execution_UnanimousVote_AllExpiring() public onlyForked {
-    //     (IERC721 token, uint256 tokenId) = _randomPreciousToken();
-    //     (
-    //         ListOnOpenSeaportProposal.OpenSeaportProposalData memory proposalData,
-    //         IProposalExecutionEngine.ExecuteProposalParams memory executeParams
-    //     ) = _createTestProposal(token, tokenId);
-    //     executeParams.flags |= LibProposal.PROPOSAL_FLAG_UNANIMOUS;
-    //     // This will list straight on OS because it was a unanmous vote.
-    //     executeParams.progressData = impl.executeListOnOpenSeaport(executeParams);
-    //     assertTrue(executeParams.progressData.length != 0);
-    //     {
-    //         (
-    //             ListOnOpenSeaportProposal.OpenSeaStep step,
-    //             bytes32 orderHash,
-    //             uint256 expiry
-    //         ) = abi.decode(executeParams.progressData, (
-    //             ListOnOpenSeaportProposal.OpenSeaStep,
-    //             bytes32,
-    //             uint256
-    //         ));
-    //         assertTrue(step == ListOnOpenSeaportProposal.OpenSeaStep.ListedOnOpenSea);
-    //         assertTrue(orderHash != bytes32(0));
-    //         assertTrue(expiry == block.timestamp + proposalData.duration);
-    //         // Order should be approved on the exchange.
-    //         assertTrue(OS.approvedOrders(orderHash));
-    //     }
-    //     // Precious should be held by the shared wyvern sharedMaker.
-    //     assertTrue(token.ownerOf(tokenId) == address(sharedMaker));
-    //     // Expire the OS listing.
-    //     skip(proposalData.duration);
-    //     executeParams.progressData = impl.executeListOnOpenSeaport(executeParams);
-    //     assertTrue(executeParams.progressData.length == 0);
-    //     // Done
-    // }
-    //
-    // // Zora listing was bid on but not finalized.
-    // function testForked_Execution_ZoraBidUp() public onlyForked {
-    //     (IERC721 token, uint256 tokenId) = _randomPreciousToken();
-    //     (
-    //         ListOnOpenSeaportProposal.OpenSeaportProposalData memory proposalData,
-    //         IProposalExecutionEngine.ExecuteProposalParams memory executeParams
-    //     ) = _createTestProposal(token, tokenId);
-    //     // This will list on zora because the proposal was not passed unanimously.
-    //     executeParams.progressData = impl.executeListOnOpenSeaport(executeParams);
-    //     uint256 auctionId;
-    //     {
-    //         (, ZoraHelpers.ZoraProgressData memory progressData) =
-    //             abi.decode(executeParams.progressData, (
-    //                 ListOnOpenSeaportProposal.OpenSeaStep,
-    //                 ZoraHelpers.ZoraProgressData
-    //             ));
-    //         auctionId = progressData.auctionId;
-    //     }
-    //     _bidOnZoraListing(auctionId, BUYER, LIST_PRICE);
-    //     // Skip to the end of the auction.
-    //     skip(ZORA_LISTING_DURATION);
-    //     // Finalize the auction.
-    //     executeParams.progressData = impl.executeListOnOpenSeaport(executeParams);
-    //     assertTrue(executeParams.progressData.length == 0);
-    //     // Buyer should own precious.
-    //     assertTrue(token.ownerOf(tokenId) == BUYER);
-    //     // Proposal contract should have the bid amount.
-    //     assertTrue(address(impl).balance == LIST_PRICE);
-    // }
-
-    // TODO: test zora listing being bid and finalized by someone else.
-
-    // OS listing was bought.
+    // Test a proposal where the zora listing expires and the
+    // OS listing gets bought.
     function testForked_Execution_OSBought() public onlyForked {
         address buyer = _randomAddress();
         uint256 listPrice = 1e18;
@@ -235,6 +140,120 @@ contract ListOnOpenSeaportProposalTest is
         // Expire the zora listing.
         skip(ZORA_LISTING_DURATION);
         // Next, retrieve from zora and list on OS.
+        uint256 listStartTime = block.timestamp;
+        // TODO: check OpenSeaportOrderListed event gets emitted.
+        executeParams.progressData = impl.executeListOnOpenSeaport(executeParams);
+        bytes32 orderHash;
+        {
+            (, orderHash,) = abi.decode(executeParams.progressData, (
+                ListOnOpenSeaportProposal.OpenSeaportStep,
+                bytes32,
+                uint256
+            ));
+        }
+        // Buy the OS listing.
+        _buyOpenSeaportListing(payable(impl), buyer, token, tokenId, listPrice, listStartTime, listDuration);
+        // Finalize the listing.
+        vm.expectEmit(false, false, false, true);
+        emit OpenSeaportOrderSold(orderHash, token, tokenId, listPrice);
+        executeParams.progressData = impl.executeListOnOpenSeaport(executeParams);
+        assertEq(executeParams.progressData.length, 0);
+        // Buyer should own the NFT.
+        assertEq(token.ownerOf(tokenId), buyer);
+        // Proposal contract should have the list price.
+        assertEq(address(impl).balance, LIST_PRICE);
+    }
+
+    // Test a unanmous proposal where the OS listing gets bought.
+    function testForked_Execution_OSBought_Unanimous() public onlyForked {
+        address buyer = _randomAddress();
+        uint256 listPrice = 1e18;
+        uint40 listDuration = 7 days;
+        (IERC721 token, uint256 tokenId) = _randomPreciousToken();
+        (
+            ,
+            IProposalExecutionEngine.ExecuteProposalParams memory executeParams
+        ) = _createTestProposal(token, tokenId, listPrice, listDuration);
+        executeParams.flags |= LibProposal.PROPOSAL_FLAG_UNANIMOUS;
+        // This will skip zora and list directly on OS because the proposal was
+        // passed unanimously.
+        uint256 listStartTime = block.timestamp;
+        executeParams.progressData = impl.executeListOnOpenSeaport(executeParams);
+        bytes32 orderHash;
+        {
+            (, orderHash,) = abi.decode(executeParams.progressData, (
+                ListOnOpenSeaportProposal.OpenSeaportStep,
+                bytes32,
+                uint256
+            ));
+        }
+        // Buy the OS listing.
+        _buyOpenSeaportListing(payable(impl), buyer, token, tokenId, listPrice, listStartTime, listDuration);
+        // Finalize the listing.
+        vm.expectEmit(false, false, false, true);
+        emit OpenSeaportOrderSold(orderHash, token, tokenId, listPrice);
+        executeParams.progressData = impl.executeListOnOpenSeaport(executeParams);
+        assertEq(executeParams.progressData.length, 0);
+        // Buyer should own the NFT.
+        assertEq(token.ownerOf(tokenId), buyer);
+        // Proposal contract should have the list price.
+        assertEq(address(impl).balance, LIST_PRICE);
+    }
+
+    // Test a proposal for a non-precious token where the OS listing gets bought.
+    function testForked_Execution_OSBought_NonPreciousToken() public onlyForked {
+        address buyer = _randomAddress();
+        uint256 listPrice = 1e18;
+        uint40 listDuration = 7 days;
+        DummyERC721 token = new DummyERC721();
+        uint256 tokenId = token.mint(address(impl));
+        (
+            ,
+            IProposalExecutionEngine.ExecuteProposalParams memory executeParams
+        ) = _createTestProposal(token, tokenId, listPrice, listDuration);
+        // This will skip zora and list directly on OS because the token is not precious.
+        uint256 listStartTime = block.timestamp;
+        executeParams.progressData = impl.executeListOnOpenSeaport(executeParams);
+        bytes32 orderHash;
+        {
+            (, orderHash,) = abi.decode(executeParams.progressData, (
+                ListOnOpenSeaportProposal.OpenSeaportStep,
+                bytes32,
+                uint256
+            ));
+        }
+        // Buy the OS listing.
+        _buyOpenSeaportListing(payable(impl), buyer, token, tokenId, listPrice, listStartTime, listDuration);
+        // Finalize the listing.
+        vm.expectEmit(false, false, false, true);
+        emit OpenSeaportOrderSold(orderHash, token, tokenId, listPrice);
+        executeParams.progressData = impl.executeListOnOpenSeaport(executeParams);
+        assertEq(executeParams.progressData.length, 0);
+        // Buyer should own the NFT.
+        assertEq(token.ownerOf(tokenId), buyer);
+        // Proposal contract should have the list price.
+        assertEq(address(impl).balance, LIST_PRICE);
+    }
+
+    // Test a proposal where the zora listing expires and the
+    // OS listing also expires.
+    function testForked_Execution_AllExpiring() public onlyForked {
+        address buyer = _randomAddress();
+        uint256 listPrice = 1e18;
+        uint40 listDuration = 7 days;
+        (IERC721 token, uint256 tokenId) = _randomPreciousToken();
+        (
+            ,
+            IProposalExecutionEngine.ExecuteProposalParams memory executeParams
+        ) = _createTestProposal(token, tokenId, listPrice, listDuration);
+        // This will list on zora because the proposal was not passed unanimously.
+        executeParams.progressData = impl.executeListOnOpenSeaport(executeParams);
+        // Expire the zora listing.
+        skip(ZORA_LISTING_DURATION);
+        // Next, retrieve from zora and list on OS.
+        uint256 listStartTime = block.timestamp;
+        vm.expectEmit(false, false, false, true);
+        emit ZoraAuctionExpired(_getNextZoraAuctionId() - 1, block.timestamp);
         executeParams.progressData = impl.executeListOnOpenSeaport(executeParams);
         bytes32 orderHash;
         uint256 expiry;
@@ -245,19 +264,127 @@ contract ListOnOpenSeaportProposalTest is
                 uint256
             ));
         }
-        // Buy the OS listing.
-        uint256 listStartTime = block.timestamp;
-
+        // Skip past expiration.
+        skip(listDuration);
+        // Attempt to buy the listing (fail).
+        vm.expectRevert(ISeaportExchange.InvalidTime.selector);
         _buyOpenSeaportListing(payable(impl), buyer, token, tokenId, listPrice, listStartTime, listDuration);
         // Finalize the listing.
+        vm.expectEmit(false, false, false, true);
+        emit OpenSeaportOrderExpired(orderHash, token, tokenId, expiry);
         executeParams.progressData = impl.executeListOnOpenSeaport(executeParams);
-        assertTrue(executeParams.progressData.length == 0);
-        // Buyer should own precious.
-        assertTrue(token.ownerOf(tokenId) == buyer);
-        // Proposal contract should have the list price.
-        assertTrue(address(impl).balance == LIST_PRICE);
+        assertEq(executeParams.progressData.length, 0);
+        // We should still own the NFT.
+        assertEq(token.ownerOf(tokenId), address(impl));
+        // Seaport should not have an allowance.
+        assertEq(token.getApproved(tokenId), address(0));
     }
 
-    // TODO: test failing conditions (e.g., executing next step before expirations, etc.)
-    // TODO: test non-precious tokens.
+    // Test a proposal where the zora listing is bought.
+    function testForked_Execution_BoughtOnZora() public onlyForked {
+        address buyer = _randomAddress();
+        uint256 listPrice = 1e18;
+        uint40 listDuration = 7 days;
+        (IERC721 token, uint256 tokenId) = _randomPreciousToken();
+        (
+            ,
+            IProposalExecutionEngine.ExecuteProposalParams memory executeParams
+        ) = _createTestProposal(token, tokenId, listPrice, listDuration);
+        // This will list on zora because the proposal was not passed unanimously.
+        uint256 auctionId = _getNextZoraAuctionId();
+        vm.expectEmit(false, false, false, true);
+        emit ZoraAuctionCreated(
+            auctionId,
+            token,
+            tokenId,
+            listPrice,
+            uint40(block.timestamp) + uint40(ZORA_LISTING_DURATION)
+        );
+        executeParams.progressData = impl.executeListOnOpenSeaport(executeParams);
+        {
+            (, ZoraHelpers.ZoraProgressData memory progressData) =
+                abi.decode(executeParams.progressData, (
+                    ListOnOpenSeaportProposal.OpenSeaportStep,
+                    ZoraHelpers.ZoraProgressData
+                ));
+            assertEq(progressData.auctionId, auctionId);
+        }
+        // Try to advance the proposal before the zora auction has expired (fail).
+        skip(ZORA_LISTING_DURATION - 1);
+        vm.expectRevert(abi.encodeWithSelector(
+            ListOnZoraProposal.ZoraListingNotExpired.selector,
+            auctionId,
+            block.timestamp + 1
+        ));
+        impl.executeListOnOpenSeaport(executeParams);
+
+        // Bid on the zora auction.
+        _bidOnZoraListing(auctionId, buyer, listPrice);
+        // The auction will be now extended by ZORA_LISTING_DURATION.
+
+        // Try to advance the proposal before the zora auction has ended (fail).
+        skip(ZORA_LISTING_DURATION - 1);
+        vm.expectRevert("Auction hasn't completed");
+        impl.executeListOnOpenSeaport(executeParams);
+
+        // Skip past the end of the auction.
+        skip(1);
+        // Advance the proposal, finalizing the zora auction.
+        vm.expectEmit(false, false, false, true);
+        emit ZoraAuctionSold(auctionId);
+        executeParams.progressData = impl.executeListOnOpenSeaport(executeParams);
+        assertEq(executeParams.progressData.length, 0);
+        // Buyer should own the NFT.
+        assertEq(token.ownerOf(tokenId), buyer);
+        // Proposal contract should have the bid price.
+        assertEq(address(impl).balance, LIST_PRICE);
+    }
+
+    // Test a proposal where the zora listing is bought and finalized externally.
+    function testForked_Execution_BoughtOnZora_settledExternally() public onlyForked {
+        address buyer = _randomAddress();
+        uint256 listPrice = 1e18;
+        uint40 listDuration = 7 days;
+        (IERC721 token, uint256 tokenId) = _randomPreciousToken();
+        (
+            ,
+            IProposalExecutionEngine.ExecuteProposalParams memory executeParams
+        ) = _createTestProposal(token, tokenId, listPrice, listDuration);
+        // This will list on zora because the proposal was not passed unanimously.
+        uint256 auctionId = _getNextZoraAuctionId();
+        vm.expectEmit(false, false, false, true);
+        emit ZoraAuctionCreated(
+            auctionId,
+            token,
+            tokenId,
+            listPrice,
+            uint40(block.timestamp) + uint40(ZORA_LISTING_DURATION)
+        );
+        executeParams.progressData = impl.executeListOnOpenSeaport(executeParams);
+        {
+            (, ZoraHelpers.ZoraProgressData memory progressData) =
+                abi.decode(executeParams.progressData, (
+                    ListOnOpenSeaportProposal.OpenSeaportStep,
+                    ZoraHelpers.ZoraProgressData
+                ));
+            assertEq(progressData.auctionId, auctionId);
+        }
+        // Bid on the zora auction.
+        _bidOnZoraListing(auctionId, buyer, listPrice);
+        // The auction will be now extended by ZORA_LISTING_DURATION.
+        // Skip past the end of the auction.
+        skip(ZORA_LISTING_DURATION);
+        // Settle externally.
+        ZORA.endAuction(auctionId);
+
+        // Advance the proposal, finalizing the zora auction.
+        vm.expectEmit(false, false, false, true);
+        emit ZoraAuctionSold(auctionId);
+        executeParams.progressData = impl.executeListOnOpenSeaport(executeParams);
+        assertEq(executeParams.progressData.length, 0);
+        // Buyer should own the NFT.
+        assertEq(token.ownerOf(tokenId), buyer);
+        // Proposal contract should have the bid price.
+        assertEq(address(impl).balance, LIST_PRICE);
+    }
 }

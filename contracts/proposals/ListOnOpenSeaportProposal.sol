@@ -131,12 +131,7 @@ abstract contract ListOnOpenSeaportProposal is ZoraHelpers {
                 abi.decode(params.progressData, (uint8, ZoraProgressData));
             // Try to settle the zora auction. This will revert if the auction
             // is still ongoing.
-            if (_settleZoraAuction(
-                zpd.auctionId,
-                zpd.minExpiry,
-                data.token,
-                data.tokenId
-            )) {
+            if (_settleZoraAuction(zpd.auctionId, zpd.minExpiry)) {
                 // Auction sold. Nothing left to do. Return empty progress data
                 // to indicate there are no more steps to execute.
                 return "";

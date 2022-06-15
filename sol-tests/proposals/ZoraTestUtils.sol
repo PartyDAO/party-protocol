@@ -18,4 +18,11 @@ contract ZoraTestUtils is Test {
         hoax(bidder, bidPrice);
         _ZORA.createBid{ value: bidPrice }(auctionId, bidPrice);
     }
+
+    function _getNextZoraAuctionId()
+        internal
+        returns (uint256 auctionId)
+    {
+        return uint256(vm.load(address(_ZORA), bytes32(uint256(5))));
+    }
 }

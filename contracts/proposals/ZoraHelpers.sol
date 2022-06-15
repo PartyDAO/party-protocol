@@ -26,7 +26,7 @@ abstract contract ZoraHelpers {
         returns (uint256 auctionId, uint40 minExpiry);
 
 
-    function _settleZoraAuction(uint256 auctionId, uint40 minExpiry, IERC721 token, uint256 tokenId)
+    function _settleZoraAuction(uint256 auctionId, uint40 minExpiry)
         internal
         virtual
         returns (bool sold);
