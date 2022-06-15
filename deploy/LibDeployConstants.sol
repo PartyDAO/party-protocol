@@ -4,8 +4,8 @@ pragma solidity ^0.8;
 // TODO: verify these constants
 
 library LibDeployConstants {
-  uint256 constant PARTY_DAO_DISTRIBUTION_SPLIT_BPS = 250;
-  uint256 constant OS_ZORA_AUCTION_DURATION = 86400; // 60 * 60 * 24 = 86400 seconds = 24 hours
+  uint256 internal constant PARTY_DAO_DISTRIBUTION_SPLIT_BPS = 250;
+  uint256 internal constant OS_ZORA_AUCTION_DURATION = 86400; // 60 * 60 * 24 = 86400 seconds = 24 hours
 
   struct DeployConstants {
     address[3] adminAddresses; // todo: change size of array based on deploy
@@ -16,7 +16,7 @@ library LibDeployConstants {
     address zoraAuctionHouseAddress;
   }
 
-  function mainnet() public pure returns (DeployConstants memory) {
+  function mainnet() internal pure returns (DeployConstants memory) {
     DeployConstants memory mainnetDeployConstants = DeployConstants({
       adminAddresses: [
         0x0000000000000000000000000000000000000000,
@@ -33,7 +33,7 @@ library LibDeployConstants {
     return mainnetDeployConstants;
   }
 
-  function rinkeby() public pure returns (DeployConstants memory) {
+  function rinkeby() internal pure returns (DeployConstants memory) {
     DeployConstants memory rinkebyDeployConstants = DeployConstants({
       adminAddresses: [
         0x0000000000000000000000000000000000000000,
