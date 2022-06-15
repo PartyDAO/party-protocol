@@ -151,6 +151,7 @@ contract ListOnZoraProposalIntegrationTest is
 
         // finalize zora auction
         ZORA.endAuction(proposalAuctionId);
+        // TODO: john.executeProposal(party, eo);
 
         // ensure NFT is held by winner
         assertEq(toadz.ownerOf(1), auctionWinner);
