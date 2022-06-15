@@ -24,11 +24,17 @@ contract ListOnZoraProposalIntegrationTest is
         IZoraAuctionHouse(0xE468cE99444174Bd3bBBEd09209577d25D1ad673);
     // HACK: hardcode the latest Zora auction id. Steps to update:
     //   1. go to the Zora Auction House etherscan page
+    //     https://etherscan.io/address/0xE468cE99444174Bd3bBBEd09209577d25D1ad673
     //   2. click on the latest "Create Auction" tx
     //   3. click on the "Logs" tab on the tx page
     //   4. cmd + f for "uint256 auctionId"
-    uint256 private constant latestZoraAuctionId = 5877;
+    uint256 private constant latestZoraAuctionId = 5879;
     IERC20 private constant ETH_TOKEN = IERC20(0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE);
+
+    TokenDistributor tokenDistributor;
+    address johnAddress;
+    address dannyAddress;
+    address steveAddress;
 
     error ZoraAuctionIdNotFound();
 
@@ -45,10 +51,8 @@ contract ListOnZoraProposalIntegrationTest is
       address globalDaoWalletAddress = address(420);
       globalsAdmin.setGlobalDaoWallet(globalDaoWalletAddress);
 
-      // TokenDistributor tokenDistributor = new TokenDistributor(globals);
-      // vm.prank(address(globals.multiSig));
-      // globals.setAddress(LibGlobals.GLOBAL_TOKEN_DISTRIBUTOR, address(tokenDistributor));
-      // vm.stopPrank();
+      tokenDistributor = new TokenDistributor(globals);
+      globalsAdmin.setTokenDistributor(address(tokenDistributor));
 
       IWyvernExchangeV2 wyvern = IWyvernExchangeV2(address(0x7f268357A8c2552623316e2562D90e642bB538E5));
       SharedWyvernV2Maker wyvernMaker = new SharedWyvernV2Maker(wyvern);
@@ -128,7 +132,7 @@ contract ListOnZoraProposalIntegrationTest is
       // start at the latest known zora auction id and loop forward to find the auction id
       // for the auction created by the proposal
       uint256 proposalAuctionId;
-      for (uint256 i = 1; i <= 10; ++i) {
+      for (uint256 i = 1; i <= 50; ++i) {
         uint256 currAuctionId = latestZoraAuctionId + i;
         address currAuctionTokenAddress = address(ZORA.auctions(currAuctionId).tokenContract);
         uint256 currAuctionTokenId = ZORA.auctions(currAuctionId).tokenId;
@@ -144,26 +148,48 @@ contract ListOnZoraProposalIntegrationTest is
         revert ZoraAuctionIdNotFound();
       }
 
-      // bid up zora auction
-      address auctionFinalizer = 0x000000000000000000000000000000000000dEaD;
-      address auctionWinner = 0x000000000000000000000000000000000000D00d;
-      _bidOnZoraListing(proposalAuctionId, auctionFinalizer, 1.6 ether);
-      _bidOnZoraListing(proposalAuctionId, 0x0000000000000000000000000000000000001337, 4.2 ether);
-      _bidOnZoraListing(proposalAuctionId, auctionWinner, 13.37 ether);
+      // zora auction lifecycle tests
+      {
+        // bid up zora auction
+        address auctionFinalizer = 0x000000000000000000000000000000000000dEaD;
+        address auctionWinner = 0x000000000000000000000000000000000000D00d;
+        _bidOnZoraListing(proposalAuctionId, auctionFinalizer, 1.6 ether);
+        _bidOnZoraListing(proposalAuctionId, 0x0000000000000000000000000000000000001337, 4.2 ether);
+        _bidOnZoraListing(proposalAuctionId, auctionWinner, 13.37 ether);
 
-      // have zora auction finish
-      // TODO: i tried +120, and +121 and the test failed with error "Reason: Auction hasn't completed"
-      vm.warp(block.timestamp + 1000000000000);
+        // have zora auction finish
+        // TODO: i tried +120, and +121 and the test failed with error "Reason: Auction hasn't completed"
+        vm.warp(block.timestamp + 1000000000000);
 
-      // finalize zora auction
-      _finalizeZoraListing(proposalAuctionId, auctionFinalizer);
+        // finalize zora auction
+        _finalizeZoraListing(proposalAuctionId, auctionFinalizer);
 
-      // ensure ETH is held by party
-      assertEq(toadz.ownerOf(1), auctionWinner);
+        // ensure ETH is held by party
+        assertEq(toadz.ownerOf(1), auctionWinner);
+      }
+
       assertEq(address(party).balance, 13.37 ether);
 
       // distribute ETH and claim distributions
-      // vm.prank(address(party)); // must create from party
-      // tokenDistributor.createDistribution(ETH_TOKEN);
+      {
+        payable(tokenDistributor).transfer(address(party).balance);
+        vm.prank(address(party)); // must create from party
+        TokenDistributor.DistributionInfo memory distributionInfo = tokenDistributor.createDistribution(ETH_TOKEN);
+
+        johnAddress = address(john);
+        vm.prank(johnAddress);
+        tokenDistributor.claim(distributionInfo, 1);
+        assertEq(johnAddress.balance, 4.456 ether);
+
+        dannyAddress = address(danny);
+        vm.prank(dannyAddress);
+        tokenDistributor.claim(distributionInfo, 2);
+        assertEq(dannyAddress.balance, 4.456 ether);
+
+        steveAddress = address(steve);
+        vm.prank(steveAddress);
+        tokenDistributor.claim(distributionInfo, 3);
+        assertEq(steveAddress.balance, 4.456 ether);
+      }
     }
 }
