@@ -149,12 +149,11 @@ contract ListOnZoraProposalIntegrationTest is
         _bidOnZoraListing(proposalAuctionId, auctionWinner, 13.37 ether);
 
         // have zora auction finish
-        // TODO: i tried +120, and +121 and the test failed with error "Reason: Auction hasn't completed"
-        vm.warp(block.timestamp + 1000000000000);
+        vm.warp(block.timestamp + ZORA.auctions(proposalAuctionId).duration);
 
         // finalize zora auction
         ZORA.endAuction(proposalAuctionId);
-        // TODO: john.executeProposal(party, eo);
+        // TODO: test our code path by calling execute() again john.executeProposal(party, eo);
 
         // ensure NFT is held by winner
         assertEq(toadz.ownerOf(1), auctionWinner);
