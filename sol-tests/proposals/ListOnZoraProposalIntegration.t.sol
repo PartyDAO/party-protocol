@@ -119,8 +119,6 @@ contract ListOnZoraProposalIntegrationTest is
       (PartyGovernance.ProposalState s, ) = party.getProposalStates(proposalId);
       assertEq(uint40(s), uint40(PartyGovernance.ProposalState.Ready));
 
-      console.log('pre: proposal auction id', uint256(vm.load(address(ZORA), 0x0000000000000000000000000000000000000000000000000000000000000005)));
-
       PartyParticipant.ExecutionOptions memory eo = PartyParticipant.ExecutionOptions({
         proposalId: proposalId,
         proposal: proposal,
@@ -135,7 +133,6 @@ contract ListOnZoraProposalIntegrationTest is
 
       // get the zora auction id created by the proposal
       uint256 proposalAuctionId = uint256(vm.load(address(ZORA), 0x0000000000000000000000000000000000000000000000000000000000000005)) - 1;
-      console.log('post: proposal auction id', proposalAuctionId);
 
       // zora auction lifecycle tests
       {
