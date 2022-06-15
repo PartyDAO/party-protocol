@@ -49,4 +49,5 @@ interface IZoraAuctionHouse {
     function createBid(uint256 auctionId, uint256 amount) external payable;
     function endAuction(uint256 auctionId) external;
     function cancelAuction(uint256 auctionId) external;
+    function auctions(uint256 auctionId) external returns(Auction memory auction);
 }

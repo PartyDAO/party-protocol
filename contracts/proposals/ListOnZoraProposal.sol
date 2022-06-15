@@ -80,7 +80,7 @@ contract ListOnZoraProposal {
         assert(step == ZoraStep.ListedOnZora);
         (, ZoraProgressData memory pd) =
             abi.decode(params.progressData, (ZoraStep, ZoraProgressData));
-        if (pd.minExpiry < uint40(block.timestamp)) {
+        if (pd.minExpiry > uint40(block.timestamp)) {
             revert ZoraListingNotExpired(pd.auctionId, pd.minExpiry);
         }
         _settleZoraAuction(pd.auctionId, data.token, data.tokenId);
