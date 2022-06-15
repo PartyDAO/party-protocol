@@ -11,8 +11,13 @@ contract TestableProposalExecutionEngine is ProposalExecutionEngine {
 
     bytes public t_nextProgressData;
 
-    constructor(IGlobals globals, SharedWyvernV2Maker maker, IZoraAuctionHouse zora)
-        ProposalExecutionEngine(globals, maker, zora)
+    constructor(
+        IGlobals globals,
+        SharedWyvernV2Maker maker,
+        ISeaportExchange seaport,
+        IZoraAuctionHouse zora
+    )
+        ProposalExecutionEngine(globals, maker, seaport, zora)
     {}
 
     function getProposalEngineImpl()

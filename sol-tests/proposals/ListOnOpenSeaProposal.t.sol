@@ -108,10 +108,10 @@ contract ListOnOpenSeaProposalTest is
         {
             (
                 ListOnOpenSeaProposal.OpenSeaStep step,
-                ListOnZoraProposal.ZoraProgressData memory progressData
+                ZoraHelpers.ZoraProgressData memory progressData
             ) = abi.decode(executeParams.progressData, (
                 ListOnOpenSeaProposal.OpenSeaStep,
-                ListOnZoraProposal.ZoraProgressData
+                ZoraHelpers.ZoraProgressData
             ));
             assertTrue(step == ListOnOpenSeaProposal.OpenSeaStep.ListedOnZora);
             assertTrue(progressData.auctionId != 0);
@@ -199,10 +199,10 @@ contract ListOnOpenSeaProposalTest is
         executeParams.progressData = impl.executeListOnOpenSea(executeParams);
         uint256 auctionId;
         {
-            (, ListOnZoraProposal.ZoraProgressData memory progressData) =
+            (, ZoraHelpers.ZoraProgressData memory progressData) =
                 abi.decode(executeParams.progressData, (
                     ListOnOpenSeaProposal.OpenSeaStep,
-                    ListOnZoraProposal.ZoraProgressData
+                    ZoraHelpers.ZoraProgressData
                 ));
             auctionId = progressData.auctionId;
         }

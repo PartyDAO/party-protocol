@@ -1,14 +1,17 @@
 // SPDX-License-Identifier: Apache-2.0
 pragma solidity ^0.8;
 
+import "../globals/IGlobals.sol";
+import "../globals/LibGlobals.sol";
 import "../tokens/IERC721.sol";
 
 import "./opensea/SharedWyvernV2Maker.sol";
-import "./ListOnZoraProposal.sol";
+import "./ZoraHelpers.sol";
 import "./LibProposal.sol";
+import "./IProposalExecutionEngine.sol";
 
 // Implements arbitrary call proposals.
-contract ListOnOpenSeaProposal is ListOnZoraProposal {
+abstract contract ListOnOpenSeaProposal is ZoraHelpers {
     enum OpenSeaStep {
         None,
         ListedOnZora,
@@ -38,13 +41,7 @@ contract ListOnOpenSeaProposal is ListOnZoraProposal {
     SharedWyvernV2Maker public immutable SHARED_WYVERN_MAKER;
     IGlobals private immutable _GLOBALS;
 
-    constructor(
-        IGlobals globals,
-        SharedWyvernV2Maker sharedMaker,
-        IZoraAuctionHouse zoraAuctionHouse
-    )
-        ListOnZoraProposal(zoraAuctionHouse)
-    {
+    constructor(IGlobals globals, SharedWyvernV2Maker sharedMaker) {
         _GLOBALS =globals;
         SHARED_WYVERN_MAKER = sharedMaker;
     }
@@ -78,8 +75,8 @@ contract ListOnOpenSeaProposal is ListOnZoraProposal {
             ) {
                 // Not a unanimous vote and the token is precious.
                 // TODO: Should this be just executionDelay?
-                uint256 zoraDuration =
-                    _GLOBALS.getUint256(LibGlobals.GLOBAL_OS_ZORA_AUCTION_DURATION);
+                uint40 zoraDuration =
+                    uint40(_GLOBALS.getUint256(LibGlobals.GLOBAL_OS_ZORA_AUCTION_DURATION));
                 if (zoraDuration != 0) {
                     (uint256 auctionId, uint40 minExpiry) = _createZoraAuction(
                         data.listPrice,
@@ -100,12 +97,10 @@ contract ListOnOpenSeaProposal is ListOnZoraProposal {
         if (step == OpenSeaStep.ListedOnZora) {
             (, ZoraProgressData memory zpd) =
                 abi.decode(params.progressData, (uint8, ZoraProgressData));
-            if (zpd.minExpiry > uint40(block.timestamp)) {
-                revert ZoraListingNotExpired(zpd.auctionId, zpd.minExpiry);
-            }
             // Remove it from zora.
             if (_settleZoraAuction(
                 zpd.auctionId,
+                zpd.minExpiry,
                 data.token,
                 data.tokenId
             )) {

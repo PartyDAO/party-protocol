@@ -8,6 +8,7 @@ import "../globals/IGlobals.sol";
 
 import "./IProposalExecutionEngine.sol";
 import "./ListOnOpenSeaProposal.sol";
+import "./ListOnOpenSeaportProposal.sol";
 import "./ListOnZoraProposal.sol";
 import "./FractionalizeProposal.sol";
 import "./ArbitraryCallsProposal.sol";
@@ -20,6 +21,8 @@ contract ProposalExecutionEngine is
     ReentrancyGuard,
     ProposalStorage,
     ListOnOpenSeaProposal,
+    ListOnOpenSeaportProposal,
+    ListOnZoraProposal,
     FractionalizeProposal,
     ArbitraryCallsProposal
 {
@@ -30,6 +33,7 @@ contract ProposalExecutionEngine is
     // The types of proposals supported.
     // The first 4 bytes of a proposal's `proposalData` determine the proposal
     // type.
+    // WARNING: This should be append-only.
     enum ProposalType {
         Invalid,
         ListOnOpenSea,
@@ -37,6 +41,8 @@ contract ProposalExecutionEngine is
         Fractionalize,
         ArbitraryCalls,
         UpgradeProposalEngineImpl,
+        ListOnOpenSeaport,
+        // Append new proposal types here.
         NumProposalTypes
     }
 
@@ -74,9 +80,12 @@ contract ProposalExecutionEngine is
     constructor(
         IGlobals globals,
         SharedWyvernV2Maker sharedWyvernMaker,
+        ISeaportExchange seaport,
         IZoraAuctionHouse zoraAuctionHouse
     )
-        ListOnOpenSeaProposal(globals, sharedWyvernMaker, zoraAuctionHouse)
+        ListOnOpenSeaProposal(globals, sharedWyvernMaker)
+        ListOnOpenSeaportProposal(globals, seaport)
+        ListOnZoraProposal(zoraAuctionHouse)
     {
         _GLOBALS = globals;
         // First version is just the hash of the runtime code. Later versions
@@ -178,6 +187,8 @@ contract ProposalExecutionEngine is
     {
         if (pt == ProposalType.ListOnOpenSea) {
             progressData = _executeListOnOpenSea(params);
+        } else if (pt == ProposalType.ListOnOpenSeaport) {
+            progressData = _executeListOnOpenSeaport(params);
         } else if (pt == ProposalType.ListOnZora) {
             _executeListOnZora(params);
         } else if (pt == ProposalType.Fractionalize) {

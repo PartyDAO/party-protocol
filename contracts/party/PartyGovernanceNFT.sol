@@ -10,6 +10,7 @@ import "../tokens/IERC721.sol";
 import "./PartyGovernance.sol";
 
 // ERC721 functionality built on top of PartyGovernance.
+// TODO: Just inherit from solmate? 🙄
 contract PartyGovernanceNFT is
     PartyGovernance,
     IERC721
@@ -52,6 +53,21 @@ contract PartyGovernanceNFT is
             }
             if (owner != whom) {
                 revert NotTokenOwnerError(whom, owner, tokenId);
+            }
+        }
+        _;
+    }
+
+    modifier mustOwnTokenOrIsApprovedForAll(uint256 tokenId, address whom) {
+        {
+            address owner = _tokens[tokenId].owner;
+            if (owner == address(0)) {
+                revert InvalidTokenError(tokenId);
+            }
+            if (owner != whom) {
+                if (!isApprovedForAll[owner][whom]) {
+                    revert NotTokenOwnerError(whom, owner, tokenId);
+                }
             }
         }
         _;
@@ -108,7 +124,7 @@ contract PartyGovernanceNFT is
 
     function approve(address operator, uint256 tokenId)
         external
-        mustOwnToken(tokenId, msg.sender)
+        mustOwnTokenOrIsApprovedForAll(tokenId, msg.sender)
     {
         _tokens[tokenId].operator = operator;
         emit Approval(msg.sender, operator, tokenId);
@@ -214,7 +230,7 @@ contract PartyGovernanceNFT is
         if (to == address(0)) {
             revert InvalidTokenRecipientError();
         }
-        _consumeApproval(owner, msg.sender, tokenId);
+        _assertApproval(owner, msg.sender, tokenId);
         _tokens[tokenId].owner = to;
         _tokens[tokenId].operator = address(0); // Don't persist individual approvals.
         --balanceOf[owner];
@@ -223,8 +239,9 @@ contract PartyGovernanceNFT is
         emit Transfer(owner, to, tokenId);
     }
 
-    function _consumeApproval(address owner, address operator, uint256 tokenId)
+    function _assertApproval(address owner, address operator, uint256 tokenId)
         private
+        view
     {
         if (operator != owner) {
             if (isApprovedForAll[owner][operator]) {

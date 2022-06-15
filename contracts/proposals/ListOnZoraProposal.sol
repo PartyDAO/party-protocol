@@ -9,9 +9,10 @@ import "../utils/LibSafeERC721.sol";
 
 import "./zora/IZoraAuctionHouse.sol";
 import "./IProposalExecutionEngine.sol";
+import "./ZoraHelpers.sol";
 
 // Implements arbitrary call proposals.
-contract ListOnZoraProposal {
+contract ListOnZoraProposal is ZoraHelpers {
     using LibRawResult for bytes;
     using LibSafeERC721 for IERC721;
 
@@ -26,14 +27,6 @@ contract ListOnZoraProposal {
         uint40 duration;
         IERC721 token;
         uint256 tokenId;
-    }
-
-    // ABI-encoded `progressData` passed into execute in the `ListedOnZora` step.
-    struct ZoraProgressData {
-        // Acution ID.
-        uint256 auctionId;
-        // Expiration timestamp of the auction, if no one bids.
-        uint40 minExpiry;
     }
 
     error ZoraListingNotExpired(uint256 auctionId, uint40 expiry);
@@ -80,24 +73,22 @@ contract ListOnZoraProposal {
         assert(step == ZoraStep.ListedOnZora);
         (, ZoraProgressData memory pd) =
             abi.decode(params.progressData, (ZoraStep, ZoraProgressData));
-        if (pd.minExpiry > uint40(block.timestamp)) {
-            revert ZoraListingNotExpired(pd.auctionId, pd.minExpiry);
-        }
-        _settleZoraAuction(pd.auctionId, data.token, data.tokenId);
+        _settleZoraAuction(pd.auctionId, pd.minExpiry, data.token, data.tokenId);
         // Nothing left to do.
         return "";
     }
 
     function _createZoraAuction(
         uint256 listPrice,
-        uint256 duration,
+        uint40 duration,
         IERC721 token,
         uint256 tokenId
     )
         internal
+        override
         returns (uint256 auctionId, uint40 minExpiry)
     {
-        minExpiry = uint40(block.timestamp) + uint40(duration);
+        minExpiry = uint40(block.timestamp) + duration;
         token.approve(address(ZORA), tokenId);
         auctionId = ZORA.createAuction(
             tokenId,
@@ -111,10 +102,19 @@ contract ListOnZoraProposal {
     }
 
 
-    function _settleZoraAuction(uint256 auctionId, IERC721 token, uint256 tokenId)
+    function _settleZoraAuction(
+        uint256 auctionId,
+        uint40 minExpiry,
+        IERC721 token,
+        uint256 tokenId
+    )
         internal
+        override
         returns (bool sold)
     {
+        if (minExpiry > uint40(block.timestamp)) {
+            revert ZoraListingNotExpired(auctionId, minExpiry);
+        }
         // Getting the state of an auction is super expensive so it seems
         // cheaper to just let `endAuction` fail and react to the error.
         try ZORA.endAuction(auctionId) {

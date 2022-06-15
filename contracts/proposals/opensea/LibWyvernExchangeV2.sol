@@ -26,6 +26,7 @@ library LibWyvernExchangeV2 {
         uint256 expiry
     )
         internal
+        view
         returns (IWyvernExchangeV2.Order memory order)
     {
         // Generate an OS order.
