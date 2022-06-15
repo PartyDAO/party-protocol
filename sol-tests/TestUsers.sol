@@ -159,4 +159,11 @@ contract PartyParticipant is ERC721Holder, Test  {
   ) public {
     party.veto(proposalId);
   }
+
+  function distributeEth(
+    Party party,
+    IERC20 token
+  ) public returns (TokenDistributor.DistributionInfo memory distInfo) {
+    return party.distribute(token);
+  }
 }

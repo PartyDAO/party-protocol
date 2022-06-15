@@ -185,27 +185,22 @@ contract ListOnZoraProposalIntegrationTest is
       assertEq(address(party).balance, 13.37 ether);
 
       // distribute ETH and claim distributions
-      console.log('john', johnAddress);
-      console.log('danny', dannyAddress);
-      console.log('steve', steveAddress);
-
       {
-        payable(tokenDistributor).transfer(address(party).balance);
-        vm.prank(address(party)); // must create from party
-        TokenDistributor.DistributionInfo memory distributionInfo = tokenDistributor.createDistribution(ETH_TOKEN);
-
         vm.prank(johnAddress);
+        TokenDistributor.DistributionInfo memory distributionInfo = john.distributeEth(party, ETH_TOKEN);
+
         uint256 johnPrevBalance = johnAddress.balance;
+        vm.prank(johnAddress);
         tokenDistributor.claim(distributionInfo, 1);
         assertEq(johnAddress.balance, (4.456666666666666662 ether) + johnPrevBalance);
 
-        vm.prank(dannyAddress);
         uint256 dannyPrevBalance = dannyAddress.balance;
+        vm.prank(dannyAddress);
         tokenDistributor.claim(distributionInfo, 2);
         assertEq(dannyAddress.balance, (4.456666666666666662 ether) + dannyPrevBalance);
 
-        vm.prank(steveAddress);
         uint256 stevePrevBalance = steveAddress.balance;
+        vm.prank(steveAddress);
         tokenDistributor.claim(distributionInfo, 3);
         assertEq(steveAddress.balance, (4.456666666666666662 ether) + stevePrevBalance);
       }
