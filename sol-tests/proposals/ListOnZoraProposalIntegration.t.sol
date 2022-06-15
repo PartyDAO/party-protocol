@@ -61,7 +61,7 @@ contract ListOnZoraProposalIntegrationTest is
       partyFactory = new PartyFactory(globals);
     }
 
-    function testSimpleZora() public onlyForked {
+    function testForked_simpleZora() public onlyForked {
       john = new PartyParticipant();
       danny = new PartyParticipant();
       steve = new PartyParticipant();
