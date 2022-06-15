@@ -28,6 +28,7 @@ contract ListOnZoraProposalIntegrationTest is
     //   3. click on the "Logs" tab on the tx page
     //   4. cmd + f for "uint256 auctionId"
     uint256 private constant latestZoraAuctionId = 5877;
+    IERC20 private constant ETH_TOKEN = IERC20(0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE);
 
     error ZoraAuctionIdNotFound();
 
@@ -43,6 +44,11 @@ contract ListOnZoraProposalIntegrationTest is
       globalsAdmin.setPartyImpl(address(partyImpl));
       address globalDaoWalletAddress = address(420);
       globalsAdmin.setGlobalDaoWallet(globalDaoWalletAddress);
+
+      // TokenDistributor tokenDistributor = new TokenDistributor(globals);
+      // vm.prank(address(globals.multiSig));
+      // globals.setAddress(LibGlobals.GLOBAL_TOKEN_DISTRIBUTOR, address(tokenDistributor));
+      // vm.stopPrank();
 
       IWyvernExchangeV2 wyvern = IWyvernExchangeV2(address(0x7f268357A8c2552623316e2562D90e642bB538E5));
       SharedWyvernV2Maker wyvernMaker = new SharedWyvernV2Maker(wyvern);
@@ -154,8 +160,10 @@ contract ListOnZoraProposalIntegrationTest is
 
       // ensure ETH is held by party
       assertEq(toadz.ownerOf(1), auctionWinner);
+      assertEq(address(party).balance, 13.37 ether);
 
       // distribute ETH and claim distributions
-      // TODO
+      // vm.prank(address(party)); // must create from party
+      // tokenDistributor.createDistribution(ETH_TOKEN);
     }
 }
