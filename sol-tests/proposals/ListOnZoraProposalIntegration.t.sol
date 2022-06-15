@@ -31,7 +31,14 @@ contract ListOnZoraProposalIntegrationTest is
     uint256 private constant latestZoraAuctionId = 5879;
     IERC20 private constant ETH_TOKEN = IERC20(0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE);
 
+    GlobalsAdmin globalsAdmin;
+    Globals globals;
+    Party partyImpl;
     TokenDistributor tokenDistributor;
+    IWyvernExchangeV2 wyvern;
+    SharedWyvernV2Maker wyvernMaker;
+    ProposalExecutionEngine pe;
+    PartyFactory partyFactory;
     address johnAddress;
     address dannyAddress;
     address steveAddress;
@@ -41,12 +48,9 @@ contract ListOnZoraProposalIntegrationTest is
     constructor() ZoraTestUtils(ZORA) {}
 
     function setUp() public onlyForked {
-    }
-
-    function testSimpleZora() public onlyForked {
-      GlobalsAdmin globalsAdmin = new GlobalsAdmin();
-      Globals globals = globalsAdmin.globals();
-      Party partyImpl = new Party(globals);
+      globalsAdmin = new GlobalsAdmin();
+      globals = globalsAdmin.globals();
+      partyImpl = new Party(globals);
       globalsAdmin.setPartyImpl(address(partyImpl));
       address globalDaoWalletAddress = address(420);
       globalsAdmin.setGlobalDaoWallet(globalDaoWalletAddress);
@@ -54,13 +58,15 @@ contract ListOnZoraProposalIntegrationTest is
       tokenDistributor = new TokenDistributor(globals);
       globalsAdmin.setTokenDistributor(address(tokenDistributor));
 
-      IWyvernExchangeV2 wyvern = IWyvernExchangeV2(address(0x7f268357A8c2552623316e2562D90e642bB538E5));
-      SharedWyvernV2Maker wyvernMaker = new SharedWyvernV2Maker(wyvern);
-      ProposalExecutionEngine pe = new ProposalExecutionEngine(globals, wyvernMaker, ZORA);
+      wyvern = IWyvernExchangeV2(address(0x7f268357A8c2552623316e2562D90e642bB538E5));
+      wyvernMaker = new SharedWyvernV2Maker(wyvern);
+      pe = new ProposalExecutionEngine(globals, wyvernMaker, ZORA);
       globalsAdmin.setProposalEng(address(pe));
 
-      PartyFactory partyFactory = new PartyFactory(globals);
+      partyFactory = new PartyFactory(globals);
+    }
 
+    function testSimpleZora() public onlyForked {
       PartyParticipant john = new PartyParticipant();
       PartyParticipant danny = new PartyParticipant();
       PartyParticipant steve = new PartyParticipant();
