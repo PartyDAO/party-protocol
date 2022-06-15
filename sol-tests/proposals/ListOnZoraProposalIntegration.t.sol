@@ -64,6 +64,10 @@ contract ListOnZoraProposalIntegrationTest is
       globalsAdmin.setProposalEng(address(pe));
 
       partyFactory = new PartyFactory(globals);
+
+      johnAddress = 0x0000000000000000000000000000000000000000;
+      dannyAddress = 0x0000000000000000000000000000000000000000;
+      steveAddress = 0x0000000000000000000000000000000000000000;
     }
 
     function testSimpleZora() public onlyForked {
@@ -71,6 +75,10 @@ contract ListOnZoraProposalIntegrationTest is
       PartyParticipant danny = new PartyParticipant();
       PartyParticipant steve = new PartyParticipant();
       PartyAdmin partyAdmin = new PartyAdmin(partyFactory);
+
+      johnAddress = address(john);
+      dannyAddress = address(danny);
+      steveAddress = address(steve);
 
       // Mint dummy NFT to partyAdmin
       DummyERC721 toadz = new DummyERC721();
@@ -89,9 +97,9 @@ contract ListOnZoraProposalIntegrationTest is
       // transfer NFT to party
       partyAdmin.transferNft(toadz, 1, address(party));
 
-      partyAdmin.mintGovNft(party, address(john), 50);
-      partyAdmin.mintGovNft(party, address(danny), 50);
-      partyAdmin.mintGovNft(party, address(steve), 50);
+      partyAdmin.mintGovNft(party, johnAddress, 50);
+      partyAdmin.mintGovNft(party, dannyAddress, 50);
+      partyAdmin.mintGovNft(party, steveAddress, 50);
 
       ListOnZoraProposal.ZoraProposalData memory zpd = ListOnZoraProposal.ZoraProposalData({
         listPrice: 1.5 ether,
@@ -182,17 +190,14 @@ contract ListOnZoraProposalIntegrationTest is
         vm.prank(address(party)); // must create from party
         TokenDistributor.DistributionInfo memory distributionInfo = tokenDistributor.createDistribution(ETH_TOKEN);
 
-        johnAddress = address(john);
         vm.prank(johnAddress);
         tokenDistributor.claim(distributionInfo, 1);
         assertEq(johnAddress.balance, 4.456 ether);
 
-        dannyAddress = address(danny);
         vm.prank(dannyAddress);
         tokenDistributor.claim(distributionInfo, 2);
         assertEq(dannyAddress.balance, 4.456 ether);
 
-        steveAddress = address(steve);
         vm.prank(steveAddress);
         tokenDistributor.claim(distributionInfo, 3);
         assertEq(steveAddress.balance, 4.456 ether);
