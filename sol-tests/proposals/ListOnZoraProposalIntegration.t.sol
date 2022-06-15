@@ -50,9 +50,12 @@ contract ListOnZoraProposalIntegrationTest is
       tokenDistributor = new TokenDistributor(globals);
       globalsAdmin.setTokenDistributor(address(tokenDistributor));
 
-      IWyvernExchangeV2 wyvern = IWyvernExchangeV2(address(0x7f268357A8c2552623316e2562D90e642bB538E5));
-      SharedWyvernV2Maker wyvernMaker = new SharedWyvernV2Maker(wyvern);
-      ProposalExecutionEngine pe = new ProposalExecutionEngine(globals, wyvernMaker, ZORA);
+      ProposalExecutionEngine pe = new ProposalExecutionEngine(
+          globals,
+          new SharedWyvernV2Maker(IWyvernExchangeV2(address(0x7f268357A8c2552623316e2562D90e642bB538E5))),
+          ISeaportExchange(0x00000000006CEE72100D161c57ADA5Bb2be1CA79),
+          ZORA
+      );
       globalsAdmin.setProposalEng(address(pe));
 
       partyFactory = new PartyFactory(globals);

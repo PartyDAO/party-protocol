@@ -118,7 +118,6 @@ contract ListOnZoraProposal is ZoraHelpers {
         );
     }
 
-
     function _settleZoraAuction(
         uint256 auctionId,
         uint40 minExpiry

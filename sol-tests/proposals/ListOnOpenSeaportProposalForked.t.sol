@@ -13,7 +13,7 @@ import "./TestableListOnOpenSeaportProposal.sol";
 import "./ZoraTestUtils.sol";
 import "./OpenSeaportTestUtils.sol";
 
-contract ListOnOpenSeaportProposalTest is
+contract ListOnOpenSeaportProposalForkedTest is
     Test,
     TestUtils,
     ZoraTestUtils,
