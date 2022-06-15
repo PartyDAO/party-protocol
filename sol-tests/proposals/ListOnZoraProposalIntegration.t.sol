@@ -22,22 +22,12 @@ contract ListOnZoraProposalIntegrationTest is
 {
     IZoraAuctionHouse ZORA =
         IZoraAuctionHouse(0xE468cE99444174Bd3bBBEd09209577d25D1ad673);
-    // HACK: hardcode the latest Zora auction id. Steps to update:
-    //   1. go to the Zora Auction House etherscan page
-    //     https://etherscan.io/address/0xE468cE99444174Bd3bBBEd09209577d25D1ad673
-    //   2. click on the latest "Create Auction" tx
-    //   3. click on the "Logs" tab on the tx page
-    //   4. cmd + f for "uint256 auctionId"
-    uint256 private constant latestZoraAuctionId = 5879;
     IERC20 private constant ETH_TOKEN = IERC20(0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE);
 
     GlobalsAdmin globalsAdmin;
     Globals globals;
     Party partyImpl;
     TokenDistributor tokenDistributor;
-    IWyvernExchangeV2 wyvern;
-    SharedWyvernV2Maker wyvernMaker;
-    ProposalExecutionEngine pe;
     PartyFactory partyFactory;
     address johnAddress;
     address dannyAddress;
@@ -58,16 +48,12 @@ contract ListOnZoraProposalIntegrationTest is
       tokenDistributor = new TokenDistributor(globals);
       globalsAdmin.setTokenDistributor(address(tokenDistributor));
 
-      wyvern = IWyvernExchangeV2(address(0x7f268357A8c2552623316e2562D90e642bB538E5));
-      wyvernMaker = new SharedWyvernV2Maker(wyvern);
-      pe = new ProposalExecutionEngine(globals, wyvernMaker, ZORA);
+      IWyvernExchangeV2 wyvern = IWyvernExchangeV2(address(0x7f268357A8c2552623316e2562D90e642bB538E5));
+      SharedWyvernV2Maker wyvernMaker = new SharedWyvernV2Maker(wyvern);
+      ProposalExecutionEngine pe = new ProposalExecutionEngine(globals, wyvernMaker, ZORA);
       globalsAdmin.setProposalEng(address(pe));
 
       partyFactory = new PartyFactory(globals);
-
-      johnAddress = 0x0000000000000000000000000000000000000000;
-      dannyAddress = 0x0000000000000000000000000000000000000000;
-      steveAddress = 0x0000000000000000000000000000000000000000;
     }
 
     function testSimpleZora() public onlyForked {
@@ -143,24 +129,9 @@ contract ListOnZoraProposalIntegrationTest is
 
       assertEq(toadz.ownerOf(1), address(ZORA));
 
-      // start at the latest known zora auction id and loop forward to find the auction id
-      // for the auction created by the proposal
-      uint256 proposalAuctionId;
-      for (uint256 i = 1; i <= 500; ++i) {
-        uint256 currAuctionId = latestZoraAuctionId + i;
-        address currAuctionTokenAddress = address(ZORA.auctions(currAuctionId).tokenContract);
-        uint256 currAuctionTokenId = ZORA.auctions(currAuctionId).tokenId;
-
-        if (currAuctionTokenAddress == address(toadz) && currAuctionTokenId == 1) {
-          // we have found our auction id
-          proposalAuctionId = currAuctionId;
-          break;
-        }
-      }
-
-      if (proposalAuctionId == 0) {
-        revert ZoraAuctionIdNotFound();
-      }
+      // get the zora auction id created by the proposal
+      uint256 proposalAuctionId = uint256(vm.load(address(ZORA), 0x036b6384b5eca791c62761152d0c79bb0604c104a5fb6f4eb0703f3154bb3db0));
+      console.log('proposal auction id', proposalAuctionId);
 
       // zora auction lifecycle tests
       {
