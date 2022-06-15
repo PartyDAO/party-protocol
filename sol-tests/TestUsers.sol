@@ -120,6 +120,8 @@ contract PartyParticipant is ERC721Holder, Test  {
     vm.deal(address(this), 100 ether);
   }
 
+  receive() external payable {}
+
   struct ExecutionOptions {
     uint256 proposalId;
     PartyGovernance.Proposal proposal;
