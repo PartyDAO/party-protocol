@@ -179,7 +179,7 @@ contract ProposalExecutionEngine is
         if (pt == ProposalType.ListOnOpenSea) {
             progressData = _executeListOnOpenSea(params);
         } else if (pt == ProposalType.ListOnZora) {
-            _executeListOnZora(params);
+            progressData = _executeListOnZora(params);
         } else if (pt == ProposalType.Fractionalize) {
             _executeFractionalize(params);
         } else if (pt == ProposalType.ArbitraryCalls) {
