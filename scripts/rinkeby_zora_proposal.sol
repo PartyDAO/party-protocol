@@ -10,9 +10,9 @@ import "../contracts/proposals/ProposalExecutionEngine.sol";
 
 contract RinkebyZoraProposal is Test {
 
-  address constant PARTY_ADDRESS = 0x636989dd64093DF4908B9345a959e10493a90DD1;
+  address constant PARTY_ADDRESS = 0xA5C1c616968268Ed31098397ca46Be3fFB8daAE1;
   address constant NFT_CONTRACT_ADDRESS = 0x15cBc9615CC058F6Eb9F5c584027511207C96A73;
-  uint256 constant NFT_TOKEN_ID = 420;
+  uint256 constant NFT_TOKEN_ID = 421;
   uint256 constant NONCE = 1;
 
   function run() public {

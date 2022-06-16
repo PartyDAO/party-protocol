@@ -7,9 +7,9 @@ import "../contracts/party/PartyFactory.sol";
 
 contract RinkebyPartify is Test {
   // constants
-  address constant PARTY_FACTORY_ADDRESS = 0x90e7A0bCcE74F04c246Bc72133d1F269dd463b08;
+  address constant PARTY_FACTORY_ADDRESS = 0xa14135034f9122828F6479AC50109A7a13eA27fB;
   address constant NFT_CONTRACT_ADDRESS = 0x15cBc9615CC058F6Eb9F5c584027511207C96A73;
-  uint256 constant NFT_TOKEN_ID = 420;
+  uint256 constant NFT_TOKEN_ID = 421;
   address constant HOST_1 = 0x8fDC86689f5F35F2b4d9f649c7bdc9C64f59e6bD;
   address constant HOST_2 = 0x678e8bd1D8845399c8e3C1F946CB4309014456a5;
   address constant RECIP_1 = 0xC282eC605DBe8C593380B68e18Fea69c4c628B36;
