@@ -511,6 +511,78 @@ function testEmergencyWithdrawal() public {
     assertEq(toadz.ownerOf(1), address(globalDaoWalletAddress));
   }
 
+  function testEmergencyExecuteProtected() public {
+    (Party party, ,) = partyAdmin.createParty(
+      PartyAdmin.PartyCreationMinimalOptions({
+        host1: address(nicholas),
+        host2: address(0),
+        passThresholdBps: 5100,
+        totalVotingPower: 300,
+        preciousTokenAddress: address(toadz),
+        preciousTokenId: 1
+      })
+    );
+    vm.expectRevert(
+      abi.encodeWithSelector(
+          PartyGovernance.OnlyPartyDaoError.selector,
+          address(3),
+          globalDaoWalletAddress
+      )
+    );
+    vm.prank(address(3));
+    party.emergencyExecute(
+      address(toadz),
+      abi.encodeWithSignature("safeTransferFrom(address,address,uint256,bytes)", address(party), address(globalDaoWalletAddress), 1, ''),
+      0
+    );
+  }
+
+  function testEmergencyExecuteDisabled() public {
+    // test that can't disable emergency execution when not admin
+    (Party party, ,) = partyAdmin.createParty(
+      PartyAdmin.PartyCreationMinimalOptions({
+        host1: address(nicholas),
+        host2: address(0),
+        passThresholdBps: 5100,
+        totalVotingPower: 300,
+        preciousTokenAddress: address(toadz),
+        preciousTokenId: 1
+      })
+    );
+
+    // Try to disable as non-host, see it fail
+    vm.prank(address(john));
+    vm.expectRevert(
+      abi.encodeWithSelector(
+          PartyGovernance.OnlyPartyDaoOrHostError.selector,
+          address(john),
+          globalDaoWalletAddress
+      )
+    );
+    party.disableEmergencyWithdrawals();
+    assert(!party.emergencyWithdrawalsDisabled());
+
+    // Disable as nicholas
+    vm.prank(address(nicholas));
+    party.disableEmergencyWithdrawals();
+    assert(party.emergencyWithdrawalsDisabled());
+
+    // Try to execute and cant because its disabled
+    vm.expectRevert(
+      abi.encodeWithSelector(
+          PartyGovernance.OnlyWhenEmergencyActionsAllowedError.selector
+      )
+    );
+    vm.prank(globalDaoWalletAddress);
+    party.emergencyExecute(
+      address(toadz),
+      abi.encodeWithSignature("safeTransferFrom(address,address,uint256,bytes)", address(party), address(globalDaoWalletAddress), 1, ''),
+      0
+    );
+
+  }
+
+
   function _assertProposalState(
     Party party,
     uint256 proposalId,
