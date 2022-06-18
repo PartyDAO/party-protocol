@@ -10,6 +10,7 @@ contract FractionalizeProposal {
         IProposalExecutionEngine.ExecuteProposalParams memory params
     )
         internal
+        returns (bytes memory nextProgressData)
     {
         // TODO
         revert('unimplemented');

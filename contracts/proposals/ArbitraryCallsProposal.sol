@@ -2,6 +2,7 @@
 pragma solidity ^0.8;
 
 import "../tokens/IERC721.sol";
+import "../tokens/IERC721Receiver.sol";
 import "../utils/LibSafeERC721.sol";
 
 import "./LibProposal.sol";
@@ -29,10 +30,13 @@ contract ArbitraryCallsProposal {
     error NotEnoughEthAttachedError(uint256 callValue, uint256 ethAvailable);
     error InvalidApproveCallDataError(bytes callData);
 
+    event ArbitraryCallExecuted(bytes32 proposalId, bool succeded, uint256 idx, uint256 count);
+
     function _executeArbitraryCalls(
         IProposalExecutionEngine.ExecuteProposalParams memory params
     )
         internal
+        returns (bytes memory nextProgressData)
     {
         (ArbitraryCall[] memory calls) = abi.decode(params.proposalData, (ArbitraryCall[]));
         // Keep track of which preciouses we had before the calls.
@@ -43,9 +47,10 @@ contract ArbitraryCallsProposal {
                 params.preciousTokenIds[i]
             );
         }
+        // Can only forward ETH attached to the call.
         uint256 ethAvailable = msg.value;
         for (uint256 i = 0; i < calls.length; ++i) {
-            _executeSingleArbitraryCall(
+            bool succeded = _executeSingleArbitraryCall(
                 i,
                 calls[i],
                 params.preciousTokens,
@@ -53,7 +58,10 @@ contract ArbitraryCallsProposal {
                 params.flags,
                 ethAvailable
             );
-            ethAvailable -= calls[i].value;
+            if (succeded) {
+                ethAvailable -= calls[i].value;
+            }
+            emit ArbitraryCallExecuted(params.proposalId, succeded, i, calls.length);
         }
         for (uint256 i = 0; i < hadPreciouses.length; ++i) {
             // If we had a precious beforehand, ensure that we still have it now.
@@ -66,6 +74,8 @@ contract ArbitraryCallsProposal {
                 }
             }
         }
+        // No next step, so no progressData.
+        return '';
     }
 
     function _executeSingleArbitraryCall(
@@ -77,8 +87,9 @@ contract ArbitraryCallsProposal {
         uint256 ethAvailable
     )
         private
+        returns (bool succeded)
     {
-        if (!_isCallProhibited(call, flags, preciousTokens, preciousTokenIds)) {
+        if (!_isCallAllowed(call, flags, preciousTokens, preciousTokenIds)) {
             revert CallProhibitedError(call.target, call.data);
         }
         if (ethAvailable < call.value) {
@@ -86,10 +97,15 @@ contract ArbitraryCallsProposal {
         }
         (bool s, bytes memory r) = call.target.call{ value: call.value }(call.data);
         if (!s) {
+            // Call failed. If not optional, revert.
             if (!call.optional) {
                 revert ArbitraryCallFailedError(r);
             }
+            return false;
         } else {
+            // Call succeded.
+            // If we have a nonzero expectedResultHash, check that the result data
+            // from the call has a matching hash.
             if (call.expectedResultHash != bytes32(0)) {
                 bytes32 resultHash = keccak256(r);
                 if (resultHash != call.expectedResultHash) {
@@ -101,6 +117,7 @@ contract ArbitraryCallsProposal {
                 }
             }
         }
+        return true;
     }
 
     // Do we possess the precious?
@@ -112,7 +129,7 @@ contract ArbitraryCallsProposal {
         hasPrecious = preciousToken.safeOwnerOf(preciousTokenId) == address(this);
     }
 
-    function _isCallProhibited(
+    function _isCallAllowed(
         ArbitraryCall memory call,
         uint256 flags,
         IERC721[] memory preciousTokens,
@@ -124,38 +141,51 @@ contract ArbitraryCallsProposal {
     {
         // Cannot call ourselves.
         if (call.target == address(this)) {
-            return true;
+            return false;
         }
-        bool isUnanimous = flags & LibProposal.PROPOSAL_FLAG_UNANIMOUS
-            == LibProposal.PROPOSAL_FLAG_UNANIMOUS;
-        // Unanimous proposals can call any function.
-        if (!isUnanimous && call.data.length >= 4) {
+        if (call.data.length >= 4) {
             bytes4 selector;
             {
                 bytes memory callData = call.data;
-                assembly { selector := and(mload(add(callData, 4)), 0xffffffff) }
-            }
-            // Cannot call approve() or setApprovalForAll() on the precious
-            // unless it's to revoke approvals.
-            if (selector == IERC721.approve.selector) {
-                (address op, uint256 tokenId) = _decodeApproveCallDataArgs(call.data);
-                if (LibProposal.isTokenIdPrecious(
-                    IERC721(call.target),
-                    tokenId,
-                    preciousTokens,
-                    preciousTokenIds
-                )) {
-                    return op != address(0);
-                }
-                return true;
-            } else if (selector == IERC721.setApprovalForAll.selector) {
-                (, bool isApproved) = _decodeSetApprovalForAllCallDataArgs(call.data);
-                if (LibProposal.isTokenPrecious(IERC721(call.target), preciousTokens)) {
-                    return isApproved;
+                assembly {
+                    selector := and(
+                        mload(add(callData, 32)),
+                        0xffffffff00000000000000000000000000000000000000000000000000000000
+                    )
                 }
             }
+            bool isUnanimous = flags & LibProposal.PROPOSAL_FLAG_UNANIMOUS
+                == LibProposal.PROPOSAL_FLAG_UNANIMOUS;
+            // Non-unanimous proposals restrict what ways some functions can be
+            // called on a precious token.
+            if (!isUnanimous) {
+                // Cannot call approve() or setApprovalForAll() on the precious
+                // unless it's to revoke approvals.
+                if (selector == IERC721.approve.selector) {
+                    // Can only call approve() on the precious if the operator is null.
+                    (address op, uint256 tokenId) = _decodeApproveCallDataArgs(call.data);
+                    if (LibProposal.isTokenIdPrecious(
+                        IERC721(call.target),
+                        tokenId,
+                        preciousTokens,
+                        preciousTokenIds
+                    )) {
+                        return op == address(0);
+                    }
+                // Can only call setApprovalForAll() on the precious if
+                // toggling off.
+                } else if (selector == IERC721.setApprovalForAll.selector) {
+                    (, bool isApproved) = _decodeSetApprovalForAllCallDataArgs(call.data);
+                    if (LibProposal.isTokenPrecious(IERC721(call.target), preciousTokens)) {
+                        return !isApproved;
+                    }
+                }
+            }
+            // Can never call onERC721Received() on any target.
+            if (selector == IERC721Receiver.onERC721Received.selector) {
+               return false;
+           }
         }
-        // TODO: Do we need to block TokenDistributor contract too?
         return true;
     }
 
@@ -189,7 +219,7 @@ contract ArbitraryCallsProposal {
                 mload(add(callData, 36)),
                 0xffffffffffffffffffffffffffffffffffffffff
             )
-            isApproved := not(iszero(mload(add(callData, 68))))
+            isApproved := xor(iszero(mload(add(callData, 68))), 1)
         }
     }
 
