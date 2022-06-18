@@ -354,7 +354,8 @@ abstract contract PartyGovernance is
     }
 
     function accept(uint256 proposalId)
-        public
+        external
+        onlyActiveMember
         returns (uint256 totalVotes)
     {
         ProposalInfo storage info = _proposalInfoByProposalId[proposalId];
