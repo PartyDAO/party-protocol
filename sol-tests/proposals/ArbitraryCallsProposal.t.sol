@@ -373,6 +373,19 @@ contract ArbitraryCallsProposalTest is
         testContract.execute(prop);
     }
 
+    function test_succeedsIfPreciousIsLostButUnanimous() external {
+        (
+            ArbitraryCallsProposal.ArbitraryCall[] memory calls,
+        ) = _createSimpleCalls(1, false);
+        (IERC721 preciousToken, uint256 preciousTokenId) = _pickRandomPreciousToken();
+        calls[0].data = abi.encodeCall(ArbitraryCallTarget.yoink, (preciousToken, preciousTokenId));
+        IProposalExecutionEngine.ExecuteProposalParams memory prop =
+            _createTestProposal(calls);
+        prop.flags |= LibProposal.PROPOSAL_FLAG_UNANIMOUS;
+        testContract.execute(prop);
+        assertEq(preciousToken.ownerOf(preciousTokenId), address(target));
+    }
+
     function test_canTransferNonPreciousToken() external {
         (
             ArbitraryCallsProposal.ArbitraryCall[] memory calls,
@@ -513,6 +526,40 @@ contract ArbitraryCallsProposalTest is
             _createTestProposal(calls);
         testContract.execute(prop);
         assertEq(preciousToken.isApprovedForAll(address(testContract), address(1)), false);
+    }
+
+    function test_canCallApproveOnPreciousTokenIfUnanimous() external {
+        (
+            ArbitraryCallsProposal.ArbitraryCall[] memory calls,
+        ) = _createSimpleCalls(1, false);
+        (IERC721 preciousToken, uint256 preciousTokenId) = _pickRandomPreciousToken();
+        calls[0].target = payable(address(preciousToken));
+        calls[0].data = abi.encodeCall(
+            DummyERC721.approve,
+            (address(1), preciousTokenId)
+        );
+        IProposalExecutionEngine.ExecuteProposalParams memory prop =
+            _createTestProposal(calls);
+        prop.flags |= LibProposal.PROPOSAL_FLAG_UNANIMOUS;
+        testContract.execute(prop);
+        assertEq(preciousToken.getApproved(preciousTokenId), address(1));
+    }
+
+    function test_canCallSetApprovalForAllOnPreciousTokenIfUnanimous() external {
+        (
+            ArbitraryCallsProposal.ArbitraryCall[] memory calls,
+        ) = _createSimpleCalls(1, false);
+        (IERC721 preciousToken,) = _pickRandomPreciousToken();
+        calls[0].target = payable(address(preciousToken));
+        calls[0].data = abi.encodeCall(
+            DummyERC721.setApprovalForAll,
+            (address(1), true)
+        );
+        IProposalExecutionEngine.ExecuteProposalParams memory prop =
+            _createTestProposal(calls);
+        prop.flags |= LibProposal.PROPOSAL_FLAG_UNANIMOUS;
+        testContract.execute(prop);
+        assertEq(preciousToken.isApprovedForAll(address(testContract), address(1)), true);
     }
 
     function test_cannotCallOnERC721Received() external {

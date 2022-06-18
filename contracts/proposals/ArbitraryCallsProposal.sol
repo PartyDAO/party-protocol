@@ -28,7 +28,6 @@ contract ArbitraryCallsProposal {
     error ArbitraryCallFailedError(bytes revertData);
     error UnexpectedCallResultHashError(uint256 idx, bytes32 resultHash, bytes32 expectedResultHash);
     error NotEnoughEthAttachedError(uint256 callValue, uint256 ethAvailable);
-    error InvalidApproveCallDataError(bytes callData);
 
     event ArbitraryCallExecuted(bytes32 proposalId, bool succeded, uint256 idx, uint256 count);
 
@@ -39,13 +38,18 @@ contract ArbitraryCallsProposal {
         returns (bytes memory nextProgressData)
     {
         (ArbitraryCall[] memory calls) = abi.decode(params.proposalData, (ArbitraryCall[]));
-        // Keep track of which preciouses we had before the calls.
+        bool isUnanimous = params.flags & LibProposal.PROPOSAL_FLAG_UNANIMOUS
+            == LibProposal.PROPOSAL_FLAG_UNANIMOUS;
         bool[] memory hadPreciouses = new bool[](params.preciousTokenIds.length);
-        for (uint256 i = 0; i < hadPreciouses.length; ++i) {
-            hadPreciouses[i] = _getHasPrecious(
-                params.preciousTokens[i],
-                params.preciousTokenIds[i]
-            );
+        // If not unanimous, keep track of which preciouses we had before the calls
+        // so we can check that we still have them later.
+        if (!isUnanimous) {
+            for (uint256 i = 0; i < hadPreciouses.length; ++i) {
+                hadPreciouses[i] = _getHasPrecious(
+                    params.preciousTokens[i],
+                    params.preciousTokenIds[i]
+                );
+            }
         }
         // Can only forward ETH attached to the call.
         uint256 ethAvailable = msg.value;
@@ -55,7 +59,7 @@ contract ArbitraryCallsProposal {
                 calls[i],
                 params.preciousTokens,
                 params.preciousTokenIds,
-                params.flags,
+                isUnanimous,
                 ethAvailable
             );
             if (succeded) {
@@ -63,14 +67,17 @@ contract ArbitraryCallsProposal {
             }
             emit ArbitraryCallExecuted(params.proposalId, succeded, i, calls.length);
         }
-        for (uint256 i = 0; i < hadPreciouses.length; ++i) {
-            // If we had a precious beforehand, ensure that we still have it now.
-            if (hadPreciouses[i]) {
-                if (!_getHasPrecious(params.preciousTokens[i], params.preciousTokenIds[i])) {
-                    revert PreciousLostError(
-                        params.preciousTokens[i],
-                        params.preciousTokenIds[i]
-                    );
+        // If not a unanimous vote and we had a precious beforehand,
+        // ensure that we still have it now.
+        if (!isUnanimous) {
+            for (uint256 i = 0; i < hadPreciouses.length; ++i) {
+                if (hadPreciouses[i]) {
+                    if (!_getHasPrecious(params.preciousTokens[i], params.preciousTokenIds[i])) {
+                        revert PreciousLostError(
+                            params.preciousTokens[i],
+                            params.preciousTokenIds[i]
+                        );
+                    }
                 }
             }
         }
@@ -83,13 +90,13 @@ contract ArbitraryCallsProposal {
         ArbitraryCall memory call,
         IERC721[] memory preciousTokens,
         uint256[] memory preciousTokenIds,
-        uint256 flags,
+        bool isUnanimous,
         uint256 ethAvailable
     )
         private
         returns (bool succeded)
     {
-        if (!_isCallAllowed(call, flags, preciousTokens, preciousTokenIds)) {
+        if (!_isCallAllowed(call, isUnanimous, preciousTokens, preciousTokenIds)) {
             revert CallProhibitedError(call.target, call.data);
         }
         if (ethAvailable < call.value) {
@@ -131,7 +138,7 @@ contract ArbitraryCallsProposal {
 
     function _isCallAllowed(
         ArbitraryCall memory call,
-        uint256 flags,
+        bool isUnanimous,
         IERC721[] memory preciousTokens,
         uint256[] memory preciousTokenIds
     )
@@ -154,8 +161,6 @@ contract ArbitraryCallsProposal {
                     )
                 }
             }
-            bool isUnanimous = flags & LibProposal.PROPOSAL_FLAG_UNANIMOUS
-                == LibProposal.PROPOSAL_FLAG_UNANIMOUS;
             // Non-unanimous proposals restrict what ways some functions can be
             // called on a precious token.
             if (!isUnanimous) {
