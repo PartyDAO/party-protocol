@@ -29,7 +29,7 @@ contract ArbitraryCallsProposal {
     error UnexpectedCallResultHashError(uint256 idx, bytes32 resultHash, bytes32 expectedResultHash);
     error NotEnoughEthAttachedError(uint256 callValue, uint256 ethAvailable);
 
-    event ArbitraryCallExecuted(bytes32 proposalId, bool succeded, uint256 idx, uint256 count);
+    event ArbitraryCallExecuted(bytes32 proposalId, bool succeeded, uint256 idx, uint256 count);
 
     function _executeArbitraryCalls(
         IProposalExecutionEngine.ExecuteProposalParams memory params
@@ -54,7 +54,7 @@ contract ArbitraryCallsProposal {
         // Can only forward ETH attached to the call.
         uint256 ethAvailable = msg.value;
         for (uint256 i = 0; i < calls.length; ++i) {
-            bool succeded = _executeSingleArbitraryCall(
+            bool succeeded = _executeSingleArbitraryCall(
                 i,
                 calls[i],
                 params.preciousTokens,
@@ -62,10 +62,10 @@ contract ArbitraryCallsProposal {
                 isUnanimous,
                 ethAvailable
             );
-            if (succeded) {
+            if (succeeded) {
                 ethAvailable -= calls[i].value;
             }
-            emit ArbitraryCallExecuted(params.proposalId, succeded, i, calls.length);
+            emit ArbitraryCallExecuted(params.proposalId, succeeded, i, calls.length);
         }
         // If not a unanimous vote and we had a precious beforehand,
         // ensure that we still have it now.
@@ -94,7 +94,7 @@ contract ArbitraryCallsProposal {
         uint256 ethAvailable
     )
         private
-        returns (bool succeded)
+        returns (bool succeeded)
     {
         if (!_isCallAllowed(call, isUnanimous, preciousTokens, preciousTokenIds)) {
             revert CallProhibitedError(call.target, call.data);
@@ -110,7 +110,7 @@ contract ArbitraryCallsProposal {
             }
             return false;
         } else {
-            // Call succeded.
+            // Call succeeded.
             // If we have a nonzero expectedResultHash, check that the result data
             // from the call has a matching hash.
             if (call.expectedResultHash != bytes32(0)) {
