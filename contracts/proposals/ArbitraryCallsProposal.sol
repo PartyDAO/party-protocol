@@ -31,8 +31,6 @@ contract ArbitraryCallsProposal {
 
     event ArbitraryCallExecuted(bytes32 proposalId, bool succeeded, uint256 idx, uint256 count);
 
-    event ArbitraryCallExecuted(bytes32 proposalId, bool succeded, uint256 idx, uint256 count);
-
     function _executeArbitraryCalls(
         IProposalExecutionEngine.ExecuteProposalParams memory params
     )
