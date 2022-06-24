@@ -7,9 +7,6 @@ import "../../contracts/globals/Globals.sol";
 import "../../contracts/globals/LibGlobals.sol";
 import "../../contracts/proposals/ProposalExecutionEngine.sol";
 
-import "../../contracts/proposals/opensea/SharedWyvernV2Maker.sol";
-
-
 import "../TestUtils.sol";
 import "../DummyERC721.sol";
 import "./ZoraTestUtils.sol";
@@ -52,7 +49,6 @@ contract ListOnZoraProposalIntegrationTest is
 
       ProposalExecutionEngine pe = new ProposalExecutionEngine(
           globals,
-          new SharedWyvernV2Maker(IWyvernExchangeV2(address(0x7f268357A8c2552623316e2562D90e642bB538E5))),
           ISeaportExchange(0x00000000006CEE72100D161c57ADA5Bb2be1CA79),
           ZORA
       );
@@ -94,6 +90,7 @@ contract ListOnZoraProposalIntegrationTest is
 
       ListOnZoraProposal.ZoraProposalData memory zpd = ListOnZoraProposal.ZoraProposalData({
         listPrice: 1.5 ether,
+        timeout: 120,
         duration: 120,
         token: toadz,
         tokenId: 1

@@ -24,6 +24,7 @@ contract ListOnZoraProposal is ZoraHelpers {
     // ABI-encoded `proposalData` passed into execute.
     struct ZoraProposalData {
         uint256 listPrice;
+        uint40 timeout;
         uint40 duration;
         IERC721 token;
         uint256 tokenId;
@@ -36,7 +37,8 @@ contract ListOnZoraProposal is ZoraHelpers {
         IERC721 token,
         uint256 tokenId,
         uint256 startingPrice,
-        uint40 expiry
+        uint40 duration,
+        uint40 timeoutTime
     );
     event ZoraAuctionExpired(uint256 auctionId, uint256 expiry);
     event ZoraAuctionSold(uint256 auctionId);
@@ -69,15 +71,16 @@ contract ListOnZoraProposal is ZoraHelpers {
             : abi.decode(params.progressData, (ZoraStep));
         if (step == ZoraStep.None) {
             // Proposal hasn't executed yet.
-            (uint256 auctionId, uint40 minExpiry) = _createZoraAuction(
+            uint256 auctionId = _createZoraAuction(
                 data.listPrice,
+                data.timeout,
                 data.duration,
                 data.token,
                 data.tokenId
             );
             return abi.encode(ZoraStep.ListedOnZora, ZoraProgressData({
                 auctionId: auctionId,
-                minExpiry: minExpiry
+                minExpiry: uint40(block.timestamp + data.timeout)
             }));
         }
         assert(step == ZoraStep.ListedOnZora);
@@ -90,15 +93,15 @@ contract ListOnZoraProposal is ZoraHelpers {
 
     function _createZoraAuction(
         uint256 listPrice,
+        uint40 timeout,
         uint40 duration,
         IERC721 token,
         uint256 tokenId
     )
         internal
         override
-        returns (uint256 auctionId, uint40 minExpiry)
+        returns (uint256 auctionId)
     {
-        minExpiry = uint40(block.timestamp) + duration;
         token.approve(address(ZORA), tokenId);
         auctionId = ZORA.createAuction(
             tokenId,
@@ -114,7 +117,8 @@ contract ListOnZoraProposal is ZoraHelpers {
             token,
             tokenId,
             listPrice,
-            minExpiry
+            uint40(duration),
+            uint40(block.timestamp + timeout)
         );
     }
 

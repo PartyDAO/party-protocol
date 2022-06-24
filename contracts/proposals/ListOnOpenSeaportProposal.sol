@@ -102,12 +102,14 @@ abstract contract ListOnOpenSeaportProposal is ZoraHelpers {
             ) {
                 // Not a unanimous vote and the token is precious, so list on zora
                 // AH first.
-                // TODO: Should this be just executionDelay?
+                uint40 zoraTimeout =
+                    uint40(_GLOBALS.getUint256(LibGlobals.GLOBAL_OS_ZORA_AUCTION_TIMEOUT));
                 uint40 zoraDuration =
                     uint40(_GLOBALS.getUint256(LibGlobals.GLOBAL_OS_ZORA_AUCTION_DURATION));
-                if (zoraDuration != 0) {
-                    (uint256 auctionId, uint40 minExpiry) = _createZoraAuction(
+                if (zoraTimeout != 0) {
+                    uint256 auctionId = _createZoraAuction(
                         data.listPrice,
+                        zoraTimeout,
                         zoraDuration,
                         data.token,
                         data.tokenId
@@ -115,7 +117,7 @@ abstract contract ListOnOpenSeaportProposal is ZoraHelpers {
                     // Return the next step and data required to execute that step.
                     return abi.encode(OpenSeaportStep.ListedOnZora, ZoraProgressData({
                         auctionId: auctionId,
-                        minExpiry: minExpiry
+                        minExpiry: uint40(block.timestamp + zoraTimeout)
                     }));
                 }
             }

@@ -44,12 +44,14 @@ contract ListOnOpenSeaportProposalForkedTest is
         IERC721 token,
         uint256 tokenId,
         uint256 startingPrice,
-        uint40 expiry
+        uint40 expiry,
+        uint40 timeoutTime
     );
     event ZoraAuctionExpired(uint256 auctionId, uint256 expiry);
     event ZoraAuctionSold(uint256 auctionId);
 
-    uint256 constant ZORA_LISTING_DURATION = 1 days;
+    uint256 constant ZORA_AUCTION_DURATION = 0.5 days;
+    uint256 constant ZORA_AUCTION_TIMEOUT = 1 days;
     uint256 constant LIST_PRICE = 1e18;
     TestableListOnOpenSeaportProposal impl;
     Globals globals;
@@ -65,8 +67,12 @@ contract ListOnOpenSeaportProposalForkedTest is
     function setUp() public onlyForked {
         globals = new Globals(address(this));
         globals.setUint256(
+            LibGlobals.GLOBAL_OS_ZORA_AUCTION_TIMEOUT,
+            ZORA_AUCTION_TIMEOUT
+        );
+        globals.setUint256(
             LibGlobals.GLOBAL_OS_ZORA_AUCTION_DURATION,
-            ZORA_LISTING_DURATION
+            ZORA_AUCTION_DURATION
         );
         impl = new TestableListOnOpenSeaportProposal(
             globals,
@@ -124,7 +130,7 @@ contract ListOnOpenSeaportProposalForkedTest is
         return (preciousTokens[idx], preciousTokenIds[idx]);
     }
 
-    // Test a proposal where the zora listing expires and the
+    // Test a proposal where the zora listing times out and the
     // OS listing gets bought.
     function testForked_Execution_OSBought() public onlyForked {
         address buyer = _randomAddress();
@@ -137,8 +143,8 @@ contract ListOnOpenSeaportProposalForkedTest is
         ) = _createTestProposal(token, tokenId, listPrice, listDuration);
         // This will list on zora because the proposal was not passed unanimously.
         executeParams.progressData = impl.executeListOnOpenSeaport(executeParams);
-        // Expire the zora listing.
-        skip(ZORA_LISTING_DURATION);
+        // Time out the zora listing.
+        skip(ZORA_AUCTION_TIMEOUT);
         // Next, retrieve from zora and list on OS.
         uint256 listStartTime = block.timestamp;
         // TODO: check OpenSeaportOrderListed event gets emitted.
@@ -248,8 +254,8 @@ contract ListOnOpenSeaportProposalForkedTest is
         ) = _createTestProposal(token, tokenId, listPrice, listDuration);
         // This will list on zora because the proposal was not passed unanimously.
         executeParams.progressData = impl.executeListOnOpenSeaport(executeParams);
-        // Expire the zora listing.
-        skip(ZORA_LISTING_DURATION);
+        // Timeeout the zora listing.
+        skip(ZORA_AUCTION_TIMEOUT);
         // Next, retrieve from zora and list on OS.
         uint256 listStartTime = block.timestamp;
         vm.expectEmit(false, false, false, true);
@@ -298,7 +304,8 @@ contract ListOnOpenSeaportProposalForkedTest is
             token,
             tokenId,
             listPrice,
-            uint40(block.timestamp) + uint40(ZORA_LISTING_DURATION)
+            uint40(ZORA_AUCTION_DURATION),
+            uint40(block.timestamp) + uint40(ZORA_AUCTION_TIMEOUT)
         );
         executeParams.progressData = impl.executeListOnOpenSeaport(executeParams);
         {
@@ -309,8 +316,8 @@ contract ListOnOpenSeaportProposalForkedTest is
                 ));
             assertEq(progressData.auctionId, auctionId);
         }
-        // Try to advance the proposal before the zora auction has expired (fail).
-        skip(ZORA_LISTING_DURATION - 1);
+        // Try to advance the proposal before the zora auction has timed out (fail).
+        skip(ZORA_AUCTION_TIMEOUT- 1);
         vm.expectRevert(abi.encodeWithSelector(
             ListOnZoraProposal.ZoraListingNotExpired.selector,
             auctionId,
@@ -320,10 +327,10 @@ contract ListOnOpenSeaportProposalForkedTest is
 
         // Bid on the zora auction.
         _bidOnZoraListing(auctionId, buyer, listPrice);
-        // The auction will be now extended by ZORA_LISTING_DURATION.
+        // The auction will be now extended by ZORA_AUCTION_DURATION.
 
         // Try to advance the proposal before the zora auction has ended (fail).
-        skip(ZORA_LISTING_DURATION - 1);
+        skip(ZORA_AUCTION_DURATION - 1);
         vm.expectRevert("Auction hasn't completed");
         impl.executeListOnOpenSeaport(executeParams);
 
@@ -358,7 +365,8 @@ contract ListOnOpenSeaportProposalForkedTest is
             token,
             tokenId,
             listPrice,
-            uint40(block.timestamp) + uint40(ZORA_LISTING_DURATION)
+            uint40(ZORA_AUCTION_DURATION),
+            uint40(block.timestamp) + uint40(ZORA_AUCTION_TIMEOUT)
         );
         executeParams.progressData = impl.executeListOnOpenSeaport(executeParams);
         {
@@ -371,9 +379,9 @@ contract ListOnOpenSeaportProposalForkedTest is
         }
         // Bid on the zora auction.
         _bidOnZoraListing(auctionId, buyer, listPrice);
-        // The auction will be now extended by ZORA_LISTING_DURATION.
+        // The auction will be now extended by ZORA_AUCTION_DURATION.
         // Skip past the end of the auction.
-        skip(ZORA_LISTING_DURATION);
+        skip(ZORA_AUCTION_DURATION);
         // Settle externally.
         ZORA.endAuction(auctionId);
 

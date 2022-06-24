@@ -13,11 +13,10 @@ contract TestableProposalExecutionEngine is ProposalExecutionEngine {
 
     constructor(
         IGlobals globals,
-        SharedWyvernV2Maker maker,
         ISeaportExchange seaport,
         IZoraAuctionHouse zora
     )
-        ProposalExecutionEngine(globals, maker, seaport, zora)
+        ProposalExecutionEngine(globals, seaport, zora)
     {}
 
     function getProposalEngineImpl()

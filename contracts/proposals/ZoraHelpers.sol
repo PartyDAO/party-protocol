@@ -17,13 +17,14 @@ abstract contract ZoraHelpers {
 
     function _createZoraAuction(
         uint256 listPrice,
+        uint40 timeout,
         uint40 duration,
         IERC721 token,
         uint256 tokenId
     )
         internal
         virtual
-        returns (uint256 auctionId, uint40 minExpiry);
+        returns (uint256 auctionId);
 
 
     function _settleZoraAuction(uint256 auctionId, uint40 minExpiry)

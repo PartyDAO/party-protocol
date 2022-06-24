@@ -7,7 +7,6 @@ import "../utils/ReentrancyGuard.sol";
 import "../globals/IGlobals.sol";
 
 import "./IProposalExecutionEngine.sol";
-import "./ListOnOpenSeaProposal.sol";
 import "./ListOnOpenSeaportProposal.sol";
 import "./ListOnZoraProposal.sol";
 import "./FractionalizeProposal.sol";
@@ -20,7 +19,6 @@ contract ProposalExecutionEngine is
     Implementation,
     ReentrancyGuard,
     ProposalStorage,
-    ListOnOpenSeaProposal,
     ListOnOpenSeaportProposal,
     ListOnZoraProposal,
     FractionalizeProposal,
@@ -41,7 +39,6 @@ contract ProposalExecutionEngine is
         Fractionalize,
         ArbitraryCalls,
         UpgradeProposalEngineImpl,
-        ListOnOpenSeaport,
         // Append new proposal types here.
         NumProposalTypes
     }
@@ -79,11 +76,9 @@ contract ProposalExecutionEngine is
 
     constructor(
         IGlobals globals,
-        SharedWyvernV2Maker sharedWyvernMaker,
         ISeaportExchange seaport,
         IZoraAuctionHouse zoraAuctionHouse
     )
-        ListOnOpenSeaProposal(globals, sharedWyvernMaker)
         ListOnOpenSeaportProposal(globals, seaport)
         ListOnZoraProposal(zoraAuctionHouse)
     {
@@ -186,8 +181,6 @@ contract ProposalExecutionEngine is
         returns (bytes memory progressData)
     {
         if (pt == ProposalType.ListOnOpenSea) {
-            progressData = _executeListOnOpenSea(params);
-        } else if (pt == ProposalType.ListOnOpenSeaport) {
             progressData = _executeListOnOpenSeaport(params);
         } else if (pt == ProposalType.ListOnZora) {
             _executeListOnZora(params);

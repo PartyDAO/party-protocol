@@ -38,7 +38,6 @@ contract ProposalExecutionEngineTest is
         );
         eng = new TestableProposalExecutionEngine(
             globals,
-            SharedWyvernV2Maker(_randomAddress()),
             ISeaportExchange(_randomAddress()),
             IZoraAuctionHouse(_randomAddress())
         );

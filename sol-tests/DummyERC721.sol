@@ -50,6 +50,7 @@ contract DummyERC721 is IERC721 {
         id = ++_lastId;
         _ownerOf[id] = owner;
         ++balanceOf[owner];
+        emit Transfer(address(0), owner, id);
     }
 
     function approve(address operator, uint256 tokenId)
