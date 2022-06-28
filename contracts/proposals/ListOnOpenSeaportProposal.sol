@@ -25,6 +25,8 @@ abstract contract ListOnOpenSeaportProposal is ZoraHelpers {
         uint40 duration;
         IERC721 token;
         uint256 tokenId;
+        uint256[] fees;
+        address payable[] feeRecipients;
     }
 
     // ABI-encoded `progressData` passed into execute in the `ListedOnOpenSea` step.
@@ -41,6 +43,7 @@ abstract contract ListOnOpenSeaportProposal is ZoraHelpers {
         uint256 tokenId,
         uint256 expiry
     );
+    error InvalidFeeRecipients();
 
     event OpenSeaportOrderListed(
         ISeaportExchange.OrderParameters orderParams,
@@ -81,7 +84,8 @@ abstract contract ListOnOpenSeaportProposal is ZoraHelpers {
         internal
         returns (bytes memory nextProgressData)
     {
-        (OpenSeaportProposalData memory data) = abi.decode(params.proposalData, (OpenSeaportProposalData));
+        (OpenSeaportProposalData memory data) =
+            abi.decode(params.proposalData, (OpenSeaportProposalData));
         bool isUnanimous = params.flags & LibProposal.PROPOSAL_FLAG_UNANIMOUS
             == LibProposal.PROPOSAL_FLAG_UNANIMOUS;
         // If there is progressData passed in, we're on the first step,
@@ -155,7 +159,9 @@ abstract contract ListOnOpenSeaportProposal is ZoraHelpers {
                 data.token,
                 data.tokenId,
                 data.listPrice,
-                expiry
+                expiry,
+                data.fees,
+                data.feeRecipients
             );
             return abi.encode(OpenSeaportStep.ListedOnOpenSea, orderHash, expiry);
         }
@@ -180,11 +186,16 @@ abstract contract ListOnOpenSeaportProposal is ZoraHelpers {
         IERC721 token,
         uint256 tokenId,
         uint256 listPrice,
-        uint256 expiry
+        uint256 expiry,
+        uint256[] memory fees,
+        address payable[] memory feeRecipients
     )
         private
         returns (bytes32 orderHash)
     {
+        if (fees.length != feeRecipients.length) {
+            revert InvalidFeeRecipients();
+        }
         // Approve seaport to spend our NFT. This should revert if we do not own
         // the NFT.
         token.approve(address(SEAPORT), tokenId);
@@ -197,11 +208,10 @@ abstract contract ListOnOpenSeaportProposal is ZoraHelpers {
         orderParams.orderType = ISeaportExchange.OrderType.FULL_OPEN;
         orderParams.startTime = block.timestamp;
         orderParams.endTime = expiry;
-        assert(orderParams.startTime < orderParams.endTime);
         orderParams.zoneHash = bytes32(0);
         orderParams.salt = 0;
         orderParams.conduitKey = bytes32(0);
-        orderParams.totalOriginalConsiderationItems = 1;
+        orderParams.totalOriginalConsiderationItems = 1 + fees.length;
         // What we are selling.
         orderParams.offer = new ISeaportExchange.OfferItem[](1);
         {
@@ -213,15 +223,22 @@ abstract contract ListOnOpenSeaportProposal is ZoraHelpers {
             offer.endAmount = 1;
         }
         // What we want for it.
-        orderParams.consideration = new ISeaportExchange.ConsiderationItem[](1);
+        orderParams.consideration = new ISeaportExchange.ConsiderationItem[](1 + fees.length);
         {
             ISeaportExchange.ConsiderationItem memory cons = orderParams.consideration[0];
             cons.itemType = ISeaportExchange.ItemType.NATIVE;
             cons.token = address(0);
             cons.identifierOrCriteria = 0;
-            cons.startAmount = listPrice;
-            cons.endAmount = listPrice;
+            cons.startAmount = cons.endAmount = listPrice;
             cons.recipient = payable(address(this));
+            for (uint256 i = 0; i < fees.length; ++i) {
+                cons = orderParams.consideration[1 + i];
+                cons.itemType = ISeaportExchange.ItemType.NATIVE;
+                cons.token = address(0);
+                cons.identifierOrCriteria = 0;
+                cons.startAmount = cons.endAmount = fees[i];
+                cons.recipient = feeRecipients[i];
+            }
         }
         orderHash = _getOrderHash(orderParams);
         // Validate the order on-chain so no signature is required to fill it.

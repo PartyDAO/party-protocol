@@ -460,9 +460,9 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
         _expectProposalPassedEvent(proposalId);
         vm.prank(undelegatedVoter);
         assertEq(gov.propose(proposal), proposalId);
+        // The vote was unanimous so the proposal should be executable as well.
+        _assertProposalStateEq(gov, proposalId, PartyGovernance.ProposalState.Ready);
 
-        // Skip past execution delay.
-        skip(defaultGovernanceOpts.executionDelay);
         // Execute the proposal as the single voter.
         vm.expectEmit(false, false, false, true);
         emit DummyProposalExecutionEngine_executeCalled(
@@ -522,9 +522,9 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
         _expectProposalAcceptedEvent(proposalId, undelegatedVoter2, 25e18);
         vm.prank(undelegatedVoter2);
         gov.accept(proposalId);
+        // The vote was unanimous so the proposal should be executable as well.
+        _assertProposalStateEq(gov, proposalId, PartyGovernance.ProposalState.Ready);
 
-        // Skip past execution delay.
-        skip(defaultGovernanceOpts.executionDelay);
         // Execute the proposal as the single voter.
         vm.expectEmit(false, false, false, true);
         emit DummyProposalExecutionEngine_executeCalled(
@@ -575,9 +575,9 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
         _expectProposalPassedEvent(proposalId);
         vm.prank(undelegatedVoter);
         assertEq(gov.propose(proposal), proposalId);
+        // The vote was unanimous so the proposal should be executable as well.
+        _assertProposalStateEq(gov, proposalId, PartyGovernance.ProposalState.Ready);
 
-        // Skip past execution delay.
-        skip(defaultGovernanceOpts.executionDelay);
         // Execute the proposal as the single voter.
         vm.expectEmit(false, false, false, true);
         emit DummyProposalExecutionEngine_executeCalled(

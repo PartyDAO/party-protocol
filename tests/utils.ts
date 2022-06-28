@@ -1,5 +1,6 @@
 import crypto from 'crypto';
-import { BigNumber } from 'ethers';
+import { BigNumber, Contract, ContractFactory, Signer } from 'ethers';
+import * as ethers from 'ethers';
 import { MockProvider } from 'ethereum-waffle';
 
 export const NULL_ADDRESS = '0x0000000000000000000000000000000000000000';
@@ -26,4 +27,18 @@ export function now(): number {
 export async function increaseTime(provider: MockProvider, seconds: number): Promise<void> {
     await provider.send('evm_increaseTime', [seconds]);
     await provider.send('evm_mine', []);
+}
+
+export async function deployContract(
+    signer: Signer,
+    artifact: any,
+    args: any[] = [],
+    overrides?: any,
+): Promise<Contract> {
+    const cf = new ContractFactory(
+        new ethers.utils.Interface(artifact.abi),
+        artifact.bytecode.object,
+        signer,
+    );
+    return cf.deploy(...args, ...[overrides ? [overrides] : []]);
 }

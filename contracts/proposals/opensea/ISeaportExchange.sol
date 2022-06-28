@@ -127,6 +127,7 @@ interface ISeaportExchange {
     function cancel(OrderComponents[] calldata orders) external returns (bool cancelled);
     function validate(Order[] calldata orders) external returns (bool validated);
     function fulfillBasicOrder(BasicOrderParameters calldata parameters) external payable returns (bool fulfilled);
+    function fulfillOrder(Order calldata order, bytes32 fulfillerConduitKey) external payable returns (bool fulfilled);
     function getOrderStatus(bytes32 orderHash)
         external
         view

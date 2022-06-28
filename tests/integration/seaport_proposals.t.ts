@@ -1,7 +1,10 @@
 import { expect, use } from 'chai';
 import { Contract } from 'ethers';
-import { deployContract, MockProvider, solidity } from 'ethereum-waffle';
+import { MockProvider, solidity } from 'ethereum-waffle';
 import { env as ENV } from 'process';
+import * as ethers from 'ethers';
+
+import { abi as SEAPORT_ABI } from '../../out/ISeaportExchange.sol/ISeaportExchange.json';
 
 import {
     Party,
@@ -11,6 +14,7 @@ import {
     ProposalState,
     ListOnOpenSeaStep,
 } from './system';
+import { SeaportOrderParams } from './seaport';
 import {
     ONE_DAY_SECONDS,
     ONE_HOUR_SECONDS,
@@ -33,12 +37,19 @@ describe('Seaport proposals integrations test', () => {
         (it as any).skip = global.it.skip;
     }
     const SEAPORT_ADDRESS = '0x00000000006CEE72100D161c57ADA5Bb2be1CA79';
+    const LIST_PRICE = ethers.utils.parseEther('0.01');
+    // OS fee is 2.5% of total considerations (incl OS fee)
+    const OS_FEE_RATE_BPS = 0.025e4;
+    const OS_FEE = LIST_PRICE.mul(OS_FEE_RATE_BPS).div(1e4 - OS_FEE_RATE_BPS);
+    const OS_FEE_RECIPIENT = '0x8De9C5A032463C561423387a9648c5C7BCC5BC90';
     const ZORA2_ADDRESS = '0xE468cE99444174Bd3bBBEd09209577d25D1ad673';
     const provider = new MockProvider({ ganacheOptions: { fork: ENV.FORK_URL } });
-    const [worker, partyHost, minter, admin, multisig, ...availableVoters] = provider.getWallets();
+    const [worker, partyHost, minter, admin, multisig, buyer, ...availableVoters] = provider.getWallets();
+    let seaport: Contract;
     let sys: System;
 
     before(async () => {
+        seaport = new Contract(SEAPORT_ADDRESS, SEAPORT_ABI, buyer);
         sys = await System.createAsync({
             worker,
             daoMultisig: multisig,
@@ -50,6 +61,16 @@ describe('Seaport proposals integrations test', () => {
             forcedZoraAuctionDuration: ONE_DAY_SECONDS / 2,
         });
     });
+
+    {
+        let snapshot: string;
+        beforeEach(async () => {
+            snapshot = await provider.send('evm_snapshot', []);
+        });
+        afterEach(async () => {
+            await provider.send('evm_revert', [ snapshot ]);
+        });
+    }
 
     it('works with full expiration', async () => {
         const party = await Party.createAsync({
@@ -73,10 +94,12 @@ describe('Seaport proposals integrations test', () => {
         }
         const proposal = createOpenSeaProposal(
             {
-                listPrice: ONE_ETHER.mul(2),
+                listPrice: LIST_PRICE,
                 duration: ONE_DAY_SECONDS,
                 token: party.preciousTokens[0].token.address,
                 tokenId: party.preciousTokens[0].tokenId,
+                fees: [OS_FEE],
+                feeRecipients: [OS_FEE_RECIPIENT],
             },
             now() + ONE_DAY_SECONDS,
         );
@@ -109,7 +132,7 @@ describe('Seaport proposals integrations test', () => {
         expect(await party.getProposalStateAsync(proposalId)).to.eq(ProposalState.Complete);
     });
 
-    it.skip('works when OS sale is successful', async () => {
+    it('works when OS sale is successful', async () => {
         const party = await Party.createAsync({
             worker,
             minter,
@@ -131,10 +154,12 @@ describe('Seaport proposals integrations test', () => {
         }
         const proposal = createOpenSeaProposal(
             {
-                listPrice: ONE_ETHER.mul(2),
+                listPrice: LIST_PRICE,
                 duration: ONE_DAY_SECONDS,
                 token: party.preciousTokens[0].token.address,
                 tokenId: party.preciousTokens[0].tokenId,
+                fees: [OS_FEE],
+                feeRecipients: [OS_FEE_RECIPIENT],
             },
             now() + ONE_DAY_SECONDS,
         );
@@ -151,17 +176,31 @@ describe('Seaport proposals integrations test', () => {
         let progressData = await voters[0].executeAsync(proposalId, proposal);
         expect(progressData).to.not.eq(NULL_BYTES);
         let decodedProgressData = decodeListOnOpenSeaProgressData(progressData);
-        console.log(decodedProgressData);
         expect(decodedProgressData.step).to.eq(ListOnOpenSeaStep.ListedOnZora);
         // Skip past auction tiemout.
         await increaseTime(provider, decodedProgressData.minExpiry);
         // Execute to retrieve from zora and list on opensea..
-        progressData = await voters[0].executeAsync(proposalId, proposal, progressData);
+        let orderParams: SeaportOrderParams;
+        progressData = await voters[0].executeAsync(
+            proposalId,
+            proposal,
+            progressData,
+            events => {
+                orderParams = events.find(e => e.name == 'OpenSeaportOrderListed').args[0];
+            }
+        );
         expect(progressData).to.not.eq(NULL_BYTES);
         decodedProgressData = decodeListOnOpenSeaProgressData(progressData);
         expect(decodedProgressData.step).to.eq(ListOnOpenSeaStep.ListedOnOpenSea);
         expect(decodedProgressData.orderHash).to.not.eq(NULL_HASH);
-        // TODO: Buy token...
+        expect(decodedProgressData.orderHash).to.eq(
+            await seaport.getOrderHash({ ...orderParams, nonce: ZERO })
+        );
+        await (await seaport.fulfillOrder(
+            { parameters: orderParams, signature: NULL_BYTES },
+            NULL_HASH,
+            { value: LIST_PRICE.add(OS_FEE) },
+        )).wait();
         progressData = await voters[0].executeAsync(proposalId, proposal, progressData);
         expect(progressData).to.eq(NULL_BYTES);
         expect(await party.getProposalStateAsync(proposalId)).to.eq(ProposalState.Complete);

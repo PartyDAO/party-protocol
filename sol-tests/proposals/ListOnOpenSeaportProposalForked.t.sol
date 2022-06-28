@@ -95,7 +95,14 @@ contract ListOnOpenSeaportProposalForkedTest is
         }
     }
 
-    function _createTestProposal(IERC721 token, uint256 tokenId, uint256 listPrice, uint40 duration)
+    function _createTestProposal(
+        IERC721 token,
+        uint256 tokenId,
+        uint256 listPrice,
+        uint40 duration,
+        uint256[] memory fees,
+        address payable[] memory feeRecipients
+    )
         private
         view
         returns (
@@ -108,7 +115,9 @@ contract ListOnOpenSeaportProposalForkedTest is
                 listPrice: listPrice,
                 duration: duration,
                 token: token,
-                tokenId: tokenId
+                tokenId: tokenId,
+                fees: fees,
+                feeRecipients: feeRecipients
             });
         executeParams =
             IProposalExecutionEngine.ExecuteProposalParams({
@@ -140,7 +149,14 @@ contract ListOnOpenSeaportProposalForkedTest is
         (
             ,
             IProposalExecutionEngine.ExecuteProposalParams memory executeParams
-        ) = _createTestProposal(token, tokenId, listPrice, listDuration);
+        ) = _createTestProposal(
+            token,
+            tokenId,
+            listPrice,
+            listDuration,
+            new uint256[](0),
+            new address payable[](0)
+        );
         // This will list on zora because the proposal was not passed unanimously.
         executeParams.progressData = impl.executeListOnOpenSeaport(executeParams);
         // Time out the zora listing.
@@ -170,6 +186,67 @@ contract ListOnOpenSeaportProposalForkedTest is
         assertEq(address(impl).balance, LIST_PRICE);
     }
 
+    // Test a proposal where the zora listing times out and the
+    // OS listing gets bought, with fees.
+    function testForked_Execution_OSBoughtWithFees() public onlyForked {
+        address buyer = _randomAddress();
+        uint256 listPrice = 1e18;
+        uint40 listDuration = 7 days;
+        uint256[] memory fees = new uint256[](1);
+        fees[0] = 0.0123e18;
+        address payable[] memory feeRecipients = new address payable[](1);
+        feeRecipients[0] = _randomAddress();
+        (IERC721 token, uint256 tokenId) = _randomPreciousToken();
+        (
+            ,
+            IProposalExecutionEngine.ExecuteProposalParams memory executeParams
+        ) = _createTestProposal(
+            token,
+            tokenId,
+            listPrice,
+            listDuration,
+            fees,
+            feeRecipients
+        );
+        // This will list on zora because the proposal was not passed unanimously.
+        executeParams.progressData = impl.executeListOnOpenSeaport(executeParams);
+        // Time out the zora listing.
+        skip(ZORA_AUCTION_TIMEOUT);
+        // Next, retrieve from zora and list on OS.
+        uint256 listStartTime = block.timestamp;
+        // TODO: check OpenSeaportOrderListed event gets emitted.
+        executeParams.progressData = impl.executeListOnOpenSeaport(executeParams);
+        bytes32 orderHash;
+        {
+            (, orderHash,) = abi.decode(executeParams.progressData, (
+                ListOnOpenSeaportProposal.OpenSeaportStep,
+                bytes32,
+                uint256
+            ));
+        }
+        // Buy the OS listing.
+        _buyOpenSeaportListing(
+            payable(impl),
+            buyer,
+            token,
+            tokenId,
+            listPrice,
+            listStartTime,
+            listDuration,
+            fees,
+            feeRecipients
+        );
+        // Finalize the listing.
+        vm.expectEmit(false, false, false, true);
+        emit OpenSeaportOrderSold(orderHash, token, tokenId, listPrice);
+        executeParams.progressData = impl.executeListOnOpenSeaport(executeParams);
+        assertEq(executeParams.progressData.length, 0);
+        // Buyer should own the NFT.
+        assertEq(token.ownerOf(tokenId), buyer);
+        // Proposal contract should have the list price.
+        assertEq(address(impl).balance, LIST_PRICE);
+    }
+
     // Test a unanmous proposal where the OS listing gets bought.
     function testForked_Execution_OSBought_Unanimous() public onlyForked {
         address buyer = _randomAddress();
@@ -179,7 +256,14 @@ contract ListOnOpenSeaportProposalForkedTest is
         (
             ,
             IProposalExecutionEngine.ExecuteProposalParams memory executeParams
-        ) = _createTestProposal(token, tokenId, listPrice, listDuration);
+        ) = _createTestProposal(
+            token,
+            tokenId,
+            listPrice,
+            listDuration,
+            new uint256[](0),
+            new address payable[](0)
+        );
         executeParams.flags |= LibProposal.PROPOSAL_FLAG_UNANIMOUS;
         // This will skip zora and list directly on OS because the proposal was
         // passed unanimously.
@@ -216,7 +300,14 @@ contract ListOnOpenSeaportProposalForkedTest is
         (
             ,
             IProposalExecutionEngine.ExecuteProposalParams memory executeParams
-        ) = _createTestProposal(token, tokenId, listPrice, listDuration);
+        ) = _createTestProposal(
+            token,
+            tokenId,
+            listPrice,
+            listDuration,
+            new uint256[](0),
+            new address payable[](0)
+        );
         // This will skip zora and list directly on OS because the token is not precious.
         uint256 listStartTime = block.timestamp;
         executeParams.progressData = impl.executeListOnOpenSeaport(executeParams);
@@ -251,7 +342,14 @@ contract ListOnOpenSeaportProposalForkedTest is
         (
             ,
             IProposalExecutionEngine.ExecuteProposalParams memory executeParams
-        ) = _createTestProposal(token, tokenId, listPrice, listDuration);
+        ) = _createTestProposal(
+            token,
+            tokenId,
+            listPrice,
+            listDuration,
+            new uint256[](0),
+            new address payable[](0)
+        );
         // This will list on zora because the proposal was not passed unanimously.
         executeParams.progressData = impl.executeListOnOpenSeaport(executeParams);
         // Timeeout the zora listing.
@@ -295,7 +393,14 @@ contract ListOnOpenSeaportProposalForkedTest is
         (
             ,
             IProposalExecutionEngine.ExecuteProposalParams memory executeParams
-        ) = _createTestProposal(token, tokenId, listPrice, listDuration);
+        ) = _createTestProposal(
+            token,
+            tokenId,
+            listPrice,
+            listDuration,
+            new uint256[](0),
+            new address payable[](0)
+        );
         // This will list on zora because the proposal was not passed unanimously.
         uint256 auctionId = _getNextZoraAuctionId();
         vm.expectEmit(false, false, false, true);
@@ -356,7 +461,14 @@ contract ListOnOpenSeaportProposalForkedTest is
         (
             ,
             IProposalExecutionEngine.ExecuteProposalParams memory executeParams
-        ) = _createTestProposal(token, tokenId, listPrice, listDuration);
+        ) = _createTestProposal(
+            token,
+            tokenId,
+            listPrice,
+            listDuration,
+            new uint256[](0),
+            new address payable[](0)
+        );
         // This will list on zora because the proposal was not passed unanimously.
         uint256 auctionId = _getNextZoraAuctionId();
         vm.expectEmit(false, false, false, true);

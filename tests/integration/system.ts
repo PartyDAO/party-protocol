@@ -1,8 +1,6 @@
 import { Contract, BigNumber, Wallet } from 'ethers';
 import * as ethers from 'ethers';
-import { deployContract } from 'ethereum-waffle';
-
-import { NULL_ADDRESS, NULL_BYTES, randomUint256 } from '../utils';
+import { deployContract, NULL_ADDRESS, NULL_BYTES, randomUint256 } from '../utils';
 
 import GLOBALS_ARTIFACT from '../../out/Globals.sol/Globals.json';
 import PARTY_FACTORY_ARTIFACT from '../../out/PartyFactory.sol/PartyFactory.json';
@@ -12,6 +10,10 @@ import PROPOSAL_EXEUCTION_ENGINE_ARTIFACT from '../../out/ProposalExecutionEngin
 import PROXY_ARTIFACT from '../../out/Proxy.sol/Proxy.json';
 import DUMMY_ERC721_ARTIFACT from '../../out/DummyERC721.sol/DummyERC721.json';
 import IERC721_ARTIFACT from '../../out/IERC721.sol/IERC721.json';
+import LIST_ON_OPENSEAPORT_PROPOSAL_ARTIFACT from '../../out/ListOnOpenSeaportProposal.sol/ListOnOpenSeaportProposal.json';
+import IERC20_ARTIFACT from '../../out/IERC20.sol/IERC20.json';
+
+type Event = ethers.utils.LogDescription;
 
 export const artifacts = {
     Globals: GLOBALS_ARTIFACT,
@@ -24,8 +26,12 @@ export const artifacts = {
     IERC721: IERC721_ARTIFACT,
 };
 
-export const erc721Interface = new ethers.utils.Interface(IERC721_ARTIFACT.abi);
-export const proposalExecutionEngineInterface = new ethers.utils.Interface(PROPOSAL_EXEUCTION_ENGINE_ARTIFACT.abi);
+const INTERFACES = [
+    new ethers.utils.Interface(IERC721_ARTIFACT.abi),
+    new ethers.utils.Interface(IERC20_ARTIFACT.abi),
+    new ethers.utils.Interface(LIST_ON_OPENSEAPORT_PROPOSAL_ARTIFACT.abi),
+    new ethers.utils.Interface(PROPOSAL_EXEUCTION_ENGINE_ARTIFACT.abi),
+];
 
 export enum GlobalKeys {
     PartyImpl                   = 1,
@@ -89,6 +95,8 @@ interface OpenSeaProposalInfo {
     duration: number;
     token: string;
     tokenId: BigNumber,
+    fees: BigNumber[];
+    feeRecipients: string[];
 }
 
 export class System {
@@ -319,8 +327,8 @@ export class Party {
             votingPower,
             delegateAddress,
         )).wait();
-        const transferEvents = getTransferEventsFromReceipt(tx);
-        const tokenId = transferEvents.filter(e => e.from === NULL_ADDRESS)[0].id;
+        const transferEvents = parseLogs(tx.logs).filter(e => e.name == 'Transfer');
+        const tokenId = transferEvents.filter(e => e.args[0] === NULL_ADDRESS)[0].args[2];
         return new Voter(
             wallet,
             this,
@@ -361,6 +369,7 @@ export class Voter {
         proposalId: BigNumber,
         proposal: Proposal,
         progressData: string = NULL_BYTES,
+        eventsHandler?: (events: Event[]) => void,
     ): Promise<string> {
         const tx = await (await this.party.contract.connect(this.wallet).execute(
             proposalId,
@@ -369,12 +378,29 @@ export class Voter {
             this.party.preciousTokens.map(p => p.tokenId),
             progressData,
         )).wait();
-        if (tx.events.find((e: any) => e.event === 'ProposalCompleted' && proposalId.eq(e.args[0]))) {
-            return NULL_BYTES;
+        const events = parseLogs(tx.logs);
+        if (eventsHandler) {
+            eventsHandler(events);
         }
-        return getProposalExecutionProgressEventsFromReceipt(tx)
-            .filter(e => proposalId.eq(e.proposalId))[0].progressData;
+        const progressEvent = events.find(e => e.name === 'ProposalExecutionProgress');
+        let nextProgressData = NULL_BYTES;
+        if (progressEvent) {
+            nextProgressData = progressEvent.args[1];
+        }
+        return nextProgressData;
     }
+}
+
+function parseLogs(logs: any[]): Event[] {
+    const events = [];
+    for (const log of logs) {
+        for (const iface of INTERFACES) {
+            try {
+                events.push(iface.parseLog(log));
+            } catch {}
+        }
+    }
+    return events;
 }
 
 export async function createDummyERC721TokensAsync(
@@ -393,43 +419,6 @@ export async function createDummyERC721TokensAsync(
         r.push({ token: t, tokenId: tid });
     }
     return r;
-}
-
-export function getTransferEventsFromReceipt(
-    receipt: { logs: Array<{ data: string; topics: string[]; }> }
-): Array<{
-    from: string;
-    to: string;
-    id: BigNumber;
-}> {
-    const events = [];
-    for (const log of receipt.logs) {
-        try {
-            const r = erc721Interface.parseLog(log);
-            if (r.name === 'Transfer') {
-                events.push({ from: r.args[0], to: r.args[1], id: r.args[2] });
-            }
-        } catch {}
-    }
-    return events;
-}
-
-export function getProposalExecutionProgressEventsFromReceipt(
-    receipt: { logs: Array<{ data: string; topics: string[]; }> }
-): Array<{
-    proposalId: BigNumber;
-    progressData: string;
-}> {
-    const events = [];
-    for (const log of receipt.logs) {
-        try {
-            const r = proposalExecutionEngineInterface.parseLog(log);
-            if (r.name === 'ProposalExecutionProgress') {
-                events.push({ proposalId: r.args[0], progressData: r.args[1] });
-            }
-        } catch {}
-    }
-    return events;
 }
 
 export function createArbitraryCallsProposal(calls: ArbitraryCall[], maxExecutableTime: number): Proposal {
@@ -453,7 +442,7 @@ export function createOpenSeaProposal(info: OpenSeaProposalInfo, maxExecutableTi
         proposalData: ethers.utils.hexConcat([
             ethers.utils.hexZeroPad(ethers.utils.hexlify(ProposalType.ListOnOpenSea), 4),
             ethers.utils.defaultAbiCoder.encode(
-                ['tuple(uint256 listPrice,uint40 duration,address token,uint256 tokenId)'],
+                ['tuple(uint256 listPrice,uint40 duration,address token,uint256 tokenId,uint256[] fees,address[] feeRecipients)'],
                 [info],
             ),
         ]),

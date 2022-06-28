@@ -1,7 +1,8 @@
 import { expect, use } from 'chai';
 import { BigNumber, Contract } from 'ethers';
-import { deployContract, MockProvider, solidity } from 'ethereum-waffle';
+import { MockProvider, solidity } from 'ethereum-waffle';
 import GLOBALS_ARTIFACT from '../out/Globals.sol/Globals.json';
+import { deployContract } from './utils';
 
 use(solidity);
 

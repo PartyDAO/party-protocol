@@ -130,20 +130,24 @@ contract ListOnZoraProposal is ZoraHelpers {
         override
         returns (bool sold)
     {
-        if (minExpiry > uint40(block.timestamp)) {
-            revert ZoraListingNotExpired(auctionId, minExpiry);
-        }
         // Getting the state of an auction is super expensive so it seems
         // cheaper to just let `endAuction` fail and react to the error.
         try ZORA.endAuction(auctionId) {
         } catch (bytes memory errData) {
             bytes32 errHash = keccak256(errData);
             if (errHash == AUCTION_HASNT_BEGUN_ERROR_HASH) {
-                // No bids placed. Just cancel it.
+                // No bids placed.
+                // Cancel if we're past the timeout.
+                if (minExpiry > uint40(block.timestamp)) {
+                    revert ZoraListingNotExpired(auctionId, minExpiry);
+                }
                 ZORA.cancelAuction(auctionId);
                 emit ZoraAuctionExpired(auctionId, minExpiry);
                 return false;
             } else if (errHash != AUCTION_DOESNT_EXIST_ERROR_HASH) {
+                // Otherwise, we should get an auction doesn't exist error,
+                // because someone else must have called endAuction().
+                // If we didn't then something is wrong, so revert.
                 errData.rawRevert();
             }
             // Already ended by someone else. Nothing to do.
