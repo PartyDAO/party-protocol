@@ -10,7 +10,6 @@ import '../contracts/globals/LibGlobals.sol';
 import '../contracts/party/Party.sol';
 import '../contracts/party/PartyFactory.sol';
 import '../contracts/proposals/ProposalExecutionEngine.sol';
-import '../contracts/proposals/opensea/SharedWyvernV2Maker.sol';
 import './LibDeployConstants.sol';
 
 // https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/utils/Strings.sol
@@ -90,18 +89,19 @@ contract Deploy is Test {
   // temporary variables to store deployed contract addresses
   // PartyCrowdfundFactory partyCrowdfundFactoryAddress;
   Globals globals;
-  IWyvernExchangeV2 openseaExchange;
   IZoraAuctionHouse zoraAuctionHouse;
   Party partyImpl;
   PartyFactory partyFactory;
+  ISeaportExchange seaport;
   ProposalExecutionEngine proposalEngineImpl;
-  SharedWyvernV2Maker sharedWyvernV2Maker;
   TokenDistributor tokenDistributor;
 
   function run(LibDeployConstants.DeployConstants memory deployConstants) public {
     console.log('Starting deploy script.');
     console.log('DEPLOYER_ADDRESS', DEPLOYER_ADDRESS);
     vm.startBroadcast();
+
+    seaport = ISeaportExchange(deployConstants.seaportExchangeAddress);
 
     // DEPLOY_GLOBALS
     console.log('');
@@ -146,11 +146,6 @@ contract Deploy is Test {
 
     // DEPLOY_SHARED_WYVERN_V2_MAKER
     console.log('');
-    console.log('### SharedWyvernV2Maker');
-    console.log('  Deploying - SharedWyvernV2Maker');
-    openseaExchange = IWyvernExchangeV2(deployConstants.openSeaExchangeAddress);
-    sharedWyvernV2Maker = new SharedWyvernV2Maker(openseaExchange);
-    console.log('  Deployed - SharedWyvernV2Maker', address(sharedWyvernV2Maker));
 
     console.log('');
     console.log('  Globals - setting OpenSea Zora auction duration');
@@ -163,9 +158,9 @@ contract Deploy is Test {
     console.log('### ProposalExecutionEngine');
     console.log('  Deploying - ProposalExecutionEngine');
     zoraAuctionHouse = IZoraAuctionHouse(deployConstants.zoraAuctionHouseAddress);
-    proposalEngineImpl = new ProposalExecutionEngine(globals, sharedWyvernV2Maker, zoraAuctionHouse);
+    proposalEngineImpl = new ProposalExecutionEngine(globals, seaport, zoraAuctionHouse);
     console.log('  Deployed - ProposalExecutionEngine', address(proposalEngineImpl));
-    console.log('    with wyvern', address(sharedWyvernV2Maker));
+    console.log('    with seaport', address(seaport));
     console.log('    with zora auction house', address(zoraAuctionHouse));
 
     console.log('');
@@ -221,7 +216,7 @@ contract Deploy is Test {
     console.log('{');
     console.log(string.concat('  "globals": "', Strings.toHexString(address(globals)) ,'",'));
     console.log(string.concat('  "tokenDistributor": "', Strings.toHexString(address(tokenDistributor)) ,'",'));
-    console.log(string.concat('  "sharedWyvernV2Maker": "', Strings.toHexString(address(sharedWyvernV2Maker)) ,'",'));
+    console.log(string.concat('  "seaportExchange": "', Strings.toHexString(address(seaport)) ,'",'));
     console.log(string.concat('  "proposalEngineImpl": "', Strings.toHexString(address(proposalEngineImpl)) ,'",'));
     console.log(string.concat('  "partyImpl": "', Strings.toHexString(address(partyImpl)) ,'",'));
     console.log(string.concat('  "partyFactory": "', Strings.toHexString(address(partyFactory)) ,'"'));

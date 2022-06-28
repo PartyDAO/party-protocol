@@ -9,7 +9,7 @@ library LibDeployConstants {
 
   struct DeployConstants {
     address[3] adminAddresses; // todo: change size of array based on deploy
-    address openSeaExchangeAddress;
+    address seaportExchangeAddress;
     uint256 osZoraAuctionDuration;
     address partyDaoMultisig;
     uint256 partyDaoDistributionSplitBps;
@@ -23,7 +23,7 @@ library LibDeployConstants {
         0x000000000000000000000000000000000000dEaD,
         0x0000000000000000000000000000000000001337
       ],
-      openSeaExchangeAddress: 0x7f268357A8c2552623316e2562D90e642bB538E5,
+      seaportExchangeAddress: 0x00000000006c3852cbEf3e08E8dF289169EdE581,
       osZoraAuctionDuration: OS_ZORA_AUCTION_DURATION,
       partyDaoMultisig: 0xF7f52Dd34bc21eDA08c0b804C7c1dbc48375820f,
       partyDaoDistributionSplitBps: PARTY_DAO_DISTRIBUTION_SPLIT_BPS,
@@ -40,7 +40,7 @@ library LibDeployConstants {
         0x000000000000000000000000000000000000dEaD,
         0x0000000000000000000000000000000000001337
       ],
-      openSeaExchangeAddress: 0xdD54D660178B28f6033a953b0E55073cFA7e3744,
+      seaportExchangeAddress: 0x00000000006c3852cbEf3e08E8dF289169EdE581,
       osZoraAuctionDuration: OS_ZORA_AUCTION_DURATION,
       partyDaoMultisig: 0xF7f52Dd34bc21eDA08c0b804C7c1dbc48375820f,
       partyDaoDistributionSplitBps: PARTY_DAO_DISTRIBUTION_SPLIT_BPS,
