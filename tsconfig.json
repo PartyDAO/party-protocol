@@ -5,7 +5,9 @@
         "outDir": "tests/built",
         "esModuleInterop": true,
         "resolveJsonModule": true,
-        "sourceMap": true
+        "sourceMap": true,
+        "target": "es6",
+        "downlevelIteration": true
     },
     "include": ["tests/**/*.ts"],
     "exclude": ["node_modules", "**/*.spec.ts"]

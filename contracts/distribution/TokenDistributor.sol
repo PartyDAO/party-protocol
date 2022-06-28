@@ -42,7 +42,6 @@ contract TokenDistributor {
     error InvalidDistributionInfoError(DistributionInfo info);
     error DistributionAlreadyClaimedByTokenError(uint256 distributionId, uint256 tokenId);
     error DistributionAlreadyClaimedByPartyDaoError(uint256 distributionId);
-    error Uint256ToUint128CastOutOfRangeError(uint256 value);
     error MustOwnTokenError(address sender, address expectedOwner, uint256 tokenId);
     error EmergencyActionsNotAllowed();
     error InvalidDistributionSupply(uint256 supplyAmount, uint256 daoSupply);

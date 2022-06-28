@@ -18,6 +18,15 @@ contract DummyERC721 is IERC721 {
         _;
     }
 
+    modifier onlyOwnedByOrIsApprovedForAll(uint256 tokenId, address whom) {
+        address owner = _ownerOf[tokenId];
+        require(owner != address(0), 'DummyERC721/INVALID_TOKEN');
+        if (owner != whom) {
+            require(isApprovedForAll[owner][whom], 'DummyERC721/NOT_APPROVED');
+        }
+        _;
+    }
+
     function ownerOf(uint256 tokenId) external view returns (address owner) {
         owner = _ownerOf[tokenId];
         require(owner != address(0), 'INVALID_TOKEN');
@@ -41,10 +50,11 @@ contract DummyERC721 is IERC721 {
         id = ++_lastId;
         _ownerOf[id] = owner;
         ++balanceOf[owner];
+        emit Transfer(address(0), owner, id);
     }
 
     function approve(address operator, uint256 tokenId)
-        onlyOwnedBy(tokenId, msg.sender)
+        onlyOwnedByOrIsApprovedForAll(tokenId, msg.sender)
         external
     {
         getApproved[tokenId] = operator;
@@ -88,9 +98,6 @@ contract DummyERC721 is IERC721 {
         onlyOwnedBy(tokenId, owner)
     {
         require(to != address(0), 'DummyERC721/BAD_TRANSFER');
-        if (to == owner) {
-            return;
-        }
         if (owner != msg.sender) {
             if (!isApprovedForAll[owner][msg.sender]) {
                 require(getApproved[tokenId] == msg.sender, 'DummyERC721/NOT_APPROVED');

@@ -9,9 +9,10 @@ import "../utils/LibSafeERC721.sol";
 
 import "./zora/IZoraAuctionHouse.sol";
 import "./IProposalExecutionEngine.sol";
+import "./ZoraHelpers.sol";
 
 // Implements arbitrary call proposals.
-contract ListOnZoraProposal {
+contract ListOnZoraProposal is ZoraHelpers {
     using LibRawResult for bytes;
     using LibSafeERC721 for IERC721;
 
@@ -23,20 +24,24 @@ contract ListOnZoraProposal {
     // ABI-encoded `proposalData` passed into execute.
     struct ZoraProposalData {
         uint256 listPrice;
+        uint40 timeout;
         uint40 duration;
         IERC721 token;
         uint256 tokenId;
     }
 
-    // ABI-encoded `progressData` passed into execute in the `ListedOnZora` step.
-    struct ZoraProgressData {
-        // Acution ID.
-        uint256 auctionId;
-        // Expiration timestamp of the auction, if no one bids.
-        uint40 minExpiry;
-    }
-
     error ZoraListingNotExpired(uint256 auctionId, uint40 expiry);
+
+    event ZoraAuctionCreated(
+        uint256 auctionId,
+        IERC721 token,
+        uint256 tokenId,
+        uint256 startingPrice,
+        uint40 duration,
+        uint40 timeoutTime
+    );
+    event ZoraAuctionExpired(uint256 auctionId, uint256 expiry);
+    event ZoraAuctionSold(uint256 auctionId);
 
     // keccak256(abi.encodeWithSignature('Error(string)', "Auction hasn't begun"))
     bytes32 constant internal AUCTION_HASNT_BEGUN_ERROR_HASH =
@@ -66,38 +71,37 @@ contract ListOnZoraProposal {
             : abi.decode(params.progressData, (ZoraStep));
         if (step == ZoraStep.None) {
             // Proposal hasn't executed yet.
-            (uint256 auctionId, uint40 minExpiry) = _createZoraAuction(
+            uint256 auctionId = _createZoraAuction(
                 data.listPrice,
+                data.timeout,
                 data.duration,
                 data.token,
                 data.tokenId
             );
             return abi.encode(ZoraStep.ListedOnZora, ZoraProgressData({
                 auctionId: auctionId,
-                minExpiry: minExpiry
+                minExpiry: uint40(block.timestamp + data.timeout)
             }));
         }
         assert(step == ZoraStep.ListedOnZora);
         (, ZoraProgressData memory pd) =
             abi.decode(params.progressData, (ZoraStep, ZoraProgressData));
-        if (pd.minExpiry > uint40(block.timestamp)) {
-            revert ZoraListingNotExpired(pd.auctionId, pd.minExpiry);
-        }
-        _settleZoraAuction(pd.auctionId, data.token, data.tokenId);
+        _settleZoraAuction(pd.auctionId, pd.minExpiry);
         // Nothing left to do.
         return "";
     }
 
     function _createZoraAuction(
         uint256 listPrice,
-        uint256 duration,
+        uint40 timeout,
+        uint40 duration,
         IERC721 token,
         uint256 tokenId
     )
         internal
-        returns (uint256 auctionId, uint40 minExpiry)
+        override
+        returns (uint256 auctionId)
     {
-        minExpiry = uint40(block.timestamp) + uint40(duration);
         token.approve(address(ZORA), tokenId);
         auctionId = ZORA.createAuction(
             tokenId,
@@ -108,11 +112,22 @@ contract ListOnZoraProposal {
             0,
             IERC20(address(0)) // Indicates ETH sale
         );
+        emit ZoraAuctionCreated(
+            auctionId,
+            token,
+            tokenId,
+            listPrice,
+            uint40(duration),
+            uint40(block.timestamp + timeout)
+        );
     }
 
-
-    function _settleZoraAuction(uint256 auctionId, IERC721 token, uint256 tokenId)
+    function _settleZoraAuction(
+        uint256 auctionId,
+        uint40 minExpiry
+    )
         internal
+        override
         returns (bool sold)
     {
         // Getting the state of an auction is super expensive so it seems
@@ -121,14 +136,23 @@ contract ListOnZoraProposal {
         } catch (bytes memory errData) {
             bytes32 errHash = keccak256(errData);
             if (errHash == AUCTION_HASNT_BEGUN_ERROR_HASH) {
-                // No bids placed. Just cancel it.
+                // No bids placed.
+                // Cancel if we're past the timeout.
+                if (minExpiry > uint40(block.timestamp)) {
+                    revert ZoraListingNotExpired(auctionId, minExpiry);
+                }
                 ZORA.cancelAuction(auctionId);
+                emit ZoraAuctionExpired(auctionId, minExpiry);
                 return false;
             } else if (errHash != AUCTION_DOESNT_EXIST_ERROR_HASH) {
+                // Otherwise, we should get an auction doesn't exist error,
+                // because someone else must have called endAuction().
+                // If we didn't then something is wrong, so revert.
                 errData.rawRevert();
             }
-            // Already settled by someone else. Nothing to do.
+            // Already ended by someone else. Nothing to do.
         }
-        return token.safeOwnerOf(tokenId) != address(this);
+        emit ZoraAuctionSold(auctionId);
+        return true;
     }
 }

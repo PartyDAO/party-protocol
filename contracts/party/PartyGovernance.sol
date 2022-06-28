@@ -691,12 +691,7 @@ abstract contract PartyGovernance is
         view
         returns (uint256)
     {
-        uint256 acceptanceRatio = (pv.votes * 1e4) / _governanceValues.totalVotingPower;
-        // If >= 99.99% acceptance, consider it unanimous.
-        // The minting formula for voting power is a bit lossy, so we check
-        // for slightly less than 100%.
-        if (acceptanceRatio >= 0.9999e4) {
-            // Passed unanimously.
+        if (_isUnanimousVotes(pv.votes, _governanceValues.totalVotingPower)) {
             return LibProposal.PROPOSAL_FLAG_UNANIMOUS;
         }
         return 0;
@@ -728,6 +723,10 @@ abstract contract PartyGovernance is
             if (pv.passedTime + gv.executionDelay <= t) {
                 return ProposalState.Ready;
             }
+            // If unanimous, we skip the execution delay.
+            if (_isUnanimousVotes(pv.votes, gv.totalVotingPower)) {
+                return ProposalState.Ready;
+            }
             // Passed.
             return ProposalState.Passed;
         }
@@ -736,6 +735,18 @@ abstract contract PartyGovernance is
             return ProposalState.Defeated;
         }
         return ProposalState.Voting;
+    }
+
+    function _isUnanimousVotes(uint96 totalVotes, uint96 totalVotingPower)
+        private
+        pure
+        returns (bool)
+    {
+        uint256 acceptanceRatio = (totalVotes * 1e4) / totalVotingPower;
+        // If >= 99.99% acceptance, consider it unanimous.
+        // The minting formula for voting power is a bit lossy, so we check
+        // for slightly less than 100%.
+        return acceptanceRatio >= 0.9999e4;
     }
 
     function _areVotesPassing(

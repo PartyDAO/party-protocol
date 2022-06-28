@@ -217,14 +217,8 @@ contract PartyGovernanceTest is Test, TestUtils {
 
     // Nicholas votes on proposal
     nicholas.vote(party, 1);
-    _assertProposalState(party, 1, PartyGovernance.ProposalState.Passed, 100);
 
-    // Can't execute before execution time passes
-    vm.warp(block.timestamp + 299);
-    _assertProposalState(party, 1, PartyGovernance.ProposalState.Passed, 100);
-
-    // Ensure can execute when exeuctionTime is passed
-    vm.warp(block.timestamp + 2);
+    // Unanimous so can execute immediately.
     _assertProposalState(party, 1, PartyGovernance.ProposalState.Ready, 100);
     assertEq(engInstance.getLastExecutedProposalId(), 0);
     assertEq(engInstance.getNumExecutedProposals(), 0);

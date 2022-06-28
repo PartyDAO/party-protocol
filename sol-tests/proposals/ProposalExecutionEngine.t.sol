@@ -38,7 +38,7 @@ contract ProposalExecutionEngineTest is
         );
         eng = new TestableProposalExecutionEngine(
             globals,
-            SharedWyvernV2Maker(_randomAddress()),
+            ISeaportExchange(_randomAddress()),
             IZoraAuctionHouse(_randomAddress())
         );
     }
@@ -63,7 +63,7 @@ contract ProposalExecutionEngineTest is
 
     function _createTwoStepProposalData(uint256 emitValue1, uint256 emitValue2)
         private
-        view
+        pure
         returns (bytes memory)
     {
         return abi.encodeWithSelector(
@@ -75,7 +75,7 @@ contract ProposalExecutionEngineTest is
 
     function _createOneStepProposalData(uint256 emitValue)
         private
-        view
+        pure
         returns (bytes memory)
     {
         return abi.encodeWithSelector(
@@ -86,7 +86,7 @@ contract ProposalExecutionEngineTest is
 
     function _createUpgradeProposalData(bytes memory initData)
         private
-        view
+        pure
         returns (bytes memory)
     {
         return abi.encodeWithSelector(
