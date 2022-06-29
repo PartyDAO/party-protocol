@@ -7,9 +7,9 @@ import "../contracts/party/PartyFactory.sol";
 
 contract RinkebyPartify is Test {
   // constants
-  address constant PARTY_FACTORY_ADDRESS = 0x6C83F9091894A77F1D59115A62c199d314c3A9A1;
+  address constant PARTY_FACTORY_ADDRESS = 0x90B9831767De70462ad545128818dd6cCa692714;
   address constant NFT_CONTRACT_ADDRESS = 0x1DD9b99ce89cC088E20951b6C0F5C9c1AFdfb1c5;
-  uint256 constant NFT_TOKEN_ID = 2;
+  uint256 constant NFT_TOKEN_ID = 4;
   address constant HOST_1 = 0x8fDC86689f5F35F2b4d9f649c7bdc9C64f59e6bD;
   address constant HOST_2 = 0x678e8bd1D8845399c8e3C1F946CB4309014456a5;
   address constant RECIP_1 = 0xC282eC605DBe8C593380B68e18Fea69c4c628B36;
@@ -22,7 +22,7 @@ contract RinkebyPartify is Test {
   address constant RECIP_8 = 0x678e8bd1D8845399c8e3C1F946CB4309014456a5;
 
   uint40 constant VOTE_DURATION = 200 hours;
-  uint40 constant EXECUTION_DELAY = 24 hours;
+  uint40 constant EXECUTION_DELAY = 5 minutes;
   uint16 constant PASS_THRESHOLD_BPS = 5100;
 
   function run() public {

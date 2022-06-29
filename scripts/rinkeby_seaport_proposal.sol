@@ -10,9 +10,9 @@ import "../contracts/proposals/ProposalExecutionEngine.sol";
 
 contract RinkebySeaportProposal is Test {
 
-  address constant PARTY_ADDRESS = 0x7eb6EeC1Ee31eD875568314e86EB901b5FD0939E; // REPLACE_ME
+  address constant PARTY_ADDRESS = 0x4552B73d62Cce1891ff7c479aD918182C4e78b20; // REPLACE_ME
   address constant NFT_CONTRACT_ADDRESS = 0x1DD9b99ce89cC088E20951b6C0F5C9c1AFdfb1c5; // REPLACE_ME
-  uint256 constant NFT_TOKEN_ID = 2; // REPLACE_ME
+  uint256 constant NFT_TOKEN_ID = 4; // REPLACE_ME
   uint256 constant NONCE = 1;
 
   uint256 constant LIST_PRICE = 0.0975 ether;

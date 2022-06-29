@@ -131,6 +131,7 @@ contract Deploy is Test {
     console.log('  Globals - successfully set PartyDao split basis points', deployConstants.partyDaoDistributionSplitBps);
 
 
+
     // DEPLOY_TOKEN_DISTRIBUTOR
     console.log('');
     console.log('### TokenDistributor');
@@ -148,9 +149,11 @@ contract Deploy is Test {
     console.log('');
 
     console.log('');
-    console.log('  Globals - setting OpenSea Zora auction duration');
+    console.log('  Globals - setting OpenSea Zora auction variables');
     globals.setUint256(LibGlobals.GLOBAL_OS_ZORA_AUCTION_DURATION, deployConstants.osZoraAuctionDuration);
     console.log('  Globals - successfully set OpenSea Zora auction duration', deployConstants.osZoraAuctionDuration);
+    globals.setUint256(LibGlobals.GLOBAL_OS_ZORA_AUCTION_TIMEOUT, deployConstants.osZoraAuctionTimeout);
+    console.log('  Globals - successfully set OpenSea Zora auction timeout', deployConstants.osZoraAuctionTimeout);
 
 
     // DEPLOY_PROPOSAL_EXECUTION_ENGINE
