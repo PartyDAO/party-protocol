@@ -215,10 +215,12 @@ abstract contract ListOnOpenSeaportProposal is ZoraHelpers {
         ISeaportExchange.Order memory order = orders[0];
         ISeaportExchange.OrderParameters memory orderParams = order.parameters;
         orderParams.offerer = address(this);
-        orderParams.orderType = ISeaportExchange.OrderType.FULL_OPEN;
         orderParams.startTime = block.timestamp;
         orderParams.endTime = expiry;
-        orderParams.zoneHash = bytes32(0);
+        orderParams.zone = _GLOBALS.getAddress(LibGlobals.GLOBAL_OPENSEA_ZONE);
+        orderParams.orderType = orderParams.zone == address(0)
+            ? ISeaportExchange.OrderType.FULL_OPEN
+            : ISeaportExchange.OrderType.FULL_RESTRICTED;
         orderParams.salt = 0;
         orderParams.conduitKey = conduitKey;
         orderParams.totalOriginalConsiderationItems = 1 + fees.length;

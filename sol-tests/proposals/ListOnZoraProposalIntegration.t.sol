@@ -49,7 +49,7 @@ contract ListOnZoraProposalIntegrationTest is
 
       ProposalExecutionEngine pe = new ProposalExecutionEngine(
           globals,
-          ISeaportExchange(0x00000000006CEE72100D161c57ADA5Bb2be1CA79),
+          ISeaportExchange(address(0)),
           ISeaportConduitController(address(0)),
           ZORA
       );

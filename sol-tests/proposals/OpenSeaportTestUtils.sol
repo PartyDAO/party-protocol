@@ -14,69 +14,58 @@ contract OpenSeaportTestUtils is Test {
         SEAPORT = seaport;
     }
 
-    function _buyOpenSeaportListing(
-        address payable maker,
-        address buyer,
-        IERC721 token,
-        uint256 tokenId,
-        uint256 listPrice,
-        uint256 startTime,
-        uint256 duration
-    )
+    struct BuyOpenSeaportListingParams {
+        address payable maker;
+        address buyer;
+        IERC721 token;
+        uint256 tokenId;
+        uint256 listPrice;
+        uint256 startTime;
+        uint256 duration;
+        address zone;
+        bytes32 conduitKey;
+    }
+
+    function _buyOpenSeaportListing(BuyOpenSeaportListingParams memory params)
         internal
     {
-        vm.deal(buyer, address(buyer).balance + listPrice);
-        vm.prank(buyer);
-        SEAPORT.fulfillOrder{ value: listPrice }(_createFullSeaportOrderParams(
-            maker,
-            token,
-            tokenId,
-            listPrice,
-            startTime,
-            duration,
-            new uint256[](0),
-            new address payable[](0)
-        ), 0);
+        vm.deal(params.buyer, address(params.buyer).balance + params.listPrice);
+        vm.prank(params.buyer);
+        SEAPORT.fulfillOrder{ value: params.listPrice }(
+            _createFullSeaportOrderParams(
+                params,
+                new uint256[](0),
+                new address payable[](0)
+            ),
+            0
+        );
     }
 
     function _buyOpenSeaportListing(
-        address payable maker,
-        address buyer,
-        IERC721 token,
-        uint256 tokenId,
-        uint256 listPrice,
-        uint256 startTime,
-        uint256 duration,
+        BuyOpenSeaportListingParams memory params,
         uint256[] memory fees,
         address payable[] memory feeRecipients
     )
         internal
     {
-        uint256 totalValue = listPrice;
+        uint256 totalValue = params.listPrice;
         for (uint256 i = 0; i < fees.length; ++i) {
             totalValue += fees[i];
         }
-        vm.deal(buyer, address(buyer).balance + totalValue);
-        vm.prank(buyer);
-        SEAPORT.fulfillOrder{ value: totalValue }(_createFullSeaportOrderParams(
-            maker,
-            token,
-            tokenId,
-            listPrice,
-            startTime,
-            duration,
-            fees,
-            feeRecipients
-        ), 0);
+        vm.deal(params.buyer, address(params.buyer).balance + totalValue);
+        vm.prank(params.buyer);
+        SEAPORT.fulfillOrder{ value: totalValue }(
+            _createFullSeaportOrderParams(
+                params,
+                fees,
+                feeRecipients
+            ),
+            0
+        );
     }
 
     function _createFullSeaportOrderParams(
-        address payable maker,
-        IERC721 token,
-        uint256 tokenId,
-        uint256 listPrice,
-        uint256 startTime,
-        uint256 duration,
+        BuyOpenSeaportListingParams memory params,
         uint256[] memory fees,
         address payable[] memory feeRecipients
     )
@@ -84,13 +73,15 @@ contract OpenSeaportTestUtils is Test {
         pure
         returns (ISeaportExchange.Order memory order)
     {
-        order.parameters.orderType = ISeaportExchange.OrderType.FULL_OPEN;
+        order.parameters.orderType = params.zone == address(0)
+            ? ISeaportExchange.OrderType.FULL_OPEN
+            : ISeaportExchange.OrderType.FULL_RESTRICTED;
         ISeaportExchange.OfferItem[] memory offers =
             order.parameters.offer =
                 new ISeaportExchange.OfferItem[](1);
         offers[0].itemType = ISeaportExchange.ItemType.ERC721;
-        offers[0].token = address(token);
-        offers[0].identifierOrCriteria = tokenId;
+        offers[0].token = address(params.token);
+        offers[0].identifierOrCriteria = params.tokenId;
         offers[0].startAmount = offers[0].endAmount = 1;
         ISeaportExchange.ConsiderationItem[] memory considerations =
             order.parameters.consideration =
@@ -98,8 +89,8 @@ contract OpenSeaportTestUtils is Test {
         considerations[0].itemType = ISeaportExchange.ItemType.NATIVE;
         considerations[0].token = address(0);
         considerations[0].identifierOrCriteria = 0;
-        considerations[0].startAmount = considerations[0].endAmount = listPrice;
-        considerations[0].recipient = maker;
+        considerations[0].startAmount = considerations[0].endAmount = params.listPrice;
+        considerations[0].recipient = params.maker;
         for (uint256 i = 0; i < fees.length; ++i) {
             considerations[1 + i].itemType = ISeaportExchange.ItemType.NATIVE;
             considerations[1 + i].token = address(0);
@@ -107,9 +98,11 @@ contract OpenSeaportTestUtils is Test {
             considerations[1 + i].startAmount = considerations[1 + i].endAmount = fees[i];
             considerations[1 + i].recipient = feeRecipients[i];
         }
-        order.parameters.offerer = maker;
-        order.parameters.startTime = startTime;
-        order.parameters.endTime = startTime + duration;
+        order.parameters.offerer = params.maker;
+        order.parameters.startTime = params.startTime;
+        order.parameters.endTime = params.startTime + params.duration;
         order.parameters.totalOriginalConsiderationItems = 1 + fees.length;
+        order.parameters.conduitKey = params.conduitKey;
+        order.parameters.zone = params.zone;
     }
 }
