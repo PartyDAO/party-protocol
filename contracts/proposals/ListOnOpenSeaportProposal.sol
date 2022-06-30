@@ -6,6 +6,7 @@ import "../globals/LibGlobals.sol";
 import "../tokens/IERC721.sol";
 
 import "./opensea/ISeaportExchange.sol";
+import "./opensea/ISeaportConduitController.sol";
 import "./ZoraHelpers.sol";
 import "./LibProposal.sol";
 import "./IProposalExecutionEngine.sol";
@@ -67,10 +68,17 @@ abstract contract ListOnOpenSeaportProposal is ZoraHelpers {
     );
 
     ISeaportExchange public immutable SEAPORT;
+    ISeaportConduitController public immutable CONDUIT_CONTROLLER;
     IGlobals private immutable _GLOBALS;
 
-    constructor(IGlobals globals, ISeaportExchange seaport) {
+    constructor(
+        IGlobals globals,
+        ISeaportExchange seaport,
+        ISeaportConduitController conduitController
+    )
+    {
         SEAPORT = seaport;
+        CONDUIT_CONTROLLER = conduitController;
         _GLOBALS =globals;
     }
 
@@ -196,9 +204,11 @@ abstract contract ListOnOpenSeaportProposal is ZoraHelpers {
         if (fees.length != feeRecipients.length) {
             revert InvalidFeeRecipients();
         }
-        // Approve seaport to spend our NFT. This should revert if we do not own
+        // Approve opensea's conduit to spend our NFT. This should revert if we do not own
         // the NFT.
-        token.approve(address(SEAPORT), tokenId);
+        bytes32 conduitKey = _GLOBALS.getBytes32(LibGlobals.GLOBAL_OPENSEA_CONDUIT_KEY);
+        (address conduit,) = CONDUIT_CONTROLLER.getConduit(conduitKey);
+        token.approve(conduit, tokenId);
 
         // Create a (basic) seaport 721 sell order.
         ISeaportExchange.Order[] memory orders = new ISeaportExchange.Order[](1);
@@ -210,7 +220,7 @@ abstract contract ListOnOpenSeaportProposal is ZoraHelpers {
         orderParams.endTime = expiry;
         orderParams.zoneHash = bytes32(0);
         orderParams.salt = 0;
-        orderParams.conduitKey = bytes32(0);
+        orderParams.conduitKey = conduitKey;
         orderParams.totalOriginalConsiderationItems = 1 + fees.length;
         // What we are selling.
         orderParams.offer = new ISeaportExchange.OfferItem[](1);

@@ -14,9 +14,10 @@ contract TestableProposalExecutionEngine is ProposalExecutionEngine {
     constructor(
         IGlobals globals,
         ISeaportExchange seaport,
+        ISeaportConduitController seaportConduitController,
         IZoraAuctionHouse zora
     )
-        ProposalExecutionEngine(globals, seaport, zora)
+        ProposalExecutionEngine(globals, seaport, seaportConduitController, zora)
     {}
 
     function getProposalEngineImpl()

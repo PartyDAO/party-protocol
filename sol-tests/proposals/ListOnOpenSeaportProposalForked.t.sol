@@ -57,12 +57,16 @@ contract ListOnOpenSeaportProposalForkedTest is
     Globals globals;
     ISeaportExchange SEAPORT =
         ISeaportExchange(0x00000000006CEE72100D161c57ADA5Bb2be1CA79);
+    ISeaportConduitController CONDUIT_CONTROLLER =
+        ISeaportConduitController(0x00000000F9490004C11Cef243f5400493c00Ad63);
     IZoraAuctionHouse ZORA =
         IZoraAuctionHouse(0xE468cE99444174Bd3bBBEd09209577d25D1ad673);
     IERC721[] preciousTokens;
     uint256[] preciousTokenIds;
 
-    constructor() ZoraTestUtils(ZORA) OpenSeaportTestUtils(SEAPORT) {}
+    constructor(ISeaportConduitController conduitController)
+        ZoraTestUtils(ZORA)
+        OpenSeaportTestUtils(SEAPORT) {}
 
     function setUp() public onlyForked {
         globals = new Globals(address(this));
@@ -77,6 +81,7 @@ contract ListOnOpenSeaportProposalForkedTest is
         impl = new TestableListOnOpenSeaportProposal(
             globals,
             SEAPORT,
+            CONDUIT_CONTROLLER,
             ZORA
         );
         (preciousTokens, preciousTokenIds) = _createPreciousTokens(address(impl), 2);

@@ -77,9 +77,10 @@ contract ProposalExecutionEngine is
     constructor(
         IGlobals globals,
         ISeaportExchange seaport,
+        ISeaportConduitController seaportConduitController,
         IZoraAuctionHouse zoraAuctionHouse
     )
-        ListOnOpenSeaportProposal(globals, seaport)
+        ListOnOpenSeaportProposal(globals, seaport, seaportConduitController)
         ListOnZoraProposal(zoraAuctionHouse)
     {
         _GLOBALS = globals;
