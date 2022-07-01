@@ -39,6 +39,7 @@ contract ProposalExecutionEngineTest is
         eng = new TestableProposalExecutionEngine(
             globals,
             ISeaportExchange(_randomAddress()),
+            ISeaportConduitController(_randomAddress()),
             IZoraAuctionHouse(_randomAddress())
         );
     }

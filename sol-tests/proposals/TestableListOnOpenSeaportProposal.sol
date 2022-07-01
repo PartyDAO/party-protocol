@@ -12,8 +12,13 @@ contract TestableListOnOpenSeaportProposal is
     ListOnZoraProposal,
     ERC721Receiver
 {
-    constructor(IGlobals globals, ISeaportExchange seaport, IZoraAuctionHouse zora)
-        ListOnOpenSeaportProposal(globals, seaport)
+    constructor(
+        IGlobals globals,
+        ISeaportExchange seaport,
+        ISeaportConduitController conduitController,
+        IZoraAuctionHouse zora
+    )
+        ListOnOpenSeaportProposal(globals, seaport, conduitController)
         ListOnZoraProposal(zora)
     {}
 

@@ -56,9 +56,13 @@ contract ListOnOpenSeaportProposalForkedTest is
     TestableListOnOpenSeaportProposal impl;
     Globals globals;
     ISeaportExchange SEAPORT =
-        ISeaportExchange(0x00000000006CEE72100D161c57ADA5Bb2be1CA79);
+        ISeaportExchange(0x00000000006c3852cbEf3e08E8dF289169EdE581);
+    ISeaportConduitController CONDUIT_CONTROLLER =
+        ISeaportConduitController(0x00000000F9490004C11Cef243f5400493c00Ad63);
     IZoraAuctionHouse ZORA =
         IZoraAuctionHouse(0xE468cE99444174Bd3bBBEd09209577d25D1ad673);
+    address SEAPORT_ZONE = 0x004C00500000aD104D7DBd00e3ae0A5C00560C00;
+    bytes32 SEAPORT_CONDUIT_KEY = 0x0000007b02230091a7ed01230072f7006a004d60a8d4e71d599b8104250f0000;
     IERC721[] preciousTokens;
     uint256[] preciousTokenIds;
 
@@ -66,6 +70,14 @@ contract ListOnOpenSeaportProposalForkedTest is
 
     function setUp() public onlyForked {
         globals = new Globals(address(this));
+        globals.setBytes32(
+            LibGlobals.GLOBAL_OPENSEA_CONDUIT_KEY,
+            SEAPORT_CONDUIT_KEY
+        );
+        globals.setAddress(
+            LibGlobals.GLOBAL_OPENSEA_ZONE,
+            SEAPORT_ZONE
+        );
         globals.setUint256(
             LibGlobals.GLOBAL_OS_ZORA_AUCTION_TIMEOUT,
             ZORA_AUCTION_TIMEOUT
@@ -77,6 +89,7 @@ contract ListOnOpenSeaportProposalForkedTest is
         impl = new TestableListOnOpenSeaportProposal(
             globals,
             SEAPORT,
+            CONDUIT_CONTROLLER,
             ZORA
         );
         (preciousTokens, preciousTokenIds) = _createPreciousTokens(address(impl), 2);
@@ -174,7 +187,17 @@ contract ListOnOpenSeaportProposalForkedTest is
             ));
         }
         // Buy the OS listing.
-        _buyOpenSeaportListing(payable(impl), buyer, token, tokenId, listPrice, listStartTime, listDuration);
+        _buyOpenSeaportListing(BuyOpenSeaportListingParams({
+            maker: payable(impl),
+            buyer: buyer,
+            token: token,
+            tokenId: tokenId,
+            listPrice: listPrice,
+            startTime: listStartTime,
+            duration: listDuration,
+            zone: SEAPORT_ZONE,
+            conduitKey: SEAPORT_CONDUIT_KEY
+        }));
         // Finalize the listing.
         vm.expectEmit(false, false, false, true);
         emit OpenSeaportOrderSold(orderHash, token, tokenId, listPrice);
@@ -226,13 +249,17 @@ contract ListOnOpenSeaportProposalForkedTest is
         }
         // Buy the OS listing.
         _buyOpenSeaportListing(
-            payable(impl),
-            buyer,
-            token,
-            tokenId,
-            listPrice,
-            listStartTime,
-            listDuration,
+            BuyOpenSeaportListingParams({
+                maker: payable(impl),
+                buyer: buyer,
+                token: token,
+                tokenId: tokenId,
+                listPrice: listPrice,
+                startTime: listStartTime,
+                duration: listDuration,
+                zone: SEAPORT_ZONE,
+                conduitKey: SEAPORT_CONDUIT_KEY
+            }),
             fees,
             feeRecipients
         );
@@ -278,7 +305,17 @@ contract ListOnOpenSeaportProposalForkedTest is
             ));
         }
         // Buy the OS listing.
-        _buyOpenSeaportListing(payable(impl), buyer, token, tokenId, listPrice, listStartTime, listDuration);
+        _buyOpenSeaportListing(BuyOpenSeaportListingParams({
+            maker: payable(impl),
+            buyer: buyer,
+            token: token,
+            tokenId: tokenId,
+            listPrice: listPrice,
+            startTime: listStartTime,
+            duration: listDuration,
+            zone: SEAPORT_ZONE,
+            conduitKey: SEAPORT_CONDUIT_KEY
+        }));
         // Finalize the listing.
         vm.expectEmit(false, false, false, true);
         emit OpenSeaportOrderSold(orderHash, token, tokenId, listPrice);
@@ -320,7 +357,17 @@ contract ListOnOpenSeaportProposalForkedTest is
             ));
         }
         // Buy the OS listing.
-        _buyOpenSeaportListing(payable(impl), buyer, token, tokenId, listPrice, listStartTime, listDuration);
+        _buyOpenSeaportListing(BuyOpenSeaportListingParams({
+            maker: payable(impl),
+            buyer: buyer,
+            token: token,
+            tokenId: tokenId,
+            listPrice: listPrice,
+            startTime: listStartTime,
+            duration: listDuration,
+            zone: SEAPORT_ZONE,
+            conduitKey: SEAPORT_CONDUIT_KEY
+        }));
         // Finalize the listing.
         vm.expectEmit(false, false, false, true);
         emit OpenSeaportOrderSold(orderHash, token, tokenId, listPrice);
@@ -372,7 +419,17 @@ contract ListOnOpenSeaportProposalForkedTest is
         skip(listDuration);
         // Attempt to buy the listing (fail).
         vm.expectRevert(ISeaportExchange.InvalidTime.selector);
-        _buyOpenSeaportListing(payable(impl), buyer, token, tokenId, listPrice, listStartTime, listDuration);
+        _buyOpenSeaportListing(BuyOpenSeaportListingParams({
+            maker: payable(impl),
+            buyer: buyer,
+            token: token,
+            tokenId: tokenId,
+            listPrice: listPrice,
+            startTime: listStartTime,
+            duration: listDuration,
+            zone: SEAPORT_ZONE,
+            conduitKey: SEAPORT_CONDUIT_KEY
+        }));
         // Finalize the listing.
         vm.expectEmit(false, false, false, true);
         emit OpenSeaportOrderExpired(orderHash, token, tokenId, expiry);
