@@ -3,7 +3,6 @@ pragma solidity ^0.8;
 
 import "../utils/Implementation.sol";
 import "../utils/LibRawResult.sol";
-import "../utils/ReentrancyGuard.sol";
 import "../globals/IGlobals.sol";
 
 import "./IProposalExecutionEngine.sol";
@@ -17,7 +16,6 @@ import "./ProposalStorage.sol";
 contract ProposalExecutionEngine is
     IProposalExecutionEngine,
     Implementation,
-    ReentrancyGuard,
     ProposalStorage,
     ListOnOpenSeaportProposal,
     ListOnZoraProposal,
@@ -49,8 +47,8 @@ contract ProposalExecutionEngine is
         // The hash will be 0x0 if the proposal has not been executed.
         // The hash will be of the next progressData to be passed
         // into executeProposal}() if the proposal is in progress.
-        // The hash will be of the empty bytes (hex"") if the proposal
-        // is completed.
+        // The hash will be the hash of the empty bytes (hex"") if the proposal
+        // was completed.
         mapping (bytes32 => bytes32) proposalProgressDataHashByProposalId;
         // The proposal ID of the current, in progress proposal being executed.
         // InProgress proposals need to have executeProposal() called on them
@@ -60,7 +58,6 @@ contract ProposalExecutionEngine is
         bytes32 currentInProgressProposalId;
     }
 
-    event ProposalExecutionProgress(bytes32 proposalId, bytes progressData);
     event ProposalEngineImplementationUpgraded(address oldImpl, address newImpl);
 
     error ZeroProposalIdError();
@@ -68,6 +65,7 @@ contract ProposalExecutionEngine is
     error ProposalAlreadyCompleteError(bytes32 proposalId);
     error ProposalExecutionBlockedError(bytes32 proposalId, bytes32 currentInProgressProposalId);
     error ProposalProgressDataInvalidError(bytes32 actualProgressDataHash, bytes32 expectedProgressDataHash);
+    error ProposalNotInProgressError(uint256 proposalId);
 
     bytes32 private constant EMPTY_HASH = keccak256("");
     IGlobals private immutable _GLOBALS;
@@ -95,16 +93,6 @@ contract ProposalExecutionEngine is
         onlyDelegateCall
     { /* NOOP */ }
 
-    function getProposalExecutionStatus(bytes32 proposalId)
-        external
-        view
-        returns (ProposalExecutionStatus)
-    {
-        return _getProposalExecutionStatus(
-            _getStorage().proposalProgressDataHashByProposalId[proposalId]
-        );
-    }
-
     function getCurrentInProgressProposalId()
         external
         view
@@ -113,15 +101,15 @@ contract ProposalExecutionEngine is
         return _getStorage().currentInProgressProposalId;
     }
 
-    // Execute a proposal. Returns the execution status of the proposal.
+    /// @inheritdoc IProposalExecutionEngine
     function executeProposal(ExecuteProposalParams memory params)
         external
-        nonReentrant
-        returns (ProposalExecutionStatus status)
+        onlyDelegateCall
+        returns (bytes memory nextProgressData)
     {
         Storage storage stor = _getStorage();
         // Must have a valid proposal ID.
-        if (params.proposalId == bytes32(0)) {
+        if (params.proposalId == 0) {
             revert ZeroProposalIdError();
         }
         {
@@ -139,15 +127,16 @@ contract ProposalExecutionEngine is
                      );
                  }
             }
-            status = _getProposalExecutionStatus(nextProgressDataHash);
             // Proposal must not be completed.
-            if (status == ProposalExecutionStatus.Complete) {
+            // If the proposal was previously completed then the nextProgressDataHash
+            // for that proposal will be the empty hash.
+            if (nextProgressDataHash == EMPTY_HASH) {
                 revert ProposalAlreadyCompleteError(params.proposalId);
             }
         }
         // Only one proposal can be in progress at a time.
         bytes32 currentInProgressProposalId = stor.currentInProgressProposalId;
-        if (currentInProgressProposalId != bytes32(0)) {
+        if (currentInProgressProposalId != 0) {
             if (currentInProgressProposalId != params.proposalId) {
                 revert ProposalExecutionBlockedError(
                     params.proposalId,
@@ -160,8 +149,7 @@ contract ProposalExecutionEngine is
         // Execute the proposal.
         ProposalType pt;
         (pt, params.proposalData) = _getProposalType(params.proposalData);
-        bytes memory nextProgressData = _execute(pt, params);
-        emit ProposalExecutionProgress(params.proposalId, nextProgressData);
+        nextProgressData = _execute(pt, params);
 
         // Remember the next progress data.
         stor.proposalProgressDataHashByProposalId[params.proposalId] =
@@ -170,21 +158,40 @@ contract ProposalExecutionEngine is
         // If progress data is empty, the propsal is complete,
         // so clear the current in progress proposal.
         if (nextProgressData.length == 0) {
-            stor.currentInProgressProposalId = bytes32(0);
-            return ProposalExecutionStatus.Complete;
+            stor.currentInProgressProposalId = 0;
         }
-        return ProposalExecutionStatus.InProgress;
+    }
+
+    /// @inheritdoc IProposalExecutionEngine
+    function cancelProposal(bytes32 proposalId)
+        external
+        onlyDelegateCall
+    {
+        // Must be a valid proposal ID.
+        if (proposalId == 0) {
+            revert ZeroProposalIdError();
+        }
+        Storage storage stor = _getStorage();
+        {
+            // Must be the current InProgress proposal.
+            bytes32 currentInProgressProposalId = stor.currentInProgressProposalId;
+            if (currentInProgressProposalId != proposalId) {
+                revert ProposalNotInProgressError(proposalId);
+            }
+        }
+        // Clear the current InProgress proposal ID.
+        stor.currentInProgressProposalId = 0;
     }
 
     function _execute(ProposalType pt, ExecuteProposalParams memory params)
         internal
         virtual
-        returns (bytes memory progressData)
+        returns (bytes memory nextProgressData)
     {
         if (pt == ProposalType.ListOnOpenSea) {
-            progressData = _executeListOnOpenSeaport(params);
+            nextProgressData = _executeListOnOpenSeaport(params);
         } else if (pt == ProposalType.ListOnZora) {
-            progressData = _executeListOnZora(params);
+            nextProgressData = _executeListOnZora(params);
         } else if (pt == ProposalType.Fractionalize) {
             progressData = _executeFractionalize(params);
         } else if (pt == ProposalType.ArbitraryCalls) {
@@ -231,24 +238,8 @@ contract ProposalExecutionEngine is
     }
 
     // Retrieve the explicit storage bucket for the ProposalExecutionEngine logic.
-    function _getStorage() private view returns (Storage storage stor) {
+    function _getStorage() internal view returns (Storage storage stor) {
         uint256 slot = _STORAGE_SLOT;
         assembly { stor.slot := slot }
-    }
-
-    function _getProposalExecutionStatus(
-        bytes32 storedProgressDataHash
-    )
-        private
-        pure
-        returns (ProposalExecutionStatus)
-    {
-        if (storedProgressDataHash == EMPTY_HASH) {
-            return ProposalExecutionStatus.Complete;
-        }
-        if (storedProgressDataHash == bytes32(0)) {
-            return ProposalExecutionStatus.Unexecuted;
-        }
-        return ProposalExecutionStatus.InProgress;
     }
 }

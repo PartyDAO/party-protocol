@@ -9,6 +9,11 @@ import "../DummyERC20.sol";
 import "../TestUtils.sol";
 
 contract DummyProposalExecutionEngine is IProposalExecutionEngine {
+    enum ProposalExecutionStatus {
+        Unexecuted,
+        InProgress,
+        Complete
+    }
     event DummyProposalExecutionEngine_executeCalled(
         address context,
         ProposalExecutionStatus status,
@@ -117,7 +122,7 @@ contract TestablePartyGovernance is PartyGovernance {
     function ownerOf(uint256 tokenId) external view returns (address o) {}
 
     function getVotes(uint256 proposalId) external view returns (uint96) {
-        (, ProposalInfoValues memory v) = this.getProposalStates(proposalId);
+        (, ProposalStateValues memory v) = this.getProposalStates(proposalId);
         return v.votes;
     }
 
@@ -167,7 +172,7 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
     event HostStatusTransferred(address oldHost, address newHost);
     event DummyProposalExecutionEngine_executeCalled(
         address context,
-        IProposalExecutionEngine.ProposalExecutionStatus status,
+        DummyProposalExecutionEngine.ProposalExecutionStatus status,
         IProposalExecutionEngine.ExecuteProposalParams params
     );
     event DummyTokenDistributor_createDistributionCalled(
@@ -333,7 +338,7 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
         vm.expectEmit(false, false, false, true);
         emit DummyProposalExecutionEngine_executeCalled(
             address(gov),
-            IProposalExecutionEngine.ProposalExecutionStatus.Complete,
+            DummyProposalExecutionEngine.ProposalExecutionStatus.Complete,
             IProposalExecutionEngine.ExecuteProposalParams({
                 proposalId: bytes32(proposalId),
                 proposalData: proposal.proposalData,
@@ -387,7 +392,7 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
         vm.expectEmit(false, false, false, true);
         emit DummyProposalExecutionEngine_executeCalled(
             address(gov),
-            IProposalExecutionEngine.ProposalExecutionStatus.InProgress,
+            DummyProposalExecutionEngine.ProposalExecutionStatus.InProgress,
             IProposalExecutionEngine.ExecuteProposalParams({
                 proposalId: bytes32(proposalId),
                 proposalData: proposal.proposalData,
@@ -413,7 +418,7 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
         vm.expectEmit(false, false, false, true);
         emit DummyProposalExecutionEngine_executeCalled(
             address(gov),
-            IProposalExecutionEngine.ProposalExecutionStatus.Complete,
+            DummyProposalExecutionEngine.ProposalExecutionStatus.Complete,
             IProposalExecutionEngine.ExecuteProposalParams({
                 proposalId: bytes32(proposalId),
                 proposalData: proposal.proposalData,
@@ -467,7 +472,7 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
         vm.expectEmit(false, false, false, true);
         emit DummyProposalExecutionEngine_executeCalled(
             address(gov),
-            IProposalExecutionEngine.ProposalExecutionStatus.Complete,
+            DummyProposalExecutionEngine.ProposalExecutionStatus.Complete,
             IProposalExecutionEngine.ExecuteProposalParams({
                 proposalId: bytes32(proposalId),
                 proposalData: proposal.proposalData,
@@ -529,7 +534,7 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
         vm.expectEmit(false, false, false, true);
         emit DummyProposalExecutionEngine_executeCalled(
             address(gov),
-            IProposalExecutionEngine.ProposalExecutionStatus.Complete,
+            DummyProposalExecutionEngine.ProposalExecutionStatus.Complete,
             IProposalExecutionEngine.ExecuteProposalParams({
                 proposalId: bytes32(proposalId),
                 proposalData: proposal.proposalData,
@@ -582,7 +587,7 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
         vm.expectEmit(false, false, false, true);
         emit DummyProposalExecutionEngine_executeCalled(
             address(gov),
-            IProposalExecutionEngine.ProposalExecutionStatus.Complete,
+            DummyProposalExecutionEngine.ProposalExecutionStatus.Complete,
             IProposalExecutionEngine.ExecuteProposalParams({
                 proposalId: bytes32(proposalId),
                 proposalData: proposal.proposalData,

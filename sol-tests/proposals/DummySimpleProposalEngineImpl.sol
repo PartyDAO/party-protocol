@@ -22,14 +22,6 @@ contract DummySimpleProposalEngineImpl is IProposalExecutionEngine {
 
     function initialize(address oldImpl, bytes memory initData) external { }
 
-    function getProposalExecutionStatus(bytes32 proposalId)
-        external
-        pure
-        returns (ProposalExecutionStatus)
-    {
-        revert('not implemented 1');
-    }
-
     function getLastExecutedProposalId() public view returns (uint256) {
         return _getStorage().lastExecutedProposalId;
     }
@@ -43,13 +35,13 @@ contract DummySimpleProposalEngineImpl is IProposalExecutionEngine {
     }
 
     function executeProposal(ExecuteProposalParams memory params)
-        external returns (ProposalExecutionStatus)
+        external returns (bytes memory nextProgressData)
     {
         uint256 proposalId = uint256(params.proposalId);
         _getStorage().lastExecutedProposalId = proposalId;
         _getStorage().proposalIdToFlags[proposalId] = uint256(params.flags);
         _getStorage().executedProposals += 1;
-        return ProposalExecutionStatus.Complete;
+        return ""; 
     }
 
     // Retrieve the explicit storage bucket for the ProposalExecutionEngine logic.

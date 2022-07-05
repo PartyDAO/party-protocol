@@ -55,7 +55,6 @@ contract TestableProposalExecutionEngine is ProposalExecutionEngine {
             uint256 emitValue = abi.decode(params.proposalData, (uint256));
             emit TestEcho(emitValue);
             return ""; // Done
-
         }
         return super._execute(pt, params);
     }
