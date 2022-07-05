@@ -30,6 +30,8 @@ describe('Arbitrary proposals integrations test', () => {
             daoMultisig: multisig,
             admins: [admin],
             daoSplit: 0.015,
+            forcedZoraAuctionTimeout: ONE_DAY_SECONDS,
+            forcedZoraAuctionDuration: ONE_DAY_SECONDS / 2,
         });
         callTarget = await deployContract(
             worker,
