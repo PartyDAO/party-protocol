@@ -105,9 +105,7 @@ contract ProposalExecutionEngineTest is
             _createTestProposal(_createTwoStepProposalData(emitValue1, emitValue2));
         vm.expectEmit(true, false, false ,false, address(eng));
         emit TestEcho(emitValue1);
-        ProposalExecutionStatus status =
-            _executeProposal(executeParams);
-        assertTrue(status == ProposalExecutionStatus.InProgress);
+        assertFalse(_executeProposal(executeParams));
         // Use bad progressData for the next step.
         executeParams.progressData = abi.encode('poop');
         vm.expectRevert(abi.encodeWithSelector(
@@ -123,7 +121,7 @@ contract ProposalExecutionEngineTest is
         // proposal, which should fail.
         IProposalExecutionEngine.ExecuteProposalParams memory executeParams =
             _createTestProposal(_createTwoStepProposalData(_randomUint256(), _randomUint256()));
-        _executeProposal(executeParams);
+        assertFalse(_executeProposal(executeParams));
         // Execute a different proposal while the first one is incomplete.
         executeParams = _createTestProposal(_createOneStepProposalData(_randomUint256()));
         vm.expectRevert(abi.encodeWithSelector(
@@ -138,9 +136,7 @@ contract ProposalExecutionEngineTest is
         // Execute a one-step proposal, then try to execute the same one again.
         IProposalExecutionEngine.ExecuteProposalParams memory executeParams =
             _createTestProposal(_createOneStepProposalData(_randomUint256()));
-        ProposalExecutionStatus status =
-            _executeProposal(executeParams);
-        assertTrue(status == ProposalExecutionStatus.Complete);
+        assertTrue(_executeProposal(executeParams));
         // Try again
         vm.expectRevert(abi.encodeWithSelector(
             ProposalExecutionEngine.ProposalAlreadyCompleteError.selector,
@@ -155,9 +151,7 @@ contract ProposalExecutionEngineTest is
             _createTestProposal(_createTwoStepProposalData(emitValue1, emitValue2));
         vm.expectEmit(true, false, false ,false, address(eng));
         emit TestEcho(emitValue1);
-        ProposalExecutionStatus status =
-            _executeProposal(executeParams);
-        assertTrue(status == ProposalExecutionStatus.InProgress);
+        assertFalse(_executeProposal(executeParams));
         // Update the progressData for the next step.
         // Normally this would be captured from event logs, but we don't
         // have access to logs so the test contract surfaces it through a
@@ -165,8 +159,7 @@ contract ProposalExecutionEngineTest is
         executeParams.progressData = eng.t_nextProgressData();
         vm.expectEmit(true, false, false ,false, address(eng));
         emit TestEcho(emitValue2);
-        status = _executeProposal(executeParams);
-        assertTrue(status == ProposalExecutionStatus.Complete);
+        assertTrue(_executeProposal(executeParams));
     }
 
     function test_executeProposal_oneStepWorks() public {
@@ -175,9 +168,7 @@ contract ProposalExecutionEngineTest is
             _createTestProposal(_createOneStepProposalData(emitValue));
         vm.expectEmit(true, false, false ,false, address(eng));
         emit TestEcho(emitValue);
-        ProposalExecutionStatus status =
-            _executeProposal(executeParams);
-        assertTrue(status == ProposalExecutionStatus.Complete);
+        assertTrue(_executeProposal(executeParams));
     }
 
     function test_executeProposal_upgradeImplementationWorks() public {
@@ -186,13 +177,11 @@ contract ProposalExecutionEngineTest is
             _createTestProposal(_createUpgradeProposalData(initData));
         vm.expectEmit(true, false, false ,false, address(eng));
         emit TestInitializeCalled(address(eng), keccak256(initData));
-        ProposalExecutionStatus status =
-            _executeProposal(executeParams);
-        assertTrue(status == ProposalExecutionStatus.Complete);
+        assertTrue(_executeProposal(executeParams));
         assertEq(address(eng.getProposalEngineImpl()), address(newEngImpl));
     }
 
-    _executeProposal(IProposalExecutionEngine.ExecuteProposalParams memory params)
+    function _executeProposal(IProposalExecutionEngine.ExecuteProposalParams memory params)
         private
         returns (bool completed)
     {

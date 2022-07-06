@@ -89,7 +89,7 @@ abstract contract PartyGovernance is
         // this value is ignored.
         uint40 maxExecutableTime;
         // The minimum time beyond which a proposal can be cancelled if it is
-        // stuck in the InProgress state.
+        // stuck in the InProgress status.
         uint40 minCancelTime;
         // Encoded proposal data. The first 4 bytes are the proposal type, followed
         // by encoded proposal args specific to the proposal type. See
@@ -143,7 +143,7 @@ abstract contract PartyGovernance is
     event PreciousListSet(IERC721[] tokens, uint256[] tokenIds);
     event HostStatusTransferred(address oldHost, address newHost);
 
-    error BadProposalStatusError(ProposalStatus state);
+    error BadProposalStatusError(ProposalStatus status);
     error ProposalExistsError(uint256 proposalId);
     error BadProposalHashError(bytes32 proposalHash, bytes32 actualHash);
     error ProposalHasNoVotesError(uint256 proposalId);
@@ -286,13 +286,13 @@ abstract contract PartyGovernance is
         return (snap.isDelegated ? 0 : snap.intrinsicVotingPower) + snap.delegatedVotingPower;
     }
 
-    function getProposalStatuss(uint256 proposalId)
+    function getProposalStateInfo(uint256 proposalId)
         external
         view
-        returns (ProposalStatus state, ProposalStateValues memory values)
+        returns (ProposalStatus status, ProposalStateValues memory values)
     {
         values = _proposalStateByProposalId[proposalId].values;
-        state = _getProposalStatus(values);
+        status = _getProposalStatus(values);
     }
 
     function getGovernanceValues() external view returns (GovernanceValues memory gv) {
@@ -313,11 +313,12 @@ abstract contract PartyGovernance is
         assembly {
             // Overwrite the data field with the hash of its contents and then
             // hash the struct.
-            let t := mload(add(proposal, 0x40))
+            let dataPos := add(proposal, 0x40)
+            let t := mload(dataPos)
             mstore(dataPos, dataHash)
             h := keccak256(proposal, 0x60)
             // Restore the data field.
-            mstore(dataPos, add(proposal, 0x40))
+            mstore(dataPos, dataPos)
         }
     }
 
@@ -391,13 +392,13 @@ abstract contract PartyGovernance is
         ProposalStateValues memory values = info.values;
 
         {
-            ProposalStatus state = _getProposalStatus(values);
+            ProposalStatus status = _getProposalStatus(values);
             if (
-                state != ProposalStatus.Voting &&
-                state != ProposalStatus.Passed &&
-                state != ProposalStatus.Ready
+                status != ProposalStatus.Voting &&
+                status != ProposalStatus.Passed &&
+                status != ProposalStatus.Ready
             ) {
-                revert BadProposalStatusError(state);
+                revert BadProposalStatusError(status);
             }
         }
 
@@ -429,14 +430,14 @@ abstract contract PartyGovernance is
         ProposalStateValues memory values = info.values;
 
         {
-            ProposalStatus state = _getProposalStatus(values);
+            ProposalStatus status = _getProposalStatus(values);
             // Proposal must be in one of the following states.
             if (
-                state != ProposalStatus.Voting &&
-                state != ProposalStatus.Passed &&
-                state != ProposalStatus.Ready
+                status != ProposalStatus.Voting &&
+                status != ProposalStatus.Passed &&
+                status != ProposalStatus.Ready
             ) {
-                revert BadProposalStatusError(state);
+                revert BadProposalStatusError(status);
             }
         }
 
@@ -446,12 +447,12 @@ abstract contract PartyGovernance is
     }
 
     /// @notice Executes a passed proposal.
-    /// @dev The proposal must be in the Ready or InProgress state.
+    /// @dev The proposal must be in the Ready or InProgress status.
     ///      For multi-step/tx proposals, this should be called repeatedly.
     ///      `progressData` is the data emitted in the `ProposalExecutionProgress` event
     ///      by `IProposalExecutionEngine` for the last execute call on this proposal.
     ///      A proposal that has been executed but still requires further execute calls
-    ///      will have the state of `InProgress`.
+    ///      will have the status of `InProgress`.
     ///      No other proposals may be executed if there is a an incomplete proposal.
     ///      When the proposal has completed (no more further execute calls necessary),
     ///      a `ProposalCompleted` event will be emitted.
@@ -470,11 +471,11 @@ abstract contract PartyGovernance is
         // Proposal details must remain the same from propose().
         _validateProposalHash(proposal, proposalState.hash);
         ProposalStateValues memory values = proposalState.values;
-        ProposalStatus state = _getProposalStatus(values);
-        if (state != ProposalStatus.Ready && state != ProposalStatus.InProgress) {
-            revert BadProposalStatusError(state);
+        ProposalStatus status = _getProposalStatus(values);
+        if (status != ProposalStatus.Ready && status != ProposalStatus.InProgress) {
+            revert BadProposalStatusError(status);
         }
-        if (state == ProposalStatus.Ready) {
+        if (status == ProposalStatus.Ready) {
             if (proposal.maxExecutableTime < block.timestamp) {
                 revert ExecutionTimeExceededError(
                     proposal.maxExecutableTime,
@@ -519,10 +520,10 @@ abstract contract PartyGovernance is
         ProposalState storage proposalState = _proposalStateByProposalId[proposalId];
         ProposalStateValues memory values = proposalState.values;
         {
-            ProposalStatus state = _getProposalStatus(values);
+            ProposalStatus status = _getProposalStatus(values);
             // Must be InProgress.
-            if (state != ProposalStatus.InProgress) {
-                revert BadProposalStatusError(state);
+            if (status != ProposalStatus.InProgress) {
+                revert BadProposalStatusError(status);
             }
         }
         {
@@ -530,7 +531,7 @@ abstract contract PartyGovernance is
             (bool success, bytes memory resultData) =
             (address(_getProposalExecutionEngine())).delegatecall(abi.encodeCall(
                 IProposalExecutionEngine.cancelProposal,
-                (bytes32(proposalId))
+                (proposalId)
             ));
             if (!success) {
                 resultData.rawRevert();
@@ -565,7 +566,7 @@ abstract contract PartyGovernance is
     {
         IProposalExecutionEngine.ExecuteProposalParams memory executeParams =
             IProposalExecutionEngine.ExecuteProposalParams({
-                proposalId: bytes32(proposalId),
+                proposalId: proposalId,
                 proposalData: proposal.proposalData,
                 progressData: progressData,
                 preciousTokens: preciousTokens,
@@ -760,7 +761,7 @@ abstract contract PartyGovernance is
     function _getProposalStatus(ProposalStateValues memory pv)
         private
         view
-        returns (ProposalStatus state)
+        returns (ProposalStatus status)
     {
         // Never proposed.
         if (pv.proposedTime == 0) {
@@ -866,7 +867,7 @@ abstract contract PartyGovernance is
     }
 
     // Assert that the hash of a proposal matches expectedHash.
-    function _validateProposalHash(Proposal proposal, bytes32 expectedHash)
+    function _validateProposalHash(Proposal memory proposal, bytes32 expectedHash)
         private
     {
         bytes32 actualHash = getProposalHash(proposal);

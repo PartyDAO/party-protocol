@@ -9,24 +9,23 @@ import "../DummyERC20.sol";
 import "../TestUtils.sol";
 
 contract DummyProposalExecutionEngine is IProposalExecutionEngine {
-    enum ProposalExecutionStatus {
-        Unexecuted,
-        InProgress,
-        Complete
-    }
     event DummyProposalExecutionEngine_executeCalled(
         address context,
-        ProposalExecutionStatus status,
+        bool completed,
         ExecuteProposalParams params
     );
+    event DummyProposalExecutionEngine_cancelCalled(
+        address context,
+        uint256 proposalId
+    );
 
-    mapping (bytes32 => ProposalExecutionStatus) _statusByProposalId;
     mapping (bytes32 => uint256) _lastStepByProposalId;
 
     function initialize(address, bytes memory) external {}
+
     function executeProposal(ExecuteProposalParams memory params)
         external
-        returns (ProposalExecutionStatus status)
+        returns (bytes memory nextProgressData)
     {
         uint256 numSteps = abi.decode(params.proposalData, (uint256));
         uint256 currStep = params.progressData.length > 0
@@ -38,22 +37,19 @@ contract DummyProposalExecutionEngine is IProposalExecutionEngine {
             'INVALID_PROPOSAL_STEP'
         );
         _lastStepByProposalId[params.proposalId] = currStep + 1;
-        _statusByProposalId[params.proposalId] =
-            status = currStep + 1 < numSteps
-            ? ProposalExecutionStatus.InProgress
-            : ProposalExecutionStatus.Complete;
+        bool completed = currStep + 1 >= numSteps;
+        nextProgressData = completed ? "" : abi.encode(currStep + 1);
         emit DummyProposalExecutionEngine_executeCalled(
             address(this),
-            status,
+            completed,
             params
         );
     }
-    function getProposalExecutionStatus(bytes32 proposalId)
+
+    function cancelProposal(uint256 proposalId)
         external
-        view
-        returns (ProposalExecutionStatus)
     {
-        return _statusByProposalId[proposalId];
+        emit DummyProposalExecutionEngine_cancelCalled(address(this), proposalId);
     }
 }
 
@@ -134,12 +130,12 @@ contract TestablePartyGovernance is PartyGovernance {
         return _getVotingPowerSnapshotAt(voter, uint40(timestamp));
     }
 
-    function getProposalState(uint256 proposalId)
+    function getProposalStatus(uint256 proposalId)
         external
         view
-        returns (PartyGovernance.ProposalState state)
+        returns (PartyGovernance.ProposalStatus status)
     {
-        (state,) = this.getProposalStates(proposalId);
+        (status,) = this.getProposalStates(proposalId);
     }
 
     function getNextProposalId()
@@ -172,8 +168,12 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
     event HostStatusTransferred(address oldHost, address newHost);
     event DummyProposalExecutionEngine_executeCalled(
         address context,
-        DummyProposalExecutionEngine.ProposalExecutionStatus status,
+        bool completed,
         IProposalExecutionEngine.ExecuteProposalParams params
+    );
+    event DummyProposalExecutionEngine_cancelCalled(
+        address context,
+        uint256 proposalId
     );
     event DummyTokenDistributor_createDistributionCalled(
         address caller,
@@ -295,11 +295,11 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
     function _assertProposalStateEq(
         TestablePartyGovernance gov,
         uint256 proposalId,
-        PartyGovernance.ProposalState expected
+        PartyGovernance.ProposalStatus expected
     )
         private
     {
-        assertEq(uint256(gov.getProposalState(proposalId)), uint256(expected));
+        assertEq(uint256(gov.getProposalStatus(proposalId)), uint256(expected));
     }
 
     // One undelegated voter with 51/100 intrinsic VP.
@@ -317,7 +317,7 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
         PartyGovernance.Proposal memory proposal = _createProposal(1);
         uint256 proposalId = gov.getNextProposalId();
 
-        _assertProposalStateEq(gov, proposalId, PartyGovernance.ProposalState.Invalid);
+        _assertProposalStateEq(gov, proposalId, PartyGovernance.ProposalStatus.Invalid);
 
         // Undelegated voter submits proposal.
         _expectProposedEvent(proposalId, undelegatedVoter, proposal);
@@ -328,11 +328,11 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
         vm.prank(undelegatedVoter);
         assertEq(gov.propose(proposal), proposalId);
 
-        _assertProposalStateEq(gov, proposalId, PartyGovernance.ProposalState.Passed);
+        _assertProposalStateEq(gov, proposalId, PartyGovernance.ProposalStatus.Passed);
 
         // Skip past execution delay.
         skip(defaultGovernanceOpts.executionDelay);
-        _assertProposalStateEq(gov, proposalId, PartyGovernance.ProposalState.Ready);
+        _assertProposalStateEq(gov, proposalId, PartyGovernance.ProposalStatus.Ready);
 
         // Execute the proposal as the single voter.
         vm.expectEmit(false, false, false, true);
@@ -359,7 +359,7 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
             ""
         );
 
-        _assertProposalStateEq(gov, proposalId, PartyGovernance.ProposalState.Complete);
+        _assertProposalStateEq(gov, proposalId, PartyGovernance.ProposalStatus.Complete);
     }
 
     // One undelegated voter with 51/100 intrinsic VP.
@@ -412,7 +412,7 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
             ""
         );
 
-        _assertProposalStateEq(gov, proposalId, PartyGovernance.ProposalState.InProgress);
+        _assertProposalStateEq(gov, proposalId, PartyGovernance.ProposalStatus.InProgress);
 
         // Execute the proposal as the single voter. (2/2)
         vm.expectEmit(false, false, false, true);
@@ -439,7 +439,7 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
             abi.encode(1)
         );
 
-        _assertProposalStateEq(gov, proposalId, PartyGovernance.ProposalState.Complete);
+        _assertProposalStateEq(gov, proposalId, PartyGovernance.ProposalStatus.Complete);
     }
 
     // One undelegated voter with 100/100 intrinsic VP.
@@ -466,7 +466,7 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
         vm.prank(undelegatedVoter);
         assertEq(gov.propose(proposal), proposalId);
         // The vote was unanimous so the proposal should be executable as well.
-        _assertProposalStateEq(gov, proposalId, PartyGovernance.ProposalState.Ready);
+        _assertProposalStateEq(gov, proposalId, PartyGovernance.ProposalStatus.Ready);
 
         // Execute the proposal as the single voter.
         vm.expectEmit(false, false, false, true);
@@ -528,7 +528,7 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
         vm.prank(undelegatedVoter2);
         gov.accept(proposalId);
         // The vote was unanimous so the proposal should be executable as well.
-        _assertProposalStateEq(gov, proposalId, PartyGovernance.ProposalState.Ready);
+        _assertProposalStateEq(gov, proposalId, PartyGovernance.ProposalStatus.Ready);
 
         // Execute the proposal as the single voter.
         vm.expectEmit(false, false, false, true);
@@ -581,7 +581,7 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
         vm.prank(undelegatedVoter);
         assertEq(gov.propose(proposal), proposalId);
         // The vote was unanimous so the proposal should be executable as well.
-        _assertProposalStateEq(gov, proposalId, PartyGovernance.ProposalState.Ready);
+        _assertProposalStateEq(gov, proposalId, PartyGovernance.ProposalStatus.Ready);
 
         // Execute the proposal as the single voter.
         vm.expectEmit(false, false, false, true);
@@ -631,7 +631,7 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
         // Try to execute proposal (fail).
         vm.expectRevert(abi.encodeWithSelector(
             PartyGovernance.BadProposalStateError.selector,
-            PartyGovernance.ProposalState.Voting
+            PartyGovernance.ProposalStatus.Voting
         ));
         vm.prank(undelegatedVoter);
         gov.execute(
@@ -647,7 +647,7 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
         // Try again (fail).
         vm.expectRevert(abi.encodeWithSelector(
             PartyGovernance.BadProposalStateError.selector,
-            PartyGovernance.ProposalState.Voting
+            PartyGovernance.ProposalStatus.Voting
         ));
         vm.prank(undelegatedVoter);
         gov.execute(
@@ -682,7 +682,7 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
         // Try to execute proposal (fail).
         vm.expectRevert(abi.encodeWithSelector(
             PartyGovernance.BadProposalStateError.selector,
-            PartyGovernance.ProposalState.Passed
+            PartyGovernance.ProposalStatus.Passed
         ));
         vm.prank(undelegatedVoter);
         gov.execute(
@@ -766,13 +766,13 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
             ""
         );
 
-        _assertProposalStateEq(gov, proposalId, PartyGovernance.ProposalState.Complete);
+        _assertProposalStateEq(gov, proposalId, PartyGovernance.ProposalStatus.Complete);
 
         // Try to execute again.
         bytes32 expectedHash = gov.getProposalHash(proposal);
         vm.expectRevert(abi.encodeWithSelector(
             PartyGovernance.BadProposalStateError.selector,
-            PartyGovernance.ProposalState.Complete
+            PartyGovernance.ProposalStatus.Complete
         ));
         vm.prank(undelegatedVoter);
         gov.execute(
@@ -866,7 +866,7 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
         address host = _getRandomDefaultHost();
         vm.expectRevert(abi.encodeWithSelector(
             PartyGovernance.BadProposalStateError.selector,
-            PartyGovernance.ProposalState.Invalid
+            PartyGovernance.ProposalStatus.Invalid
         ));
         vm.prank(host);
         gov.veto(proposalId);
@@ -891,14 +891,14 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
         vm.prank(undelegatedVoter);
         assertEq(gov.propose(proposal), proposalId);
 
-        _assertProposalStateEq(gov, proposalId, PartyGovernance.ProposalState.Voting);
+        _assertProposalStateEq(gov, proposalId, PartyGovernance.ProposalStatus.Voting);
 
         // Host vetos.
         address host = _getRandomDefaultHost();
         vm.prank(host);
         gov.veto(proposalId);
 
-        _assertProposalStateEq(gov, proposalId, PartyGovernance.ProposalState.Defeated);
+        _assertProposalStateEq(gov, proposalId, PartyGovernance.ProposalStatus.Defeated);
 
         // Skip past execution delay.
         skip(defaultGovernanceOpts.executionDelay);
@@ -906,7 +906,7 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
         // Fails to execute.
         vm.expectRevert(abi.encodeWithSelector(
             PartyGovernance.BadProposalStateError.selector,
-            PartyGovernance.ProposalState.Defeated
+            PartyGovernance.ProposalStatus.Defeated
         ));
         vm.prank(undelegatedVoter);
         gov.execute(
@@ -941,19 +941,19 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
         // Skip past execution delay.
         skip(defaultGovernanceOpts.executionDelay);
 
-        _assertProposalStateEq(gov, proposalId, PartyGovernance.ProposalState.Ready);
+        _assertProposalStateEq(gov, proposalId, PartyGovernance.ProposalStatus.Ready);
 
         // Host vetos.
         address host = _getRandomDefaultHost();
         vm.prank(host);
         gov.veto(proposalId);
 
-        _assertProposalStateEq(gov, proposalId, PartyGovernance.ProposalState.Defeated);
+        _assertProposalStateEq(gov, proposalId, PartyGovernance.ProposalStatus.Defeated);
 
         // Fails to execute.
         vm.expectRevert(abi.encodeWithSelector(
             PartyGovernance.BadProposalStateError.selector,
-            PartyGovernance.ProposalState.Defeated
+            PartyGovernance.ProposalStatus.Defeated
         ));
         vm.prank(undelegatedVoter);
         gov.execute(
@@ -1001,7 +1001,7 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
         // Host tries to veto.
         vm.expectRevert(abi.encodeWithSelector(
             PartyGovernance.BadProposalStateError.selector,
-            PartyGovernance.ProposalState.InProgress
+            PartyGovernance.ProposalStatus.InProgress
         ));
         vm.prank(_getRandomDefaultHost());
         gov.veto(proposalId);
@@ -1043,7 +1043,7 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
         // Host tries to veto.
         vm.expectRevert(abi.encodeWithSelector(
             PartyGovernance.BadProposalStateError.selector,
-            PartyGovernance.ProposalState.Complete
+            PartyGovernance.ProposalStatus.Complete
         ));
         vm.prank(_getRandomDefaultHost());
         gov.veto(proposalId);
@@ -1085,7 +1085,7 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
 
         // Skip past the proposal's maxExecutableTime.
         vm.warp(proposal.maxExecutableTime + 1);
-        _assertProposalStateEq(gov, proposalId, PartyGovernance.ProposalState.InProgress);
+        _assertProposalStateEq(gov, proposalId, PartyGovernance.ProposalStatus.InProgress);
 
         // Execute (2/2)
         vm.prank(undelegatedVoter);
@@ -1096,7 +1096,7 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
             preciousTokenIds,
             abi.encode(1)
         );
-        _assertProposalStateEq(gov, proposalId, PartyGovernance.ProposalState.Complete);
+        _assertProposalStateEq(gov, proposalId, PartyGovernance.ProposalStatus.Complete);
     }
 
     // Try to execute a proposal after the voting window has expired and it has not passed.
@@ -1119,7 +1119,7 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
         vm.prank(undelegatedVoter);
         assertEq(gov.propose(proposal), proposalId);
 
-        _assertProposalStateEq(gov, proposalId, PartyGovernance.ProposalState.Voting);
+        _assertProposalStateEq(gov, proposalId, PartyGovernance.ProposalStatus.Voting);
 
         // Skip past voting window.
         skip(defaultGovernanceOpts.voteDuration);
@@ -1127,7 +1127,7 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
         // Try to execute proposal (fail).
         vm.expectRevert(abi.encodeWithSelector(
             PartyGovernance.BadProposalStateError.selector,
-            PartyGovernance.ProposalState.Defeated
+            PartyGovernance.ProposalStatus.Defeated
         ));
         vm.prank(undelegatedVoter);
         gov.execute(
@@ -1167,7 +1167,7 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
         vm.prank(delegatedVoter);
         assertEq(gov.propose(proposal), proposalId);
 
-        _assertProposalStateEq(gov, proposalId, PartyGovernance.ProposalState.Voting);
+        _assertProposalStateEq(gov, proposalId, PartyGovernance.ProposalStatus.Voting);
 
         // Undelegated (self-delegated) voter votes.
         _expectProposalAcceptedEvent(proposalId, undelegatedVoter, 25e18);
@@ -1181,7 +1181,7 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
         vm.prank(delegate);
         gov.accept(proposalId);
 
-        _assertProposalStateEq(gov, proposalId, PartyGovernance.ProposalState.Passed);
+        _assertProposalStateEq(gov, proposalId, PartyGovernance.ProposalStatus.Passed);
     }
 
     // One undelegated voter with 10/100 intrinsic VP.
@@ -1224,7 +1224,7 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
         gov.accept(proposalId);
 
         // 10 + 10 + 30 = 50, but need 51/100 to pass.
-        _assertProposalStateEq(gov, proposalId, PartyGovernance.ProposalState.Voting);
+        _assertProposalStateEq(gov, proposalId, PartyGovernance.ProposalStatus.Voting);
     }
 
     // Try to vote outside the voting window.
@@ -1248,17 +1248,17 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
         vm.prank(undelegatedVoter1);
         assertEq(gov.propose(proposal), proposalId);
 
-        _assertProposalStateEq(gov, proposalId, PartyGovernance.ProposalState.Voting);
+        _assertProposalStateEq(gov, proposalId, PartyGovernance.ProposalStatus.Voting);
 
         // Skip past voting window.
         skip(defaultGovernanceOpts.voteDuration);
 
-        _assertProposalStateEq(gov, proposalId, PartyGovernance.ProposalState.Defeated);
+        _assertProposalStateEq(gov, proposalId, PartyGovernance.ProposalStatus.Defeated);
 
         // Undelegated voter 2 tries to vote.
         vm.expectRevert(abi.encodeWithSelector(
             PartyGovernance.BadProposalStateError.selector,
-            PartyGovernance.ProposalState.Defeated
+            PartyGovernance.ProposalStatus.Defeated
         ));
         vm.prank(undelegatedVoter2);
         gov.accept(proposalId);
@@ -1368,7 +1368,7 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
         vm.prank(undelegatedVoter1);
         assertEq(gov.propose(proposal), proposalId);
 
-        _assertProposalStateEq(gov, proposalId, PartyGovernance.ProposalState.Voting);
+        _assertProposalStateEq(gov, proposalId, PartyGovernance.ProposalStatus.Voting);
 
         // Host vetos.
         address host = _getRandomDefaultHost();
@@ -1377,12 +1377,12 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
         vm.prank(host);
         gov.veto(proposalId);
 
-        _assertProposalStateEq(gov, proposalId, PartyGovernance.ProposalState.Defeated);
+        _assertProposalStateEq(gov, proposalId, PartyGovernance.ProposalStatus.Defeated);
 
         // Undelegated voter 2 tries to vote.
         vm.expectRevert(abi.encodeWithSelector(
             PartyGovernance.BadProposalStateError.selector,
-            PartyGovernance.ProposalState.Defeated
+            PartyGovernance.ProposalStatus.Defeated
         ));
         vm.prank(undelegatedVoter2);
         gov.accept(proposalId);
@@ -1447,7 +1447,7 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
         vm.prank(delegatedVoter);
         gov.accept(proposalId);
 
-        _assertProposalStateEq(gov, proposalId, PartyGovernance.ProposalState.Voting);
+        _assertProposalStateEq(gov, proposalId, PartyGovernance.ProposalStatus.Voting);
 
         // Delegate will vote, who does not have any VP now but at proposal time
         // had a total of 50, which will make the proposal pass.
@@ -1784,12 +1784,12 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
         // voter1 proposes and votes.
         vm.prank(voter1);
         gov.propose(proposal);
-        _assertProposalStateEq(gov, proposalId, PartyGovernance.ProposalState.Voting);
+        _assertProposalStateEq(gov, proposalId, PartyGovernance.ProposalStatus.Voting);
 
         // voter2 votes, which gets it to pass.
         vm.prank(voter2);
         gov.accept(proposalId);
-        _assertProposalStateEq(gov, proposalId, PartyGovernance.ProposalState.Passed);
+        _assertProposalStateEq(gov, proposalId, PartyGovernance.ProposalStatus.Passed);
     }
 
     // distribute ETH balance

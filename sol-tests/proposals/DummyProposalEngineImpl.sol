@@ -25,4 +25,10 @@ contract DummyProposalEngineImpl is IProposalExecutionEngine {
     {
         revert('not implemented');
     }
+
+    function cancelProposal(uint256 proposalId)
+        external
+    {
+        revert('not implemented');
+    }
 }

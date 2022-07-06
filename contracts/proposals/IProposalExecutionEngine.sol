@@ -6,7 +6,7 @@ import "../tokens/IERC721.sol";
 // Upgradeable proposals logic contract interface.
 interface IProposalExecutionEngine {
     struct ExecuteProposalParams {
-        bytes32 proposalId;
+        uint256 proposalId;
         bytes proposalData;
         bytes progressData;
         uint256 flags;
@@ -29,5 +29,5 @@ interface IProposalExecutionEngine {
     /// @dev This is intended to be a last resort as it can leave a party in a
     ///      broken step. Whenever possible, proposals should be allowed to
     ///      complete their entire lifecycle.
-    function cancelProposal(bytes32 proposalId) external;
+    function cancelProposal(uint256 proposalId) external;
 }
