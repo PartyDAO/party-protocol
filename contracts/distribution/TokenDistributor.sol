@@ -114,7 +114,7 @@ contract TokenDistributor {
     {
         uint128 bal;
         if (token == ETH_TOKEN) { // Support native ETH.
-            bal = address(this).balance;
+            bal = address(this).balance.safeCastUint256ToUint128();
         } else {
             bal = token.balanceOf(address(this)).safeCastUint256ToUint128();
         }
@@ -145,7 +145,7 @@ contract TokenDistributor {
         (
             _distributionStates[party][distId].distributionHash15,
             _distributionStates[party][distId].remainingMemberSupply
-        ) = (_getDistributionHash(info), memberSupply.safeCastUint256ToUint128());
+        ) = (_getDistributionHash(info), memberSupply);
         emit DistributionCreated(info);
     }
 
@@ -213,7 +213,7 @@ contract TokenDistributor {
             revert InvalidDistributionInfoError(info);
         }
         // Caller must be the fee recipient.
-        if (state.feeRecipient != msg.sender) {
+        if (info.feeRecipient != msg.sender) {
             revert OnlyFeeRecipientError(msg.sender, info.feeRecipient);
         }
         // Must not have claimed the fee yet.

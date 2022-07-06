@@ -117,8 +117,8 @@ contract ListOnZoraProposalIntegrationTest is
 
       vm.warp(block.timestamp + 76 hours);
 
-      (PartyGovernance.ProposalState s, ) = party.getProposalStates(proposalId);
-      assertEq(uint40(s), uint40(PartyGovernance.ProposalState.Ready));
+      (PartyGovernance.ProposalStatus s, ) = party.getProposalStateInfo(proposalId);
+      assertEq(uint40(s), uint40(PartyGovernance.ProposalStatus.Ready));
 
       PartyParticipant.ExecutionOptions memory eo = PartyParticipant.ExecutionOptions({
         proposalId: proposalId,

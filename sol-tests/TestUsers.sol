@@ -53,6 +53,8 @@ contract PartyAdmin is Test {
     uint96 totalVotingPower;
     address preciousTokenAddress;
     uint256 preciousTokenId;
+    uint16 feeBps;
+    address payable feeRecipient;
   }
 
   PartyFactory _partyFactory;
@@ -77,7 +79,9 @@ contract PartyAdmin is Test {
       voteDuration: 99,
       executionDelay: 300,
       passThresholdBps: opts.passThresholdBps,
-      totalVotingPower: opts.totalVotingPower
+      totalVotingPower: opts.totalVotingPower,
+      feeRecipient: opts.feeRecipient,
+      feeBps: opts.feeBps
     });
     Party.PartyOptions memory po = Party.PartyOptions({
       governance: govOpts,

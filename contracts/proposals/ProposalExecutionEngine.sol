@@ -49,21 +49,21 @@ contract ProposalExecutionEngine is
         // into executeProposal}() if the proposal is in progress.
         // The hash will be the hash of the empty bytes (hex"") if the proposal
         // was completed.
-        mapping (bytes32 => bytes32) proposalProgressDataHashByProposalId;
+        mapping (uint256 => bytes32) proposalProgressDataHashByProposalId;
         // The proposal ID of the current, in progress proposal being executed.
         // InProgress proposals need to have executeProposal() called on them
         // multiple times until they complete. Only one proposal may be
         // in progress at a time, meaning no other proposals can be executed
         // if this value is nonzero.
-        bytes32 currentInProgressProposalId;
+        uint256 currentInProgressProposalId;
     }
 
     event ProposalEngineImplementationUpgraded(address oldImpl, address newImpl);
 
     error ZeroProposalIdError();
     error MalformedProposalDataError();
-    error ProposalAlreadyCompleteError(bytes32 proposalId);
-    error ProposalExecutionBlockedError(bytes32 proposalId, bytes32 currentInProgressProposalId);
+    error ProposalAlreadyCompleteError(uint256 proposalId);
+    error ProposalExecutionBlockedError(uint256 proposalId, uint256 currentInProgressProposalId);
     error ProposalProgressDataInvalidError(bytes32 actualProgressDataHash, bytes32 expectedProgressDataHash);
     error ProposalNotInProgressError(uint256 proposalId);
 
@@ -96,7 +96,7 @@ contract ProposalExecutionEngine is
     function getCurrentInProgressProposalId()
         external
         view
-        returns (bytes32 id)
+        returns (uint256 id)
     {
         return _getStorage().currentInProgressProposalId;
     }
@@ -135,7 +135,7 @@ contract ProposalExecutionEngine is
             }
         }
         // Only one proposal can be in progress at a time.
-        bytes32 currentInProgressProposalId = stor.currentInProgressProposalId;
+        uint256 currentInProgressProposalId = stor.currentInProgressProposalId;
         if (currentInProgressProposalId != 0) {
             if (currentInProgressProposalId != params.proposalId) {
                 revert ProposalExecutionBlockedError(
@@ -163,7 +163,7 @@ contract ProposalExecutionEngine is
     }
 
     /// @inheritdoc IProposalExecutionEngine
-    function cancelProposal(bytes32 proposalId)
+    function cancelProposal(uint256 proposalId)
         external
         onlyDelegateCall
     {
@@ -174,7 +174,7 @@ contract ProposalExecutionEngine is
         Storage storage stor = _getStorage();
         {
             // Must be the current InProgress proposal.
-            bytes32 currentInProgressProposalId = stor.currentInProgressProposalId;
+            uint256 currentInProgressProposalId = stor.currentInProgressProposalId;
             if (currentInProgressProposalId != proposalId) {
                 revert ProposalNotInProgressError(proposalId);
             }
@@ -193,9 +193,9 @@ contract ProposalExecutionEngine is
         } else if (pt == ProposalType.ListOnZora) {
             nextProgressData = _executeListOnZora(params);
         } else if (pt == ProposalType.Fractionalize) {
-            progressData = _executeFractionalize(params);
+            nextProgressData = _executeFractionalize(params);
         } else if (pt == ProposalType.ArbitraryCalls) {
-            progressData = _executeArbitraryCalls(params);
+            nextProgressData = _executeArbitraryCalls(params);
         } else if (pt == ProposalType.UpgradeProposalEngineImpl) {
             _executeUpgradeProposalsImplementation(params.proposalData);
         } else {
