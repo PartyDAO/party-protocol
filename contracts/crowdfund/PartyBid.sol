@@ -70,7 +70,7 @@ contract PartyBid is Implementation, PartyCrowdfund {
     }
 
     // Delegatecall into `market` to perform a bid.
-    function bid() external {
+    function bid() external pure {
         // ...
         // highestBid = ...;
         revert('not implemented');
