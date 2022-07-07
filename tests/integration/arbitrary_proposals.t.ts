@@ -1,7 +1,7 @@
 import { expect, use } from 'chai';
 import { Contract } from 'ethers';
 import { MockProvider, solidity } from 'ethereum-waffle';
-import { Party, System, createArbitraryCallsProposal, ProposalState } from './system';
+import { Party, System, createArbitraryCallsProposal, ProposalStatus } from './system';
 import {
     ONE_DAY_SECONDS,
     ONE_HOUR_SECONDS,
@@ -13,6 +13,7 @@ import {
     deployContract,
     now,
     increaseTime,
+    randomAddress,
 } from '../utils';
 
 import DUMMY_CALL_TARGET_ARTIFACT from '../../out/DummyCallTarget.sol/DummyCallTarget.json';
@@ -53,6 +54,8 @@ describe('Arbitrary proposals integrations test', () => {
             hostAddresses: [partyHost.address],
             numPreciousTokens: 2,
             totalVotingPower: ONE_ETHER.mul(100),
+            feeRate: 0.04,
+            feeRecipient: randomAddress(),
         });
         const voterWallets = availableVoters.slice(0, 2);
         const votingPowers = [ONE_ETHER.mul(33), ONE_ETHER.mul(33)];
@@ -70,22 +73,23 @@ describe('Arbitrary proposals integrations test', () => {
                     optional: false,
                 },
             ],
-            now() +  7 * ONE_DAY_SECONDS
+            now() +  7 * ONE_DAY_SECONDS,
+            now() +  30 * ONE_DAY_SECONDS
         );
         // Propose.
         const proposalId = await voters[0].proposeAsync(proposal);
-        expect(await party.getProposalStateAsync(proposalId)).to.eq(ProposalState.Voting);
+        expect(await party.getProposalStatusAsync(proposalId)).to.eq(ProposalStatus.Voting);
         // Vote.
         await voters[1].acceptAsync(proposalId);
-        expect(await party.getProposalStateAsync(proposalId)).to.eq(ProposalState.Passed);
+        expect(await party.getProposalStatusAsync(proposalId)).to.eq(ProposalStatus.Passed);
         // Skip execution delay.
         await increaseTime(provider, party.executionDelay);
-        expect(await party.getProposalStateAsync(proposalId)).to.eq(ProposalState.Ready);
+        expect(await party.getProposalStatusAsync(proposalId)).to.eq(ProposalStatus.Ready);
         // Execute.
         const progressData = await voters[0].executeAsync(proposalId, proposal);
         expect(progressData).to.eq(NULL_BYTES);
         // Prove it executed.
         expect(await callTarget.getX()).to.eq(123);
-        expect(await party.getProposalStateAsync(proposalId)).to.eq(ProposalState.Complete);
+        expect(await party.getProposalStatusAsync(proposalId)).to.eq(ProposalStatus.Complete);
     });
 });

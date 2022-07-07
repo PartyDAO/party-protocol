@@ -11,6 +11,10 @@ contract TestableProposalExecutionEngine is ProposalExecutionEngine {
 
     bytes public t_nextProgressData;
 
+    modifier onlyDelegateCall() override {
+        _;
+    }
+
     constructor(
         IGlobals globals,
         ISeaportExchange seaport,

@@ -234,14 +234,14 @@ contract TokenDistributorTest is Test, TestUtils {
     // ensure amount needs to be > 0
     vm.prank(address(dummyParty1)); // must create from party
     vm.expectRevert(
-      abi.encodeWithSignature("InvalidDistributionSupply(uint256,uint256)", 0, 0)
+      abi.encodeWithSignature("InvalidDistributionSupply(uint128)", 0)
     );
     distributor.createDistribution(ETH_TOKEN, ADMIN_ADDRESS, 0);
 
     // ensure needs to be able to take fee
-    vm.deal(address(distributor), 4);
+    vm.deal(address(distributor), 10);
     vm.expectRevert(
-      abi.encodeWithSignature("InvalidDistributionSupply(uint256,uint256)", 4, 6)
+      abi.encodeWithSignature("InvalidFeeBps(uint16)", 1.1e4)
     );
     vm.prank(address(dummyParty1));
     distributor.createDistribution(ETH_TOKEN, ADMIN_ADDRESS, 1.1e4); // 110%

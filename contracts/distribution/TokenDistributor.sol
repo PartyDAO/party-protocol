@@ -54,6 +54,7 @@ contract TokenDistributor {
     error EmergencyActionsNotAllowed();
     error InvalidDistributionSupply(uint128 supply);
     error OnlyFeeRecipientError(address caller, address feeRecipient);
+    error InvalidFeeBps(uint16 feeBps);
 
     event DistributionCreated(DistributionInfo info);
     event DistributionClaimedByPartyDao(DistributionInfo info, address recipient, uint256 amountClaimed);
@@ -112,6 +113,9 @@ contract TokenDistributor {
         payable
         returns (DistributionInfo memory info)
     {
+        if (feeBps > 1e4) {
+            revert InvalidFeeBps(feeBps);
+        }
         uint128 bal;
         if (token == ETH_TOKEN) { // Support native ETH.
             bal = address(this).balance.safeCastUint256ToUint128();
