@@ -164,7 +164,7 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
     );
     event ProposalPassed(uint256 proposalId);
     event ProposalVetoed(uint256 proposalId, address host);
-    event ProposalExecuted(uint256 proposalId, address executor, bytes memory nextProgressData);
+    event ProposalExecuted(uint256 proposalId, address executor, bytes nextProgressData);
     event DistributionCreated(uint256 distributionId, IERC20 token);
     event VotingPowerDelegated(address owner, address delegate);
     event PreciousListSet(IERC721[] tokens, uint256[] tokenIds);
@@ -299,11 +299,6 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
     ) private {
         vm.expectEmit(false, false, false, true);
         emit ProposalExecuted(proposalId, executor, "");
-    }
-
-    function _expectProposalCompletedEvent(uint256 proposalId) private {
-        vm.expectEmit(false, false, false, true);
-        emit ProposalCompleted(proposalId);
     }
 
     function _expectHostStatusTransferredEvent(address oldHost, address newHost) private {
