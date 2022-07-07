@@ -860,7 +860,7 @@ abstract contract PartyGovernance is
                 add(preciousTokens, 0x20),
                 mul(mload(preciousTokens), 0x20)
             ))
-            mstore(0x00, keccak256(
+            mstore(0x20, keccak256(
                 add(preciousTokenIds, 0x20),
                 mul(mload(preciousTokenIds), 0x20)
             ))

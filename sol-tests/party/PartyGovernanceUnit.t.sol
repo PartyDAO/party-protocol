@@ -57,6 +57,8 @@ contract DummyTokenDistributor {
     event DummyTokenDistributor_createDistributionCalled(
         address caller,
         IERC20 token,
+        address payable feeRecipient,
+        uint16 feeBps,
         uint256 amount,
         uint256 id
     );
@@ -64,7 +66,7 @@ contract DummyTokenDistributor {
     address payable public SINK = payable(address(12345678));
     uint256 public lastId;
 
-    function createDistribution(IERC20 token)
+    function createDistribution(IERC20 token, address payable feeRecipient, uint16 feeBps)
         external
         payable
         returns (TokenDistributor.DistributionInfo memory distInfo)
@@ -81,6 +83,8 @@ contract DummyTokenDistributor {
         emit DummyTokenDistributor_createDistributionCalled(
             msg.sender,
             token,
+            feeRecipient,
+            feeBps,
             amount,
             distInfo.distributionId
         );
@@ -178,6 +182,8 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
     event DummyTokenDistributor_createDistributionCalled(
         address caller,
         IERC20 token,
+        address payable feeRecipient,
+        uint16 feeBps,
         uint256 amount,
         uint256 id
     );
@@ -198,6 +204,8 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
         defaultGovernanceOpts.executionDelay = 12 hours;
         defaultGovernanceOpts.passThresholdBps = 0.51e4;
         defaultGovernanceOpts.totalVotingPower = 100e18;
+        defaultGovernanceOpts.feeBps = 0.025e4;
+        defaultGovernanceOpts.feeRecipient = _randomAddress();
     }
 
     function _createPreciousTokens(uint256 count)
@@ -1808,6 +1816,8 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
         emit DummyTokenDistributor_createDistributionCalled(
             address(gov),
             ETH_TOKEN,
+            defaultGovernanceOpts.feeRecipient,
+            defaultGovernanceOpts.feeBps,
             1337e18,
             tokenDistributor.lastId() + 1
         );
@@ -1835,6 +1845,8 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
         emit DummyTokenDistributor_createDistributionCalled(
             address(gov),
             erc20,
+            defaultGovernanceOpts.feeRecipient,
+            defaultGovernanceOpts.feeBps,
             1337e18,
             tokenDistributor.lastId() + 1
         );
