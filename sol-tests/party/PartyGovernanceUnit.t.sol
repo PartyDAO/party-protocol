@@ -19,7 +19,7 @@ contract DummyProposalExecutionEngine is IProposalExecutionEngine {
         uint256 proposalId
     );
 
-    mapping (bytes32 => uint256) _lastStepByProposalId;
+    mapping (uint256 => uint256) _lastStepByProposalId;
 
     function initialize(address, bytes memory) external {}
 
@@ -38,7 +38,7 @@ contract DummyProposalExecutionEngine is IProposalExecutionEngine {
         );
         _lastStepByProposalId[params.proposalId] = currStep + 1;
         bool completed = currStep + 1 >= numSteps;
-        nextProgressData = completed ? "" : abi.encode(currStep + 1);
+        nextProgressData = completed ? bytes("") : abi.encode(currStep + 1);
         emit DummyProposalExecutionEngine_executeCalled(
             address(this),
             completed,
@@ -118,7 +118,7 @@ contract TestablePartyGovernance is PartyGovernance {
     function ownerOf(uint256 tokenId) external view returns (address o) {}
 
     function getVotes(uint256 proposalId) external view returns (uint96) {
-        (, ProposalStateValues memory v) = this.getProposalStates(proposalId);
+        (, ProposalStateValues memory v) = this.getProposalStateInfo(proposalId);
         return v.votes;
     }
 
@@ -135,7 +135,7 @@ contract TestablePartyGovernance is PartyGovernance {
         view
         returns (PartyGovernance.ProposalStatus status)
     {
-        (status,) = this.getProposalStates(proposalId);
+        (status,) = this.getProposalStateInfo(proposalId);
     }
 
     function getNextProposalId()
@@ -239,7 +239,7 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
         return PartyGovernance.Proposal({
             // Expires right after execution delay.
             maxExecutableTime: uint40(block.timestamp) + defaultGovernanceOpts.executionDelay,
-            nonce: _randomUint256(),
+            minCancelTime: uint40(block.timestamp + 1 days),
             proposalData: abi.encode(numSteps)
         });
     }
@@ -338,9 +338,9 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
         vm.expectEmit(false, false, false, true);
         emit DummyProposalExecutionEngine_executeCalled(
             address(gov),
-            DummyProposalExecutionEngine.ProposalExecutionStatus.Complete,
+            true,
             IProposalExecutionEngine.ExecuteProposalParams({
-                proposalId: bytes32(proposalId),
+                proposalId: proposalId,
                 proposalData: proposal.proposalData,
                 progressData: "",
                 flags: 0,
@@ -392,9 +392,9 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
         vm.expectEmit(false, false, false, true);
         emit DummyProposalExecutionEngine_executeCalled(
             address(gov),
-            DummyProposalExecutionEngine.ProposalExecutionStatus.InProgress,
+            false,
             IProposalExecutionEngine.ExecuteProposalParams({
-                proposalId: bytes32(proposalId),
+                proposalId: proposalId,
                 proposalData: proposal.proposalData,
                 progressData: "",
                 flags: 0,
@@ -418,9 +418,9 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
         vm.expectEmit(false, false, false, true);
         emit DummyProposalExecutionEngine_executeCalled(
             address(gov),
-            DummyProposalExecutionEngine.ProposalExecutionStatus.Complete,
+            true,
             IProposalExecutionEngine.ExecuteProposalParams({
-                proposalId: bytes32(proposalId),
+                proposalId: proposalId,
                 proposalData: proposal.proposalData,
                 progressData: abi.encode(1),
                 flags: 0,
@@ -472,9 +472,9 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
         vm.expectEmit(false, false, false, true);
         emit DummyProposalExecutionEngine_executeCalled(
             address(gov),
-            DummyProposalExecutionEngine.ProposalExecutionStatus.Complete,
+            true,
             IProposalExecutionEngine.ExecuteProposalParams({
-                proposalId: bytes32(proposalId),
+                proposalId: proposalId,
                 proposalData: proposal.proposalData,
                 progressData: "",
                 // Should be flagged unanimous.
@@ -534,9 +534,9 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
         vm.expectEmit(false, false, false, true);
         emit DummyProposalExecutionEngine_executeCalled(
             address(gov),
-            DummyProposalExecutionEngine.ProposalExecutionStatus.Complete,
+            true,
             IProposalExecutionEngine.ExecuteProposalParams({
-                proposalId: bytes32(proposalId),
+                proposalId: proposalId,
                 proposalData: proposal.proposalData,
                 progressData: "",
                 // Should be flagged unanimous.
@@ -587,9 +587,9 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
         vm.expectEmit(false, false, false, true);
         emit DummyProposalExecutionEngine_executeCalled(
             address(gov),
-            DummyProposalExecutionEngine.ProposalExecutionStatus.Complete,
+            true,
             IProposalExecutionEngine.ExecuteProposalParams({
-                proposalId: bytes32(proposalId),
+                proposalId: proposalId,
                 proposalData: proposal.proposalData,
                 progressData: "",
                 // Should be flagged unanimous.
@@ -630,7 +630,7 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
 
         // Try to execute proposal (fail).
         vm.expectRevert(abi.encodeWithSelector(
-            PartyGovernance.BadProposalStateError.selector,
+            PartyGovernance.BadProposalStatusError.selector,
             PartyGovernance.ProposalStatus.Voting
         ));
         vm.prank(undelegatedVoter);
@@ -646,7 +646,7 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
         skip(defaultGovernanceOpts.executionDelay);
         // Try again (fail).
         vm.expectRevert(abi.encodeWithSelector(
-            PartyGovernance.BadProposalStateError.selector,
+            PartyGovernance.BadProposalStatusError.selector,
             PartyGovernance.ProposalStatus.Voting
         ));
         vm.prank(undelegatedVoter);
@@ -681,7 +681,7 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
 
         // Try to execute proposal (fail).
         vm.expectRevert(abi.encodeWithSelector(
-            PartyGovernance.BadProposalStateError.selector,
+            PartyGovernance.BadProposalStatusError.selector,
             PartyGovernance.ProposalStatus.Passed
         ));
         vm.prank(undelegatedVoter);
@@ -771,7 +771,7 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
         // Try to execute again.
         bytes32 expectedHash = gov.getProposalHash(proposal);
         vm.expectRevert(abi.encodeWithSelector(
-            PartyGovernance.BadProposalStateError.selector,
+            PartyGovernance.BadProposalStatusError.selector,
             PartyGovernance.ProposalStatus.Complete
         ));
         vm.prank(undelegatedVoter);
@@ -865,7 +865,7 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
         uint256 proposalId = gov.getNextProposalId();
         address host = _getRandomDefaultHost();
         vm.expectRevert(abi.encodeWithSelector(
-            PartyGovernance.BadProposalStateError.selector,
+            PartyGovernance.BadProposalStatusError.selector,
             PartyGovernance.ProposalStatus.Invalid
         ));
         vm.prank(host);
@@ -905,7 +905,7 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
 
         // Fails to execute.
         vm.expectRevert(abi.encodeWithSelector(
-            PartyGovernance.BadProposalStateError.selector,
+            PartyGovernance.BadProposalStatusError.selector,
             PartyGovernance.ProposalStatus.Defeated
         ));
         vm.prank(undelegatedVoter);
@@ -952,7 +952,7 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
 
         // Fails to execute.
         vm.expectRevert(abi.encodeWithSelector(
-            PartyGovernance.BadProposalStateError.selector,
+            PartyGovernance.BadProposalStatusError.selector,
             PartyGovernance.ProposalStatus.Defeated
         ));
         vm.prank(undelegatedVoter);
@@ -1000,7 +1000,7 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
 
         // Host tries to veto.
         vm.expectRevert(abi.encodeWithSelector(
-            PartyGovernance.BadProposalStateError.selector,
+            PartyGovernance.BadProposalStatusError.selector,
             PartyGovernance.ProposalStatus.InProgress
         ));
         vm.prank(_getRandomDefaultHost());
@@ -1042,7 +1042,7 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
 
         // Host tries to veto.
         vm.expectRevert(abi.encodeWithSelector(
-            PartyGovernance.BadProposalStateError.selector,
+            PartyGovernance.BadProposalStatusError.selector,
             PartyGovernance.ProposalStatus.Complete
         ));
         vm.prank(_getRandomDefaultHost());
@@ -1126,7 +1126,7 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
 
         // Try to execute proposal (fail).
         vm.expectRevert(abi.encodeWithSelector(
-            PartyGovernance.BadProposalStateError.selector,
+            PartyGovernance.BadProposalStatusError.selector,
             PartyGovernance.ProposalStatus.Defeated
         ));
         vm.prank(undelegatedVoter);
@@ -1257,7 +1257,7 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
 
         // Undelegated voter 2 tries to vote.
         vm.expectRevert(abi.encodeWithSelector(
-            PartyGovernance.BadProposalStateError.selector,
+            PartyGovernance.BadProposalStatusError.selector,
             PartyGovernance.ProposalStatus.Defeated
         ));
         vm.prank(undelegatedVoter2);
@@ -1381,7 +1381,7 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
 
         // Undelegated voter 2 tries to vote.
         vm.expectRevert(abi.encodeWithSelector(
-            PartyGovernance.BadProposalStateError.selector,
+            PartyGovernance.BadProposalStatusError.selector,
             PartyGovernance.ProposalStatus.Defeated
         ));
         vm.prank(undelegatedVoter2);
