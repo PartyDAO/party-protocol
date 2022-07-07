@@ -357,7 +357,7 @@ contract TokenDistributor is ITokenDistributor {
     {
         assembly {
             hash := and(
-                keccak256(info, 0xC0),
+                keccak256(info, 0x100),
                 0xffffffffffffffffffffffffffffff0000000000000000000000000000000000
             )
         }
