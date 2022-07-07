@@ -6,6 +6,7 @@ import "forge-std/Test.sol";
 import "../../contracts/globals/Globals.sol";
 import "../../contracts/globals/LibGlobals.sol";
 import "../../contracts/proposals/ProposalExecutionEngine.sol";
+import "../../contracts/distribution/TokenDistributor.sol";
 
 import "../TestUtils.sol";
 import "../DummyERC721.sol";
@@ -163,7 +164,7 @@ contract ListOnZoraProposalIntegrationTest is
       // distribute ETH and claim distributions
       {
         vm.prank(johnAddress);
-        TokenDistributor.DistributionInfo memory distributionInfo = john.distributeEth(party, ETH_TOKEN);
+        TokenDistributor.DistributionInfo memory distributionInfo = john.distributeEth(party);
 
         uint256 johnPrevBalance = johnAddress.balance;
         vm.prank(johnAddress);

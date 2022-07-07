@@ -2,10 +2,11 @@
 pragma solidity ^0.8;
 
 import "../distribution/ITokenDistributorParty.sol";
-import "../distribution/TokenDistributor.sol";
+import "../distribution/ITokenDistributor.sol";
 import "../utils/ReadOnlyDelegateCall.sol";
 import "../tokens/IERC721.sol";
 import "../tokens/IERC20.sol";
+import "../tokens/IERC1155.sol";
 import "../tokens/ERC721Receiver.sol";
 import "../utils/LibERC20Compat.sol";
 import "../utils/LibRawResult.sol";
@@ -341,23 +342,53 @@ abstract contract PartyGovernance is
         emit HostStatusTransferred(msg.sender, newPartyHost);
     }
 
-    // Move all `token` funds into a distribution contract to be proportionally
-    // claimed by members with voting power at the current block number.
-    function distribute(IERC20 token)
+    /// @notice Create a token distribution by moving the party's entire balance to
+    ///         the TokenDistributor contract and immediately creating a distribution
+    ///         governed by this party. The feeBps and feeRecipient this party was
+    ///         created with will be propagated to the distribution. Party members are
+    ///         entitled to a share of the distribution's tokens proportionate to
+    ///         their relative voting power in this party (less the fee).
+    function distribute(
+        ITokenDistributor.TokenType tokenType,
+        address token,
+        uint256 tokenId
+    )
         external
         onlyActiveMember
-        returns (TokenDistributor.DistributionInfo memory distInfo)
+        returns (ITokenDistributor.DistributionInfo memory distInfo)
     {
-        TokenDistributor distributor = TokenDistributor(
+        ITokenDistributor distributor = ITokenDistributor(
             payable(_GLOBALS.getAddress(LibGlobals.GLOBAL_TOKEN_DISTRIBUTOR))
         );
-        uint256 value = 0;
-        if (token != IERC20(0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE)) {
-            token.compatTransfer(address(distributor), token.balanceOf(address(this)));
-        } else {
-            value = address(this).balance;
+        if (tokenType == ITokenDistributor.TokenType.Native) {
+            return distributor.createNativeDistribution
+                { value: address(this).balance }(feeRecipient, feeBps);
         }
-        distInfo = distributor.createDistribution{ value: value }(token, feeRecipient, feeBps);
+        if (tokenType == ITokenDistributor.TokenType.Erc20) {
+            IERC20(token).compatTransfer(
+                payable(address(distributor)),
+                IERC20(token).balanceOf(address(this))
+            );
+            return distributor.createErc20Distribution(
+                IERC20(token),
+                feeRecipient,
+                feeBps
+            );
+        }
+        assert(tokenType == ITokenDistributor.TokenType.Erc1155);
+        IERC1155(token).safeTransferFrom(
+            address(this),
+            payable(address(distributor)),
+            tokenId,
+            IERC1155(token).balanceOf(address(this), tokenId),
+            ""
+        );
+        return distributor.createErc1155Distribution(
+            IERC1155(token),
+            tokenId,
+            feeRecipient,
+            feeBps
+        );
     }
 
     // Will also cast sender's votes for proposal.
