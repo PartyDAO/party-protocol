@@ -4,6 +4,7 @@ pragma solidity ^0.8;
 import "forge-std/Test.sol";
 
 import "../../contracts/party/PartyGovernance.sol";
+import "../../contracts/distribution/ITokenDistributor.sol";
 import "../../contracts/globals/Globals.sol";
 import "../DummyERC20.sol";
 import "../TestUtils.sol";
@@ -53,42 +54,132 @@ contract DummyProposalExecutionEngine is IProposalExecutionEngine {
     }
 }
 
-contract DummyTokenDistributor {
+contract DummyTokenDistributor is ITokenDistributor {
     event DummyTokenDistributor_createDistributionCalled(
         address caller,
-        IERC20 token,
+        address token,
+        uint256 tokenId,
         address payable feeRecipient,
         uint16 feeBps,
         uint256 amount,
         uint256 id
     );
 
+    address private constant ETH_ADDRESS = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
+
     address payable public SINK = payable(address(12345678));
     uint256 public lastId;
 
-    function createDistribution(IERC20 token, address payable feeRecipient, uint16 feeBps)
+    function createNativeDistribution(address payable feeRecipient, uint16 feeBps)
         external
         payable
-        returns (TokenDistributor.DistributionInfo memory distInfo)
+        returns (DistributionInfo memory distInfo)
     {
-        uint256 amount;
-        if (address(token) == 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE) {
-            amount = address(this).balance;
-            SINK.transfer(amount);  // Burn it all to keep balances fresh.
-        } else {
-            amount = token.balanceOf(address(this));
-            token.transfer(SINK, amount); // Burn it all to keep balances fresh.
-        }
+        uint256 amount = address(this).balance;
+        SINK.transfer(amount);  // Burn it all to keep balances fresh.
         distInfo.distributionId = ++lastId;
         emit DummyTokenDistributor_createDistributionCalled(
             msg.sender,
-            token,
+            ETH_ADDRESS,
+            0,
             feeRecipient,
             feeBps,
             amount,
             distInfo.distributionId
         );
     }
+
+    function createErc20Distribution(IERC20 token, address payable feeRecipient, uint16 feeBps)
+        external
+        returns (DistributionInfo memory distInfo)
+    {
+        uint256 amount = token.balanceOf(address(this));
+        token.transfer(SINK, amount); // Burn it all to keep balances fresh.
+        distInfo.distributionId = ++lastId;
+        emit DummyTokenDistributor_createDistributionCalled(
+            msg.sender,
+            address(token),
+            0,
+            feeRecipient,
+            feeBps,
+            amount,
+            distInfo.distributionId
+        );
+    }
+
+    function createErc1155Distribution(
+        IERC1155 token,
+        uint256 tokenId,
+        address payable feeRecipient,
+        uint16 feeBps
+    )
+        external
+        returns (DistributionInfo memory distInfo)
+    {
+        uint256 amount = token.balanceOf(address(this), tokenId);
+        token.safeTransferFrom(address(this), SINK, tokenId, amount, ""); // Burn it all to keep balances fresh.
+        distInfo.distributionId = ++lastId;
+        emit DummyTokenDistributor_createDistributionCalled(
+            msg.sender,
+            address(token),
+            tokenId,
+            feeRecipient,
+            feeBps,
+            amount,
+            distInfo.distributionId
+        );
+    }
+
+    function claim(DistributionInfo calldata, uint256)
+        external
+        returns (uint256 amountClaimed) {}
+
+    function claimFee(DistributionInfo calldata, address payable)
+        external {}
+
+    function getClaimAmount(DistributionInfo calldata, uint256)
+        public
+        view
+        returns (uint256) {}
+
+    function wasFeeClaimed(ITokenDistributorParty, uint256)
+        external
+        view
+        returns (bool) {}
+
+    function hasPartyTokenIdClaimed(
+        ITokenDistributorParty,
+        uint256,
+        uint256
+    )
+        external
+        view returns (bool) {}
+
+    function getRemainingMemberSupply(
+        ITokenDistributorParty,
+        uint256
+    )
+        external
+        view
+        returns (uint256) {}
+
+    function emergencyRemoveDistribution(
+        ITokenDistributorParty,
+        uint256
+    )
+        external {}
+
+    /// @notice DAO-only function to withdraw tokens in case something goes wrong.
+    function emergencyWithdraw(
+        TokenType,
+        address,
+        uint256,
+        address payable,
+        uint256
+    )
+        external {}
+
+    function disableEmergencyActions() external {}
 }
 
 contract TestablePartyGovernance is PartyGovernance {
@@ -187,7 +278,7 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
         uint256 id
     );
 
-    IERC20 constant ETH_TOKEN = IERC20(0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE);
+    address constant ETH_ADDRESS = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
 
     PartyGovernance.GovernanceOpts defaultGovernanceOpts;
     Globals globals = new Globals(address(this));
@@ -1816,14 +1907,14 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
         vm.expectEmit(false, false, false, true);
         emit DummyTokenDistributor_createDistributionCalled(
             address(gov),
-            ETH_TOKEN,
+            IERC20(ETH_ADDRESS),
             defaultGovernanceOpts.feeRecipient,
             defaultGovernanceOpts.feeBps,
             1337e18,
             tokenDistributor.lastId() + 1
         );
         vm.prank(member);
-        gov.distribute(ETH_TOKEN);
+        gov.distribute(ITokenDistributor.TokenType.Native, ETH_ADDRESS, 0);
         assertEq(tokenDistributor.SINK().balance, 1337e18);
     }
 
@@ -1852,7 +1943,7 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
             tokenDistributor.lastId() + 1
         );
         vm.prank(member);
-        gov.distribute(erc20);
+        gov.distribute(ITokenDistributor.TokenType.Erc20, address(erc20), 0);
         assertEq(erc20.balanceOf(tokenDistributor.SINK()), 1337e18);
     }
 
@@ -1875,6 +1966,6 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
             PartyGovernance.OnlyActiveMemberError.selector
         ));
         vm.prank(member);
-        gov.distribute(ETH_TOKEN);
+        gov.distribute(ITokenDistributor.TokenType.Native, ETH_ADDRESS, 0);
     }
 }
