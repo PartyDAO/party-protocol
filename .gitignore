@@ -3,5 +3,5 @@
 **.log
 /node_modules
 /tests/built
-/tests/out
+/js
 broadcast/
