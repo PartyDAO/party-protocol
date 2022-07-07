@@ -57,6 +57,7 @@ contract DummyProposalExecutionEngine is IProposalExecutionEngine {
 contract DummyTokenDistributor is ITokenDistributor {
     event DummyTokenDistributor_createDistributionCalled(
         address caller,
+        ITokenDistributor.TokenType tokenType,
         address token,
         uint256 tokenId,
         address payable feeRecipient,
@@ -80,6 +81,7 @@ contract DummyTokenDistributor is ITokenDistributor {
         distInfo.distributionId = ++lastId;
         emit DummyTokenDistributor_createDistributionCalled(
             msg.sender,
+            ITokenDistributor.TokenType.Native,
             ETH_ADDRESS,
             0,
             feeRecipient,
@@ -98,6 +100,7 @@ contract DummyTokenDistributor is ITokenDistributor {
         distInfo.distributionId = ++lastId;
         emit DummyTokenDistributor_createDistributionCalled(
             msg.sender,
+            ITokenDistributor.TokenType.Erc20,
             address(token),
             0,
             feeRecipient,
@@ -121,6 +124,7 @@ contract DummyTokenDistributor is ITokenDistributor {
         distInfo.distributionId = ++lastId;
         emit DummyTokenDistributor_createDistributionCalled(
             msg.sender,
+            ITokenDistributor.TokenType.Erc1155,
             address(token),
             tokenId,
             feeRecipient,
@@ -271,7 +275,9 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
     );
     event DummyTokenDistributor_createDistributionCalled(
         address caller,
-        IERC20 token,
+        ITokenDistributor.TokenType tokenType,
+        address token,
+        uint256 tokenId,
         address payable feeRecipient,
         uint16 feeBps,
         uint256 amount,
@@ -1907,7 +1913,9 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
         vm.expectEmit(false, false, false, true);
         emit DummyTokenDistributor_createDistributionCalled(
             address(gov),
-            IERC20(ETH_ADDRESS),
+            ITokenDistributor.TokenType.Native,
+            ETH_ADDRESS,
+            0,
             defaultGovernanceOpts.feeRecipient,
             defaultGovernanceOpts.feeBps,
             1337e18,
@@ -1936,7 +1944,9 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
         vm.expectEmit(false, false, false, true);
         emit DummyTokenDistributor_createDistributionCalled(
             address(gov),
-            erc20,
+            ITokenDistributor.TokenType.Native,
+            address(erc20),
+            0,
             defaultGovernanceOpts.feeRecipient,
             defaultGovernanceOpts.feeBps,
             1337e18,
