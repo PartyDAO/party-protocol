@@ -164,8 +164,7 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
     );
     event ProposalPassed(uint256 proposalId);
     event ProposalVetoed(uint256 proposalId, address host);
-    event ProposalExecuted(uint256 proposalId, address executor);
-    event ProposalCompleted(uint256 proposalId);
+    event ProposalExecuted(uint256 proposalId, address executor, bytes memory nextProgressData);
     event DistributionCreated(uint256 distributionId, IERC20 token);
     event VotingPowerDelegated(address owner, address delegate);
     event PreciousListSet(IERC721[] tokens, uint256[] tokenIds);
@@ -285,9 +284,21 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
         emit ProposalPassed(proposalId);
     }
 
-    function _expectProposalExecutedEvent(uint256 proposalId, address executor) private {
+    function _expectProposalExecutedEvent(
+        uint256 proposalId,
+        address executor,
+        bytes memory nextProgressData
+    ) private {
         vm.expectEmit(false, false, false, true);
-        emit ProposalExecuted(proposalId, executor);
+        emit ProposalExecuted(proposalId, executor, nextProgressData);
+    }
+
+    function _expectCompletedProposalExecutedEvent(
+        uint256 proposalId,
+        address executor
+    ) private {
+        vm.expectEmit(false, false, false, true);
+        emit ProposalExecuted(proposalId, executor, "");
     }
 
     function _expectProposalCompletedEvent(uint256 proposalId) private {
@@ -356,8 +367,7 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
                 preciousTokenIds: preciousTokenIds
             })
         );
-        _expectProposalExecutedEvent(proposalId, undelegatedVoter);
-        _expectProposalCompletedEvent(proposalId);
+        _expectCompletedProposalExecutedEvent(proposalId, undelegatedVoter);
         vm.prank(undelegatedVoter);
         gov.execute(
             proposalId,
@@ -410,7 +420,7 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
                 preciousTokenIds: preciousTokenIds
             })
         );
-        _expectProposalExecutedEvent(proposalId, undelegatedVoter);
+        _expectProposalExecutedEvent(proposalId, undelegatedVoter, abi.encode(1));
         vm.prank(undelegatedVoter);
         gov.execute(
             proposalId,
@@ -436,8 +446,7 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
                 preciousTokenIds: preciousTokenIds
             })
         );
-        _expectProposalExecutedEvent(proposalId, undelegatedVoter);
-        _expectProposalCompletedEvent(proposalId);
+        _expectCompletedProposalExecutedEvent(proposalId, undelegatedVoter);
         vm.prank(undelegatedVoter);
         gov.execute(
             proposalId,
@@ -491,8 +500,7 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
                 preciousTokenIds: preciousTokenIds
             })
         );
-        _expectProposalExecutedEvent(proposalId, undelegatedVoter);
-        _expectProposalCompletedEvent(proposalId);
+        _expectCompletedProposalExecutedEvent(proposalId, undelegatedVoter);
         vm.prank(undelegatedVoter);
         gov.execute(
             proposalId,
@@ -553,8 +561,7 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
                 preciousTokenIds: preciousTokenIds
             })
         );
-        _expectProposalExecutedEvent(proposalId, undelegatedVoter1);
-        _expectProposalCompletedEvent(proposalId);
+        _expectCompletedProposalExecutedEvent(proposalId, undelegatedVoter1);
         vm.prank(undelegatedVoter1);
         gov.execute(
             proposalId,
@@ -606,8 +613,7 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
                 preciousTokenIds: preciousTokenIds
             })
         );
-        _expectProposalExecutedEvent(proposalId, undelegatedVoter);
-        _expectProposalCompletedEvent(proposalId);
+        _expectCompletedProposalExecutedEvent(proposalId, undelegatedVoter);
         vm.prank(undelegatedVoter);
         gov.execute(
             proposalId,
