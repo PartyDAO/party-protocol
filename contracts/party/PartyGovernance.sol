@@ -513,11 +513,13 @@ abstract contract PartyGovernance is
     //       This is intended to be a last resort and can leave the party
     //       in a broken state. Whenever possible, active proposals should be
     //       allowed to complete their lifecycle.
-    function cancel(uint256 proposalId)
+    function cancel(uint256 proposalId, Proposal calldata proposal)
         external
         onlyActiveMember
     {
         ProposalState storage proposalState = _proposalStateByProposalId[proposalId];
+        // Proposal details must remain the same from propose().
+        _validateProposalHash(proposal, proposalState.hash);
         ProposalStateValues memory values = proposalState.values;
         {
             ProposalStatus status = _getProposalStatus(values);
