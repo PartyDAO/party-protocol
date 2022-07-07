@@ -1,6 +1,6 @@
 import { Contract, BigNumber, Wallet } from 'ethers';
 import * as ethers from 'ethers';
-import { deployContract, NULL_ADDRESS, NULL_BYTES, randomUint256 } from '../utils';
+import { deployContract, NULL_ADDRESS, NULL_BYTES, NULL_HASH, randomUint256 } from '../utils';
 
 import GLOBALS_ARTIFACT from '../../out/Globals.sol/Globals.json';
 import PARTY_FACTORY_ARTIFACT from '../../out/PartyFactory.sol/PartyFactory.json';
@@ -48,6 +48,8 @@ export enum GlobalKeys {
     DaoMultisig                 = 12,
     TokenDistributor            = 13,
     DaoAuthorities              = 14,
+    OpenSeaConduitKey           = 15,
+    OpenSeaZone                 = 16,
 }
 
 export enum ProposalType {
@@ -107,10 +109,13 @@ export class System {
         worker: Wallet;
         daoMultisig: Wallet;
         admins: Wallet[];
-        openSeaAddress?: string;
+        seaportAddress?: string;
+        seaportConduitController?: string;
+        seaportZoneAddress?: string;
+        seaportConduitKey?: string;
         zoraAuctionHouseV2Address?: string;
-        forcedZoraAuctionTimeout: number;
-        forcedZoraAuctionDuration: number;
+        forcedZoraAuctionTimeout?: number;
+        forcedZoraAuctionDuration?: number;
         daoSplit: number;
     }): Promise<System> {
         const worker = createOpts.worker;
@@ -143,10 +148,22 @@ export class System {
             GlobalKeys.OpenSeaZoraAuctionDuration,
             createOpts.forcedZoraAuctionDuration,
         )).wait();
-        let openSeaAddress = createOpts.openSeaAddress || NULL_ADDRESS;
+        await (await globals.setUint256(
+            GlobalKeys.OpenSeaZoraAuctionDuration,
+            createOpts.forcedZoraAuctionDuration,
+        )).wait();
+        await (await globals.setBytes32(
+            GlobalKeys.OpenSeaConduitKey,
+            createOpts.seaportConduitKey || NULL_HASH,
+        )).wait();
+        await (await globals.setAddress(
+            GlobalKeys.OpenSeaZone,
+            createOpts.seaportZoneAddress || NULL_ADDRESS,
+        )).wait();
+        let seaportAddress = createOpts.seaportAddress || NULL_ADDRESS;
         // TODO: could be nice
-        // if (!openSeaAddress || openSeaAddress == NULL_ADDRESS) {
-        //     openSeaAddress = (await deployContract(
+        // if (!seaportAddress || seaportAddress == NULL_ADDRESS) {
+        //     seaportAddress = (await deployContract(
         //         worker,
         //         DUMMY_OPENSEA_ARTIFACT as any,
         //         [],
@@ -158,10 +175,12 @@ export class System {
             artifacts.ProposalExecutionEngine as any,
             [
                 globals.address,
-                openSeaAddress,
+                seaportAddress,
+                createOpts.seaportConduitController || NULL_ADDRESS,
                 createOpts.zoraAuctionHouseV2Address || NULL_ADDRESS,
             ],
         );
+
         await (await globals.setAddress(
             GlobalKeys.ProposalExecutionEngineImpl,
             proposalExecutionEngine.address,

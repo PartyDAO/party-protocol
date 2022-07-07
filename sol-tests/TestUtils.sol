@@ -1,9 +1,11 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8;
 
+import "forge-std/Test.sol";
+
 import "../contracts/tokens/IERC721.sol";
 
-contract TestUtils {
+contract TestUtils is Test {
     uint256 private immutable _nonce;
 
     constructor() {
@@ -62,5 +64,9 @@ contract TestUtils {
     function _toUint256Array(uint256 v) internal pure returns (uint256[] memory arr) {
         arr = new uint256[](1);
         arr[0] = v;
+    }
+
+    function _expectNonIndexedEmit() internal {
+        vm.expectEmit(false, false, false, true);
     }
 }
