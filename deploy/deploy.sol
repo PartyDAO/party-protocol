@@ -130,6 +130,21 @@ contract Deploy is Test {
     globals.setUint256(LibGlobals.GLOBAL_DAO_DISTRIBUTION_SPLIT, deployConstants.partyDaoDistributionSplitBps);
     console.log('  Globals - successfully set PartyDao split basis points', deployConstants.partyDaoDistributionSplitBps);
 
+    console.log('  Globals - setting seaport params');
+    globals.setBytes32(
+        LibGlobals.GLOBAL_OPENSEA_CONDUIT_KEY,
+        deployConstants.osConduitKey
+    );
+    globals.setAddress(
+        LibGlobals.GLOBAL_OPENSEA_ZONE,
+        deployConstants.osZone
+    );
+    console.log('  Globals - successfully set seaport values:');
+    console.logBytes32(deployConstants.osConduitKey);
+    console.log(deployConstants.osZone);
+
+
+
 
 
     // DEPLOY_TOKEN_DISTRIBUTOR
@@ -161,7 +176,8 @@ contract Deploy is Test {
     console.log('### ProposalExecutionEngine');
     console.log('  Deploying - ProposalExecutionEngine');
     zoraAuctionHouse = IZoraAuctionHouse(deployConstants.zoraAuctionHouseAddress);
-    proposalEngineImpl = new ProposalExecutionEngine(globals, seaport, zoraAuctionHouse);
+    ISeaportConduitController conduitController = ISeaportConduitController(deployConstants.osConduitController);
+    proposalEngineImpl = new ProposalExecutionEngine(globals, seaport, conduitController, zoraAuctionHouse);
     console.log('  Deployed - ProposalExecutionEngine', address(proposalEngineImpl));
     console.log('    with seaport', address(seaport));
     console.log('    with zora auction house', address(zoraAuctionHouse));
