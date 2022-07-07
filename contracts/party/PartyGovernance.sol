@@ -871,6 +871,7 @@ abstract contract PartyGovernance is
     // Assert that the hash of a proposal matches expectedHash.
     function _validateProposalHash(Proposal memory proposal, bytes32 expectedHash)
         private
+        pure
     {
         bytes32 actualHash = getProposalHash(proposal);
         if (expectedHash != actualHash) {

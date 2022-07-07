@@ -53,7 +53,7 @@ contract ProposalExecutionEngineTest is
     {
         executeParams =
             IProposalExecutionEngine.ExecuteProposalParams({
-                proposalId: _randomBytes32(),
+                proposalId: _randomUint256(),
                 proposalData: proposalData,
                 progressData: "",
                 flags: 0,

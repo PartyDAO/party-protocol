@@ -255,7 +255,6 @@ contract PartyGovernanceTest is Test, TestUtils {
         feeRecipient: payable(0)
       })
     );
-    DummySimpleProposalEngineImpl propEng = DummySimpleProposalEngineImpl(address(party));
 
     // Mint governance NFTs
     partyAdmin.mintGovNft(party, address(john), 100);
@@ -302,7 +301,7 @@ contract PartyGovernanceTest is Test, TestUtils {
 
   function testPartyMemberCannotVoteTwice() public {
     // Create party + mock proposal engine
-    (Party party, IERC721[] memory preciousTokens, uint256[] memory preciousTokenIds) = partyAdmin.createParty(
+    (Party party, , ) = partyAdmin.createParty(
       PartyAdmin.PartyCreationMinimalOptions({
         host1: address(nicholas),
         host2: address(0),
@@ -314,7 +313,6 @@ contract PartyGovernanceTest is Test, TestUtils {
         feeRecipient: payable(0)
       })
     );
-    DummySimpleProposalEngineImpl propEng = DummySimpleProposalEngineImpl(address(party));
 
     // Mint governance NFTs
     partyAdmin.mintGovNft(party, address(john), 100);
@@ -356,7 +354,6 @@ contract PartyGovernanceTest is Test, TestUtils {
         feeRecipient: payable(0)
       })
     );
-    DummySimpleProposalEngineImpl propEng = DummySimpleProposalEngineImpl(address(party));
 
     // Mint governance NFTs
     partyAdmin.mintGovNft(party, address(john), 50);
@@ -412,7 +409,6 @@ contract PartyGovernanceTest is Test, TestUtils {
         feeRecipient: payable(0)
       })
     );
-    DummySimpleProposalEngineImpl propEng = DummySimpleProposalEngineImpl(address(party));
 
     // Mint governance NFTs
     partyAdmin.mintGovNft(party, address(john), 1);

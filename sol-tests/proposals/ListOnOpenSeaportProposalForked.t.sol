@@ -134,7 +134,7 @@ contract ListOnOpenSeaportProposalForkedTest is
             });
         executeParams =
             IProposalExecutionEngine.ExecuteProposalParams({
-                proposalId: _randomBytes32(),
+                proposalId: _randomUint256(),
                 proposalData: abi.encode(proposalData),
                 progressData: "",
                 flags: 0,

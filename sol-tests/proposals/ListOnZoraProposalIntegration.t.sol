@@ -79,7 +79,9 @@ contract ListOnZoraProposalIntegrationTest is
           passThresholdBps: 5100,
           totalVotingPower: 150,
           preciousTokenAddress: address(toadz),
-          preciousTokenId: 1
+          preciousTokenId: 1,
+          feeBps: 0,
+          feeRecipient: payable(0)
         })
       );
       // transfer NFT to party
@@ -105,7 +107,7 @@ contract ListOnZoraProposalIntegrationTest is
 
       PartyGovernance.Proposal memory proposal = PartyGovernance.Proposal({
         maxExecutableTime: uint40(block.timestamp + 10000 hours),
-        nonce: 1,
+        minCancelTime: uint40(block.timestamp + 1 days),
         proposalData: proposalData
       });
 

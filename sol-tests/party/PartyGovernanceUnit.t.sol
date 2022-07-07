@@ -769,7 +769,6 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
         _assertProposalStateEq(gov, proposalId, PartyGovernance.ProposalStatus.Complete);
 
         // Try to execute again.
-        bytes32 expectedHash = gov.getProposalHash(proposal);
         vm.expectRevert(abi.encodeWithSelector(
             PartyGovernance.BadProposalStatusError.selector,
             PartyGovernance.ProposalStatus.Complete

@@ -46,7 +46,7 @@ contract ProposalStorage {
 
     function _getSharedProposalStorage()
         private
-        view
+        pure
         returns (SharedProposalStorage storage stor)
     {
         uint256 s = SHARED_STORAGE_SLOT;
