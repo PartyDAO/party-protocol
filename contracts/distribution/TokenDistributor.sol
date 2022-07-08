@@ -117,7 +117,7 @@ contract TokenDistributor is ITokenDistributor {
         returns (DistributionInfo memory info)
     {
         info = _createDistribution(
-            TokenType.Erc20,
+            TokenType.Erc1155,
             address(token),
             tokenId,
             token.balanceOf(address(this), tokenId),
@@ -130,7 +130,7 @@ contract TokenDistributor is ITokenDistributor {
     /// @inheritdoc ITokenDistributor
     function claim(DistributionInfo calldata info, uint256 partyTokenId)
         external
-        returns (uint256 amountClaimed)
+        returns (uint128 amountClaimed)
     {
         // Caller must own the party token.
         {
@@ -160,8 +160,7 @@ contract TokenDistributor is ITokenDistributor {
         amountClaimed = amountClaimed > remainingMemberSupply
             ? remainingMemberSupply
             : amountClaimed;
-        state.remainingMemberSupply =
-            remainingMemberSupply - amountClaimed.safeCastUint256ToUint128();
+        state.remainingMemberSupply = remainingMemberSupply - amountClaimed;
 
         // Transfer tokens owed.
         _transfer(
@@ -205,14 +204,18 @@ contract TokenDistributor is ITokenDistributor {
     }
 
     /// @inheritdoc ITokenDistributor
-    function getClaimAmount(DistributionInfo calldata info, uint256 tokenId)
+    function getClaimAmount(DistributionInfo calldata info, uint256 partyTokenId)
         public
         view
-        returns (uint256)
+        returns (uint128)
     {
-        // getDistributionShareOf() is the fraction of the memberSupply tokenId
+        // getDistributionShareOf() is the fraction of the memberSupply partyTokenId
         // is entitled to, scaled by 1e18.
-        return info.party.getDistributionShareOf(tokenId) * info.memberSupply / 1e18;
+        return (
+            uint256(info.party.getDistributionShareOf(partyTokenId))
+            * info.memberSupply
+            / 1e18
+        ).safeCastUint256ToUint128();
     }
 
     /// @inheritdoc ITokenDistributor
@@ -243,7 +246,7 @@ contract TokenDistributor is ITokenDistributor {
     )
         external
         view
-        returns (uint256)
+        returns (uint128)
     {
         return _distributionStates[party][distributionId].remainingMemberSupply;
     }
@@ -345,9 +348,10 @@ contract TokenDistributor is ITokenDistributor {
             recipient.transferEth(amount);
         } else if (tokenType == TokenType.Erc20) {
             IERC20(token).compatTransfer(recipient, amount);
+        } else {
+            assert(tokenType == TokenType.Erc1155);
+            IERC1155(token).safeTransferFrom(address(this), recipient, tokenId, amount, "");
         }
-        assert(tokenType == TokenType.Erc1155);
-        IERC1155(token).safeTransferFrom(address(this), recipient, tokenId, amount, "");
     }
 
     function _getDistributionHash(DistributionInfo memory info)
