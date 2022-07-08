@@ -136,7 +136,7 @@ contract DummyTokenDistributor is ITokenDistributor {
 
     function claim(DistributionInfo calldata, uint256)
         external
-        returns (uint256 amountClaimed) {}
+        returns (uint128 amountClaimed) {}
 
     function claimFee(DistributionInfo calldata, address payable)
         external {}
@@ -144,7 +144,7 @@ contract DummyTokenDistributor is ITokenDistributor {
     function getClaimAmount(DistributionInfo calldata, uint256)
         public
         view
-        returns (uint256) {}
+        returns (uint128) {}
 
     function wasFeeClaimed(ITokenDistributorParty, uint256)
         external
@@ -165,7 +165,7 @@ contract DummyTokenDistributor is ITokenDistributor {
     )
         external
         view
-        returns (uint256) {}
+        returns (uint128) {}
 
     function emergencyRemoveDistribution(
         ITokenDistributorParty,
@@ -1944,7 +1944,7 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
         vm.expectEmit(false, false, false, true);
         emit DummyTokenDistributor_createDistributionCalled(
             address(gov),
-            ITokenDistributor.TokenType.Native,
+            ITokenDistributor.TokenType.Erc20,
             address(erc20),
             0,
             defaultGovernanceOpts.feeRecipient,

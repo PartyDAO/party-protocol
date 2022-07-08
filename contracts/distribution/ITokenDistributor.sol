@@ -97,7 +97,7 @@ interface ITokenDistributor {
     ///         must own this token.
     function claim(DistributionInfo calldata info, uint256 partyTokenId)
         external
-        returns (uint256 amountClaimed);
+        returns (uint128 amountClaimed);
 
     /// @notice Claim the fee for a distribution. Only a distribution's feeRecipient
     ///         can call this.
@@ -109,7 +109,7 @@ interface ITokenDistributor {
     function getClaimAmount(DistributionInfo calldata info, uint256 tokenId)
         external
         view
-        returns (uint256);
+        returns (uint128);
 
     /// @notice Check whether the fee has been claimed for a distribution.
     function wasFeeClaimed(ITokenDistributorParty party, uint256 distributionId)
@@ -133,7 +133,7 @@ interface ITokenDistributor {
     )
         external
         view
-        returns (uint256);
+        returns (uint128);
 
     /// @notice DAO-only function to clear a distribution in case something goes wrong.
     function emergencyRemoveDistribution(

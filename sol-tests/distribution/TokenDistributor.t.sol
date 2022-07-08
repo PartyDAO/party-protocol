@@ -30,7 +30,7 @@ contract TokenDistributorTest is Test, TestUtils {
   }
 
   function testEthDistributionSimple() public {
-    TokenDistributor.DistributionInfo memory ds =
+    ITokenDistributor.DistributionInfo memory ds =
         _createEthDistribution(dummyParty1, 0.025e4, 1.337 ether);
 
     assertEq(DISTRIBUTION_ADDRESS.balance, 0);
@@ -58,21 +58,21 @@ contract TokenDistributorTest is Test, TestUtils {
     // distribution 1 (ds1, ETH)
     payable(address(distributor)).transfer(0.1 ether);
     vm.prank(address(dummyParty1)); // must create from party
-    TokenDistributor.DistributionInfo memory ds1 =
+    ITokenDistributor.DistributionInfo memory ds1 =
         distributor.createNativeDistribution(ADMIN_ADDRESS, 0.05e4);
     _createDummyNft(dummyParty1, address(1), 1337, 0.7 ether);
     _createDummyNft(dummyParty1, address(2), 1338, 0.3 ether);
     // distribution 2 (ds2, ETH)
     payable(address(distributor)).transfer(0.25 ether);
     vm.prank(address(dummyParty2)); // must create from party
-    TokenDistributor.DistributionInfo memory ds2 =
+    ITokenDistributor.DistributionInfo memory ds2 =
         distributor.createNativeDistribution(ADMIN_ADDRESS, 0.05e4);
     _createDummyNft(dummyParty2, address(1), 1337, 0.33 ether);
     _createDummyNft(dummyParty2, address(3), 1338, 0.66 ether);
     // distribution 3 (ds1, dummyToken1)
     dummyToken1.deal(address(distributor), 300 ether);
     vm.prank(address(dummyParty1)); // must create from party
-    TokenDistributor.DistributionInfo memory ds3 =
+    ITokenDistributor.DistributionInfo memory ds3 =
         distributor.createErc20Distribution(
             IERC20(address(dummyToken1)),
             ADMIN_ADDRESS,
@@ -101,7 +101,7 @@ contract TokenDistributorTest is Test, TestUtils {
 
     // partydao cant claim again
     vm.expectRevert(
-          abi.encodeWithSignature("DistributionAlreadyClaimedByPartyDaoError(uint256)", 1)
+          abi.encodeWithSignature("DistributionFeeAlreadyClaimedError(uint256)", 1)
     );
     vm.prank(ADMIN_ADDRESS);
     distributor.claimFee(ds1, DISTRIBUTION_ADDRESS);
@@ -275,13 +275,13 @@ contract TokenDistributorTest is Test, TestUtils {
     vm.deal(address(distributor), 100 ether);
 
     vm.prank(address(dummyParty1)); // must send from party
-    TokenDistributor.DistributionInfo memory ds =
+    ITokenDistributor.DistributionInfo memory ds =
         distributor.createNativeDistribution(ADMIN_ADDRESS, 0);
 
     _createDummyNft(dummyParty1, address(5), 420, 0);
 
     uint256 balanceBefore = address(5).balance;
-    vm.prank(address(address(5)));
+    vm.prank(address(5));
     distributor.claim(ds, 420);
     assertEq(address(5).balance, balanceBefore);
   }
@@ -291,7 +291,7 @@ contract TokenDistributorTest is Test, TestUtils {
     vm.deal(address(distributor), 0.5 ether);
 
     vm.prank(address(dummyParty1));
-    TokenDistributor.DistributionInfo memory ds =
+    ITokenDistributor.DistributionInfo memory ds =
         distributor.createNativeDistribution(ADMIN_ADDRESS, 0.05e4);
     _createDummyNft(dummyParty1, address(5), 420, 2 ether); // malicious amount 2x
 
@@ -309,7 +309,7 @@ contract TokenDistributorTest is Test, TestUtils {
   }
 
   function _daoClaimEthAndReturnDiff(
-    TokenDistributor.DistributionInfo memory di
+    ITokenDistributor.DistributionInfo memory di
   ) private returns (uint256) {
       vm.prank(ADMIN_ADDRESS);
       uint256 beforeBal = DISTRIBUTION_ADDRESS.balance;
@@ -333,7 +333,7 @@ contract TokenDistributorTest is Test, TestUtils {
     DummyTokenDistributorParty dummyParty,
     uint16 feeSplitBps,
     uint256 ethAmount
-  ) private returns (TokenDistributor.DistributionInfo memory) {
+) private returns (ITokenDistributor.DistributionInfo memory) {
 
     payable(address(distributor)).transfer(ethAmount);
     vm.prank(address(dummyParty)); // must create from party
@@ -341,7 +341,7 @@ contract TokenDistributorTest is Test, TestUtils {
   }
 
   function _claim(
-    TokenDistributor.DistributionInfo memory ds,
+    ITokenDistributor.DistributionInfo memory ds,
     address prankAs,
     uint256 tokenId
   ) private returns (uint256) {
