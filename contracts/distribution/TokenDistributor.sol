@@ -30,7 +30,7 @@ contract TokenDistributor is ITokenDistributor {
         mapping (uint256 => bool) hasPartyTokenClaimed;
     }
 
-    address private constant ETH_ADDRESS = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
+    address private constant NATIVE_TOKEN_ADDRESS = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
 
     IGlobals public immutable GLOBALS;
 
@@ -77,7 +77,7 @@ contract TokenDistributor is ITokenDistributor {
     {
         info = _createDistribution(
             TokenType.Native,
-            ETH_ADDRESS,
+            NATIVE_TOKEN_ADDRESS,
             0,
             address(this).balance,
             feeRecipient,
@@ -373,7 +373,7 @@ contract TokenDistributor is ITokenDistributor {
         returns (bytes32 balanceId)
     {
         if (tokenType == TokenType.Native) {
-            return bytes32(uint256(uint160(ETH_ADDRESS)));
+            return bytes32(uint256(uint160(NATIVE_TOKEN_ADDRESS)));
         }
         if (tokenType == TokenType.Erc20) {
             return bytes32(uint256(uint160(token)));
