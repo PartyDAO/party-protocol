@@ -1,6 +1,6 @@
 import { expect, use } from 'chai';
 import { Contract } from 'ethers';
-import { deployContract, MockProvider, solidity } from 'ethereum-waffle';
+import { MockProvider, solidity } from 'ethereum-waffle';
 import { Party, System, createArbitraryCallsProposal, ProposalState } from './system';
 import {
     ONE_DAY_SECONDS,
@@ -10,6 +10,7 @@ import {
     NULL_HASH,
     ZERO,
     NULL_BYTES,
+    deployContract,
     now,
     increaseTime,
 } from '../utils';
