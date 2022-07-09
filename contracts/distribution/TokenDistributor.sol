@@ -5,6 +5,7 @@ import "../globals/IGlobals.sol";
 import "../globals/LibGlobals.sol";
 import "../tokens/IERC20.sol";
 import "../tokens/IERC1155.sol";
+import "../tokens/ERC1155TokenReceiver.sol";
 import "../utils/LibAddress.sol";
 import "../utils/LibERC20Compat.sol";
 import "../utils/LibRawResult.sol";
@@ -13,7 +14,7 @@ import "../utils/LibSafeCast.sol";
 import "./ITokenDistributor.sol";
 
 /// @notice Creates token distributions for parties.
-contract TokenDistributor is ITokenDistributor {
+contract TokenDistributor is ITokenDistributor, ERC1155TokenReceiver {
     using LibAddress for address payable;
     using LibERC20Compat for IERC20;
     using LibRawResult for bytes;
@@ -28,6 +29,17 @@ contract TokenDistributor is ITokenDistributor {
         bool wasFeeClaimed;
         // Whether a governance token has claimed its distribution share.
         mapping (uint256 => bool) hasPartyTokenClaimed;
+    }
+
+    // Args for _createDistribution()
+    struct CreateDistributionArgs {
+        ITokenDistributorParty party;
+        TokenType tokenType;
+        address token;
+        uint256 tokenId;
+        uint256 currentTokenBalance;
+        address payable feeRecipient;
+        uint16 feeBps;
     }
 
     address private constant NATIVE_TOKEN_ADDRESS = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
@@ -60,7 +72,7 @@ contract TokenDistributor is ITokenDistributor {
     // allowEmergencyActions == true
     modifier onlyIfEmergencyActionsAllowed() {
         if (!allowEmergencyActions) {
-            revert EmergencyActionsNotAllowed();
+            revert EmergencyActionsNotAllowedError();
         }
         _;
     }
@@ -69,21 +81,24 @@ contract TokenDistributor is ITokenDistributor {
         GLOBALS = globals;
     }
 
+    /// @notice For receiving ETH
+    receive() external payable {}
+
     /// @inheritdoc ITokenDistributor
     function createNativeDistribution(address payable feeRecipient, uint16 feeBps)
         external
         payable
         returns (DistributionInfo memory info)
     {
-        info = _createDistribution(
-            TokenType.Native,
-            NATIVE_TOKEN_ADDRESS,
-            0,
-            address(this).balance,
-            feeRecipient,
-            feeBps
-        );
-        emit DistributionCreated(info);
+        info = _createDistribution(CreateDistributionArgs({
+            party: ITokenDistributorParty(msg.sender),
+            tokenType: TokenType.Native,
+            token: NATIVE_TOKEN_ADDRESS,
+            tokenId: 0,
+            currentTokenBalance: address(this).balance,
+            feeRecipient: feeRecipient,
+            feeBps: feeBps
+        }));
     }
 
     /// @inheritdoc ITokenDistributor
@@ -95,15 +110,15 @@ contract TokenDistributor is ITokenDistributor {
         external
         returns (DistributionInfo memory info)
     {
-        info = _createDistribution(
-            TokenType.Erc20,
-            address(token),
-            0,
-            token.balanceOf(address(this)),
-            feeRecipient,
-            feeBps
-        );
-        emit DistributionCreated(info);
+        info = _createDistribution(CreateDistributionArgs({
+            party: ITokenDistributorParty(msg.sender),
+            tokenType: TokenType.Erc20,
+            token: address(token),
+            tokenId: 0,
+            currentTokenBalance: token.balanceOf(address(this)),
+            feeRecipient: feeRecipient,
+            feeBps: feeBps
+        }));
     }
 
     /// @inheritdoc ITokenDistributor
@@ -116,15 +131,15 @@ contract TokenDistributor is ITokenDistributor {
         external
         returns (DistributionInfo memory info)
     {
-        info = _createDistribution(
-            TokenType.Erc1155,
-            address(token),
-            tokenId,
-            token.balanceOf(address(this), tokenId),
-            feeRecipient,
-            feeBps
-        );
-        emit DistributionCreated(info);
+        info = _createDistribution(CreateDistributionArgs({
+            party: ITokenDistributorParty(msg.sender),
+            tokenType: TokenType.Erc1155,
+            token: address(token),
+            tokenId: tokenId,
+            currentTokenBalance: token.balanceOf(address(this), tokenId),
+            feeRecipient: feeRecipient,
+            feeBps: feeBps
+        }));
     }
 
     /// @inheritdoc ITokenDistributor
@@ -170,7 +185,14 @@ contract TokenDistributor is ITokenDistributor {
             payable(msg.sender),
             amountClaimed
         );
-        emit DistributionClaimedByToken(info, partyTokenId, msg.sender, amountClaimed);
+        emit DistributionClaimed(
+            info.party,
+            partyTokenId,
+            info.tokenType,
+            info.token,
+            info.tokenId,
+            amountClaimed
+        );
     }
 
     /// @inheritdoc ITokenDistributor
@@ -200,7 +222,14 @@ contract TokenDistributor is ITokenDistributor {
             recipient,
             info.fee
         );
-        emit DistributionClaimedByPartyDao(info, recipient, info.fee);
+        emit DistributionFeeClaimed(
+            info.party,
+            info.feeRecipient,
+            info.tokenType,
+            info.token,
+            info.tokenId,
+            info.fee
+        );
     }
 
     /// @inheritdoc ITokenDistributor
@@ -282,54 +311,45 @@ contract TokenDistributor is ITokenDistributor {
         allowEmergencyActions = false;
     }
 
-    // For receiving ETH
-    receive() external payable {}
-
-    function _createDistribution(
-        TokenType tokenType,
-        address token,
-        uint256 tokenId,
-        uint256 currentTokenBalance,
-        address payable feeRecipient,
-        uint16 feeBps
-    )
+    function _createDistribution(CreateDistributionArgs memory args)
         private
         returns (DistributionInfo memory info)
     {
-        if (feeBps > 1e4) {
-            revert InvalidFeeBps(feeBps);
+        if (args.feeBps > 1e4) {
+            revert InvalidFeeBpsError(args.feeBps);
         }
-        bytes32 balanceId = _getBalanceId(tokenType, token, tokenId);
-        uint128 supply = (currentTokenBalance - _storedBalances[balanceId])
-            .safeCastUint256ToUint128();
-        // Supply must be nonzero.
-        if (supply == 0) {
-            revert InvalidDistributionSupply(supply);
+        uint128 supply;
+        {
+            bytes32 balanceId = _getBalanceId(args.tokenType, args.token, args.tokenId);
+            supply = (args.currentTokenBalance - _storedBalances[balanceId])
+                .safeCastUint256ToUint128();
+            // Supply must be nonzero.
+            if (supply == 0) {
+                revert InvalidDistributionSupplyError(supply);
+            }
+            // Update stored balance.
+            _storedBalances[balanceId] = args.currentTokenBalance;
         }
-        // Update stored balance.
-        _storedBalances[balanceId] = currentTokenBalance;
 
         // Create a distribution.
-        ITokenDistributorParty party = ITokenDistributorParty(msg.sender);
-        uint256 distId = ++lastDistributionIdPerParty[party];
-        uint128 fee = supply * feeBps / 1e4;
+        uint128 fee = supply * args.feeBps / 1e4;
         uint128 memberSupply = supply - fee;
 
         info = DistributionInfo({
-            tokenType: tokenType,
-            distributionId: distId,
-            token: token,
-            tokenId: tokenId,
-            party: party,
+            tokenType: args.tokenType,
+            distributionId: ++lastDistributionIdPerParty[args.party],
+            token: args.token,
+            tokenId: args.tokenId,
+            party: args.party,
             memberSupply: memberSupply,
-            feeRecipient: feeRecipient,
+            feeRecipient: args.feeRecipient,
             fee: fee
         });
         (
-            _distributionStates[party][distId].distributionHash15,
-            _distributionStates[party][distId].remainingMemberSupply
+            _distributionStates[args.party][info.distributionId].distributionHash15,
+            _distributionStates[args.party][info.distributionId].remainingMemberSupply
         ) = (_getDistributionHash(info), memberSupply);
-        emit DistributionCreated(info);
+        emit DistributionCreated(args.party, info);
     }
 
     function _transfer(
@@ -382,7 +402,7 @@ contract TokenDistributor is ITokenDistributor {
         assembly {
             mstore(0x00, token)
             mstore(0x20, tokenId)
-            balanceId := keccak256(0x00, 0x20)
+            balanceId := keccak256(0x00, 0x40)
         }
     }
 }

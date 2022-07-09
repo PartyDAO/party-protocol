@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 pragma solidity ^0.8;
 
-// Minimal ERC21155 interface.
+// Minimal ERC1155 interface.
 interface IERC1155 {
     event TransferSingle(
         address indexed operator,

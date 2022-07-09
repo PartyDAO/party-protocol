@@ -69,4 +69,20 @@ contract TestUtils is Test {
     function _expectNonIndexedEmit() internal {
         vm.expectEmit(false, false, false, true);
     }
+
+    function _expectEmit0() internal {
+        vm.expectEmit(false, false, false, true);
+    }
+
+    function _expectEmit1() internal {
+        vm.expectEmit(true, false, false, true);
+    }
+
+    function _expectEmit2() internal {
+        vm.expectEmit(true, true, false, true);
+    }
+
+    function _expectEmit3() internal {
+        vm.expectEmit(true, true, true, true);
+    }
 }
