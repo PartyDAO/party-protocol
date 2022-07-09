@@ -235,7 +235,7 @@ contract TokenDistributorTest is Test, TestUtils {
     vm.startPrank(DAO_ADDRESS);
     distributor.disableEmergencyActions();
     vm.expectRevert(
-      abi.encodeWithSignature("EmergencyActionsNotAllowed()")
+      abi.encodeWithSignature("EmergencyActionsNotAllowedError()")
     );
     distributor.emergencyWithdraw(
         ITokenDistributor.TokenType.Native,
@@ -247,7 +247,7 @@ contract TokenDistributorTest is Test, TestUtils {
 
     // cant remove when emergency actions disabled
     vm.expectRevert(
-      abi.encodeWithSignature("EmergencyActionsNotAllowed()")
+      abi.encodeWithSignature("EmergencyActionsNotAllowedError()")
     );
     distributor.emergencyRemoveDistribution(
       dummyParty1, 1
@@ -258,14 +258,14 @@ contract TokenDistributorTest is Test, TestUtils {
     // ensure amount needs to be > 0
     vm.prank(address(dummyParty1)); // must create from party
     vm.expectRevert(
-      abi.encodeWithSignature("InvalidDistributionSupply(uint128)", 0)
+      abi.encodeWithSignature("InvalidDistributionSupplyError(uint128)", 0)
     );
     distributor.createNativeDistribution(ADMIN_ADDRESS, 0);
 
     // ensure needs to be able to take fee
     vm.deal(address(distributor), 10);
     vm.expectRevert(
-      abi.encodeWithSignature("InvalidFeeBps(uint16)", 1.1e4)
+      abi.encodeWithSignature("InvalidFeeBpsError(uint16)", 1.1e4)
     );
     vm.prank(address(dummyParty1));
     distributor.createNativeDistribution(ADMIN_ADDRESS, 1.1e4); // 110%

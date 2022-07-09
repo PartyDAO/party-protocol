@@ -40,14 +40,31 @@ interface ITokenDistributor {
     error DistributionAlreadyClaimedByTokenError(uint256 distributionId, uint256 tokenId);
     error DistributionFeeAlreadyClaimedError(uint256 distributionId);
     error MustOwnTokenError(address sender, address expectedOwner, uint256 tokenId);
-    error EmergencyActionsNotAllowed();
-    error InvalidDistributionSupply(uint128 supply);
+    error EmergencyActionsNotAllowedError();
+    error InvalidDistributionSupplyError(uint128 supply);
     error OnlyFeeRecipientError(address caller, address feeRecipient);
-    error InvalidFeeBps(uint16 feeBps);
+    error InvalidFeeBpsError(uint16 feeBps);
 
-    event DistributionCreated(DistributionInfo info);
-    event DistributionClaimedByPartyDao(DistributionInfo info, address recipient, uint256 amountClaimed);
-    event DistributionClaimedByToken(DistributionInfo info, uint256 tokenId, address recipient, uint256 amountClaimed);
+    event DistributionCreated(
+        ITokenDistributorParty indexed party,
+        DistributionInfo info
+    );
+    event DistributionClaimed(
+        ITokenDistributorParty indexed party,
+        uint256 indexed partyTokenId,
+        TokenType tokenType,
+        address token,
+        uint256 tokenId,
+        uint256 amount
+    );
+    event DistributionFeeClaimed(
+        ITokenDistributorParty indexed party,
+        address indexed feeRecipient,
+        TokenType tokenType,
+        address token,
+        uint256 tokenId,
+        uint256 amount
+    );
 
     /// @notice Create a new distribution for an outstanding native token balance
     ///         governed by a party (msg.sender).
