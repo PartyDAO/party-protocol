@@ -8,6 +8,7 @@ import "../tokens/IERC721.sol";
 import "../tokens/IERC20.sol";
 import "../tokens/IERC1155.sol";
 import "../tokens/ERC721Receiver.sol";
+import "../tokens/ERC1155TokenReceiver.sol";
 import "../utils/LibERC20Compat.sol";
 import "../utils/LibRawResult.sol";
 import "../utils/LibSafeCast.sol";
@@ -23,6 +24,7 @@ import "./IPartyFactory.sol";
 abstract contract PartyGovernance is
     ITokenDistributorParty,
     ERC721Receiver,
+    ERC1155TokenReceiver,
     ProposalStorage,
     ReadOnlyDelegateCall
 {
@@ -270,6 +272,18 @@ abstract contract PartyGovernance is
             address(_getProposalExecutionEngine()),
             msg.data
         );
+    }
+
+    /// @notice Combined logic for ERC721Receiver and ERC1155TokenReceiver
+    function supportsInterface(bytes4 interfaceId)
+        public
+        override(ERC721Receiver, ERC1155TokenReceiver)
+        virtual
+        pure
+        returns (bool)
+    {
+        return ERC721Receiver.supportsInterface(interfaceId) ||
+            ERC1155TokenReceiver.supportsInterface(interfaceId);
     }
 
     // Get the current IProposalExecutionEngine instance.

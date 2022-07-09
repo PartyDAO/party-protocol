@@ -655,6 +655,14 @@ contract TokenDistributorUnitTest is Test, TestUtils {
         assertEq(dest.balance, di.fee);
     }
 
+    function test_canReceive1155Token() external {
+        DummyERC1155 erc1155 = new DummyERC1155();
+        address owner = _randomAddress();
+        erc1155.deal(owner, 1337, 1e18);
+        vm.prank(owner);
+        erc1155.safeTransferFrom(owner, address(distributor), 1337, 1, "");
+    }
+
     function _computeMemberShare(uint256 total, uint256 share)
         private
         pure
