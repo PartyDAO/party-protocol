@@ -181,6 +181,27 @@ contract ProposalExecutionEngineTest is
         assertEq(address(eng.getProposalEngineImpl()), address(newEngImpl));
     }
 
+    // Execute a two-step proposal, then try to cancel a different one.
+    function test_cancelProposal_cannotCancelNonCurrentProposal() public {
+        IProposalExecutionEngine.ExecuteProposalParams memory executeParams =
+            _createTestProposal(_createTwoStepProposalData(_randomUint256(), _randomUint256()));
+        assertFalse(_executeProposal(executeParams));
+        uint256 otherProposalId = _randomUint256();
+        vm.expectRevert(abi.encodeWithSelector(
+            ProposalExecutionEngine.ProposalNotInProgressError.selector,
+            otherProposalId
+        ));
+        eng.cancelProposal(otherProposalId);
+    }
+
+    function test_cancelProposal_works() public {
+        IProposalExecutionEngine.ExecuteProposalParams memory executeParams =
+            _createTestProposal(_createTwoStepProposalData(_randomUint256(), _randomUint256()));
+        assertFalse(_executeProposal(executeParams));
+        eng.cancelProposal(executeParams.proposalId);
+        assertEq(eng.getCurrentInProgressProposalId(), 0);
+    }
+
     function _executeProposal(IProposalExecutionEngine.ExecuteProposalParams memory params)
         private
         returns (bool completed)

@@ -40,7 +40,8 @@ abstract contract PartyGovernance is
         Passed,
         Ready,
         InProgress,
-        Complete
+        Complete,
+        Cancelled
     }
 
     struct GovernanceOpts {
@@ -134,13 +135,13 @@ abstract contract PartyGovernance is
         uint256 weight
     );
 
-    event ProposalPassed(uint256 proposalId);
-    event ProposalVetoed(uint256 proposalId, address host);
-    event ProposalExecuted(uint256 proposalId, address executor, bytes nextProgressData);
-    event ProposalCancelled(uint256 proposalId);
-    event ProposalCompleted(uint256 proposalId);
+    event ProposalPassed(uint256 indexed proposalId);
+    event ProposalVetoed(uint256 indexed proposalId, address host);
+    event ProposalExecuted(uint256 indexed proposalId, address executor, bytes nextProgressData);
+    event ProposalCancelled(uint256 indexed proposalId);
+    event ProposalCompleted(uint256 indexed proposalId);
     event DistributionCreated(uint256 distributionId, IERC20 token);
-    event VotingPowerDelegated(address owner, address delegate);
+    event VotingPowerDelegated(address indexed owner, address delegate);
     event PreciousListSet(IERC721[] tokens, uint256[] tokenIds);
     event HostStatusTransferred(address oldHost, address newHost);
 
@@ -158,6 +159,9 @@ abstract contract PartyGovernance is
     error OnlyWhenEmergencyActionsAllowedError();
     error AlreadyVotedError(address voter);
     error InvalidNewHostError();
+    error ProposalCannotBeCancelledYetError(uint40 currentTime, uint40 minCancelTime);
+
+    uint256 constant private UINT40_HIGH_BIT = 1 << 39;
 
     IGlobals private immutable _GLOBALS;
 
@@ -551,6 +555,10 @@ abstract contract PartyGovernance is
         ProposalState storage proposalState = _proposalStateByProposalId[proposalId];
         // Proposal details must remain the same from propose().
         _validateProposalHash(proposal, proposalState.hash);
+        // Must not be before minCancelTime.
+        if (block.timestamp < proposal.minCancelTime) {
+            revert ProposalCannotBeCancelledYetError(uint40(block.timestamp), proposal.minCancelTime);
+        }
         ProposalStateValues memory values = proposalState.values;
         {
             ProposalStatus status = _getProposalStatus(values);
@@ -559,6 +567,9 @@ abstract contract PartyGovernance is
                 revert BadProposalStatusError(status);
             }
         }
+        // Mark the proposal as cancelled by setting the completed time to the current
+        // time with the high bit set.
+        proposalState.values.completedTime = uint40(block.timestamp | UINT40_HIGH_BIT);
         {
             // Delegatecall into the proposal engine impl to perform the cancel.
             (bool success, bytes memory resultData) =
@@ -802,9 +813,13 @@ abstract contract PartyGovernance is
         }
         // Executed at least once.
         if (pv.executedTime != 0) {
-            return pv.completedTime == 0
-                ? ProposalStatus.InProgress
-                : ProposalStatus.Complete;
+            if (pv.completedTime == 0) {
+                return ProposalStatus.InProgress;
+            }
+            if (pv.completedTime & UINT40_HIGH_BIT == UINT40_HIGH_BIT) {
+                return ProposalStatus.Cancelled;
+            }
+            return ProposalStatus.Complete;
         }
         // Vetoed.
         if (pv.votes == uint96(int96(-1))) {
