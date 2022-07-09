@@ -1002,6 +1002,8 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
         // Skip to cancel time.
         vm.warp(proposal.minCancelTime);
         // Cancel it.
+        _expectEmit0();
+        emit DummyProposalExecutionEngine_cancelCalled(address(gov), proposalId);
         _expectEmit1();
         emit ProposalCancelled(proposalId);
         vm.prank(voter);
