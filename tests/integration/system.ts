@@ -70,6 +70,7 @@ export enum ProposalStatus {
     Ready       = 4,
     InProgress  = 5,
     Complete    = 6,
+    Cancelled   = 7,
 }
 
 export enum ListOnOpenSeaStep {
