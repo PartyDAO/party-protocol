@@ -177,14 +177,15 @@ contract PartyGovernanceNFT is
     function supportsInterface(bytes4 interfaceId)
         public
         pure
-        override(ERC721Receiver)
+        override
+        virtual
         returns (bool)
     {
         // IERC721
         if (interfaceId == 0x80ac58cd) {
             return true;
         }
-        return ERC721Receiver.supportsInterface(interfaceId);
+        return super.supportsInterface(interfaceId);
     }
 
     function getApproved(uint256 tokenId)

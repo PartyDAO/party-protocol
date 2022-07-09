@@ -9,6 +9,7 @@ contract ERC1155TokenReceiver is EIP165, ERC1155TokenReceiverBase {
     function supportsInterface(bytes4 interfaceId)
         public
         override
+        virtual
         pure
         returns (bool)
     {

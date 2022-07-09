@@ -7,6 +7,8 @@ import "../../contracts/party/PartyGovernance.sol";
 import "../../contracts/distribution/ITokenDistributor.sol";
 import "../../contracts/globals/Globals.sol";
 import "../DummyERC20.sol";
+import "../DummyERC1155.sol";
+import "../DummyERC721.sol";
 import "../TestUtils.sol";
 
 contract DummyProposalExecutionEngine is IProposalExecutionEngine {
@@ -2058,5 +2060,31 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
         ));
         vm.prank(member);
         gov.distribute(ITokenDistributor.TokenType.Native, ETH_ADDRESS, 0);
+    }
+
+    function test_canReceive1155Token() external {
+        (IERC721[] memory preciousTokens, uint256[] memory preciousTokenIds) =
+            _createPreciousTokens(2);
+        TestablePartyGovernance gov =
+            _createGovernance(100e18, preciousTokens, preciousTokenIds);
+
+        address owner = _randomAddress();
+        DummyERC1155 erc1155 = new DummyERC1155();
+        erc1155.deal(owner, 1337, 1e18);
+        vm.prank(owner);
+        erc1155.safeTransferFrom(owner, address(gov), 1337, 1e18, "");
+    }
+
+    function test_canReceive721Token() external {
+        (IERC721[] memory preciousTokens, uint256[] memory preciousTokenIds) =
+            _createPreciousTokens(2);
+        TestablePartyGovernance gov =
+            _createGovernance(100e18, preciousTokens, preciousTokenIds);
+
+        address owner = _randomAddress();
+        DummyERC721 erc721 = new DummyERC721();
+        uint256 id = erc721.mint(owner);
+        vm.prank(owner);
+        erc721.safeTransferFrom(owner, address(gov), id, "");
     }
 }
