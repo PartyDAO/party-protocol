@@ -111,6 +111,15 @@ interface ITokenDistributor {
     function claimFee(DistributionInfo calldata info, address payable recipient)
         external;
 
+    /// @notice Batch version of claim().
+    function batchClaim(DistributionInfo[] calldata infos, uint256[] calldata partyTokenIds)
+        external
+        returns (uint128[] memory amountsClaimed);
+
+    /// @notice Batch version of claimFee().
+    function batchClaimFee(DistributionInfo[] calldata infos, address payable[] calldata recipients)
+        external;
+
     /// @notice Compute the amount of a distribution's token owed to a party member,
     ///         identified by tokenId.
     function getClaimAmount(

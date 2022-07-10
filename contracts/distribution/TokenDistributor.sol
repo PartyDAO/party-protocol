@@ -161,7 +161,7 @@ contract TokenDistributor is ITokenDistributor, ERC1155TokenReceiver {
 
     /// @inheritdoc ITokenDistributor
     function claim(DistributionInfo calldata info, uint256 partyTokenId)
-        external
+        public
         returns (uint128 amountClaimed)
     {
         // Caller must own the party token.
@@ -215,7 +215,7 @@ contract TokenDistributor is ITokenDistributor, ERC1155TokenReceiver {
 
     /// @inheritdoc ITokenDistributor
     function claimFee(DistributionInfo calldata info, address payable recipient)
-        external
+        public
     {
         // DistributionInfo must be correct for this distribution ID.
         DistributionState storage state = _distributionStates[info.party][info.distributionId];
@@ -248,6 +248,26 @@ contract TokenDistributor is ITokenDistributor, ERC1155TokenReceiver {
             info.erc1155TokenId,
             info.fee
         );
+    }
+
+    /// @inheritdoc ITokenDistributor
+    function batchClaim(DistributionInfo[] calldata infos, uint256[] calldata partyTokenIds)
+        external
+        returns (uint128[] memory amountsClaimed)
+    {
+        amountsClaimed = new uint128[](infos.length);
+        for (uint256 i = 0; i < infos.length; ++i) {
+            amountsClaimed[i] = claim(infos[i], partyTokenIds[i]);
+        }
+    }
+
+    /// @inheritdoc ITokenDistributor
+    function batchClaimFee(DistributionInfo[] calldata infos, address payable[] calldata recipients)
+        external
+    {
+        for (uint256 i = 0; i < infos.length; ++i) {
+            claimFee(infos[i], recipients[i]);
+        }
     }
 
     /// @inheritdoc ITokenDistributor

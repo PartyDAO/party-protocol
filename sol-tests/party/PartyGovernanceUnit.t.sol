@@ -153,6 +153,14 @@ contract DummyTokenDistributor is ITokenDistributor {
     function claimFee(DistributionInfo calldata, address payable)
         external {}
 
+    function batchClaim(DistributionInfo[] calldata infos, uint256[] calldata partyTokenIds)
+        external
+        returns (uint128[] memory amountsClaimed) {}
+
+    /// @inheritdoc ITokenDistributor
+    function batchClaimFee(DistributionInfo[] calldata infos, address payable[] calldata recipients)
+        external {}
+
     function getClaimAmount(
         ITokenDistributorParty party,
         uint256 memberSupply,
