@@ -85,7 +85,8 @@ contract PartyGovernanceNFT is
             _GLOBALS.getAddress(LibGlobals.GLOBAL_GOVERNANCE_NFT_RENDER_IMPL),
             msg.data
         );
-        assert(false);
+        assert(false); // Will not be reached.
+        return "";
     }
 
     /// @notice Get the distribution % of a tokenId, scaled by 1e18.

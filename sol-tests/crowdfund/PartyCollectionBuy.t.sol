@@ -85,6 +85,7 @@ contract PartyCollectionBuyTest is Test, TestUtils {
 
     function _createExpectedPartyOptions(uint256 finalPrice)
         private
+        view
         returns (Party.PartyOptions memory opts)
     {
         return Party.PartyOptions({
@@ -95,7 +96,9 @@ contract PartyCollectionBuyTest is Test, TestUtils {
                 voteDuration: defaultGovernanceOpts.voteDuration,
                 executionDelay: defaultGovernanceOpts.executionDelay,
                 passThresholdBps: defaultGovernanceOpts.passThresholdBps,
-                totalVotingPower: uint96(finalPrice)
+                totalVotingPower: uint96(finalPrice),
+                feeBps: defaultGovernanceOpts.feeBps,
+                feeRecipient: defaultGovernanceOpts.feeRecipient
             })
         });
     }

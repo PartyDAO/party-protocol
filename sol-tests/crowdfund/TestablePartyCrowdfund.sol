@@ -31,19 +31,19 @@ contract TestablePartyCrowdfund is PartyCrowdfund {
     }
 
     function testCreateParty(
-        FixedGovernanceOpts memory govOpts,
+        FixedGovernanceOpts memory govOpts_,
         IERC721[] memory preciousTokens,
         uint256[] memory preciousTokenIds
     )
         external
         returns (Party party)
     {
-        return _createParty(govOpts, preciousTokens, preciousTokenIds);
+        return _createParty(govOpts_, preciousTokens, preciousTokenIds);
     }
 
     function testSetWon(
         uint256 finalPrice_,
-        FixedGovernanceOpts memory govOpts,
+        FixedGovernanceOpts memory govOpts_,
         IERC721[] memory preciousTokens,
         uint256[] memory preciousTokenIds
     )
@@ -52,7 +52,7 @@ contract TestablePartyCrowdfund is PartyCrowdfund {
     {
         finalPrice = finalPrice_;
         lifeCycle = CrowdfundLifecycle.Won;
-        return _createParty(govOpts, preciousTokens, preciousTokenIds);
+        return _createParty(govOpts_, preciousTokens, preciousTokenIds);
     }
 
     function getCrowdfundLifecycle()

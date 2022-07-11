@@ -100,6 +100,7 @@ contract PartyCrowdfundTest is Test, TestUtils {
 
     function _createExpectedPartyOptions(TestablePartyCrowdfund cf, uint256 finalPrice)
         private
+        view
         returns (Party.PartyOptions memory opts)
     {
         PartyCrowdfund.FixedGovernanceOpts memory govOpts = cf.getFixedGovernanceOpts();
@@ -111,7 +112,9 @@ contract PartyCrowdfundTest is Test, TestUtils {
                 voteDuration: govOpts.voteDuration,
                 executionDelay: govOpts.executionDelay,
                 passThresholdBps: govOpts.passThresholdBps,
-                totalVotingPower: uint96(finalPrice)
+                totalVotingPower: uint96(finalPrice),
+                feeBps: defaultGovernanceOpts.feeBps,
+                feeRecipient: defaultGovernanceOpts.feeRecipient
             })
         });
     }
@@ -442,7 +445,7 @@ contract PartyCrowdfundTest is Test, TestUtils {
         // set up a win using contributor1's total contribution
         (IERC721[] memory erc721Tokens, uint256[] memory erc721TokenIds) =
             _createTokens(address(cf), 2);
-        Party party_ = cf.testSetWon(
+        cf.testSetWon(
             1e18,
             defaultGovernanceOpts,
             erc721Tokens,
@@ -471,7 +474,7 @@ contract PartyCrowdfundTest is Test, TestUtils {
         // set up a win using contributor1's total contribution
         (IERC721[] memory erc721Tokens, uint256[] memory erc721TokenIds) =
             _createTokens(address(cf), 2);
-        Party party_ = cf.testSetWon(
+        cf.testSetWon(
             0.5e18,
             defaultGovernanceOpts,
             erc721Tokens,
@@ -556,7 +559,7 @@ contract PartyCrowdfundTest is Test, TestUtils {
             cf.hashFixedGovernanceOpts(defaultGovernanceOpts),
             cf.governanceOptsHash()
         ));
-        Party party_ = cf.testSetWon(
+        cf.testSetWon(
             1e18,
             defaultGovernanceOpts,
             erc721Tokens,

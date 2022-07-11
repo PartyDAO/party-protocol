@@ -13,10 +13,10 @@ import "./IPartyFactory.sol";
 contract PartyFactory is IPartyFactory {
 
     error InvalidAuthorityError(address authority);
+    error OnlyAuthorityError();
 
     IGlobals public immutable GLOBALS;
 
-    IGlobals public immutable GLOBALS;
     mapping (Party => address) public partyAuthorities;
 
     constructor(IGlobals globals) {

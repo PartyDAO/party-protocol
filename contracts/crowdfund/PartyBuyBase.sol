@@ -55,7 +55,7 @@ abstract contract PartyBuyBase is Implementation, PartyCrowdfund {
     error NoContributionsError();
     error FailedToBuyNFTError(IERC721 token, uint256 tokenId);
 
-    // When this crowdfund expires.
+    /// @notice When this crowdfund expires.
     uint40 public expiry;
     // Maximum amount this crowdfund will pay for the NFT.
     // If zero, no maximum.
@@ -104,7 +104,8 @@ abstract contract PartyBuyBase is Implementation, PartyCrowdfund {
             if (maximumPrice_ != 0 && callValue > maximumPrice_) {
                 revert MaximumPriceError(callValue, maximumPrice);
             }
-            // If the purchase would be free, everyone wins.
+            // If the purchase would be free, set the settled price to totalContributions
+            // so everybody who contributed wins.
             uint128 settledPrice_ = callValue == 0 ? totalContributions : callValue;
             if (settledPrice_ == 0) {
                 // Still zero, which means no contributions.

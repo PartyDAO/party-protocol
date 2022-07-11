@@ -29,6 +29,7 @@ abstract contract PartyCrowdfund is ERC721Receiver, PartyCrowdfundNFT {
     }
 
     // PartyGovernance options that must be known and fixed at crowdfund creation.
+    // This is a subset of PartyGovernance.GovernanceOpts.
     struct FixedGovernanceOpts {
         // Address of initial party hosts.
         address[] hosts;
@@ -40,8 +41,13 @@ abstract contract PartyCrowdfund is ERC721Receiver, PartyCrowdfundNFT {
         // Minimum ratio of accept votes to consider a proposal passed,
         // in bps, where 10,000 == 100%.
         uint16 passThresholdBps;
+        // Fee bps for governance distributions.
+        uint16 feeBps;
+        // Fee recipeint for governance distributions.
+        address payable feeRecipient;
     }
 
+    // Options to be passed into `_initialize()` when the crowdfund is created.
     struct PartyCrowdfundOptions {
         string name;
         string symbol;
@@ -54,8 +60,12 @@ abstract contract PartyCrowdfund is ERC721Receiver, PartyCrowdfundNFT {
         FixedGovernanceOpts governanceOpts;
     }
 
+    // A record of a single contribution made by a user.
+    // Stored in `_contributionsByContributor`.
     struct Contribution {
+        // The value of `PartyCrowdfund.totalContributions` when this contribution was made.
         uint128 previousTotalContributions;
+        // How much was this contribution.
         uint128 amount;
     }
 
@@ -73,12 +83,13 @@ abstract contract PartyCrowdfund is ERC721Receiver, PartyCrowdfundNFT {
 
     IGlobals private immutable _GLOBALS;
 
-    // The party instance created by `_createParty()`, if any.
+    /// @dev The party instance created by `_createParty()`, if any.
     Party public party;
-    // Who will receive a reserved portion of governance power.
+    /// @notice Who will receive a reserved portion of governance power when
+    ///         the governance party is created.
     address payable public splitRecipient;
-    // How much governance power to reserve for `splitRecipient`,
-    // in bps, where 1000 = 100%.
+    /// @notice How much governance power to reserve for `splitRecipient`,
+    ///         in bps, where 1000 = 100%.
     uint16 public splitBps;
     // Hash of party governance options passed into initialize().
     // The GovernanceOpts passed into `_createParty()` must match.
@@ -93,7 +104,7 @@ abstract contract PartyCrowdfund is ERC721Receiver, PartyCrowdfundNFT {
     // Who a contributor last delegated to.
     mapping (address => address) private _delegationsByContributor;
     // Array of contributions by a contributor.
-    // One is created for every contribution made.
+    // One is created for every nonzero contribution made.
     mapping (address => Contribution[]) private _contributionsByContributor;
     // Whether the share for split recipient has been claimed through burn().
     bool private _splitRecipientHasBurned;
@@ -122,19 +133,19 @@ abstract contract PartyCrowdfund is ERC721Receiver, PartyCrowdfundNFT {
         gateKeeperId = opts.gateKeeperId;
     }
 
-    // Burns CF tokens owned by `owner` AFTER the CF has ended.
-    // If the party has won, someone needs to call `_createParty()` first. After
-    // which, `burn()` will refund unused ETH and mint governance tokens for the
-    // given `contributor`.
-    // If the party has lost, this will only refund unused ETH (all of it) for
-    // the given `contributor`.
+    /// @notice Burns CF tokens owned by `owner` AFTER the CF has ended.
+    /// @dev If the party has won, someone needs to call `_createParty()` first. After
+    ///      which, `burn()` will refund unused ETH and mint governance tokens for the
+    ///      given `contributor`.
+    ///      If the party has lost, this will only refund unused ETH (all of it) for
+    ///      the given `contributor`.
     function burn(address payable contributor)
         public
     {
         return _burn(contributor, getCrowdfundLifecycle(), party);
     }
 
-    // `burn()` in batch form.
+    /// @notice `burn()` in batch form.
     function batchBurn(address payable[] calldata contributors)
         external
     {
@@ -145,7 +156,10 @@ abstract contract PartyCrowdfund is ERC721Receiver, PartyCrowdfundNFT {
         }
     }
 
-    // Contribute and/or delegate.
+    /// @notice Contribute to this crowdfund and/or update your delegation for the
+    ///         governance phase should the crowdfund succeed.
+    ///         For restricted crowdfunds, `gateData` can be provided to prove
+    ///         membership to the gatekeeper.
     function contribute(address delegate, bytes memory gateData)
         public
         payable
@@ -166,8 +180,8 @@ abstract contract PartyCrowdfund is ERC721Receiver, PartyCrowdfundNFT {
         );
     }
 
-    // Contribute, reusing the last delegate of the sender or
-    // the sender itself if not set.
+    /// @notice Contribute, reusing the last delegate of the sender or
+    ///         the sender itself if not set.
     receive() external payable {
         // If the sender already delegated before then use that delegate.
         // Otherwise delegate to the sender.
@@ -182,7 +196,6 @@ abstract contract PartyCrowdfund is ERC721Receiver, PartyCrowdfundNFT {
         );
     }
 
-    // Need to define this because of nonlinear base definitions.
     function supportsInterface(bytes4 interfaceId)
         public
         override(ERC721Receiver, PartyCrowdfundNFT)
@@ -195,7 +208,8 @@ abstract contract PartyCrowdfund is ERC721Receiver, PartyCrowdfundNFT {
         return PartyCrowdfundNFT.supportsInterface(interfaceId);
     }
 
-    // This will only be called off-chain so doesn't have to be optimal.
+    /// @notice Retrieve info about a participant's contributions.
+    /// @dev This will only be called off-chain so doesn't have to be optimal.
     function getContributorInfo(address contributor)
         external
         view
@@ -217,6 +231,7 @@ abstract contract PartyCrowdfund is ERC721Receiver, PartyCrowdfundNFT {
         }
     }
 
+    /// @notice Get the current lifecycle of the crowdfund.
     function getCrowdfundLifecycle() public virtual view returns (CrowdfundLifecycle);
 
     // Get the final sale price of the bought assets. This will also be the total
@@ -256,7 +271,9 @@ abstract contract PartyCrowdfund is ERC721Receiver, PartyCrowdfundNFT {
                         voteDuration: governanceOpts.voteDuration,
                         executionDelay: governanceOpts.executionDelay,
                         passThresholdBps: governanceOpts.passThresholdBps,
-                        totalVotingPower: _getFinalPrice().safeCastUint256ToUint96()
+                        totalVotingPower: _getFinalPrice().safeCastUint256ToUint96(),
+                        feeBps: governanceOpts.feeBps,
+                        feeRecipient: governanceOpts.feeRecipient
                     })
                 }),
                 preciousTokens,
@@ -291,9 +308,12 @@ abstract contract PartyCrowdfund is ERC721Receiver, PartyCrowdfundNFT {
     {
         // Hash in place.
         assembly {
+            // Replace the address[] hosts field with its hash temporarily.
             let oldHostsFieldValue := mload(opts)
             mstore(opts, keccak256(add(mload(opts), 0x20), mul(mload(mload(opts)), 32)))
-            h := and(keccak256(opts, 0x80), 0xffffffffffffffffffffffffffffffff00000000000000000000000000000000)
+            // Hash the entire struct.
+            h := and(keccak256(opts, 0xC0), 0xffffffffffffffffffffffffffffffff00000000000000000000000000000000)
+            // Restore old hosts field value.
             mstore(opts, oldHostsFieldValue)
         }
     }

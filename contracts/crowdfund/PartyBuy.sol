@@ -52,11 +52,14 @@ contract PartyBuy is PartyBuyBase {
         FixedGovernanceOpts governanceOpts;
     }
 
+    /// @notice The NFT token ID to buy.
     uint256 public nftTokenId;
+    /// @notice The NFT contract to buy.
     IERC721 public nftContract;
 
     constructor(IGlobals globals) PartyBuyBase(globals) {}
 
+    /// @notice intializer to be delegatecalled by Proxy constructor.
     function initialize(PartyBuyOptions memory opts)
         external
         onlyDelegateCall
@@ -78,8 +81,8 @@ contract PartyBuy is PartyBuyBase {
         nftContract = opts.nftContract;
     }
 
-    // Execute arbitrary calldata to perform a buy, creating a party
-    // if it successfully buys the NFT.
+    /// @notice Execute arbitrary calldata to perform a buy, creating a party
+    ///         if it successfully buys the NFT.
     function buy(
         address payable callTarget,
         uint128 callValue,
