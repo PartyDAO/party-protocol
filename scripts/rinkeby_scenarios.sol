@@ -13,9 +13,9 @@ interface MintableNFT is IERC721 {
 }
 
 contract RinkebyPartify is Test {
-  bool createZora = false;
-  bool createOs = true;
-  address constant PARTY_FACTORY_ADDRESS = 0xe7Ff0f99AB8767F76d1886033821Cf152F116042;
+  bool createZora = true;
+  bool createOs = false;
+  address constant PARTY_FACTORY_ADDRESS = 0x7c1A6A24b2436A8a088C6509671d4B588520CE62;
   address constant MINTABLE_NFT_ADDRESS = 0x1DD9b99ce89cC088E20951b6C0F5C9c1AFdfb1c5;
 
   address constant HOST_1 = 0x8fDC86689f5F35F2b4d9f649c7bdc9C64f59e6bD;
