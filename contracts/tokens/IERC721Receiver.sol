@@ -7,6 +7,6 @@ interface IERC721Receiver {
         address operator,
         address from,
         uint256 tokenId,
-        bytes calldata data
+        bytes memory data
     ) external returns (bytes4);
 }

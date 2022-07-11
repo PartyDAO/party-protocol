@@ -2,13 +2,13 @@
     "compilerOptions": {
         "module": "commonjs",
         "noImplicitAny": true,
-        "outDir": "tests/built",
+        "outDir": "js",
         "esModuleInterop": true,
         "resolveJsonModule": true,
         "sourceMap": true,
         "target": "es6",
         "downlevelIteration": true
     },
-    "include": ["tests/**/*.ts"],
+    "include": ["tests/**/*.ts", "utils/**/*.ts"],
     "exclude": ["node_modules", "**/*.spec.ts"]
 }

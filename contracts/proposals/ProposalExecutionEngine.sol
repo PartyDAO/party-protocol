@@ -186,9 +186,9 @@ contract ProposalExecutionEngine is
         } else if (pt == ProposalType.ListOnZora) {
             progressData = _executeListOnZora(params);
         } else if (pt == ProposalType.Fractionalize) {
-            _executeFractionalize(params);
+            progressData = _executeFractionalize(params);
         } else if (pt == ProposalType.ArbitraryCalls) {
-            _executeArbitraryCalls(params);
+            progressData = _executeArbitraryCalls(params);
         } else if (pt == ProposalType.UpgradeProposalEngineImpl) {
             _executeUpgradeProposalsImplementation(params.proposalData);
         } else {
