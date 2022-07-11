@@ -244,6 +244,7 @@ abstract contract PartyCrowdfund is ERC721Receiver, PartyCrowdfundNFT {
     // After calling this, anyone can burn CF tokens on a contributor's behalf
     // with the `burn()` function.
     function _createParty(
+        IPartyFactory partyFactory,
         FixedGovernanceOpts memory governanceOpts,
         IERC721[] memory preciousTokens,
         uint256[] memory preciousTokenIds
@@ -260,7 +261,7 @@ abstract contract PartyCrowdfund is ERC721Receiver, PartyCrowdfundNFT {
                 revert InvalidGovernanceOptionsError(governanceOptsHash_, governanceOptsHash);
             }
         }
-        party = party_ = _getPartyFactory()
+        party = party_ = partyFactory
             .createParty(
                 address(this),
                 Party.PartyOptions({
@@ -287,6 +288,7 @@ abstract contract PartyCrowdfund is ERC721Receiver, PartyCrowdfundNFT {
 
     // Overloaded single token wrapper for _createParty()
     function _createParty(
+        IPartyFactory partyFactory,
         FixedGovernanceOpts memory governanceOpts,
         IERC721 preciousToken,
         uint256 preciousTokenId
@@ -298,7 +300,7 @@ abstract contract PartyCrowdfund is ERC721Receiver, PartyCrowdfundNFT {
         tokens[0] = preciousToken;
         uint256[] memory tokenIds = new uint256[](1);
         tokenIds[0] = preciousTokenId;
-        return _createParty(governanceOpts, tokens, tokenIds);
+        return _createParty(partyFactory, governanceOpts, tokens, tokenIds);
     }
 
     function _hashFixedGovernanceOpts(FixedGovernanceOpts memory opts)
@@ -469,7 +471,7 @@ abstract contract PartyCrowdfund is ERC721Receiver, PartyCrowdfundNFT {
         emit Burned(contributor, ethUsed, ethOwed, votingPower);
     }
 
-    function _getPartyFactory() private view returns (IPartyFactory) {
+    function _getPartyFactory() internal view returns (IPartyFactory) {
         return IPartyFactory(_GLOBALS.getAddress(LibGlobals.GLOBAL_PARTY_FACTORY));
     }
 }

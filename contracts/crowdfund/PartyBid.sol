@@ -198,7 +198,12 @@ contract PartyBid is Implementation, PartyCrowdfund {
                 lastBid = lastBid_;
             }
             // Create a governance party around the NFT.
-            party_ = _createParty(governanceOpts, nftContract, nftTokenId);
+            party_ = _createParty(
+                _getPartyFactory(),
+                governanceOpts,
+                nftContract,
+                nftTokenId
+            );
             emit Won(lastBid_, party_);
         } else {
             emit Lost();

@@ -54,6 +54,7 @@ abstract contract PartyBuyBase is Implementation, PartyCrowdfund {
     error MaximumPriceError(uint128 callValue, uint128 maximumPrice);
     error NoContributionsError();
     error FailedToBuyNFTError(IERC721 token, uint256 tokenId);
+    error InvalidCallTargetError(address callTarget);
 
     /// @notice When this crowdfund expires.
     uint40 public expiry;
@@ -95,6 +96,10 @@ abstract contract PartyBuyBase is Implementation, PartyCrowdfund {
         internal
         returns (Party party_)
     {
+        IPartyFactory partyFactory = _getPartyFactory();
+        if (callTarget == address(partyFactory)) {
+            revert InvalidCallTargetError(callTarget);
+        }
         CrowdfundLifecycle lc = getCrowdfundLifecycle();
         if (lc != CrowdfundLifecycle.Active) {
             revert WrongLifecycleError(lc);
@@ -122,7 +127,11 @@ abstract contract PartyBuyBase is Implementation, PartyCrowdfund {
         if (token.safeOwnerOf(tokenId) != address(this)) {
             revert FailedToBuyNFTError(token, tokenId);
         }
-        emit Won(party_ = _createParty(governanceOpts, token, tokenId), token, tokenId);
+        emit Won(
+            party_ = _createParty(partyFactory, governanceOpts, token, tokenId),
+            token,
+            tokenId
+        );
     }
 
     function getCrowdfundLifecycle() public override view returns (CrowdfundLifecycle) {
