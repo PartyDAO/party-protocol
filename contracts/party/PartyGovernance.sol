@@ -959,7 +959,7 @@ abstract contract PartyGovernance is
         IERC721[] memory preciousTokens,
         uint256[] memory preciousTokenIds
     )
-        private
+        internal
         pure
         returns (bytes32 h)
     {

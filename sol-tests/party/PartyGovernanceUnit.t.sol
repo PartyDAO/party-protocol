@@ -260,6 +260,28 @@ contract TestablePartyGovernance is PartyGovernance {
     {
         return lastProposalId + 1;
     }
+
+    function testGetProposalHash(Proposal memory proposal)
+        public
+        pure
+        returns (bytes32 h)
+    {
+        // Hash twice in a row to ensure temporarily overwritten fields are
+        // actually temporary. Don't compile with optimizer plz.
+        h = getProposalHash(proposal);
+        h = getProposalHash(proposal);
+    }
+
+    function hashPreciousList(
+        IERC721[] memory preciousTokens,
+        uint256[] memory preciousTokenIds
+    )
+        public
+        pure
+        returns (bytes32 h)
+    {
+        h = _hashPreciousList(preciousTokens, preciousTokenIds);
+    }
 }
 
 contract PartyGovernanceUnitTest is Test, TestUtils {
@@ -311,6 +333,7 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
     constructor() {
         globals.setAddress(LibGlobals.GLOBAL_PROPOSAL_ENGINE_IMPL, address(proposalEngine));
         globals.setAddress(LibGlobals.GLOBAL_TOKEN_DISTRIBUTOR, address(tokenDistributor));
+        globals.setUint256(LibGlobals.GLOBAL_PROPOSAL_MAX_CANCEL_DURATION, 30 days);
         defaultGovernanceOpts.hosts.push(_randomAddress());
         defaultGovernanceOpts.hosts.push(_randomAddress());
         defaultGovernanceOpts.voteDuration = 1 days;
@@ -1017,6 +1040,52 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
 
         // Skip to cancel time.
         vm.warp(proposal.minCancelTime);
+        // Cancel it.
+        _expectEmit0();
+        emit DummyProposalExecutionEngine_cancelCalled(address(gov), proposalId);
+        _expectEmit1();
+        emit ProposalCancelled(proposalId);
+        vm.prank(voter);
+        gov.cancel(proposalId, proposal);
+        _assertProposalStatusEq(gov, proposalId, PartyGovernance.ProposalStatus.Cancelled);
+    }
+
+    function testProposalLifecycle_boundedByGlobalMaxCancelTime() external {
+        (IERC721[] memory preciousTokens, uint256[] memory preciousTokenIds) =
+            _createPreciousTokens(2);
+        TestablePartyGovernance gov =
+            _createGovernance(100e18, preciousTokens, preciousTokenIds);
+        address voter = _randomAddress();
+        // voter has 100% intrinsic VP (delegated to no one/self)
+        gov.rawAdjustVotingPower(voter, 100e18, address(0));
+
+        // Create a two-step proposal.
+        PartyGovernance.Proposal memory proposal = _createProposal(2);
+        uint256 proposalId = gov.getNextProposalId();
+        // Propose and pass it.
+        vm.prank(voter);
+        assertEq(gov.propose(proposal), proposalId);
+
+        // Execute it.
+        skip(defaultGovernanceOpts.executionDelay);
+        vm.prank(voter);
+        gov.execute(
+            proposalId,
+            proposal,
+            preciousTokens,
+            preciousTokenIds,
+            ""
+        );
+        _assertProposalStatusEq(gov, proposalId, PartyGovernance.ProposalStatus.InProgress);
+
+        // Set a global upper bound on the cancel time right before the proposal's minCancelTime.
+        globals.setUint256(
+            LibGlobals.GLOBAL_PROPOSAL_MAX_CANCEL_DURATION,
+            proposal.minCancelTime - block.timestamp - 1
+        );
+
+        // Skip to global max cancel time.
+        vm.warp(proposal.minCancelTime - 1);
         // Cancel it.
         _expectEmit0();
         emit DummyProposalExecutionEngine_cancelCalled(address(gov), proposalId);
@@ -2100,5 +2169,33 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
         uint256 id = erc721.mint(owner);
         vm.prank(owner);
         erc721.safeTransferFrom(owner, address(gov), id, "");
+    }
+
+    function test_getProposalHash_isCorrect() external {
+        (IERC721[] memory preciousTokens, uint256[] memory preciousTokenIds) =
+            _createPreciousTokens(2);
+        TestablePartyGovernance gov =
+            _createGovernance(100e18, preciousTokens, preciousTokenIds);
+        PartyGovernance.Proposal memory proposal = _createProposal(1);
+        bytes32 expectedHash = keccak256(abi.encode(
+            proposal.maxExecutableTime,
+            proposal.minCancelTime,
+            keccak256(proposal.proposalData)
+        ));
+        bytes32 actualHash = gov.testGetProposalHash(proposal);
+        assertEq(actualHash, expectedHash);
+    }
+
+    function test_hashPreciousList() external {
+        (IERC721[] memory preciousTokens, uint256[] memory preciousTokenIds) =
+            _createPreciousTokens(2);
+        TestablePartyGovernance gov =
+            _createGovernance(100e18, preciousTokens, preciousTokenIds);
+        bytes32 expectedHash = keccak256(abi.encode(
+            keccak256(abi.encode(preciousTokens[0], preciousTokens[1])),
+            keccak256(abi.encode(preciousTokenIds[0], preciousTokenIds[1]))
+        ));
+        bytes32 actualHash = gov.hashPreciousList(preciousTokens, preciousTokenIds);
+        assertEq(actualHash, expectedHash);
     }
 }

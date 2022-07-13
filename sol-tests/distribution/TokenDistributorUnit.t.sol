@@ -41,6 +41,16 @@ contract TestParty is ITokenDistributorParty {
     }
 }
 
+contract TestTokenDistributorHash is TokenDistributor(IGlobals(address(0))) {
+    function getDistributionHash(DistributionInfo memory info)
+        external
+        pure
+        returns (bytes15 hash)
+    {
+        return _getDistributionHash(info);
+    }
+}
+
 contract TokenDistributorUnitTest is Test, TestUtils {
 
     event DistributionCreated(
@@ -474,6 +484,30 @@ contract TokenDistributorUnitTest is Test, TestUtils {
         assertEq(erc1155.balanceOf(members[memberIdx], tokenId), claimAmount);
     }
 
+    // Make sure small denomination distributions work as expected
+    // (round up, first come first serve).
+    // This would more realistically happen for ERC1155s not native tokens but
+    // the distribution logic is shared in either case.
+    function test_claimNative_smallDenomination() external {
+        (address payable member1, address payable member2) = (_randomAddress(), _randomAddress());
+        (uint256 memberTokenId1, uint256 memberTokenId2) = (_randomUint256(), _randomUint256());
+        // Both have 50% share ratios.
+        party.mintShare(member1, memberTokenId1, 0.5e18);
+        party.mintShare(member2, memberTokenId2, 0.5e18);
+        // 3 wei supply, does not divide cleanly.
+        vm.deal(address(distributor), 3);
+        (ITokenDistributor.DistributionInfo memory di) =
+            distributor.createNativeDistribution(party, payable(0), 0);
+        // member1 claims, getting 2 wei.
+        vm.prank(member1);
+        distributor.claim(di, memberTokenId1);
+        assertEq(member1.balance, 2);
+        // member2 claims, getting 1 wei (all that's left).
+        vm.prank(member2);
+        distributor.claim(di, memberTokenId2);
+        assertEq(member2.balance, 1);
+    }
+
     // Ensure that a naughty party that has shares totaling more than 100% does not
     // cannot claim more than their supply. The claim logic is shared by other
     // token types so we shouldn't need to test those separately.
@@ -739,6 +773,22 @@ contract TokenDistributorUnitTest is Test, TestUtils {
         erc1155_.deal(owner, 1337, 1e18);
         vm.prank(owner);
         erc1155_.safeTransferFrom(owner, address(distributor), 1337, 1, "");
+    }
+
+    function test_getDistributionHash() external {
+        ITokenDistributor.DistributionInfo memory di = ITokenDistributor.DistributionInfo({
+            tokenType: ITokenDistributor.TokenType(uint8(_randomUint256() % 3)),
+            distributionId: _randomUint256(),
+            party: ITokenDistributorParty(_randomAddress()),
+            feeRecipient: _randomAddress(),
+            token: _randomAddress(),
+            tokenId: _randomUint256(),
+            memberSupply: uint128(_randomUint256()),
+            fee: uint128(_randomUint256())
+        });
+        bytes15 expectedHash = bytes15(keccak256(abi.encode(di)));
+        bytes15 actualHash = new TestTokenDistributorHash().getDistributionHash(di);
+        assertEq(actualHash, expectedHash);
     }
 
     function _computeMemberShare(uint256 total, uint256 share)
