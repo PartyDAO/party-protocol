@@ -47,14 +47,6 @@ contract TokenDistributorUnitTest is Test, TestUtils {
         ITokenDistributorParty indexed party,
         ITokenDistributor.DistributionInfo info
     );
-    event DistributionClaimed(
-        ITokenDistributorParty indexed party,
-        uint256 indexed partyTokenId,
-        ITokenDistributor.TokenType tokenType,
-        address token,
-        uint256 tokenId,
-        uint256 amount
-    );
     event DistributionFeeClaimed(
         ITokenDistributorParty indexed party,
         address indexed feeRecipient,
@@ -62,6 +54,15 @@ contract TokenDistributorUnitTest is Test, TestUtils {
         address token,
         uint256 tokenId,
         uint256 amount
+    );
+    event DistributionClaimedByPartyToken(
+        ITokenDistributorParty indexed party,
+        uint256 indexed partyTokenId ,
+        address indexed owner,
+        ITokenDistributor.TokenType tokenType,
+        address token,
+        uint256 tokenId,
+        uint256 amountClaimed
     );
 
     address constant ETH_TOKEN_ADDRESS = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
@@ -83,41 +84,47 @@ contract TokenDistributorUnitTest is Test, TestUtils {
     // Should fail if supply is zero.
     function test_createNativeDistribution_zeroSupply() external {
         vm.expectRevert(abi.encodeWithSelector(
-            ITokenDistributor.InvalidDistributionSupplyError.selector,
+            TokenDistributor.InvalidDistributionSupplyError.selector,
             0
         ));
         vm.prank(address(party));
-        distributor.createNativeDistribution(DEFAULT_FEE_RECIPIENT, DEFAULT_FEE_BPS);
+        distributor.createNativeDistribution(party, DEFAULT_FEE_RECIPIENT, DEFAULT_FEE_BPS);
     }
 
     // Should fail if supply is zero.
     function test_createErc20Distribution_zeroSupply() external {
         vm.expectRevert(abi.encodeWithSelector(
-            ITokenDistributor.InvalidDistributionSupplyError.selector,
+            TokenDistributor.InvalidDistributionSupplyError.selector,
             0
         ));
         vm.prank(address(party));
-        distributor.createErc20Distribution(erc20, DEFAULT_FEE_RECIPIENT, DEFAULT_FEE_BPS);
+        distributor.createErc20Distribution(erc20, party, DEFAULT_FEE_RECIPIENT, DEFAULT_FEE_BPS);
     }
 
     // Should fail if supply is zero.
     function test_createErc1155Distribution_zeroSupply() external {
         vm.expectRevert(abi.encodeWithSelector(
-            ITokenDistributor.InvalidDistributionSupplyError.selector,
+            TokenDistributor.InvalidDistributionSupplyError.selector,
             0
         ));
         vm.prank(address(party));
-        distributor.createErc1155Distribution(erc1155, 0, DEFAULT_FEE_RECIPIENT, DEFAULT_FEE_BPS);
+        distributor.createErc1155Distribution(
+            erc1155,
+            0,
+            party,
+            DEFAULT_FEE_RECIPIENT,
+            DEFAULT_FEE_BPS
+        );
     }
 
     // Should fail if feeBps is greater than 1e4.
     function test_createNativeDistribution_feeBpsGreaterThan100Percent() external {
         vm.expectRevert(abi.encodeWithSelector(
-            ITokenDistributor.InvalidFeeBpsError.selector,
+            TokenDistributor.InvalidFeeBpsError.selector,
             1e4 + 1
         ));
         vm.prank(address(party));
-        distributor.createNativeDistribution(DEFAULT_FEE_RECIPIENT, 1e4 + 1);
+        distributor.createNativeDistribution(party, DEFAULT_FEE_RECIPIENT, 1e4 + 1);
     }
 
     function test_createNativeDistribution_works() external {
@@ -138,7 +145,11 @@ contract TokenDistributorUnitTest is Test, TestUtils {
         );
         vm.deal(address(party), supply);
         vm.prank(address(party));
-        distributor.createNativeDistribution{ value: supply }(DEFAULT_FEE_RECIPIENT, DEFAULT_FEE_BPS);
+        distributor.createNativeDistribution{ value: supply }(
+            party,
+            DEFAULT_FEE_RECIPIENT,
+            DEFAULT_FEE_BPS
+        );
     }
 
     function test_createErc20Distribution_works() external {
@@ -159,7 +170,12 @@ contract TokenDistributorUnitTest is Test, TestUtils {
         );
         erc20.deal(address(distributor), supply);
         vm.prank(address(party));
-        distributor.createErc20Distribution(erc20, DEFAULT_FEE_RECIPIENT, DEFAULT_FEE_BPS);
+        distributor.createErc20Distribution(
+            erc20,
+            party,
+            DEFAULT_FEE_RECIPIENT,
+            DEFAULT_FEE_BPS
+        );
     }
 
     function test_createErc1155Distribution_works() external {
@@ -181,7 +197,13 @@ contract TokenDistributorUnitTest is Test, TestUtils {
         );
         erc1155.deal(address(distributor), tokenId, supply);
         vm.prank(address(party));
-        distributor.createErc1155Distribution(erc1155, tokenId, DEFAULT_FEE_RECIPIENT, DEFAULT_FEE_BPS);
+        distributor.createErc1155Distribution(
+            erc1155,
+            tokenId,
+            party,
+            DEFAULT_FEE_RECIPIENT,
+            DEFAULT_FEE_BPS
+        );
     }
 
     // One member with 100% of shares, default fees.
@@ -192,12 +214,13 @@ contract TokenDistributorUnitTest is Test, TestUtils {
         vm.deal(address(distributor), supply);
         vm.prank(address(party));
         (ITokenDistributor.DistributionInfo memory di) =
-            distributor.createNativeDistribution(DEFAULT_FEE_RECIPIENT, DEFAULT_FEE_BPS);
+            distributor.createNativeDistribution(party, DEFAULT_FEE_RECIPIENT, DEFAULT_FEE_BPS);
         uint256 claimAmount = _computeLessFees(supply, DEFAULT_FEE_BPS);
         _expectEmit2();
-        emit DistributionClaimed(
+        emit DistributionClaimedByPartyToken(
             party,
             memberTokenId,
+            member,
             ITokenDistributor.TokenType.Native,
             ETH_TOKEN_ADDRESS,
             0,
@@ -217,12 +240,18 @@ contract TokenDistributorUnitTest is Test, TestUtils {
         erc20.deal(address(distributor), supply);
         vm.prank(address(party));
         (ITokenDistributor.DistributionInfo memory di) =
-            distributor.createErc20Distribution(erc20, DEFAULT_FEE_RECIPIENT, DEFAULT_FEE_BPS);
+            distributor.createErc20Distribution(
+                erc20,
+                party,
+                DEFAULT_FEE_RECIPIENT,
+                DEFAULT_FEE_BPS
+            );
         uint256 claimAmount = _computeLessFees(supply, DEFAULT_FEE_BPS);
         _expectEmit2();
-        emit DistributionClaimed(
+        emit DistributionClaimedByPartyToken(
             party,
             memberTokenId,
+            member,
             ITokenDistributor.TokenType.Erc20,
             address(erc20),
             0,
@@ -243,12 +272,19 @@ contract TokenDistributorUnitTest is Test, TestUtils {
         erc1155.deal(address(distributor), tokenId, supply);
         vm.prank(address(party));
         (ITokenDistributor.DistributionInfo memory di) =
-            distributor.createErc1155Distribution(erc1155, tokenId, DEFAULT_FEE_RECIPIENT, DEFAULT_FEE_BPS);
+            distributor.createErc1155Distribution(
+                erc1155,
+                tokenId,
+                party,
+                DEFAULT_FEE_RECIPIENT,
+                DEFAULT_FEE_BPS
+            );
         uint256 claimAmount = _computeLessFees(supply, DEFAULT_FEE_BPS);
         _expectEmit2();
-        emit DistributionClaimed(
+        emit DistributionClaimedByPartyToken(
             party,
             memberTokenId,
+            member,
             ITokenDistributor.TokenType.Erc1155,
             address(erc1155),
             tokenId,
@@ -268,11 +304,12 @@ contract TokenDistributorUnitTest is Test, TestUtils {
         vm.deal(address(distributor), supply);
         vm.prank(address(party));
         (ITokenDistributor.DistributionInfo memory di) =
-            distributor.createNativeDistribution(payable(0), 0);
+            distributor.createNativeDistribution(party, payable(0), 0);
         _expectEmit2();
-        emit DistributionClaimed(
+        emit DistributionClaimedByPartyToken(
             party,
             memberTokenId,
+            member,
             ITokenDistributor.TokenType.Native,
             ETH_TOKEN_ADDRESS,
             0,
@@ -292,11 +329,12 @@ contract TokenDistributorUnitTest is Test, TestUtils {
         erc20.deal(address(distributor), supply);
         vm.prank(address(party));
         (ITokenDistributor.DistributionInfo memory di) =
-            distributor.createErc20Distribution(erc20, payable(0), 0);
+            distributor.createErc20Distribution(erc20, party, payable(0), 0);
         _expectEmit2();
-        emit DistributionClaimed(
+        emit DistributionClaimedByPartyToken(
             party,
             memberTokenId,
+            member,
             ITokenDistributor.TokenType.Erc20,
             address(erc20),
             0,
@@ -317,11 +355,12 @@ contract TokenDistributorUnitTest is Test, TestUtils {
         erc1155.deal(address(distributor), tokenId, supply);
         vm.prank(address(party));
         (ITokenDistributor.DistributionInfo memory di) =
-            distributor.createErc1155Distribution(erc1155, tokenId, payable(0), 0);
+            distributor.createErc1155Distribution(erc1155, tokenId, party, payable(0), 0);
         _expectEmit2();
-        emit DistributionClaimed(
+        emit DistributionClaimedByPartyToken(
             party,
             memberTokenId,
+            member,
             ITokenDistributor.TokenType.Erc1155,
             address(erc1155),
             tokenId,
@@ -341,13 +380,17 @@ contract TokenDistributorUnitTest is Test, TestUtils {
         vm.deal(address(distributor), supply);
         vm.prank(address(party));
         (ITokenDistributor.DistributionInfo memory di) =
-            distributor.createNativeDistribution(DEFAULT_FEE_RECIPIENT, DEFAULT_FEE_BPS);
+            distributor.createNativeDistribution(party, DEFAULT_FEE_RECIPIENT, DEFAULT_FEE_BPS);
         uint256 memberIdx = _randomUint256() % members.length;
-        uint256 claimAmount = _computeMemberShare(_computeLessFees(supply, DEFAULT_FEE_BPS), shares[memberIdx]);
+        uint256 claimAmount = _computeMemberShare(
+            _computeLessFees(supply, DEFAULT_FEE_BPS),
+            shares[memberIdx]
+        );
         _expectEmit2();
-        emit DistributionClaimed(
+        emit DistributionClaimedByPartyToken(
             party,
             memberTokenIds[memberIdx],
+            members[memberIdx],
             ITokenDistributor.TokenType.Native,
             ETH_TOKEN_ADDRESS,
             0,
@@ -367,13 +410,22 @@ contract TokenDistributorUnitTest is Test, TestUtils {
         erc20.deal(address(distributor), supply);
         vm.prank(address(party));
         (ITokenDistributor.DistributionInfo memory di) =
-            distributor.createErc20Distribution(erc20, DEFAULT_FEE_RECIPIENT, DEFAULT_FEE_BPS);
+            distributor.createErc20Distribution(
+                erc20,
+                party,
+                DEFAULT_FEE_RECIPIENT,
+                DEFAULT_FEE_BPS
+            );
         uint256 memberIdx = _randomUint256() % members.length;
-        uint256 claimAmount = _computeMemberShare(_computeLessFees(supply, DEFAULT_FEE_BPS), shares[memberIdx]);
+        uint256 claimAmount = _computeMemberShare(
+            _computeLessFees(supply, DEFAULT_FEE_BPS),
+            shares[memberIdx]
+        );
         _expectEmit2();
-        emit DistributionClaimed(
+        emit DistributionClaimedByPartyToken(
             party,
             memberTokenIds[memberIdx],
+            members[memberIdx],
             ITokenDistributor.TokenType.Erc20,
             address(erc20),
             0,
@@ -394,13 +446,23 @@ contract TokenDistributorUnitTest is Test, TestUtils {
         erc1155.deal(address(distributor), tokenId, supply);
         vm.prank(address(party));
         (ITokenDistributor.DistributionInfo memory di) =
-            distributor.createErc1155Distribution(erc1155, tokenId, DEFAULT_FEE_RECIPIENT, DEFAULT_FEE_BPS);
+            distributor.createErc1155Distribution(
+                erc1155,
+                tokenId,
+                party,
+                DEFAULT_FEE_RECIPIENT,
+                DEFAULT_FEE_BPS
+            );
         uint256 memberIdx = _randomUint256() % members.length;
-        uint256 claimAmount = _computeMemberShare(_computeLessFees(supply, DEFAULT_FEE_BPS), shares[memberIdx]);
+        uint256 claimAmount = _computeMemberShare(
+            _computeLessFees(supply, DEFAULT_FEE_BPS),
+            shares[memberIdx]
+        );
         _expectEmit2();
-        emit DistributionClaimed(
+        emit DistributionClaimedByPartyToken(
             party,
             memberTokenIds[memberIdx],
+            members[memberIdx],
             ITokenDistributor.TokenType.Erc1155,
             address(erc1155),
             tokenId,
@@ -422,7 +484,7 @@ contract TokenDistributorUnitTest is Test, TestUtils {
         vm.deal(address(distributor), supply);
         vm.prank(address(party));
         (ITokenDistributor.DistributionInfo memory di) =
-            distributor.createNativeDistribution(payable(0), 0);
+            distributor.createNativeDistribution(party, payable(0), 0);
         // Deal more ETH to the distributor to attempt to steal.
         vm.deal(address(distributor), address(distributor).balance + supply);
         uint256 balanceBeforeClaim = address(distributor).balance;
@@ -442,7 +504,7 @@ contract TokenDistributorUnitTest is Test, TestUtils {
         vm.deal(address(distributor), supply);
         vm.prank(address(party));
         (ITokenDistributor.DistributionInfo memory di) =
-            distributor.createNativeDistribution(payable(0), 0);
+            distributor.createNativeDistribution(party, payable(0), 0);
         assertEq(di.memberSupply, supply);
         // Claim.
         for (uint256 i = 0; i < members.length; ++i) {
@@ -455,7 +517,7 @@ contract TokenDistributorUnitTest is Test, TestUtils {
         vm.deal(address(distributor), address(distributor).balance + supply2);
         vm.prank(address(party));
         (ITokenDistributor.DistributionInfo memory di2) =
-            distributor.createNativeDistribution(payable(0), 0);
+            distributor.createNativeDistribution(party, payable(0), 0);
         assertEq(di2.memberSupply, supply2);
     }
 
@@ -466,7 +528,7 @@ contract TokenDistributorUnitTest is Test, TestUtils {
         vm.deal(address(distributor), supply);
         vm.prank(address(party));
         (ITokenDistributor.DistributionInfo memory di) =
-            distributor.createNativeDistribution(DEFAULT_FEE_RECIPIENT, DEFAULT_FEE_BPS);
+            distributor.createNativeDistribution(party, DEFAULT_FEE_RECIPIENT, DEFAULT_FEE_BPS);
         assertEq(di.memberSupply, _computeLessFees(supply, DEFAULT_FEE_BPS));
         // Claim fee.
         vm.prank(DEFAULT_FEE_RECIPIENT);
@@ -477,7 +539,7 @@ contract TokenDistributorUnitTest is Test, TestUtils {
         vm.deal(address(distributor), address(distributor).balance + supply2);
         vm.prank(address(party));
         (ITokenDistributor.DistributionInfo memory di2) =
-            distributor.createNativeDistribution(payable(0), 0);
+            distributor.createNativeDistribution(party, payable(0), 0);
         assertEq(di2.memberSupply, supply2);
     }
 
@@ -485,20 +547,20 @@ contract TokenDistributorUnitTest is Test, TestUtils {
     function test_distributionsHaveSeparateBalances() external {
         uint256 nativeSupply = _randomUint256() % 1e18;
         (ITokenDistributor.DistributionInfo memory nativeDi) =
-            distributor.createNativeDistribution{ value: nativeSupply }(payable(0), 0);
+            distributor.createNativeDistribution{ value: nativeSupply }(party, payable(0), 0);
         assertEq(nativeDi.memberSupply, nativeSupply);
 
         uint256 erc20Supply = _randomUint256() % 1e18;
         erc20.deal(address(distributor), erc20Supply);
         (ITokenDistributor.DistributionInfo memory erc20Di) =
-            distributor.createErc20Distribution(erc20, payable(0), 0);
+            distributor.createErc20Distribution(erc20, party, payable(0), 0);
         assertEq(erc20Di.memberSupply, erc20Supply);
 
         uint256 erc1155Supply = _randomUint256() % 1e18;
         uint256 tokenId = _randomUint256();
         erc1155.deal(address(distributor), tokenId, erc1155Supply);
         (ITokenDistributor.DistributionInfo memory erc1155Di) =
-            distributor.createErc1155Distribution(erc1155, tokenId, payable(0), 0);
+            distributor.createErc1155Distribution(erc1155, tokenId, party, payable(0), 0);
         assertEq(erc1155Di.memberSupply, erc1155Supply);
     }
 
@@ -511,10 +573,10 @@ contract TokenDistributorUnitTest is Test, TestUtils {
         uint256 erc1155Supply2 = _randomUint256() % 1e18;
         erc1155.deal(address(distributor), tokenId2, erc1155Supply2);
         (ITokenDistributor.DistributionInfo memory di1) =
-            distributor.createErc1155Distribution(erc1155, tokenId1, payable(0), 0);
+            distributor.createErc1155Distribution(erc1155, tokenId1, party, payable(0), 0);
         assertEq(di1.memberSupply, erc1155Supply1);
         (ITokenDistributor.DistributionInfo memory di2) =
-            distributor.createErc1155Distribution(erc1155, tokenId2, payable(0), 0);
+            distributor.createErc1155Distribution(erc1155, tokenId2, party, payable(0), 0);
         assertEq(di2.memberSupply, erc1155Supply2);
     }
 
@@ -526,7 +588,7 @@ contract TokenDistributorUnitTest is Test, TestUtils {
         vm.deal(address(distributor), supply);
         vm.prank(address(party));
         (ITokenDistributor.DistributionInfo memory di) =
-            distributor.createNativeDistribution(payable(0), 0);
+            distributor.createNativeDistribution(party, payable(0), 0);
 
         assertEq(abi.encode(di).length / 32, 8);
         // Try replacing each field and claiming.
@@ -552,7 +614,7 @@ contract TokenDistributorUnitTest is Test, TestUtils {
                 di_.fee = uint128(_randomUint256() % type(uint128).max);
             }
             vm.expectRevert(abi.encodeWithSelector(
-                ITokenDistributor.InvalidDistributionInfoError.selector,
+                TokenDistributor.InvalidDistributionInfoError.selector,
                 di_
             ));
             vm.prank(member);
@@ -568,11 +630,11 @@ contract TokenDistributorUnitTest is Test, TestUtils {
         vm.deal(address(party), supply);
         vm.prank(address(party));
         (ITokenDistributor.DistributionInfo memory di) =
-            distributor.createNativeDistribution{ value: supply }(payable(0), 0);
+            distributor.createNativeDistribution{ value: supply }(party, payable(0), 0);
         address notMember = _randomAddress();
         vm.prank(notMember);
         vm.expectRevert(abi.encodeWithSelector(
-            ITokenDistributor.MustOwnTokenError.selector,
+            TokenDistributor.MustOwnTokenError.selector,
             notMember,
             member,
             memberTokenId
@@ -588,12 +650,12 @@ contract TokenDistributorUnitTest is Test, TestUtils {
         vm.deal(address(party), supply);
         vm.prank(address(party));
         (ITokenDistributor.DistributionInfo memory di) =
-            distributor.createNativeDistribution{ value: supply }(payable(0), 0);
+            distributor.createNativeDistribution{ value: supply }(party, payable(0), 0);
         vm.prank(member);
         distributor.claim(di, memberTokenId);
         vm.prank(member);
         vm.expectRevert(abi.encodeWithSelector(
-            ITokenDistributor.DistributionAlreadyClaimedByTokenError.selector,
+            TokenDistributor.DistributionAlreadyClaimedByPartyTokenError.selector,
             di.distributionId,
             memberTokenId
         ));
@@ -605,11 +667,15 @@ contract TokenDistributorUnitTest is Test, TestUtils {
         vm.deal(address(party), supply);
         vm.prank(address(party));
         (ITokenDistributor.DistributionInfo memory di) =
-            distributor.createNativeDistribution{ value: supply }(DEFAULT_FEE_RECIPIENT, DEFAULT_FEE_BPS);
+            distributor.createNativeDistribution{ value: supply }(
+                party,
+                DEFAULT_FEE_RECIPIENT,
+                DEFAULT_FEE_BPS
+            );
         address notFeeRecipient = _randomAddress();
         vm.prank(notFeeRecipient);
         vm.expectRevert(abi.encodeWithSelector(
-           ITokenDistributor.OnlyFeeRecipientError.selector,
+           TokenDistributor.OnlyFeeRecipientError.selector,
            notFeeRecipient,
            di.feeRecipient
         ));
@@ -621,12 +687,16 @@ contract TokenDistributorUnitTest is Test, TestUtils {
         vm.deal(address(party), supply);
         vm.prank(address(party));
         (ITokenDistributor.DistributionInfo memory di) =
-            distributor.createNativeDistribution{ value: supply }(DEFAULT_FEE_RECIPIENT, DEFAULT_FEE_BPS);
+            distributor.createNativeDistribution{ value: supply }(
+                party,
+                DEFAULT_FEE_RECIPIENT,
+                DEFAULT_FEE_BPS
+            );
         vm.prank(DEFAULT_FEE_RECIPIENT);
         distributor.claimFee(di, _randomAddress());
         vm.prank(DEFAULT_FEE_RECIPIENT);
         vm.expectRevert(abi.encodeWithSelector(
-           ITokenDistributor.DistributionFeeAlreadyClaimedError.selector,
+           TokenDistributor.DistributionFeeAlreadyClaimedError.selector,
            di.distributionId
         ));
         distributor.claimFee(di, _randomAddress());
@@ -637,7 +707,11 @@ contract TokenDistributorUnitTest is Test, TestUtils {
         vm.deal(address(party), supply);
         vm.prank(address(party));
         (ITokenDistributor.DistributionInfo memory di) =
-            distributor.createNativeDistribution{ value: supply }(DEFAULT_FEE_RECIPIENT, DEFAULT_FEE_BPS);
+            distributor.createNativeDistribution{ value: supply }(
+                party,
+                DEFAULT_FEE_RECIPIENT,
+                DEFAULT_FEE_BPS
+            );
         vm.prank(DEFAULT_FEE_RECIPIENT);
         distributor.claimFee(di, DEFAULT_FEE_RECIPIENT);
         assertEq(DEFAULT_FEE_RECIPIENT.balance, di.fee);
@@ -648,7 +722,11 @@ contract TokenDistributorUnitTest is Test, TestUtils {
         vm.deal(address(party), supply);
         vm.prank(address(party));
         (ITokenDistributor.DistributionInfo memory di) =
-            distributor.createNativeDistribution{ value: supply }(DEFAULT_FEE_RECIPIENT, DEFAULT_FEE_BPS);
+            distributor.createNativeDistribution{ value: supply }(
+                party,
+                DEFAULT_FEE_RECIPIENT,
+                DEFAULT_FEE_BPS
+            );
         address payable dest = _randomAddress();
         vm.prank(DEFAULT_FEE_RECIPIENT);
         distributor.claimFee(di, dest);
@@ -656,11 +734,11 @@ contract TokenDistributorUnitTest is Test, TestUtils {
     }
 
     function test_canReceive1155Token() external {
-        DummyERC1155 erc1155 = new DummyERC1155();
+        DummyERC1155 erc1155_ = new DummyERC1155();
         address owner = _randomAddress();
-        erc1155.deal(owner, 1337, 1e18);
+        erc1155_.deal(owner, 1337, 1e18);
         vm.prank(owner);
-        erc1155.safeTransferFrom(owner, address(distributor), 1337, 1, "");
+        erc1155_.safeTransferFrom(owner, address(distributor), 1337, 1, "");
     }
 
     function _computeMemberShare(uint256 total, uint256 share)
@@ -668,7 +746,7 @@ contract TokenDistributorUnitTest is Test, TestUtils {
         pure
         returns (uint256)
     {
-        return total * share / 1e18;
+        return (total * share + (1e18 - 1)) / 1e18;
     }
 
     function _computeFees(uint256 total, uint16 feeBps)

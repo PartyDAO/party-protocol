@@ -169,17 +169,17 @@ contract ListOnZoraProposalIntegrationTest is
         uint256 johnPrevBalance = johnAddress.balance;
         vm.prank(johnAddress);
         tokenDistributor.claim(distributionInfo, 1);
-        assertEq(johnAddress.balance, (4.456666666666666662 ether) + johnPrevBalance);
+        assertEq(johnAddress.balance, (4.456666666666666663 ether) + johnPrevBalance);
 
         uint256 dannyPrevBalance = dannyAddress.balance;
         vm.prank(dannyAddress);
         tokenDistributor.claim(distributionInfo, 2);
-        assertEq(dannyAddress.balance, (4.456666666666666662 ether) + dannyPrevBalance);
+        assertEq(dannyAddress.balance, (4.456666666666666663 ether) + dannyPrevBalance);
 
         uint256 stevePrevBalance = steveAddress.balance;
         vm.prank(steveAddress);
         tokenDistributor.claim(distributionInfo, 3);
-        assertEq(steveAddress.balance, (4.456666666666666662 ether) + stevePrevBalance);
+        assertEq(steveAddress.balance, (4.456666666666666663 ether) + stevePrevBalance);
       }
     }
 }

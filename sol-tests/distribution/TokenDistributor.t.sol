@@ -59,14 +59,14 @@ contract TokenDistributorTest is Test, TestUtils {
     payable(address(distributor)).transfer(0.1 ether);
     vm.prank(address(dummyParty1)); // must create from party
     ITokenDistributor.DistributionInfo memory ds1 =
-        distributor.createNativeDistribution(ADMIN_ADDRESS, 0.05e4);
+        distributor.createNativeDistribution(dummyParty1, ADMIN_ADDRESS, 0.05e4);
     _createDummyNft(dummyParty1, address(1), 1337, 0.7 ether);
     _createDummyNft(dummyParty1, address(2), 1338, 0.3 ether);
     // distribution 2 (ds2, ETH)
     payable(address(distributor)).transfer(0.25 ether);
     vm.prank(address(dummyParty2)); // must create from party
     ITokenDistributor.DistributionInfo memory ds2 =
-        distributor.createNativeDistribution(ADMIN_ADDRESS, 0.05e4);
+        distributor.createNativeDistribution(dummyParty2, ADMIN_ADDRESS, 0.05e4);
     _createDummyNft(dummyParty2, address(1), 1337, 0.33 ether);
     _createDummyNft(dummyParty2, address(3), 1338, 0.66 ether);
     // distribution 3 (ds1, dummyToken1)
@@ -75,6 +75,7 @@ contract TokenDistributorTest is Test, TestUtils {
     ITokenDistributor.DistributionInfo memory ds3 =
         distributor.createErc20Distribution(
             IERC20(address(dummyToken1)),
+            dummyParty1,
             ADMIN_ADDRESS,
             0.05e4
         );
@@ -93,25 +94,31 @@ contract TokenDistributorTest is Test, TestUtils {
     );
 
     // user cant claim again
-    vm.expectRevert(
-          abi.encodeWithSignature("DistributionAlreadyClaimedByTokenError(uint256,uint256)", 1, 1337)
-    );
+    vm.expectRevert(abi.encodeWithSelector(
+        TokenDistributor.DistributionAlreadyClaimedByPartyTokenError.selector,
+        1,
+        1337
+    ));
     vm.prank(address(1));
     distributor.claim(ds1, 1337);
 
     // partydao cant claim again
-    vm.expectRevert(
-          abi.encodeWithSignature("DistributionFeeAlreadyClaimedError(uint256)", 1)
-    );
+    vm.expectRevert(abi.encodeWithSelector(
+        TokenDistributor.DistributionFeeAlreadyClaimedError.selector,
+        1
+    ));
     vm.prank(ADMIN_ADDRESS);
     distributor.claimFee(ds1, DISTRIBUTION_ADDRESS);
 
     // ****** DISTRIBUTION 2 *****
     // cant claim if not right user
     vm.prank(address(3));
-    vm.expectRevert(
-          abi.encodeWithSignature("MustOwnTokenError(address,address,uint256)", address(3), address(1), 1337)
-    );
+    vm.expectRevert(abi.encodeWithSelector(
+        TokenDistributor.MustOwnTokenError.selector,
+        address(3),
+        address(1),
+        1337
+    ));
     distributor.claim(ds2, 1337);
     // claim one
     _assertEthApprox(
@@ -149,20 +156,21 @@ contract TokenDistributorTest is Test, TestUtils {
     // ETH
     payable(address(distributor)).transfer(50 ether);
     vm.prank(address(dummyParty1)); // must create from party
-    distributor.createNativeDistribution(ADMIN_ADDRESS, 0.05e4);
+    distributor.createNativeDistribution(dummyParty1, ADMIN_ADDRESS, 0.05e4);
 
     // ERC 20
     dummyToken1.deal(address(distributor), 19 ether);
     vm.prank(address(dummyParty1));
     distributor.createErc20Distribution(
         IERC20(address(dummyToken1)),
+        dummyParty1,
         ADMIN_ADDRESS,
         0.05e4
     );
 
     // cant withdraw as non-admin
     vm.expectRevert(abi.encodeWithSelector(
-          ITokenDistributor.OnlyPartyDaoError.selector,
+          TokenDistributor.OnlyPartyDaoError.selector,
           address(3),
           DAO_ADDRESS
     ));
@@ -205,7 +213,7 @@ contract TokenDistributorTest is Test, TestUtils {
     // non admin can't delete
     vm.prank(address(7));
     vm.expectRevert(abi.encodeWithSelector(
-          ITokenDistributor.OnlyPartyDaoError.selector,
+          TokenDistributor.OnlyPartyDaoError.selector,
           address(7),
           DAO_ADDRESS
     ));
@@ -222,7 +230,7 @@ contract TokenDistributorTest is Test, TestUtils {
 
     // non-admin can't disable
     vm.expectRevert(abi.encodeWithSelector(
-          ITokenDistributor.OnlyPartyDaoError.selector,
+          TokenDistributor.OnlyPartyDaoError.selector,
           address(3),
           DAO_ADDRESS
     ));
@@ -234,9 +242,9 @@ contract TokenDistributorTest is Test, TestUtils {
     // cant withdraw when emergency actions disabled
     vm.startPrank(DAO_ADDRESS);
     distributor.disableEmergencyActions();
-    vm.expectRevert(
-      abi.encodeWithSignature("EmergencyActionsNotAllowedError()")
-    );
+    vm.expectRevert(abi.encodeWithSelector(
+        TokenDistributor.EmergencyActionsNotAllowedError.selector
+    ));
     distributor.emergencyWithdraw(
         ITokenDistributor.TokenType.Native,
         ETH_ADDRESS,
@@ -246,9 +254,9 @@ contract TokenDistributorTest is Test, TestUtils {
     );
 
     // cant remove when emergency actions disabled
-    vm.expectRevert(
-      abi.encodeWithSignature("EmergencyActionsNotAllowedError()")
-    );
+    vm.expectRevert(abi.encodeWithSelector(
+        TokenDistributor.EmergencyActionsNotAllowedError.selector
+    ));
     distributor.emergencyRemoveDistribution(
       dummyParty1, 1
     );
@@ -257,18 +265,20 @@ contract TokenDistributorTest is Test, TestUtils {
   function testZeroSupplyDistributionCreation() public {
     // ensure amount needs to be > 0
     vm.prank(address(dummyParty1)); // must create from party
-    vm.expectRevert(
-      abi.encodeWithSignature("InvalidDistributionSupplyError(uint128)", 0)
-    );
-    distributor.createNativeDistribution(ADMIN_ADDRESS, 0);
+    vm.expectRevert(abi.encodeWithSelector(
+      TokenDistributor.InvalidDistributionSupplyError.selector,
+      0
+    ));
+    distributor.createNativeDistribution(dummyParty1, ADMIN_ADDRESS, 0);
 
     // ensure needs to be able to take fee
     vm.deal(address(distributor), 10);
-    vm.expectRevert(
-      abi.encodeWithSignature("InvalidFeeBpsError(uint16)", 1.1e4)
-    );
+    vm.expectRevert(abi.encodeWithSelector(
+      TokenDistributor.InvalidFeeBpsError.selector,
+      1.1e4
+    ));
     vm.prank(address(dummyParty1));
-    distributor.createNativeDistribution(ADMIN_ADDRESS, 1.1e4); // 110%
+    distributor.createNativeDistribution(dummyParty1, ADMIN_ADDRESS, 1.1e4); // 110%
   }
 
   function testDistributeZero() public {
@@ -276,7 +286,7 @@ contract TokenDistributorTest is Test, TestUtils {
 
     vm.prank(address(dummyParty1)); // must send from party
     ITokenDistributor.DistributionInfo memory ds =
-        distributor.createNativeDistribution(ADMIN_ADDRESS, 0);
+        distributor.createNativeDistribution(dummyParty1, ADMIN_ADDRESS, 0);
 
     _createDummyNft(dummyParty1, address(5), 420, 0);
 
@@ -292,7 +302,7 @@ contract TokenDistributorTest is Test, TestUtils {
 
     vm.prank(address(dummyParty1));
     ITokenDistributor.DistributionInfo memory ds =
-        distributor.createNativeDistribution(ADMIN_ADDRESS, 0.05e4);
+        distributor.createNativeDistribution(dummyParty1, ADMIN_ADDRESS, 0.05e4);
     _createDummyNft(dummyParty1, address(5), 420, 2 ether); // malicious amount 2x
 
     vm.deal(address(distributor), 100 ether);
@@ -337,7 +347,7 @@ contract TokenDistributorTest is Test, TestUtils {
 
     payable(address(distributor)).transfer(ethAmount);
     vm.prank(address(dummyParty)); // must create from party
-    return distributor.createNativeDistribution(ADMIN_ADDRESS, feeSplitBps);
+    return distributor.createNativeDistribution(dummyParty, ADMIN_ADDRESS, feeSplitBps);
   }
 
   function _claim(

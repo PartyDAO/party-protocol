@@ -34,28 +34,9 @@ interface ITokenDistributor {
         uint128 fee;
     }
 
-    error OnlyPartyDaoError(address notDao, address partyDao);
-    error OnlyPartyDaoAuthorityError(address notDaoAuthority);
-    error InvalidDistributionInfoError(DistributionInfo info);
-    error DistributionAlreadyClaimedByTokenError(uint256 distributionId, uint256 tokenId);
-    error DistributionFeeAlreadyClaimedError(uint256 distributionId);
-    error MustOwnTokenError(address sender, address expectedOwner, uint256 tokenId);
-    error EmergencyActionsNotAllowedError();
-    error InvalidDistributionSupplyError(uint128 supply);
-    error OnlyFeeRecipientError(address caller, address feeRecipient);
-    error InvalidFeeBpsError(uint16 feeBps);
-
     event DistributionCreated(
         ITokenDistributorParty indexed party,
         DistributionInfo info
-    );
-    event DistributionClaimed(
-        ITokenDistributorParty indexed party,
-        uint256 indexed partyTokenId,
-        TokenType tokenType,
-        address token,
-        uint256 tokenId,
-        uint256 amount
     );
     event DistributionFeeClaimed(
         ITokenDistributorParty indexed party,
@@ -65,28 +46,38 @@ interface ITokenDistributor {
         uint256 tokenId,
         uint256 amount
     );
+    event DistributionClaimedByPartyToken(
+        ITokenDistributorParty indexed party,
+        uint256 indexed partyTokenId ,
+        address indexed owner,
+        TokenType tokenType,
+        address token,
+        uint256 tokenId,
+        uint256 amountClaimed
+    );
 
     /// @notice Create a new distribution for an outstanding native token balance
-    ///         governed by a party (msg.sender).
+    ///         governed by a party.
     /// @dev Native tokens should be transferred directly into this contract
     ///      immediately prior (same tx) to calling createDistribution() or
     ///      attached to the call itself.
-    ///      The caller should implement the `ITokenDistributorParty` interface
-    ///      (ie, be a `Party` instance).
-    function createNativeDistribution(address payable feeRecipient, uint16 feeBps)
+    function createNativeDistribution(
+        ITokenDistributorParty party,
+        address payable feeRecipient,
+        uint16 feeBps
+    )
         external
         payable
         returns (DistributionInfo memory info);
 
     /// @notice Create a new distribution for an outstanding ERC20 token balance
-    ///         governed by a party (msg.sender).
+    ///         governed by a party.
     /// @dev ERC20 tokens should be transferred directly into this contract
     ///      immediately prior (same tx) to calling createDistribution() or
     ///      attached to the call itself.
-    ///      The caller should implement the `ITokenDistributorParty` interface
-    ///      (ie, be a `Party` instance).
     function createErc20Distribution(
         IERC20 token,
+        ITokenDistributorParty party,
         address payable feeRecipient,
         uint16 feeBps
     )
@@ -94,15 +85,14 @@ interface ITokenDistributor {
         returns (DistributionInfo memory info);
 
     /// @notice Create a new distribution for an outstanding ERC1155 token balance
-    ///         governed by a party (msg.sender).
+    ///         governed by a party.
     /// @dev ERC1155 tokens should be transferred directly into this contract
     ///      immediately prior (same tx) to calling createDistribution() or
     ///      attached to the call itself.
-    ///      The caller should implement the `ITokenDistributorParty` interface
-    ///      (ie, be a `Party` instance).
     function createErc1155Distribution(
         IERC1155 token,
         uint256 tokenId,
+        ITokenDistributorParty party,
         address payable feeRecipient,
         uint16 feeBps
     )
@@ -123,7 +113,11 @@ interface ITokenDistributor {
 
     /// @notice Compute the amount of a distribution's token owed to a party member,
     ///         identified by tokenId.
-    function getClaimAmount(DistributionInfo calldata info, uint256 tokenId)
+    function getClaimAmount(
+        ITokenDistributorParty party,
+        uint256 memberSupply,
+        uint256 partyTokenId
+    )
         external
         view
         returns (uint128);
@@ -151,23 +145,4 @@ interface ITokenDistributor {
         external
         view
         returns (uint128);
-
-    /// @notice DAO-only function to clear a distribution in case something goes wrong.
-    function emergencyRemoveDistribution(
-        ITokenDistributorParty party,
-        uint256 distributionId
-    )
-        external;
-
-    /// @notice DAO-only function to withdraw tokens in case something goes wrong.
-    function emergencyWithdraw(
-        TokenType tokenType,
-        address token,
-        uint256 tokenId,
-        address payable recipient,
-        uint256 amount
-    )
-        external;
-
-    function disableEmergencyActions() external;
 }
