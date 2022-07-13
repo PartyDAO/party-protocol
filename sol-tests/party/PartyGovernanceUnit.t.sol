@@ -58,7 +58,7 @@ contract DummyProposalExecutionEngine is IProposalExecutionEngine {
 
 contract DummyTokenDistributor is ITokenDistributor {
     event DummyTokenDistributor_createDistributionCalled(
-        address caller,
+        ITokenDistributorParty party,
         ITokenDistributor.TokenType tokenType,
         address token,
         uint256 tokenId,
@@ -73,7 +73,11 @@ contract DummyTokenDistributor is ITokenDistributor {
     address payable public SINK = payable(address(12345678));
     uint256 public lastId;
 
-    function createNativeDistribution(address payable feeRecipient, uint16 feeBps)
+    function createNativeDistribution(
+        ITokenDistributorParty party,
+        address payable feeRecipient,
+        uint16 feeBps
+    )
         external
         payable
         returns (DistributionInfo memory distInfo)
@@ -82,7 +86,7 @@ contract DummyTokenDistributor is ITokenDistributor {
         SINK.transfer(amount);  // Burn it all to keep balances fresh.
         distInfo.distributionId = ++lastId;
         emit DummyTokenDistributor_createDistributionCalled(
-            msg.sender,
+            party,
             ITokenDistributor.TokenType.Native,
             ETH_ADDRESS,
             0,
@@ -93,7 +97,12 @@ contract DummyTokenDistributor is ITokenDistributor {
         );
     }
 
-    function createErc20Distribution(IERC20 token, address payable feeRecipient, uint16 feeBps)
+    function createErc20Distribution(
+        IERC20 token,
+        ITokenDistributorParty party,
+        address payable feeRecipient,
+        uint16 feeBps
+    )
         external
         returns (DistributionInfo memory distInfo)
     {
@@ -101,7 +110,7 @@ contract DummyTokenDistributor is ITokenDistributor {
         token.transfer(SINK, amount); // Burn it all to keep balances fresh.
         distInfo.distributionId = ++lastId;
         emit DummyTokenDistributor_createDistributionCalled(
-            msg.sender,
+            party,
             ITokenDistributor.TokenType.Erc20,
             address(token),
             0,
@@ -115,6 +124,7 @@ contract DummyTokenDistributor is ITokenDistributor {
     function createErc1155Distribution(
         IERC1155 token,
         uint256 tokenId,
+        ITokenDistributorParty party,
         address payable feeRecipient,
         uint16 feeBps
     )
@@ -125,7 +135,7 @@ contract DummyTokenDistributor is ITokenDistributor {
         token.safeTransferFrom(address(this), SINK, tokenId, amount, ""); // Burn it all to keep balances fresh.
         distInfo.distributionId = ++lastId;
         emit DummyTokenDistributor_createDistributionCalled(
-            msg.sender,
+            party,
             ITokenDistributor.TokenType.Erc1155,
             address(token),
             tokenId,
@@ -143,7 +153,11 @@ contract DummyTokenDistributor is ITokenDistributor {
     function claimFee(DistributionInfo calldata, address payable)
         external {}
 
-    function getClaimAmount(DistributionInfo calldata, uint256)
+    function getClaimAmount(
+        ITokenDistributorParty party,
+        uint256 memberSupply,
+        uint256 partyTokenId
+    )
         public
         view
         returns (uint128) {}
@@ -277,7 +291,7 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
         uint256 proposalId
     );
     event DummyTokenDistributor_createDistributionCalled(
-        address caller,
+        ITokenDistributorParty party,
         ITokenDistributor.TokenType tokenType,
         address token,
         uint256 tokenId,
@@ -1995,7 +2009,7 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
         vm.deal(address(gov), 1337e18);
         _expectEmit0();
         emit DummyTokenDistributor_createDistributionCalled(
-            address(gov),
+            gov,
             ITokenDistributor.TokenType.Native,
             ETH_ADDRESS,
             0,
@@ -2026,7 +2040,7 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
         // Create a distribution.
         _expectEmit0();
         emit DummyTokenDistributor_createDistributionCalled(
-            address(gov),
+            gov,
             ITokenDistributor.TokenType.Erc20,
             address(erc20),
             0,

@@ -25,7 +25,7 @@ contract TokenDistributor is ITokenDistributor, ERC1155TokenReceiver {
         uint128 remainingMemberSupply;
         // The 15-byte hash of the DistributionInfo.
         bytes15 distributionHash15;
-        // Whether partyDao has claimed its distribution share.
+        // Whether the distribution's feeRecipient has claimed its fee.
         bool wasFeeClaimed;
         // Whether a governance token has claimed its distribution share.
         mapping (uint256 => bool) hasPartyTokenClaimed;
@@ -42,12 +42,23 @@ contract TokenDistributor is ITokenDistributor, ERC1155TokenReceiver {
         uint16 feeBps;
     }
 
+    error OnlyPartyDaoError(address notDao, address partyDao);
+    error OnlyPartyDaoAuthorityError(address notDaoAuthority);
+    error InvalidDistributionInfoError(DistributionInfo info);
+    error DistributionAlreadyClaimedByPartyTokenError(uint256 distributionId, uint256 tokenId);
+    error DistributionFeeAlreadyClaimedError(uint256 distributionId);
+    error MustOwnTokenError(address sender, address expectedOwner, uint256 tokenId);
+    error EmergencyActionsNotAllowedError();
+    error InvalidDistributionSupplyError(uint128 supply);
+    error OnlyFeeRecipientError(address caller, address feeRecipient);
+    error InvalidFeeBpsError(uint16 feeBps);
+
     address private constant NATIVE_TOKEN_ADDRESS = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
 
     IGlobals public immutable GLOBALS;
 
-    /// @notice Whether the DAO can call emergency functions.
-    bool public allowEmergencyActions = true;
+    /// @notice Whether the DAO is no longer allowed to call emergency functions.
+    bool public emergencyActionsDisabled;
     /// @notice Last distribution ID for a party.
     mapping(ITokenDistributorParty => uint256) public lastDistributionIdPerParty;
     /// Last known balance of a token, identified by an ID derived from the token.
@@ -69,9 +80,9 @@ contract TokenDistributor is ITokenDistributor, ERC1155TokenReceiver {
         _;
     }
 
-    // allowEmergencyActions == true
+    // emergencyActionsDisabled == false
     modifier onlyIfEmergencyActionsAllowed() {
-        if (!allowEmergencyActions) {
+        if (emergencyActionsDisabled) {
             revert EmergencyActionsNotAllowedError();
         }
         _;
@@ -85,13 +96,17 @@ contract TokenDistributor is ITokenDistributor, ERC1155TokenReceiver {
     receive() external payable {}
 
     /// @inheritdoc ITokenDistributor
-    function createNativeDistribution(address payable feeRecipient, uint16 feeBps)
+    function createNativeDistribution(
+        ITokenDistributorParty party,
+        address payable feeRecipient,
+        uint16 feeBps
+    )
         external
         payable
         returns (DistributionInfo memory info)
     {
         info = _createDistribution(CreateDistributionArgs({
-            party: ITokenDistributorParty(msg.sender),
+            party: party,
             tokenType: TokenType.Native,
             token: NATIVE_TOKEN_ADDRESS,
             tokenId: 0,
@@ -104,6 +119,7 @@ contract TokenDistributor is ITokenDistributor, ERC1155TokenReceiver {
     /// @inheritdoc ITokenDistributor
     function createErc20Distribution(
         IERC20 token,
+        ITokenDistributorParty party,
         address payable feeRecipient,
         uint16 feeBps
     )
@@ -111,7 +127,7 @@ contract TokenDistributor is ITokenDistributor, ERC1155TokenReceiver {
         returns (DistributionInfo memory info)
     {
         info = _createDistribution(CreateDistributionArgs({
-            party: ITokenDistributorParty(msg.sender),
+            party: party,
             tokenType: TokenType.Erc20,
             token: address(token),
             tokenId: 0,
@@ -125,6 +141,7 @@ contract TokenDistributor is ITokenDistributor, ERC1155TokenReceiver {
     function createErc1155Distribution(
         IERC1155 token,
         uint256 tokenId,
+        ITokenDistributorParty party,
         address payable feeRecipient,
         uint16 feeBps
     )
@@ -132,7 +149,7 @@ contract TokenDistributor is ITokenDistributor, ERC1155TokenReceiver {
         returns (DistributionInfo memory info)
     {
         info = _createDistribution(CreateDistributionArgs({
-            party: ITokenDistributorParty(msg.sender),
+            party: party,
             tokenType: TokenType.Erc1155,
             token: address(token),
             tokenId: tokenId,
@@ -161,13 +178,13 @@ contract TokenDistributor is ITokenDistributor, ERC1155TokenReceiver {
         }
         // The partyTokenId must not have claimed its distribution yet.
         if (state.hasPartyTokenClaimed[partyTokenId]) {
-            revert DistributionAlreadyClaimedByTokenError(info.distributionId, partyTokenId);
+            revert DistributionAlreadyClaimedByPartyTokenError(info.distributionId, partyTokenId);
         }
         // Mark the partyTokenId as having claimed their distribution.
         state.hasPartyTokenClaimed[partyTokenId] = true;
 
         // Compute amount owed to partyTokenId.
-        amountClaimed = getClaimAmount(info, partyTokenId);
+        amountClaimed = getClaimAmount(info.party, info.memberSupply, partyTokenId);
 
         // Cap at the remaining member supply. Otherwise a malicious
         // party could drain more than the distribution supply.
@@ -185,9 +202,10 @@ contract TokenDistributor is ITokenDistributor, ERC1155TokenReceiver {
             payable(msg.sender),
             amountClaimed
         );
-        emit DistributionClaimed(
+        emit DistributionClaimedByPartyToken(
             info.party,
             partyTokenId,
+            msg.sender,
             info.tokenType,
             info.token,
             info.tokenId,
@@ -233,16 +251,24 @@ contract TokenDistributor is ITokenDistributor, ERC1155TokenReceiver {
     }
 
     /// @inheritdoc ITokenDistributor
-    function getClaimAmount(DistributionInfo calldata info, uint256 partyTokenId)
+    function getClaimAmount(
+        ITokenDistributorParty party,
+        uint256 memberSupply,
+        uint256 partyTokenId
+    )
         public
         view
         returns (uint128)
     {
         // getDistributionShareOf() is the fraction of the memberSupply partyTokenId
         // is entitled to, scaled by 1e18.
+        // We round up here to prevent dust amounts getting trapped in this contract.
         return (
-            uint256(info.party.getDistributionShareOf(partyTokenId))
-            * info.memberSupply
+            (
+                uint256(party.getDistributionShareOf(partyTokenId))
+                * memberSupply
+                + (1e18 - 1)
+            )
             / 1e18
         ).safeCastUint256ToUint128();
     }
@@ -280,7 +306,7 @@ contract TokenDistributor is ITokenDistributor, ERC1155TokenReceiver {
         return _distributionStates[party][distributionId].remainingMemberSupply;
     }
 
-    /// @inheritdoc ITokenDistributor
+    /// @notice DAO-only function to clear a distribution in case something goes wrong.
     function emergencyRemoveDistribution(
         ITokenDistributorParty party,
         uint256 distributionId
@@ -292,7 +318,7 @@ contract TokenDistributor is ITokenDistributor, ERC1155TokenReceiver {
         delete _distributionStates[party][distributionId];
     }
 
-    /// @inheritdoc ITokenDistributor
+    /// @notice DAO-only function to withdraw tokens in case something goes wrong.
     function emergencyWithdraw(
         TokenType tokenType,
         address token,
@@ -307,8 +333,9 @@ contract TokenDistributor is ITokenDistributor, ERC1155TokenReceiver {
         _transfer(tokenType, token, tokenId, recipient, amount);
     }
 
+    /// @notice DAO-only function to disable emergency functions forever.
     function disableEmergencyActions() onlyPartyDao external {
-        allowEmergencyActions = false;
+        emergencyActionsDisabled = true;
     }
 
     function _createDistribution(CreateDistributionArgs memory args)
