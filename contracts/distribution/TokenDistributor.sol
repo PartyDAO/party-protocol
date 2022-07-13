@@ -402,7 +402,7 @@ contract TokenDistributor is ITokenDistributor, ERC1155TokenReceiver {
     }
 
     function _getDistributionHash(DistributionInfo memory info)
-        private
+        internal
         pure
         returns (bytes15 hash)
     {
