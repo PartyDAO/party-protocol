@@ -37,13 +37,11 @@ function serializeStorageLayout(layout: StorageLayout): string {
         const t = layout.types[item.type];
         const slot = BigInt(item.slot);
         const paddingId = `${prevSlot}_${nextOffset}`;
-        if (prevSlot === slot) {
-            if (nextOffset !== item.offset) {
-                fields.push(...serializePaddings(paddingId, 0n, item.offset - nextOffset));
-            }
-        } else if (slot - prevSlot !== 1n) {
-            fields.push(...serializePaddings(paddingId, slot - prevSlot, item.offset));
-        }
+        fields.push(...serializePaddings(
+            paddingId,
+            slot - prevSlot - 1n,
+            slot != prevSlot ? item.offset : item.offset - nextOffset
+        ));
         prevSlot = BigInt(item.slot);
         nextOffset = (item.offset + t.numberOfBytes) % 32;
         fields.push(`${cleanTypeLabel(t.label)} ${item.label}`);
