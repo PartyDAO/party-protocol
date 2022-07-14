@@ -7,6 +7,7 @@ import "../globals/IGlobals.sol";
 import "../globals/IGlobals.sol";
 import "../tokens/IERC721.sol";
 
+import "forge-std/console2.sol";
 import "./PartyGovernance.sol";
 
 // ERC721 functionality built on top of PartyGovernance.
@@ -210,9 +211,10 @@ contract PartyGovernanceNFT is
     function getVotingPowerOfToken(uint256 tokenId) external view returns (uint256) {
         return _tokens[tokenId].votingPower;
     }
-
     function tokenURI(uint256) external /* view */ returns (string memory)
     {
+        console2.log(name);
+
         // An instance of IERC721Renderer
         _readOnlyDelegateCall(
             _GLOBALS.getAddress(LibGlobals.GLOBAL_GOVERNANCE_NFT_RENDER_IMPL),

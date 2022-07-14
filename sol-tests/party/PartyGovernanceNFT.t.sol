@@ -67,6 +67,8 @@ contract PartyGovernanceNFTTest is Test, TestUtils {
             })
         );
 
+        console.log(party.name());
+
         console.log(party.tokenURI(1));
         
         assertEq(true, true);
