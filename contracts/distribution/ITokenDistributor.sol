@@ -27,7 +27,7 @@ interface ITokenDistributor {
         // The token being distributed.
         address token;
         // For 1155s, the token ID. Zero for every other type.
-        uint256 tokenId;
+        uint256 erc1155TokenId;
         // Total amount of `token` that can be claimed by party members.
         uint128 memberSupply;
         // Amount of `token` to be redeemed by `feeRecipient`.
@@ -43,7 +43,7 @@ interface ITokenDistributor {
         address indexed feeRecipient,
         TokenType tokenType,
         address token,
-        uint256 tokenId,
+        uint256 erc1155TokenId,
         uint256 amount
     );
     event DistributionClaimedByPartyToken(
@@ -52,7 +52,7 @@ interface ITokenDistributor {
         address indexed owner,
         TokenType tokenType,
         address token,
-        uint256 tokenId,
+        uint256 erc1155TokenId,
         uint256 amountClaimed
     );
 
@@ -99,7 +99,7 @@ interface ITokenDistributor {
         external
         returns (DistributionInfo memory info);
 
-    /// @notice Claim a portion of a distribution owed to a `tokenId` belonging
+    /// @notice Claim a portion of a distribution owed to a `partyTokenId` belonging
     ///         to the party that created the distribution. The caller
     ///         must own this token.
     function claim(DistributionInfo calldata info, uint256 partyTokenId)

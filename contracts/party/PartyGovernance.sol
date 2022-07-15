@@ -141,7 +141,6 @@ abstract contract PartyGovernance is
     event ProposalVetoed(uint256 indexed proposalId, address host);
     event ProposalExecuted(uint256 indexed proposalId, address executor, bytes nextProgressData);
     event ProposalCancelled(uint256 indexed proposalId);
-    event ProposalCompleted(uint256 indexed proposalId);
     event DistributionCreated(uint256 distributionId, IERC20 token);
     event VotingPowerDelegated(address indexed owner, address indexed delegate);
     event PreciousListSet(IERC721[] tokens, uint256[] tokenIds);

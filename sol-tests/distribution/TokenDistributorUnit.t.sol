@@ -15,29 +15,29 @@ contract TestParty is ITokenDistributorParty {
     mapping (uint256 => address payable) _owners;
     mapping (uint256 => uint256) _shares;
 
-    function mintShare(address payable owner, uint256 tokenId, uint256 share)
+    function mintShare(address payable owner, uint256 partyTokenId, uint256 share)
         external
         returns (address payable owner_, uint256 tokenId_, uint256 share_)
     {
-        _owners[tokenId] = owner;
-        _shares[tokenId] = share;
-        return (owner, tokenId, share);
+        _owners[partyTokenId] = owner;
+        _shares[partyTokenId] = share;
+        return (owner, partyTokenId, share);
     }
 
-    function ownerOf(uint256 tokenId)
+    function ownerOf(uint256 partyTokenId)
         external
         view
         returns (address)
     {
-        return _owners[tokenId];
+        return _owners[partyTokenId];
     }
 
-    function getDistributionShareOf(uint256 tokenId)
+    function getDistributionShareOf(uint256 partyTokenId)
         external
         view
         returns (uint256)
     {
-        return _shares[tokenId];
+        return _shares[partyTokenId];
     }
 }
 
@@ -62,7 +62,7 @@ contract TokenDistributorUnitTest is Test, TestUtils {
         address indexed feeRecipient,
         ITokenDistributor.TokenType tokenType,
         address token,
-        uint256 tokenId,
+        uint256 erc1155TokenId,
         uint256 amount
     );
     event DistributionClaimedByPartyToken(
@@ -71,7 +71,7 @@ contract TokenDistributorUnitTest is Test, TestUtils {
         address indexed owner,
         ITokenDistributor.TokenType tokenType,
         address token,
-        uint256 tokenId,
+        uint256 erc1155TokenId,
         uint256 amountClaimed
     );
 
@@ -147,7 +147,7 @@ contract TokenDistributorUnitTest is Test, TestUtils {
                 party: party,
                 tokenType: ITokenDistributor.TokenType.Native,
                 token: ETH_TOKEN_ADDRESS,
-                tokenId: 0,
+                erc1155TokenId: 0,
                 memberSupply: uint128(_computeLessFees(supply, DEFAULT_FEE_BPS)),
                 fee: uint128(_computeFees(supply, DEFAULT_FEE_BPS)),
                 feeRecipient: DEFAULT_FEE_RECIPIENT
@@ -172,7 +172,7 @@ contract TokenDistributorUnitTest is Test, TestUtils {
                 party: party,
                 tokenType: ITokenDistributor.TokenType.Erc20,
                 token: address(erc20),
-                tokenId: 0,
+                erc1155TokenId: 0,
                 memberSupply: uint128(_computeLessFees(supply, DEFAULT_FEE_BPS)),
                 fee: uint128(_computeFees(supply, DEFAULT_FEE_BPS)),
                 feeRecipient: DEFAULT_FEE_RECIPIENT
@@ -189,7 +189,7 @@ contract TokenDistributorUnitTest is Test, TestUtils {
     }
 
     function test_createErc1155Distribution_works() external {
-        uint256 tokenId = _randomUint256();
+        uint256 erc1155TokenId = _randomUint256();
         uint256 supply = _randomUint256() % 1e18;
         _expectEmit1();
         emit DistributionCreated(
@@ -199,17 +199,17 @@ contract TokenDistributorUnitTest is Test, TestUtils {
                 party: party,
                 tokenType: ITokenDistributor.TokenType.Erc1155,
                 token: address(erc1155),
-                tokenId: tokenId,
+                erc1155TokenId: erc1155TokenId,
                 memberSupply: uint128(_computeLessFees(supply, DEFAULT_FEE_BPS)),
                 fee: uint128(_computeFees(supply, DEFAULT_FEE_BPS)),
                 feeRecipient: DEFAULT_FEE_RECIPIENT
             })
         );
-        erc1155.deal(address(distributor), tokenId, supply);
+        erc1155.deal(address(distributor), erc1155TokenId, supply);
         vm.prank(address(party));
         distributor.createErc1155Distribution(
             erc1155,
-            tokenId,
+            erc1155TokenId,
             party,
             DEFAULT_FEE_RECIPIENT,
             DEFAULT_FEE_BPS
@@ -278,13 +278,13 @@ contract TokenDistributorUnitTest is Test, TestUtils {
         (address member, uint256 memberTokenId,) =
             party.mintShare(_randomAddress(), _randomUint256(), 100e18);
         uint256 supply = _randomUint256() % 1e18;
-        uint256 tokenId = _randomUint256();
-        erc1155.deal(address(distributor), tokenId, supply);
+        uint256 erc1155TokenId = _randomUint256();
+        erc1155.deal(address(distributor), erc1155TokenId, supply);
         vm.prank(address(party));
         (ITokenDistributor.DistributionInfo memory di) =
             distributor.createErc1155Distribution(
                 erc1155,
-                tokenId,
+                erc1155TokenId,
                 party,
                 DEFAULT_FEE_RECIPIENT,
                 DEFAULT_FEE_BPS
@@ -297,13 +297,13 @@ contract TokenDistributorUnitTest is Test, TestUtils {
             member,
             ITokenDistributor.TokenType.Erc1155,
             address(erc1155),
-            tokenId,
+            erc1155TokenId,
             claimAmount
         );
         vm.prank(member);
         distributor.claim(di, memberTokenId);
         // Member should have supply less fees.
-        assertEq(erc1155.balanceOf(member, tokenId), claimAmount);
+        assertEq(erc1155.balanceOf(member, erc1155TokenId), claimAmount);
     }
 
     // One member with 100% of shares, no fees.
@@ -361,11 +361,11 @@ contract TokenDistributorUnitTest is Test, TestUtils {
         (address member, uint256 memberTokenId,) =
             party.mintShare(_randomAddress(), _randomUint256(), 100e18);
         uint256 supply = _randomUint256() % 1e18;
-        uint256 tokenId = _randomUint256();
-        erc1155.deal(address(distributor), tokenId, supply);
+        uint256 erc1155TokenId = _randomUint256();
+        erc1155.deal(address(distributor), erc1155TokenId, supply);
         vm.prank(address(party));
         (ITokenDistributor.DistributionInfo memory di) =
-            distributor.createErc1155Distribution(erc1155, tokenId, party, payable(0), 0);
+            distributor.createErc1155Distribution(erc1155, erc1155TokenId, party, payable(0), 0);
         _expectEmit2();
         emit DistributionClaimedByPartyToken(
             party,
@@ -373,13 +373,13 @@ contract TokenDistributorUnitTest is Test, TestUtils {
             member,
             ITokenDistributor.TokenType.Erc1155,
             address(erc1155),
-            tokenId,
+            erc1155TokenId,
             supply
         );
         vm.prank(member);
         distributor.claim(di, memberTokenId);
         // Member should have supply less fees.
-        assertEq(erc1155.balanceOf(member, tokenId), supply);
+        assertEq(erc1155.balanceOf(member, erc1155TokenId), supply);
     }
 
     // Multiple members, default fees.
@@ -641,7 +641,7 @@ contract TokenDistributorUnitTest is Test, TestUtils {
             } else if (i == 4) {
                 di_.token = _randomAddress();
             } else if (i == 5) {
-                di_.tokenId = _randomUint256();
+                di_.erc1155TokenId = _randomUint256();
             } else if (i == 6) {
                 di_.memberSupply = uint128(_randomUint256() % type(uint128).max);
             } else if (i == 7) {
@@ -782,7 +782,7 @@ contract TokenDistributorUnitTest is Test, TestUtils {
             party: ITokenDistributorParty(_randomAddress()),
             feeRecipient: _randomAddress(),
             token: _randomAddress(),
-            tokenId: _randomUint256(),
+            erc1155TokenId: _randomUint256(),
             memberSupply: uint128(_randomUint256()),
             fee: uint128(_randomUint256())
         });

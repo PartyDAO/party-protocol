@@ -36,7 +36,7 @@ contract TokenDistributor is ITokenDistributor, ERC1155TokenReceiver {
         ITokenDistributorParty party;
         TokenType tokenType;
         address token;
-        uint256 tokenId;
+        uint256 erc1155TokenId;
         uint256 currentTokenBalance;
         address payable feeRecipient;
         uint16 feeBps;
@@ -45,9 +45,9 @@ contract TokenDistributor is ITokenDistributor, ERC1155TokenReceiver {
     error OnlyPartyDaoError(address notDao, address partyDao);
     error OnlyPartyDaoAuthorityError(address notDaoAuthority);
     error InvalidDistributionInfoError(DistributionInfo info);
-    error DistributionAlreadyClaimedByPartyTokenError(uint256 distributionId, uint256 tokenId);
+    error DistributionAlreadyClaimedByPartyTokenError(uint256 distributionId, uint256 partyTokenId);
     error DistributionFeeAlreadyClaimedError(uint256 distributionId);
-    error MustOwnTokenError(address sender, address expectedOwner, uint256 tokenId);
+    error MustOwnTokenError(address sender, address expectedOwner, uint256 partyTokenId);
     error EmergencyActionsNotAllowedError();
     error InvalidDistributionSupplyError(uint128 supply);
     error OnlyFeeRecipientError(address caller, address feeRecipient);
@@ -109,7 +109,7 @@ contract TokenDistributor is ITokenDistributor, ERC1155TokenReceiver {
             party: party,
             tokenType: TokenType.Native,
             token: NATIVE_TOKEN_ADDRESS,
-            tokenId: 0,
+            erc1155TokenId: 0,
             currentTokenBalance: address(this).balance,
             feeRecipient: feeRecipient,
             feeBps: feeBps
@@ -130,7 +130,7 @@ contract TokenDistributor is ITokenDistributor, ERC1155TokenReceiver {
             party: party,
             tokenType: TokenType.Erc20,
             token: address(token),
-            tokenId: 0,
+            erc1155TokenId: 0,
             currentTokenBalance: token.balanceOf(address(this)),
             feeRecipient: feeRecipient,
             feeBps: feeBps
@@ -140,7 +140,7 @@ contract TokenDistributor is ITokenDistributor, ERC1155TokenReceiver {
     /// @inheritdoc ITokenDistributor
     function createErc1155Distribution(
         IERC1155 token,
-        uint256 tokenId,
+        uint256 erc1155TokenId,
         ITokenDistributorParty party,
         address payable feeRecipient,
         uint16 feeBps
@@ -152,8 +152,8 @@ contract TokenDistributor is ITokenDistributor, ERC1155TokenReceiver {
             party: party,
             tokenType: TokenType.Erc1155,
             token: address(token),
-            tokenId: tokenId,
-            currentTokenBalance: token.balanceOf(address(this), tokenId),
+            erc1155TokenId: erc1155TokenId,
+            currentTokenBalance: token.balanceOf(address(this), erc1155TokenId),
             feeRecipient: feeRecipient,
             feeBps: feeBps
         }));
@@ -198,7 +198,7 @@ contract TokenDistributor is ITokenDistributor, ERC1155TokenReceiver {
         _transfer(
             info.tokenType,
             info.token,
-            info.tokenId,
+            info.erc1155TokenId,
             payable(msg.sender),
             amountClaimed
         );
@@ -208,7 +208,7 @@ contract TokenDistributor is ITokenDistributor, ERC1155TokenReceiver {
             msg.sender,
             info.tokenType,
             info.token,
-            info.tokenId,
+            info.erc1155TokenId,
             amountClaimed
         );
     }
@@ -236,7 +236,7 @@ contract TokenDistributor is ITokenDistributor, ERC1155TokenReceiver {
         _transfer(
             info.tokenType,
             info.token,
-            info.tokenId,
+            info.erc1155TokenId,
             recipient,
             info.fee
         );
@@ -245,7 +245,7 @@ contract TokenDistributor is ITokenDistributor, ERC1155TokenReceiver {
             info.feeRecipient,
             info.tokenType,
             info.token,
-            info.tokenId,
+            info.erc1155TokenId,
             info.fee
         );
     }
@@ -322,7 +322,7 @@ contract TokenDistributor is ITokenDistributor, ERC1155TokenReceiver {
     function emergencyWithdraw(
         TokenType tokenType,
         address token,
-        uint256 tokenId,
+        uint256 erc1155TokenId,
         address payable recipient,
         uint256 amount
     )
@@ -330,7 +330,7 @@ contract TokenDistributor is ITokenDistributor, ERC1155TokenReceiver {
         onlyIfEmergencyActionsAllowed
         external
     {
-        _transfer(tokenType, token, tokenId, recipient, amount);
+        _transfer(tokenType, token, erc1155TokenId, recipient, amount);
     }
 
     /// @notice DAO-only function to disable emergency functions forever.
@@ -347,7 +347,7 @@ contract TokenDistributor is ITokenDistributor, ERC1155TokenReceiver {
         }
         uint128 supply;
         {
-            bytes32 balanceId = _getBalanceId(args.tokenType, args.token, args.tokenId);
+            bytes32 balanceId = _getBalanceId(args.tokenType, args.token, args.erc1155TokenId);
             supply = (args.currentTokenBalance - _storedBalances[balanceId])
                 .safeCastUint256ToUint128();
             // Supply must be nonzero.
@@ -366,7 +366,7 @@ contract TokenDistributor is ITokenDistributor, ERC1155TokenReceiver {
             tokenType: args.tokenType,
             distributionId: ++lastDistributionIdPerParty[args.party],
             token: args.token,
-            tokenId: args.tokenId,
+            erc1155TokenId: args.erc1155TokenId,
             party: args.party,
             memberSupply: memberSupply,
             feeRecipient: args.feeRecipient,
@@ -382,13 +382,13 @@ contract TokenDistributor is ITokenDistributor, ERC1155TokenReceiver {
     function _transfer(
         TokenType tokenType,
         address token,
-        uint256 tokenId,
+        uint256 erc1155TokenId,
         address payable recipient,
         uint256 amount
     )
         private
     {
-        bytes32 balanceId = _getBalanceId(tokenType, token, tokenId);
+        bytes32 balanceId = _getBalanceId(tokenType, token, erc1155TokenId);
         // Reduce stored token balance.
         _storedBalances[balanceId] -= amount;
         if (tokenType == TokenType.Native) {
@@ -397,7 +397,7 @@ contract TokenDistributor is ITokenDistributor, ERC1155TokenReceiver {
             IERC20(token).compatTransfer(recipient, amount);
         } else {
             assert(tokenType == TokenType.Erc1155);
-            IERC1155(token).safeTransferFrom(address(this), recipient, tokenId, amount, "");
+            IERC1155(token).safeTransferFrom(address(this), recipient, erc1155TokenId, amount, "");
         }
     }
 
@@ -414,7 +414,7 @@ contract TokenDistributor is ITokenDistributor, ERC1155TokenReceiver {
         }
     }
 
-    function _getBalanceId(TokenType tokenType, address token, uint256 tokenId)
+    function _getBalanceId(TokenType tokenType, address token, uint256 erc1155TokenId)
         private
         pure
         returns (bytes32 balanceId)
@@ -428,7 +428,7 @@ contract TokenDistributor is ITokenDistributor, ERC1155TokenReceiver {
         assert(tokenType == TokenType.Erc1155);
         assembly {
             mstore(0x00, token)
-            mstore(0x20, tokenId)
+            mstore(0x20, erc1155TokenId)
             balanceId := keccak256(0x00, 0x40)
         }
     }
