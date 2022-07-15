@@ -1,4 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
+// Based on solmate commit 1681dc505f4897ef636f0435d01b1aa027fdafaf (v6.4.0)
+//  @ https://github.com/Rari-Capital/solmate/blob/1681dc505f4897ef636f0435d01b1aa027fdafaf/src/tokens/ERC1155.sol
+// Only modified to inherit IERC721 and EIP165.
 pragma solidity >=0.8.0;
 
 // NOTE: Only modified to inherit IERC20 and EIP165
@@ -140,6 +143,7 @@ abstract contract ERC721 is IERC721, EIP165 {
     //////////////////////////////////////////////////////////////*/
 
     function supportsInterface(bytes4 interfaceId) public pure virtual override returns (bool) {
+        // NOTE: modified from original to call super.
         return super.supportsInterface(interfaceId) ||
             interfaceId == 0x80ac58cd || // ERC165 Interface ID for ERC721
             interfaceId == 0x5b5e139f; // ERC165 Interface ID for ERC721Metadata
