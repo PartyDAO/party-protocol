@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: AGPL-3.0-only
+// Based on solmate commit 1681dc505f4897ef636f0435d01b1aa027fdafaf (v6.4.0)
+// Only modified to inherit IERC1155 and rename ERC1155TokenReceiver -> ERC1155TokenReceiverBase.
 pragma solidity ^0.8;
 
-// NOTE: Only modified to inherit IERC1155
 import "../../tokens/IERC1155.sol";
 
 /// @notice Minimalist and gas efficient standard ERC1155 implementation.
