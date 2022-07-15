@@ -94,6 +94,8 @@ contract PartyCrowdfundNFT is IERC721, EIP165, ReadOnlyDelegateCall {
         return super.supportsInterface(interfaceId);
     }
 
+    /// @dev This function is effectively view but the delegatecall prevents
+    ///      compilation with the view modifier.
     function tokenURI(uint256) external /* view */ returns (string memory)
     {
         _readOnlyDelegateCall(
@@ -101,6 +103,8 @@ contract PartyCrowdfundNFT is IERC721, EIP165, ReadOnlyDelegateCall {
             _GLOBALS.getAddress(LibGlobals.GLOBAL_CF_NFT_RENDER_IMPL),
             msg.data
         );
+        assert(false); // Will not be reached.
+        return "";
     }
 
     function ownerOf(uint256 tokenId) external view returns (address owner) {

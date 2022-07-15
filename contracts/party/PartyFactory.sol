@@ -12,9 +12,11 @@ import "./IPartyFactory.sol";
 // Creates generic Party instances.
 contract PartyFactory is IPartyFactory {
 
+    error InvalidAuthorityError(address authority);
     error OnlyAuthorityError();
 
     IGlobals public immutable GLOBALS;
+
     mapping (Party => address) public partyAuthorities;
 
     constructor(IGlobals globals) {
@@ -33,14 +35,16 @@ contract PartyFactory is IPartyFactory {
     // `authority` is the address that can call `mint()`.
     function createParty(
         address authority,
-        Party.PartyOptions calldata opts,
+        Party.PartyOptions memory opts,
         IERC721[] memory preciousTokens,
         uint256[] memory preciousTokenIds
     )
         external
         returns (Party party)
     {
-        require(authority != address(0));
+        if (authority == address(0)) {
+            revert InvalidAuthorityError(authority);
+        }
         Party.PartyInitData memory initData = Party.PartyInitData({
             options: opts,
             preciousTokens: preciousTokens,
