@@ -65,14 +65,14 @@ contract PartyGovernanceTest is Test, TestUtils {
 
     // Mint first governance NFT
     partyAdmin.mintGovNft(party, address(john), 49, address(john));
-    assertEq(party.getVotingPowerOfToken(1), 49);
+    assertEq(party.votingPowerByTokenId(1), 49);
     assertEq(party.ownerOf(1), address(john));
     assertEq(party.getDistributionShareOf(1), 0.49 ether);
 
     // Increase time and mint another governance NFT
     vm.warp(block.timestamp + 1);
     partyAdmin.mintGovNft(party, address(danny), 10, address(john));
-    assertEq(party.getVotingPowerOfToken(2), 10);
+    assertEq(party.votingPowerByTokenId(2), 10);
     assertEq(party.ownerOf(2), address(danny));
     assertEq(party.getDistributionShareOf(2), 0.10 ether);
 
@@ -153,28 +153,28 @@ contract PartyGovernanceTest is Test, TestUtils {
 
     // Mint first governance NFT
     partyAdmin.mintGovNft(party, address(john), 21, address(john));
-    assertEq(party.getVotingPowerOfToken(1), 21);
+    assertEq(party.votingPowerByTokenId(1), 21);
     assertEq(party.ownerOf(1), address(john));
     assertEq(party.getDistributionShareOf(1), 0.21 ether);
 
     // Increase time and mint another governance NFT
     vm.warp(block.timestamp + 1);
     partyAdmin.mintGovNft(party, address(danny), 22, address(john));
-    assertEq(party.getVotingPowerOfToken(2), 22);
+    assertEq(party.votingPowerByTokenId(2), 22);
     assertEq(party.ownerOf(2), address(danny));
     assertEq(party.getDistributionShareOf(2), 0.22 ether);
 
     // Increase time and mint another governance NFT
     vm.warp(block.timestamp + 1);
     partyAdmin.mintGovNft(party, address(steve), 28, address(steve));
-    assertEq(party.getVotingPowerOfToken(3), 28);
+    assertEq(party.votingPowerByTokenId(3), 28);
     assertEq(party.ownerOf(3), address(steve));
     assertEq(party.getDistributionShareOf(3), 0.28 ether);
 
     // Increase time and mint another governance NFT
     vm.warp(block.timestamp + 3);
     partyAdmin.mintGovNft(party, address(nicholas), 29, address(nicholas));
-    assertEq(party.getVotingPowerOfToken(4), 29);
+    assertEq(party.votingPowerByTokenId(4), 29);
     assertEq(party.ownerOf(4), address(nicholas));
     assertEq(party.getDistributionShareOf(4), 0.29 ether);
 
