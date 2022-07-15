@@ -74,7 +74,7 @@ contract ArbitraryCallsProposalTest is
         bytes32 stuff
     );
 
-    event ArbitraryCallExecuted(bytes32 proposalId, bool succeded, uint256 idx, uint256 count);
+    event ArbitraryCallExecuted(uint256 proposalId, bool succeeded, uint256 idx, uint256 count);
 
     ArbitraryCallTarget target = new ArbitraryCallTarget();
     TestableArbitraryCallsProposal testContract = new TestableArbitraryCallsProposal();
@@ -101,7 +101,7 @@ contract ArbitraryCallsProposalTest is
         )
     {
         executeParams = IProposalExecutionEngine.ExecuteProposalParams({
-            proposalId: _randomBytes32(),
+            proposalId: _randomUint256(),
             proposalData: abi.encode(calls),
             progressData: "",
             flags: 0,

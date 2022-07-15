@@ -11,7 +11,7 @@
         "clean": "rm -rf out/ js/",
         "build": "yarn build:sol && yarn build:ts",
         "test": "yarn build && yarn test:sol:run && yarn test:ts:run",
-        "build:sol": "forge build",
+        "build:sol": "forge build --extra-output storageLayout",
         "test:sol": "yarn build:sol && yarn test:sol:run",
         "test:sol:run": "forge test",
         "build:ts": "tsc -b",
@@ -21,7 +21,8 @@
         "deploy-dry:mainnet": "forge script ./deploy/mainnet.sol -vvv --fork-url https://eth-mainnet.alchemyapi.io/v2/${ALCHEMY_API_KEY} --optimize --optimizer-runs 999999",
         "deploy:rinkeby": "forge script ./deploy/rinkeby.sol -vvv --rpc-url https://eth-rinkeby.alchemyapi.io/v2/${ALCHEMY_API_KEY} --private-key ${PRIVATE_KEY} --broadcast --optimize --optimizer-runs 999999",
         "deploy:mainnet": "forge script ./deploy/mainnet.sol -vvv --rpc-url https://eth-mainnet.alchemyapi.io/v2/${ALCHEMY_API_KEY} --private-key ${PRIVATE_KEY} --broadcast --optimize --optimizer-runs 999999",
-        "decode-revert": "node js/utils/decode-revert.js"
+        "decode-revert": "node js/utils/decode-revert.js",
+        "layout": "node js/utils/gen-storage-layout.js"
     },
     "devDependencies": {
         "@types/chai": "^4.3.1",

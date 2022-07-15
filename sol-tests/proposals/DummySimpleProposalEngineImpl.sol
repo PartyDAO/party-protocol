@@ -9,7 +9,8 @@ contract DummySimpleProposalEngineImpl is IProposalExecutionEngine {
 
     struct DummySimpleProposalEngineImplStorage {
         uint256 lastExecutedProposalId;
-        uint256 executedProposals;
+        uint256 lastCancelledProposalId;
+        uint256 numExecutedProposals;
         mapping (uint256 => uint256) proposalIdToFlags;
     }
 
@@ -22,14 +23,6 @@ contract DummySimpleProposalEngineImpl is IProposalExecutionEngine {
 
     function initialize(address oldImpl, bytes memory initData) external { }
 
-    function getProposalExecutionStatus(bytes32 proposalId)
-        external
-        pure
-        returns (ProposalExecutionStatus)
-    {
-        revert('not implemented 1');
-    }
-
     function getLastExecutedProposalId() public view returns (uint256) {
         return _getStorage().lastExecutedProposalId;
     }
@@ -39,17 +32,27 @@ contract DummySimpleProposalEngineImpl is IProposalExecutionEngine {
     }
 
     function getNumExecutedProposals() public view returns (uint256) {
-        return _getStorage().executedProposals;
+        return _getStorage().numExecutedProposals;
+    }
+
+    function getLastCancelledProposalId() public view returns (uint256) {
+        return _getStorage().lastCancelledProposalId;
     }
 
     function executeProposal(ExecuteProposalParams memory params)
-        external returns (ProposalExecutionStatus)
+        external returns (bytes memory nextProgressData)
     {
         uint256 proposalId = uint256(params.proposalId);
         _getStorage().lastExecutedProposalId = proposalId;
         _getStorage().proposalIdToFlags[proposalId] = uint256(params.flags);
-        _getStorage().executedProposals += 1;
-        return ProposalExecutionStatus.Complete;
+        _getStorage().numExecutedProposals += 1;
+        return "";
+    }
+
+    function cancelProposal(uint256 proposalId)
+        external
+    {
+        _getStorage().lastCancelledProposalId = proposalId;
     }
 
     // Retrieve the explicit storage bucket for the ProposalExecutionEngine logic.

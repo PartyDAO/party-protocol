@@ -11,6 +11,10 @@ contract TestableProposalExecutionEngine is ProposalExecutionEngine {
 
     bytes public t_nextProgressData;
 
+    modifier onlyDelegateCall() override {
+        _;
+    }
+
     constructor(
         IGlobals globals,
         ISeaportExchange seaport,
@@ -55,7 +59,6 @@ contract TestableProposalExecutionEngine is ProposalExecutionEngine {
             uint256 emitValue = abi.decode(params.proposalData, (uint256));
             emit TestEcho(emitValue);
             return ""; // Done
-
         }
         return super._execute(pt, params);
     }

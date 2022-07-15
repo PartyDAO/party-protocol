@@ -6,72 +6,27 @@ import "../utils/LibSafeCast.sol";
 import "../globals/IGlobals.sol";
 import "../globals/IGlobals.sol";
 import "../tokens/IERC721.sol";
+import "../vendor/solmate/ERC721.sol";
 
 import "./PartyGovernance.sol";
 
-// ERC721 functionality built on top of PartyGovernance.
-// TODO: Just inherit from solmate? 🙄
+/// @notice ERC721 functionality built on top of PartyGovernance.
 contract PartyGovernanceNFT is
     PartyGovernance,
-    IERC721
+    ERC721
 {
     using LibSafeCast for uint256;
 
-    struct TokenInfo {
-        address owner;
-        address operator;
-        uint256 votingPower;
-    }
-
-    error InvalidTokenError(uint256 tokenId);
-    error InvalidTokenRecipientError();
-    error NotTokenOwnerError(address notOWner, address owner, uint256 tokenId);
-    error NotApprovedError(address notOperator, address operator, uint256 tokenId);
-    error InvalidERC721ReceiverResultError(address receiver);
     error OnlyMintAuthorityError(address actual, address expected);
 
     IGlobals private immutable _GLOBALS;
 
-    string public name;
-    string public symbol;
     // Who can call mint()
     address public mintAuthority;
-    // owner -> numTokensHeldyOwner
-    mapping (address => uint256) public balanceOf;
 
-    uint256 private _tokenCounter;
-    // owner -> operator -> isApproved
-    mapping (address => mapping (address => bool)) public isApprovedForAll;
-    // tokenId -> TokenInfo
-    mapping (uint256 => TokenInfo) private _tokens;
-
-    modifier mustOwnToken(uint256 tokenId, address whom) {
-        {
-            address owner = _tokens[tokenId].owner;
-            if (owner == address(0)) {
-                revert InvalidTokenError(tokenId);
-            }
-            if (owner != whom) {
-                revert NotTokenOwnerError(whom, owner, tokenId);
-            }
-        }
-        _;
-    }
-
-    modifier mustOwnTokenOrIsApprovedForAll(uint256 tokenId, address whom) {
-        {
-            address owner = _tokens[tokenId].owner;
-            if (owner == address(0)) {
-                revert InvalidTokenError(tokenId);
-            }
-            if (owner != whom) {
-                if (!isApprovedForAll[owner][whom]) {
-                    revert NotTokenOwnerError(whom, owner, tokenId);
-                }
-            }
-        }
-        _;
-    }
+    uint256 public tokenCount;
+    // tokenId -> voting power
+    mapping (uint256 => uint256) public votingPowerByTokenId;
 
     modifier onlyMinter() {
         if (msg.sender != mintAuthority) {
@@ -80,7 +35,7 @@ contract PartyGovernanceNFT is
         _;
     }
 
-    constructor(IGlobals globals) PartyGovernance(globals) {
+    constructor(IGlobals globals) PartyGovernance(globals) ERC721('', '') {
         _GLOBALS = globals;
     }
 
@@ -101,8 +56,46 @@ contract PartyGovernanceNFT is
         mintAuthority = mintAuthority_;
     }
 
-    // Mint a governance NFT for `owner` with `votingPower` and
-    // immediately delegate voting power to `delegate.`
+    function ownerOf(uint256 tokenId)
+        public
+        view
+        override(ERC721, ITokenDistributorParty)
+        returns (address owner)
+    {
+        return ERC721.ownerOf(tokenId);
+    }
+
+    function supportsInterface(bytes4 interfaceId)
+        public
+        pure
+        virtual
+        override(PartyGovernance, ERC721)
+        returns (bool)
+    {
+        return PartyGovernance.supportsInterface(interfaceId) ||
+            ERC721.supportsInterface(interfaceId);
+    }
+
+    /// @dev This function is effectively view but the delegatecall prevents
+    ///      compilation with the view modifier.
+    function tokenURI(uint256) public override /* view */ returns (string memory)
+    {
+        // An instance of IERC721Renderer
+        _readOnlyDelegateCall(
+            _GLOBALS.getAddress(LibGlobals.GLOBAL_GOVERNANCE_NFT_RENDER_IMPL),
+            msg.data
+        );
+        assert(false); // Should not be reached.
+        return ""; // Just to appease the compiler.
+    }
+
+    /// @notice Get the distribution % of a tokenId, scaled by 1e18.
+    function getDistributionShareOf(uint256 tokenId) external view returns (uint256) {
+        return votingPowerByTokenId[tokenId] * 1e18 / _getTotalVotingPower();
+    }
+
+    /// @notice Mint a governance NFT for `owner` with `votingPower` and
+    /// immediately delegate voting power to `delegate.`
     function mint(
         address owner,
         uint256 votingPower,
@@ -111,146 +104,33 @@ contract PartyGovernanceNFT is
         onlyMinter
         external
     {
-        uint256 tokenId = ++_tokenCounter;
-        _tokens[tokenId] = TokenInfo({
-            owner: owner,
-            votingPower: votingPower,
-            operator: address(0)
-        });
-        ++balanceOf[owner];
-        _adjustVotingPower(owner, votingPower.safeCastUint256ToInt128(), delegate);
-        emit Transfer(address(0), owner, tokenId);
-    }
-
-    function approve(address operator, uint256 tokenId)
-        external
-        mustOwnTokenOrIsApprovedForAll(tokenId, msg.sender)
-    {
-        _tokens[tokenId].operator = operator;
-        emit Approval(msg.sender, operator, tokenId);
-    }
-
-    function setApprovalForAll(address operator, bool approved)
-        external
-    {
-        isApprovedForAll[msg.sender][operator] = approved;
-        emit ApprovalForAll(msg.sender, operator, approved);
+        uint256 tokenId = ++tokenCount;
+        votingPowerByTokenId[tokenId] = votingPower;
+        _adjustVotingPower(owner, votingPower.safeCastUint256ToInt192(), delegate);
+        _mint(owner, tokenId);
     }
 
     function transferFrom(address owner, address to, uint256 tokenId)
         public
-        mustOwnToken(tokenId, owner)
+        override
     {
-        if (to == owner) {
-            return;
-        }
-        _transferFrom(owner, to, tokenId);
+        _transferVotingPower(owner, to, votingPowerByTokenId[tokenId]);
+        super.transferFrom(owner, to, tokenId);
     }
 
     function safeTransferFrom(address owner, address to, uint256 tokenId)
-        external
-    {
-        safeTransferFrom(owner, to, tokenId, "");
-    }
-
-    function safeTransferFrom(address owner, address to, uint256 tokenId, bytes memory data)
         public
-        mustOwnToken(tokenId, owner)
+        override
     {
-        if (to == owner) {
-            return;
-        }
-        _transferFrom(owner, to, tokenId);
-        {
-            uint256 cs;
-            assembly { cs := extcodesize(to) }
-            if (cs > 0) {
-                bytes4 r = IERC721Receiver(to)
-                    .onERC721Received(msg.sender, owner, tokenId, data);
-                if (r != IERC721Receiver.onERC721Received.selector) {
-                    revert InvalidERC721ReceiverResultError(to);
-                }
-            }
-        }
+        _transferVotingPower(owner, to, votingPowerByTokenId[tokenId]);
+        super.safeTransferFrom(owner, to, tokenId);
     }
 
-    function supportsInterface(bytes4 interfaceId)
+    function safeTransferFrom(address owner, address to, uint256 tokenId, bytes calldata data)
         public
-        pure
-        override(ERC721Receiver)
-        returns (bool)
+        override
     {
-        // IERC721
-        if (interfaceId == 0x80ac58cd) {
-            return true;
-        }
-        return ERC721Receiver.supportsInterface(interfaceId);
-    }
-
-    function getApproved(uint256 tokenId)
-        external
-        view
-        returns (address)
-    {
-        return _tokens[tokenId].operator;
-    }
-
-    function ownerOf(uint256 tokenId)
-        external
-        view
-        override(IERC721, ITokenDistributorParty)
-        returns (address owner)
-    {
-        owner = _tokens[tokenId].owner;
-        if (owner == address(0)) {
-            revert InvalidTokenError(tokenId);
-        }
-    }
-
-    function getVotingPowerOfToken(uint256 tokenId) external view returns (uint256) {
-        return _tokens[tokenId].votingPower;
-    }
-
-    function tokenURI(uint256) external /* view */ returns (string memory)
-    {
-        // An instance of IERC721Renderer
-        _readOnlyDelegateCall(
-            _GLOBALS.getAddress(LibGlobals.GLOBAL_GOVERNANCE_NFT_RENDER_IMPL),
-            msg.data
-        );
-    }
-
-    function getDistributionShareOf(uint256 tokenId) external view returns (uint256) {
-        return _tokens[tokenId].votingPower * 1e18 / _getTotalVotingPower();
-    }
-
-    function _transferFrom(address owner, address to, uint256 tokenId)
-        private
-    {
-        if (to == address(0)) {
-            revert InvalidTokenRecipientError();
-        }
-        _assertApproval(owner, msg.sender, tokenId);
-        _tokens[tokenId].owner = to;
-        _tokens[tokenId].operator = address(0); // Don't persist individual approvals.
-        --balanceOf[owner];
-        ++balanceOf[to];
-        _transferVotingPower(owner, to, _tokens[tokenId].votingPower);
-        emit Transfer(owner, to, tokenId);
-    }
-
-    function _assertApproval(address owner, address operator, uint256 tokenId)
-        private
-        view
-    {
-        if (operator != owner) {
-            if (isApprovedForAll[owner][operator]) {
-                return;
-            }
-            address approvedOperator = _tokens[tokenId].operator;
-            if (approvedOperator != operator) {
-                revert NotApprovedError(operator, approvedOperator, tokenId);
-            }
-        }
+        _transferVotingPower(owner, to, votingPowerByTokenId[tokenId]);
+        super.safeTransferFrom(owner, to, tokenId, data);
     }
 }

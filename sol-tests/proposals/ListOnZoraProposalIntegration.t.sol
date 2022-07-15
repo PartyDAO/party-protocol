@@ -6,6 +6,7 @@ import "forge-std/Test.sol";
 import "../../contracts/globals/Globals.sol";
 import "../../contracts/globals/LibGlobals.sol";
 import "../../contracts/proposals/ProposalExecutionEngine.sol";
+import "../../contracts/distribution/TokenDistributor.sol";
 
 import "../TestUtils.sol";
 import "../DummyERC721.sol";
@@ -79,7 +80,9 @@ contract ListOnZoraProposalIntegrationTest is
           passThresholdBps: 5100,
           totalVotingPower: 150,
           preciousTokenAddress: address(toadz),
-          preciousTokenId: 1
+          preciousTokenId: 1,
+          feeBps: 0,
+          feeRecipient: payable(0)
         })
       );
       // transfer NFT to party
@@ -105,7 +108,7 @@ contract ListOnZoraProposalIntegrationTest is
 
       PartyGovernance.Proposal memory proposal = PartyGovernance.Proposal({
         maxExecutableTime: uint40(block.timestamp + 10000 hours),
-        nonce: 1,
+        minCancelTime: uint40(block.timestamp + 1 days),
         proposalData: proposalData
       });
 
@@ -117,8 +120,8 @@ contract ListOnZoraProposalIntegrationTest is
 
       vm.warp(block.timestamp + 76 hours);
 
-      (PartyGovernance.ProposalState s, ) = party.getProposalStates(proposalId);
-      assertEq(uint40(s), uint40(PartyGovernance.ProposalState.Ready));
+      (PartyGovernance.ProposalStatus s, ) = party.getProposalStateInfo(proposalId);
+      assertEq(uint40(s), uint40(PartyGovernance.ProposalStatus.Ready));
 
       PartyParticipant.ExecutionOptions memory eo = PartyParticipant.ExecutionOptions({
         proposalId: proposalId,
@@ -161,22 +164,22 @@ contract ListOnZoraProposalIntegrationTest is
       // distribute ETH and claim distributions
       {
         vm.prank(johnAddress);
-        TokenDistributor.DistributionInfo memory distributionInfo = john.distributeEth(party, ETH_TOKEN);
+        TokenDistributor.DistributionInfo memory distributionInfo = john.distributeEth(party);
 
         uint256 johnPrevBalance = johnAddress.balance;
         vm.prank(johnAddress);
         tokenDistributor.claim(distributionInfo, 1);
-        assertEq(johnAddress.balance, (4.456666666666666662 ether) + johnPrevBalance);
+        assertEq(johnAddress.balance, (4.456666666666666663 ether) + johnPrevBalance);
 
         uint256 dannyPrevBalance = dannyAddress.balance;
         vm.prank(dannyAddress);
         tokenDistributor.claim(distributionInfo, 2);
-        assertEq(dannyAddress.balance, (4.456666666666666662 ether) + dannyPrevBalance);
+        assertEq(dannyAddress.balance, (4.456666666666666663 ether) + dannyPrevBalance);
 
         uint256 stevePrevBalance = steveAddress.balance;
         vm.prank(steveAddress);
         tokenDistributor.claim(distributionInfo, 3);
-        assertEq(steveAddress.balance, (4.456666666666666662 ether) + stevePrevBalance);
+        assertEq(steveAddress.balance, (4.456666666666666663 ether) + stevePrevBalance);
       }
     }
 }
