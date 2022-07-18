@@ -123,7 +123,7 @@ contract Deploy is Test {
     console.log('  Globals - setting PartyDao Multi-sig address');
     // globals.setAddress(LibGlobals.GLOBAL_DAO_WALLET, deployConstants.partyDaoMultisig);
     // console.log('  Globals - successfully set PartyDao multi-sig address', deployConstants.partyDaoMultisig);
-    // development/testnet deply
+    // development/testnet deploy
     globals.setAddress(LibGlobals.GLOBAL_DAO_WALLET, DEPLOYER_ADDRESS);
     console.log('  Globals - successfully set PartyDao multi-sig address', DEPLOYER_ADDRESS);
 
