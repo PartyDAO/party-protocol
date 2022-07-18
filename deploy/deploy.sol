@@ -288,6 +288,9 @@ contract Deploy is Test {
     console.log(string.concat('  "proposalEngineImpl": "', Strings.toHexString(address(proposalEngineImpl)) ,'",'));
     console.log(string.concat('  "partyImpl": "', Strings.toHexString(address(partyImpl)) ,'",'));
     console.log(string.concat('  "partyFactory": "', Strings.toHexString(address(partyFactory)) ,'",'));
+    console.log(string.concat('  "partyBidImpl": "', Strings.toHexString(address(partyBidImpl)) ,'",'));
+    console.log(string.concat('  "partyBuyImpl": "', Strings.toHexString(address(partyBuyImpl)) ,'",'));
+    console.log(string.concat('  "partyCollectionBuyImpl": "', Strings.toHexString(address(partyCollectionBuyImpl)) ,'",'));
     console.log(string.concat('  "partyCrowdfundFactory": "', Strings.toHexString(address(partyCrowdfundFactory)) ,'"'));
     // NOTE: ensure trailing comma on second to last line
     console.log('}');
