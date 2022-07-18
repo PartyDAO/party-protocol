@@ -87,10 +87,10 @@ library Strings {
 contract Deploy is Test {
 
   // constants
-  // deploy address
-  // address constant DEPLOYER_ADDRESS = 0x8fDC86689f5F35F2b4d9f649c7bdc9C64f59e6bD; // TODO: we can set this, or we can use tx.origin
-  // dry-run deploy address
-  address constant DEPLOYER_ADDRESS = 0x00a329c0648769A73afAc7F9381E08FB43dBEA72;
+  // dry-run deployer address
+  // address constant DEPLOYER_ADDRESS = 0x00a329c0648769A73afAc7F9381E08FB43dBEA72;
+  // real deployer address
+  address constant DEPLOYER_ADDRESS = 0x66512B61F855478bfba669e32719dE5fD7a57Fa4; // TODO: we can set this, or we can use tx.origin
 
   // temporary variables to store deployed contract addresses
   Globals globals;
