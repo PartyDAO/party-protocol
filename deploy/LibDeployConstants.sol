@@ -5,9 +5,6 @@ pragma solidity ^0.8;
 
 library LibDeployConstants {
   uint256 internal constant PARTY_DAO_DISTRIBUTION_SPLIT_BPS = 250;
-  // todo: use for mainnet deploy
-  // uint256 internal constant OS_ZORA_AUCTION_DURATION = 86400; // 60 * 60 * 24 = 86400 seconds = 24 hours
-  uint256 internal constant OS_ZORA_AUCTION_DURATION = 2 minutes;
 
   struct DeployConstants {
     address[3] adminAddresses; // todo: change size of array based on deploy
@@ -30,11 +27,11 @@ library LibDeployConstants {
         0x0000000000000000000000000000000000001337
       ],
       seaportExchangeAddress: 0x00000000006c3852cbEf3e08E8dF289169EdE581,
-      osZoraAuctionDuration: OS_ZORA_AUCTION_DURATION,
+      osZoraAuctionDuration: 24 hours,
+      osZoraAuctionTimeout: 24 hours,
       partyDaoMultisig: 0xF7f52Dd34bc21eDA08c0b804C7c1dbc48375820f,
       partyDaoDistributionSplitBps: PARTY_DAO_DISTRIBUTION_SPLIT_BPS,
       zoraAuctionHouseAddress: 0xE468cE99444174Bd3bBBEd09209577d25D1ad673,
-      osZoraAuctionTimeout: 24 hours,
       osZone: address(0), // TODO,
       osConduitKey: 0, // TODO
       osConduitController: address(0) // TODO
