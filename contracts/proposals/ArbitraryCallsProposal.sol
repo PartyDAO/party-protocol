@@ -29,7 +29,7 @@ contract ArbitraryCallsProposal {
     error UnexpectedCallResultHashError(uint256 idx, bytes32 resultHash, bytes32 expectedResultHash);
     error NotEnoughEthAttachedError(uint256 callValue, uint256 ethAvailable);
 
-    event ArbitraryCallExecuted(bytes32 proposalId, bool succeeded, uint256 idx, uint256 count);
+    event ArbitraryCallExecuted(uint256 proposalId, bool succeeded, uint256 idx, uint256 count);
 
     function _executeArbitraryCalls(
         IProposalExecutionEngine.ExecuteProposalParams memory params

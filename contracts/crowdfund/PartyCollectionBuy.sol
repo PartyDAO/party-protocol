@@ -5,128 +5,96 @@ import "../tokens/IERC721.sol";
 import "../party/Party.sol";
 import "../utils/Implementation.sol";
 import "../utils/LibSafeERC721.sol";
+import "../utils/LibRawResult.sol";
 import "../globals/IGlobals.sol";
 import "../gatekeepers/IGateKeeper.sol";
 
-import "./IMarketWrapper.sol";
-import "./PartyCrowdfund.sol";
+import "./PartyBuyBase.sol";
 
-contract PartyCollectionBuy is Implementation, PartyCrowdfund {
+// PartyBuy but allows any token ID to be bought.
+contract PartyCollectionBuy is PartyBuyBase {
     using LibSafeERC721 for IERC721;
+    using LibSafeCast for uint256;
 
     struct PartyCollectionBuyOptions {
+        // The name of the crowdfund.
+        // This will also carry over to the governance party.
         string name;
+        // The token symbol for both the crowdfund and the governance NFTs.
         string symbol;
+        // The ERC721 contract of the NFT being bought.
         IERC721 nftContract;
-        uint256 price;
-        uint40 durationInSeconds;
+        // How long this crowdfund has to bid on the NFT, in seconds.
+        uint40 duration;
+        // Maximum amount this crowdfund will pay for the NFT.
+        // If zero, no maximum.
+        uint128 maximumPrice;
+        // An address that receieves an extra share of the final voting power
+        // when the party transitions into governance.
         address payable splitRecipient;
+        // What percentage (in bps) of the final total voting power `splitRecipient`
+        // receives.
         uint16 splitBps;
-        Party.PartyOptions partyOptions;
+        // If ETH is attached during deployment, it will be interpreted
+        // as a contribution. This is who gets credit for that contribution.
         address initialContributor;
+        // If there is an initial contribution, this is who they will delegate their
+        // voting power to when the crowdfund transitions to governance.
         address initialDelegate;
+        // The gatekeeper contract to use (if non-null) to restrict who can
+        // contribute to this crowdfund.
         IGateKeeper gateKeeper;
+        // The gatekeeper contract to use (if non-null).
         bytes12 gateKeeperId;
+        // Governance options.
+        FixedGovernanceOpts governanceOpts;
     }
 
-    uint256 public nftTokenId;
+    /// @notice The NFT contract to buy.
     IERC721 public nftContract;
-    uint40 public expiry;
-    uint256 public price;
-    uint256 public settledPrice;
-    IGateKeeper public gateKeeper;
-    bytes12 public gateKeeperId;
 
-    constructor(IGlobals globals) PartyCrowdfund(globals) {}
+    constructor(IGlobals globals) PartyBuyBase(globals) {}
 
-    function initialize(PartyCollectionBuyOptions memory initOpts)
+    /// @notice intializer to be delegatecalled by Proxy constructor.
+    function initialize(PartyCollectionBuyOptions memory opts)
         external
         onlyDelegateCall
     {
-        PartyCrowdfund._initialize(CrowdfundInitOptions({
-            name: initOpts.name,
-            symbol: initOpts.symbol,
-            partyOptions: initOpts.partyOptions,
-            splitRecipient: initOpts.splitRecipient,
-            splitBps: initOpts.splitBps,
-            initialContributor: initOpts.initialContributor,
-            initialDelegate: initOpts.initialDelegate
+        PartyBuyBase._initialize(PartyBuyBaseOptions({
+            name: opts.name,
+            symbol: opts.symbol,
+            duration: opts.duration,
+            maximumPrice: opts.maximumPrice,
+            splitRecipient: opts.splitRecipient,
+            splitBps: opts.splitBps,
+            initialContributor: opts.initialContributor,
+            initialDelegate: opts.initialDelegate,
+            gateKeeper: opts.gateKeeper,
+            gateKeeperId: opts.gateKeeperId,
+            governanceOpts: opts.governanceOpts
         }));
-        price = initOpts.price;
-        nftContract = initOpts.nftContract;
-        gateKeeper = initOpts.gateKeeper;
-        gateKeeperId = initOpts.gateKeeperId;
-        expiry = uint40(initOpts.durationInSeconds + block.timestamp);
+        nftContract = opts.nftContract;
     }
 
-    function contribute(address contributor, address delegate, bytes memory gateData)
-        public
-        payable
-    {
-        if (gateKeeper != IGateKeeper(address(0))) {
-            require(gateKeeper.isAllowed(contributor, gateKeeperId, gateData), 'NOT_ALLOWED');
-        }
-        PartyCrowdfund.contribute(contributor, delegate);
-    }
-
-    // execute calldata to perform a buy.
+    /// @notice Execute arbitrary calldata to perform a buy, creating a party
+    ///         if it successfully buys the NFT.
     function buy(
         uint256 tokenId,
         address payable callTarget,
-        uint256 callValue,
+        uint128 callValue,
         bytes calldata callData,
-        Party.PartyOptions calldata partyOptions
+        FixedGovernanceOpts memory governanceOpts
     )
         external
+        returns (Party party_)
     {
-        require(getCrowdfundLifecycle() == CrowdfundLifecycle.Active);
-        settledPrice = callValue == 0 ? address(this).balance : callValue;
-        nftTokenId = tokenId;
-        // Do we even care whether it succeeds?
-        callTarget.call{ value: callValue }(callData);
-        _finalize(partyOptions);
-    }
-
-    function _finalize(Party.PartyOptions memory partyOptions) private {
-        CrowdfundLifecycle lc = getCrowdfundLifecycle();
-        if (lc != CrowdfundLifecycle.Won) {
-            revert WrongLifecycleError(lc);
-        }
-        _createParty(partyOptions, nftContract, nftTokenId); // Will revert if already created.
-    }
-
-    // TODO: Can we avoid needing these functions/steps?
-    // function expire() ...
-
-    function getCrowdfundLifecycle() public override view returns (CrowdfundLifecycle) {
-        // If there is a settled price then we tried to buy the NFT.
-        if (settledPrice != 0) {
-            // If there's a party, we will no longer hold the NFT, but it means we
-            // did at one point.
-            if (_getParty() != Party(payable(address(0)))) {
-                return CrowdfundLifecycle.Won;
-            }
-            // Otherwise check if we hold the NFT now.
-            if (nftContract.safeOwnerOf(nftTokenId) == address(this)) {
-                return CrowdfundLifecycle.Won;
-            }
-            // We can get here if the arbitrary call in buy() fails
-            // to acquire the NFT, then it calls finalize().
-            // This is an invalid state so we want to revert the buy().
-            revert();
-        }
-        if (expiry <= uint40(block.timestamp)) {
-            return CrowdfundLifecycle.Lost;
-        }
-        return CrowdfundLifecycle.Active;
-    }
-
-    function _getFinalPrice()
-        internal
-        override
-        view
-        returns (uint256)
-    {
-        return settledPrice;
+        party_ = _buy(
+            nftContract,
+            tokenId,
+            callTarget,
+            callValue,
+            callData,
+            governanceOpts
+        );
     }
 }

@@ -11,7 +11,7 @@ import {
     System,
     createOpenSeaProposal,
     decodeListOnOpenSeaProgressData,
-    ProposalState,
+    ProposalStatus,
     ListOnOpenSeaStep,
 } from './system';
 import { SeaportOrderParams } from './seaport';
@@ -108,16 +108,17 @@ describe('Seaport proposals integrations test', () => {
                 feeRecipients: [OS_FEE_RECIPIENT],
             },
             now() + ONE_DAY_SECONDS,
+            now() + 30 * ONE_DAY_SECONDS,
         );
         // Propose.
         const proposalId = await voters[0].proposeAsync(proposal);
-        expect(await party.getProposalStateAsync(proposalId)).to.eq(ProposalState.Voting);
+        expect(await party.getProposalStatusAsync(proposalId)).to.eq(ProposalStatus.Voting);
         // Vote.
         await voters[1].acceptAsync(proposalId);
-        expect(await party.getProposalStateAsync(proposalId)).to.eq(ProposalState.Passed);
+        expect(await party.getProposalStatusAsync(proposalId)).to.eq(ProposalStatus.Passed);
         // Skip execution delay.
         await increaseTime(provider, party.executionDelay);
-        expect(await party.getProposalStateAsync(proposalId)).to.eq(ProposalState.Ready);
+        expect(await party.getProposalStatusAsync(proposalId)).to.eq(ProposalStatus.Ready);
         // Execute to list on zora.
         let progressData = await voters[0].executeAsync(proposalId, proposal);
         expect(progressData).to.not.eq(NULL_BYTES);
@@ -135,7 +136,7 @@ describe('Seaport proposals integrations test', () => {
         await increaseTime(provider, ONE_DAY_SECONDS);
         progressData = await voters[0].executeAsync(proposalId, proposal, progressData);
         expect(progressData).to.eq(NULL_BYTES);
-        expect(await party.getProposalStateAsync(proposalId)).to.eq(ProposalState.Complete);
+        expect(await party.getProposalStatusAsync(proposalId)).to.eq(ProposalStatus.Complete);
     });
 
     it('works when OS sale is successful', async () => {
@@ -168,16 +169,17 @@ describe('Seaport proposals integrations test', () => {
                 feeRecipients: [OS_FEE_RECIPIENT],
             },
             now() + ONE_DAY_SECONDS,
+            now() + 30 * ONE_DAY_SECONDS,
         );
         // Propose.
         const proposalId = await voters[0].proposeAsync(proposal);
-        expect(await party.getProposalStateAsync(proposalId)).to.eq(ProposalState.Voting);
+        expect(await party.getProposalStatusAsync(proposalId)).to.eq(ProposalStatus.Voting);
         // Vote.
         await voters[1].acceptAsync(proposalId);
-        expect(await party.getProposalStateAsync(proposalId)).to.eq(ProposalState.Passed);
+        expect(await party.getProposalStatusAsync(proposalId)).to.eq(ProposalStatus.Passed);
         // Skip execution delay.
         await increaseTime(provider, party.executionDelay);
-        expect(await party.getProposalStateAsync(proposalId)).to.eq(ProposalState.Ready);
+        expect(await party.getProposalStatusAsync(proposalId)).to.eq(ProposalStatus.Ready);
         // Execute to list on zora.
         let progressData = await voters[0].executeAsync(proposalId, proposal);
         expect(progressData).to.not.eq(NULL_BYTES);
@@ -209,6 +211,6 @@ describe('Seaport proposals integrations test', () => {
         )).wait();
         progressData = await voters[0].executeAsync(proposalId, proposal, progressData);
         expect(progressData).to.eq(NULL_BYTES);
-        expect(await party.getProposalStateAsync(proposalId)).to.eq(ProposalState.Complete);
+        expect(await party.getProposalStatusAsync(proposalId)).to.eq(ProposalStatus.Complete);
     });
 });

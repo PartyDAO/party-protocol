@@ -1,6 +1,6 @@
 import { Contract, BigNumber, Wallet } from 'ethers';
 import * as ethers from 'ethers';
-import { deployContract, NULL_ADDRESS, NULL_BYTES, NULL_HASH, randomUint256 } from '../utils';
+import { deployContract, NULL_ADDRESS, NULL_BYTES, NULL_HASH } from '../utils';
 
 import GLOBALS_ARTIFACT from '../../out/Globals.sol/Globals.json';
 import PARTY_FACTORY_ARTIFACT from '../../out/PartyFactory.sol/PartyFactory.json';
@@ -31,6 +31,7 @@ const INTERFACES = [
     new ethers.utils.Interface(IERC20_ARTIFACT.abi),
     new ethers.utils.Interface(LIST_ON_OPENSEAPORT_PROPOSAL_ARTIFACT.abi),
     new ethers.utils.Interface(PROPOSAL_EXEUCTION_ENGINE_ARTIFACT.abi),
+    new ethers.utils.Interface(PARTY_ARTIFACT.abi),
 ];
 
 export enum GlobalKeys {
@@ -61,7 +62,7 @@ export enum ProposalType {
     UpgradeProposalEngineImpl = 5,
 }
 
-export enum ProposalState {
+export enum ProposalStatus {
     Invalid     = 0,
     Voting      = 1,
     Defeated    = 2,
@@ -69,6 +70,7 @@ export enum ProposalState {
     Ready       = 4,
     InProgress  = 5,
     Complete    = 6,
+    Cancelled   = 7,
 }
 
 export enum ListOnOpenSeaStep {
@@ -80,7 +82,7 @@ export enum ListOnOpenSeaStep {
 
 export interface Proposal {
     maxExecutableTime: number;
-    nonce: BigNumber;
+    minCancelTime: number;
     proposalData: string;
 }
 
@@ -258,6 +260,8 @@ export class Party {
         executionDelay: number;
         passThreshold: number;
         totalVotingPower: BigNumber;
+        feeRate?: number;
+        feeRecipient?: string;
     }): Promise<Party> {
         const preciousTokens = await createDummyERC721TokensAsync(
             opts.worker,
@@ -276,6 +280,8 @@ export class Party {
                     executionDelay: opts.executionDelay,
                     passThresholdBps: Math.floor(opts.passThreshold * 1e4),
                     totalVotingPower: opts.totalVotingPower,
+                    feeBps: Math.floor((opts.feeRate || 0) * 1e4),
+                    feeRecipient: opts.feeRecipient || NULL_ADDRESS,
                 },
             },
             preciousTokens.map(({ token }) => token.address),
@@ -356,9 +362,9 @@ export class Party {
         );
     }
 
-    public async getProposalStateAsync(proposalId: BigNumber): Promise<ProposalState> {
-        const [state] = await this.contract.connect(this.minter).getProposalStates(proposalId);
-        return state as ProposalState;
+    public async getProposalStatusAsync(proposalId: BigNumber): Promise<ProposalStatus> {
+        const [status] = await this.contract.connect(this.minter).getProposalStateInfo(proposalId);
+        return status as ProposalStatus;
     }
 }
 
@@ -401,10 +407,10 @@ export class Voter {
         if (eventsHandler) {
             eventsHandler(events);
         }
-        const progressEvent = events.find(e => e.name === 'ProposalExecutionProgress');
+        const progressEvent = events.find(e => e.name === 'ProposalExecuted');
         let nextProgressData = NULL_BYTES;
         if (progressEvent) {
-            nextProgressData = progressEvent.args[1];
+            nextProgressData = progressEvent.args.nextProgressData;
         }
         return nextProgressData;
     }
@@ -440,10 +446,10 @@ export async function createDummyERC721TokensAsync(
     return r;
 }
 
-export function createArbitraryCallsProposal(calls: ArbitraryCall[], maxExecutableTime: number): Proposal {
+export function createArbitraryCallsProposal(calls: ArbitraryCall[], maxExecutableTime: number, minCancelTime: number): Proposal {
     return {
         maxExecutableTime,
-        nonce: randomUint256(),
+        minCancelTime,
         proposalData: ethers.utils.hexConcat([
             ethers.utils.hexZeroPad(ethers.utils.hexlify(ProposalType.ArbitraryCalls), 4),
             ethers.utils.defaultAbiCoder.encode(
@@ -454,10 +460,10 @@ export function createArbitraryCallsProposal(calls: ArbitraryCall[], maxExecutab
     };
 }
 
-export function createOpenSeaProposal(info: OpenSeaProposalInfo, maxExecutableTime: number): Proposal {
+export function createOpenSeaProposal(info: OpenSeaProposalInfo, maxExecutableTime: number, minCancelTime: number): Proposal {
     return {
         maxExecutableTime,
-        nonce: randomUint256(),
+        minCancelTime,
         proposalData: ethers.utils.hexConcat([
             ethers.utils.hexZeroPad(ethers.utils.hexlify(ProposalType.ListOnOpenSea), 4),
             ethers.utils.defaultAbiCoder.encode(

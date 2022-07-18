@@ -20,16 +20,15 @@ contract DummyProposalEngineImpl is IProposalExecutionEngine {
         emit TestInitializeCalled(oldImpl, keccak256(initData));
     }
 
-    function getProposalExecutionStatus(bytes32 proposalId)
-        external
-        view
-        returns (ProposalExecutionStatus)
+    function executeProposal(ExecuteProposalParams memory)
+        external pure returns (bytes memory)
     {
         revert('not implemented');
     }
 
-    function executeProposal(ExecuteProposalParams memory params)
-        external returns (ProposalExecutionStatus)
+    function cancelProposal(uint256)
+        external
+        pure
     {
         revert('not implemented');
     }
