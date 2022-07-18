@@ -87,7 +87,10 @@ library Strings {
 contract Deploy is Test {
 
   // constants
-  address constant DEPLOYER_ADDRESS = 0x8fDC86689f5F35F2b4d9f649c7bdc9C64f59e6bD; // TODO: we can set this, or we can use tx.origin
+  // deploy address
+  // address constant DEPLOYER_ADDRESS = 0x8fDC86689f5F35F2b4d9f649c7bdc9C64f59e6bD; // TODO: we can set this, or we can use tx.origin
+  // dry-run deploy address
+  address constant DEPLOYER_ADDRESS = 0x00a329c0648769A73afAc7F9381E08FB43dBEA72;
 
   // temporary variables to store deployed contract addresses
   Globals globals;
@@ -118,8 +121,11 @@ contract Deploy is Test {
 
     console.log('');
     console.log('  Globals - setting PartyDao Multi-sig address');
-    globals.setAddress(LibGlobals.GLOBAL_DAO_WALLET, deployConstants.partyDaoMultisig);
-    console.log('  Globals - successfully set PartyDao multi-sig address', deployConstants.partyDaoMultisig);
+    // globals.setAddress(LibGlobals.GLOBAL_DAO_WALLET, deployConstants.partyDaoMultisig);
+    // console.log('  Globals - successfully set PartyDao multi-sig address', deployConstants.partyDaoMultisig);
+    // development/testnet deply
+    globals.setAddress(LibGlobals.GLOBAL_DAO_WALLET, DEPLOYER_ADDRESS);
+    console.log('  Globals - successfully set PartyDao multi-sig address', DEPLOYER_ADDRESS);
 
     console.log('');
     console.log('  Globals - setting DAO authority addresses', deployConstants.adminAddresses.length);
@@ -148,9 +154,6 @@ contract Deploy is Test {
     console.log('  Globals - successfully set seaport values:');
     console.logBytes32(deployConstants.osConduitKey);
     console.log(deployConstants.osZone);
-
-
-
 
 
     // DEPLOY_TOKEN_DISTRIBUTOR
@@ -232,6 +235,7 @@ contract Deploy is Test {
     globals.setAddress(LibGlobals.GLOBAL_PARTY_BID_IMPL, address(partyBidImpl));
     console.log('  Globals - successfully set PartyBid crowdfund implementation address', address(partyBidImpl));
 
+
     // DEPLOY_PARTY_BUY_IMPLEMENTATION
     console.log('');
     console.log('### PartyBuy crowdfund implementation');
@@ -243,6 +247,7 @@ contract Deploy is Test {
     console.log('  Globals - setting PartyBuy crowdfund implementation address');
     globals.setAddress(LibGlobals.GLOBAL_PARTY_BUY_IMPL, address(partyBuyImpl));
     console.log('  Globals - successfully set PartyBuy crowdfund implementation address', address(partyBuyImpl));
+
 
     // DEPLOY_PARTY_COLLECTION_BUY_IMPLEMENTATION
     console.log('');
@@ -266,11 +271,12 @@ contract Deploy is Test {
 
 
     // TODO: TRANSFER_OWNERSHIP_TO_PARTYDAO_MULTISIG
-    console.log('');
-    console.log('### Transfer MultiSig');
-    console.log('  Transferring ownership to PartyDAO multi-sig', deployConstants.partyDaoMultisig);
-    globals.transferMultiSig(deployConstants.partyDaoMultisig);
-    console.log('  Transferred ownership to', deployConstants.partyDaoMultisig);
+    // console.log('');
+    // console.log('### Transfer MultiSig');
+    // console.log('  Transferring ownership to PartyDAO multi-sig', deployConstants.partyDaoMultisig);
+    // globals.transferMultiSig(deployConstants.partyDaoMultisig);
+    // console.log('  Transferred ownership to', deployConstants.partyDaoMultisig);
+
 
     // Output deployed addresses in JSON format
     console.log('');
