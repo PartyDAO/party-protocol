@@ -3,7 +3,10 @@ pragma solidity ^0.8;
 
 import 'forge-std/Test.sol';
 
-// import '../contracts/crowdfund/PartyCrowdfundFactory.sol';
+import '../contracts/crowdfund/PartyBid.sol';
+import '../contracts/crowdfund/PartyBuy.sol';
+import '../contracts/crowdfund/PartyCollectionBuy.sol';
+import '../contracts/crowdfund/PartyCrowdfundFactory.sol';
 import '../contracts/distribution/TokenDistributor.sol';
 import '../contracts/globals/Globals.sol';
 import '../contracts/globals/LibGlobals.sol';
@@ -84,12 +87,18 @@ library Strings {
 contract Deploy is Test {
 
   // constants
-  address constant DEPLOYER_ADDRESS = 0x8fDC86689f5F35F2b4d9f649c7bdc9C64f59e6bD; // TODO: we can set this, or we can use tx.origin
+  // dry-run deployer address
+  // address constant DEPLOYER_ADDRESS = 0x00a329c0648769A73afAc7F9381E08FB43dBEA72;
+  // real deployer address
+  address constant DEPLOYER_ADDRESS = 0x66512B61F855478bfba669e32719dE5fD7a57Fa4; // TODO: we can set this, or we can use tx.origin
 
   // temporary variables to store deployed contract addresses
-  // PartyCrowdfundFactory partyCrowdfundFactoryAddress;
   Globals globals;
   IZoraAuctionHouse zoraAuctionHouse;
+  PartyBid partyBidImpl;
+  PartyBuy partyBuyImpl;
+  PartyCollectionBuy partyCollectionBuyImpl;
+  PartyCrowdfundFactory partyCrowdfundFactory;
   Party partyImpl;
   PartyFactory partyFactory;
   ISeaportExchange seaport;
@@ -112,8 +121,11 @@ contract Deploy is Test {
 
     console.log('');
     console.log('  Globals - setting PartyDao Multi-sig address');
-    globals.setAddress(LibGlobals.GLOBAL_DAO_WALLET, deployConstants.partyDaoMultisig);
-    console.log('  Globals - successfully set PartyDao multi-sig address', deployConstants.partyDaoMultisig);
+    // globals.setAddress(LibGlobals.GLOBAL_DAO_WALLET, deployConstants.partyDaoMultisig);
+    // console.log('  Globals - successfully set PartyDao multi-sig address', deployConstants.partyDaoMultisig);
+    // development/testnet deploy
+    globals.setAddress(LibGlobals.GLOBAL_DAO_WALLET, DEPLOYER_ADDRESS);
+    console.log('  Globals - successfully set PartyDao multi-sig address', DEPLOYER_ADDRESS);
 
     console.log('');
     console.log('  Globals - setting DAO authority addresses', deployConstants.adminAddresses.length);
@@ -142,9 +154,6 @@ contract Deploy is Test {
     console.log('  Globals - successfully set seaport values:');
     console.logBytes32(deployConstants.osConduitKey);
     console.log(deployConstants.osZone);
-
-
-
 
 
     // DEPLOY_TOKEN_DISTRIBUTOR
@@ -214,20 +223,60 @@ contract Deploy is Test {
     console.log('  Globals - successfully set Party Factory address', address(partyFactory));
 
 
-    // TODO: DEPLOY_PARTY_CROWDFUND_FACTORY
-    // console.log('');
-    // console.log('### PartyCrowdfundFactory');
-    // console.log('  Deploying - PartyCrowdfundFactory');
-    // partyCrowdfundFactoryAddress = new PartyCrowdfundFactory();
-    // console.log('  Deployed - PartyCrowdfundFactory', address(partyCrowdfundFactoryAddress));
+    // DEPLOY_PARTY_BID_IMPLEMENTATION
+    console.log('');
+    console.log('### PartyBid crowdfund implementation');
+    console.log('  Deploying - PartyBid crowdfund implementation');
+    partyBidImpl = new PartyBid(globals);
+    console.log('  Deployed - PartyBid crowdfund implementation', address(partyBidImpl));
+
+    console.log('');
+    console.log('  Globals - setting PartyBid crowdfund implementation address');
+    globals.setAddress(LibGlobals.GLOBAL_PARTY_BID_IMPL, address(partyBidImpl));
+    console.log('  Globals - successfully set PartyBid crowdfund implementation address', address(partyBidImpl));
+
+
+    // DEPLOY_PARTY_BUY_IMPLEMENTATION
+    console.log('');
+    console.log('### PartyBuy crowdfund implementation');
+    console.log('  Deploying - PartyBuy crowdfund implementation');
+    partyBuyImpl = new PartyBuy(globals);
+    console.log('  Deployed - PartyBuy crowdfund implementation', address(partyBuyImpl));
+
+    console.log('');
+    console.log('  Globals - setting PartyBuy crowdfund implementation address');
+    globals.setAddress(LibGlobals.GLOBAL_PARTY_BUY_IMPL, address(partyBuyImpl));
+    console.log('  Globals - successfully set PartyBuy crowdfund implementation address', address(partyBuyImpl));
+
+
+    // DEPLOY_PARTY_COLLECTION_BUY_IMPLEMENTATION
+    console.log('');
+    console.log('### PartyCollectionBuy crowdfund implementation');
+    console.log('  Deploying - PartyCollectionBuy crowdfund implementation');
+    partyCollectionBuyImpl = new PartyCollectionBuy(globals);
+    console.log('  Deployed - PartyCollectionBuy crowdfund implementation', address(partyCollectionBuyImpl));
+
+    console.log('');
+    console.log('  Globals - setting PartyCollectionBuy crowdfund implementation address');
+    globals.setAddress(LibGlobals.GLOBAL_PARTY_COLLECTION_BUY_IMPL, address(partyCollectionBuyImpl));
+    console.log('  Globals - successfully set PartyCollectionBuy crowdfund implementation address', address(partyCollectionBuyImpl));
+
+
+    // DEPLOY_PARTY_CROWDFUND_FACTORY
+    console.log('');
+    console.log('### PartyCrowdfundFactory');
+    console.log('  Deploying - PartyCrowdfundFactory');
+    partyCrowdfundFactory = new PartyCrowdfundFactory(globals);
+    console.log('  Deployed - PartyCrowdfundFactory', address(partyCrowdfundFactory));
 
 
     // TODO: TRANSFER_OWNERSHIP_TO_PARTYDAO_MULTISIG
-    console.log('');
-    console.log('### Transfer MultiSig');
-    console.log('  Transferring ownership to PartyDAO multi-sig', deployConstants.partyDaoMultisig);
-    globals.transferMultiSig(deployConstants.partyDaoMultisig);
-    console.log('  Transferred ownership to', deployConstants.partyDaoMultisig);
+    // console.log('');
+    // console.log('### Transfer MultiSig');
+    // console.log('  Transferring ownership to PartyDAO multi-sig', deployConstants.partyDaoMultisig);
+    // globals.transferMultiSig(deployConstants.partyDaoMultisig);
+    // console.log('  Transferred ownership to', deployConstants.partyDaoMultisig);
+
 
     // Output deployed addresses in JSON format
     console.log('');
@@ -238,9 +287,12 @@ contract Deploy is Test {
     console.log(string.concat('  "seaportExchange": "', Strings.toHexString(address(seaport)) ,'",'));
     console.log(string.concat('  "proposalEngineImpl": "', Strings.toHexString(address(proposalEngineImpl)) ,'",'));
     console.log(string.concat('  "partyImpl": "', Strings.toHexString(address(partyImpl)) ,'",'));
-    console.log(string.concat('  "partyFactory": "', Strings.toHexString(address(partyFactory)) ,'"'));
+    console.log(string.concat('  "partyFactory": "', Strings.toHexString(address(partyFactory)) ,'",'));
+    console.log(string.concat('  "partyBidImpl": "', Strings.toHexString(address(partyBidImpl)) ,'",'));
+    console.log(string.concat('  "partyBuyImpl": "', Strings.toHexString(address(partyBuyImpl)) ,'",'));
+    console.log(string.concat('  "partyCollectionBuyImpl": "', Strings.toHexString(address(partyCollectionBuyImpl)) ,'",'));
+    console.log(string.concat('  "partyCrowdfundFactory": "', Strings.toHexString(address(partyCrowdfundFactory)) ,'"'));
     // NOTE: ensure trailing comma on second to last line
-    // TODO: console.log('  "partyCrowdfundFactoryAddress": ""');
     console.log('}');
 
     vm.stopBroadcast();
