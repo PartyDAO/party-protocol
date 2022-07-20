@@ -37,7 +37,7 @@ contract PartyGovernanceNFTTest is Test, TestUtils {
         eng = new DummySimpleProposalEngineImpl();
         globalsAdmin.setProposalEng(address(eng));
 
-        nftRenderer = new ERC721Renderer();
+        nftRenderer = new ERC721Renderer(globals);
         globalsAdmin.setGovernanceNftRendererAddress(address(nftRenderer));
 
         partyFactory = new PartyFactory(globals);
@@ -63,11 +63,13 @@ contract PartyGovernanceNFTTest is Test, TestUtils {
                 passThresholdBps: 5100,
                 totalVotingPower: 100,
                 preciousTokenAddress: address(toadz),
-                preciousTokenId: 1
+                preciousTokenId: 1,
+                feeBps: 0,
+                feeRecipient: payable(0)
             })
         );
 
-        console.log(party.name());
+        // console.log(party.name());
 
         console.log(party.tokenURI(1));
         

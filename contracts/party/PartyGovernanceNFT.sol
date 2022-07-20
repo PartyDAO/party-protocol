@@ -81,7 +81,7 @@ contract PartyGovernanceNFT is
     ///      compilation with the view modifier.
     function tokenURI(uint256) public override /* view */ returns (string memory)
     {
-        console2.log(name);
+        // console2.log(name);
 
         // An instance of IERC721Renderer
         _readOnlyDelegateCall(
