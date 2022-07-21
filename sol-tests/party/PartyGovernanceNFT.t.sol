@@ -7,7 +7,7 @@ import "forge-std/console2.sol";
 import "../../contracts/party/PartyFactory.sol";
 import "../../contracts/party/Party.sol";
 import "../../contracts/globals/Globals.sol";
-import "../../contracts/renderers/ERC721Renderer.sol";
+import "../../contracts/renderers/PartyGovernanceNFTRenderer.sol";
 import "../proposals/DummySimpleProposalEngineImpl.sol";
 import "../proposals/DummyProposalEngineImpl.sol";
 import "../TestUtils.sol";
@@ -18,7 +18,7 @@ import "../TestUtils.sol";
 contract PartyGovernanceNFTTest is Test, TestUtils {
     PartyFactory partyFactory;
     DummySimpleProposalEngineImpl eng;
-    ERC721Renderer nftRenderer;
+    PartyGovernanceNFTRenderer nftRenderer;
     PartyParticipant john;
     PartyParticipant danny;
     PartyParticipant steve;
@@ -37,7 +37,7 @@ contract PartyGovernanceNFTTest is Test, TestUtils {
         eng = new DummySimpleProposalEngineImpl();
         globalsAdmin.setProposalEng(address(eng));
 
-        nftRenderer = new ERC721Renderer(globals);
+        nftRenderer = new PartyGovernanceNFTRenderer(globals);
         globalsAdmin.setGovernanceNftRendererAddress(address(nftRenderer));
 
         partyFactory = new PartyFactory(globals);

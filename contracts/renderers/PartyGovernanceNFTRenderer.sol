@@ -78,8 +78,7 @@ library Strings {
     }
 }
 
-// TODO: rename this to be gov nft renderer
-contract ERC721Renderer is IERC721Renderer {
+contract PartyGovernanceNFTRenderer is IERC721Renderer {
     using LibSafeCast for uint256;
 
     IGlobals immutable _GLOBALS;
@@ -117,13 +116,8 @@ contract ERC721Renderer is IERC721Renderer {
 
     function renderVotingPowerAndDistributionShare(uint256 tokenId) internal view returns (string memory) {
         // TODO: require that votingPowerByTokenId[tokenId] exists?
-
         // TODO: Write decimal string printing
         uint256 votingPower = votingPowerByTokenId[tokenId]  / _governanceValues.totalVotingPower;
-
-        console2.log(votingPowerByTokenId[tokenId]);
-        console2.log(_governanceValues.totalVotingPower);
-        console2.log(votingPower);
 
         return string(
             abi.encodePacked(
