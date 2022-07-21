@@ -69,7 +69,8 @@ contract PartyGovernanceNFTTest is Test, TestUtils {
             })
         );
 
-        // console.log(party.name());
+        // Mint first governance NFT
+        partyAdmin.mintGovNft(party, address(john), 49, address(john));
 
         console.log(party.tokenURI(1));
         
