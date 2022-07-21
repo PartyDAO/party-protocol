@@ -213,6 +213,10 @@ contract DummyTokenDistributor is ITokenDistributor {
 contract TestablePartyGovernance is PartyGovernance {
     using LibSafeCast for uint256;
 
+    modifier onlyDelegateCall() override {
+        _;
+    }
+
     constructor(
         IGlobals globals,
         GovernanceOpts memory opts,

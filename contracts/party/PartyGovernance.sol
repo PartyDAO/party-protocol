@@ -26,6 +26,7 @@ abstract contract PartyGovernance is
     ERC721Receiver,
     ERC1155TokenReceiver,
     ProposalStorage,
+    Implementation,
     ReadOnlyDelegateCall
 {
     using LibERC20Compat for IERC20;
@@ -137,13 +138,13 @@ abstract contract PartyGovernance is
         uint256 weight
     );
 
+    event PartyInitialized(GovernanceOpts opts, IERC721[] preciousTokens, uint256[] preciousTokenIds);
     event ProposalPassed(uint256 indexed proposalId);
     event ProposalVetoed(uint256 indexed proposalId, address host);
     event ProposalExecuted(uint256 indexed proposalId, address executor, bytes nextProgressData);
     event ProposalCancelled(uint256 indexed proposalId);
     event DistributionCreated(uint256 distributionId, IERC20 token);
     event VotingPowerDelegated(address indexed owner, address indexed delegate);
-    event PreciousListSet(IERC721[] tokens, uint256[] tokenIds);
     event HostStatusTransferred(address oldHost, address newHost);
 
     error BadProposalStatusError(ProposalStatus status);
@@ -207,6 +208,7 @@ abstract contract PartyGovernance is
         _;
     }
 
+    // Only the party dao multisig can call.
     modifier onlyPartyDao() {
         {
             address partyDao = _GLOBALS.getAddress(LibGlobals.GLOBAL_DAO_WALLET);
@@ -217,6 +219,7 @@ abstract contract PartyGovernance is
         _;
     }
 
+    // Only the party dao multisig or a party host can call.
     modifier onlyPartyDaoOrHost() {
         address partyDao = _GLOBALS.getAddress(LibGlobals.GLOBAL_DAO_WALLET);
         if (msg.sender != partyDao && !isHost[msg.sender]) {
@@ -225,6 +228,7 @@ abstract contract PartyGovernance is
         _;
     }
 
+    // Only if emergencyExecuteDisabled is not true.
     modifier onlyWhenEmergencyExecuteAllowed() {
         if (emergencyExecuteDisabled) {
             revert OnlyWhenEmergencyActionsAllowedError();
@@ -262,6 +266,7 @@ abstract contract PartyGovernance is
         for (uint256 i=0; i < opts.hosts.length; ++i) {
             isHost[opts.hosts[i]] = true;
         }
+        emit PartyInitialized(opts, preciousTokens, preciousTokenIds);
     }
 
     /// @dev Forward all unknown read-only calls to the proposal execution engine.
@@ -347,14 +352,13 @@ abstract contract PartyGovernance is
 
     /// @notice Pledge your intrinsic voting power to a new delegate, removing it from
     ///         the old one (if any).
-    function delegateVotingPower(address delegate) external
-    {
+    function delegateVotingPower(address delegate) external onlyDelegateCall {
         _adjustVotingPower(msg.sender, 0, delegate);
         emit VotingPowerDelegated(msg.sender, delegate);
     }
 
     /// @notice Transfer party host status to another.
-    function abdicate(address newPartyHost) external onlyHost {
+    function abdicate(address newPartyHost) external onlyHost onlyDelegateCall {
         // cannot transfer host status to an existing host
         if(isHost[newPartyHost]) {
             revert InvalidNewHostError();
@@ -378,6 +382,7 @@ abstract contract PartyGovernance is
     )
         external
         onlyActiveMember
+        onlyDelegateCall
         returns (ITokenDistributor.DistributionInfo memory distInfo)
     {
         ITokenDistributor distributor = ITokenDistributor(
@@ -424,6 +429,7 @@ abstract contract PartyGovernance is
     function propose(Proposal memory proposal)
         external
         onlyActiveMember
+        onlyDelegateCall
         returns (uint256 proposalId)
     {
         proposalId = ++lastProposalId;
@@ -453,13 +459,18 @@ abstract contract PartyGovernance is
     ///      the executionDelay has passed, putting it in the Ready state.
     function accept(uint256 proposalId)
         public
+        onlyDelegateCall
         returns (uint256 totalVotes)
     {
         ProposalState storage info = _proposalStateByProposalId[proposalId];
         ProposalStateValues memory values = info.values;
 
+        // Can only vote in certain proposal statuses.
         {
             ProposalStatus status = _getProposalStatus(values);
+            // Allow voting even if the proposal is passed/ready so it can
+            // potentially reach 100% consensus, which unlocks special
+            // behaviors for certain proposal types.
             if (
                 status != ProposalStatus.Voting &&
                 status != ProposalStatus.Passed &&
@@ -495,7 +506,7 @@ abstract contract PartyGovernance is
     /// @dev The proposal will never be executable and cannot be voted on anymore.
     ///      A proposal that has been already executed at least once (in the InProgress status)
     ///      cannot be vetoed.
-    function veto(uint256 proposalId) external onlyHost {
+    function veto(uint256 proposalId) external onlyHost onlyDelegateCall {
         // Setting `votes` to -1 indicates a veto.
         ProposalState storage info = _proposalStateByProposalId[proposalId];
         ProposalStateValues memory values = info.values;
@@ -535,16 +546,22 @@ abstract contract PartyGovernance is
         external
         payable
         onlyActiveMember
+        onlyDelegateCall
     {
         ProposalState storage proposalState = _proposalStateByProposalId[proposalId];
         // Proposal details must remain the same from propose().
         _validateProposalHash(proposal, proposalState.hash);
         ProposalStateValues memory values = proposalState.values;
         ProposalStatus status = _getProposalStatus(values);
+        // The proposal must be executable or have already been executed but still
+        // has more steps to go.
         if (status != ProposalStatus.Ready && status != ProposalStatus.InProgress) {
             revert BadProposalStatusError(status);
         }
         if (status == ProposalStatus.Ready) {
+            // If the proposal has not been executed yet, make sure it hasn't
+            // expired. Note that proposals that have been executed
+            // (but still have more steps) ignore `maxExecutableTime`.
             if (proposal.maxExecutableTime < block.timestamp) {
                 revert ExecutionTimeExceededError(
                     proposal.maxExecutableTime,
@@ -560,15 +577,14 @@ abstract contract PartyGovernance is
         // Preemptively set the proposal to completed to avoid it being executed
         // again in a deeper call.
         proposalState.values.completedTime = uint40(block.timestamp);
-        bool completed =
-            _executeProposal(
-                proposalId,
-                proposal,
-                preciousTokens,
-                preciousTokenIds,
-                _getProposalFlags(values),
-                progressData
-            );
+        bool completed = _executeProposal(
+            proposalId,
+            proposal,
+            preciousTokens,
+            preciousTokenIds,
+            _getProposalFlags(values),
+            progressData
+        );
         if (!completed) {
             // Proposal did not complete.
             proposalState.values.completedTime = 0;
@@ -585,6 +601,7 @@ abstract contract PartyGovernance is
     function cancel(uint256 proposalId, Proposal calldata proposal)
         external
         onlyActiveMember
+        onlyDelegateCall
     {
         ProposalState storage proposalState = _proposalStateByProposalId[proposalId];
         // Proposal details must remain the same from propose().
@@ -646,6 +663,7 @@ abstract contract PartyGovernance is
         payable
         onlyPartyDao
         onlyWhenEmergencyExecuteAllowed
+        onlyDelegateCall
         returns (bool)
     {
         (bool success, ) = targetAddress.call{value: amountEth}(targetCallData);
@@ -654,7 +672,7 @@ abstract contract PartyGovernance is
 
     /// @notice Revoke the DAO's ability to call emergencyExecute().
     /// @dev Either the DAO or the party host can call this.
-    function disableEmergencyExecute() external onlyPartyDaoOrHost {
+    function disableEmergencyExecute() external onlyPartyDaoOrHost onlyDelegateCall {
         emergencyExecuteDisabled = true;
     }
 
@@ -823,6 +841,7 @@ abstract contract PartyGovernance is
         }
     }
 
+    // Append a new voting power snapshot, overwriting the last one if possible.
     function _insertVotingPowerSnapshot(address voter, VotingPowerSnapshot memory snap)
         private
     {
@@ -851,7 +870,6 @@ abstract contract PartyGovernance is
         }
     }
 
-    // TODO: accept storage vars?
     function _getProposalFlags(ProposalStateValues memory pv)
         private
         view
@@ -940,7 +958,6 @@ abstract contract PartyGovernance is
     {
         assert(preciousTokens.length == preciousTokenIds.length);
         preciousListHash = _hashPreciousList(preciousTokens, preciousTokenIds);
-        emit PreciousListSet(preciousTokens, preciousTokenIds);
     }
 
     function _isPreciousListCorrect(

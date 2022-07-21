@@ -7,6 +7,7 @@ import "./LibRawResult.sol";
 library LibSafeERC721 {
     using LibRawResult for bytes;
 
+    // Call IERC721.ownerOf() without reverting if the ID does not exist.
     function safeOwnerOf(IERC721 token, uint256 tokenId)
         internal
         view

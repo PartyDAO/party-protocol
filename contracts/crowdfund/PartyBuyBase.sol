@@ -49,7 +49,7 @@ abstract contract PartyBuyBase is Implementation, PartyCrowdfund {
         FixedGovernanceOpts governanceOpts;
     }
 
-    event Won(Party party, IERC721 token, uint256);
+    event Won(Party party, IERC721 token, uint256 tokenId, uint256 settledPrice);
 
     error MaximumPriceError(uint128 callValue, uint128 maximumPrice);
     error NoContributionsError();
@@ -94,6 +94,7 @@ abstract contract PartyBuyBase is Implementation, PartyCrowdfund {
         FixedGovernanceOpts memory governanceOpts
     )
         internal
+        onlyDelegateCall
         returns (Party party_)
     {
         IPartyFactory partyFactory = _getPartyFactory();
@@ -104,6 +105,7 @@ abstract contract PartyBuyBase is Implementation, PartyCrowdfund {
         if (lc != CrowdfundLifecycle.Active) {
             revert WrongLifecycleError(lc);
         }
+        uint128 settledPrice_;
         {
             uint128 maximumPrice_ = maximumPrice;
             if (maximumPrice_ != 0 && callValue > maximumPrice_) {
@@ -111,7 +113,7 @@ abstract contract PartyBuyBase is Implementation, PartyCrowdfund {
             }
             // If the purchase would be free, set the settled price to totalContributions
             // so everybody who contributed wins.
-            uint128 settledPrice_ = callValue == 0 ? totalContributions : callValue;
+            settledPrice_ = callValue == 0 ? totalContributions : callValue;
             if (settledPrice_ == 0) {
                 // Still zero, which means no contributions.
                 revert NoContributionsError();
@@ -119,21 +121,25 @@ abstract contract PartyBuyBase is Implementation, PartyCrowdfund {
             settledPrice = settledPrice_;
         }
         {
+            // Execute the call.
             (bool s, bytes memory r) = callTarget.call{ value: callValue }(callData);
             if (!s) {
                 r.rawRevert();
             }
         }
+        // Make sure we acquired the NFT we want.
         if (token.safeOwnerOf(tokenId) != address(this)) {
             revert FailedToBuyNFTError(token, tokenId);
         }
         emit Won(
             party_ = _createParty(partyFactory, governanceOpts, token, tokenId),
             token,
-            tokenId
+            tokenId,
+            settledPrice_
         );
     }
 
+    /// @inheritdoc PartyCrowdfund
     function getCrowdfundLifecycle() public override view returns (CrowdfundLifecycle) {
         // If there is a settled price then we tried to buy the NFT.
         if (settledPrice != 0) {

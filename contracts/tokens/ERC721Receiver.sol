@@ -6,6 +6,7 @@ import "../utils/EIP165.sol";
 
 contract ERC721Receiver is IERC721Receiver, EIP165 {
 
+    /// @inheritdoc IERC721Receiver
     function onERC721Received(address, address, uint256, bytes memory)
         public
         virtual
@@ -14,6 +15,7 @@ contract ERC721Receiver is IERC721Receiver, EIP165 {
         return IERC721Receiver.onERC721Received.selector;
     }
 
+    /// @inheritdoc EIP165
     function supportsInterface(bytes4 interfaceId)
         public
         pure
