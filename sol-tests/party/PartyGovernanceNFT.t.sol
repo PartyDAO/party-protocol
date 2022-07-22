@@ -72,9 +72,11 @@ contract PartyGovernanceNFTTest is Test, TestUtils {
         // Mint first governance NFT
         partyAdmin.mintGovNft(party, address(john), 49, address(john));
 
-        console.log(party.tokenURI(1));
-        
-        assertEq(true, true);
+        // Uncomment for testing rendering
+        // console.log(party.tokenURI(1));
+
+        string memory tokenURI = party.tokenURI(1);
+        assertTrue(bytes(tokenURI).length > 0);
     }
 
     function testTokenURIWithNotMintedTokenId() public {
