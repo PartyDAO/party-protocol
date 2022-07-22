@@ -111,27 +111,27 @@ contract PartyGovernanceNFTRenderer is IERC721Renderer {
             revert InvalidTokenIdError();
         }
 
-        string[9] memory parts;
+        string[9] memory svgParts;
 
-        parts[0] = '<svg xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMinYMin meet" viewBox="0 0 350 350"><style>text { fill: white; font-family: -apple-system, BlinkMacSystemFont, sans-serif; } .base { font-size: 11px; } .detail {font-size: 10px;}</style><rect width="100%" height="100%" fill="black" />';
+        svgParts[0] = '<svg xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMinYMin meet" viewBox="0 0 350 350"><style>text { fill: white; font-family: -apple-system, BlinkMacSystemFont, sans-serif; } .base { font-size: 11px; } .detail {font-size: 10px;}</style><rect width="100%" height="100%" fill="black" />';
 
-        parts[1] = textLine(name, 10, 20);
-        parts[3] = textLine(renderTokenId(tokenId), 300, 20);
+        svgParts[1] = textLine(name, 10, 20);
+        svgParts[3] = textLine(renderTokenId(tokenId), 300, 20);
 
-        parts[2] = textLine(symbol, 10, 60);
+        svgParts[2] = textLine(symbol, 10, 60);
 
-        parts[4] = textLine(renderVotingPowerAndDistributionShare(tokenId), 10, 80);
+        svgParts[4] = textLine(renderVotingPowerAndDistributionShare(tokenId), 10, 80);
 
-        parts[5] = textLine(renderOwnerAddress(tokenId), 10, 120);
-        parts[6] = textLine(renderDelegateAddress(tokenId), 10, 140);
+        svgParts[5] = textLine(renderOwnerAddress(tokenId), 10, 120);
+        svgParts[6] = textLine(renderDelegateAddress(tokenId), 10, 140);
 
-        parts[7] = '</svg>';
+        svgParts[7] = '</svg>';
 
         string memory output = string(
             abi.encodePacked(
-                parts[0], parts[1], parts[2],
-                parts[3], parts[4], parts[5],
-                parts[6], parts[7], parts[8]
+                svgParts[0], svgParts[1], svgParts[2],
+                svgParts[3], svgParts[4], svgParts[5],
+                svgParts[6], svgParts[7], svgParts[8]
             )
         );
 
