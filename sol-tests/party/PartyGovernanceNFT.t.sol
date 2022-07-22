@@ -76,4 +76,24 @@ contract PartyGovernanceNFTTest is Test, TestUtils {
         
         assertEq(true, true);
     }
+
+    function testTokenURIWithNotMintedTokenId() public {
+        (Party party, IERC721[] memory preciousTokens, uint256[] memory preciousTokenIds) = partyAdmin.createParty(
+            PartyAdmin.PartyCreationMinimalOptions({
+                host1: address(this),
+                host2: address(0),
+                passThresholdBps: 5100,
+                totalVotingPower: 100,
+                preciousTokenAddress: address(toadz),
+                preciousTokenId: 1,
+                feeBps: 0,
+                feeRecipient: payable(0)
+            })
+        );
+
+        vm.expectRevert(abi.encodeWithSelector(
+            PartyGovernanceNFTRenderer.InvalidTokenIdError.selector
+        ));
+        party.tokenURI(1);
+    }
 }
