@@ -56,7 +56,7 @@ contract PartyGovernanceNFTTest is Test, TestUtils {
 
     function testTokenURI() public {
         // Create party
-        (Party party, IERC721[] memory preciousTokens, uint256[] memory preciousTokenIds) = partyAdmin.createParty(
+        (Party party, ,) = partyAdmin.createParty(
             PartyAdmin.PartyCreationMinimalOptions({
                 host1: address(this),
                 host2: address(0),
@@ -78,7 +78,7 @@ contract PartyGovernanceNFTTest is Test, TestUtils {
     }
 
     function testTokenURIWithNotMintedTokenId() public {
-        (Party party, IERC721[] memory preciousTokens, uint256[] memory preciousTokenIds) = partyAdmin.createParty(
+        (Party party, ,) = partyAdmin.createParty(
             PartyAdmin.PartyCreationMinimalOptions({
                 host1: address(this),
                 host2: address(0),
