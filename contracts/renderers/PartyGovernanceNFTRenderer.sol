@@ -8,7 +8,6 @@ import "../utils/Base64.sol";
 import "./IERC721Renderer.sol";
 import "../globals/IGlobals.sol";
 import "../party/PartyGovernance.sol";
-import "forge-std/console2.sol";
 
 contract PartyGovernanceNFTRenderer is IERC721Renderer {
     using LibSafeCast for uint256;
