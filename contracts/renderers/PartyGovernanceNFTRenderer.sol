@@ -43,6 +43,14 @@ contract PartyGovernanceNFTRenderer is IERC721Renderer {
         _GLOBALS = globals;
     }
 
+    function tokenName(uint256 tokenId) internal view returns (string memory) {
+        return string(abi.encodePacked(
+            name,
+            " #",
+            Strings.toString(tokenId)
+        ));
+    }
+
     function renderTokenId(uint256 tokenId) internal view returns (string memory) {
         return string(abi.encodePacked('#', Strings.toString(tokenId)));
     }
@@ -131,9 +139,8 @@ contract PartyGovernanceNFTRenderer is IERC721Renderer {
         string memory json = Base64.encode(bytes(
             string(
                 abi.encodePacked(
-                    // TODO: Generate bag name
-                    '{"name": "Bag #',
-                    Strings.toString(tokenId),
+                    '{"name":"',
+                    tokenName(tokenId),
                     '", "description": "PartyBid Governance NFT", "image": "data:image/svg+xml;base64,',
                     Base64.encode(bytes(output)),
                     '"}'
