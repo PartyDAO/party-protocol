@@ -56,6 +56,7 @@ contract PartyGovernanceNFT is
         mintAuthority = mintAuthority_;
     }
 
+    /// @inheritdoc ERC721
     function ownerOf(uint256 tokenId)
         public
         view
@@ -65,6 +66,7 @@ contract PartyGovernanceNFT is
         return ERC721.ownerOf(tokenId);
     }
 
+    /// @inheritdoc EIP165
     function supportsInterface(bytes4 interfaceId)
         public
         pure
@@ -101,8 +103,9 @@ contract PartyGovernanceNFT is
         uint256 votingPower,
         address delegate
     )
-        onlyMinter
         external
+        onlyMinter
+        onlyDelegateCall
     {
         uint256 tokenId = ++tokenCount;
         votingPowerByTokenId[tokenId] = votingPower;
@@ -110,10 +113,13 @@ contract PartyGovernanceNFT is
         _mint(owner, tokenId);
     }
 
+    /// @inheritdoc ERC721
     function transferFrom(address owner, address to, uint256 tokenId)
         public
         override
+        onlyDelegateCall
     {
+        // Transfer voting along with token.
         _transferVotingPower(owner, to, votingPowerByTokenId[tokenId]);
         super.transferFrom(owner, to, tokenId);
     }
@@ -121,7 +127,9 @@ contract PartyGovernanceNFT is
     function safeTransferFrom(address owner, address to, uint256 tokenId)
         public
         override
+        onlyDelegateCall
     {
+        // Transfer voting along with token.
         _transferVotingPower(owner, to, votingPowerByTokenId[tokenId]);
         super.safeTransferFrom(owner, to, tokenId);
     }
@@ -129,7 +137,9 @@ contract PartyGovernanceNFT is
     function safeTransferFrom(address owner, address to, uint256 tokenId, bytes calldata data)
         public
         override
+        onlyDelegateCall
     {
+        // Transfer voting along with token.
         _transferVotingPower(owner, to, votingPowerByTokenId[tokenId]);
         super.safeTransferFrom(owner, to, tokenId, data);
     }

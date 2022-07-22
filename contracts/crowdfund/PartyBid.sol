@@ -126,7 +126,7 @@ contract PartyBid is Implementation, PartyCrowdfund {
     }
 
     /// @notice Place a bid on the NFT using the funds in this crowdfund.
-    function bid() external {
+    function bid() external onlyDelegateCall {
         {
             CrowdfundLifecycle lc = getCrowdfundLifecycle();
             if (lc != CrowdfundLifecycle.Active) {
@@ -162,6 +162,7 @@ contract PartyBid is Implementation, PartyCrowdfund {
     ///         if we lost. If we won, a governance party will also be created.
     function finalize(FixedGovernanceOpts memory governanceOpts)
         external
+        onlyDelegateCall
         returns (Party party_)
     {
         {

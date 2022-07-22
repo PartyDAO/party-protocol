@@ -19,11 +19,15 @@ contract Proxy {
     }
 
     fallback() external payable {
-        // TODO: in asm
-        (bool s, bytes memory r) = address(IMPL).delegatecall(msg.data);
-        if (!s) {
-            r.rawRevert();
+        address impl = address(IMPL);
+        assembly {
+            calldatacopy(0x00, 0x00, calldatasize())
+            let s := delegatecall(gas(), impl, 0x00, calldatasize(), 0x00, 0)
+            returndatacopy(0x00, 0x00, returndatasize())
+            if iszero(s) {
+                revert(0x00, returndatasize())
+            }
+            return(0x00, returndatasize())
         }
-        r.rawReturn();
     }
 }

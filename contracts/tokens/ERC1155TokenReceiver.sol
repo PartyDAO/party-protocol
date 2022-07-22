@@ -6,6 +6,7 @@ import "../utils/EIP165.sol";
 
 contract ERC1155TokenReceiver is EIP165, ERC1155TokenReceiverBase {
 
+    /// @inheritdoc EIP165
     function supportsInterface(bytes4 interfaceId)
         public
         override

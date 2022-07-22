@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: Apache-2.0
 pragma solidity ^0.8;
 
-// Performs read-only delegate calls.
 library LibRawResult {
+    // Revert with the data in `b`.
     function rawRevert(bytes memory b)
         internal
         pure
@@ -10,6 +10,7 @@ library LibRawResult {
         assembly { revert(add(b, 32), mload(b)) }
     }
 
+    // Return with the data in `b`.
     function rawReturn(bytes memory b)
         internal
         pure

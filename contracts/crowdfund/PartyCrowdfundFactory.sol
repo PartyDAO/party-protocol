@@ -12,9 +12,9 @@ import "./PartyCollectionBuy.sol";
 contract PartyCrowdfundFactory {
     using LibRawResult for bytes;
 
-    event PartyBuyCreated(PartyBuy.PartyBuyOptions opts);
-    event PartyBidCreated(PartyBid.PartyBidOptions opts);
-    event PartyCollectionBuyCreated(PartyCollectionBuy.PartyCollectionBuyOptions opts);
+    event PartyBuyCreated(PartyBuy crowdfund, PartyBuy.PartyBuyOptions opts);
+    event PartyBidCreated(PartyBid crowdfund, PartyBid.PartyBidOptions opts);
+    event PartyCollectionBuyCreated(PartyCollectionBuy crowdfund, PartyCollectionBuy.PartyCollectionBuyOptions opts);
 
     IGlobals private immutable _GLOBALS;
 
@@ -39,7 +39,7 @@ contract PartyCrowdfundFactory {
             _GLOBALS.getImplementation(LibGlobals.GLOBAL_PARTY_BUY_IMPL),
             abi.encodeCall(PartyBuy.initialize, (opts))
         )));
-        emit PartyBuyCreated(opts);
+        emit PartyBuyCreated(inst, opts);
     }
 
     function createPartyBid(
@@ -59,7 +59,7 @@ contract PartyCrowdfundFactory {
             _GLOBALS.getImplementation(LibGlobals.GLOBAL_PARTY_BID_IMPL),
             abi.encodeCall(PartyBid.initialize, (opts))
         )));
-        emit PartyBidCreated(opts);
+        emit PartyBidCreated(inst, opts);
     }
 
     function createPartyCollectionBuy(
@@ -79,7 +79,7 @@ contract PartyCrowdfundFactory {
             _GLOBALS.getImplementation(LibGlobals.GLOBAL_PARTY_COLLECTION_BUY_IMPL),
             abi.encodeCall(PartyCollectionBuy.initialize, (opts))
         )));
-        emit PartyCollectionBuyCreated(opts);
+        emit PartyCollectionBuyCreated(inst, opts);
     }
 
     function _prepareGate(

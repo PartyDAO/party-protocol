@@ -20,7 +20,7 @@ yarn test:ts
 # run only solidity tests
 yarn test:sol
 # run fork tests
-forge test --fork-url $YOUR_RPC_URL
+forge test -m testFork --fork-url $YOUR_RPC_URL --fork-block-number $LATEST_MAINNET_BLOCK
 
 # console.log something in foundry tests
 import console.sol from forge-std and run forge test -vv

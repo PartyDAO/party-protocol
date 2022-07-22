@@ -8,7 +8,7 @@ import "./PartyGovernanceNFT.sol";
 import "./PartyGovernance.sol";
 
 // Party implementation.
-contract Party is Implementation, PartyGovernanceNFT {
+contract Party is PartyGovernanceNFT {
     struct PartyOptions {
         PartyGovernance.GovernanceOpts governance;
         string name;
