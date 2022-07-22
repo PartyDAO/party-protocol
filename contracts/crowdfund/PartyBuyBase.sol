@@ -81,6 +81,7 @@ abstract contract PartyBuyBase is Implementation, PartyCrowdfund {
             governanceOpts: opts.governanceOpts
         }));
         expiry = uint40(opts.duration + block.timestamp);
+        maximumPrice = opts.maximumPrice;
     }
 
     // Execute arbitrary calldata to perform a buy, creating a party
