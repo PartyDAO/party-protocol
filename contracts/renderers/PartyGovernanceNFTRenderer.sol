@@ -51,27 +51,7 @@ contract PartyGovernanceNFTRenderer is IERC721Renderer {
         ));
     }
 
-    function renderTokenId(uint256 tokenId) internal view returns (string memory) {
-        return string(abi.encodePacked('#', Strings.toString(tokenId)));
-    }
-
-    function renderVotingPowerAndDistributionShare(uint256 tokenId) internal view returns (string memory) {
-        // TODO: require that votingPowerByTokenId[tokenId] exists?
-
-        // TODO: Write decimal string library
-        uint256 votingPower = votingPowerByTokenId[tokenId] * 1e2 / _governanceValues.totalVotingPower;
-
-        return string(
-            abi.encodePacked(
-                'Voting power: ', Strings.toString(votingPowerByTokenId[tokenId]),
-                ' (',
-                Strings.toString(votingPower),
-                '%)'
-            )
-        );
-    }
-
-    function renderTextLine(string memory text, uint256 xPos, uint256 yPos) internal view returns (string memory) {
+    function renderTextLine(string memory text, uint256 xPos, uint256 yPos) internal pure returns (string memory) {
         string[3] memory parts;
 
         parts[0] = string(abi.encodePacked(
@@ -92,6 +72,26 @@ contract PartyGovernanceNFTRenderer is IERC721Renderer {
             parts[1],
             parts[2]
         ));
+    }
+
+    function renderTokenId(uint256 tokenId) internal pure returns (string memory) {
+        return string(abi.encodePacked('#', Strings.toString(tokenId)));
+    }
+
+    function renderVotingPowerAndDistributionShare(uint256 tokenId) internal view returns (string memory) {
+        // TODO: require that votingPowerByTokenId[tokenId] exists?
+
+        // TODO: Write decimal string library
+        uint256 votingPower = votingPowerByTokenId[tokenId] * 1e2 / _governanceValues.totalVotingPower;
+
+        return string(
+            abi.encodePacked(
+                'Voting power: ', Strings.toString(votingPowerByTokenId[tokenId]),
+                ' (',
+                Strings.toString(votingPower),
+                '%)'
+            )
+        );
     }
 
     function renderOwnerAddress(uint256 tokenId) internal view returns (string memory) {
