@@ -44,15 +44,7 @@ contract PartyGovernanceNFTRenderer is IERC721Renderer {
         _GLOBALS = globals;
     }
 
-    function tokenName(uint256 tokenId) internal view returns (string memory) {
-        return string(abi.encodePacked(
-            name,
-            " #",
-            Strings.toString(tokenId)
-        ));
-    }
-
-    function renderTextLine(string memory text, uint256 xPos, uint256 yPos) internal pure returns (string memory) {
+    function textLine(string memory text, uint256 xPos, uint256 yPos) internal pure returns (string memory) {
         string[3] memory parts;
 
         parts[0] = string(abi.encodePacked(
@@ -72,6 +64,14 @@ contract PartyGovernanceNFTRenderer is IERC721Renderer {
             parts[0],
             parts[1],
             parts[2]
+        ));
+    }
+
+    function renderTokenName(uint256 tokenId) internal view returns (string memory) {
+        return string(abi.encodePacked(
+            name,
+            " #",
+            Strings.toString(tokenId)
         ));
     }
 
@@ -115,15 +115,15 @@ contract PartyGovernanceNFTRenderer is IERC721Renderer {
 
         parts[0] = '<svg xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMinYMin meet" viewBox="0 0 350 350"><style>text { fill: white; font-family: -apple-system, BlinkMacSystemFont, sans-serif; } .base { font-size: 11px; } .detail {font-size: 10px;}</style><rect width="100%" height="100%" fill="black" />';
 
-        parts[1] = renderTextLine(name, 10, 20);
-        parts[3] = renderTextLine(renderTokenId(tokenId), 300, 20);
+        parts[1] = textLine(name, 10, 20);
+        parts[3] = textLine(renderTokenId(tokenId), 300, 20);
 
-        parts[2] = renderTextLine(symbol, 10, 60);
+        parts[2] = textLine(symbol, 10, 60);
 
-        parts[4] = renderTextLine(renderVotingPowerAndDistributionShare(tokenId), 10, 80);
+        parts[4] = textLine(renderVotingPowerAndDistributionShare(tokenId), 10, 80);
 
-        parts[5] = renderTextLine(renderOwnerAddress(tokenId), 10, 120);
-        parts[6] = renderTextLine(renderDelegateAddress(tokenId), 10, 140);
+        parts[5] = textLine(renderOwnerAddress(tokenId), 10, 120);
+        parts[6] = textLine(renderDelegateAddress(tokenId), 10, 140);
 
         parts[7] = '</svg>';
 
@@ -139,7 +139,7 @@ contract PartyGovernanceNFTRenderer is IERC721Renderer {
             string(
                 abi.encodePacked(
                     '{"name":"',
-                    tokenName(tokenId),
+                    renderTokenName(tokenId),
                     '", "description": "PartyBid Governance NFT", "image": "data:image/svg+xml;base64,',
                     Base64.encode(bytes(output)),
                     '"}'
