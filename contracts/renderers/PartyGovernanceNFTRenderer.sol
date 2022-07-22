@@ -13,6 +13,8 @@ import "forge-std/console2.sol";
 contract PartyGovernanceNFTRenderer is IERC721Renderer {
     using LibSafeCast for uint256;
 
+    error InvalidTokenIdError();
+
     IGlobals immutable _GLOBALS;
 
     // The renderer is called via delegateCall, so we need to declare the storage layout.
@@ -79,8 +81,6 @@ contract PartyGovernanceNFTRenderer is IERC721Renderer {
     }
 
     function renderVotingPowerAndDistributionShare(uint256 tokenId) internal view returns (string memory) {
-        // TODO: require that votingPowerByTokenId[tokenId] exists?
-
         // TODO: Write decimal string library
         uint256 votingPower = votingPowerByTokenId[tokenId] * 1e2 / _governanceValues.totalVotingPower;
 
@@ -95,14 +95,12 @@ contract PartyGovernanceNFTRenderer is IERC721Renderer {
     }
 
     function renderOwnerAddress(uint256 tokenId) internal view returns (string memory) {
-        // TODO: require?
         address owner = _ownerOf[tokenId];
 
         return string(abi.encodePacked('Owner: ', Strings.toHexString(owner)));
     }
 
     function renderDelegateAddress(uint256 tokenId) internal view returns (string memory) {
-        // TODO: require?
         address owner = _ownerOf[tokenId];
         address delegatedAddress = delegationsByVoter[owner];
 
@@ -110,7 +108,9 @@ contract PartyGovernanceNFTRenderer is IERC721Renderer {
     }
  
     function tokenURI(uint256 tokenId) external view returns (string memory) {
-        // TODO: Require votingPowerByTokenId to exist for tokenId?
+        if(_ownerOf[tokenId] == address(0)) {
+            revert InvalidTokenIdError();
+        }
 
         string[9] memory parts;
 
