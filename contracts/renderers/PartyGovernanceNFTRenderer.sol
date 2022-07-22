@@ -112,7 +112,7 @@ contract PartyGovernanceNFTRenderer is IERC721Renderer {
     function tokenURI(uint256 tokenId) external view returns (string memory) {
         // TODO: Require votingPowerByTokenId to exist for tokenId?
 
-        string[17] memory parts;
+        string[9] memory parts;
 
         parts[0] = '<svg xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMinYMin meet" viewBox="0 0 350 350"><style>text { fill: white; font-family: -apple-system, BlinkMacSystemFont, sans-serif; } .base { font-size: 11px; } .detail {font-size: 10px;}</style><rect width="100%" height="100%" fill="black" />';
 
