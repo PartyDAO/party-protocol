@@ -14,6 +14,7 @@ import '../contracts/globals/Globals.sol';
 import '../contracts/globals/LibGlobals.sol';
 import '../contracts/party/Party.sol';
 import '../contracts/party/PartyFactory.sol';
+import '../contracts/renderers/PartyGovernanceNFTRenderer.sol';
 import '../contracts/proposals/ProposalExecutionEngine.sol';
 import './LibDeployConstants.sol';
 
@@ -37,6 +38,7 @@ contract Deploy is Test {
   ISeaportExchange seaport;
   ProposalExecutionEngine proposalEngineImpl;
   TokenDistributor tokenDistributor;
+  PartyGovernanceNFTRenderer partyGovernanceNFTRenderer;
 
   function run(LibDeployConstants.DeployConstants memory deployConstants) public {
     console.log('Starting deploy script.');
@@ -202,6 +204,17 @@ contract Deploy is Test {
     partyCrowdfundFactory = new PartyCrowdfundFactory(globals);
     console.log('  Deployed - PartyCrowdfundFactory', address(partyCrowdfundFactory));
 
+    // DEPLOY_PARTY_GOVERNANCE_NFT_RENDERER
+    console.log('');
+    console.log('### PartyGovernanceNFTRenderer');
+    console.log('  Deploying - PartyGovernanceNFTRenderer');
+    partyGovernanceNFTRenderer = new PartyGovernanceNFTRenderer(globals);
+    console.log('  Deployed - PartyGovernanceNFTRenderer', address(partyGovernanceNFTRenderer));
+
+    console.log('');
+    console.log('  Globals - setting PartyGovernanceNFTRenderer address');
+    globals.setAddress(LibGlobals.GLOBAL_GOVERNANCE_NFT_RENDER_IMPL, address(partyGovernanceNFTRenderer));
+    console.log('  Globals - successfully set PartyGovernanceNFTRenderer', address(partyGovernanceNFTRenderer));
 
     // TODO: TRANSFER_OWNERSHIP_TO_PARTYDAO_MULTISIG
     // console.log('');
