@@ -20,9 +20,6 @@ contract PartyGovernanceNFTTest is Test, TestUtils {
     DummySimpleProposalEngineImpl eng;
     PartyGovernanceNFTRenderer nftRenderer;
     PartyParticipant john;
-    PartyParticipant danny;
-    PartyParticipant steve;
-    PartyParticipant nicholas;
     DummyERC721 toadz;
     PartyAdmin partyAdmin;
     address globalDaoWalletAddress = address(420);
@@ -43,9 +40,6 @@ contract PartyGovernanceNFTTest is Test, TestUtils {
         partyFactory = new PartyFactory(globals);
 
         john = new PartyParticipant();
-        danny = new PartyParticipant();
-        steve = new PartyParticipant();
-        nicholas = new PartyParticipant();
         partyAdmin = new PartyAdmin(partyFactory);
 
         // Mint dummy NFT
