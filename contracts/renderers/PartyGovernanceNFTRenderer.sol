@@ -116,8 +116,9 @@ contract PartyGovernanceNFTRenderer is IERC721Renderer {
 
     function renderVotingPowerAndDistributionShare(uint256 tokenId) internal view returns (string memory) {
         // TODO: require that votingPowerByTokenId[tokenId] exists?
-        // TODO: Write decimal string printing
-        uint256 votingPower = votingPowerByTokenId[tokenId]  / _governanceValues.totalVotingPower;
+
+        // TODO: Write decimal string library
+        uint256 votingPower = votingPowerByTokenId[tokenId] * 1e2 / _governanceValues.totalVotingPower;
 
         return string(
             abi.encodePacked(
@@ -175,12 +176,14 @@ contract PartyGovernanceNFTRenderer is IERC721Renderer {
         parts[0] = '<svg xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMinYMin meet" viewBox="0 0 350 350"><style>text { fill: white; font-family: -apple-system, BlinkMacSystemFont, sans-serif; } .base { font-size: 11px; } .detail {font-size: 10px;}</style><rect width="100%" height="100%" fill="black" />';
 
         parts[1] = renderTextLine(name, 10, 20);
-        parts[2] = renderTextLine(renderTokenId(tokenId), 300, 20);
+        parts[3] = renderTextLine(renderTokenId(tokenId), 300, 20);
 
-        parts[3] = renderTextLine(renderVotingPowerAndDistributionShare(tokenId), 10, 60);
+        parts[2] = renderTextLine(symbol, 10, 60);
 
-        parts[5] = renderTextLine(renderOwnerAddress(tokenId), 10, 100);
-        parts[6] = renderTextLine(renderDelegateAddress(tokenId), 10, 120);
+        parts[4] = renderTextLine(renderVotingPowerAndDistributionShare(tokenId), 10, 80);
+
+        parts[5] = renderTextLine(renderOwnerAddress(tokenId), 10, 120);
+        parts[6] = renderTextLine(renderDelegateAddress(tokenId), 10, 140);
 
         parts[7] = '</svg>';
 
@@ -188,13 +191,14 @@ contract PartyGovernanceNFTRenderer is IERC721Renderer {
             abi.encodePacked(
                 parts[0], parts[1], parts[2],
                 parts[3], parts[4], parts[5],
-                parts[6], parts[7]
+                parts[6], parts[7], parts[8]
             )
         );
 
         string memory json = Base64.encode(bytes(
             string(
                 abi.encodePacked(
+                    // TODO: Generate bag name
                     '{"name": "Bag #',
                     Strings.toString(tokenId),
                     '", "description": "PartyBid Governance NFT", "image": "data:image/svg+xml;base64,',
