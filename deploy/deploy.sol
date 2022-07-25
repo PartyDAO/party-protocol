@@ -3,6 +3,8 @@ pragma solidity ^0.8;
 
 import 'forge-std/Test.sol';
 
+import "../contracts/utils/Strings.sol";
+
 import '../contracts/crowdfund/PartyBid.sol';
 import '../contracts/crowdfund/PartyBuy.sol';
 import '../contracts/crowdfund/PartyCollectionBuy.sol';
@@ -12,77 +14,9 @@ import '../contracts/globals/Globals.sol';
 import '../contracts/globals/LibGlobals.sol';
 import '../contracts/party/Party.sol';
 import '../contracts/party/PartyFactory.sol';
+import '../contracts/renderers/PartyGovernanceNFTRenderer.sol';
 import '../contracts/proposals/ProposalExecutionEngine.sol';
 import './LibDeployConstants.sol';
-
-// https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/utils/Strings.sol
-library Strings {
-    bytes16 private constant _HEX_SYMBOLS = "0123456789abcdef";
-    uint8 private constant _ADDRESS_LENGTH = 20;
-
-    /**
-     * @dev Converts a `uint256` to its ASCII `string` decimal representation.
-     */
-    function toString(uint256 value) internal pure returns (string memory) {
-        // Inspired by OraclizeAPI's implementation - MIT licence
-        // https://github.com/oraclize/ethereum-api/blob/b42146b063c7d6ee1358846c198246239e9360e8/oraclizeAPI_0.4.25.sol
-
-        if (value == 0) {
-            return "0";
-        }
-        uint256 temp = value;
-        uint256 digits;
-        while (temp != 0) {
-            digits++;
-            temp /= 10;
-        }
-        bytes memory buffer = new bytes(digits);
-        while (value != 0) {
-            digits -= 1;
-            buffer[digits] = bytes1(uint8(48 + uint256(value % 10)));
-            value /= 10;
-        }
-        return string(buffer);
-    }
-
-    /**
-     * @dev Converts a `uint256` to its ASCII `string` hexadecimal representation.
-     */
-    function toHexString(uint256 value) internal pure returns (string memory) {
-        if (value == 0) {
-            return "0x00";
-        }
-        uint256 temp = value;
-        uint256 length = 0;
-        while (temp != 0) {
-            length++;
-            temp >>= 8;
-        }
-        return toHexString(value, length);
-    }
-
-    /**
-     * @dev Converts a `uint256` to its ASCII `string` hexadecimal representation with fixed length.
-     */
-    function toHexString(uint256 value, uint256 length) internal pure returns (string memory) {
-        bytes memory buffer = new bytes(2 * length + 2);
-        buffer[0] = "0";
-        buffer[1] = "x";
-        for (uint256 i = 2 * length + 1; i > 1; --i) {
-            buffer[i] = _HEX_SYMBOLS[value & 0xf];
-            value >>= 4;
-        }
-        require(value == 0, "Strings: hex length insufficient");
-        return string(buffer);
-    }
-
-    /**
-     * @dev Converts an `address` with fixed length of 20 bytes to its not checksummed ASCII `string` hexadecimal representation.
-     */
-    function toHexString(address addr) internal pure returns (string memory) {
-        return toHexString(uint256(uint160(addr)), _ADDRESS_LENGTH);
-    }
-}
 
 contract Deploy is Test {
 
@@ -104,6 +38,7 @@ contract Deploy is Test {
   ISeaportExchange seaport;
   ProposalExecutionEngine proposalEngineImpl;
   TokenDistributor tokenDistributor;
+  PartyGovernanceNFTRenderer partyGovernanceNFTRenderer;
 
   function run(LibDeployConstants.DeployConstants memory deployConstants) public {
     console.log('Starting deploy script.');
@@ -269,6 +204,17 @@ contract Deploy is Test {
     partyCrowdfundFactory = new PartyCrowdfundFactory(globals);
     console.log('  Deployed - PartyCrowdfundFactory', address(partyCrowdfundFactory));
 
+    // DEPLOY_PARTY_GOVERNANCE_NFT_RENDERER
+    console.log('');
+    console.log('### PartyGovernanceNFTRenderer');
+    console.log('  Deploying - PartyGovernanceNFTRenderer');
+    partyGovernanceNFTRenderer = new PartyGovernanceNFTRenderer(globals);
+    console.log('  Deployed - PartyGovernanceNFTRenderer', address(partyGovernanceNFTRenderer));
+
+    console.log('');
+    console.log('  Globals - setting PartyGovernanceNFTRenderer address');
+    globals.setAddress(LibGlobals.GLOBAL_GOVERNANCE_NFT_RENDER_IMPL, address(partyGovernanceNFTRenderer));
+    console.log('  Globals - successfully set PartyGovernanceNFTRenderer', address(partyGovernanceNFTRenderer));
 
     // TODO: TRANSFER_OWNERSHIP_TO_PARTYDAO_MULTISIG
     // console.log('');
@@ -291,7 +237,8 @@ contract Deploy is Test {
     console.log(string.concat('  "partyBidImpl": "', Strings.toHexString(address(partyBidImpl)) ,'",'));
     console.log(string.concat('  "partyBuyImpl": "', Strings.toHexString(address(partyBuyImpl)) ,'",'));
     console.log(string.concat('  "partyCollectionBuyImpl": "', Strings.toHexString(address(partyCollectionBuyImpl)) ,'",'));
-    console.log(string.concat('  "partyCrowdfundFactory": "', Strings.toHexString(address(partyCrowdfundFactory)) ,'"'));
+    console.log(string.concat('  "partyCrowdfundFactory": "', Strings.toHexString(address(partyCrowdfundFactory)) ,'",'));
+    console.log(string.concat('  "partyGovernanceNFTRenderer": "', Strings.toHexString(address(partyGovernanceNFTRenderer)) ,'"'));
     // NOTE: ensure trailing comma on second to last line
     console.log('}');
 
