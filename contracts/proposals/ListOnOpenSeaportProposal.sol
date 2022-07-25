@@ -283,7 +283,7 @@ abstract contract ListOnOpenSeaportProposal is ZoraHelpers {
             orderParams.zoneHash,
             orderParams.salt,
             orderParams.conduitKey,
-            0
+            orderParams.totalOriginalConsiderationItems
         );
         emit OpenSeaportOrderListed(
             orderParams,
