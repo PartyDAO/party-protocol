@@ -17,7 +17,7 @@ contract PartyGovernanceNFTRenderer is IERC721Renderer {
     IGlobals immutable _GLOBALS;
 
     // The renderer is called via delegateCall, so we need to declare the storage layout.
-    // Run `yarn layout` to see generate the current layout.
+    // Run `yarn layout` to generate the current layout.
     bool emergencyExecuteDisabled;
     uint16 feeBps;
     address payable feeRecipient;

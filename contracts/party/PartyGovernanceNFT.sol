@@ -7,8 +7,6 @@ import "../globals/IGlobals.sol";
 import "../globals/IGlobals.sol";
 import "../tokens/IERC721.sol";
 import "../vendor/solmate/ERC721.sol";
-
-import "forge-std/console2.sol";
 import "./PartyGovernance.sol";
 
 /// @notice ERC721 functionality built on top of PartyGovernance.
