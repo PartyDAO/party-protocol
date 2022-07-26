@@ -18,15 +18,15 @@ After a crowdfund has acquired its NFTs, they transfer it to a governance `Party
 
 The main contracts involved in this phase are:
 
-- [`PartyFactory`](./PartyFactory.md) ([code](../contracts/party/PartyFactory.sol))
+- `PartyFactory` ([code](../contracts/party/PartyFactory.sol))
     - Creates new proxified `Party` instances.
-- [`Party`](./Party.md) ([code](../contracts/party/Party.sol))
+- `Party` ([code](../contracts/party/Party.sol))
     - The governance contract that also custodies the precious NFTs. This is also the voting card 721 contract.
-- [`ProposalExecutionEngine`](./ProposalExecutionEngine.md) ([code](../contracts/proposals/ProposalExecutionEngine.sol))
+- `ProposalExecutionEngine` ([code](../contracts/proposals/ProposalExecutionEngine.sol))
     - An upgradable contract for executing each proposal type from the context of the `Party`.
-- [`TokenDistributor`](./TokenDistributor.md) ([code](../contracts/distributions/TokenDistributor.sol))
+- `TokenDistributor` ([code](../contracts/distributions/TokenDistributor.sol))
     - Distributes deposited ETH, ERC20, and ERC1155 tokens to members of parties.
-- [`Globals`](../Globals.md) ([code](../contracts/globals/Globals.sol))
+- `Globals` ([code](../contracts/globals/Globals.sol))
     - A contract that defines global configuration values referenced by other contracts across the entire protocol.
 
 ![contracts](./governance-contracts.png)
