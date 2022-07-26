@@ -50,9 +50,8 @@ The sequence of events is:
     )
     ```
     - `authority` will be the address that can mint tokens on the created Party. In typical flow, the crowdfund contract will set this to itself.
-    - `opts` are immutable [configuration parameters](#governance-options) for the Party, defining the Party name and symbol (the Party instance will also be an ERC721) and governance parameters.
-    - `preciousTokens` and `preciousTokenIds` together define the NFTs the Party will custody and enforce extra restrictions on so they are not easily transferred out of the Party.
-    - Both `opts` and the precious tokens list cannot be modified after party creation.
+    - `opts` are (mostly) immutable [configuration parameters](#governance-options) for the Party, defining the Party name and symbol (the Party instance will also be an ERC721) and governance parameters.
+    - `preciousTokens` and `preciousTokenIds` together define the NFTs the Party will custody and enforce extra restrictions on so they are not easily transferred out of the Party. This list cannot be changed after Party creation.
 2. Transfer assets to the created Party, which will typically be the precious NFTs.
 3. As the `authority`, mint voting cards to members of the party by calling `PartyFactory.mint()`.
     - In typical flow, the crowdfund contract will call this when contributors burn their contribution NFTs.
@@ -72,6 +71,8 @@ Parties are initialized with fixed governance options which will (mostly) never 
 - `feeRecipient`: The address that can claim distribution fees for this Party.
 
 ## Voting Power
+
+Voting power within the governance Party is represented and held by "voting cards," which are NFTs (721s) minted for each member the Party. Each voting card has a distinct voting power/weight associated with it. The total (undelegated) voting power a member has is the sum of all the voting power in all the voting cards they possess.
 
 TODO:
 - Voting cards
