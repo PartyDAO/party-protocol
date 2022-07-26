@@ -54,6 +54,7 @@ TODO:
 TODO:
 - What they are and how to trigger one
 - How they're created (call sequence)
+    - Off-chain storage
 - How to claim
 - Fees
 - Emergency backdoors
@@ -62,15 +63,20 @@ TODO:
 
 TODO:
 - Proposal properties
-- Stages of a proposal
+    - Off-chain storage
+- Stages/status of a proposal
 - Proposing
+    - Required states
 - Voting
-    - Unanimous consensus
+    - Required states
+    - Unanimous consensus (+ definition)
 - Vetos
 - Execution
+    - minExecutableTime
     - Multi-step proposals, progress data
     - Replay protection
 - Cancelling
+    - Rationale
 
 ## The ProposalExecutionEngine
 
@@ -83,11 +89,40 @@ TODO:
 ## Proposal Types
 
 ### ListOnOpenSea Proposal Type
+
+TODO:
+- Proposal properties
+- Steps
+- Behavior when unanimous
+
 ### ListOnZora Proposal Type
+
+TODO:
+- Proposal properties
+- Steps
+
 ### Fractionalize Proposal Type
+
+...
+
 ### ArbitraryCalls Proposal Type
+
+TODO:
+- Proposal/Call properties
+- Restricted operations
+- Behavior when unanimous
+- Attaching ETH
+
 ### UpgradeProposalEngineImpl Proposal Type
 
+TODO:
+- Proposal properties (none)
+- Use of Global
+- Security concerns
+    - Bricking parties
+
 ## Emergency Backdoors
+
+TODO:
 - Rationale
 - Revoking
