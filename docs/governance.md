@@ -86,7 +86,7 @@ The effective voting power of a user is the sum of all undelegated (or self-dele
 The effective voting power of a user at a given time can be found by calling `Party.getVotingPowerAt()`.
 
 ### Voting Power Snapshots
-The voting power applied when a user votes on a proposal is their effective voting power at the time the proposal was proposed. This prevents people from acquiring large amounts of voting cards to influence the outcome of an active proposal. The `Party` contract creates records of a user's total delegated (to them) and intrinsic voting power each time any of the following occurs:
+The voting power applied when a user votes on a proposal is their effective voting power at the time the proposal was proposed. This prevents people from acquiring large amounts of voting cards to influence the outcome of an active proposal. The `Party` contract appends a record of a user's total delegated (to them) and intrinsic voting power each time any of the following occurs:
 
 - A user receives a voting card (transfer or minting).
 - A user transfers their voting card to another user.
