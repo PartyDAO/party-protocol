@@ -52,6 +52,7 @@ The sequence of events is:
     - `authority` will be the address that can mint tokens on the created Party (indirectly through `PartyFactory.mint()`). In typical flow, the crowdfund contract will set this to itself.
     - `opts` are (mostly) immutable [configuration parameters](#governance-options) for the Party, defining the Party name and symbol (the Party instance will also be an ERC721) and governance parameters.
     - `preciousTokens` and `preciousTokenIds` together define the NFTs the Party will custody and enforce extra restrictions on so they are not easily transferred out of the Party. This list cannot be changed after Party creation. Note that this list is never stored on-chain (only the hash is) and will need to be passed into the `execute()` call when executing proposals.
+    - This will deploy a new `Proxy` instance with an implementation pointing to the Party contract defined by in the `Globals` contract by the key `GLOBAL_PARTY_IMPL`.
 2. Transfer assets to the created Party, which will typically be the precious NFTs.
 3. As the `authority`, mint voting cards to members of the party by calling `PartyFactory.mint()`.
     - In typical flow, the crowdfund contract will call this when contributors burn their contribution NFTs.
