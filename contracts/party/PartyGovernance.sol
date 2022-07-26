@@ -372,6 +372,19 @@ abstract contract PartyGovernance is
         emit VotingPowerDelegated(msg.sender, delegate);
     }
 
+    function getCurrentDelegates(address[] members)
+        external
+        view
+        returns (address[] delegates)
+    {
+        for (uint256 i = 0; i < members.length;) {
+            delegates.push(delegationsByVoter[members[i]]);
+            unchecked {
+                ++i;
+            }
+        }
+    }
+
     /// @notice Transfer party host status to another.
     function abdicate(address newPartyHost) external onlyHost onlyDelegateCall {
         // cannot transfer host status to an existing host
