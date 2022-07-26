@@ -155,6 +155,11 @@ contract PartyGovernanceNFT is
         returns (NftInfo[] memory nftInfos)
     {
         // ensure startIndex and endIndex are in bounds
+        if (endIndex < startIndex) {
+            uint256 temp = endIndex;
+            endIndex = startIndex;
+            startIndex = temp;
+        }
         if (startIndex == 0) {
             startIndex = 1;
         }
