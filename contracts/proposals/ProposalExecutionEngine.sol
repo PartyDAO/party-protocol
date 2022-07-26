@@ -152,7 +152,7 @@ contract ProposalExecutionEngine is
 
         // Execute the proposal.
         ProposalType pt;
-        (pt, params.proposalData) = _getProposalType(params.proposalData);
+        (pt, params.proposalData) = _extractProposalType(params.proposalData);
         nextProgressData = _execute(pt, params);
 
         // If progress data is empty, the propsal is complete.
@@ -209,7 +209,7 @@ contract ProposalExecutionEngine is
     // Destructively pops off the first 4 bytes of proposalData to determine
     // the type. This modifies `proposalData` and returns the updated
     // pointer to it.
-    function _getProposalType(bytes memory proposalData)
+    function _extractProposalType(bytes memory proposalData)
         private
         pure
         returns (ProposalType proposalType, bytes memory offsetProposalData)

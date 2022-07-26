@@ -51,7 +51,7 @@ The sequence of events is:
     ```
     - `authority` will be the address that can mint tokens on the created Party (indirectly through `PartyFactory.mint()`). In typical flow, the crowdfund contract will set this to itself.
     - `opts` are (mostly) immutable [configuration parameters](#governance-options) for the Party, defining the Party name and symbol (the Party instance will also be an ERC721) and governance parameters.
-    - `preciousTokens` and `preciousTokenIds` together define the NFTs the Party will custody and enforce extra restrictions on so they are not easily transferred out of the Party. This list cannot be changed after Party creation.
+    - `preciousTokens` and `preciousTokenIds` together define the NFTs the Party will custody and enforce extra restrictions on so they are not easily transferred out of the Party. This list cannot be changed after Party creation. Note that this list is never stored on-chain (only the hash is) and will need to be passed into the `execute()` call when executing proposals.
 2. Transfer assets to the created Party, which will typically be the precious NFTs.
 3. As the `authority`, mint voting cards to members of the party by calling `PartyFactory.mint()`.
     - In typical flow, the crowdfund contract will call this when contributors burn their contribution NFTs.
@@ -65,7 +65,7 @@ Parties are initialized with fixed governance options which will (mostly) never 
 - `hosts`: Array of initial party hosts. This is the only configuration that can change because hosts can transfer their privilege to other accounts.
 - `voteDuration`: Duration in seconds a proposal can be voted on after it has been proposed.
 - `executionDelay`: Duration in seconds a proposal must wait after being passed before it can be executed. This gives hosts time to veto malicious proposals that have passed.
-- `passThresholdBps`: Minimum ratio of votes vs total voting power supply to consider a proposal passed. This is expressed in bps, i.e., 1e4 = 100%.
+- `passThresholdBps`: Minimum ratio of votes vs `totalVotingPower` supply to consider a proposal passed. This is expressed in bps, i.e., 1e4 = 100%.
 - `totalVotingPower`: Total voting power of the Party. This should be the sum of weights of all (possible) voting cards given to members. Note that nowhere is this assumption enforced, as there may be use-cases for minting more than 100% of voting power, but the logic in crowdfund contracts cannot mint more than `totalVotingPower`.
 - `feeBps`: The fee taken out of this Party's [distributions](#distributions) to reserve for `feeRecipient` to claim. Typically this will be set to an address controlled by PartyDAO.
 - `feeRecipient`: The address that can claim distribution fees for this Party.
@@ -130,26 +130,41 @@ The stages of a proposal are defined in `PartyGovernance.ProposalStatus`:
 
 ### Making Proposals
 
+A proposer should choose an appropriate `maxExecutableTime` and `minCancelTime`. The `proposalData` should be prefixed (like a function call) with a 4-byte `IProposalExecutionEngine.ProposalType` value followed by the ABI-encoded data specific to that proposal type (see [Proposal Types](#proposal-types)), e.g., `abi.encodePacked(uint32(IProposalExecutionEngine.ProposalType.ListOnZoraProposal), abi.encode(ZoraProposalData(...)))`.
+
+Once ready, an active member or delegate (someone with nonzero effective voting power) can call `propose()` with the proposal properties, which will assign a unique, nonzero proposal ID and put the proposal in the `Voting` status. Proposing a proposal will also automatically cast the proposer's votes for it.
 
 ### Voting on Proposals
 
+Any proposal in the `Voting`, `Passed`, or `Ready` status can be voted on by members and delegates via `Party.accept()`. The `accept()` function casts the caller's *total* effective voting power at the time the proposal was proposed for it. Once the total voting power cast for the proposal meets or exceeds the `passThresholdBps` ratio, given by `total cast voting power / totalVotingPower`, the proposal will enter the `Passed` state.
 
-TODO:
-- Proposal properties
-    - Off-chain storage
-- Stages/status of a proposal
-- Proposing
-    - Required states
-- Voting
-    - Required states
-    - Unanimous consensus (+ definition)
-- Vetos
-- Execution
-    - minExecutableTime
-    - Multi-step proposals, progress data
-    - Replay protection
-- Cancelling
-    - Rationale
+Members can continue to vote even beyond the `Passed` state in order to achieve a unanimous vote, which unlocks specific behavior for certain proposal types. A unanimous vote condition is met when 99.99% of `totalVotingPower` has been cast for a proposal. We do not check for 100% because of possible rounding errors during minting from crowdfunds.
+
+### Vetoes
+
+During the `Voting`, `Passed`, and `Ready` phases of a proposal, a Party host may unilaterally veto that proposal by calling `Party.veto()`, immediately putting the proposal in the `Defeated` state. At that point, no further action can be taken on the proposal.
+
+The rationale behind the veto power that if voting power in a Party becomes so consolidated that a bad actor can pass a malicious proposal, the party host can act as the final backstop. On the other hand, a party host can also stall a Party by vetoing every legitimate proposal, so Parties need to be extremely careful with who they agree to be hosts.
+
+### Executing Proposals
+
+After a proposal has achieved enough votes to pass and the `executionDelay` window has expired, the proposal can be executed by any member with currently nonzero effective voting power. This occurs via the `Party.execute()` function.
+
+The call to `execute()` will fail if:
+- The proposal has already been executed and completed.
+- The proposal has not been executed but its `maxExecutableTime` has passed.
+- The proposal's execution reverts.
+- There exists another proposal that has been executed but did not complete (more steps to go).
+
+#### Multi-step Proposals
+Some proposal types require multiple steps and transactions to be completed. An example is the `ListOnZoraProposal` type. This proposal will first list an NFT on Zora as an auction then if the auction does not receive any bids after some amount of time or if the auction completes with a winning bid, the auction will need to be cancelled or finalized by the Party. To accomplish this, the proposal must be executed multiple times until it is considered complete and can enter the `Complete` status.
+
+Usually further steps in a multi-step proposal requires some state to be remembered between steps. For example, the `ListOnZoraProposal` type will need to recall the ID of the Zora auction it created so it can cancel or finalize it as a final step. Rather than storing this (potentially complex) data on-chain, executing a proposal will emit a `ProposalExecuted` event with an arbitrary bytes `nextProgressData` parameter, which should be passed into the next call to `execute()` to advance the proposal. The `Party` will only store the hash of the `nextProgressData` and confirm it matches the hash of what is passed in. This data blob holds any encoded state necessary to progress the proposal to the next step.
+
+### Cancelling Proposals
+There is a risk of multi-step proposals never being able to complete because they may continue to revert. Since no other proposals can be executed if another proposal is `InProgress`, a Party can become permanently stuck, unable to execute any other proposal. To prevent this scenario, proposals have a `minCancelTime` property, after which an `InProgress` proposal can be forced into a `Complete` state. There is also a global (defined in the `Globals` contract) configuration (`GLOBAL_PROPOSAL_MAX_CANCEL_DURATION`) which limits the `minCancelTime` to a value not too far in the future.
+
+Cancelling a proposal should be considered a last resort, as it can potentially leave the Party in a broken state (e.g., assets are stuck in another protocol) because the proposal was not able to properly clean up after itself.
 
 ## The ProposalExecutionEngine
 
