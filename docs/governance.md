@@ -49,7 +49,7 @@ The sequence of events is:
         uint256[] memory preciousTokenIds
     )
     ```
-    - `authority` will be the address that can mint tokens on the created Party. In typical flow, the crowdfund contract will set this to itself.
+    - `authority` will be the address that can mint tokens on the created Party (indirectly through `PartyFactory.mint()`). In typical flow, the crowdfund contract will set this to itself.
     - `opts` are (mostly) immutable [configuration parameters](#governance-options) for the Party, defining the Party name and symbol (the Party instance will also be an ERC721) and governance parameters.
     - `preciousTokens` and `preciousTokenIds` together define the NFTs the Party will custody and enforce extra restrictions on so they are not easily transferred out of the Party. This list cannot be changed after Party creation.
 2. Transfer assets to the created Party, which will typically be the precious NFTs.
@@ -72,16 +72,17 @@ Parties are initialized with fixed governance options which will (mostly) never 
 
 ## Voting Power
 
-Voting power within the governance Party is represented and held by "voting cards," which are NFTs (721s) minted for each member the Party. Each voting card has a distinct voting power/weight associated with it. The total (undelegated) voting power a member has is the sum of all the voting power in all the voting cards they possess.
+### Voting Cards
+Voting power within the governance Party is represented and held by "voting cards," which are NFTs (721s) minted for each member of the Party. Each voting card has a distinct voting power/weight associated with it. The total (intrinsic) voting power a member has is the sum of all the voting power in all the voting cards they possess at a given block.
 
-TODO:
-- Voting cards
-    - Minting
-    - Weight
-    - NFT
-- Delegation
-- Effective voting power calculation
-- Voting power snapshots
+### Delegation
+Owners of voting cards can call `Party.delegateVotingPower()` to delegate their intrinsic total voting power (at the time of the call) to another account. The minter of the voting card can also set an initial delegate for the owner, meaning any voting cards held by the owner will be delegated by default. The chosen delegate does not need to own a voting card. Delegating voting power strips the owner of their entire voting power until they redelegate to themselves, meaning they will not be able to vote on proposals created afterwards. Voting card owners can recover their voting power for future proposals if they delegate to themselves or to the zero address.
+
+### Calculating Effective Voting Power
+The effective voting power of a user is the sum of all undelegated (or self-delegated) voting power from their voting cards plus the sum of all voting power delegated to them by other users.
+
+### Voting Power Snapshots
+TODO...
 
 ## Distributions
 
