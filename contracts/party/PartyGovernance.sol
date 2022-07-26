@@ -310,14 +310,15 @@ abstract contract PartyGovernance is
     }
 
     /// @notice Get the total voting power of each voter in `voters` at a timestamp.
-    function getVotingPowersAt(address[] voters, uint40 timestamp)
+    function getVotingPowersAt(address[] memory voters, uint40 timestamp)
         public
         view
-        returns (uint96[] votingPowers)
+        returns (uint96[] memory votingPowers)
     {
+        votingPowers = new uint96[](voters.length);
         // todo: should we turn an array of voting powers or an array of { uint256 address; uint96 votingPower; }
         for (uint256 i = 0; i < voters.length;) {
-            voters.push(getVotingPowerAt(voters[i], timestamp));
+            votingPowers[i] = getVotingPowerAt(voters[i], timestamp);
             unchecked {
                 ++i;
             }
@@ -372,13 +373,14 @@ abstract contract PartyGovernance is
         emit VotingPowerDelegated(msg.sender, delegate);
     }
 
-    function getCurrentDelegates(address[] members)
+    function getCurrentDelegates(address[] memory members)
         external
         view
-        returns (address[] delegates)
+        returns (address[] memory delegates)
     {
+        delegates = new address[](members.length);
         for (uint256 i = 0; i < members.length;) {
-            delegates.push(delegationsByVoter[members[i]]);
+            delegates[i] = delegationsByVoter[members[i]];
             unchecked {
                 ++i;
             }

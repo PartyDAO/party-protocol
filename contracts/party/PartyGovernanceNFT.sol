@@ -19,9 +19,9 @@ contract PartyGovernanceNFT is
     error OnlyMintAuthorityError(address actual, address expected);
 
     struct NftInfo {
-        uint256 nftId;
+        uint256 tokenId;
         address owner;
-        uint256 votingPower;
+        uint256 intrinsicVotingPower;
     }
 
     IGlobals private immutable _GLOBALS;
@@ -152,23 +152,26 @@ contract PartyGovernanceNFT is
     function getNftInfos(uint256 startIndex, uint256 endIndex)
         external
         view
-        returns (NftInfo[] nftInfos)
+        returns (NftInfo[] memory nftInfos)
     {
         // ensure startIndex and endIndex are in bounds
         if (startIndex == 0) {
             startIndex = 1;
         }
-        if (endIndex > this.tokenCount) {
-            endIndex = this.tokenCount
+        if (endIndex > tokenCount) {
+            endIndex = tokenCount;
         }
+
+        nftInfos = new NftInfo[](endIndex - startIndex + 1);
+
         for (uint256 i = startIndex; i <= endIndex;) {
             address owner = this.ownerOf(i);
-            uint256 intrinsicVotingPower = this._getTotalVotingPower
-            nftInfos.push({
+            uint256 intrinsicVotingPower = votingPowerByTokenId[i];
+            nftInfos[i - 1] = NftInfo({
                 intrinsicVotingPower: intrinsicVotingPower,
                 owner: owner,
                 tokenId: i
-            })
+            });
             unchecked {
                 ++i;
             }
