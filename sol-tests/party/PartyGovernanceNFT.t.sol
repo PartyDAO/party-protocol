@@ -120,9 +120,13 @@ contract PartyGovernanceNFTTest is Test, TestUtils {
 
         Party.NftInfo[] memory nftInfos = party.getNftInfos(0, 6);
         assertTrue(nftInfos.length == 4);
+        assertTrue(nftInfos[0].tokenId == 1);
+        assertTrue(nftInfos[0].owner == address(john));
         assertTrue(nftInfos[0].intrinsicVotingPower == 30);
         assertTrue(nftInfos[1].intrinsicVotingPower == 15);
         assertTrue(nftInfos[2].intrinsicVotingPower == 20);
+        assertTrue(nftInfos[3].tokenId == 4);
+        assertTrue(nftInfos[3].owner == address(anna));
         assertTrue(nftInfos[3].intrinsicVotingPower == 35);
     }
 }
