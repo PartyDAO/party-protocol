@@ -94,6 +94,10 @@ TODO:
 TODO:
 - Proposal properties
 - Steps
+    - Create zora auction
+    - Cancel/Finalize zora auction
+    - Create OS listing
+    - Finalize OS listing
 - Behavior when unanimous
 
 ### ListOnZora Proposal Type
@@ -101,6 +105,8 @@ TODO:
 TODO:
 - Proposal properties
 - Steps
+    - Create zora auction
+    - Cancel/Finalize zora auction
 
 ### Fractionalize Proposal Type
 
