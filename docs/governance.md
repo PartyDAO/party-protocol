@@ -47,6 +47,7 @@ TODO:
     - Weight
     - NFT
 - Delegation
+- Effective voting power calculation
 - Voting power snapshots
 
 ## Distributions
