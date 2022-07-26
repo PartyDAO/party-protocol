@@ -299,7 +299,7 @@ abstract contract PartyGovernance is
         return _getProposalExecutionEngine();
     }
 
-    /// @notice Get the total voting power of `voter at a timestamp.
+    /// @notice Get the total voting power of `voter` at a timestamp.
     function getVotingPowerAt(address voter, uint40 timestamp)
         public
         view
@@ -307,6 +307,21 @@ abstract contract PartyGovernance is
     {
         VotingPowerSnapshot memory snap = _getVotingPowerSnapshotAt(voter, timestamp);
         return (snap.isDelegated ? 0 : snap.intrinsicVotingPower) + snap.delegatedVotingPower;
+    }
+
+    /// @notice Get the total voting power of each voter in `voters` at a timestamp.
+    function getVotingPowersAt(address[] voters, uint40 timestamp)
+        public
+        view
+        returns (uint96[] votingPowers)
+    {
+        // todo: should we turn an array of voting powers or an array of { uint256 address; uint96 votingPower; }
+        for (uint256 i = 0; i < voters.length;) {
+            voters.push(getVotingPowerAt(voters[i], timestamp));
+            unchecked {
+                ++i;
+            }
+        }
     }
 
     function getProposalStateInfo(uint256 proposalId)
