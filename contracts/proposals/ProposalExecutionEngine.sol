@@ -42,14 +42,12 @@ contract ProposalExecutionEngine is
     }
 
     struct Storage {
-        // Given a proposal ID, this maps to the hash of the progress data
-        // for the next call to executeProposal().
-        // The hash will be 0x0 if the proposal has not been executed.
-        // The hash will be of the next progressData to be passed
-        // into executeProposal}() if the proposal is in progress.
-        // The hash will be the hash of the empty bytes (hex"") if the proposal
-        // was completed.
-        mapping (uint256 => bytes32) proposalProgressDataHashByProposalId;
+        // The hash of the next progressData for the current InProgress
+        // proposal. This is updated to the hash of the next progressData every
+        // time a proposal is executed. This enforces that the next call to
+        // executeProposal() receives the correct progressData.
+        // If there is no current InProgress proposal, this will be 0x0.
+        bytes32 nextProgressDataHash;
         // The proposal ID of the current, in progress proposal being executed.
         // InProgress proposals need to have executeProposal() called on them
         // multiple times until they complete. Only one proposal may be
@@ -62,7 +60,6 @@ contract ProposalExecutionEngine is
 
     error ZeroProposalIdError();
     error MalformedProposalDataError();
-    error ProposalAlreadyCompleteError(uint256 proposalId);
     error ProposalExecutionBlockedError(uint256 proposalId, uint256 currentInProgressProposalId);
     error ProposalProgressDataInvalidError(bytes32 actualProgressDataHash, bytes32 expectedProgressDataHash);
     error ProposalNotInProgressError(uint256 proposalId);
@@ -112,30 +109,8 @@ contract ProposalExecutionEngine is
         if (params.proposalId == 0) {
             revert ZeroProposalIdError();
         }
-        {
-            bytes32 nextProgressDataHash =
-                stor.proposalProgressDataHashByProposalId[params.proposalId];
-             {
-                 bytes32 progressDataHash = keccak256(params.progressData);
-                 // Progress data must match the one stored.
-                 if (nextProgressDataHash != 0 &&
-                     nextProgressDataHash != progressDataHash)
-                 {
-                     revert ProposalProgressDataInvalidError(
-                         progressDataHash,
-                         nextProgressDataHash
-                     );
-                 }
-            }
-            // Proposal must not be completed.
-            // If the proposal was previously completed then the nextProgressDataHash
-            // for that proposal will be the empty hash.
-            if (nextProgressDataHash == EMPTY_HASH) {
-                revert ProposalAlreadyCompleteError(params.proposalId);
-            }
-        }
-        // Only one proposal can be in progress at a time.
         uint256 currentInProgressProposalId = stor.currentInProgressProposalId;
+        // Only one proposal can be in progress at a time.
         if (currentInProgressProposalId != 0) {
             if (currentInProgressProposalId != params.proposalId) {
                 revert ProposalExecutionBlockedError(
@@ -143,22 +118,50 @@ contract ProposalExecutionEngine is
                     currentInProgressProposalId
                 );
             }
+        } else {
+            stor.currentInProgressProposalId = params.proposalId;
         }
-        stor.currentInProgressProposalId = params.proposalId;
+        {
+            bytes32 nextProgressDataHash = stor.nextProgressDataHash;
+            if (nextProgressDataHash == 0) { // Expecting no progress data.
+                // This is the state if there is no current InProgress proposal.
+                assert(currentInProgressProposalId == 0);
+                if (params.progressData.length != 0) {
+                    revert ProposalProgressDataInvalidError(
+                        keccak256(params.progressData),
+                        nextProgressDataHash
+                    );
+                }
+            } else { // Expecting progress data.
+                 bytes32 progressDataHash = keccak256(params.progressData);
+                 // Progress data must match the one stored.
+                 if (nextProgressDataHash != progressDataHash) {
+                     revert ProposalProgressDataInvalidError(
+                         progressDataHash,
+                         nextProgressDataHash
+                     );
+                 }
+            }
+            // Temporarily set the expected next progress data hash to an
+            // unachievable constant to act as a reentrancy guard.
+            stor.nextProgressDataHash = bytes32(type(uint256).max);
+        }
+
+        // Note that we do not enforce that the proposal has not been executed
+        // (and completed) before in this contract. That is enforced by PartyGovernance.
 
         // Execute the proposal.
         ProposalType pt;
         (pt, params.proposalData) = _getProposalType(params.proposalData);
         nextProgressData = _execute(pt, params);
 
-        // Remember the next progress data.
-        stor.proposalProgressDataHashByProposalId[params.proposalId] =
-            keccak256(nextProgressData);
-
-        // If progress data is empty, the propsal is complete,
-        // so clear the current in progress proposal.
+        // If progress data is empty, the propsal is complete.
         if (nextProgressData.length == 0) {
             stor.currentInProgressProposalId = 0;
+            stor.nextProgressDataHash = 0;
+        } else {
+            // Remember the next progress data.
+            stor.nextProgressDataHash = keccak256(nextProgressData);
         }
     }
 

@@ -132,19 +132,6 @@ contract ProposalExecutionEngineTest is
         _executeProposal(executeParams);
     }
 
-    function test_executeProposal_cannotExecuteCompleteProposal() public {
-        // Execute a one-step proposal, then try to execute the same one again.
-        IProposalExecutionEngine.ExecuteProposalParams memory executeParams =
-            _createTestProposal(_createOneStepProposalData(_randomUint256()));
-        assertTrue(_executeProposal(executeParams));
-        // Try again
-        vm.expectRevert(abi.encodeWithSelector(
-            ProposalExecutionEngine.ProposalAlreadyCompleteError.selector,
-            executeParams.proposalId
-        ));
-        _executeProposal(executeParams);
-    }
-
     function test_executeProposal_twoStepWorks() public {
         (uint256 emitValue1, uint256 emitValue2) = (_randomUint256(), _randomUint256());
         IProposalExecutionEngine.ExecuteProposalParams memory executeParams =
