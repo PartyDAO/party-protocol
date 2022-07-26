@@ -107,7 +107,15 @@ TODO:
 
 ## Governance Lifecycle
 
-Governance in Parties is fairly traditional, revolving around passing and executing proposals.
+Governance in Parties follows a fairly traditional model, revolving around passing and executing proposals. Proposals have the following fields:
+
+- `maxExecutableTime`: A timestamp beyond which the proposal can no longer be executed (for the first time).
+- `minCancelTime`: A timestamp beyond which the proposal can be forcibly interrupted and marked complete so another proposal can be executed.
+- `proposalData`: Encoded data needed to execute the proposal.
+
+### Proposal Stages/Status
+
+
 
 TODO:
 - Proposal properties
