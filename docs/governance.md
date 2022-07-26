@@ -41,14 +41,14 @@ by a crowdfund instance after it wins, but it is also a valid use case to intera
 The sequence of events is:
 
 1. Call `PartyFactory.createParty()` defined as:
-```solidity
-function createParty(
-    address authority,
-    Party.PartyOptions memory opts,
-    IERC721[] memory preciousTokens,
-    uint256[] memory preciousTokenIds
-)
-```
+    ```solidity
+    function createParty(
+        address authority,
+        Party.PartyOptions memory opts,
+        IERC721[] memory preciousTokens,
+        uint256[] memory preciousTokenIds
+    )
+    ```
     - `authority` will be the address that can mint tokens on the created Party. In typical flow, the crowdfund contract will set this to itself.
     - `opts` are immutable [configuration parameters](#governance-options) for the Party, defining the Party name and symbol (the Party instance will also be an ERC721) and governance parameters.
     - `preciousTokens` and `preciousTokenIds` together define the NFTs the Party will custody and enforce extra restrictions on so they are not easily transferred out of the Party.
