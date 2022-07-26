@@ -68,13 +68,16 @@ TODO:
     - Unanimous consensus
 - Vetos
 - Execution
-    - Multi-step proposals
+    - Multi-step proposals, progress data
+    - Replay protection
 - Cancelling
 
 ## The ProposalExecutionEngine
 
 TODO:
 - Rationale
+- Single execution enforcement
+- Progress data enforcement
 - Upgrades
 
 ## Proposal Types
