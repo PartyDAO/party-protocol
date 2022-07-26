@@ -33,17 +33,49 @@ The main contracts involved in this phase are:
 
 ## Party Creation
 
-TODO:
-- How parties get created
-- Governance options
-- Party hosts
-- Minting voting cards
-- Preciouses
+### Sequence
+
+Parties are created through the `PartyFactory` contract. This is typically automatically done
+by a crowdfund instance after it wins, but it is also a valid use case to interact with the PartyFactory contract directly to, for example, form a governance party around an existing NFT.
+
+The sequence of events is:
+
+1. Call `PartyFactory.createParty()` defined as:
+```solidity
+function createParty(
+    address authority,
+    Party.PartyOptions memory opts,
+    IERC721[] memory preciousTokens,
+    uint256[] memory preciousTokenIds
+)
+```
+    - `authority` will be the address that can mint tokens on the created Party. In typical flow, the crowdfund contract will set this to itself.
+    - `opts` are immutable [configuration parameters](#governance-options) for the Party, defining the Party name and symbol (the Party instance will also be an ERC721) and governance parameters.
+    - `preciousTokens` and `preciousTokenIds` together define the NFTs the Party will custody and enforce extra restrictions on so they are not easily transferred out of the Party.
+    - Both `opts` and the precious tokens list cannot be modified after party creation.
+2. Transfer assets to the created Party, which will typically be the precious NFTs.
+3. As the `authority`, mint voting cards to members of the party by calling `PartyFactory.mint()`.
+    - In typical flow, the crowdfund contract will call this when contributors burn their contribution NFTs.
+4. Optionally, call `PartyFactory.abdicate()`, as the `authority`, to revoke minting privilege once all voting cards have been minted.
+5. At any step after the party creation, members with voting cards can perform governance actions, though they may not be able to reach consensus if the total supply of voting power hasn't been minted/distributed yet.
+
+## Governance Options
+
+Parties are initialized with fixed governance options which will (mostly) never change for the Party's lifetime. They are defined in the `PartyGovernance.GovernanceOpts` struct with the fields:
+
+- `hosts`: Array of initial party hosts. This is the only configuration that can change because hosts can transfer their privilege to other accounts.
+- `voteDuration`: Duration in seconds a proposal can be voted on after it has been proposed.
+- `executionDelay`: Duration in seconds a proposal must wait after being passed before it can be executed. This gives hosts time to veto malicious proposals that have passed.
+- `passThresholdBps`: Minimum ratio of votes vs total voting power supply to consider a proposal passed. This is expressed in bps, i.e., 1e4 = 100%.
+- `totalVotingPower`: Total voting power of the Party. This should be the sum of weights of all (possible) voting cards given to members. Note that nowhere is this assumption enforced, as there may be use-cases for minting more than 100% of voting power, but the logic in crowdfund contracts cannot mint more than `totalVotingPower`.
+- `feeBps`: The fee taken out of this Party's [distributions](#distributions) to reserve for `feeRecipient` to claim. Typically this will be set to an address controlled by PartyDAO.
+- `feeRecipient`: The address that can claim distribution fees for this Party.
 
 ## Voting Power
 
 TODO:
 - Voting cards
+    - Minting
     - Weight
     - NFT
 - Delegation
