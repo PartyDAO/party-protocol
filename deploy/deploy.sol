@@ -228,7 +228,7 @@ contract Deploy is Test {
     // console.log('  Transferred ownership to', deployConstants.partyDaoMultisig);
 
 
-    AddressMapping[] memory addressMapping = new AddressMapping[](10);
+    AddressMapping[] memory addressMapping = new AddressMapping[](11);
     addressMapping[0] = AddressMapping('globals', address(globals));
     addressMapping[1] = AddressMapping('tokenDistributor', address(tokenDistributor));
     addressMapping[2] = AddressMapping('seaportExchange', address(seaport));
@@ -239,29 +239,12 @@ contract Deploy is Test {
     addressMapping[7] = AddressMapping('partyBuyImpl', address(partyBuyImpl));
     addressMapping[8] = AddressMapping('partyCollectionBuyImpl', address(partyCollectionBuyImpl));
     addressMapping[9] = AddressMapping('partyCrowdfundFactory', address(partyCrowdfundFactory));
+    addressMapping[10] = AddressMapping('partyGovernanceNFTRenderer', address(partyGovernanceNFTRenderer));
 
     console.log('');
-<<<<<<< HEAD
     console.log('### Deployed addresses');
     string memory jsonRes = generateJSONString(addressMapping);
     console.log(jsonRes);
-=======
-    console.log('### Deployed addresses JSON');
-    console.log('{');
-    console.log(string.concat('  "globals": "', Strings.toHexString(address(globals)) ,'",'));
-    console.log(string.concat('  "tokenDistributor": "', Strings.toHexString(address(tokenDistributor)) ,'",'));
-    console.log(string.concat('  "seaportExchange": "', Strings.toHexString(address(seaport)) ,'",'));
-    console.log(string.concat('  "proposalEngineImpl": "', Strings.toHexString(address(proposalEngineImpl)) ,'",'));
-    console.log(string.concat('  "partyImpl": "', Strings.toHexString(address(partyImpl)) ,'",'));
-    console.log(string.concat('  "partyFactory": "', Strings.toHexString(address(partyFactory)) ,'",'));
-    console.log(string.concat('  "partyBidImpl": "', Strings.toHexString(address(partyBidImpl)) ,'",'));
-    console.log(string.concat('  "partyBuyImpl": "', Strings.toHexString(address(partyBuyImpl)) ,'",'));
-    console.log(string.concat('  "partyCollectionBuyImpl": "', Strings.toHexString(address(partyCollectionBuyImpl)) ,'",'));
-    console.log(string.concat('  "partyCrowdfundFactory": "', Strings.toHexString(address(partyCrowdfundFactory)) ,'",'));
-    console.log(string.concat('  "partyGovernanceNFTRenderer": "', Strings.toHexString(address(partyGovernanceNFTRenderer)) ,'"'));
-    // NOTE: ensure trailing comma on second to last line
-    console.log('}');
->>>>>>> main
 
     vm.stopBroadcast();
     writeAddressesToFile(deployConstants.networkName, jsonRes);
