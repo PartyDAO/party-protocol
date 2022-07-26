@@ -76,13 +76,22 @@ Parties are initialized with fixed governance options which will (mostly) never 
 Voting power within the governance Party is represented and held by "voting cards," which are NFTs (721s) minted for each member of the Party. Each voting card has a distinct voting power/weight associated with it. The total (intrinsic) voting power a member has is the sum of all the voting power in all the voting cards they possess at a given block.
 
 ### Delegation
-Owners of voting cards can call `Party.delegateVotingPower()` to delegate their intrinsic total voting power (at the time of the call) to another account. The minter of the voting card can also set an initial delegate for the owner, meaning any voting cards held by the owner will be delegated by default. The chosen delegate does not need to own a voting card. Delegating voting power strips the owner of their entire voting power until they redelegate to themselves, meaning they will not be able to vote on proposals created afterwards. Voting card owners can recover their voting power for future proposals if they delegate to themselves or to the zero address.
+Owners of voting cards can call `Party.delegateVotingPower()` to delegate their intrinsic *total* voting power (at the time of the call) to another account. The minter of the voting card can also set an initial delegate for the owner, meaning any voting cards held by the owner will be delegated by default. If a user transfers their voting card, the voting power will be delegated to the recipient's existing delegate.
+
+The chosen delegate does not need to own a voting card. Delegating voting power strips the owner of their entire voting power until they redelegate to themselves, meaning they will not be able to vote on proposals created afterwards. Voting card owners can recover their voting power for future proposals if they delegate to themselves or to the zero address.
 
 ### Calculating Effective Voting Power
 The effective voting power of a user is the sum of all undelegated (or self-delegated) voting power from their voting cards plus the sum of all voting power delegated to them by other users.
 
 ### Voting Power Snapshots
-TODO...
+The voting power applied when a user votes on a proposal is their effective voting power at the time the proposal was proposed. This prevents people from acquiring large amounts of voting cards to influence the outcome of an active proposal. The `Party` contract creates records of a user's total delegated (to them) and intrinsic voting power each time any of the following occurs:
+
+- A user receives a voting card (transfer or minting).
+- A user transfers their voting card to another user.
+- A user (un)delegates their voting power.
+- A user gets voting power (un)delegated to them.
+
+When determining the effective voting power of a user, we binary search a user's records for the most recent record <= the proposal time.
 
 ## Distributions
 
