@@ -27,7 +27,7 @@ The main contracts involved in this phase are:
 - [`TokenDistributor`](./TokenDistributor.md) ([code](../contracts/distributions/TokenDistributor.sol))
     - Distributes deposited ETH, ERC20, and ERC1155 tokens to members of parties.
 - [`Globals`](../Globals.md) ([code](../contracts/globals/Globals.sol))
-    - A contract that shares global configuration values referenced by contracts across the entire protocol.
+    - A contract that defines global configuration values referenced by other contracts across the entire protocol.
 
 ![contracts](./governance-contracts.png)
 
