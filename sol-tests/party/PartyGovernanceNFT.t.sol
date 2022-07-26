@@ -118,6 +118,7 @@ contract PartyGovernanceNFTTest is Test, TestUtils {
         partyAdmin.mintGovNft(party, address(lawrence), 20, address(lawrence));
         partyAdmin.mintGovNft(party, address(anna), 35, address(anna));
 
+        // test edge startIndex = 0 and endIndex > tokenCount
         Party.NftInfo[] memory nftInfos = party.getNftInfos(0, 6);
         assertTrue(nftInfos.length == 4);
         assertTrue(nftInfos[0].tokenId == 1);
@@ -128,5 +129,13 @@ contract PartyGovernanceNFTTest is Test, TestUtils {
         assertTrue(nftInfos[3].tokenId == 4);
         assertTrue(nftInfos[3].owner == address(anna));
         assertTrue(nftInfos[3].intrinsicVotingPower == 35);
+
+        // test startIndex > endIndex
+        Party.NftInfo[] memory nftInfos2 = party.getNftInfos(3, 0);
+        assertTrue(nftInfos2.length == 3);
+
+        // test expected startIndex and endIndex
+        Party.NftInfo[] memory nftInfos3 = party.getNftInfos(1, 4);
+        assertTrue(nftInfos3.length == 4);
     }
 }
