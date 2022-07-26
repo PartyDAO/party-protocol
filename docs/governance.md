@@ -107,14 +107,31 @@ TODO:
 
 ## Governance Lifecycle
 
-Governance in Parties follows a fairly traditional model, revolving around passing and executing proposals. Proposals have the following fields:
+Governance in Parties follows a fairly traditional model, revolving around passing and executing proposals. Proposals have the following properties:
 
+- proposal ID: A unique identifier (counter) assigned to a proposal when it it is first proposed.
 - `maxExecutableTime`: A timestamp beyond which the proposal can no longer be executed (for the first time).
 - `minCancelTime`: A timestamp beyond which the proposal can be forcibly interrupted and marked complete so another proposal can be executed.
 - `proposalData`: Encoded data needed to execute the proposal.
 
+An important thing to note is that none of these proposal properties are ever stored on-chain. Instead, only the hash of these fields are stored on-chain (keyed by the proposal ID) to enforce that the properties do not change between lifecycle operations.
+
 ### Proposal Stages/Status
 
+The stages of a proposal are defined in `PartyGovernance.ProposalStatus`:
+
+- `Invalid`: The proposal does not exist.
+- `Voting`: The proposal has been proposed (via `propose()`), has not been vetoed by a party host, and is within the voting window. Members can vote on the proposal and party hosts can veto the proposal.
+- `Defeated`: The proposal has either exceeded its voting window without reaching `passThresholdBps` of votes or was vetoed by a party host.
+- `Passed`: The proposal reached at least `passThresholdBps` of votes but is still waiting for `executionDelay` to pass before it can be executed. Members can continue to vote on the proposal and party hosts can veto at this time.
+- `Ready`: Same as `Passed` but now `executionDelay` has been satisfied. Any member may execute the proposal via `execute()`, unless `maxExecutableTime` has arrived.
+- `InProgress`: The proposal has been executed at least once but has further steps to complete so it needs to be executed again. No other proposals may be executed while a proposal is in the `InProgress` state. No voting or vetoing of the proposal is allowed, however it may be forcibly cancelled via `cancel()` if the `minCancelTime` has arrived.
+- `Complete`: The proposal was executed and completed all its steps. No voting or vetoing can occur and it cannot be cancelled nor executed again.
+
+### Making Proposals
+
+
+### Voting on Proposals
 
 
 TODO:
