@@ -151,15 +151,19 @@ The rationale behind the veto power that if voting power in a Party becomes so c
 After a proposal has achieved enough votes to pass and the `executionDelay` window has expired, the proposal can be executed by any member with currently nonzero effective voting power. This occurs via the `Party.execute()` function.
 
 The call to `execute()` will fail if:
-- The proposal has already been executed and completed.
+- The proposal has already been executed and completed (in the `Complete` status).
 - The proposal has not been executed but its `maxExecutableTime` has passed.
 - The proposal's execution reverts.
 - There exists another proposal that has been executed but did not complete (more steps to go).
+
+If the proposal is atomic, meaning it is a single-step proposal, it will immediately enter the `Complete` status.
 
 #### Multi-step Proposals
 Some proposal types require multiple steps and transactions to be completed. An example is the `ListOnZoraProposal` type. This proposal will first list an NFT on Zora as an auction then if the auction does not receive any bids after some amount of time or if the auction completes with a winning bid, the auction will need to be cancelled or finalized by the Party. To accomplish this, the proposal must be executed multiple times until it is considered complete and can enter the `Complete` status.
 
 Usually further steps in a multi-step proposal requires some state to be remembered between steps. For example, the `ListOnZoraProposal` type will need to recall the ID of the Zora auction it created so it can cancel or finalize it as a final step. Rather than storing this (potentially complex) data on-chain, executing a proposal will emit a `ProposalExecuted` event with an arbitrary bytes `nextProgressData` parameter, which should be passed into the next call to `execute()` to advance the proposal. The `Party` will only store the hash of the `nextProgressData` and confirm it matches the hash of what is passed in. This data blob holds any encoded state necessary to progress the proposal to the next step.
+
+Once the proposal has executed its final step, it will emit an empty `nextProgressData` in the `ProposalExecuted` event.
 
 ### Cancelling Proposals
 There is a risk of multi-step proposals never being able to complete because they may continue to revert. Since no other proposals can be executed if another proposal is `InProgress`, a Party can become permanently stuck, unable to execute any other proposal. To prevent this scenario, proposals have a `minCancelTime` property, after which an `InProgress` proposal can be forced into a `Complete` state. There is also a global (defined in the `Globals` contract) configuration (`GLOBAL_PROPOSAL_MAX_CANCEL_DURATION`) which limits the `minCancelTime` to a value not too far in the future.
