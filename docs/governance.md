@@ -83,6 +83,8 @@ The chosen delegate does not need to own a voting card. Delegating voting power 
 ### Calculating Effective Voting Power
 The effective voting power of a user is the sum of all undelegated (or self-delegated) voting power from their voting cards plus the sum of all voting power delegated to them by other users.
 
+The effective voting power of a user at a given time can be found by calling `Party.getVotingPowerAt()`.
+
 ### Voting Power Snapshots
 The voting power applied when a user votes on a proposal is their effective voting power at the time the proposal was proposed. This prevents people from acquiring large amounts of voting cards to influence the outcome of an active proposal. The `Party` contract creates records of a user's total delegated (to them) and intrinsic voting power each time any of the following occurs:
 
