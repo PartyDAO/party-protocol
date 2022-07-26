@@ -17,6 +17,7 @@ library LibDeployConstants {
     address osZone;
     bytes32 osConduitKey;
     address osConduitController;
+    string networkName;
   }
 
   function mainnet() internal pure returns (DeployConstants memory) {
@@ -36,7 +37,8 @@ library LibDeployConstants {
       zoraAuctionHouseAddress: 0xE468cE99444174Bd3bBBEd09209577d25D1ad673,
       osZone: address(0), // TODO,
       osConduitKey: 0, // TODO
-      osConduitController: address(0) // TODO
+      osConduitController: address(0), // TODO
+      networkName: 'mainnet'
     });
 
     return mainnetDeployConstants;
@@ -59,7 +61,8 @@ library LibDeployConstants {
       zoraAuctionHouseAddress: 0xE7dd1252f50B3d845590Da0c5eADd985049a03ce,
       osZone: 0x00000000E88FE2628EbC5DA81d2b3CeaD633E89e,
       osConduitKey: 0x0000007b02230091a7ed01230072f7006a004d60a8d4e71d599b8104250f0000,
-      osConduitController: 0x00000000F9490004C11Cef243f5400493c00Ad63
+      osConduitController: 0x00000000F9490004C11Cef243f5400493c00Ad63,
+      networkName: 'rinkeby'
     });
 
     return rinkebyDeployConstants;

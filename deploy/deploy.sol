@@ -85,12 +85,16 @@ library Strings {
 }
 
 contract Deploy is Test {
+  struct AddressMapping {
+    string key;
+    address value;
+  }
 
   // constants
   // dry-run deployer address
   // address constant DEPLOYER_ADDRESS = 0x00a329c0648769A73afAc7F9381E08FB43dBEA72;
   // real deployer address
-  address constant DEPLOYER_ADDRESS = 0x66512B61F855478bfba669e32719dE5fD7a57Fa4; // TODO: we can set this, or we can use tx.origin
+  address constant DEPLOYER_ADDRESS = 0x8fDC86689f5F35F2b4d9f649c7bdc9C64f59e6bD; // TODO: we can set this, or we can use tx.origin
 
   // temporary variables to store deployed contract addresses
   Globals globals;
@@ -278,25 +282,54 @@ contract Deploy is Test {
     // console.log('  Transferred ownership to', deployConstants.partyDaoMultisig);
 
 
-    // Output deployed addresses in JSON format
+    AddressMapping[] memory addressMapping = new AddressMapping[](10);
+    addressMapping[0] = AddressMapping('globals', address(globals));
+    addressMapping[1] = AddressMapping('tokenDistributor', address(tokenDistributor));
+    addressMapping[2] = AddressMapping('seaportExchange', address(seaport));
+    addressMapping[3] = AddressMapping('proposalEngineImpl', address(proposalEngineImpl));
+    addressMapping[4] = AddressMapping('partyImpl', address(partyImpl));
+    addressMapping[5] = AddressMapping('partyFactory', address(partyFactory));
+    addressMapping[6] = AddressMapping('partyBidImpl', address(partyBidImpl));
+    addressMapping[7] = AddressMapping('partyBuyImpl', address(partyBuyImpl));
+    addressMapping[8] = AddressMapping('partyCollectionBuyImpl', address(partyCollectionBuyImpl));
+    addressMapping[9] = AddressMapping('partyCrowdfundFactory', address(partyCrowdfundFactory));
+
     console.log('');
-    console.log('### Deployed addresses JSON');
-    console.log('{');
-    console.log(string.concat('  "globals": "', Strings.toHexString(address(globals)) ,'",'));
-    console.log(string.concat('  "tokenDistributor": "', Strings.toHexString(address(tokenDistributor)) ,'",'));
-    console.log(string.concat('  "seaportExchange": "', Strings.toHexString(address(seaport)) ,'",'));
-    console.log(string.concat('  "proposalEngineImpl": "', Strings.toHexString(address(proposalEngineImpl)) ,'",'));
-    console.log(string.concat('  "partyImpl": "', Strings.toHexString(address(partyImpl)) ,'",'));
-    console.log(string.concat('  "partyFactory": "', Strings.toHexString(address(partyFactory)) ,'",'));
-    console.log(string.concat('  "partyBidImpl": "', Strings.toHexString(address(partyBidImpl)) ,'",'));
-    console.log(string.concat('  "partyBuyImpl": "', Strings.toHexString(address(partyBuyImpl)) ,'",'));
-    console.log(string.concat('  "partyCollectionBuyImpl": "', Strings.toHexString(address(partyCollectionBuyImpl)) ,'",'));
-    console.log(string.concat('  "partyCrowdfundFactory": "', Strings.toHexString(address(partyCrowdfundFactory)) ,'"'));
-    // NOTE: ensure trailing comma on second to last line
-    console.log('}');
+    console.log('### Deployed addresses');
+    string memory jsonRes = generateJSONString(addressMapping);
+    console.log(jsonRes);
 
     vm.stopBroadcast();
+    writeAddressesToFile(deployConstants.networkName, jsonRes);
     console.log('');
     console.log('Ending deploy script.');
   }
+
+  function generateJSONString(AddressMapping[] memory parts) private returns (string memory) {
+    string memory vals = '';
+    for(uint256 i=0; i < parts.length; ++i) {
+    string memory newValue = string.concat('"', parts[i].key, '": "', Strings.toHexString(parts[i].value), '"');
+    if (i != parts.length - 1) {
+        newValue = string.concat(newValue, ",");
+    }
+    vals = string.concat(vals, newValue);
+    }
+    return string.concat('{', vals, '}');
+  }
+
+  function writeAddressesToFile(string memory networkName, string memory jsonRes) private {
+    string[] memory ffiCmd = new string[](4);
+    ffiCmd[0] = "node";
+    ffiCmd[1] = "./js/utils/save-json.js";
+    ffiCmd[2] = networkName;
+    ffiCmd[3] = jsonRes;
+    bytes memory ffiResp = vm.ffi(ffiCmd);
+
+    bool wroteSuccessfully = keccak256(abi.encodePacked(ffiResp)) == keccak256(abi.encodePacked(address(1)));
+    if (!wroteSuccessfully) {
+      revert("Could not write to file");
+    }
+    console.log("Successfully wrote to file");
+  }
+
 }
