@@ -42,6 +42,10 @@ contract GlobalsAdmin is Test {
   function setTokenDistributor(address tokenDistributorAddress) public {
     globals.setAddress(LibGlobals.GLOBAL_TOKEN_DISTRIBUTOR, tokenDistributorAddress);
   }
+
+  function setGovernanceNftRendererAddress(address rendererAddress) public {
+    globals.setAddress(LibGlobals.GLOBAL_GOVERNANCE_NFT_RENDER_IMPL, rendererAddress);
+  }
 }
 
 contract PartyAdmin is Test {
