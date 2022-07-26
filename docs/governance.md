@@ -74,7 +74,7 @@ Parties are initialized with fixed governance options which will (mostly) never 
 ## Voting Power
 
 ### Voting Cards
-Voting power within the governance Party is represented and held by "voting cards," which are NFTs (721s) minted for each member of the Party. Each voting card has a distinct voting power/weight associated with it. These cards can never be broken up or combined, but a user may own multiple voting cards within a Party. The total (intrinsic) voting power a member has is the sum of all the voting power in all the voting cards for that Party they possess at a given block.
+Voting power within the governance Party is represented and held by "voting cards," which are NFTs (721s) minted for each member of the Party. Each voting card has a distinct voting power/weight associated with it. These cards can never be broken up or combined, but a user may own multiple voting cards within a Party. The total (intrinsic) voting power a member has is the sum of all the voting power in all the voting cards for that Party they possess at a given timestamp.
 
 ### Delegation
 Owners of voting cards can call `Party.delegateVotingPower()` to delegate their intrinsic *total* voting power (at the time of the call) to another account. The minter of the voting card can also set an initial delegate for the owner, meaning any voting cards held by the owner will be delegated by default. If a user transfers their voting card, the voting power will be delegated to the recipient's existing delegate.
