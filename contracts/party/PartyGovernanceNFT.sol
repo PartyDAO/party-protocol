@@ -18,6 +18,12 @@ contract PartyGovernanceNFT is
 
     error OnlyMintAuthorityError(address actual, address expected);
 
+    struct NftInfo {
+        uint256 nftId;
+        address owner;
+        uint256 votingPower;
+    };
+
     IGlobals private immutable _GLOBALS;
 
     // Who can call mint()
@@ -141,5 +147,31 @@ contract PartyGovernanceNFT is
         // Transfer voting along with token.
         _transferVotingPower(owner, to, votingPowerByTokenId[tokenId]);
         super.safeTransferFrom(owner, to, tokenId, data);
+    }
+
+    function getNftInfos(uint256 startIndex, uint256 endIndex)
+        external
+        view
+        returns (NftInfo[] nftInfos)
+    {
+        // ensure startIndex and endIndex are in bounds
+        if (startIndex == 0) {
+            startIndex = 1;
+        }
+        if (endIndex > this.tokenCount) {
+            endIndex = this.tokenCount
+        }
+        for (uint256 i = startIndex; i <= endIndex;) {
+            address owner = this.ownerOf(i);
+            uint256 intrinsicVotingPower = this._getTotalVotingPower
+            nftInfos.push({
+                intrinsicVotingPower: intrinsicVotingPower,
+                owner: owner,
+                tokenId: i
+            })
+            unchecked {
+                ++i;
+            }
+        }
     }
 }
