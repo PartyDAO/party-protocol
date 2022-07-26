@@ -22,7 +22,7 @@ contract PartyGovernanceNFT is
         uint256 nftId;
         address owner;
         uint256 votingPower;
-    };
+    }
 
     IGlobals private immutable _GLOBALS;
 
