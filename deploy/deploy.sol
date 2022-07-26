@@ -254,12 +254,12 @@ contract Deploy is Test {
 
   function generateJSONString(AddressMapping[] memory parts) private returns (string memory) {
     string memory vals = '';
-    for(uint256 i=0; i < parts.length; ++i) {
-    string memory newValue = string.concat('"', parts[i].key, '": "', Strings.toHexString(parts[i].value), '"');
-    if (i != parts.length - 1) {
-        newValue = string.concat(newValue, ",");
-    }
-    vals = string.concat(vals, newValue);
+    for (uint256 i=0; i < parts.length; ++i) {
+      string memory newValue = string.concat('"', parts[i].key, '": "', Strings.toHexString(parts[i].value), '"');
+      if (i != parts.length - 1) {
+          newValue = string.concat(newValue, ",");
+      }
+      vals = string.concat(vals, newValue);
     }
     return string.concat('{', vals, '}');
   }
