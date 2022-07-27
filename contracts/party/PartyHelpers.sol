@@ -22,7 +22,7 @@ contract PartyHelpers {
     /////////////////////////////
 
     /// @notice Get the current delegate for each member in `members`
-    function getCurrentDelegates(address[] memory members)
+    function getCurrentDelegates(address[] calldata members)
         external
         view
         returns (address[] memory delegates)
@@ -37,8 +37,8 @@ contract PartyHelpers {
     }
 
     /// @notice Get the total voting power of each voter in `voters` at a timestamp.
-    function getVotingPowersAt(address[] memory voters, uint40 timestamp)
-        public
+    function getVotingPowersAt(address[] calldata voters, uint40 timestamp)
+        external
         view
         returns (uint96[] memory votingPowers)
     {
