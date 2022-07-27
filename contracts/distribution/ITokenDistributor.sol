@@ -36,7 +36,8 @@ interface ITokenDistributor {
 
     event DistributionCreated(
         ITokenDistributorParty indexed party,
-        DistributionInfo info
+        DistributionInfo info,
+        bytes15 distributionHash15
     );
     event DistributionFeeClaimed(
         ITokenDistributorParty indexed party,
