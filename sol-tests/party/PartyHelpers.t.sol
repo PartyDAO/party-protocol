@@ -183,11 +183,15 @@ contract PartyHelpersTest is Test, TestUtils {
         assertTrue(nftInfos[3].intrinsicVotingPower == 35);
 
         // test expected startIndex and endIndex
-        PartyHelpers.NftInfo[] memory nftInfos2 = ph.getNftInfos(address(party), 1, 4);
-        assertTrue(nftInfos2.length == 4);
+        PartyHelpers.NftInfo[] memory nftInfos2 = ph.getNftInfos(address(party), 1, 1);
+        assertTrue(nftInfos2.length == 1);
 
         // test startIndex > 1
-        PartyHelpers.NftInfo[] memory nftInfos3 = ph.getNftInfos(address(party), 2, 4);
+        PartyHelpers.NftInfo[] memory nftInfos3 = ph.getNftInfos(address(party), 2, 3);
         assertTrue(nftInfos3.length == 3);
+
+        // test startIndex > 1 and count > tokenCount
+        PartyHelpers.NftInfo[] memory nftInfos4 = ph.getNftInfos(address(party), 2, 6);
+        assertTrue(nftInfos4.length == 3);
     }
 }
