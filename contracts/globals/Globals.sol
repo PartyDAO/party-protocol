@@ -3,6 +3,7 @@ pragma solidity ^0.8;
 
 import "./IGlobals.sol";
 
+// Contract storing global configuration values.
 contract Globals is IGlobals {
     address public multiSig;
     // key -> word value

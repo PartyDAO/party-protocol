@@ -19,7 +19,7 @@ contract Proxy {
     }
 
     fallback() external payable {
-        address impl = address(IMPL);
+        Implementation impl = IMPL;
         assembly {
             calldatacopy(0x00, 0x00, calldatasize())
             let s := delegatecall(gas(), impl, 0x00, calldatasize(), 0x00, 0)
