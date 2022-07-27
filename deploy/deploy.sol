@@ -16,6 +16,7 @@ import '../contracts/party/Party.sol';
 import '../contracts/party/PartyFactory.sol';
 import '../contracts/renderers/PartyGovernanceNFTRenderer.sol';
 import '../contracts/proposals/ProposalExecutionEngine.sol';
+import '../contracts/utils/PartyHelpers.sol';
 import './LibDeployConstants.sol';
 
 contract Deploy is Test {
@@ -39,6 +40,7 @@ contract Deploy is Test {
   ProposalExecutionEngine proposalEngineImpl;
   TokenDistributor tokenDistributor;
   PartyGovernanceNFTRenderer partyGovernanceNFTRenderer;
+  PartyHelpers partyHelpers;
 
   function run(LibDeployConstants.DeployConstants memory deployConstants) public {
     console.log('Starting deploy script.');
@@ -216,6 +218,13 @@ contract Deploy is Test {
     globals.setAddress(LibGlobals.GLOBAL_GOVERNANCE_NFT_RENDER_IMPL, address(partyGovernanceNFTRenderer));
     console.log('  Globals - successfully set PartyGovernanceNFTRenderer', address(partyGovernanceNFTRenderer));
 
+    // DEPLOY_PARTY_HELPERS
+    console.log('');
+    console.log('### PartyHelpers');
+    console.log('  Deploying - PartyHelpers');
+    partyHelpers = new PartyHelpers();
+    console.log('  Deployed - PartyHelpers', address(partyHelpers));
+
     // TODO: TRANSFER_OWNERSHIP_TO_PARTYDAO_MULTISIG
     // console.log('');
     // console.log('### Transfer MultiSig');
@@ -238,8 +247,9 @@ contract Deploy is Test {
     console.log(string.concat('  "partyBuyImpl": "', Strings.toHexString(address(partyBuyImpl)) ,'",'));
     console.log(string.concat('  "partyCollectionBuyImpl": "', Strings.toHexString(address(partyCollectionBuyImpl)) ,'",'));
     console.log(string.concat('  "partyCrowdfundFactory": "', Strings.toHexString(address(partyCrowdfundFactory)) ,'",'));
-    console.log(string.concat('  "partyGovernanceNFTRenderer": "', Strings.toHexString(address(partyGovernanceNFTRenderer)) ,'"'));
+    console.log(string.concat('  "partyGovernanceNFTRenderer": "', Strings.toHexString(address(partyGovernanceNFTRenderer)) ,'",'));
     // NOTE: ensure trailing comma on second to last line
+    console.log(string.concat('  "partyHelpers": "', Strings.toHexString(address(partyHelpers)) ,'"'));
     console.log('}');
 
     vm.stopBroadcast();

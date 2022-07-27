@@ -299,7 +299,7 @@ abstract contract PartyGovernance is
         return _getProposalExecutionEngine();
     }
 
-    /// @notice Get the total voting power of `voter at a timestamp.
+    /// @notice Get the total voting power of `voter` at a timestamp.
     function getVotingPowerAt(address voter, uint40 timestamp)
         public
         view
