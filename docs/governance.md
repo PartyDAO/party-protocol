@@ -266,8 +266,8 @@ This proposal is atomic, always completing in one step/execute.
     - Recall that the `Party` contract is also the voting card NFT so calling this function can trick someone into thinking they received a voting card.
 - If the proposal did not pass unanimously, extra checks are made to prevent moving a precious NFT:
     - Before executing all the calls, check which precious NFTs the Party possesses. Then after executing all the calls, ensure we still possess them or else the entire proposal will revert.
-    - If the call is to `IERC721.approve()`, the target is a precious NFT token, and the token ID is a matching precious token ID, revert the entire proposal unless the operator is set to the zero address.
-    - If the call is to `IERC721.setApprovalForAll()` and the target is a precious NFT token, revert the entire proposal unless the approval status is set to `false`.
+    - If the call is to `IERC721.approve()`, the target is a precious NFT token, and the token ID is a matching precious token ID, revert the entire proposal unless the operator would be set to the zero address.
+    - If the call is to `IERC721.setApprovalForAll()` and the target is a precious NFT token, revert the entire proposal unless the approval status would be set to `false`.
 - Unanimous proposals will not have restrictions on moving precious tokens or setting allowances for them.
 
 ### ListOnZora Proposal Type
