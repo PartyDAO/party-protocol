@@ -162,7 +162,7 @@ contract PartyHelpersTest is Test, TestUtils {
         // create party helpers
         PartyHelpers ph = new PartyHelpers();
 
-        // test edge startIndex = 0 and endIndex > tokenCount
+        // test endIndex > tokenCount
         PartyHelpers.NftInfo[] memory nftInfos = ph.getNftInfos(address(party), 1, 6);
         assertTrue(nftInfos.length == 4);
         assertTrue(nftInfos[0].tokenId == 1);
