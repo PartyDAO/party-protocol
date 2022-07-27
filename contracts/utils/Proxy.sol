@@ -18,6 +18,7 @@ contract Proxy {
         }
     }
 
+    // Forward all calls to the implementation.
     fallback() external payable {
         Implementation impl = IMPL;
         assembly {
