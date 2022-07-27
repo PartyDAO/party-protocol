@@ -392,12 +392,11 @@ contract TokenDistributor is ITokenDistributor, ERC1155TokenReceiver {
             feeRecipient: args.feeRecipient,
             fee: fee
         });
-        bytes15 distributionHash15 = _getDistributionHash(info);
         (
             _distributionStates[args.party][info.distributionId].distributionHash15,
             _distributionStates[args.party][info.distributionId].remainingMemberSupply
-        ) = (distributionHash15, memberSupply);
-        emit DistributionCreated(args.party, info, distributionHash15);
+        ) = (_getDistributionHash(info), memberSupply);
+        emit DistributionCreated(args.party, info);
     }
 
     function _transfer(
