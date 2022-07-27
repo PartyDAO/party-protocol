@@ -309,22 +309,6 @@ abstract contract PartyGovernance is
         return (snap.isDelegated ? 0 : snap.intrinsicVotingPower) + snap.delegatedVotingPower;
     }
 
-    /// @notice Get the total voting power of each voter in `voters` at a timestamp.
-    function getVotingPowersAt(address[] memory voters, uint40 timestamp)
-        public
-        view
-        returns (uint96[] memory votingPowers)
-    {
-        votingPowers = new uint96[](voters.length);
-        // todo: should we turn an array of voting powers or an array of { uint256 address; uint96 votingPower; }
-        for (uint256 i = 0; i < voters.length;) {
-            votingPowers[i] = getVotingPowerAt(voters[i], timestamp);
-            unchecked {
-                ++i;
-            }
-        }
-    }
-
     function getProposalStateInfo(uint256 proposalId)
         external
         view
@@ -371,20 +355,6 @@ abstract contract PartyGovernance is
     function delegateVotingPower(address delegate) external onlyDelegateCall {
         _adjustVotingPower(msg.sender, 0, delegate);
         emit VotingPowerDelegated(msg.sender, delegate);
-    }
-
-    function getCurrentDelegates(address[] memory members)
-        external
-        view
-        returns (address[] memory delegates)
-    {
-        delegates = new address[](members.length);
-        for (uint256 i = 0; i < members.length;) {
-            delegates[i] = delegationsByVoter[members[i]];
-            unchecked {
-                ++i;
-            }
-        }
     }
 
     /// @notice Transfer party host status to another.

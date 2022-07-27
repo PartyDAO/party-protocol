@@ -6,6 +6,7 @@ import "forge-std/console2.sol";
 
 import "../../contracts/party/PartyFactory.sol";
 import "../../contracts/party/Party.sol";
+import "../../contracts/party/PartyHelpers.sol";
 import "../../contracts/globals/Globals.sol";
 import "../../contracts/renderers/PartyGovernanceNFTRenderer.sol";
 import "../proposals/DummySimpleProposalEngineImpl.sol";
@@ -48,7 +49,7 @@ contract PartyGovernanceNFTTest is Test, TestUtils {
         toadz.mint(nftHolderAddress);
     }
 
-    function testTokenURI() public {
+    function testGetNftInfos() public {
         // Create party
         (Party party, ,) = partyAdmin.createParty(
             PartyAdmin.PartyCreationMinimalOptions({
@@ -63,33 +64,37 @@ contract PartyGovernanceNFTTest is Test, TestUtils {
             })
         );
 
+        PartyParticipant steve = new PartyParticipant();
+        PartyParticipant lawrence = new PartyParticipant();
+        PartyParticipant anna = new PartyParticipant();
+
         // Mint first governance NFT
-        partyAdmin.mintGovNft(party, address(john), 49, address(john));
+        partyAdmin.mintGovNft(party, address(john), 30, address(john));
+        partyAdmin.mintGovNft(party, address(steve), 15, address(steve));
+        partyAdmin.mintGovNft(party, address(lawrence), 20, address(lawrence));
+        partyAdmin.mintGovNft(party, address(anna), 35, address(anna));
 
-        // Uncomment for testing rendering
-        // console.log(party.tokenURI(1));
+        // create party helpers
+        PartyHelpers ph = new PartyHelpers(address(party));
 
-        string memory tokenURI = party.tokenURI(1);
-        assertTrue(bytes(tokenURI).length > 0);
-    }
+        // test edge startIndex = 0 and endIndex > tokenCount
+        PartyHelpers.NftInfo[] memory nftInfos = ph.getNftInfos(0, 6);
+        assertTrue(nftInfos.length == 4);
+        assertTrue(nftInfos[0].tokenId == 1);
+        assertTrue(nftInfos[0].owner == address(john));
+        assertTrue(nftInfos[0].intrinsicVotingPower == 30);
+        assertTrue(nftInfos[1].intrinsicVotingPower == 15);
+        assertTrue(nftInfos[2].intrinsicVotingPower == 20);
+        assertTrue(nftInfos[3].tokenId == 4);
+        assertTrue(nftInfos[3].owner == address(anna));
+        assertTrue(nftInfos[3].intrinsicVotingPower == 35);
 
-    function testTokenURIWithNotMintedTokenId() public {
-        (Party party, ,) = partyAdmin.createParty(
-            PartyAdmin.PartyCreationMinimalOptions({
-                host1: address(this),
-                host2: address(0),
-                passThresholdBps: 5100,
-                totalVotingPower: 100,
-                preciousTokenAddress: address(toadz),
-                preciousTokenId: 1,
-                feeBps: 0,
-                feeRecipient: payable(0)
-            })
-        );
+        // test startIndex > endIndex
+        PartyHelpers.NftInfo[] memory nftInfos2 = ph.getNftInfos(3, 0);
+        assertTrue(nftInfos2.length == 3);
 
-        vm.expectRevert(abi.encodeWithSelector(
-            PartyGovernanceNFTRenderer.InvalidTokenIdError.selector
-        ));
-        party.tokenURI(1);
+        // test expected startIndex and endIndex
+        PartyHelpers.NftInfo[] memory nftInfos3 = ph.getNftInfos(1, 4);
+        assertTrue(nftInfos3.length == 4);
     }
 }
