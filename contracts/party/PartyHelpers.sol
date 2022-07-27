@@ -62,12 +62,13 @@ contract PartyHelpers {
     ////////////////////////////////
 
     /// @notice Get the owner and intrinsic voting power of each governance nft in a range
-    function getNftInfos(address party, uint256 startTokenId, uint256 count)
+    function getNftInfos(address party, uint256 startTokenId, uint256 endTokenId)
         external
         view
         returns (NftInfo[] memory nftInfos)
     {
         Party p = Party(payable(party));
+        uint256 count = endTokenId - startTokenId + 1;
         {
             uint256 tokenCount = p.tokenCount();
             if (count > tokenCount) {

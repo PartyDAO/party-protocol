@@ -186,15 +186,15 @@ contract PartyHelpersTest is Test, TestUtils {
         assertTrue(nftInfos[3].owner == address(anna));
         assertTrue(nftInfos[3].intrinsicVotingPower == 35);
 
-        // test expected startIndex and endIndex
+        // test expected startTokenId and endTokenId
         PartyHelpers.NftInfo[] memory nftInfos2 = ph.getNftInfos(address(party), 1, 1);
         assertTrue(nftInfos2.length == 1);
         assertTrue(nftInfos2[0].tokenId == 1);
         assertTrue(nftInfos2[0].owner == address(john));
         assertTrue(nftInfos2[0].intrinsicVotingPower == 30);
 
-        // test startIndex > 1
-        PartyHelpers.NftInfo[] memory nftInfos3 = ph.getNftInfos(address(party), 2, 3);
+        // test startTokenId > 1
+        PartyHelpers.NftInfo[] memory nftInfos3 = ph.getNftInfos(address(party), 2, 4);
         assertTrue(nftInfos3.length == 3);
         assertTrue(nftInfos3[0].tokenId == 2);
         assertTrue(nftInfos3[0].owner == address(steve));
@@ -206,7 +206,7 @@ contract PartyHelpersTest is Test, TestUtils {
         assertTrue(nftInfos3[2].owner == address(anna));
         assertTrue(nftInfos3[2].intrinsicVotingPower == 35);
 
-        // test startIndex > 1 and count > tokenCount
+        // test startTokenId > 1 and endTokenId > tokenCount
         PartyHelpers.NftInfo[] memory nftInfos4 = ph.getNftInfos(address(party), 2, 6);
         assertTrue(nftInfos4.length == 3);
         assertTrue(nftInfos4[0].tokenId == 2);
