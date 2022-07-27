@@ -74,19 +74,23 @@ Parties are initialized with fixed governance options which will (mostly) never 
 ## Voting Power
 
 ### Voting Cards
+
 Voting power within the governance Party is represented and held by "voting cards," which are NFTs (721s) minted for each member of the Party. Each voting card has a distinct voting power/weight associated with it. These cards can never be broken up or combined, but a user may own multiple voting cards within a Party. The total (intrinsic) voting power a member has is the sum of all the voting power in all the voting cards for that Party they possess at a given timestamp.
 
 ### Delegation
+
 Owners of voting cards can call `Party.delegateVotingPower()` to delegate their intrinsic *total* voting power (at the time of the call) to another account. The minter of the voting card can also set an initial delegate for the owner, meaning any voting cards held by the owner will be delegated by default. If a user transfers their voting card, the voting power will be delegated to the recipient's existing delegate.
 
 The chosen delegate does not need to own a voting card. Delegating voting power strips the owner of their entire voting power until they redelegate to themselves, meaning they will not be able to vote on proposals created afterwards. Voting card owners can recover their voting power for future proposals if they delegate to themselves or to the zero address.
 
 ### Calculating Effective Voting Power
+
 The effective voting power of a user is the sum of all undelegated (or self-delegated) voting power from their voting cards plus the sum of all voting power delegated to them by other users.
 
 The effective voting power of a user at a given time can be found by calling `Party.getVotingPowerAt()`.
 
 ### Voting Power Snapshots
+
 The voting power applied when a user votes on a proposal is their effective voting power at the time the proposal was proposed. This prevents people from acquiring large amounts of voting cards to influence the outcome of an active proposal. The `Party` contract appends a record of a user's total delegated (to them) and intrinsic voting power each time any of the following occurs:
 
 - A user receives a voting card (transfer or minting).
@@ -160,6 +164,7 @@ The call to `execute()` will fail if:
 If the proposal is atomic, meaning it is a single-step proposal, it will immediately enter the `Complete` status.
 
 #### Multi-step Proposals
+
 Some proposal types require multiple steps and transactions to be completed. An example is the `ListOnZoraProposal` type. This proposal will first list an NFT on Zora as an auction then if the auction does not receive any bids after some amount of time or if the auction completes with a winning bid, the auction will need to be cancelled or finalized by the Party. To accomplish this, the proposal must be executed multiple times until it is considered complete and can enter the `Complete` status.
 
 Usually further steps in a multi-step proposal requires some state to be remembered between steps. For example, the `ListOnZoraProposal` type will need to recall the ID of the Zora auction it created so it can cancel or finalize it as a final step. Rather than storing this (potentially complex) data on-chain, executing a proposal will emit a `ProposalExecuted` event with an arbitrary bytes `nextProgressData` parameter, which should be passed into the next call to `execute()` to advance the proposal. The `Party` will only store the hash of the `nextProgressData` and confirm it matches the hash of what is passed in. This data blob holds any encoded state necessary to progress the proposal to the next step.
@@ -167,19 +172,47 @@ Usually further steps in a multi-step proposal requires some state to be remembe
 Once the proposal has executed its final step, it will emit an empty `nextProgressData` in the `ProposalExecuted` event.
 
 ### Cancelling Proposals
+
 There is a risk of multi-step proposals never being able to complete because they may continue to revert. Since no other proposals can be executed if another proposal is `InProgress`, a Party can become permanently stuck, unable to execute any other proposal. To prevent this scenario, proposals have a `minCancelTime` property, after which an `InProgress` proposal can be forced into a `Complete` state. There is also a global (defined in the `Globals` contract) configuration value (`GLOBAL_PROPOSAL_MAX_CANCEL_DURATION`) which limits the `minCancelTime` to a time not too far in the future.
 
 Cancelling a proposal should be considered a last resort, as it can potentially leave the Party in a broken state (e.g., assets are stuck in another protocol) because the proposal was not able to properly clean up after itself. With this in mind, Parties should be careful not to pass proposals that have too soon a `minCancelTime` unless they fully trust all other members.
 
 ## The ProposalExecutionEngine
 
-TODO:
-- Rationale
-- Single execution enforcement
-- Progress data enforcement
-- Upgrades
+The `Party` contract does not actually understand how to execute the different proposal types, and only perceives them as opaque binary data, `proposalData`. This `proposalData`, along with `progressData` (which is also opaque), is passed into `ProposalExecutionEngine.executeProposal()` by delegatecall.  From there, the ProposalExecutionEngine will:
+
+1. Check that there isn't a different proposal that hasn't completed its steps.
+2. If this proposal *is* the outstanding incomplete proposal, check that the hash of the `progressData` it receives matches the hash of the `progressData` emitted the last time the proposal was executed.
+3. Decode the first 4 bytes of the `proposalData` to determine the [proposal type](#proposal-types).
+4. Decode `proposalData` and `progressData` to execute the next step in the proposal.
+5. If the proposal is not complete, return non-empty `nextProgressData`.
+
+The rationale for separating the `ProposalExecutionEngine` from the `Party` instance is to narrow the concern of the `Party` contract with governance (which is already sufficiently complex) and, more importantly, so Parties can upgrade their `ProposalExecutionEngine` contracts to support more proposal types as the protocol matures.
+
+`ProposalExecutionEngine` is not a pure logic contract, it does define, own, and maintain its own "private" storage state which exists in the context of the `Party`:
+
+- The proposal ID of the outstanding/incomplete (`InProgress`) proposal.
+- The hash of the `progressData` to be passed into the next call to `executeProposal()` to advance the incomplete proposal.
+
+These storage variables begin in a constant, non-overlapping slot index to avoid collisions and simplify explicit migrations to a new storage schema if necessary. It does not access any inline storage fields defined in the `Party` contract, nor does the `Party` contract access these storage variables.
 
 ## Proposal Types
+
+The Party protocol will support 5 proposal types at launch:
+
+- [ListOnZora Proposals](#listonzora-proposal)
+- [ListOnOpenSea Proposals](#listonopensea-proposal)
+- [Fractionalize Proposals](#fractionalize-proposal)
+- [ArbitraryCalls Proposals](#arbitrarycalls-proposal)
+- [UpgradeProposalEngineImpl Proposals](#upgradeproposalengineimpl-proposal)
+
+### ListOnZora Proposal Type
+
+TODO:
+- Proposal properties
+- Steps
+    - Create zora auction
+    - Cancel/Finalize zora auction
 
 ### ListOnOpenSea Proposal Type
 
@@ -191,14 +224,6 @@ TODO:
     - Create OS listing
     - Finalize OS listing
 - Behavior when unanimous
-
-### ListOnZora Proposal Type
-
-TODO:
-- Proposal properties
-- Steps
-    - Create zora auction
-    - Cancel/Finalize zora auction
 
 ### Fractionalize Proposal Type
 

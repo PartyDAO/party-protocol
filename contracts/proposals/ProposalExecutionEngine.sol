@@ -41,6 +41,8 @@ contract ProposalExecutionEngine is
         NumProposalTypes
     }
 
+    // Explicit storage bucket for "private" state owned by the ProposalExecutionEngine.
+    // See _getStorage() for how this is addressed.
     struct Storage {
         // The hash of the next progressData for the current InProgress
         // proposal. This is updated to the hash of the next progressData every
@@ -79,8 +81,7 @@ contract ProposalExecutionEngine is
         ListOnZoraProposal(zoraAuctionHouse)
     {
         _GLOBALS = globals;
-        // First version is just the hash of the runtime code. Later versions
-        // might hardcode this value if they intend to reuse storage.
+        // Use a constant, non-overlapping slot offset for the storage bucket.
         _STORAGE_SLOT = uint256(keccak256('ProposalExecutionEngine.Storage'));
     }
 
