@@ -208,7 +208,7 @@ The rationale for separating the `ProposalExecutionEngine` from the `Party` inst
 - The proposal ID of the outstanding/incomplete (`InProgress`) proposal.
 - The hash of the `progressData` to be passed into the next call to `executeProposal()` to advance the incomplete proposal.
 
-These storage variables begin in a constant, non-overlapping slot index to avoid collisions and simplify explicit migrations to a new storage schema if necessary. It does not access any inline storage fields defined in the `Party` contract, nor does the `Party` contract access these storage variables.
+These storage variables begin at a constant, non-overlapping slot index to avoid collisions and simplify explicit migrations to a new storage schema if necessary. It does not access any inline storage fields defined in the `Party` contract, nor does the `Party` contract access these storage variables.
 
 ---
 
