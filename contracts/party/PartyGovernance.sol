@@ -58,13 +58,13 @@ abstract contract PartyGovernance is
         // complete so it needs to be executed again. No other proposals may be
         // executed while a proposal is in the `InProgress` state. No voting or
         // vetoing of the proposal is allowed, however it may be forcibly cancelled
-        // via `cancel()` if the `minCancelTime` has arrived.
+        // via `cancel()` if the `cancelDelay` has passed since being first executed.
         InProgress,
         // The proposal was executed and completed all its steps. No voting or
         // vetoing can occur and it cannot be cancelled nor executed again.
         Complete,
         // The proposal was executed at least once but did not complete before
-        // `minCancelTime` and was forcibly cancelled.
+        // `cancelDelay` passed and was forcibly cancelled.
         Cancelled
     }
 
@@ -116,7 +116,7 @@ abstract contract PartyGovernance is
         uint40 maxExecutableTime;
         // The minimum seconds this proposal can remain in the InProgress status
         // before it can be cancelled.
-        uint40 minCancelTime;
+        uint40 cancelDelay;
         // Encoded proposal data. The first 4 bytes are the proposal type, followed
         // by encoded proposal args specific to the proposal type. See
         // ProposalExecutionEngine for details.
@@ -182,7 +182,7 @@ abstract contract PartyGovernance is
     error OnlyWhenEmergencyActionsAllowedError();
     error AlreadyVotedError(address voter);
     error InvalidNewHostError();
-    error ProposalCannotBeCancelledYetError(uint40 currentTime, uint40 minCancelTime);
+    error ProposalCannotBeCancelledYetError(uint40 currentTime, uint40 cancelTime);
 
     uint256 constant private UINT40_HIGH_BIT = 1 << 39;
 
@@ -356,7 +356,7 @@ abstract contract PartyGovernance is
         // keccak256(abi.encode(
         //   proposal.minExecutableTime,
         //   keccak256(proposal.proposalData),
-        //   proposal.minCancelTime
+        //   proposal.cancelDelay
         // ))
         bytes32 dataHash = keccak256(proposal.proposalData);
         assembly {
@@ -472,9 +472,8 @@ abstract contract PartyGovernance is
     }
 
     /// @notice Vote to support a proposed proposal.
-    /// @dev The voting power cast will
-    ///      be the total votes delegated to the caller + the total undelegated
-    ///      (or self-delegated) votes to the caller at the time propose() was called.
+    /// @dev The voting power cast will be the effective voting power of the caller
+    ///      at the time propose() was called (see getVotingPowerAt()).
     ///      If the proposal reaches passThresholdBps acceptance ratio then the
     ///      proposal will be in the Passed state and will be executable after
     ///      the executionDelay has passed, putting it in the Ready state.
@@ -613,12 +612,13 @@ abstract contract PartyGovernance is
     }
 
     /// @notice Cancel a (probably stuck) InProgress proposal.
-    /// @dev It must be at least proposal.minCancelTime for this to be valid.
-    //       The currently active propgress will simply be yeeted out of existence
-    //       so another proposal can execute.
-    //       This is intended to be a last resort and can leave the party
-    //       in a broken state. Whenever possible, active proposals should be
-    //       allowed to complete their lifecycle.
+    /// @dev proposal.cancelDelay seconds must have passed since it was first
+    ///       executed for this to be valid.
+    ///       The currently active propgress will simply be yeeted out of existence
+    ///       so another proposal can execute.
+    ///       This is intended to be a last resort and can leave the party
+    ///       in a broken state. Whenever possible, active proposals should be
+    ///       allowed to complete their lifecycle.
     function cancel(uint256 proposalId, Proposal calldata proposal)
         external
         onlyActiveMember
@@ -627,33 +627,33 @@ abstract contract PartyGovernance is
         ProposalState storage proposalState = _proposalStateByProposalId[proposalId];
         // Proposal details must remain the same from propose().
         _validateProposalHash(proposal, proposalState.hash);
-        // Limit the maximum minCancelTime to the global max cancel delay + executedTime
-        // to mitigate parties accidentally getting stuck forever by setting an
-        // unrealistic minCancelTime.
-        uint256 effectiveMinCancelTime = proposal.minCancelTime;
-        {
-            uint256 maxCancelDuration =
-                _GLOBALS.getUint256(LibGlobals.GLOBAL_PROPOSAL_MAX_CANCEL_DURATION);
-            if (maxCancelDuration != 0) { // Only if we have one set.
-                effectiveMinCancelTime = proposalState.values.executedTime + maxCancelDuration;
-                if (effectiveMinCancelTime > proposal.minCancelTime) {
-                    effectiveMinCancelTime = proposal.minCancelTime;
-                }
-            }
-        }
-        // Must not be before minCancelTime.
-        if (block.timestamp < effectiveMinCancelTime) {
-            revert ProposalCannotBeCancelledYetError(
-                uint40(block.timestamp),
-                uint40(effectiveMinCancelTime)
-            );
-        }
         ProposalStateValues memory values = proposalState.values;
         {
-            ProposalStatus status = _getProposalStatus(values);
             // Must be InProgress.
+            ProposalStatus status = _getProposalStatus(values);
             if (status != ProposalStatus.InProgress) {
                 revert BadProposalStatusError(status);
+            }
+        }
+        {
+            // Limit the maximum cancelDelay to the global max cancel delay
+            // to mitigate parties accidentally getting stuck forever by setting an
+            // unrealistic cancelDelay.
+            uint256 cancelDelay = proposal.cancelDelay;
+            uint256 globalMaxCancelDelay =
+                _GLOBALS.getUint256(LibGlobals.GLOBAL_PROPOSAL_MAX_CANCEL_DURATION);
+            if (globalMaxCancelDelay != 0) { // Only if we have one set.
+                if (cancelDelay > globalMaxCancelDelay) {
+                    cancelDelay = globalMaxCancelDelay;
+                }
+            }
+            uint256 cancelTime = values.executedTime + cancelDelay;
+            // Must not be too early.
+            if (block.timestamp < cancelTime) {
+                revert ProposalCannotBeCancelledYetError(
+                    uint40(block.timestamp),
+                    uint40(cancelTime)
+                );
             }
         }
         // Mark the proposal as cancelled by setting the completed time to the current

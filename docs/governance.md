@@ -128,7 +128,7 @@ Governance in Parties follows a fairly traditional model, revolving around passi
 
 - proposal ID: A unique identifier (counter) assigned to a proposal when it it is first proposed.
 - `maxExecutableTime`: A timestamp beyond which the proposal can no longer be executed (for the first time).
-- `minCancelTime`: A timestamp beyond which the proposal can be forcibly interrupted and marked complete so another proposal can be executed.
+- `cancelDelay`: Number of seconds after a proposal enters the `InProgress` state after which it can be forcibly interrupted and marked complete so another proposal can be executed.
 - `proposalData`: Encoded data needed to execute the proposal.
 
 An important thing to note is that none of these proposal properties are ever stored on-chain. Instead, only the hash of these fields are stored on-chain (keyed by the proposal ID) to enforce that the properties do not change between lifecycle operations.
@@ -142,13 +142,13 @@ The stages of a proposal are defined in `PartyGovernance.ProposalStatus`:
 - `Defeated`: The proposal has either exceeded its voting window without reaching `passThresholdBps` of votes or was vetoed by a party host.
 - `Passed`: The proposal reached at least `passThresholdBps` of votes but is still waiting for `executionDelay` to pass before it can be executed. Members can continue to vote on the proposal and party hosts can veto at this time.
 - `Ready`: Same as `Passed` but now `executionDelay` has been satisfied. Any member may execute the proposal via `execute()`, unless `maxExecutableTime` has arrived.
-- `InProgress`: The proposal has been executed at least once but has further steps to complete so it needs to be executed again. No other proposals may be executed while a proposal is in the `InProgress` state. No voting or vetoing of the proposal is allowed, however it may be forcibly cancelled via `cancel()` if the `minCancelTime` has arrived.
+- `InProgress`: The proposal has been executed at least once but has further steps to complete so it needs to be executed again. No other proposals may be executed while a proposal is in the `InProgress` state. No voting or vetoing of the proposal is allowed, however it may be forcibly cancelled via `cancel()` if the `cancelDelay` has arrived.
 - `Complete`: The proposal was executed and completed all its steps. No voting or vetoing can occur and it cannot be cancelled nor executed again.
-- `Cancelled`: The proposal was executed at least once but did not complete before `minCancelTime` and was forcibly cancelled.
+- `Cancelled`: The proposal was executed at least once but did not complete before `cancelDelay` seconds passed since the first execute and was forcibly cancelled.
 
 ### Making Proposals
 
-A proposer should choose an appropriate `maxExecutableTime` and `minCancelTime`. The `proposalData` should be prefixed (like a function call) with a 4-byte `IProposalExecutionEngine.ProposalType` value followed by the ABI-encoded data specific to that proposal type (see [Proposal Types](#proposal-types)), e.g., `abi.encodeWithSelector(bytes4(ProposalType.ListOnZoraProposal), abi.encode(ZoraProposalData(...)))`.
+A proposer should choose an appropriate `maxExecutableTime` and `cancelDelay`. The `proposalData` should be prefixed (like a function call) with a 4-byte `IProposalExecutionEngine.ProposalType` value followed by the ABI-encoded data specific to that proposal type (see [Proposal Types](#proposal-types)), e.g., `abi.encodeWithSelector(bytes4(ProposalType.ListOnZoraProposal), abi.encode(ZoraProposalData(...)))`.
 
 Once ready, an active member or delegate (someone with nonzero effective voting power) can call `propose()` with the proposal properties, which will assign a unique, nonzero proposal ID and put the proposal in the `Voting` status. Proposing a proposal will also automatically cast the proposer's votes for it.
 
@@ -186,9 +186,9 @@ Once the proposal has executed its final step, it will emit an empty `nextProgre
 
 ### Cancelling Proposals
 
-There is a risk of multi-step proposals never being able to complete because they may continue to revert. Since no other proposals can be executed if another proposal is `InProgress`, a Party can become permanently stuck, unable to execute any other proposal. To prevent this scenario, proposals have a `minCancelTime` property, after which an `InProgress` proposal can be forced into a `Complete` state. There is also a global (defined in the `Globals` contract) configuration value (`GLOBAL_PROPOSAL_MAX_CANCEL_DURATION`) which limits the `minCancelTime` to a time not too far in the future.
+There is a risk of multi-step proposals never being able to complete because they may continue to revert. Since no other proposals can be executed if another proposal is `InProgress`, a Party can become permanently stuck, unable to execute any other proposal. To prevent this scenario, proposals have a `cancelDelay` property. After a proposal has been in the `InProgress` status after this many seconds, it can be forced into a `Complete` state by calling `cancel()`. There is also a global (defined in the `Globals` contract) configuration value (`GLOBAL_PROPOSAL_MAX_CANCEL_DURATION`) which limits the `cancelDelay` to a duration not too far in the future.
 
-Cancelling a proposal should be considered a last resort, as it can potentially leave the Party in a broken state (e.g., assets are stuck in another protocol) because the proposal was not able to properly clean up after itself. With this in mind, Parties should be careful not to pass proposals that have too soon a `minCancelTime` unless they fully trust all other members.
+Cancelling a proposal should be considered a last resort, as it can potentially leave the Party in a broken state (e.g., assets are stuck in another protocol) because the proposal was not able to properly clean up after itself. With this in mind, Parties should be careful not to pass proposals that have too short a `cancelDelay` unless they fully trust all other members.
 
 ---
 

@@ -97,7 +97,7 @@ contract PartyGovernanceTest is Test, TestUtils {
     PartyGovernance.Proposal memory p1 = PartyGovernance.Proposal({
       maxExecutableTime: 999999999,
       proposalData: abi.encodePacked([0]),
-      minCancelTime: uint40(block.timestamp + 1 days)
+      cancelDelay: uint40(1 days)
     });
     john.makeProposal(party, p1);
 
@@ -201,7 +201,7 @@ contract PartyGovernanceTest is Test, TestUtils {
     PartyGovernance.Proposal memory p1 = PartyGovernance.Proposal({
       maxExecutableTime: 999999999,
       proposalData: abi.encodePacked([0]),
-      minCancelTime: uint40(block.timestamp + 1 days)
+      cancelDelay: uint40(1 days)
     });
     john.makeProposal(party, p1);
 
@@ -267,7 +267,7 @@ contract PartyGovernanceTest is Test, TestUtils {
     PartyGovernance.Proposal memory p1 = PartyGovernance.Proposal({
       maxExecutableTime: 999999999,
       proposalData: abi.encodePacked([0]),
-      minCancelTime: uint40(block.timestamp + 1 days)
+      cancelDelay: uint40(1 days)
     });
     john.makeProposal(party, p1);
     danny.vote(party, 1);
@@ -324,7 +324,7 @@ contract PartyGovernanceTest is Test, TestUtils {
     PartyGovernance.Proposal memory p1 = PartyGovernance.Proposal({
       maxExecutableTime: 999999999,
       proposalData: abi.encodePacked([0]),
-      minCancelTime: uint40(block.timestamp + 1 days)
+      cancelDelay: uint40(1 days)
     });
     john.makeProposal(party, p1);
 
@@ -365,7 +365,7 @@ contract PartyGovernanceTest is Test, TestUtils {
     PartyGovernance.Proposal memory p1 = PartyGovernance.Proposal({
       maxExecutableTime: 999999999,
       proposalData: abi.encodePacked([0]),
-      minCancelTime: uint40(block.timestamp + 1 days)
+      cancelDelay: uint40(1 days)
     });
     john.makeProposal(party, p1);
 
@@ -421,7 +421,7 @@ contract PartyGovernanceTest is Test, TestUtils {
     PartyGovernance.Proposal memory p1 = PartyGovernance.Proposal({
       maxExecutableTime: 999999999,
       proposalData: abi.encodePacked([0]),
-      minCancelTime: uint40(block.timestamp + 1 days)
+      cancelDelay: uint40(1 days)
     });
     john.makeProposal(party, p1);
     _assertProposalStatus(party, 1, PartyGovernance.ProposalStatus.Voting, 1);
