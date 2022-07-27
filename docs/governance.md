@@ -216,11 +216,11 @@ These storage variables begin at a constant, non-overlapping slot index to avoid
 
 The Party protocol will support 5 proposal types at launch:
 
-- [ListOnZora Proposals](#listonzora-proposal)
-- [ListOnOpenSeaport Proposals](#listonopenseaport-proposal)
-- [Fractionalize Proposals](#fractionalize-proposal)
-- [ArbitraryCalls Proposals](#arbitrarycalls-proposal)
-- [UpgradeProposalEngineImpl Proposals](#upgradeproposalengineimpl-proposal)
+- [ListOnZora Proposals](#listonzora-proposal-type)
+- [ListOnOpenSeaport Proposals](#listonopenseaport-proposal-type)
+- [Fractionalize Proposals](#fractionalize-proposal-type)
+- [ArbitraryCalls Proposals](#arbitrarycalls-proposal-type)
+- [UpgradeProposalEngineImpl Proposals](#upgradeproposalengineimpl-proposal-type)
 
 ### ListOnZora Proposal Type
 
