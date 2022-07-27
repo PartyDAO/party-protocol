@@ -10,26 +10,20 @@ contract PartyHelpers {
         uint256 intrinsicVotingPower;
     }
 
-    Party party;
-
-    constructor(address _party) {
-        party = Party(payable(_party));
-    }
-
-
     /////////////////////////////
     // PartyGovernance helpers //
     /////////////////////////////
 
     /// @notice Get the current delegate for each member in `members`
-    function getCurrentDelegates(address[] calldata members)
+    function getCurrentDelegates(address party, address[] calldata members)
         external
         view
         returns (address[] memory delegates)
     {
+        Party p = Party(payable(party));
         delegates = new address[](members.length);
         for (uint256 i = 0; i < members.length;) {
-            delegates[i] = party.delegationsByVoter(members[i]);
+            delegates[i] = p.delegationsByVoter(members[i]);
             unchecked {
                 ++i;
             }
@@ -37,15 +31,16 @@ contract PartyHelpers {
     }
 
     /// @notice Get the total voting power of each voter in `voters` at a timestamp.
-    function getVotingPowersAt(address[] calldata voters, uint40 timestamp)
+    function getVotingPowersAt(address party, address[] calldata voters, uint40 timestamp)
         external
         view
         returns (uint96[] memory votingPowers)
     {
+        Party p = Party(payable(party));
         votingPowers = new uint96[](voters.length);
         // todo: should we turn an array of voting powers or an array of { uint256 address; uint96 votingPower; }
         for (uint256 i = 0; i < voters.length;) {
-            votingPowers[i] = party.getVotingPowerAt(voters[i], timestamp);
+            votingPowers[i] = p.getVotingPowerAt(voters[i], timestamp);
             unchecked {
                 ++i;
             }
@@ -58,31 +53,25 @@ contract PartyHelpers {
     ////////////////////////////////
 
     /// @notice Get the current delegate for each member in `members`
-    function getNftInfos(uint256 startIndex, uint256 endIndex)
+    function getNftInfos(address party, uint256 startIndex, uint256 endIndex)
         external
         view
         returns (NftInfo[] memory nftInfos)
     {
-        // ensure startIndex and endIndex are in bounds
-        if (endIndex < startIndex) {
-            uint256 temp = endIndex;
-            endIndex = startIndex;
-            startIndex = temp;
-        }
-        if (startIndex == 0) {
-            startIndex = 1;
-        }
-        uint256 tokenCount = party.tokenCount();
-        if (endIndex > tokenCount) {
-            endIndex = tokenCount;
+        Party p = Party(payable(party));
+        {
+            uint256 tokenCount = p.tokenCount();
+            if (endIndex > tokenCount) {
+                endIndex = tokenCount;
+            }
         }
 
         nftInfos = new NftInfo[](endIndex - startIndex + 1);
 
         for (uint256 i = startIndex; i <= endIndex;) {
-            address owner = party.ownerOf(i);
-            uint256 intrinsicVotingPower = party.votingPowerByTokenId(i);
-            nftInfos[i - 1] = NftInfo({
+            address owner = p.ownerOf(i);
+            uint256 intrinsicVotingPower = p.votingPowerByTokenId(i);
+            nftInfos[i - startIndex] = NftInfo({
                 intrinsicVotingPower: intrinsicVotingPower,
                 owner: owner,
                 tokenId: i
