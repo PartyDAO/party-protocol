@@ -4,6 +4,16 @@ pragma solidity ^0.8;
 import "./Party.sol";
 
 contract PartyHelpers {
+    struct MemberAndDelegate {
+        address member;
+        address delegate;
+    }
+
+    struct MemberAndVotingPower {
+        address member;
+        uint96 votingPower;
+    }
+
     struct NftInfo {
         uint256 tokenId;
         address owner;
@@ -18,12 +28,15 @@ contract PartyHelpers {
     function getCurrentDelegates(address party, address[] calldata members)
         external
         view
-        returns (address[] memory delegates)
+        returns (MemberAndDelegate[] memory membersAndDelegates)
     {
         Party p = Party(payable(party));
-        delegates = new address[](members.length);
+        membersAndDelegates = new MemberAndDelegate[](members.length);
         for (uint256 i = 0; i < members.length;) {
-            delegates[i] = p.delegationsByVoter(members[i]);
+            membersAndDelegates[i] = MemberAndDelegate({
+                member: members[i],
+                delegate: p.delegationsByVoter(members[i])
+            });
             unchecked {
                 ++i;
             }
@@ -34,13 +47,16 @@ contract PartyHelpers {
     function getVotingPowersAt(address party, address[] calldata voters, uint40 timestamp)
         external
         view
-        returns (uint96[] memory votingPowers)
+        returns (MemberAndVotingPower[] memory memberAndVotingPower)
     {
         Party p = Party(payable(party));
-        votingPowers = new uint96[](voters.length);
+        memberAndVotingPower = new MemberAndVotingPower[](voters.length);
         // todo: should we turn an array of voting powers or an array of { uint256 address; uint96 votingPower; }
         for (uint256 i = 0; i < voters.length;) {
-            votingPowers[i] = p.getVotingPowerAt(voters[i], timestamp);
+            memberAndVotingPower[i] = MemberAndVotingPower({
+                member: voters[i],
+                votingPower: p.getVotingPowerAt(voters[i], timestamp)
+            });
             unchecked {
                 ++i;
             }

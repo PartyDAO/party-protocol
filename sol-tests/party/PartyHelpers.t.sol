@@ -89,12 +89,16 @@ contract PartyHelpersTest is Test, TestUtils {
         members[1] = address(steve);
         members[2] = address(lawrence);
         members[3] = address(anna);
-        address[] memory currDelegates = ph.getCurrentDelegates(address(party), members);
-        assertTrue(currDelegates.length == 4);
-        assertTrue(currDelegates[0] == address(john));
-        assertTrue(currDelegates[1] == address(john));
-        assertTrue(currDelegates[2] == address(anna));
-        assertTrue(currDelegates[3] == address(lawrence));
+        PartyHelpers.MemberAndDelegate[] memory membersAndDelegates = ph.getCurrentDelegates(address(party), members);
+        assertTrue(membersAndDelegates.length == 4);
+        assertTrue(membersAndDelegates[0].member == address(john));
+        assertTrue(membersAndDelegates[0].delegate == address(john));
+        assertTrue(membersAndDelegates[1].member == address(steve));
+        assertTrue(membersAndDelegates[1].delegate == address(john));
+        assertTrue(membersAndDelegates[2].member == address(lawrence));
+        assertTrue(membersAndDelegates[2].delegate == address(anna));
+        assertTrue(membersAndDelegates[3].member == address(anna));
+        assertTrue(membersAndDelegates[3].delegate == address(lawrence));
     }
 
     function testGetVotingPowersAt() public {
@@ -127,12 +131,16 @@ contract PartyHelpersTest is Test, TestUtils {
         voters[1] = address(steve);
         voters[2] = address(lawrence);
         voters[3] = address(anna);
-        uint96[] memory votingPowers = ph.getVotingPowersAt(address(party), voters, uint40(block.timestamp));
-        assertTrue(votingPowers.length == 4);
-        assertTrue(votingPowers[0] == 30);
-        assertTrue(votingPowers[1] == 15);
-        assertTrue(votingPowers[2] == 20);
-        assertTrue(votingPowers[3] == 35);
+        PartyHelpers.MemberAndVotingPower[] memory membersAndVotingPowers = ph.getVotingPowersAt(address(party), voters, uint40(block.timestamp));
+        assertTrue(membersAndVotingPowers.length == 4);
+        assertTrue(membersAndVotingPowers[0].member == address(john));
+        assertTrue(membersAndVotingPowers[0].votingPower == 30);
+        assertTrue(membersAndVotingPowers[1].member == address(steve));
+        assertTrue(membersAndVotingPowers[1].votingPower == 15);
+        assertTrue(membersAndVotingPowers[2].member == address(lawrence));
+        assertTrue(membersAndVotingPowers[2].votingPower == 20);
+        assertTrue(membersAndVotingPowers[3].member == address(anna));
+        assertTrue(membersAndVotingPowers[3].votingPower == 35);
     }
 
     //////////////////////////////////////
