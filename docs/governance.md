@@ -216,11 +216,57 @@ These storage variables begin at a constant, non-overlapping slot index to avoid
 
 The Party protocol will support 5 proposal types at launch:
 
+- [ArbitraryCalls Proposals](#arbitrarycalls-proposal-type)
 - [ListOnZora Proposals](#listonzora-proposal-type)
 - [ListOnOpenSeaport Proposals](#listonopenseaport-proposal-type)
 - [Fractionalize Proposals](#fractionalize-proposal-type)
-- [ArbitraryCalls Proposals](#arbitrarycalls-proposal-type)
 - [UpgradeProposalEngineImpl Proposals](#upgradeproposalengineimpl-proposal-type)
+
+### ArbitraryCalls Proposal Type
+
+This proposal makes arbitrary contract calls as the Party. There are restrictions the types of calls that can be made in order to make a best effort to prevent precious NFTs from being moved out of the Party.
+
+The `proposalData` should be encoded as:
+```solidity
+abi.encodeWithSelector(
+    // Prefix identifying this proposal type.
+    bytes4(ProposalType.ArbitraryCallsProposal),
+    // Array of ArbitraryCall structs.
+    [
+        ArbitraryCall(
+            // The call target.
+            /* address payable */ target,
+            // Amount of ETH to attach to the call.
+            /* uint256 */ value,
+            // Calldata.
+            /* bytes */ data,
+            // If true, the call is allowed to fail.
+            /* bool */ optional,
+            // Hash of the successful return data of the call.
+            // If 0x0, no return data checking will occur for this call.
+            /* bytes32 */ expectedResultHash
+        ),
+        ...
+    ]
+);
+```
+
+#### Steps
+
+This proposal is atomic, always completing in one step.
+
+- Each call is executed in the order declared.
+- ETH to attach to each call must be provided by the caller of the `Party.execute()` call. If the the sum of all successful calls try to consume more than `msg.value`, the entire proposal will revert.
+- If a call has `optional == true` then the call is allowed to fail. Otherwise, if the call reverts then the entire proposal will revert.
+- If a call has a non-zero `expectedResultHash` then the result of the call will be hashed and matched against this value. If they do not match, then the entire proposal will revert.
+- If the call is to the `Party` itself, the entire proposal will revert.
+- If the call is to the `IERC721.onERC721Received()` function, the entire proposal will revert.
+    - Recall that the `Party` contract is also the voting card NFT so calling this function can trick someone into thinking they received a voting card.
+- If the proposal did not pass unanimously, extra checks are made to prevent moving a precious NFT:
+    - Before executing all the calls, check which precious NFTs the Party possesses. Then after executing all the calls, ensure we still possess them.
+    - If the call is to `IERC721.approve()`, the target is a precious NFT token, and the token ID is a matching precious token ID, revert unless the operator is set to the zero address.
+    - If the call is to `IERC721.setApprovalForAll()` and the target is a precious NFT token, revert unless the approval status is set to `false`.
+- Unanimous proposals will not have restrictions on moving precious tokens or setting allowances for them.
 
 ### ListOnZora Proposal Type
 
@@ -338,16 +384,6 @@ This proposal has between 2-3 steps:
 ### Fractionalize Proposal Type
 
 ... 🤷
-
-### ArbitraryCalls Proposal Type
-
-This proposal makes arbitrary calls as the Party. There are restrictions the types of calls that can be made in order to make a best effort to prevent precious NFTs from being moved out of the Party.
-
-TODO:
-- Proposal/Call properties
-- Restricted operations
-- Behavior when unanimous
-- Attaching ETH
 
 ### UpgradeProposalEngineImpl Proposal Type
 
