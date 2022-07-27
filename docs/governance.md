@@ -28,7 +28,7 @@ The main contracts involved in this phase are:
     - The governance contract that also custodies the precious NFTs. This is also the voting card 721 contract.
 - `ProposalExecutionEngine` ([code](../contracts/proposals/ProposalExecutionEngine.sol))
     - An upgradable logic (and some state) contract for executing each proposal type from the context of the `Party`.
-- `TokenDistributor` ([code](../contracts/distributions/TokenDistributor.sol))
+- `TokenDistributor` ([code](../contracts/distribution/TokenDistributor.sol))
     - Escrow contract for distributing deposited ETH, ERC20, and ERC1155 tokens to members of parties.
 - `Globals` ([code](../contracts/globals/Globals.sol))
     - A contract that defines global configuration values referenced by other contracts across the entire protocol.
