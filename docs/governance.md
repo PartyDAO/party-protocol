@@ -228,6 +228,8 @@ abi.encodeWithSelector(
 );
 ```
 
+#### Steps
+
 This proposal always has two steps:
 1. Transfer the token to the Zora AH contract and create an auction with `listPrice` reserve price and `duration` auction duration (which starts after someone places a bid).
     - This will emit the next `progressData`:
@@ -273,6 +275,8 @@ abi.encodeWithSelector(
     )
 );
 ```
+
+#### Steps
 
 This proposal has between 2-3 steps:
 
