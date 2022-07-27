@@ -161,14 +161,18 @@ contract PartyHelpersTest is Test, TestUtils {
             })
         );
 
+        // create party helpers
+        PartyHelpers ph = new PartyHelpers();
+
+        // test tokenCount = 0
+        PartyHelpers.NftInfo[] memory emptyNftInfo = ph.getNftInfos(address(party), 1, 6);
+        assertTrue(emptyNftInfo.length == 0);
+
         // Mint first governance NFTs
         partyAdmin.mintGovNft(party, address(john), 30, address(john));
         partyAdmin.mintGovNft(party, address(steve), 15, address(steve));
         partyAdmin.mintGovNft(party, address(lawrence), 20, address(lawrence));
         partyAdmin.mintGovNft(party, address(anna), 35, address(anna));
-
-        // create party helpers
-        PartyHelpers ph = new PartyHelpers();
 
         // test endIndex > tokenCount
         PartyHelpers.NftInfo[] memory nftInfos = ph.getNftInfos(address(party), 1, 6);

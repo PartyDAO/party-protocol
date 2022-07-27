@@ -72,7 +72,7 @@ contract PartyHelpers {
         {
             uint256 tokenCount = p.tokenCount();
             if (count > tokenCount) {
-                count = tokenCount - startTokenId + 1;
+                count = tokenCount + 1 - startTokenId;
             }
         }
 
