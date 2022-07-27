@@ -51,7 +51,6 @@ contract PartyHelpers {
     {
         Party p = Party(payable(party));
         memberAndVotingPower = new MemberAndVotingPower[](voters.length);
-        // todo: should we turn an array of voting powers or an array of { uint256 address; uint96 votingPower; }
         for (uint256 i = 0; i < voters.length;) {
             memberAndVotingPower[i] = MemberAndVotingPower({
                 member: voters[i],
