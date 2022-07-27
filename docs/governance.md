@@ -2,6 +2,8 @@
 
 After a crowdfund has acquired its NFTs, they transfer it to a governance `Party` around it, where the contributors are minted voting power equivalent to their contribution during the crowdfund and use that voting power to vote on proposals to be executed as the party.
 
+---
+
 ## Key Concepts
 
 - **Precious**: An NFT custodied by the governance contract (`Party`), conventionally acquired by the crowdfund phase. These are protected assets and are subject to extra restrictions in proposals vs other assets.
@@ -13,6 +15,8 @@ After a crowdfund has acquired its NFTs, they transfer it to a governance `Party
 - **Globals**: A single contract that holds configuration values, referenced by several ecosystem contracts.
 - **Proxies**: All `Party` instances are deployed as simple [`Proxy`](../contracts/utils/Proxy.sol) contracts that forward calls to a `Party` implementation contract.
 - **ProposalExecutionEngine**: An upgradable contract the `Party` contract delegatecalls into that implements the logic for executing specific proposal types.  
+
+---
 
 ## Contracts
 
@@ -30,6 +34,8 @@ The main contracts involved in this phase are:
     - A contract that defines global configuration values referenced by other contracts across the entire protocol.
 
 ![contracts](./governance-contracts.png)
+
+---
 
 ## Party Creation
 
@@ -57,6 +63,8 @@ The sequence of events is:
 4. Optionally, call `PartyFactory.abdicate()`, as the `authority`, to revoke minting privilege once all voting cards have been minted.
 5. At any step after the party creation, members with voting cards can perform governance actions, though they may not be able to reach consensus if the total supply of voting power hasn't been minted/distributed yet.
 
+---
+
 ## Governance Options
 
 Parties are initialized with fixed governance options which will (mostly) never change for the Party's lifetime. They are defined in the `PartyGovernance.GovernanceOpts` struct with the fields:
@@ -68,6 +76,8 @@ Parties are initialized with fixed governance options which will (mostly) never 
 - `totalVotingPower`: Total voting power of the Party. This should be the sum of weights of all (possible) voting cards given to members. Note that nowhere is this assumption enforced, as there may be use-cases for minting more than 100% of voting power, but the logic in crowdfund contracts cannot mint more than `totalVotingPower`.
 - `feeBps`: The fee taken out of this Party's [distributions](#distributions) to reserve for `feeRecipient` to claim. Typically this will be set to an address controlled by PartyDAO.
 - `feeRecipient`: The address that can claim distribution fees for this Party.
+
+---
 
 ## Voting Power
 
@@ -98,6 +108,8 @@ The voting power applied when a user votes on a proposal is their effective voti
 
 When determining the effective voting power of a user, we binary search a user's voting power records for the most recent record <= the proposal time.
 
+---
+
 ## Distributions
 
 TODO:
@@ -107,6 +119,8 @@ TODO:
 - How to claim
 - Fees
 - Emergency backdoors
+
+---
 
 ## Governance Lifecycle
 
@@ -175,6 +189,8 @@ There is a risk of multi-step proposals never being able to complete because the
 
 Cancelling a proposal should be considered a last resort, as it can potentially leave the Party in a broken state (e.g., assets are stuck in another protocol) because the proposal was not able to properly clean up after itself. With this in mind, Parties should be careful not to pass proposals that have too soon a `minCancelTime` unless they fully trust all other members.
 
+---
+
 ## The ProposalExecutionEngine
 
 The `Party` contract does not actually understand how to execute the different proposal types, and only perceives them as opaque binary data, `proposalData`. This `proposalData`, along with `progressData` (which is also opaque), is passed into `ProposalExecutionEngine.executeProposal()` by delegatecall.  From there, the ProposalExecutionEngine will:
@@ -193,6 +209,8 @@ The rationale for separating the `ProposalExecutionEngine` from the `Party` inst
 - The hash of the `progressData` to be passed into the next call to `executeProposal()` to advance the incomplete proposal.
 
 These storage variables begin in a constant, non-overlapping slot index to avoid collisions and simplify explicit migrations to a new storage schema if necessary. It does not access any inline storage fields defined in the `Party` contract, nor does the `Party` contract access these storage variables.
+
+---
 
 ## Proposal Types
 
