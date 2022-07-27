@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 pragma solidity ^0.8;
 
-import "./Party.sol";
+import "../party/Party.sol";
 
 contract PartyHelpers {
     struct MemberAndDelegate {

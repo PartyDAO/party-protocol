@@ -6,9 +6,9 @@ import "forge-std/console2.sol";
 
 import "../../contracts/party/PartyFactory.sol";
 import "../../contracts/party/Party.sol";
-import "../../contracts/party/PartyHelpers.sol";
 import "../../contracts/globals/Globals.sol";
 import "../../contracts/renderers/PartyGovernanceNFTRenderer.sol";
+import "../../contracts/utils/PartyHelpers.sol";
 import "../proposals/DummySimpleProposalEngineImpl.sol";
 import "../proposals/DummyProposalEngineImpl.sol";
 import "../TestUtils.sol";
