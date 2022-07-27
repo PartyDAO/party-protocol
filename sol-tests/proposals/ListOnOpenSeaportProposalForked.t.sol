@@ -181,7 +181,7 @@ contract ListOnOpenSeaportProposalForkedTest is
         bytes32 orderHash;
         {
             (, orderHash,) = abi.decode(executeParams.progressData, (
-                ListOnOpenSeaportProposal.OpenSeaportStep,
+                ListOnOpenSeaportProposal.ListOnOpenSeaportStep,
                 bytes32,
                 uint256
             ));
@@ -242,7 +242,7 @@ contract ListOnOpenSeaportProposalForkedTest is
         bytes32 orderHash;
         {
             (, orderHash,) = abi.decode(executeParams.progressData, (
-                ListOnOpenSeaportProposal.OpenSeaportStep,
+                ListOnOpenSeaportProposal.ListOnOpenSeaportStep,
                 bytes32,
                 uint256
             ));
@@ -299,7 +299,7 @@ contract ListOnOpenSeaportProposalForkedTest is
         bytes32 orderHash;
         {
             (, orderHash,) = abi.decode(executeParams.progressData, (
-                ListOnOpenSeaportProposal.OpenSeaportStep,
+                ListOnOpenSeaportProposal.ListOnOpenSeaportStep,
                 bytes32,
                 uint256
             ));
@@ -351,7 +351,7 @@ contract ListOnOpenSeaportProposalForkedTest is
         bytes32 orderHash;
         {
             (, orderHash,) = abi.decode(executeParams.progressData, (
-                ListOnOpenSeaportProposal.OpenSeaportStep,
+                ListOnOpenSeaportProposal.ListOnOpenSeaportStep,
                 bytes32,
                 uint256
             ));
@@ -410,7 +410,7 @@ contract ListOnOpenSeaportProposalForkedTest is
         uint256 expiry;
         {
             (, orderHash, expiry) = abi.decode(executeParams.progressData, (
-                ListOnOpenSeaportProposal.OpenSeaportStep,
+                ListOnOpenSeaportProposal.ListOnOpenSeaportStep,
                 bytes32,
                 uint256
             ));
@@ -473,7 +473,7 @@ contract ListOnOpenSeaportProposalForkedTest is
         {
             (, ZoraHelpers.ZoraProgressData memory progressData) =
                 abi.decode(executeParams.progressData, (
-                    ListOnOpenSeaportProposal.OpenSeaportStep,
+                    ListOnOpenSeaportProposal.ListOnOpenSeaportStep,
                     ZoraHelpers.ZoraProgressData
                 ));
             assertEq(progressData.auctionId, auctionId);
@@ -541,7 +541,7 @@ contract ListOnOpenSeaportProposalForkedTest is
         {
             (, ZoraHelpers.ZoraProgressData memory progressData) =
                 abi.decode(executeParams.progressData, (
-                    ListOnOpenSeaportProposal.OpenSeaportStep,
+                    ListOnOpenSeaportProposal.ListOnOpenSeaportStep,
                     ZoraHelpers.ZoraProgressData
                 ));
             assertEq(progressData.auctionId, auctionId);

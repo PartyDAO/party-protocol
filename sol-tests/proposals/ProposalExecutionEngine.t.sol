@@ -68,7 +68,7 @@ contract ProposalExecutionEngineTest is
         returns (bytes memory)
     {
         return abi.encodeWithSelector(
-            bytes4(uint32(ProposalExecutionEngine.ProposalType.ListOnOpenSea)),
+            bytes4(uint32(ProposalExecutionEngine.ProposalType.ListOnOpenSeaport)),
             emitValue1,
             emitValue2
         );

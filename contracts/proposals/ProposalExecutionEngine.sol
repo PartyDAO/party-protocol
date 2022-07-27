@@ -32,7 +32,7 @@ contract ProposalExecutionEngine is
     // WARNING: This should be append-only.
     enum ProposalType {
         Invalid,
-        ListOnOpenSea,
+        ListOnOpenSeaport,
         ListOnZora,
         Fractionalize,
         ArbitraryCalls,
@@ -192,7 +192,7 @@ contract ProposalExecutionEngine is
         virtual
         returns (bytes memory nextProgressData)
     {
-        if (pt == ProposalType.ListOnOpenSea) {
+        if (pt == ProposalType.ListOnOpenSeaport) {
             nextProgressData = _executeListOnOpenSeaport(params);
         } else if (pt == ProposalType.ListOnZora) {
             nextProgressData = _executeListOnZora(params);

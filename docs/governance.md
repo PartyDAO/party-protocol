@@ -33,8 +33,6 @@ The main contracts involved in this phase are:
 
 ## Party Creation
 
-### Sequence
-
 Parties are created through the `PartyFactory` contract. This is typically automatically done
 by a crowdfund instance after it wins, but it is also a valid use case to interact with the PartyFactory contract directly to, for example, form a governance party around an existing NFT.
 
@@ -135,7 +133,7 @@ The stages of a proposal are defined in `PartyGovernance.ProposalStatus`:
 
 ### Making Proposals
 
-A proposer should choose an appropriate `maxExecutableTime` and `minCancelTime`. The `proposalData` should be prefixed (like a function call) with a 4-byte `IProposalExecutionEngine.ProposalType` value followed by the ABI-encoded data specific to that proposal type (see [Proposal Types](#proposal-types)), e.g., `abi.encodePacked(uint32(IProposalExecutionEngine.ProposalType.ListOnZoraProposal), abi.encode(ZoraProposalData(...)))`.
+A proposer should choose an appropriate `maxExecutableTime` and `minCancelTime`. The `proposalData` should be prefixed (like a function call) with a 4-byte `IProposalExecutionEngine.ProposalType` value followed by the ABI-encoded data specific to that proposal type (see [Proposal Types](#proposal-types)), e.g., `abi.encodeWithSelector(bytes4(ProposalType.ListOnZoraProposal), abi.encode(ZoraProposalData(...)))`.
 
 Once ready, an active member or delegate (someone with nonzero effective voting power) can call `propose()` with the proposal properties, which will assign a unique, nonzero proposal ID and put the proposal in the `Voting` status. Proposing a proposal will also automatically cast the proposer's votes for it.
 
@@ -201,35 +199,127 @@ These storage variables begin in a constant, non-overlapping slot index to avoid
 The Party protocol will support 5 proposal types at launch:
 
 - [ListOnZora Proposals](#listonzora-proposal)
-- [ListOnOpenSea Proposals](#listonopensea-proposal)
+- [ListOnOpenSeaport Proposals](#listonopenseaport-proposal)
 - [Fractionalize Proposals](#fractionalize-proposal)
 - [ArbitraryCalls Proposals](#arbitrarycalls-proposal)
 - [UpgradeProposalEngineImpl Proposals](#upgradeproposalengineimpl-proposal)
 
 ### ListOnZora Proposal Type
 
-TODO:
-- Proposal properties
-- Steps
-    - Create zora auction
-    - Cancel/Finalize zora auction
+This proposal type lists an NFT held by the Party on a Zora V1 auction.
 
-### ListOnOpenSea Proposal Type
+The `proposalData` should be encoded as:
+```solidity
+abi.encodeWithSelector(
+    // Prefix identifying this proposal type.
+    bytes4(ProposalType.ListOnZoraProposal),
+    ZoraProposalData(
+        // The minimum bid (ETH) for the NFT.
+        /* uint256 */ listPrice,
+        // How long before the auction can be cancelled if no one bids.
+        /* uint40 */ timeout,
+        // How long the auction lasts once a person bids on it.
+        /* uint40 */ duration,
+        // The token contract of the NFT being listed.
+        /* IERC721 */ token,
+        // The token ID of the NFT being listed.
+        /* uint256 */ tokenId
+    )
+);
+```
 
-TODO:
-- Proposal properties
-- Steps
-    - Create zora auction
-    - Cancel/Finalize zora auction
-    - Create OS listing
-    - Finalize OS listing
-- Behavior when unanimous
+This proposal always has two steps:
+1. Transfer the token to the Zora AH contract and create an auction with `listPrice` reserve price and `duration` auction duration (which starts after someone places a bid).
+    - This will emit the next `progressData`:
+    ```solidity
+    abi.encode(
+        // The current step.
+        ListOnZoraStep.ListedOnZora,
+        ZoraProposalData(
+            // The zora auction ID.
+            /* uint256 */ auctionId,
+            // The minimum time when the auction can be cancelled.
+            /* minExpiry */ minExpiry
+        )
+    );
+    ```
+2. Either cancel or finalize the auction.
+    - Cancel the auction if the auction was never bid on and `minExpiry` time has passed. This will also return the NFT to the party.
+    - Finalize the auction if someone has bid on it and the auction `duration` has passed. This will transfer the top bid amount (in ETH) to the Party. It is also possible someone else finalized the auction for us, in which case the Party already has the ETH and this step becomes a no-op.
+
+### ListOnOpenSeaport Proposal Type
+
+This proposal type *ultimately* tries to list an NFT held by the Party on OpenSea (Seaport 1.1). Because OpenSea listings are limit orders, there is no mechanism for on-chain price discovery (unlike a Zora auction). So to mitigate a malicious proposal listing a precious NFT for far below its actual worth, this proposal type will first place the NFT in a Zora auction before creating an OpenSea listing. The durations for this mandatory Zora step are defined by the global values `GLOBAL_OS_ZORA_AUCTION_TIMEOUT` and `GLOBAL_OS_ZORA_AUCTION_DURATION`.
+
+The `proposalData` should be encoded as:
+```solidity
+abi.encodeWithSelector(
+    // Prefix identifying this proposal type.
+    bytes4(ProposalType.ListOnOpenSeaportProposal),
+    OpenSeaportProposalData(
+        // The price (in ETH) to sell the NFT.
+        // This is also the reserve bid for the Zora auction.
+        /* uint256 */ listPrice,
+        // How long the listing is valid for.
+        /* uint40 */ duration,
+        // The NFT token contract.
+        /* IERC721 */ token,
+        // the NFT token ID.
+        /* uint256 */ tokenId,
+        // Fees the taker must pay when filling the listing.
+        /* uint256[] */ fees,
+        // Respective recipients for each fee.
+        /* address payable[] */ feeRecipients
+    )
+);
+```
+
+This proposal has between 2-3 steps:
+
+1. If the proposal did not pass unanimously and the `token` + `tokenId` is precious:
+    1. Transfer the token to the Zora AH contract and create an auction with `listPrice` reserve price and `GLOBAL_OS_ZORA_AUCTION_DURATION` auction duration (which starts after someone places a bid).
+        - This will emit the next `progressData`:
+        ```solidity
+        abi.encode(
+            // The current step.
+            ListOnOpenSeaportStep.ListedOnZora,
+            ZoraProposalData(
+                // The zora auction ID.
+                /* uint256 */ auctionId,
+                // The minimum time when the auction can be cancelled.
+                /* minExpiry */ minExpiry
+            )
+        );
+        ```
+    2. Either cancel or finalize the auction.
+        - Cancel the auction if the auction was never bid on and `progressData.minExpiry` has passed. This will also return the NFT to the party. Proceed to 2.1.
+        - Finalize the auction if someone has bid on it and the auction duration has passed. This will transfer the top bid amount (in ETH) to the Party. It is also possible someone else finalized the auction for us, in which case the Party already has the ETH and this step becomes a no-op. *The proposal will be complete at this point with no further steps.*
+2. If the proposal passed unanimously or if the `token` + `tokenId` is not precious:
+    1. Grant OpenSea an allowance for the NFT and create a non-custodial OpenSea listing for the NFT with price `listPrice` + any extra `fees` that is valid for `duration` seconds.
+        - This will emit the next `progressData`:
+        ```solidity
+        abi.encode(
+            // The current step.
+            ListOnOpenSeaportStep.ListedOnOpenSea,
+            OpenSeaportProgressData(
+                // Hash of the OS order that was listed.
+                /* bytes32 */ orderHash,
+                // Expiration timestamp of the listing.
+                /* uint40 */ expiry
+            )
+        );
+        ```
+3. Clean up the OpenSea listing, emitting an event with the outcome, and:
+    - If the order was filled, the Party has the `listPrice` ETH, the NFT allowance was consumed, and there is nothing left to do.
+    - If the order expired, no one bought the listing and the Party still owns the NFT. Revoke OpenSea's token allowance.
 
 ### Fractionalize Proposal Type
 
-...
+... 🤷
 
 ### ArbitraryCalls Proposal Type
+
+This proposal makes arbitrary calls as the Party. There are restrictions the types of calls that can be made in order to make a best effort to prevent precious NFTs from being moved out of the Party.
 
 TODO:
 - Proposal/Call properties
