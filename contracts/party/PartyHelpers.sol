@@ -32,14 +32,11 @@ contract PartyHelpers {
     {
         Party p = Party(payable(party));
         membersAndDelegates = new MemberAndDelegate[](members.length);
-        for (uint256 i = 0; i < members.length;) {
+        for (uint256 i = 0; i < members.length; i++) {
             membersAndDelegates[i] = MemberAndDelegate({
                 member: members[i],
                 delegate: p.delegationsByVoter(members[i])
             });
-            unchecked {
-                ++i;
-            }
         }
     }
 
@@ -51,14 +48,11 @@ contract PartyHelpers {
     {
         Party p = Party(payable(party));
         memberAndVotingPower = new MemberAndVotingPower[](voters.length);
-        for (uint256 i = 0; i < voters.length;) {
+        for (uint256 i = 0; i < voters.length; i++) {
             memberAndVotingPower[i] = MemberAndVotingPower({
                 member: voters[i],
                 votingPower: p.getVotingPowerAt(voters[i], timestamp)
             });
-            unchecked {
-                ++i;
-            }
         }
     }
 
@@ -67,7 +61,7 @@ contract PartyHelpers {
     // PartyGovernanceNFT helpers //
     ////////////////////////////////
 
-    /// @notice Get the current delegate for each member in `members`
+    /// @notice Get the owner and intrinsic voting power of each governance nft in a range
     function getNftInfos(address party, uint256 startIndex, uint256 endIndex)
         external
         view
@@ -83,7 +77,7 @@ contract PartyHelpers {
 
         nftInfos = new NftInfo[](endIndex - startIndex + 1);
 
-        for (uint256 i = startIndex; i <= endIndex;) {
+        for (uint256 i = startIndex; i <= endIndex; i++) {
             address owner = p.ownerOf(i);
             uint256 intrinsicVotingPower = p.votingPowerByTokenId(i);
             nftInfos[i - startIndex] = NftInfo({
@@ -91,9 +85,6 @@ contract PartyHelpers {
                 owner: owner,
                 tokenId: i
             });
-            unchecked {
-                ++i;
-            }
         }
     }
 }
