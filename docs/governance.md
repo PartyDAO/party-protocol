@@ -226,6 +226,8 @@ The Party protocol will support 5 proposal types at launch:
 
 This proposal makes arbitrary contract calls as the Party. There are restrictions the types of calls that can be made in order to make a best effort to prevent precious NFTs from being moved out of the Party.
 
+#### Proposal Data
+
 The `proposalData` should be encoded as:
 ```solidity
 abi.encodeWithSelector(
@@ -253,24 +255,26 @@ abi.encodeWithSelector(
 
 #### Steps
 
-This proposal is atomic, always completing in one step.
+This proposal is atomic, always completing in one step/execute.
 
 - Each call is executed in the order declared.
 - ETH to attach to each call must be provided by the caller of the `Party.execute()` call. If the the sum of all successful calls try to consume more than `msg.value`, the entire proposal will revert.
-- If a call has `optional == true` then the call is allowed to fail. Otherwise, if the call reverts then the entire proposal will revert.
+- If a call has `optional == true` then the call itself is allowed to fail. Otherwise, if the call reverts then the entire proposal will revert.
 - If a call has a non-zero `expectedResultHash` then the result of the call will be hashed and matched against this value. If they do not match, then the entire proposal will revert.
 - If the call is to the `Party` itself, the entire proposal will revert.
 - If the call is to the `IERC721.onERC721Received()` function, the entire proposal will revert.
     - Recall that the `Party` contract is also the voting card NFT so calling this function can trick someone into thinking they received a voting card.
 - If the proposal did not pass unanimously, extra checks are made to prevent moving a precious NFT:
-    - Before executing all the calls, check which precious NFTs the Party possesses. Then after executing all the calls, ensure we still possess them.
-    - If the call is to `IERC721.approve()`, the target is a precious NFT token, and the token ID is a matching precious token ID, revert unless the operator is set to the zero address.
-    - If the call is to `IERC721.setApprovalForAll()` and the target is a precious NFT token, revert unless the approval status is set to `false`.
+    - Before executing all the calls, check which precious NFTs the Party possesses. Then after executing all the calls, ensure we still possess them or else the entire proposal will revert.
+    - If the call is to `IERC721.approve()`, the target is a precious NFT token, and the token ID is a matching precious token ID, revert the entire proposal unless the operator is set to the zero address.
+    - If the call is to `IERC721.setApprovalForAll()` and the target is a precious NFT token, revert the entire proposal unless the approval status is set to `false`.
 - Unanimous proposals will not have restrictions on moving precious tokens or setting allowances for them.
 
 ### ListOnZora Proposal Type
 
 This proposal type lists an NFT held by the Party on a Zora V1 auction.
+
+#### Proposal Data
 
 The `proposalData` should be encoded as:
 ```solidity
@@ -316,6 +320,8 @@ This proposal always has two steps:
 ### ListOnOpenSeaport Proposal Type
 
 This proposal type *ultimately* tries to list an NFT held by the Party on OpenSea (Seaport 1.1). Because OpenSea listings are limit orders, there is no mechanism for on-chain price discovery (unlike a Zora auction). So to mitigate a malicious proposal listing a precious NFT for far below its actual worth, this proposal type will first place the NFT in a Zora auction before creating an OpenSea listing. The durations for this mandatory Zora step are defined by the global values `GLOBAL_OS_ZORA_AUCTION_TIMEOUT` and `GLOBAL_OS_ZORA_AUCTION_DURATION`.
+
+#### Proposal Data
 
 The `proposalData` should be encoded as:
 ```solidity
@@ -387,11 +393,29 @@ This proposal has between 2-3 steps:
 
 ### UpgradeProposalEngineImpl Proposal Type
 
-TODO:
-- Proposal properties (none)
-- Use of Global
-- Security concerns
-    - Bricking parties
+This proposal type upgrades the `ProposalExecutionEngine` instance for a party to the latest version defined in the `GLOBAL_PROPOSAL_ENGINE_IMPL` global value.
+
+#### Proposal Data
+
+The `proposalData` should be encoded as:
+```solidity
+abi.encodeWithSelector(
+    // Prefix identifying this proposal type.
+    bytes4(ProposalType.UpgradeProposalEngineImpl),
+    // Arbitrary data needed by the new ProposalExecutionEngine to migrate.
+    /* bytes */  initData
+);
+```
+
+#### Steps
+
+This proposal is always atomic and completes in a single step/execute.
+
+- The current `ProposalExecutionEngine` implementation address is looked up in the `Globals` contract, keyed by `GLOBAL_PROPOSAL_ENGINE_IMPL`.
+- The current `ProposalExecutionEngine` implementation address used by the Party is kept at an explicit, non-overlapping storage slot and will be overwritten with the new implementation address (see [ProposalStorage](../contracts/proposals/ProposalStorage.sol)).
+- The Party will `delegatecall` into the new `ProposalExecutionEngine`'s `initialize()` function, passing in the old implementation's address and `initData` migration data.
+    - This gives new implementations some ability to perform state migrations. E.g., if the storage schema or semantics changes.
+    - `initData` is provided by the proposer as a possible hint to the migration process.
 
 ## Emergency Backdoors
 
