@@ -37,13 +37,34 @@ abstract contract PartyGovernance is
 
     // States a proposal can be in.
     enum ProposalStatus {
+        // The proposal does not exist.
         Invalid,
+        // The proposal has been proposed (via `propose()`), has not been vetoed
+        // by a party host, and is within the voting window. Members can vote on
+        // the proposal and party hosts can veto the proposal.
         Voting,
+        // The proposal has either exceeded its voting window without reaching
+        // `passThresholdBps` of votes or was vetoed by a party host.
         Defeated,
+        // The proposal reached at least `passThresholdBps` of votes but is still
+        // waiting for `executionDelay` to pass before it can be executed. Members
+        // can continue to vote on the proposal and party hosts can veto at this time.
         Passed,
+        // Same as `Passed` but now `executionDelay` has been satisfied. Any member
+        // may execute the proposal via `execute()`, unless `maxExecutableTime`
+        // has arrived.
         Ready,
+        // The proposal has been executed at least once but has further steps to
+        // complete so it needs to be executed again. No other proposals may be
+        // executed while a proposal is in the `InProgress` state. No voting or
+        // vetoing of the proposal is allowed, however it may be forcibly cancelled
+        // via `cancel()` if the `minCancelTime` has arrived.
         InProgress,
+        // The proposal was executed and completed all its steps. No voting or
+        // vetoing can occur and it cannot be cancelled nor executed again.
         Complete,
+        // The proposal was executed at least once but did not complete before
+        // `minCancelTime` and was forcibly cancelled.
         Cancelled
     }
 
@@ -93,8 +114,8 @@ abstract contract PartyGovernance is
         // If the proposal has already been executed, and is still InProgress,
         // this value is ignored.
         uint40 maxExecutableTime;
-        // The minimum time beyond which a proposal can be cancelled if it is
-        // stuck in the InProgress status.
+        // The minimum seconds this proposal can remain in the InProgress status
+        // before it can be cancelled.
         uint40 minCancelTime;
         // Encoded proposal data. The first 4 bytes are the proposal type, followed
         // by encoded proposal args specific to the proposal type. See
