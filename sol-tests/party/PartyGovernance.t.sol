@@ -521,6 +521,82 @@ function testEmergencyWithdrawal() public {
     assertEq(toadz.ownerOf(1), address(globalDaoWalletAddress));
   }
 
+  function testGetCurrDelegates() public {
+    // Create party
+    (Party party, ,) = partyAdmin.createParty(
+      PartyAdmin.PartyCreationMinimalOptions({
+        host1: address(john),
+        host2: address(0),
+        passThresholdBps: 5100,
+        totalVotingPower: 300,
+        preciousTokenAddress: address(toadz),
+        preciousTokenId: 1,
+        feeBps: 0,
+        feeRecipient: payable(0)
+      })
+    );
+
+    PartyParticipant lawrence = new PartyParticipant();
+    PartyParticipant anna = new PartyParticipant();
+
+    // Mint first governance NFTs
+    partyAdmin.mintGovNft(party, address(john), 30, address(john));
+    partyAdmin.mintGovNft(party, address(steve), 15, address(john));
+    partyAdmin.mintGovNft(party, address(lawrence), 20, address(anna));
+    partyAdmin.mintGovNft(party, address(anna), 35, address(lawrence));
+
+    // test getCurrentDelegates
+    address[] memory members = new address[](4);
+    members[0] = address(john);
+    members[1] = address(steve);
+    members[2] = address(lawrence);
+    members[3] = address(anna);
+    address[] memory currDelegates = party.getCurrentDelegates(members);
+    assertTrue(currDelegates.length == 4);
+    assertTrue(currDelegates[0] == address(john));
+    assertTrue(currDelegates[1] == address(john));
+    assertTrue(currDelegates[2] == address(anna));
+    assertTrue(currDelegates[3] == address(lawrence));
+  }
+
+  function testGetVotingPowersAt() public {
+    // Create party
+    (Party party, ,) = partyAdmin.createParty(
+      PartyAdmin.PartyCreationMinimalOptions({
+        host1: address(john),
+        host2: address(0),
+        passThresholdBps: 5100,
+        totalVotingPower: 300,
+        preciousTokenAddress: address(toadz),
+        preciousTokenId: 1,
+        feeBps: 0,
+        feeRecipient: payable(0)
+      })
+    );
+
+    PartyParticipant lawrence = new PartyParticipant();
+    PartyParticipant anna = new PartyParticipant();
+
+    // Mint first governance NFTs
+    partyAdmin.mintGovNft(party, address(john), 30, address(john));
+    partyAdmin.mintGovNft(party, address(steve), 15, address(steve));
+    partyAdmin.mintGovNft(party, address(lawrence), 20, address(lawrence));
+    partyAdmin.mintGovNft(party, address(anna), 35, address(anna));
+
+    // test getVotingPowersAt
+    address[] memory voters = new address[](4);
+    voters[0] = address(john);
+    voters[1] = address(steve);
+    voters[2] = address(lawrence);
+    voters[3] = address(anna);
+    uint96[] memory votingPowers = party.getVotingPowersAt(voters, uint40(block.timestamp));
+    assertTrue(votingPowers.length == 4);
+    assertTrue(votingPowers[0] == 30);
+    assertTrue(votingPowers[1] == 15);
+    assertTrue(votingPowers[2] == 20);
+    assertTrue(votingPowers[3] == 35);
+  }
+
   function _assertProposalStatus(
     Party party,
     uint256 proposalId,
