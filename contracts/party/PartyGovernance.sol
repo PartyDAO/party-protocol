@@ -64,7 +64,7 @@ abstract contract PartyGovernance is
         // vetoing can occur and it cannot be cancelled nor executed again.
         Complete,
         // The proposal was executed at least once but did not complete before
-        // `cancelDelay` passed and was forcibly cancelled.
+        // `cancelDelay` seconds passed since the first execute and was forcibly cancelled.
         Cancelled
     }
 
@@ -548,7 +548,7 @@ abstract contract PartyGovernance is
         emit ProposalVetoed(proposalId, msg.sender);
     }
 
-    /// @notice Executes a passed and non-vetoed proposal.
+    /// @notice Executes a proposal that has passed governance.
     /// @dev The proposal must be in the Ready or InProgress status.
     ///      A ProposalExecuted event will be emitted with a non-empty nextProgressData
     ///      if the proposal has extra steps (must be executed again) to carry out,
@@ -720,10 +720,10 @@ abstract contract PartyGovernance is
         bytes memory nextProgressData;
         {
             (bool success, bytes memory resultData) =
-            address(_getProposalExecutionEngine()).delegatecall(abi.encodeCall(
-                IProposalExecutionEngine.executeProposal,
-                (executeParams)
-            ));
+                address(_getProposalExecutionEngine()).delegatecall(abi.encodeCall(
+                    IProposalExecutionEngine.executeProposal,
+                    (executeParams)
+                ));
             if (!success) {
                 resultData.rawRevert();
             }
@@ -916,6 +916,7 @@ abstract contract PartyGovernance is
             if (pv.completedTime == 0) {
                 return ProposalStatus.InProgress;
             }
+            // completedTime high bit will be set if cancelled.
             if (pv.completedTime & UINT40_HIGH_BIT == UINT40_HIGH_BIT) {
                 return ProposalStatus.Cancelled;
             }

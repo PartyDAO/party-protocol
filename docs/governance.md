@@ -141,7 +141,7 @@ The stages of a proposal are defined in `PartyGovernance.ProposalStatus`:
 - `Voting`: The proposal has been proposed (via `propose()`), has not been vetoed by a party host, and is within the voting window. Members can vote on the proposal and party hosts can veto the proposal.
 - `Defeated`: The proposal has either exceeded its voting window without reaching `passThresholdBps` of votes or was vetoed by a party host.
 - `Passed`: The proposal reached at least `passThresholdBps` of votes but is still waiting for `executionDelay` to pass before it can be executed. Members can continue to vote on the proposal and party hosts can veto at this time.
-- `Ready`: Same as `Passed` but now `executionDelay` has been satisfied. Any member may execute the proposal via `execute()`, unless `maxExecutableTime` has arrived.
+- `Ready`: Same as `Passed` but now `executionDelay` has been satisfied or the proposal passed unanimously. Any member may execute the proposal via `execute()`, unless `maxExecutableTime` has arrived.
 - `InProgress`: The proposal has been executed at least once but has further steps to complete so it needs to be executed again. No other proposals may be executed while a proposal is in the `InProgress` state. No voting or vetoing of the proposal is allowed, however it may be forcibly cancelled via `cancel()` if the `cancelDelay` has arrived.
 - `Complete`: The proposal was executed and completed all its steps. No voting or vetoing can occur and it cannot be cancelled nor executed again.
 - `Cancelled`: The proposal was executed at least once but did not complete before `cancelDelay` seconds passed since the first execute and was forcibly cancelled.
@@ -156,7 +156,7 @@ Once ready, an active member or delegate (someone with nonzero effective voting 
 
 Any proposal in the `Voting`, `Passed`, or `Ready` status can be voted on by members and delegates via `Party.accept()`. The `accept()` function casts the caller's *total* effective voting power at the time the proposal was proposed for it. Once the total voting power cast for the proposal meets or exceeds the `passThresholdBps` ratio, given by `total cast voting power / totalVotingPower`, the proposal will enter the `Passed` state.
 
-Members can continue to vote even beyond the `Passed` state in order to achieve a unanimous vote, which unlocks specific behavior for certain proposal types. A unanimous vote condition is met when 99.99% of `totalVotingPower` has been cast for a proposal. We do not check for 100% because of possible rounding errors during minting from crowdfunds.
+Members can continue to vote even beyond the `Passed` state in order to achieve a unanimous vote, which allows the proposal to bypass the `executionDelay` and unlocks specific behavior for certain proposal types. A unanimous vote condition is met when 99.99% of `totalVotingPower` has been cast for a proposal. We do not check for 100% because of possible rounding errors during minting from crowdfunds.
 
 ### Vetoes
 
@@ -166,7 +166,7 @@ The rationale behind the veto power that if voting power in a Party becomes so c
 
 ### Executing Proposals
 
-After a proposal has achieved enough votes to pass and the `executionDelay` window has expired, the proposal can be executed by any member with currently nonzero effective voting power. This occurs via the `Party.execute()` function.
+After a proposal has achieved enough votes to pass and the `executionDelay` window has expired, or if the proposal reached unanimous consensus, the proposal can be executed by any member with currently nonzero effective voting power. This occurs via the `Party.execute()` function.
 
 The call to `execute()` will fail if:
 - The proposal has already been executed and completed (in the `Complete` status).
