@@ -55,10 +55,10 @@ contract ReadOnlyDelegateCallTest is Test, TestUtils {
     function test_cannotCallWriteFunction() external {
         uint256 expectedResult = _randomUint256();
         testContract.setRetVal(expectedResult);
+        vm.expectRevert();
         uint256 result = ICallReadOnlyDelegateCall(address(testContract)).readOnlyDelegateCall(
             address(impl),
             abi.encodeCall(TestImpl.fooWrites, ())
         );
-        assertEq(result, expectedResult);
     }
 }
