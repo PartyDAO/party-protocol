@@ -17,6 +17,10 @@ contract TestImpl {
     function fooWrites() external returns (uint256) {
         return _retVal++;
     }
+
+    function fooFails() external view returns (uint256) {
+        revert("oopsie");
+    }
 }
 
 contract TestContract is ReadOnlyDelegateCall {
@@ -27,9 +31,7 @@ contract TestContract is ReadOnlyDelegateCall {
     }
 
     function readOnlyDelegateCall(address impl, bytes memory callData) external returns (uint256) {
-        (bool s, bytes memory r) = _readOnlyDelegateCall(impl, callData);
-        require(s, 'failed');
-        return abi.decode(r, (uint256));
+        _readOnlyDelegateCall(impl, callData);
     }
 }
 
@@ -59,6 +61,16 @@ contract ReadOnlyDelegateCallTest is Test, TestUtils {
         uint256 result = ICallReadOnlyDelegateCall(address(testContract)).readOnlyDelegateCall(
             address(impl),
             abi.encodeCall(TestImpl.fooWrites, ())
+        );
+    }
+
+    function test_propagatesReverts() external {
+        uint256 expectedResult = _randomUint256();
+        testContract.setRetVal(expectedResult);
+        vm.expectRevert("oopsie");
+        uint256 result = ICallReadOnlyDelegateCall(address(testContract)).readOnlyDelegateCall(
+            address(impl),
+            abi.encodeCall(TestImpl.fooFails, ())
         );
     }
 }
