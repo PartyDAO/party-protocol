@@ -168,6 +168,7 @@ abstract contract PartyGovernance is
     event VotingPowerDelegated(address indexed owner, address indexed delegate);
     event HostStatusTransferred(address oldHost, address newHost);
 
+    error MismatchedPreciousListLengths();
     error BadProposalStatusError(ProposalStatus status);
     error ProposalExistsError(uint256 proposalId);
     error BadProposalHashError(bytes32 proposalHash, bytes32 actualHash);
@@ -978,7 +979,9 @@ abstract contract PartyGovernance is
     )
         private
     {
-        assert(preciousTokens.length == preciousTokenIds.length);
+        if (preciousTokens.length != preciousTokenIds.length) {
+            revert MismatchedPreciousListLengths();
+        }
         preciousListHash = _hashPreciousList(preciousTokens, preciousTokenIds);
     }
 
