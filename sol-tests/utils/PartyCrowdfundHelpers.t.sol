@@ -35,6 +35,7 @@ contract PartyCrowdfundHelpers is Test, TestUtils {
     Globals globals;
     PartyBid partyBidImpl;
     PartyBuy partyBuyImpl;
+    PartyCollectionBuy partyCollectionBuyImpl;
     MockMarketWrapper market = new MockMarketWrapper();
     TestERC721Vault erc721Vault = new TestERC721Vault();
 
@@ -49,6 +50,10 @@ contract PartyCrowdfundHelpers is Test, TestUtils {
       // set partybuy crowdfund implementation on globals
       partyBuyImpl = new PartyBuy(globals);
       globals.setAddress(LibGlobals.GLOBAL_PARTY_BUY_IMPL, address(partyBuyImpl));
+
+      // set partycollectionbuy crowdfund implementation on globals
+      partyCollectionBuyImpl = new PartyCollectionBuy(globals);
+      globals.setAddress(LibGlobals.GLOBAL_PARTY_COLLECTION_BUY_IMPL, address(partyCollectionBuyImpl));
     }
 
     function _createPartyBidCrowdfund(
@@ -85,11 +90,7 @@ contract PartyCrowdfundHelpers is Test, TestUtils {
         ))));
     }
 
-    function _createPartyBuyCrowdfund(
-        IERC721 tokenContract,
-        uint256 tokenId,
-        uint128 initialContribution
-    )
+    function _createPartyBuyCrowdfund(uint128 initialContribution)
         private
         returns (PartyBuy pb)
     {
@@ -100,8 +101,8 @@ contract PartyCrowdfundHelpers is Test, TestUtils {
                 PartyBuy.PartyBuyOptions({
                     name: defaultName,
                     symbol: defaultSymbol,
-                    nftContract: tokenContract,
-                    nftTokenId: tokenId,
+                    nftContract: erc721Vault.token(),
+                    nftTokenId: erc721Vault.mint(),
                     duration: defaultDuration,
                     maximumPrice: defaultMaxPrice,
                     splitRecipient: defaultSplitRecipient,
@@ -116,34 +117,31 @@ contract PartyCrowdfundHelpers is Test, TestUtils {
         ))));
     }
 
-    // function _createPartyCollectionBuyCrowdfund(
-    //   PartyCollectionBuy partyCollectionBuyImpl,
-    //   uint128 initialContribution
-    // )
-    //     private
-    //     returns (PartyCollectionBuy pb)
-    // {
-    //     pb = PartyCollectionBuy(payable(address(new Proxy{ value: initialContribution }(
-    //         partyCollectionBuyImpl,
-    //         abi.encodeCall(
-    //             PartyCollectionBuy.initialize,
-    //             PartyCollectionBuy.PartyCollectionBuyOptions({
-    //                 name: defaultName,
-    //                 symbol: defaultSymbol,
-    //                 nftContract: erc721Vault.token(),
-    //                 duration: defaultDuration,
-    //                 maximumPrice: defaultMaxPrice,
-    //                 splitRecipient: defaultSplitRecipient,
-    //                 splitBps: defaultSplitBps,
-    //                 initialContributor: address(this),
-    //                 initialDelegate: defaultInitialDelegate,
-    //                 gateKeeper: defaultGateKeeper,
-    //                 gateKeeperId: defaultGateKeeperId,
-    //                 governanceOpts: defaultGovernanceOpts
-    //             })
-    //         )
-    //     ))));
-    // }
+    function _createPartyCollectionBuyCrowdfund(uint128 initialContribution)
+        private
+        returns (PartyCollectionBuy pb)
+    {
+        pb = PartyCollectionBuy(payable(address(new Proxy{ value: initialContribution }(
+            partyCollectionBuyImpl,
+            abi.encodeCall(
+                PartyCollectionBuy.initialize,
+                PartyCollectionBuy.PartyCollectionBuyOptions({
+                    name: defaultName,
+                    symbol: defaultSymbol,
+                    nftContract: erc721Vault.token(),
+                    duration: defaultDuration,
+                    maximumPrice: defaultMaxPrice,
+                    splitRecipient: defaultSplitRecipient,
+                    splitBps: defaultSplitBps,
+                    initialContributor: address(this),
+                    initialDelegate: defaultInitialDelegate,
+                    gateKeeper: defaultGateKeeper,
+                    gateKeeperId: defaultGateKeeperId,
+                    governanceOpts: defaultGovernanceOpts
+                })
+            )
+        ))));
+    }
 
     function testGetPartyBidCrowdfundType() public {
       DummyERC721 tokenToBuy = market.nftContract();
@@ -161,15 +159,24 @@ contract PartyCrowdfundHelpers is Test, TestUtils {
     }
 
     function testGetPartyBuyCrowdfundType() public {
-      uint256 tokenId = erc721Vault.mint();
-
       // create partybuy crowdfund
-      PartyBuy pb = _createPartyBuyCrowdfund(erc721Vault.token(), tokenId, 0);
+      PartyBuy pb = _createPartyBuyCrowdfund(0);
 
       // create party helpers
       PartyHelpers ph = new PartyHelpers();
 
       PartyHelpers.CrowdfundType cft = ph.getCrowdfundType(address(globals), address(pb));
       assertEq(uint256(cft), 1);
+    }
+
+    function testGetPartyCollectionBuyCrowdfundType() public {
+      // create partycollectionbuy crowdfund
+      PartyCollectionBuy pb = _createPartyCollectionBuyCrowdfund(0);
+
+      // create party helpers
+      PartyHelpers ph = new PartyHelpers();
+
+      PartyHelpers.CrowdfundType cft = ph.getCrowdfundType(address(globals), address(pb));
+      assertEq(uint256(cft), 2);
     }
 }
