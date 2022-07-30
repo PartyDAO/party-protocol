@@ -143,34 +143,34 @@ contract PartyCrowdfundHelpers is Test, TestUtils {
       (uint256 auctionId, uint256 tokenId) = market.createAuction(1337);
 
       // create partybid crowdfund
-      PartyBid pb = _createPartyBidCrowdfund(auctionId, tokenId, 0);
+      PartyBid pbid = _createPartyBidCrowdfund(auctionId, tokenId, 0);
 
       // create party helpers
       PartyHelpers ph = new PartyHelpers();
 
-      PartyHelpers.CrowdfundType cft = ph.getCrowdfundType(address(globals), address(pb));
+      PartyHelpers.CrowdfundType cft = ph.getCrowdfundType(address(globals), address(pbid));
       assertEq(uint256(cft), 0);
     }
 
     function testGetPartyBuyCrowdfundType() public {
       // create partybuy crowdfund
-      PartyBuy pb = _createPartyBuyCrowdfund(0);
+      PartyBuy pbuy = _createPartyBuyCrowdfund(0);
 
       // create party helpers
       PartyHelpers ph = new PartyHelpers();
 
-      PartyHelpers.CrowdfundType cft = ph.getCrowdfundType(address(globals), address(pb));
+      PartyHelpers.CrowdfundType cft = ph.getCrowdfundType(address(globals), address(pbuy));
       assertEq(uint256(cft), 1);
     }
 
     function testGetPartyCollectionBuyCrowdfundType() public {
       // create partycollectionbuy crowdfund
-      PartyCollectionBuy pb = _createPartyCollectionBuyCrowdfund(0);
+      PartyCollectionBuy pcb = _createPartyCollectionBuyCrowdfund(0);
 
       // create party helpers
       PartyHelpers ph = new PartyHelpers();
 
-      PartyHelpers.CrowdfundType cft = ph.getCrowdfundType(address(globals), address(pb));
+      PartyHelpers.CrowdfundType cft = ph.getCrowdfundType(address(globals), address(pcb));
       assertEq(uint256(cft), 2);
     }
 }
