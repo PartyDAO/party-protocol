@@ -4,6 +4,12 @@ pragma solidity ^0.8;
 import "../party/Party.sol";
 
 contract PartyHelpers {
+    enum CrowdfundType {
+        Bid,
+        Buy,
+        CollectionBuy
+    }
+
     struct MemberAndDelegate {
         address member;
         address delegate;
@@ -18,6 +24,28 @@ contract PartyHelpers {
         uint256 tokenId;
         address owner;
         uint256 intrinsicVotingPower;
+    }
+
+    ////////////////////////////
+    // PartyCrowdfund helpers //
+    ////////////////////////////
+
+    function getCrowdfundType(address globals, address crowdfund)
+        external
+        view
+        returns (CrowdfundType)
+    {
+        IGlobals g = IGlobals(globals);
+        Implementation cf = Implementation(crowdfund);
+        address impl = cf.IMPL();
+        if (impl == g.getImplementation(LibGlobals.GLOBAL_PARTY_BID_IMPL).IMPL()) {
+            return CrowdfundType.Bid;
+        } else if (impl == g.getImplementation(LibGlobals.GLOBAL_PARTY_BUY_IMPL).IMPL()) {
+            return CrowdfundType.Buy;
+        } else if (impl == g.getImplementation(LibGlobals.GLOBAL_PARTY_COLLECTION_BUY_IMPL).IMPL()) {
+            return CrowdfundType.CollectionBuy;
+        }
+        revert("PartyHelpers::Unknown CrowdfundType");
     }
 
     /////////////////////////////

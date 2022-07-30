@@ -16,7 +16,7 @@ import "../DummyERC721.sol";
 import "../TestUsers.sol";
 import "../TestUtils.sol";
 
-contract PartyHelpersTest is Test, TestUtils {
+contract PartyGovernanceHelpersTest is Test, TestUtils {
     PartyFactory partyFactory;
     DummySimpleProposalEngineImpl eng;
     PartyGovernanceNFTRenderer nftRenderer;
