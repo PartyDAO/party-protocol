@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 pragma solidity ^0.8;
 
-import "forge-std/console2.sol";
 import "forge-std/Test.sol";
 
 import "../../contracts/crowdfund/PartyBid.sol";
@@ -12,12 +11,10 @@ import "../../contracts/globals/LibGlobals.sol";
 import "../../contracts/utils/PartyHelpers.sol";
 import "../../contracts/utils/Proxy.sol";
 
+import "../crowdfund/MockMarketWrapper.sol";
+import "../crowdfund/TestERC721Vault.sol";
 import "../DummyERC721.sol";
 import "../TestUtils.sol";
-
-import "../crowdfund/MockPartyFactory.sol";
-import "../crowdfund/TestERC721Vault.sol";
-import "../crowdfund/MockMarketWrapper.sol";
 
 contract PartyCrowdfundHelpers is Test, TestUtils {
     string defaultName = 'PartyBid';
@@ -58,7 +55,6 @@ contract PartyCrowdfundHelpers is Test, TestUtils {
 
     function _createPartyBidCrowdfund(
         uint256 auctionId,
-        IERC721 tokenContract,
         uint256 tokenId,
         uint128 initialContribution
     )
@@ -74,7 +70,7 @@ contract PartyCrowdfundHelpers is Test, TestUtils {
                     symbol: defaultSymbol,
                     auctionId: auctionId,
                     market: market,
-                    nftContract: tokenContract,
+                    nftContract: market.nftContract(),
                     nftTokenId: tokenId,
                     duration: defaultDuration,
                     maximumBid: defaultMaxBid,
@@ -144,17 +140,15 @@ contract PartyCrowdfundHelpers is Test, TestUtils {
     }
 
     function testGetPartyBidCrowdfundType() public {
-      DummyERC721 tokenToBuy = market.nftContract();
       (uint256 auctionId, uint256 tokenId) = market.createAuction(1337);
 
       // create partybid crowdfund
-      PartyBid pb = _createPartyBidCrowdfund(auctionId, tokenToBuy, tokenId, 0);
+      PartyBid pb = _createPartyBidCrowdfund(auctionId, tokenId, 0);
 
       // create party helpers
       PartyHelpers ph = new PartyHelpers();
 
       PartyHelpers.CrowdfundType cft = ph.getCrowdfundType(address(globals), address(pb));
-      console2.log('partybid cft', uint256(cft));
       assertEq(uint256(cft), 0);
     }
 
