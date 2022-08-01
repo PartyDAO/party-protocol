@@ -7,6 +7,10 @@ This directory contains the scripts and constants to deploy to mainnet and rinke
 - [`mainnet.sol`](./mainnet.sol) - mainnet deploy script
 - [`rinkeby.sol`](./rinkeby.sol) - rinkeby deploy script
 
+## Make sure your JS is built!
+
+In order to ensure deploys work, make sure your JS is built by running `yarn build:ts` before deploying
+
 ## ⚠️ Modify forge-std `Vm.sol` locally
 
 At the time of writing this, the file `lib/forget-std/src/Vm.sol` needed to be modified to include the broadcast methods in its interface. Apply the following diff to `lib/forget-std/src/Vm.sol` starting at the end of the file (line 73):
