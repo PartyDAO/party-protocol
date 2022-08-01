@@ -16,6 +16,7 @@ import '../contracts/party/Party.sol';
 import '../contracts/party/PartyFactory.sol';
 import '../contracts/renderers/PartyGovernanceNFTRenderer.sol';
 import '../contracts/proposals/ProposalExecutionEngine.sol';
+import '../contracts/utils/PartyHelpers.sol';
 import './LibDeployConstants.sol';
 
 contract Deploy is Test {
@@ -43,6 +44,7 @@ contract Deploy is Test {
   ProposalExecutionEngine proposalEngineImpl;
   TokenDistributor tokenDistributor;
   PartyGovernanceNFTRenderer partyGovernanceNFTRenderer;
+  PartyHelpers partyHelpers;
 
   function run(LibDeployConstants.DeployConstants memory deployConstants) public {
     console.log('Starting deploy script.');
@@ -220,6 +222,13 @@ contract Deploy is Test {
     globals.setAddress(LibGlobals.GLOBAL_GOVERNANCE_NFT_RENDER_IMPL, address(partyGovernanceNFTRenderer));
     console.log('  Globals - successfully set PartyGovernanceNFTRenderer', address(partyGovernanceNFTRenderer));
 
+    // DEPLOY_PARTY_HELPERS
+    console.log('');
+    console.log('### PartyHelpers');
+    console.log('  Deploying - PartyHelpers');
+    partyHelpers = new PartyHelpers();
+    console.log('  Deployed - PartyHelpers', address(partyHelpers));
+
     // TODO: TRANSFER_OWNERSHIP_TO_PARTYDAO_MULTISIG
     // console.log('');
     // console.log('### Transfer MultiSig');
@@ -228,7 +237,7 @@ contract Deploy is Test {
     // console.log('  Transferred ownership to', deployConstants.partyDaoMultisig);
 
 
-    AddressMapping[] memory addressMapping = new AddressMapping[](11);
+    AddressMapping[] memory addressMapping = new AddressMapping[](12);
     addressMapping[0] = AddressMapping('globals', address(globals));
     addressMapping[1] = AddressMapping('tokenDistributor', address(tokenDistributor));
     addressMapping[2] = AddressMapping('seaportExchange', address(seaport));
@@ -240,6 +249,7 @@ contract Deploy is Test {
     addressMapping[8] = AddressMapping('partyCollectionBuyImpl', address(partyCollectionBuyImpl));
     addressMapping[9] = AddressMapping('partyCrowdfundFactory', address(partyCrowdfundFactory));
     addressMapping[10] = AddressMapping('partyGovernanceNFTRenderer', address(partyGovernanceNFTRenderer));
+    addressMapping[11] = AddressMapping('partyHelpers', address(partyHelpers));
 
     console.log('');
     console.log('### Deployed addresses');
