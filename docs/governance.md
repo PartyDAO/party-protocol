@@ -112,6 +112,8 @@ When determining the effective voting power of a user, we binary search a user's
 
 ## Distributions
 
+### Mechanics
+
 Distributions allow parties to distribute fungible tokens and ETH to party members, porportional to their NFT's voting power.
 
 Unlike proposals, distributions do not require any votes to pass.  Any member of the party can call `distribute` to distribute any ETH, ERC20 or ERC1155s held by the party.
@@ -120,7 +122,7 @@ Upon `distribute` being called, the entire balance of the specified token will b
 
 Each distribution has a unique id.  To interact with a distribution, you need to send in an entire `DistributionInfo` object.  The `DistributionInfo` object can be found in the `DistributionCreated` event that is emitted upon the distribution being created.
 
-Once a distribution has been created, NFT holders can call `claim`, sending in the `DistributionInfo` as well as the NFT id that they'd to claim for.  Users can also leverage `batchClaim` if they'd like to claim multiple distributions in one transaction.
+Once a distribution has been created, NFT holders can call `claim`, sending in the `DistributionInfo` as well as the PartyGovernance token id that they'd like to claim for.  Users can also leverage `batchClaim` if they'd like to claim multiple distributions in one transaction.
 
 Every distribution can have a `feeRecipient` and `feeBps` set.  The `feeRecipient` and `feeBps` for a party's distribution will be determined by the `feeRecipient` and `feeBps` set in `GovernanceOpts` when the party was created.  In order for the `feeRecipient` to claim their fee, the fee recipient must call `claimFee`.  If the `feeRecipient` is a smart contract that is unable to call `claimFee`, the fee could be unretrievable, locked in the contract forever.
 
@@ -139,9 +141,13 @@ When Donna calls `claim`,  they receive 292.50 DAI  (1000*0.975)*0.3
 When Jerry calls `claim`,  they receive 487.50 DAI  (1000*0.975)*0.5
 ```
 
-Our `TokenDistributor` contract was designed to work with parties, but a `Distribution` can be created for any contract that implements the `ITokenDistributorParty` interface.  When creating a distribution, implementing contracts are expected to transfer the tokens and call the accompanying `create{Erc20Distribution,Erc1155Distribution,createNativeDistribution}` method in the same transaction.
-
 `TokenDistributor` contains two emergency withdrawal functions controlled by the PartyDAO Multisig: `emergencyWithdraw` and `emergencyRemoveDistribution`.  PartyDAO can call `disableEmergencyActions` to permanently disable these functions.
+
+### Interoperability
+
+Our `TokenDistributor` contract was designed to work with parties, but a `Distribution` can be created for any contract that implements the `ITokenDistributorParty` interface.  Implmentors of the `ITokenDistributorParty` must implement `getDistributionShareOf(uint256 tokenId)` which returns how much of a distribution a particular tokenId should receive. Denominated in proportion to `1e18` (i.e. `0.5e18` represents 50%)`, as well as `ownerOf(uint256 tokenId`) which returns the owner of a tokenId.
+
+When creating a distribution, implementing contracts are expected to transfer the tokens and call the accompanying `create{Erc20Distribution,Erc1155Distribution,createNativeDistribution}` method in the same transaction.
 
 ---
 
