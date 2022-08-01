@@ -4,6 +4,7 @@ pragma solidity ^0.8;
 import "../utils/LibAddress.sol";
 import "../utils/LibRawResult.sol";
 import "../utils/LibSafeCast.sol";
+import "../utils/IGetSalt.sol";
 import "../tokens/ERC721Receiver.sol";
 import "../party/Party.sol";
 import "../globals/IGlobals.sol";
@@ -14,7 +15,7 @@ import "./PartyCrowdfundNFT.sol";
 // Base contract for PartyBid/PartyBuy.
 // Holds post-win/loss logic. E.g., burning contribution NFTs and creating a
 // party after winning.
-abstract contract PartyCrowdfund is ERC721Receiver, PartyCrowdfundNFT {
+abstract contract PartyCrowdfund is IGetSalt, ERC721Receiver, PartyCrowdfundNFT {
     using LibRawResult for bytes;
     using LibSafeCast for uint256;
     using LibAddress for address payable;
@@ -131,6 +132,12 @@ abstract contract PartyCrowdfund is ERC721Receiver, PartyCrowdfundNFT {
         // Set up gatekeep after initial contribution (initial always gets in).
         gateKeeper = opts.gateKeeper;
         gateKeeperId = opts.gateKeeperId;
+    }
+
+    /// @inheritdoc IGetSalt
+    function salt() external pure returns (bytes32) {
+        // Crowdfunds only ever create a party once so the salt can remain constant.
+        return 0;
     }
 
     /// @notice Burns CF tokens owned by `owner` AFTER the CF has ended.

@@ -4,13 +4,14 @@ pragma solidity ^0.8;
 import "../globals/IGlobals.sol";
 import "../globals/LibGlobals.sol";
 import "../tokens/IERC721.sol";
-import "../utils/Proxy.sol";
+import "../utils/Create2Proxy.sol";
+import "../utils/IGetSalt.sol";
 
 import "./Party.sol";
 import "./IPartyFactory.sol";
 
 // Creates generic Party instances.
-contract PartyFactory is IPartyFactory {
+contract PartyFactory is IPartyFactory, ICreate2ProxyDeployer {
 
     error InvalidAuthorityError(address authority);
     error OnlyAuthorityError();
@@ -18,6 +19,9 @@ contract PartyFactory is IPartyFactory {
     IGlobals public immutable GLOBALS;
 
     mapping (Party => address) public partyAuthorities;
+    Implementation public create2Implementation;
+    bytes public create2InitCallData;
+
 
     constructor(IGlobals globals) {
         GLOBALS = globals;
@@ -52,12 +56,20 @@ contract PartyFactory is IPartyFactory {
             // authority must call mint() through this contract
             mintAuthority: address(this)
         });
-        party = Party(payable(
-            new Proxy(
-                GLOBALS.getImplementation(LibGlobals.GLOBAL_PARTY_IMPL),
-                abi.encodeCall(Party.initialize, (initData))
-            )
-        ));
+        Implementation impl = GLOBALS.getImplementation(LibGlobals.GLOBAL_PARTY_IMPL);
+        bytes memory initCallData = abi.encodeCall(Party.initialize, (initData));
+        // If the caller implements salt(), use create2 deploy semantics.
+        try IGetSalt(msg.sender).salt() returns (bytes32 salt) {
+            salt = keccak256(abi.encode(msg.sender, salt));
+            create2Implementation = impl;
+            create2InitCallData = initCallData;
+            party = Party(payable(new Create2Proxy{salt: salt}()));
+            delete create2Implementation;
+            delete create2InitCallData;
+        } catch {
+            // Otherwise, use regular create.
+            party = Party(payable(new Proxy(impl, initCallData)));
+        }
         partyAuthorities[party] = authority;
         emit PartyCreated(party, msg.sender);
     }

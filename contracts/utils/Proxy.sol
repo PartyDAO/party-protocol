@@ -4,7 +4,7 @@ pragma solidity ^0.8;
 import "./LibRawResult.sol";
 import "./Implementation.sol";
 
-// Base class for all proxy contracts
+// Proxy with a single immutable implementation.
 contract Proxy {
     using LibRawResult for bytes;
 
