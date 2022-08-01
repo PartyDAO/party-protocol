@@ -1,13 +1,14 @@
 {
-  "globals": "0x03a2e9d781976eb639d5e8b5101cdb852e9c0093",
-  "tokenDistributor": "0x84dc9aaa6b890e74d88e97c68ce00f0599cb4321",
+  "globals": "0x34b49d006f48d92545755720b6d288f376240b26",
+  "tokenDistributor": "0x1aae0bca67b3234f24848a38b8eba1d4762b7f94",
   "seaportExchange": "0x00000000006c3852cbef3e08e8df289169ede581",
-  "proposalEngineImpl": "0x9d4da0c6f5095040614145c18a32755f68df385b",
-  "partyImpl": "0xc4df1b5f4a91dc4bc3cb72f3786a5c76e49d12ce",
-  "partyFactory": "0x9419f036a01b530d1e11c3a2a1b65fa81a2ca27d",
-  "partyBidImpl": "0x99b2fd2739576f6e2f80160d3672031febdacb50",
-  "partyBuyImpl": "0xb77f2f04856ebb9039e796575d70e932a5bfcc41",
-  "partyCollectionBuyImpl": "0x9775ab7c56c35cb240b59edf216f2f03f83986a7",
-  "partyCrowdfundFactory": "0x0047033943cbecec4a9ae5a7630709aeb8c01abd",
-  "partyGovernanceNFTRenderer": "0x2b9c2f2f6ccfd82b239939a5c27fa9e71d795cd5"
+  "proposalEngineImpl": "0x512a6d4fa461f9979f8481eedc801af44a948f8b",
+  "partyImpl": "0xc15a34af3fae02a8207a438fa3c8a8026f84838f",
+  "partyFactory": "0x6efbac9ca408675b53d8f90afb3d294e0880e59d",
+  "partyBidImpl": "0x39aef8778fc53b4b59424dd73b635c592619ccc9",
+  "partyBuyImpl": "0x487adbd01b8e3b8e38a3e6a7fbbf0de8d127a4b7",
+  "partyCollectionBuyImpl": "0x266955ed66884f883f1facbabeb4c693d98edb8f",
+  "partyCrowdfundFactory": "0xdc4413d45e1065fe805279296dc73a3cb5058a0f",
+  "partyGovernanceNFTRenderer": "0xc04c639d47ccaae2666458570478737301fae28e",
+  "partyHelpers": "0xf7a744966d3f8bf7b5f5668f219905438bbb38bd"
 }

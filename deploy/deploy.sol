@@ -282,7 +282,7 @@ contract Deploy is Test {
     ffiCmd[3] = jsonRes;
     bytes memory ffiResp = vm.ffi(ffiCmd);
 
-    bool wroteSuccessfully = keccak256(abi.encodePacked(ffiResp)) == keccak256(abi.encodePacked(address(1)));
+    bool wroteSuccessfully = keccak256(ffiResp) == keccak256(hex"0000000000000000000000000000000000000001");
     if (!wroteSuccessfully) {
       revert("Could not write to file");
     }
