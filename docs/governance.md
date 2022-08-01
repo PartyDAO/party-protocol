@@ -145,7 +145,7 @@ When Jerry calls `claim`,  they receive 487.50 DAI  (1000*0.975)*0.5
 
 ### Interoperability
 
-Our `TokenDistributor` contract was designed to work with parties, but a `Distribution` can be created for any contract that implements the `ITokenDistributorParty` interface.  Implmentors of the `ITokenDistributorParty` must implement `getDistributionShareOf(uint256 tokenId)` which returns how much of a distribution a particular tokenId should receive. Denominated in proportion to `1e18` (i.e. `0.5e18` represents 50%)`, as well as `ownerOf(uint256 tokenId`) which returns the owner of a tokenId.
+Our `TokenDistributor` contract was designed to work with parties, but a `Distribution` can be created for any contract that implements the `ITokenDistributorParty` interface.  Implmentors of the `ITokenDistributorParty` must implement `getDistributionShareOf(uint256 tokenId)` which returns how much of a distribution a particular tokenId should receive. Denominated in proportion to `1e18` (i.e. `0.5e18` represents 50%)`, as well as `ownerOf(uint256 tokenId`) which returns the owner of a tokenId.  In the case of a `PartyGovernanceNFT`, the `getDistributionShareOf(uint256 tokenId)` defers to the ratio of the voting power of the specific `tokenId` and the `totalVotingPower`.
 
 When creating a distribution, implementing contracts are expected to transfer the tokens and call the accompanying `create{Erc20Distribution,Erc1155Distribution,createNativeDistribution}` method in the same transaction.
 
