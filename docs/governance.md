@@ -112,13 +112,44 @@ When determining the effective voting power of a user, we binary search a user's
 
 ## Distributions
 
-TODO:
-- What they are and how to trigger one
-- How they're created (call sequence)
-    - Off-chain storage
-- How to claim
-- Fees
-- Emergency backdoors
+### Mechanics
+
+Distributions allow parties to distribute fungible tokens and ETH to party members, porportional to their NFT's voting power.
+
+Unlike proposals, distributions do not require any votes to pass.  Any member of the party can call `distribute` to distribute any ETH, ERC20 or ERC1155s held by the party.
+
+Upon `distribute` being called, the entire balance of the specified token will be transfered to the canonical `TokenDistributor` contract, and a new distribution will be created.
+
+Each distribution has a unique id.  To interact with a distribution, you need to send in an entire `DistributionInfo` object.  The `DistributionInfo` object can be found in the `DistributionCreated` event that is emitted upon the distribution being created.
+
+Once a distribution has been created, NFT holders can call `claim`, sending in the `DistributionInfo` as well as the PartyGovernance token id that they'd like to claim for.  Users can also leverage `batchClaim` if they'd like to claim multiple distributions in one transaction.
+
+Every distribution can have a `feeRecipient` and `feeBps` set.  The `feeRecipient` and `feeBps` for a party's distribution will be determined by the `feeRecipient` and `feeBps` set in `GovernanceOpts` when the party was created.  In order for the `feeRecipient` to claim their fee, the fee recipient must call `claimFee`.  If the `feeRecipient` is a smart contract that is unable to call `claimFee`, the fee could be unretrievable, locked in the contract forever.
+
+Consider the example:
+
+```
+A party is constructed with a `feeRecipient` of Bob and a `feeBps` of 250 basis points (2.5%).
+Keith has 20% ownership of the party
+Donna has 30% ownership of the party
+Jerry has 50% ownership of the party
+
+1000 DAI is deposited into the party contract
+When Bob calls `claimFee`, they receive 25.00 DAI   (1000*0.025)
+When Keith calls `claim`,  they receive 195.00 DAI  (1000*0.975)*0.2
+When Donna calls `claim`,  they receive 292.50 DAI  (1000*0.975)*0.3
+When Jerry calls `claim`,  they receive 487.50 DAI  (1000*0.975)*0.5
+```
+
+### Interoperability
+
+Our `TokenDistributor` contract was designed to work with parties, but a `Distribution` can be created for any contract that implements the `ITokenDistributorParty` interface.  Implementors of the `ITokenDistributorParty` must implement `getDistributionShareOf(uint256 tokenId)` which returns how much of a distribution a particular tokenId should receive. Denominated in proportion to `1e18` (i.e. `0.5e18` represents 50%)`, as well as `ownerOf(uint256 tokenId`) which returns the owner of a tokenId.  In the case of a `PartyGovernanceNFT`, the `getDistributionShareOf(uint256 tokenId)` defers to the ratio of the voting power of the specific `tokenId` against the `totalVotingPower`.
+
+When creating a distribution, implementing contracts are expected to transfer the tokens prior to calling the accompanying `create{Erc20Distribution,Erc1155Distribution,createNativeDistribution}` method in the same transaction.
+
+### Emergency Actions
+
+`TokenDistributor` contains two emergency withdrawal functions controlled by the PartyDAO Multisig: `emergencyWithdraw` and `emergencyRemoveDistribution`.  PartyDAO can call `disableEmergencyActions` to permanently disable these functions.
 
 ---
 
@@ -418,8 +449,6 @@ This proposal is always atomic and completes in a single step/execute.
     - This gives new implementations some ability to perform state migrations. E.g., if the storage schema or semantics changes.
     - `initData` is provided by the proposer as a possible hint to the migration process.
 
-## Emergency Backdoors
+## Emergency Execution
 
-TODO:
-- Rationale
-- Revoking
+By default when a party is created, there is an `emergencyExecute` function that can be used by the PartyDAO multisig in the case of an emergency. This function can execute arbitrary bytecode and withdraw ETH.  This emergency withdrawal power can be revoked by any party host, or by the PartyDAO multisig itself.

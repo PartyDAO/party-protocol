@@ -164,7 +164,7 @@ abstract contract PartyGovernance is
     event ProposalVetoed(uint256 indexed proposalId, address host);
     event ProposalExecuted(uint256 indexed proposalId, address executor, bytes nextProgressData);
     event ProposalCancelled(uint256 indexed proposalId);
-    event DistributionCreated(uint256 distributionId, IERC20 token);
+    event DistributionCreated(ITokenDistributor.TokenType tokenType, address token, uint256 tokenId);
     event VotingPowerDelegated(address indexed owner, address indexed delegate);
     event HostStatusTransferred(address oldHost, address newHost);
 
@@ -410,6 +410,7 @@ abstract contract PartyGovernance is
         ITokenDistributor distributor = ITokenDistributor(
             payable(_GLOBALS.getAddress(LibGlobals.GLOBAL_TOKEN_DISTRIBUTOR))
         );
+        emit DistributionCreated(tokenType, token, tokenId);
         if (tokenType == ITokenDistributor.TokenType.Native) {
             return distributor.createNativeDistribution
                 { value: address(this).balance }(this, feeRecipient, feeBps);
