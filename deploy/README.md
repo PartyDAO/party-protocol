@@ -9,7 +9,7 @@ This directory contains the scripts and constants to deploy to mainnet and rinke
 
 ## Make sure your JS is built!
 
-In order to ensure deploys work, make sure your JS is built by running `yarn build:ts` before deplyoing
+In order to ensure deploys work, make sure your JS is built by running `yarn build:ts` before deploying
 
 ## ⚠️ Modify forge-std `Vm.sol` locally
 
