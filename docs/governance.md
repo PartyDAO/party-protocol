@@ -114,7 +114,7 @@ When determining the effective voting power of a user, we binary search a user's
 
 ### Mechanics
 
-Distributions allow parties to distribute fungible tokens and ETH to party members, porportional to their NFT's voting power.
+Distributions allow parties to distribute fungible tokens and ETH to party members, proportional to their NFT's voting power.
 
 Unlike proposals, distributions do not require any votes to pass.  Any member of the party can call `distribute` to distribute any ETH, ERC20 or ERC1155s held by the party.
 
