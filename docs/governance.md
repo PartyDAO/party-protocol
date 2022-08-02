@@ -149,7 +149,7 @@ When creating a distribution, implementing contracts are expected to transfer th
 
 ### Emergency Actions
 
-`TokenDistributor` contains two emergency withdrawal functions controlled by the PartyDAO Multisig: `emergencyWithdraw` and `emergencyRemoveDistribution`.  PartyDAO can call `disableEmergencyActions` to permanently disable these functions.
+`TokenDistributor` contains two emergency withdrawal functions controlled by the PartyDAO Multisig: `emergencyWithdraw()` and `emergencyRemoveDistribution()`.  PartyDAO can call `disableEmergencyActions` to permanently disable these functions.
 
 ---
 
