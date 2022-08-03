@@ -7,10 +7,10 @@ After a crowdfund has acquired its NFTs, they transfer it to and form a governan
 ## Key Concepts
 
 - **Precious**: An NFT custodied by the governance contract (`Party`), conventionally acquired by the crowdfund phase. These are protected assets and are subject to extra restrictions in proposals vs other assets.
-- **Voting Cards**: An NFT (721) representing voting power within the governance Party.
-- **Party**: The governance contract itself, which custodies the NFT, tracks voting power, manages the lifecycle of proposals, and is simultaneously is the governance token (Voting Cards).
-- **Proposals**: On-chain actions that will be executed as the party that must progress through the entire governance lifecycle (voting, etc).
-- **Distributions**: An (ungoverned) mechanism by which parties can distribute ETH, ERC20, and ERC1155 tokens held by the party to members proportional to their relative voting power (voting cards).
+- **Governance NFTs**: An NFT (721) representing voting power within the governance Party.
+- **Party**: The governance contract itself, which custodies the NFT, tracks voting power, manages the lifecycle of proposals, and is simultaneously is the token contract for Governance NFTs.
+- **Proposals**: On-chain actions that will be executed as the party that must progress through the entire governance lifecycle.
+- **Distributions**: An (ungoverned) mechanism by which parties can distribute ETH, ERC20, and ERC1155 tokens held by the party to members proportional to their relative voting power (Governance NFTs).
 - **Party Hosts**: Predefined accounts that can unilaterally veto proposals in the party. Conventionally defined when the crowdfund is created.
 - **Globals**: A single contract that holds configuration values, referenced by several ecosystem contracts.
 - **Proxies**: All `Party` instances are deployed as simple [`Proxy`](../contracts/utils/Proxy.sol) contracts that forward calls to a `Party` implementation contract.
@@ -25,7 +25,7 @@ The main contracts involved in this phase are:
 - `PartyFactory` ([code](../contracts/party/PartyFactory.sol))
     - Creates new proxified `Party` instances.
 - `Party` ([code](../contracts/party/Party.sol))
-    - The governance contract that also custodies the precious NFTs. This is also the voting card 721 contract.
+    - The governance contract that also custodies the precious NFTs. This is also the Governance NFT 721 contract.
 - `ProposalExecutionEngine` ([code](../contracts/proposals/ProposalExecutionEngine.sol))
     - An upgradable logic (and some state) contract for executing each proposal type from the context of the `Party`.
 - `TokenDistributor` ([code](../contracts/distribution/TokenDistributor.sol))
@@ -40,7 +40,7 @@ The main contracts involved in this phase are:
 ## Party Creation
 
 Parties are created through the `PartyFactory` contract. This is typically automatically done
-by a crowdfund instance after it wins, but it is also a valid use case to interact with the PartyFactory contract directly to, for example, form a governance party around an existing NFT.
+by a crowdfund instance after it wins, but it is also a valid use case to interact with the PartyFactory contract directly to, for example, form a governance party around an NFT you already own.
 
 The sequence of events is:
 
@@ -58,10 +58,10 @@ The sequence of events is:
     - `preciousTokens` and `preciousTokenIds` together define the NFTs the Party will custody and enforce extra restrictions on so they are not easily transferred out of the Party. This list cannot be changed after Party creation. Note that this list is never stored on-chain (only the hash is) and will need to be passed into the `execute()` call when executing proposals.
     - This will deploy a new `Proxy` instance with an implementation pointing to the Party contract defined by in the `Globals` contract by the key `GLOBAL_PARTY_IMPL`.
 2. Transfer assets to the created Party, which will typically be the precious NFTs.
-3. As the `authority`, mint voting cards to members of the party by calling `PartyFactory.mint()`.
+3. As the `authority`, mint Governance NFTs to members of the party by calling `PartyFactory.mint()`.
     - In typical flow, the crowdfund contract will call this when contributors burn their contribution NFTs.
-4. Optionally, call `PartyFactory.abdicate()`, as the `authority`, to revoke minting privilege once all voting cards have been minted.
-5. At any step after the party creation, members with voting cards can perform governance actions, though they may not be able to reach consensus if the total supply of voting power hasn't been minted/distributed yet.
+4. Optionally, call `PartyFactory.abdicate()`, as the `authority`, to revoke minting privilege once all Governance NFTs have been minted.
+5. At any step after the party creation, members with Governance NFTs can perform governance actions, though they may not be able to reach consensus if the total supply of voting power hasn't been minted/distributed yet.
 
 ---
 
@@ -70,10 +70,10 @@ The sequence of events is:
 Parties are initialized with fixed governance options which will (mostly) never change for the Party's lifetime. They are defined in the `PartyGovernance.GovernanceOpts` struct with the fields:
 
 - `hosts`: Array of initial party hosts. This is the only configuration that can change because hosts can transfer their privilege to other accounts.
-- `voteDuration`: Duration in seconds a proposal can be voted on after it has been proposed.
+- `voteDuration`: After being a proposal has been proposed, this is how long (in seconds) members can vote for it to pass. If this window expires before the proposal passes, it will be considered defeated.
 - `executionDelay`: Duration in seconds a proposal must wait after being passed before it can be executed. This gives hosts time to veto malicious proposals that have passed.
-- `passThresholdBps`: Minimum ratio of votes vs `totalVotingPower` supply to consider a proposal passed. This is expressed in bps, i.e., 1e4 = 100%.
-- `totalVotingPower`: Total voting power of the Party. This should be the sum of weights of all (possible) voting cards given to members. Note that nowhere is this assumption enforced, as there may be use-cases for minting more than 100% of voting power, but the logic in crowdfund contracts cannot mint more than `totalVotingPower`.
+- `passThresholdBps`: Minimum ratio of votes vs `totalVotingPower` supply to consider a proposal passed. This is expressed in basis points, i.e., 100 = 1%.
+- `totalVotingPower`: Total voting power of the Party. This should be the sum of weights of all (possible) Governance NFTs given to members. Note that nowhere is this assumption enforced, as there may be use-cases for minting more than 100% of voting power, but the logic in crowdfund contracts cannot mint more than `totalVotingPower`.
 - `feeBps`: The fee taken out of this Party's [distributions](#distributions) to reserve for `feeRecipient` to claim. Typically this will be set to an address controlled by PartyDAO.
 - `feeRecipient`: The address that can claim distribution fees for this Party.
 
@@ -81,28 +81,28 @@ Parties are initialized with fixed governance options which will (mostly) never 
 
 ## Voting Power
 
-### Voting Cards
+### Governance NFTs
 
-Voting power within the governance Party is represented and held by "voting cards," which are NFTs (721s) minted for each member of the Party. Each voting card has a distinct voting power/weight associated with it. These cards can never be broken up or combined, but a user may own multiple voting cards within a Party. The total (intrinsic) voting power a member has is the sum of all the voting power in all the voting cards for that Party they possess at a given timestamp.
+Voting power within the governance Party is represented and held by a Governance NFTs, which are ERC721s minted for each member of the Party. Each Governance NFT has a distinct voting power/weight associated with it. These cards can never be broken up or combined, but a user may own multiple Governance NFTs within a Party. The total *intrinsic* voting power a member has is the sum of all the voting power in all the Governance NFTs for that Party they possess at a given timestamp.
 
 ### Delegation
 
-Owners of voting cards can call `Party.delegateVotingPower()` to delegate their intrinsic *total* voting power (at the time of the call) to another account. The minter of the voting card can also set an initial delegate for the owner, meaning any voting cards held by the owner will be delegated by default. If a user transfers their voting card, the voting power will be delegated to the recipient's existing delegate.
+Owners of Governance NFTs can call `Party.delegateVotingPower()` to delegate their intrinsic *total* voting power across all Governance NFTs they hold, at the time of the call forward, to another account. The minter of the Governance NFT can also set an initial delegate for the owner, meaning any Governance NFTs held by the owner will be delegated by default. If a user transfers their Governance NFT, the voting power will be delegated to the recipient's existing delegate.
 
-The chosen delegate does not need to own a voting card. Delegating voting power strips the owner of their entire voting power until they redelegate to themselves, meaning they will not be able to vote on proposals created afterwards. Voting card owners can recover their voting power for future proposals if they delegate to themselves or to the zero address.
+The chosen delegate does not need to own a Governance NFT. Delegating voting power strips the owner of their entire voting power until they redelegate to themselves, meaning they will not be able to vote on proposals created afterwards (because votes cast rely on [snapshots](#voting-power-snapshots)). Governance NFT owners can recover their voting power for future proposals if they delegate to themselves or to the zero address.
 
 ### Calculating Effective Voting Power
 
-The effective voting power of a user is the sum of all undelegated (or self-delegated) voting power from their voting cards plus the sum of all voting power delegated to them by other users.
+The effective voting power of a user is the sum of all undelegated (or self-delegated) voting power from their Governance NFTs plus the sum of all voting power delegated to them by other users.
 
 The effective voting power of a user at a given time can be found by calling `Party.getVotingPowerAt()`.
 
 ### Voting Power Snapshots
 
-The voting power applied when a user votes on a proposal is their effective voting power at the time the proposal was proposed. This prevents people from acquiring large amounts of voting cards to influence the outcome of an active proposal. The `Party` contract appends a record of a user's total delegated (to them) and intrinsic voting power each time any of the following occurs:
+The voting power applied when a user votes on a proposal is their effective voting power at the time the proposal was proposed. This prevents people from acquiring large amounts of Governance NFTs to influence the outcome of an active proposal. The `Party` contract appends a record of a user's total delegated (to them) and intrinsic voting power each time any of the following occurs:
 
-- A user receives a voting card (transfer or minting).
-- A user transfers their voting card to another user.
+- A user receives a Governance NFT (transfer or minting).
+- A user transfers their Governance NFT to another user.
 - A user (un)delegates their voting power.
 - A user gets voting power (un)delegated to them.
 
@@ -114,7 +114,7 @@ When determining the effective voting power of a user, we binary search a user's
 
 ### Mechanics
 
-Distributions allow parties to distribute fungible tokens and ETH to party members, proportional to their NFT's voting power.
+Distributions allow parties to distribute fungible tokens and ETH to party members, proportional to the voting power of their Governance NFTs.
 
 Unlike proposals, distributions do not require any votes to pass.  Any member of the party can call `distribute` to distribute any ETH, ERC20 or ERC1155s held by the party.
 
@@ -143,7 +143,7 @@ When Jerry calls `claim`,  they receive 487.50 DAI  (1000*0.975)*0.5
 
 ### Interoperability
 
-Our `TokenDistributor` contract was designed to work with parties, but a `Distribution` can be created for any contract that implements the `ITokenDistributorParty` interface.  Implementors of the `ITokenDistributorParty` must implement `getDistributionShareOf(uint256 tokenId)` which returns how much of a distribution a particular tokenId should receive. Denominated in proportion to `1e18` (i.e. `0.5e18` represents 50%)`, as well as `ownerOf(uint256 tokenId`) which returns the owner of a tokenId.  In the case of a `PartyGovernanceNFT`, the `getDistributionShareOf(uint256 tokenId)` defers to the ratio of the voting power of the specific `tokenId` against the `totalVotingPower`.
+Our `TokenDistributor` contract was designed to work with parties, but a `Distribution` can be created for any contract that implements the `ITokenDistributorParty` interface.  Implementors of the `ITokenDistributorParty` must implement `getDistributionShareOf(uint256 tokenId)` which returns how much of a distribution a particular tokenId should receive. Denominated in proportion to `1e18` (i.e. `0.5e18` represents 50%), as well as `ownerOf(uint256 tokenId)` which returns the owner of a tokenId.  In the case of a `PartyGovernanceNFT`, the `getDistributionShareOf(uint256 tokenId)` defers to the ratio of the voting power of the specific `tokenId` against the `totalVotingPower`.
 
 When creating a distribution, implementing contracts are expected to transfer the tokens prior to calling the accompanying `create{Erc20Distribution,Erc1155Distribution,createNativeDistribution}` method in the same transaction.
 
@@ -157,12 +157,12 @@ When creating a distribution, implementing contracts are expected to transfer th
 
 Governance in Parties follows a fairly traditional model, revolving around passing and executing proposals. Proposals have the following properties:
 
-- proposal ID: A unique identifier (counter) assigned to a proposal when it it is first proposed.
-- `maxExecutableTime`: A timestamp beyond which the proposal can no longer be executed (for the first time).
+- `maxExecutableTime`: A timestamp beyond which the proposal can no longer be executed. In the case of [multi-step proposals](#multi-step-proposals), this only restricts the first time the proposal is executed.
 - `cancelDelay`: Number of seconds after a proposal enters the `InProgress` state after which it can be forcibly interrupted and marked complete so another proposal can be executed.
 - `proposalData`: Encoded data needed to execute the proposal.
+- Proposal ID: A unique identifier (counter) assigned to a proposal when it it is first proposed.
 
-An important thing to note is that none of these proposal properties are ever stored on-chain. Instead, only the hash of these fields are stored on-chain (keyed by the proposal ID) to enforce that the properties do not change between lifecycle operations.
+An important thing to note is that none of these proposal properties (aside from the proposal ID) are ever stored on-chain. Instead, only the hash of these fields are stored on-chain (keyed by the proposal ID) to optimize for gas usage and enforce that the properties do not change between lifecycle operations.
 
 ### Proposal Stages/Status
 
@@ -173,7 +173,7 @@ The stages of a proposal are defined in `PartyGovernance.ProposalStatus`:
 - `Defeated`: The proposal has either exceeded its voting window without reaching `passThresholdBps` of votes or was vetoed by a party host.
 - `Passed`: The proposal reached at least `passThresholdBps` of votes but is still waiting for `executionDelay` to pass before it can be executed. Members can continue to vote on the proposal and party hosts can veto at this time.
 - `Ready`: Same as `Passed` but now `executionDelay` has been satisfied or the proposal passed unanimously. Any member may execute the proposal via `execute()`, unless `maxExecutableTime` has arrived.
-- `InProgress`: The proposal has been executed at least once but has further steps to complete so it needs to be executed again. No other proposals may be executed while a proposal is in the `InProgress` state. No voting or vetoing of the proposal is allowed, however it may be forcibly cancelled via `cancel()` if the `cancelDelay` has arrived.
+- `InProgress`: The proposal has been executed at least once but has further steps to complete so it needs to be executed again. No other proposals may be executed while a proposal is in the `InProgress` status, and therefore only a single proposal may ever be in the `InProgress` status. No voting or vetoing of the proposal is allowed, however it may be forcibly cancelled via `cancel()` if the `cancelDelay` has arrived.
 - `Complete`: The proposal was executed and completed all its steps. No voting or vetoing can occur and it cannot be cancelled nor executed again.
 - `Cancelled`: The proposal was executed at least once but did not complete before `cancelDelay` seconds passed since the first execute and was forcibly cancelled.
 
@@ -242,6 +242,10 @@ The rationale for separating the `ProposalExecutionEngine` from the `Party` inst
 
 These storage variables begin at a constant, non-overlapping slot index to avoid collisions and simplify explicit migrations to a new storage schema if necessary. It does not access any inline storage fields defined in the `Party` contract, nor does the `Party` contract access these storage variables.
 
+### Proposal Flags
+
+The `Party` contract can communicate whether the proposal passed unanimously by passing in `flags` along with other proposal details. Currently the only flag supported is the `LibProposal.PROPOSAL_FLAG_UNANIMOUS` flag, which indicates the proposal reached unanimous consensus before it was first executed.
+
 ---
 
 ## Proposal Types
@@ -270,7 +274,7 @@ abi.encodeWithSelector(
         ArbitraryCall(
             // The call target.
             /* address payable */ target,
-            // Amount of ETH to attach to the call.
+            // Amount of ETH to attach to the call (from executor's wallet).
             /* uint256 */ value,
             // Calldata.
             /* bytes */ data,
@@ -295,7 +299,7 @@ This proposal is atomic, always completing in one step/execute.
 - If a call has a non-zero `expectedResultHash` then the result of the call will be hashed and matched against this value. If they do not match, then the entire proposal will revert.
 - If the call is to the `Party` itself, the entire proposal will revert.
 - If the call is to the `IERC721.onERC721Received()` function, the entire proposal will revert.
-    - Recall that the `Party` contract is also the voting card NFT so calling this function can trick someone into thinking they received a voting card.
+    - Recall that the `Party` contract is also the Governance NFT contract so calling this function can trick someone into thinking they received a Governance NFT.
 - If the proposal did not pass unanimously, extra checks are made to prevent moving a precious NFT:
     - Before executing all the calls, check which precious NFTs the Party possesses. Then after executing all the calls, ensure we still possess them or else the entire proposal will revert.
     - If the call is to `IERC721.approve()`, the target is a precious NFT token, and the token ID is a matching precious token ID, revert the entire proposal unless the operator would be set to the zero address.
@@ -418,10 +422,6 @@ This proposal has between 2-3 steps:
 3. Clean up the OpenSea listing, emitting an event with the outcome, and:
     - If the order was filled, the Party has the `listPrice` ETH, the NFT allowance was consumed, and there is nothing left to do.
     - If the order expired, no one bought the listing and the Party still owns the NFT. Revoke OpenSea's token allowance.
-
-### Fractionalize Proposal Type
-
-... 🤷
 
 ### UpgradeProposalEngineImpl Proposal Type
 

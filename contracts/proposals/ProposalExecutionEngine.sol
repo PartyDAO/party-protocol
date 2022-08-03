@@ -111,16 +111,16 @@ contract ProposalExecutionEngine is
             revert ZeroProposalIdError();
         }
         uint256 currentInProgressProposalId = stor.currentInProgressProposalId;
-        // Only one proposal can be in progress at a time.
-        if (currentInProgressProposalId != 0) {
-            if (currentInProgressProposalId != params.proposalId) {
-                revert ProposalExecutionBlockedError(
-                    params.proposalId,
-                    currentInProgressProposalId
-                );
-            }
-        } else {
+        if (currentInProgressProposalId == 0) {
+            // No proposal is currently in progress.
+            // Mark this proposal as the one in progress.
             stor.currentInProgressProposalId = params.proposalId;
+        } else if (currentInProgressProposalId != params.proposalId) {
+            // Only one proposal can be in progress at a time.
+            revert ProposalExecutionBlockedError(
+                params.proposalId,
+                currentInProgressProposalId
+            );
         }
         {
             bytes32 nextProgressDataHash = stor.nextProgressDataHash;
