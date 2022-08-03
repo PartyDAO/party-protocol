@@ -72,7 +72,7 @@ Parties are initialized with fixed governance options which will (mostly) never 
 - `hosts`: Array of initial party hosts. This is the only configuration that can change because hosts can transfer their privilege to other accounts.
 - `voteDuration`: After being a proposal has been proposed, this is how long (in seconds) members can vote for it to pass. If this window expires before the proposal passes, it will be considered defeated.
 - `executionDelay`: Duration in seconds a proposal must wait after being passed before it can be executed. This gives hosts time to veto malicious proposals that have passed.
-- `passThresholdBps`: Minimum ratio of votes vs `totalVotingPower` supply to consider a proposal passed. This is expressed in basis points, i.e., 100 = 1%.
+- `passThresholdBps`: Minimum ratio of votes vs `totalVotingPower` supply to consider a proposal passed. This is expressed in basis points, i.e. `100 = 1%`
 - `totalVotingPower`: Total voting power of the Party. This should be the sum of weights of all (possible) Governance NFTs given to members. Note that nowhere is this assumption enforced, as there may be use-cases for minting more than 100% of voting power, but the logic in crowdfund contracts cannot mint more than `totalVotingPower`.
 - `feeBps`: The fee taken out of this Party's [distributions](#distributions) to reserve for `feeRecipient` to claim. Typically this will be set to an address controlled by PartyDAO.
 - `feeRecipient`: The address that can claim distribution fees for this Party.
