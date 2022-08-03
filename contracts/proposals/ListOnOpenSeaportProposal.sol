@@ -11,22 +11,32 @@ import "./ZoraHelpers.sol";
 import "./LibProposal.sol";
 import "./IProposalExecutionEngine.sol";
 
-// Implements arbitrary call proposals.
+// Implements propoasls listing an NFT on open sea.
 abstract contract ListOnOpenSeaportProposal is ZoraHelpers {
-    enum OpenSeaportStep {
+    enum ListOnOpenSeaportStep {
+        // The proposal hasn't been executed yet.
         None,
+        // The NFT was placed in a zora auction.
         ListedOnZora,
+        // The Zora auction was either skipped or cancelled.
         RetrievedFromZora,
+        // The NFT was listed on OpenSea.
         ListedOnOpenSea
     }
 
     // ABI-encoded `proposalData` passed into execute.
     struct OpenSeaportProposalData {
+        // The price (in ETH) to sell the NFT.
         uint256 listPrice;
+        // How long the listing is valid for.
         uint40 duration;
+        // The NFT token contract.
         IERC721 token;
+        // the NFT token ID.
         uint256 tokenId;
+        // Fees the taker must pay when filling the listing.
         uint256[] fees;
+        // Respective recipients for each fee.
         address payable[] feeRecipients;
     }
 
@@ -112,11 +122,11 @@ abstract contract ListOnOpenSeaportProposal is ZoraHelpers {
         bool isUnanimous = params.flags & LibProposal.PROPOSAL_FLAG_UNANIMOUS
             == LibProposal.PROPOSAL_FLAG_UNANIMOUS;
         // If there is progressData passed in, we're on the first step,
-        // otherwise parse the first 8 bits of the porgressData as the current step.
-        OpenSeaportStep step = params.progressData.length == 0
-            ? OpenSeaportStep.None
-            : abi.decode(params.progressData, (OpenSeaportStep));
-        if (step == OpenSeaportStep.None) {
+        // otherwise parse the first word of the progressData as the current step.
+        ListOnOpenSeaportStep step = params.progressData.length == 0
+            ? ListOnOpenSeaportStep.None
+            : abi.decode(params.progressData, (ListOnOpenSeaportStep));
+        if (step == ListOnOpenSeaportStep.None) {
             // First time executing the proposal.
             if (
                 !isUnanimous &&
@@ -142,7 +152,7 @@ abstract contract ListOnOpenSeaportProposal is ZoraHelpers {
                         data.tokenId
                     );
                     // Return the next step and data required to execute that step.
-                    return abi.encode(OpenSeaportStep.ListedOnZora, ZoraProgressData({
+                    return abi.encode(ListOnOpenSeaportStep.ListedOnZora, ZoraProgressData({
                         auctionId: auctionId,
                         minExpiry: uint40(block.timestamp + zoraTimeout)
                     }));
@@ -151,9 +161,9 @@ abstract contract ListOnOpenSeaportProposal is ZoraHelpers {
             // Unanimous vote, not a precious, or no zora duration.
             // Advance past the zora auction phase by pretending we already
             // retrieved it from zora.
-            step = OpenSeaportStep.RetrievedFromZora;
+            step = ListOnOpenSeaportStep.RetrievedFromZora;
         }
-        if (step == OpenSeaportStep.ListedOnZora) {
+        if (step == ListOnOpenSeaportStep.ListedOnZora) {
             // The last time this proposal was executed, we listed it on zora.
             // Now retrieve it from zora.
             (, ZoraProgressData memory zpd) =
@@ -167,9 +177,9 @@ abstract contract ListOnOpenSeaportProposal is ZoraHelpers {
             }
             // The auction simply expired before anyone bid on it. We have the NFT
             // back now so move on to listing it on opensea immediately.
-            step = OpenSeaportStep.RetrievedFromZora;
+            step = ListOnOpenSeaportStep.RetrievedFromZora;
         }
-        if (step == OpenSeaportStep.RetrievedFromZora) {
+        if (step == ListOnOpenSeaportStep.RetrievedFromZora) {
             // This step occurs if either:
             // 1) This is the first time this proposal is being executed and
             //    it is a unanimous vote or the NFT is not precious (guarded)
@@ -186,9 +196,9 @@ abstract contract ListOnOpenSeaportProposal is ZoraHelpers {
                 data.fees,
                 data.feeRecipients
             );
-            return abi.encode(OpenSeaportStep.ListedOnOpenSea, orderHash, expiry);
+            return abi.encode(ListOnOpenSeaportStep.ListedOnOpenSea, orderHash, expiry);
         }
-        assert(step == OpenSeaportStep.ListedOnOpenSea);
+        assert(step == ListOnOpenSeaportStep.ListedOnOpenSea);
         // The last time this proposal was executed, we listed it on opensea.
         // Now try to settle the listing (either it has expired or been filled).
         (, OpenSeaportProgressData memory opd) =

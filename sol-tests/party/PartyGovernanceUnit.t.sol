@@ -395,7 +395,7 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
         return PartyGovernance.Proposal({
             // Expires right after execution delay.
             maxExecutableTime: uint40(block.timestamp) + defaultGovernanceOpts.executionDelay,
-            minCancelTime: uint40(block.timestamp + 1 days),
+            cancelDelay: uint40(1 days),
             proposalData: abi.encode(numSteps)
         });
     }
@@ -1011,12 +1011,12 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
         _assertProposalStatusEq(gov, proposalId, PartyGovernance.ProposalStatus.InProgress);
 
         // Skip to just before cancel time.
-        vm.warp(proposal.minCancelTime - 1);
+        skip(proposal.cancelDelay - 1);
         // Try to cancel it (fail).
         vm.expectRevert(abi.encodeWithSelector(
             PartyGovernance.ProposalCannotBeCancelledYetError.selector,
             uint40(block.timestamp),
-            proposal.minCancelTime
+            uint40(block.timestamp + 1)
         ));
         vm.prank(voter);
         gov.cancel(proposalId, proposal);
@@ -1051,7 +1051,7 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
         _assertProposalStatusEq(gov, proposalId, PartyGovernance.ProposalStatus.InProgress);
 
         // Skip to cancel time.
-        vm.warp(proposal.minCancelTime);
+        skip(proposal.cancelDelay);
         // Cancel it.
         _expectEmit0();
         emit DummyProposalExecutionEngine_cancelCalled(address(gov), proposalId);
@@ -1090,14 +1090,14 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
         );
         _assertProposalStatusEq(gov, proposalId, PartyGovernance.ProposalStatus.InProgress);
 
-        // Set a global upper bound on the cancel time right before the proposal's minCancelTime.
+        // Set a global upper bound on the cancel time right before the proposal's cancelDelay.
         globals.setUint256(
             LibGlobals.GLOBAL_PROPOSAL_MAX_CANCEL_DURATION,
-            proposal.minCancelTime - block.timestamp - 1
+            proposal.cancelDelay - 1
         );
 
         // Skip to global max cancel time.
-        vm.warp(proposal.minCancelTime - 1);
+        skip(proposal.cancelDelay - 1);
         // Cancel it.
         _expectEmit0();
         emit DummyProposalExecutionEngine_cancelCalled(address(gov), proposalId);
@@ -2191,7 +2191,7 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
         PartyGovernance.Proposal memory proposal = _createProposal(1);
         bytes32 expectedHash = keccak256(abi.encode(
             proposal.maxExecutableTime,
-            proposal.minCancelTime,
+            proposal.cancelDelay,
             keccak256(proposal.proposalData)
         ));
         bytes32 actualHash = gov.testGetProposalHash(proposal);

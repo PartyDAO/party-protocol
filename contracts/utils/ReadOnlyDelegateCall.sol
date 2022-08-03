@@ -7,12 +7,14 @@ import "./LibRawResult.sol";
 contract ReadOnlyDelegateCall {
     using LibRawResult for bytes;
 
+    // Delegatecall into impl and revert with the raw result.
     function delegateCallAndRevert(address impl, bytes memory callData)
         external
     {
         // Attempt to gate to only `_readOnlyDelegateCall()` invocations.
         require(msg.sender == address(this));
         (bool s, bytes memory r) = impl.delegatecall(callData);
+        // Revert with success status and return data.
         abi.encode(s, r).rawRevert();
     }
 
@@ -22,6 +24,7 @@ contract ReadOnlyDelegateCall {
         returns (bool success, bytes memory resultData)
     {
         try this.delegateCallAndRevert(impl, callData) {
+            // Should never happen.
             assert(false);
         }
         catch (bytes memory r) {

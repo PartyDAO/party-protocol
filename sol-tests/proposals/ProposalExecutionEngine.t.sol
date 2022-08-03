@@ -68,7 +68,7 @@ contract ProposalExecutionEngineTest is
         returns (bytes memory)
     {
         return abi.encodeWithSelector(
-            bytes4(uint32(ProposalExecutionEngine.ProposalType.ListOnOpenSea)),
+            bytes4(uint32(ProposalExecutionEngine.ProposalType.ListOnOpenSeaport)),
             emitValue1,
             emitValue2
         );
@@ -128,19 +128,6 @@ contract ProposalExecutionEngineTest is
             ProposalExecutionEngine.ProposalExecutionBlockedError.selector,
             executeParams.proposalId,
             eng.getCurrentInProgressProposalId()
-        ));
-        _executeProposal(executeParams);
-    }
-
-    function test_executeProposal_cannotExecuteCompleteProposal() public {
-        // Execute a one-step proposal, then try to execute the same one again.
-        IProposalExecutionEngine.ExecuteProposalParams memory executeParams =
-            _createTestProposal(_createOneStepProposalData(_randomUint256()));
-        assertTrue(_executeProposal(executeParams));
-        // Try again
-        vm.expectRevert(abi.encodeWithSelector(
-            ProposalExecutionEngine.ProposalAlreadyCompleteError.selector,
-            executeParams.proposalId
         ));
         _executeProposal(executeParams);
     }

@@ -37,13 +37,34 @@ abstract contract PartyGovernance is
 
     // States a proposal can be in.
     enum ProposalStatus {
+        // The proposal does not exist.
         Invalid,
+        // The proposal has been proposed (via `propose()`), has not been vetoed
+        // by a party host, and is within the voting window. Members can vote on
+        // the proposal and party hosts can veto the proposal.
         Voting,
+        // The proposal has either exceeded its voting window without reaching
+        // `passThresholdBps` of votes or was vetoed by a party host.
         Defeated,
+        // The proposal reached at least `passThresholdBps` of votes but is still
+        // waiting for `executionDelay` to pass before it can be executed. Members
+        // can continue to vote on the proposal and party hosts can veto at this time.
         Passed,
+        // Same as `Passed` but now `executionDelay` has been satisfied. Any member
+        // may execute the proposal via `execute()`, unless `maxExecutableTime`
+        // has arrived.
         Ready,
+        // The proposal has been executed at least once but has further steps to
+        // complete so it needs to be executed again. No other proposals may be
+        // executed while a proposal is in the `InProgress` state. No voting or
+        // vetoing of the proposal is allowed, however it may be forcibly cancelled
+        // via `cancel()` if the `cancelDelay` has passed since being first executed.
         InProgress,
+        // The proposal was executed and completed all its steps. No voting or
+        // vetoing can occur and it cannot be cancelled nor executed again.
         Complete,
+        // The proposal was executed at least once but did not complete before
+        // `cancelDelay` seconds passed since the first execute and was forcibly cancelled.
         Cancelled
     }
 
@@ -93,9 +114,9 @@ abstract contract PartyGovernance is
         // If the proposal has already been executed, and is still InProgress,
         // this value is ignored.
         uint40 maxExecutableTime;
-        // The minimum time beyond which a proposal can be cancelled if it is
-        // stuck in the InProgress status.
-        uint40 minCancelTime;
+        // The minimum seconds this proposal can remain in the InProgress status
+        // before it can be cancelled.
+        uint40 cancelDelay;
         // Encoded proposal data. The first 4 bytes are the proposal type, followed
         // by encoded proposal args specific to the proposal type. See
         // ProposalExecutionEngine for details.
@@ -143,10 +164,11 @@ abstract contract PartyGovernance is
     event ProposalVetoed(uint256 indexed proposalId, address host);
     event ProposalExecuted(uint256 indexed proposalId, address executor, bytes nextProgressData);
     event ProposalCancelled(uint256 indexed proposalId);
-    event DistributionCreated(uint256 distributionId, IERC20 token);
+    event DistributionCreated(ITokenDistributor.TokenType tokenType, address token, uint256 tokenId);
     event VotingPowerDelegated(address indexed owner, address indexed delegate);
     event HostStatusTransferred(address oldHost, address newHost);
 
+    error MismatchedPreciousListLengths();
     error BadProposalStatusError(ProposalStatus status);
     error ProposalExistsError(uint256 proposalId);
     error BadProposalHashError(bytes32 proposalHash, bytes32 actualHash);
@@ -161,7 +183,7 @@ abstract contract PartyGovernance is
     error OnlyWhenEmergencyActionsAllowedError();
     error AlreadyVotedError(address voter);
     error InvalidNewHostError();
-    error ProposalCannotBeCancelledYetError(uint40 currentTime, uint40 minCancelTime);
+    error ProposalCannotBeCancelledYetError(uint40 currentTime, uint40 cancelTime);
 
     uint256 constant private UINT40_HIGH_BIT = 1 << 39;
 
@@ -335,7 +357,7 @@ abstract contract PartyGovernance is
         // keccak256(abi.encode(
         //   proposal.minExecutableTime,
         //   keccak256(proposal.proposalData),
-        //   proposal.minCancelTime
+        //   proposal.cancelDelay
         // ))
         bytes32 dataHash = keccak256(proposal.proposalData);
         assembly {
@@ -388,6 +410,7 @@ abstract contract PartyGovernance is
         ITokenDistributor distributor = ITokenDistributor(
             payable(_GLOBALS.getAddress(LibGlobals.GLOBAL_TOKEN_DISTRIBUTOR))
         );
+        emit DistributionCreated(tokenType, token, tokenId);
         if (tokenType == ITokenDistributor.TokenType.Native) {
             return distributor.createNativeDistribution
                 { value: address(this).balance }(this, feeRecipient, feeBps);
@@ -451,9 +474,8 @@ abstract contract PartyGovernance is
     }
 
     /// @notice Vote to support a proposed proposal.
-    /// @dev The voting power cast will
-    ///      be the total votes delegated to the caller + the total undelegated
-    ///      (or self-delegated) votes to the caller at the time propose() was called.
+    /// @dev The voting power cast will be the effective voting power of the caller
+    ///      at the time propose() was called (see getVotingPowerAt()).
     ///      If the proposal reaches passThresholdBps acceptance ratio then the
     ///      proposal will be in the Passed state and will be executable after
     ///      the executionDelay has passed, putting it in the Ready state.
@@ -528,7 +550,7 @@ abstract contract PartyGovernance is
         emit ProposalVetoed(proposalId, msg.sender);
     }
 
-    /// @notice Executes a passed and non-vetoed proposal.
+    /// @notice Executes a proposal that has passed governance.
     /// @dev The proposal must be in the Ready or InProgress status.
     ///      A ProposalExecuted event will be emitted with a non-empty nextProgressData
     ///      if the proposal has extra steps (must be executed again) to carry out,
@@ -592,12 +614,13 @@ abstract contract PartyGovernance is
     }
 
     /// @notice Cancel a (probably stuck) InProgress proposal.
-    /// @dev It must be at least proposal.minCancelTime for this to be valid.
-    //       The currently active propgress will simply be yeeted out of existence
-    //       so another proposal can execute.
-    //       This is intended to be a last resort and can leave the party
-    //       in a broken state. Whenever possible, active proposals should be
-    //       allowed to complete their lifecycle.
+    /// @dev proposal.cancelDelay seconds must have passed since it was first
+    ///       executed for this to be valid.
+    ///       The currently active propgress will simply be yeeted out of existence
+    ///       so another proposal can execute.
+    ///       This is intended to be a last resort and can leave the party
+    ///       in a broken state. Whenever possible, active proposals should be
+    ///       allowed to complete their lifecycle.
     function cancel(uint256 proposalId, Proposal calldata proposal)
         external
         onlyActiveMember
@@ -606,33 +629,33 @@ abstract contract PartyGovernance is
         ProposalState storage proposalState = _proposalStateByProposalId[proposalId];
         // Proposal details must remain the same from propose().
         _validateProposalHash(proposal, proposalState.hash);
-        // Limit the maximum minCancelTime to the global max cancel delay + executedTime
-        // to mitigate parties accidentally getting stuck forever by setting an
-        // unrealistic minCancelTime.
-        uint256 effectiveMinCancelTime = proposal.minCancelTime;
-        {
-            uint256 maxCancelDuration =
-                _GLOBALS.getUint256(LibGlobals.GLOBAL_PROPOSAL_MAX_CANCEL_DURATION);
-            if (maxCancelDuration != 0) { // Only if we have one set.
-                effectiveMinCancelTime = proposalState.values.executedTime + maxCancelDuration;
-                if (effectiveMinCancelTime > proposal.minCancelTime) {
-                    effectiveMinCancelTime = proposal.minCancelTime;
-                }
-            }
-        }
-        // Must not be before minCancelTime.
-        if (block.timestamp < effectiveMinCancelTime) {
-            revert ProposalCannotBeCancelledYetError(
-                uint40(block.timestamp),
-                uint40(effectiveMinCancelTime)
-            );
-        }
         ProposalStateValues memory values = proposalState.values;
         {
-            ProposalStatus status = _getProposalStatus(values);
             // Must be InProgress.
+            ProposalStatus status = _getProposalStatus(values);
             if (status != ProposalStatus.InProgress) {
                 revert BadProposalStatusError(status);
+            }
+        }
+        {
+            // Limit the maximum cancelDelay to the global max cancel delay
+            // to mitigate parties accidentally getting stuck forever by setting an
+            // unrealistic cancelDelay.
+            uint256 cancelDelay = proposal.cancelDelay;
+            uint256 globalMaxCancelDelay =
+                _GLOBALS.getUint256(LibGlobals.GLOBAL_PROPOSAL_MAX_CANCEL_DURATION);
+            if (globalMaxCancelDelay != 0) { // Only if we have one set.
+                if (cancelDelay > globalMaxCancelDelay) {
+                    cancelDelay = globalMaxCancelDelay;
+                }
+            }
+            uint256 cancelTime = values.executedTime + cancelDelay;
+            // Must not be too early.
+            if (block.timestamp < cancelTime) {
+                revert ProposalCannotBeCancelledYetError(
+                    uint40(block.timestamp),
+                    uint40(cancelTime)
+                );
             }
         }
         // Mark the proposal as cancelled by setting the completed time to the current
@@ -699,10 +722,10 @@ abstract contract PartyGovernance is
         bytes memory nextProgressData;
         {
             (bool success, bytes memory resultData) =
-            address(_getProposalExecutionEngine()).delegatecall(abi.encodeCall(
-                IProposalExecutionEngine.executeProposal,
-                (executeParams)
-            ));
+                address(_getProposalExecutionEngine()).delegatecall(abi.encodeCall(
+                    IProposalExecutionEngine.executeProposal,
+                    (executeParams)
+                ));
             if (!success) {
                 resultData.rawRevert();
             }
@@ -895,6 +918,7 @@ abstract contract PartyGovernance is
             if (pv.completedTime == 0) {
                 return ProposalStatus.InProgress;
             }
+            // completedTime high bit will be set if cancelled.
             if (pv.completedTime & UINT40_HIGH_BIT == UINT40_HIGH_BIT) {
                 return ProposalStatus.Cancelled;
             }
@@ -956,7 +980,9 @@ abstract contract PartyGovernance is
     )
         private
     {
-        assert(preciousTokens.length == preciousTokenIds.length);
+        if (preciousTokens.length != preciousTokenIds.length) {
+            revert MismatchedPreciousListLengths();
+        }
         preciousListHash = _hashPreciousList(preciousTokens, preciousTokenIds);
     }
 

@@ -13,8 +13,11 @@ contract ArbitraryCallsProposal {
     using LibSafeERC721 for IERC721;
 
     struct ArbitraryCall {
+        // The call target.
         address payable target;
+        // Amount of ETH to attach to the call.
         uint256 value;
+        // Calldata.
         bytes data;
         // If true, the call is allowed to fail.
         bool optional;

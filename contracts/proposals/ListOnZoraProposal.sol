@@ -1,8 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 pragma solidity ^0.8;
 
-import "../globals/IGlobals.sol";
-import "../globals/LibGlobals.sol";
 import "../tokens/IERC721.sol";
 import "../utils/LibRawResult.sol";
 import "../utils/LibSafeERC721.sol";
@@ -11,22 +9,29 @@ import "./zora/IZoraAuctionHouse.sol";
 import "./IProposalExecutionEngine.sol";
 import "./ZoraHelpers.sol";
 
-// Implements arbitrary call proposals.
+// Implements proposals auctioning an NFT on zora.
 contract ListOnZoraProposal is ZoraHelpers {
     using LibRawResult for bytes;
     using LibSafeERC721 for IERC721;
 
     enum ZoraStep {
+        // Proposal has not been executed yet and should be listed on Zora.
         None,
+        // Proposal was previously executed and the NFT is already listed on Zora.
         ListedOnZora
     }
 
     // ABI-encoded `proposalData` passed into execute.
     struct ZoraProposalData {
+        // The minimum bid (ETH) for the NFT.
         uint256 listPrice;
+        // How long before the auction can be cancelled if no one bids.
         uint40 timeout;
+        // How long the auction lasts once a person bids on it.
         uint40 duration;
+        // The token contract of the NFT being listed.
         IERC721 token;
+        // The token ID of the NFT being listed.
         uint256 tokenId;
     }
 
@@ -55,10 +60,9 @@ contract ListOnZoraProposal is ZoraHelpers {
         ZORA = zoraAuctionHouse;
     }
 
-    // Try to create a listing (ultimately) on OpenSea.
-    // Creates a listing on Zora AH for list price first. When that ends,
-    // calling this function again will list in on OpenSea. When that ends,
-    // calling this function again will cancel the listing.
+    // Auction an NFT we hold on zora.
+    // Calling this the first time will create a zora auction.
+    // Calling this the second time will either cancel or finalize the auction.
     function _executeListOnZora(
         IProposalExecutionEngine.ExecuteProposalParams memory params
     )
@@ -66,11 +70,14 @@ contract ListOnZoraProposal is ZoraHelpers {
         returns (bytes memory nextProgressData)
     {
         (ZoraProposalData memory data) = abi.decode(params.proposalData, (ZoraProposalData));
+        // If there is progressData passed in, we're on the first step,
+        // otherwise parse the first word of the progressData as the current step.
         ZoraStep step = params.progressData.length == 0
             ? ZoraStep.None
             : abi.decode(params.progressData, (ZoraStep));
         if (step == ZoraStep.None) {
             // Proposal hasn't executed yet.
+            // Create a zora auction for the NFT.
             uint256 auctionId = _createZoraAuction(
                 data.listPrice,
                 data.timeout,
@@ -91,9 +98,13 @@ contract ListOnZoraProposal is ZoraHelpers {
         return "";
     }
 
+    // Transfer and create a zora auction for the token + tokenId.
     function _createZoraAuction(
+        // The minimum bid.
         uint256 listPrice,
+        // How long the auction must wait for the first bid.
         uint40 timeout,
+        // How long the auction will run for once a bid has been placed.
         uint40 duration,
         IERC721 token,
         uint256 tokenId
@@ -122,6 +133,7 @@ contract ListOnZoraProposal is ZoraHelpers {
         );
     }
 
+    // Either cancel or finalize a zora auction.
     function _settleZoraAuction(
         uint256 auctionId,
         uint40 minExpiry

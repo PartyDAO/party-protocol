@@ -108,7 +108,7 @@ contract ListOnZoraProposalIntegrationTest is
 
       PartyGovernance.Proposal memory proposal = PartyGovernance.Proposal({
         maxExecutableTime: uint40(block.timestamp + 10000 hours),
-        minCancelTime: uint40(block.timestamp + 1 days),
+        cancelDelay: uint40(1 days),
         proposalData: proposalData
       });
 
