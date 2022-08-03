@@ -6,7 +6,7 @@ After a crowdfund has acquired its NFTs, they transfer it to and form a governan
 
 ## Key Concepts
 
-- **Precious**: An NFT custodied by the governance contract (`Party`), conventionally acquired by the crowdfund phase. These are protected assets and are subject to extra restrictions in proposals vs other assets.
+- **Precious**: A set of ERC721 tokens custodied by the governance contract (`Party`), conventionally acquired by the crowdfund phase. These are protected assets and are subject to extra restrictions in proposals vs other assets.
 - **Governance NFTs**: An NFT (721) representing voting power within the governance Party.
 - **Party**: The governance contract itself, which custodies the NFT, tracks voting power, manages the lifecycle of proposals, and is simultaneously the token contract for Governance NFTs.
 - **Proposals**: On-chain actions that will be executed as the party that must progress through the entire governance lifecycle.
