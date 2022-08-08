@@ -1,14 +1,14 @@
 {
-  "globals": "0x34b49d006f48d92545755720b6d288f376240b26",
-  "tokenDistributor": "0x1aae0bca67b3234f24848a38b8eba1d4762b7f94",
+  "globals": "0x2ecce18c34f2bc0d501094a76359de434d7051a6",
+  "tokenDistributor": "0x102df1680280deb88437344ae4a59c7cc010ceca",
   "seaportExchange": "0x00000000006c3852cbef3e08e8df289169ede581",
-  "proposalEngineImpl": "0x512a6d4fa461f9979f8481eedc801af44a948f8b",
-  "partyImpl": "0xc15a34af3fae02a8207a438fa3c8a8026f84838f",
-  "partyFactory": "0x6efbac9ca408675b53d8f90afb3d294e0880e59d",
-  "partyBidImpl": "0x39aef8778fc53b4b59424dd73b635c592619ccc9",
-  "partyBuyImpl": "0x487adbd01b8e3b8e38a3e6a7fbbf0de8d127a4b7",
-  "partyCollectionBuyImpl": "0x266955ed66884f883f1facbabeb4c693d98edb8f",
-  "partyCrowdfundFactory": "0xdc4413d45e1065fe805279296dc73a3cb5058a0f",
-  "partyGovernanceNFTRenderer": "0xc04c639d47ccaae2666458570478737301fae28e",
-  "partyHelpers": "0xf7a744966d3f8bf7b5f5668f219905438bbb38bd"
+  "proposalEngineImpl": "0xe51e2b1f382b37147b9c6be86b2dcba3c7890f5e",
+  "partyImpl": "0x1c0a5a2d554df98d44673daeef0c27159945c261",
+  "partyFactory": "0x1f8be52f8827f24154758b0a221b6d855dd9a612",
+  "partyBidImpl": "0xd5c32e1a5aeb7adbf9cb16159c7e206f0f1054c3",
+  "partyBuyImpl": "0xa72ae722f38f791478537d91d45b22687fbabc27",
+  "partyCollectionBuyImpl": "0xf6c1ead28aa72397c4f004aa36707aac55575bf5",
+  "partyCrowdfundFactory": "0xd1b06e0692140079c22b8f440b513904d83ff6af",
+  "partyGovernanceNFTRenderer": "0x9bc699bc28068da54d3cb9db6d45fcfec08dc989",
+  "partyHelpers": "0x264c825bd006c3f77a62d3597d8e70eff16fc1fa"
 }
