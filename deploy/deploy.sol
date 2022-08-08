@@ -258,6 +258,7 @@ contract Deploy is Test {
 
     vm.stopBroadcast();
     writeAddressesToFile(deployConstants.networkName, jsonRes);
+    writeAbisToFiles();
     console.log('');
     console.log('Ending deploy script.');
   }
@@ -272,6 +273,19 @@ contract Deploy is Test {
       vals = string.concat(vals, newValue);
     }
     return string.concat('{', vals, '}');
+  }
+
+  function writeAbisToFiles() private {
+    string[] memory ffiCmd = new string[](2);
+    ffiCmd[0] = "node";
+    ffiCmd[1] = "./js/utils/output-abis.js";
+    bytes memory ffiResp = vm.ffi(ffiCmd);
+
+    bool wroteSuccessfully = keccak256(ffiResp) == keccak256(hex"0000000000000000000000000000000000000001");
+    if (!wroteSuccessfully) {
+      revert("Could not write ABIs to file");
+    }
+    console.log("Successfully wrote ABIS to files");
   }
 
   function writeAddressesToFile(string memory networkName, string memory jsonRes) private {
