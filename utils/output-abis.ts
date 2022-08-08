@@ -17,6 +17,7 @@ const RELEVANT_ABIS = [
 // AFileName -> a_file_name
 const camelCaseToUnderscoreCase = (camelCaseString: string) => {
   return camelCaseString
+    .replace("NFT", "Nft")
     .split(/\.?(?=[A-Z])/)
     .join("_")
     .toLowerCase();
