@@ -79,7 +79,7 @@ abstract contract PartyCrowdfund is ERC721Receiver, PartyCrowdfundNFT {
     error SplitRecipientAlreadyBurnedError();
 
     event Burned(address contributor, uint256 ethUsed, uint256 ethOwed, uint256 votingPower);
-    event Contributed(address contributor, uint256 amount, address delegate);
+    event Contributed(address contributor, uint256 amount, address delegate, uint256 previousTotalContributions);
 
     IGlobals private immutable _GLOBALS;
 
@@ -388,7 +388,7 @@ abstract contract PartyCrowdfund is ERC721Receiver, PartyCrowdfundNFT {
         // Update delegate.
         // OK if this happens out of cycle.
         _delegationsByContributor[contributor] = delegate;
-        emit Contributed(contributor, amount, delegate);
+        emit Contributed(contributor, amount, delegate, previousTotalContributions);
 
         if (amount != 0) {
             // Only allow contributions while the crowdfund is active.
