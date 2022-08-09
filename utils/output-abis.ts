@@ -30,7 +30,7 @@ const saveAbis = async () => {
 
   RELEVANT_ABIS.forEach((filename) => {
     const fileLoc = `./out/${filename}.sol/${filename}.json`;
-    if (!existsSync(fileLoc) {
+    if (!existsSync(fileLoc)) {
       console.warn(`${fileLoc} does not exist`);
       return;
     }
