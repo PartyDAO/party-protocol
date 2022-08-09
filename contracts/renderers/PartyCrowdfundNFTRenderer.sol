@@ -21,6 +21,7 @@ contract PartyCrowdfundNFTRenderer is IERC721Renderer {
     IGlobals immutable _GLOBALS;
 
     string constant baseStyle = 'base';
+    // todo: come up with the right way to get the party helpers address
     address constant partyHelpersAddress = address(0xB9529177b37f4729aA7189261F3BA5BCd50EeB48);
 
     constructor(IGlobals globals) {
