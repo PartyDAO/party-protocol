@@ -7,11 +7,7 @@ import "../utils/Base64.sol";
 
 import "./IERC721Renderer.sol";
 import "../globals/IGlobals.sol";
-import "../crowdfund/PartyBid.sol";
-import "../crowdfund/PartyBuy.sol";
-import "../crowdfund/PartyCollectionBuy.sol";
 import "../crowdfund/PartyCrowdfund.sol";
-import "../utils/PartyHelpers.sol";
 
 contract PartyCrowdfundNFTRenderer is IERC721Renderer {
     using LibSafeCast for uint256;
@@ -21,18 +17,10 @@ contract PartyCrowdfundNFTRenderer is IERC721Renderer {
     IGlobals immutable _GLOBALS;
 
     string constant baseStyle = 'base';
-    // todo: come up with the right way to get the party helpers address
-    address constant partyHelpersAddress = address(0xB9529177b37f4729aA7189261F3BA5BCd50EeB48);
 
     constructor(IGlobals globals) {
         _GLOBALS = globals;
     }
-
-    // todo: saving this for later
-    // function getCrowdfundType() internal view returns (PartyHelpers.CrowdfundType) {
-    //     PartyHelpers ph = PartyHelpers(partyHelpersAddress);
-    //     return ph.getCrowdfundType(address(_GLOBALS), address(this));
-    // }
 
     function textLine(string memory text, uint256 xPos, uint256 yPos) internal pure returns (string memory) {
         string[3] memory parts;
@@ -95,7 +83,7 @@ contract PartyCrowdfundNFTRenderer is IERC721Renderer {
     }
 
     function tokenURI(uint256 tokenId) external view returns (string memory) {
-        if(PartyCrowdfund(payable(address(this))).ownerOf(tokenId) == address(0)) {
+        if (PartyCrowdfund(payable(address(this))).ownerOf(tokenId) == address(0)) {
             revert InvalidTokenIdError();
         }
 
@@ -104,13 +92,13 @@ contract PartyCrowdfundNFTRenderer is IERC721Renderer {
         svgParts[0] = '<svg xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMinYMin meet" viewBox="0 0 350 350"><style>text { fill: white; font-family: -apple-system, BlinkMacSystemFont, sans-serif; } .base { font-size: 11px; } .detail {font-size: 10px;}</style><rect width="100%" height="100%" fill="black" />';
 
         svgParts[1] = textLine(PartyCrowdfund(payable(address(this))).name(), 10, 20);
-        svgParts[3] = textLine(renderTokenId(tokenId), 300, 20);
+        svgParts[3] = textLine(renderTokenId(tokenId), 10, 40);
 
-        svgParts[2] = textLine(PartyCrowdfund(payable(address(this))).symbol(), 10, 60);
+        svgParts[2] = textLine(PartyCrowdfund(payable(address(this))).symbol(), 10, 80);
 
-        svgParts[4] = textLine(renderOwnerAddress(tokenId), 10, 120);
+        svgParts[4] = textLine(renderOwnerAddress(tokenId), 10, 140);
 
-        svgParts[5] = textLine(renderCrowdfundState(), 10, 80);
+        svgParts[5] = textLine(renderCrowdfundState(), 10, 100);
 
         svgParts[6] = '</svg>';
 
