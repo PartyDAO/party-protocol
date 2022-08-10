@@ -82,12 +82,31 @@ contract PartyCrowdfundNFTRenderer is IERC721Renderer {
       }
     }
 
+    function renderContributorInfo(address contributor)
+        internal
+        view
+        returns (
+            string memory ethContributedStr,
+            string memory ethUsedStr,
+            string memory ethOwedStr
+        )
+    {
+        (uint256 ethContributed, uint256 ethUsed, uint256 ethOwed, uint256 votingPower) =
+            PartyCrowdfund(payable(address(this))).getContributorInfo(contributor);
+        ethContributedStr = string(abi.encodePacked('ETH contributed: ', Strings.toString(ethContributed)));
+        ethUsedStr = string(abi.encodePacked('ETH used: ', Strings.toString(ethUsed)));
+        ethOwedStr = string(abi.encodePacked('ETH owed: ', Strings.toString(ethOwed)));
+    }
+
     function tokenURI(uint256 tokenId) external view returns (string memory) {
         if (PartyCrowdfund(payable(address(this))).ownerOf(tokenId) == address(0)) {
             revert InvalidTokenIdError();
         }
 
-        string[7] memory svgParts;
+        (string memory ethContributedStr, string memory ethUsedStr, string memory ethOwedStr)
+            = renderContributorInfo(address(uint160(tokenId)));
+
+        string[10] memory svgParts;
 
         svgParts[0] = '<svg xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMinYMin meet" viewBox="0 0 350 350"><style>text { fill: white; font-family: -apple-system, BlinkMacSystemFont, sans-serif; } .base { font-size: 11px; } .detail {font-size: 10px;}</style><rect width="100%" height="100%" fill="black" />';
 
@@ -100,7 +119,11 @@ contract PartyCrowdfundNFTRenderer is IERC721Renderer {
 
         svgParts[5] = textLine(renderCrowdfundState(), 10, 100);
 
-        svgParts[6] = '</svg>';
+        svgParts[6] = textLine(ethContributedStr, 10, 160);
+        svgParts[7] = textLine(ethUsedStr, 10, 170);
+        svgParts[8] = textLine(ethOwedStr, 10, 180);
+
+        svgParts[9] = '</svg>';
 
         string memory output = string(
             abi.encodePacked(
