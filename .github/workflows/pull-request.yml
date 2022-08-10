@@ -12,12 +12,12 @@ jobs:
       - uses: foundry-rs/foundry-toolchain@v1
         with:
           version: nightly
-      - run: forge test -vvv
       - uses: actions/setup-node@v1
         with:
           node-version: "16.x"
           registry-url: "https://npm.pkg.github.com"
           scope: "@marcusmolchany" # we can make this whoever
+      - run: forge test -vvv
       - run: yarn
       - run: yarn test:ts
       # - run: forge snapshot
