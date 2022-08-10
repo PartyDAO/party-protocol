@@ -91,7 +91,7 @@ contract PartyCrowdfundNFTRenderer is IERC721Renderer {
             string memory ethOwedStr
         )
     {
-        (uint256 ethContributed, uint256 ethUsed, uint256 ethOwed, uint256 votingPower) =
+        (uint256 ethContributed, uint256 ethUsed, uint256 ethOwed, /* uint256 votingPower */) =
             PartyCrowdfund(payable(address(this))).getContributorInfo(contributor);
         ethContributedStr = string(abi.encodePacked('ETH contributed: ', Strings.toString(ethContributed)));
         ethUsedStr = string(abi.encodePacked('ETH used: ', Strings.toString(ethUsed)));
@@ -102,9 +102,6 @@ contract PartyCrowdfundNFTRenderer is IERC721Renderer {
         if (PartyCrowdfund(payable(address(this))).ownerOf(tokenId) == address(0)) {
             revert InvalidTokenIdError();
         }
-
-        (string memory ethContributedStr, string memory ethUsedStr, string memory ethOwedStr)
-            = renderContributorInfo(address(uint160(tokenId)));
 
         string[10] memory svgParts;
 
@@ -119,9 +116,13 @@ contract PartyCrowdfundNFTRenderer is IERC721Renderer {
 
         svgParts[5] = textLine(renderCrowdfundState(), 10, 100);
 
-        svgParts[6] = textLine(ethContributedStr, 10, 160);
-        svgParts[7] = textLine(ethUsedStr, 10, 170);
-        svgParts[8] = textLine(ethOwedStr, 10, 180);
+        {
+            (string memory ethContributedStr, string memory ethUsedStr, string memory ethOwedStr)
+                = renderContributorInfo(address(uint160(tokenId)));
+            svgParts[6] = textLine(ethContributedStr, 10, 160);
+            svgParts[7] = textLine(ethUsedStr, 10, 170);
+            svgParts[8] = textLine(ethOwedStr, 10, 180);
+        }
 
         svgParts[9] = '</svg>';
 
