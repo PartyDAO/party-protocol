@@ -82,20 +82,22 @@ contract PartyCrowdfundNFTRenderer is IERC721Renderer {
       }
     }
 
-    function renderContributorInfo(address contributor)
-        internal
-        view
-        returns (
-            string memory ethContributedStr,
-            string memory ethUsedStr,
-            string memory ethOwedStr
-        )
-    {
-        (uint256 ethContributed, uint256 ethUsed, uint256 ethOwed, /* uint256 votingPower */) =
+    function renderEthContributed(address contributor) internal view returns (string memory) {
+        (uint256 ethContributed,,,) =
             PartyCrowdfund(payable(address(this))).getContributorInfo(contributor);
-        ethContributedStr = string(abi.encodePacked('ETH contributed: ', Strings.toString(ethContributed)));
-        ethUsedStr = string(abi.encodePacked('ETH used: ', Strings.toString(ethUsed)));
-        ethOwedStr = string(abi.encodePacked('ETH owed: ', Strings.toString(ethOwed)));
+        return string(abi.encodePacked('ETH contributed: ', Strings.toString(ethContributed)));
+    }
+
+    function renderEthUsed(address contributor) internal view returns (string memory) {
+        (,uint256 ethUsed,,) =
+            PartyCrowdfund(payable(address(this))).getContributorInfo(contributor);
+        return string(abi.encodePacked('ETH used: ', Strings.toString(ethUsed)));
+    }
+
+    function renderEthOwed(address contributor) internal view returns (string memory) {
+        (,,uint256 ethOwed,) =
+            PartyCrowdfund(payable(address(this))).getContributorInfo(contributor);
+        return string(abi.encodePacked('ETH owed: ', Strings.toString(ethOwed)));
     }
 
     function tokenURI(uint256 tokenId) external view returns (string memory) {
@@ -116,13 +118,9 @@ contract PartyCrowdfundNFTRenderer is IERC721Renderer {
 
         svgParts[5] = textLine(renderCrowdfundState(), 10, 100);
 
-        {
-            (string memory ethContributedStr, string memory ethUsedStr, string memory ethOwedStr)
-                = renderContributorInfo(address(uint160(tokenId)));
-            svgParts[6] = textLine(ethContributedStr, 10, 160);
-            svgParts[7] = textLine(ethUsedStr, 10, 170);
-            svgParts[8] = textLine(ethOwedStr, 10, 180);
-        }
+        svgParts[6] = textLine(renderEthContributed(address(uint160(tokenId))), 10, 160);
+        svgParts[7] = textLine(renderEthUsed(address(uint160(tokenId))), 10, 170);
+        // svgParts[8] = textLine(renderEthOwed(address(uint160(tokenId))), 10, 180);
 
         svgParts[9] = '</svg>';
 
@@ -130,7 +128,7 @@ contract PartyCrowdfundNFTRenderer is IERC721Renderer {
             abi.encodePacked(
                 svgParts[0], svgParts[1], svgParts[2],
                 svgParts[3], svgParts[4], svgParts[5],
-                svgParts[6], svgParts[7], svgParts[8],
+                svgParts[6], svgParts[7], /* svgParts[8], */
                 svgParts[9]
             )
         );
