@@ -129,7 +129,8 @@ contract PartyCrowdfundNFTRenderer is IERC721Renderer {
             abi.encodePacked(
                 svgParts[0], svgParts[1], svgParts[2],
                 svgParts[3], svgParts[4], svgParts[5],
-                svgParts[6]
+                svgParts[6], svgParts[7], svgParts[8],
+                svgParts[9]
             )
         );
 
