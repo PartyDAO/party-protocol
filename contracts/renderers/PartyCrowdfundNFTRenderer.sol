@@ -28,54 +28,11 @@ contract PartyCrowdfundNFTRenderer is IERC721Renderer {
         _GLOBALS = globals;
     }
 
-    function getCrowdfundType() internal view returns (PartyHelpers.CrowdfundType) {
-        PartyHelpers ph = PartyHelpers(partyHelpersAddress);
-        return ph.getCrowdfundType(address(_GLOBALS), address(this));
-    }
-
-    function getCrowdfundNftName() internal view returns (string memory name) {
-        PartyHelpers.CrowdfundType cft = getCrowdfundType();
-        if (cft == PartyHelpers.CrowdfundType.Bid) {
-            name = PartyBid(payable(address(this))).name();
-        } else if (cft == PartyHelpers.CrowdfundType.Buy) {
-            name = PartyBuy(payable(address(this))).name();
-        } else if (cft == PartyHelpers.CrowdfundType.CollectionBuy) {
-            name = PartyCollectionBuy(payable(address(this))).name();
-        }
-    }
-
-    function getCrowdfundNftSymbol() internal view returns(string memory symbol) {
-        PartyHelpers.CrowdfundType cft = getCrowdfundType();
-        if (cft == PartyHelpers.CrowdfundType.Bid) {
-            symbol = PartyBid(payable(address(this))).symbol();
-        } else if (cft == PartyHelpers.CrowdfundType.Buy) {
-            symbol = PartyBuy(payable(address(this))).symbol();
-        } else if (cft == PartyHelpers.CrowdfundType.CollectionBuy) {
-            symbol = PartyCollectionBuy(payable(address(this))).symbol();
-        }
-    }
-
-    function getCrowdfundNftOwnerOf(uint256 tokenId) internal view returns(address owner) {
-        PartyHelpers.CrowdfundType cft = getCrowdfundType();
-        if (cft == PartyHelpers.CrowdfundType.Bid) {
-            owner = PartyBid(payable(address(this))).ownerOf(tokenId);
-        } else if (cft == PartyHelpers.CrowdfundType.Buy) {
-            owner = PartyBuy(payable(address(this))).ownerOf(tokenId);
-        } else if (cft == PartyHelpers.CrowdfundType.CollectionBuy) {
-            owner = PartyCollectionBuy(payable(address(this))).ownerOf(tokenId);
-        }
-    }
-
-    function getCrowdfundLifecycle() internal view returns (PartyCrowdfund.CrowdfundLifecycle cflc) {
-        PartyHelpers.CrowdfundType cft = getCrowdfundType();
-        if (cft == PartyHelpers.CrowdfundType.Bid) {
-            cflc = PartyBid(payable(address(this))).getCrowdfundLifecycle();
-        } else if (cft == PartyHelpers.CrowdfundType.Buy) {
-            cflc = PartyBuy(payable(address(this))).getCrowdfundLifecycle();
-        } else if (cft == PartyHelpers.CrowdfundType.CollectionBuy) {
-            cflc = PartyCollectionBuy(payable(address(this))).getCrowdfundLifecycle();
-        }
-    }
+    // todo: saving this for later
+    // function getCrowdfundType() internal view returns (PartyHelpers.CrowdfundType) {
+    //     PartyHelpers ph = PartyHelpers(partyHelpersAddress);
+    //     return ph.getCrowdfundType(address(_GLOBALS), address(this));
+    // }
 
     function textLine(string memory text, uint256 xPos, uint256 yPos) internal pure returns (string memory) {
         string[3] memory parts;
@@ -102,7 +59,7 @@ contract PartyCrowdfundNFTRenderer is IERC721Renderer {
 
     function renderTokenName(uint256 tokenId) internal view returns (string memory) {
         return string(abi.encodePacked(
-            getCrowdfundNftName(),
+            PartyCrowdfund(payable(address(this))).name(),
             " #",
             Strings.toString(tokenId)
         ));
@@ -113,13 +70,13 @@ contract PartyCrowdfundNFTRenderer is IERC721Renderer {
     }
 
     function renderOwnerAddress(uint256 tokenId) internal view returns (string memory) {
-        address owner = getCrowdfundNftOwnerOf(tokenId);
+        address owner = PartyCrowdfund(payable(address(this))).ownerOf(tokenId);
 
         return string(abi.encodePacked('Owner: ', Strings.toHexString(owner)));
     }
 
     function renderCrowdfundState() internal view returns (string memory crowdfundState) {
-      PartyCrowdfund.CrowdfundLifecycle cfl = getCrowdfundLifecycle();
+      PartyCrowdfund.CrowdfundLifecycle cfl = PartyCrowdfund(payable(address(this))).getCrowdfundLifecycle();
       if (cfl == PartyCrowdfund.CrowdfundLifecycle.Invalid) {
           crowdfundState = "Invalid";
       } else if (cfl == PartyCrowdfund.CrowdfundLifecycle.Active) {
@@ -138,7 +95,7 @@ contract PartyCrowdfundNFTRenderer is IERC721Renderer {
     }
 
     function tokenURI(uint256 tokenId) external view returns (string memory) {
-        if(getCrowdfundNftOwnerOf(tokenId) == address(0)) {
+        if(PartyCrowdfund(payable(address(this))).ownerOf(tokenId) == address(0)) {
             revert InvalidTokenIdError();
         }
 
@@ -146,10 +103,10 @@ contract PartyCrowdfundNFTRenderer is IERC721Renderer {
 
         svgParts[0] = '<svg xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMinYMin meet" viewBox="0 0 350 350"><style>text { fill: white; font-family: -apple-system, BlinkMacSystemFont, sans-serif; } .base { font-size: 11px; } .detail {font-size: 10px;}</style><rect width="100%" height="100%" fill="black" />';
 
-        svgParts[1] = textLine(getCrowdfundNftName(), 10, 20);
+        svgParts[1] = textLine(PartyCrowdfund(payable(address(this))).name(), 10, 20);
         svgParts[3] = textLine(renderTokenId(tokenId), 300, 20);
 
-        svgParts[2] = textLine(getCrowdfundNftSymbol(), 10, 60);
+        svgParts[2] = textLine(PartyCrowdfund(payable(address(this))).symbol(), 10, 60);
 
         svgParts[4] = textLine(renderOwnerAddress(tokenId), 10, 120);
 
