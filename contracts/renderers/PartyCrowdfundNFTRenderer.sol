@@ -119,8 +119,10 @@ contract PartyCrowdfundNFTRenderer is IERC721Renderer {
         svgParts[5] = textLine(renderCrowdfundState(), 10, 100);
 
         svgParts[6] = textLine(renderEthContributed(address(uint160(tokenId))), 10, 160);
-        svgParts[7] = textLine(renderEthUsed(address(uint160(tokenId))), 10, 170);
-        // svgParts[8] = textLine(renderEthOwed(address(uint160(tokenId))), 10, 180);
+        if (PartyCrowdfund(payable(address(this))).getCrowdfundLifecycle() == PartyCrowdfund.CrowdfundLifecycle.Won) {
+            svgParts[7] = textLine(renderEthUsed(address(uint160(tokenId))), 10, 170);
+            // svgParts[8] = textLine(renderEthOwed(address(uint160(tokenId))), 10, 180);
+        }
 
         svgParts[9] = '</svg>';
 
