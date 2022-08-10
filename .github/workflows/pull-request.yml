@@ -16,7 +16,7 @@ jobs:
         with:
           node-version: "16.x"
           registry-url: "https://npm.pkg.github.com"
-          scope: "@marcusmolchany" # we can make this whoever
+          scope: "@merklejerk" # we can make this whoever
       - run: forge test -vvv
       - run: yarn
       - run: yarn test:ts
