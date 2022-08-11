@@ -40,6 +40,10 @@ contract Globals is IGlobals {
         return address(uint160(uint256(_wordValues[key])));
     }
 
+    function getImplementation(uint256 key) external view returns (Implementation) {
+        return Implementation(address(uint160(uint256(_wordValues[key]))));
+    }
+
     function getIncludesBytes32(uint256 key, bytes32 value) external view returns (bool) {
         return _includedWordValues[key][value];
     }
@@ -54,10 +58,6 @@ contract Globals is IGlobals {
 
     function setBytes32(uint256 key, bytes32 value) external onlyMultisig {
         _wordValues[key] = value;
-    }
-
-    function getImplementation(uint256 key) external view returns (Implementation) {
-        return Implementation(address(uint160(uint256(_wordValues[key]))));
     }
 
     function setUint256(uint256 key, uint256 value) external onlyMultisig {
