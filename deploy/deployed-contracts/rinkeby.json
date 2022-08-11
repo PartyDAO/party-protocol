@@ -10,5 +10,7 @@
   "partyCollectionBuyImpl": "0xf6c1ead28aa72397c4f004aa36707aac55575bf5",
   "partyCrowdfundFactory": "0xd1b06e0692140079c22b8f440b513904d83ff6af",
   "partyGovernanceNFTRenderer": "0x9bc699bc28068da54d3cb9db6d45fcfec08dc989",
-  "partyHelpers": "0x264c825bd006c3f77a62d3597d8e70eff16fc1fa"
+  "partyHelpers": "0x264c825bd006c3f77a62d3597d8e70eff16fc1fa",
+  "allowListGateKeeper": "0xe5e27aa5e373cb571058e40a0d2957d44a94570a",
+  "erc20TokenGateKeeper": "0x4a8ed97a6022cab9d5c693b1956cf9672dc565b3"
 }
