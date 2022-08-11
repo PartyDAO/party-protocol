@@ -1,0 +1,14 @@
+{
+  "globals": "0xb9513983dc9f05623bef67bba6e581a01325e510",
+  "tokenDistributor": "0xdd2364044021825bb4d201b5a2ea770ecb19c5ce",
+  "seaportExchange": "0x00000000006c3852cbef3e08e8df289169ede581",
+  "proposalEngineImpl": "0x39daa7362b9f27699f96c61901a6985921d341a8",
+  "partyImpl": "0xd92c4a66bd8e35436a1b5dbf351444436dfdae75",
+  "partyFactory": "0x1415391fb7ffbda935a565707fd4a5737eb78992",
+  "partyBidImpl": "0x7ff4ebafa45d421df3561c85190c1209a84434d2",
+  "partyBuyImpl": "0x1e356d81d0322a1ea4c15f05a6b76de627e21f9e",
+  "partyCollectionBuyImpl": "0xa6104282b7a7936a75b4eeeaed748d3d35b48bb3",
+  "partyCrowdfundFactory": "0x80f93ee337af23528de2a1eaad463852cb63f065",
+  "partyGovernanceNFTRenderer": "0xda7e82bbc8e8ef8fe806f5daf952515af09f4eac",
+  "partyHelpers": "0x3fc5e00daa1a66eb504c7f8857263244c4200865"
+}
