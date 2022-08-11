@@ -3,6 +3,13 @@ pragma solidity ^0.8;
 
 import "./LibRawResult.sol";
 
+interface IReadOnlyDelegateCall {
+    // Marked `view` so that `_readOnlyDelegateCall` can be `view` as well.
+    function delegateCallAndRevert(address impl, bytes memory callData)
+        external
+        view;
+}
+
 // Performs read-only delegate calls.
 contract ReadOnlyDelegateCall {
     using LibRawResult for bytes;
@@ -21,9 +28,10 @@ contract ReadOnlyDelegateCall {
     // Perform a delegateCallAndRevert() then return the raw result data.
     function _readOnlyDelegateCall(address impl, bytes memory callData)
         internal
+        view
         returns (bool success, bytes memory resultData)
     {
-        try this.delegateCallAndRevert(impl, callData) {
+        try IReadOnlyDelegateCall(address(this)).delegateCallAndRevert(impl, callData) {
             // Should never happen.
             assert(false);
         }

@@ -4,7 +4,6 @@ pragma solidity ^0.8;
 import "../utils/ReadOnlyDelegateCall.sol";
 import "../utils/LibSafeCast.sol";
 import "../globals/IGlobals.sol";
-import "../globals/IGlobals.sol";
 import "../tokens/IERC721.sol";
 import "../vendor/solmate/ERC721.sol";
 import "./PartyGovernance.sol";
@@ -69,7 +68,6 @@ contract PartyGovernanceNFT is
     function supportsInterface(bytes4 interfaceId)
         public
         pure
-        virtual
         override(PartyGovernance, ERC721)
         returns (bool)
     {
@@ -77,9 +75,7 @@ contract PartyGovernanceNFT is
             ERC721.supportsInterface(interfaceId);
     }
 
-    /// @dev This function is effectively view but the delegatecall prevents
-    ///      compilation with the view modifier.
-    function tokenURI(uint256) public override /* view */ returns (string memory)
+    function tokenURI(uint256) public override view returns (string memory)
     {
         // An instance of IERC721Renderer
         _readOnlyDelegateCall(

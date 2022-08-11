@@ -94,9 +94,7 @@ contract PartyCrowdfundNFT is IERC721, EIP165, ReadOnlyDelegateCall {
         return super.supportsInterface(interfaceId);
     }
 
-    /// @dev This function is effectively view but the delegatecall prevents
-    ///      compilation with the view modifier.
-    function tokenURI(uint256) external /* view */ returns (string memory)
+    function tokenURI(uint256) external view returns (string memory)
     {
         _readOnlyDelegateCall(
             // An instance of IERC721Renderer

@@ -30,7 +30,7 @@ contract TestContract is ReadOnlyDelegateCall {
         _retVal = retVal;
     }
 
-    function readOnlyDelegateCall(address impl, bytes memory callData) external returns (uint256) {
+    function readOnlyDelegateCall(address impl, bytes memory callData) external view returns (uint256) {
         _readOnlyDelegateCall(impl, callData);
         assert(false);
     }
