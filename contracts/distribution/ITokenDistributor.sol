@@ -48,7 +48,7 @@ interface ITokenDistributor {
     );
     event DistributionClaimedByPartyToken(
         ITokenDistributorParty indexed party,
-        uint256 indexed partyTokenId ,
+        uint256 indexed partyTokenId,
         address indexed owner,
         TokenType tokenType,
         address token,
