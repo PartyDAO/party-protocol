@@ -796,11 +796,14 @@ contract PartyCrowdfundTest is Test, TestUtils {
     function test_twoContributors_oneBlockedByGateKeeper() public {
         address delegate1 = _randomAddress();
         address delegate2 = _randomAddress();
-        address payable contributor1 = _randomAddress();
+        address payable contributor1 = payable(vm.addr(1)); // Must be known to generate the merkle root off-chain
         address payable contributor2 = _randomAddress();
 
+
         AllowListGateKeeper gk = new AllowListGateKeeper();
-        bytes12 gateId = gk.createGate(_toAddressArray(contributor1));
+        // Merkle root for contributor1 was generated off-chain
+        bytes32 merkleRoot = hex"3322f33946a3c503c916c8fc29768a547f01fa665e1eb22f9f66cf7e5a262012";
+        bytes12 gateId = gk.createGate(merkleRoot);
         defaultGateKeeper = gk;
         defaultGateKeeperId = gateId;
         TestablePartyCrowdfund cf = _createCrowdfund(0);
@@ -808,7 +811,7 @@ contract PartyCrowdfundTest is Test, TestUtils {
         // contributor1 contributes 1 ETH
         vm.deal(contributor1, 1e18);
         vm.prank(contributor1);
-        cf.contribute{ value: contributor1.balance }(delegate1, "");
+        cf.contribute{ value: contributor1.balance }(delegate1, abi.encode(new bytes32[](0)));
 
         // contributor2 contributes 0.5 ETH but will be blocked by the gatekeeper.
         vm.deal(contributor2, 0.5e18);
@@ -818,9 +821,9 @@ contract PartyCrowdfundTest is Test, TestUtils {
             contributor2,
             defaultGateKeeper,
             gateId,
-            ""
+            abi.encode(new bytes32[](0))
         ));
-        cf.contribute{ value: contributor2.balance }(delegate2, "");
+        cf.contribute{ value: contributor2.balance }(delegate2, abi.encode(new bytes32[](0)));
     }
 
     // test nft renderer
