@@ -59,10 +59,34 @@ library LibDeployConstants {
       partyDaoMultisig: 0xF7f52Dd34bc21eDA08c0b804C7c1dbc48375820f,
       partyDaoDistributionSplitBps: PARTY_DAO_DISTRIBUTION_SPLIT_BPS,
       zoraAuctionHouseAddress: 0xE7dd1252f50B3d845590Da0c5eADd985049a03ce,
-      osZone: 0x00000000E88FE2628EbC5DA81d2b3CeaD633E89e,
+      osZone: 0x0000000000000000000000000000000000000000,
       osConduitKey: 0x0000007b02230091a7ed01230072f7006a004d60a8d4e71d599b8104250f0000,
       osConduitController: 0x00000000F9490004C11Cef243f5400493c00Ad63,
       networkName: 'rinkeby'
+    });
+
+    return rinkebyDeployConstants;
+  }
+
+  function goerli() internal pure returns (DeployConstants memory) {
+    DeployConstants memory rinkebyDeployConstants = DeployConstants({
+      adminAddresses: [
+        0x8fDC86689f5F35F2b4d9f649c7bdc9C64f59e6bD,
+        0x66512B61F855478bfba669e32719dE5fD7a57Fa4,
+        0x678e8bd1D8845399c8e3C1F946CB4309014456a5,
+        0xcAAAE655D431bdDB3F2f20bd31BC629928131582,
+        0xc424f13e0aC6c0D5C1ED43e73A5771a2356e898d
+      ],
+      seaportExchangeAddress: 0x00000000006c3852cbEf3e08E8dF289169EdE581,
+      osZoraAuctionDuration: 2 minutes,
+      osZoraAuctionTimeout: 2 minutes,
+      partyDaoMultisig: 0xF7f52Dd34bc21eDA08c0b804C7c1dbc48375820f,
+      partyDaoDistributionSplitBps: PARTY_DAO_DISTRIBUTION_SPLIT_BPS,
+      zoraAuctionHouseAddress: 0x6a6Cdb103f1072E0aFeADAC9BeBD6E14B287Ca57,
+      osZone: 0x00000000E88FE2628EbC5DA81d2b3CeaD633E89e,
+      osConduitKey: 0x0000007b02230091a7ed01230072f7006a004d60a8d4e71d599b8104250f0000,
+      osConduitController: 0x00000000F9490004C11Cef243f5400493c00Ad63,
+      networkName: 'goerli'
     });
 
     return rinkebyDeployConstants;
