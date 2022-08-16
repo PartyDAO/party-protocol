@@ -183,8 +183,9 @@ contract ProposalExecutionEngine is
                 revert ProposalNotInProgressError(proposalId);
             }
         }
-        // Clear the current InProgress proposal ID.
+        // Clear the current InProgress proposal ID and next progress data.
         stor.currentInProgressProposalId = 0;
+        stor.nextProgressDataHash = 0;
     }
 
     function _execute(ProposalType pt, ExecuteProposalParams memory params)
