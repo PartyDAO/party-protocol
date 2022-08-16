@@ -96,7 +96,7 @@ contract AllowListGateKeeperTest is Test, TestUtils {
         bytes12 gateId2 = gk.createGate(merkleRoot2);
 
         address participant1 = group1[0];
-        address participant2 = group2[0];
+        address participant2 = group2[6];
 
         bytes32[] memory proof1 = new bytes32[](3);
         proof1[0] = 0xaf69b891d2f70be157fb251366c9da444977b60ba55a8b1d48af520d94803eef;
@@ -104,12 +104,10 @@ contract AllowListGateKeeperTest is Test, TestUtils {
         proof1[2] = 0x5daae69c2378cfb2febedec2061fb3e52d9e7ef216921111853f911de58f2409;
         bytes memory userData1 = abi.encode(proof1);
 
-        bytes32[] memory proof2 = new bytes32[](3);
-        proof2[0] = 0xb43744a84c18034912f037d5a3faf0168c12341c74dc9c271086d17125b17151;
-        proof2[1] = 0x989e2542c6298b58e12d9a297461ad905f73310c07b447e02875934447ce3355;
-        proof2[2] = 0x71c580d5a40008e51cb954a17fb79e78396b71ce69898f04de4d4971bb465b80;
+        bytes32[] memory proof2 = new bytes32[](2);
+        proof2[0] = 0x10fddf671cd55c375f146abb50ca55af74b6afda5f67a1adef573a91a9ddb9ae;
+        proof2[1] = 0xcf1001a58070ce5e0823fc0844e998e2ca35b497ead8530316bef522254e0f38;
         bytes memory userData2 = abi.encode(proof2);
-
 
         assertEq(gk.isAllowed(participant1, gateId1, userData1), true);
         assertEq(gk.isAllowed(participant2, gateId2, userData2), true);
