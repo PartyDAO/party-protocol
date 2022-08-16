@@ -8,7 +8,7 @@ import "openzeppelin/contracts/utils/cryptography/MerkleProof.sol";
 contract AllowListGateKeeper is IGateKeeper {
     uint96 private _lastId;
     // gate ID -> merkle root
-    mapping(uint96 => bytes32) public _merkleRoots;
+    mapping(uint96 => bytes32) public merkleRoots;
 
     function isAllowed(
         address participant,
