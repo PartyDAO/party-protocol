@@ -16,7 +16,11 @@ contract AllowListGateKeeper is IGateKeeper {
         bytes memory userData
     ) external view returns (bool) {
         bytes32[] memory proof = abi.decode(userData, (bytes32[]));
-        bytes32 leaf = keccak256(abi.encodePacked(participant));
+        bytes32 leaf;
+        assembly {
+            mstore(0x00, participant)
+            leaf := keccak256(0x0C, 20)
+        }
 
         return MerkleProof.verify(proof, _merkleRoots[uint96(id)], leaf);
     }
