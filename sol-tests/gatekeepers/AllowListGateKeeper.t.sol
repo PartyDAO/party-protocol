@@ -17,7 +17,7 @@ contract AllowListGateKeeperTest is Test, TestUtils {
     address[] group2;
     bytes32 merkleRoot2;
 
-    function setUp() public {
+    constructor() {
         gk = new AllowListGateKeeper();
 
         group1.push(0x2f45fd5988e20Fc7B63a54e8B45789261558CA0f);
