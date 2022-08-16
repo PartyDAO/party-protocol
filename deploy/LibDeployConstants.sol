@@ -59,7 +59,7 @@ library LibDeployConstants {
       partyDaoMultisig: 0xF7f52Dd34bc21eDA08c0b804C7c1dbc48375820f,
       partyDaoDistributionSplitBps: PARTY_DAO_DISTRIBUTION_SPLIT_BPS,
       zoraAuctionHouseAddress: 0xE7dd1252f50B3d845590Da0c5eADd985049a03ce,
-      osZone: 0x00000000E88FE2628EbC5DA81d2b3CeaD633E89e,
+      osZone: 0x0000000000000000000000000000000000000000,
       osConduitKey: 0x0000007b02230091a7ed01230072f7006a004d60a8d4e71d599b8104250f0000,
       osConduitController: 0x00000000F9490004C11Cef243f5400493c00Ad63,
       networkName: 'rinkeby'
