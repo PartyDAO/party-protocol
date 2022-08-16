@@ -49,15 +49,15 @@ contract AllowListGateKeeperTest is Test, TestUtils {
 
     function testSingleMemberGatePositive() public {
         address[] memory group = new address[](1);
-        group[0] = vm.addr(1);
-        bytes12 gateId = gk.createGate(0x3322f33946a3c503c916c8fc29768a547f01fa665e1eb22f9f66cf7e5a262012);
+        group[0] = _randomAddress();
+        bytes12 gateId = gk.createGate(keccak256(abi.encodePacked(group[0])));
         assertTrue(gk.isAllowed(group[0], gateId, abi.encode(new bytes32[](0))));
     }
 
     function testSingleMemberGateNegative() public {
         address[] memory group = new address[](1);
-        group[0] = vm.addr(1);
-        bytes12 gateId = gk.createGate(0x3322f33946a3c503c916c8fc29768a547f01fa665e1eb22f9f66cf7e5a262012);
+        group[0] = _randomAddress();
+        bytes12 gateId = gk.createGate(keccak256(abi.encodePacked(group[0])));
         assertFalse(gk.isAllowed(_randomAddress(), gateId, abi.encode(new bytes32[](0))));
     }
 

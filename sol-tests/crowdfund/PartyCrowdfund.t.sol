@@ -797,15 +797,10 @@ contract PartyCrowdfundTest is Test, TestUtils {
         address delegate1 = _randomAddress();
         address delegate2 = _randomAddress();
         address payable contributor1 = _randomAddress();
-        ...
-        merkleRoot =  keccak256(abi.encodePacked(contributor1));
         address payable contributor2 = _randomAddress();
 
-
         AllowListGateKeeper gk = new AllowListGateKeeper();
-        // Merkle root for contributor1 was generated off-chain
-        bytes32 merkleRoot = hex"3322f33946a3c503c916c8fc29768a547f01fa665e1eb22f9f66cf7e5a262012";
-        bytes12 gateId = gk.createGate(merkleRoot);
+        bytes12 gateId = gk.createGate(keccak256(abi.encodePacked(contributor1)));
         defaultGateKeeper = gk;
         defaultGateKeeperId = gateId;
         TestablePartyCrowdfund cf = _createCrowdfund(0);
