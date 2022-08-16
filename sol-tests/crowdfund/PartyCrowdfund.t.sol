@@ -796,7 +796,9 @@ contract PartyCrowdfundTest is Test, TestUtils {
     function test_twoContributors_oneBlockedByGateKeeper() public {
         address delegate1 = _randomAddress();
         address delegate2 = _randomAddress();
-        address payable contributor1 = payable(vm.addr(1)); // Must be known to generate the merkle root off-chain
+        address payable contributor1 = _randomAddress();
+        ...
+        merkleRoot =  keccak256(abi.encodePacked(contributor1));
         address payable contributor2 = _randomAddress();
 
 
