@@ -19,7 +19,7 @@ contract ERC20TokenGateKeeper is IGateKeeper {
     event ERC20TokenGateCreated(IERC20 token, uint256 minimumBalance);
 
     // id -> TokenGate
-    mapping(uint96 => TokenGate) public _gateInfo;
+    mapping(uint96 => TokenGate) public gateInfo;
 
     /**
      * @notice defines whether or not a user can access party
@@ -33,7 +33,7 @@ contract ERC20TokenGateKeeper is IGateKeeper {
         bytes12 id,
         bytes memory /* userData */
     ) external view returns (bool) {
-        TokenGate memory _gate = _gateInfo[uint96(id)];
+        TokenGate memory _gate = gateInfo[uint96(id)];
         return IERC20(_gate.token).balanceOf(participant) >= _gate.minimumBalance;
     }
 
@@ -49,8 +49,8 @@ contract ERC20TokenGateKeeper is IGateKeeper {
     {
         uint96 id_ = ++_lastId;
         id = bytes12(id_);
-        _gateInfo[id_].token = token;
-        _gateInfo[id_].minimumBalance = minimumBalance;
+        gateInfo[id_].token = token;
+        gateInfo[id_].minimumBalance = minimumBalance;
         emit ERC20TokenGateCreated(token, minimumBalance);
     }
 }

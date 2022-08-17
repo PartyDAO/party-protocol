@@ -22,12 +22,12 @@ contract AllowListGateKeeper is IGateKeeper {
             leaf := keccak256(0x0C, 20)
         }
 
-        return MerkleProof.verify(proof, _merkleRoots[uint96(id)], leaf);
+        return MerkleProof.verify(proof, merkleRoots[uint96(id)], leaf);
     }
 
     function createGate(bytes32 merkleRoot) external returns (bytes12 id) {
         uint96 id_ = ++_lastId;
-        _merkleRoots[id_] = merkleRoot;
+        merkleRoots[id_] = merkleRoot;
         id = bytes12(id_);
     }
 }
