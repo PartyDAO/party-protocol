@@ -47,6 +47,7 @@ contract ListOnZoraProposal is ZoraHelpers {
     );
     event ZoraAuctionExpired(uint256 auctionId, uint256 expiry);
     event ZoraAuctionSold(uint256 auctionId);
+    event ZoraAuctionFailed(uint256 auctionId);
 
     // keccak256(abi.encodeWithSignature('Error(string)', "Auction hasn't begun"))
     bytes32 constant internal AUCTION_HASNT_BEGUN_ERROR_HASH =
@@ -93,7 +94,7 @@ contract ListOnZoraProposal is ZoraHelpers {
         assert(step == ZoraStep.ListedOnZora);
         (, ZoraProgressData memory pd) =
             abi.decode(params.progressData, (ZoraStep, ZoraProgressData));
-        _settleZoraAuction(pd.auctionId, pd.minExpiry);
+        _settleZoraAuction(pd.auctionId, pd.minExpiry, data.token, data.tokenId);
         // Nothing left to do.
         return "";
     }
@@ -136,7 +137,9 @@ contract ListOnZoraProposal is ZoraHelpers {
     // Either cancel or finalize a zora auction.
     function _settleZoraAuction(
         uint256 auctionId,
-        uint40 minExpiry
+        uint40 minExpiry,
+        IERC721 token,
+        uint256 tokenId
     )
         internal
         override
@@ -145,6 +148,12 @@ contract ListOnZoraProposal is ZoraHelpers {
         // Getting the state of an auction is super expensive so it seems
         // cheaper to just let `endAuction` fail and react to the error.
         try ZORA.endAuction(auctionId) {
+            // Check whether auction cancelled due to a failed transfer during
+            // settlement by seeing if we now possess the NFT.
+            if (token.safeOwnerOf(tokenId) == address(this)) {
+                emit ZoraAuctionFailed(auctionId);
+                return false;
+            }
         } catch (bytes memory errData) {
             bytes32 errHash = keccak256(errData);
             if (errHash == AUCTION_HASNT_BEGUN_ERROR_HASH) {
