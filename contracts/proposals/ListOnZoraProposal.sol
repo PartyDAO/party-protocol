@@ -148,6 +148,8 @@ contract ListOnZoraProposal is ZoraHelpers {
         // Getting the state of an auction is super expensive so it seems
         // cheaper to just let `endAuction` fail and react to the error.
         try ZORA.endAuction(auctionId) {
+            // Check whether auction cancelled due to a failed transfer during
+            // settlement by seeing if we now possess the NFT.
             if (token.safeOwnerOf(tokenId) == address(this)) {
                 emit ZoraAuctionFailed(auctionId);
                 return false;
