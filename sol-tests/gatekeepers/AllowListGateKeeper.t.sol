@@ -7,111 +7,106 @@ import "../../contracts/gatekeepers/AllowListGateKeeper.sol";
 import "../TestUtils.sol";
 
 contract AllowListGateKeeperTest is Test, TestUtils {
-    AllowListGateKeeper gk;
+    AllowListGateKeeper gk = new AllowListGateKeeper();
 
-    // Merkle roots and proofs for test cases were generated off-chain using merkletreejs
+    // Generates a randomized 4-member allow list.
+    function _randomAllowList() private view returns (address[4] memory allowList) {
+        for (uint i = 0; i < 4; i++) {
+            allowList[i] = _randomAddress();
+        }
+    }
 
-    address[] group1;
-    bytes32 merkleRoot1;
+    // Constructs a merkle root from the given 4-member allow list.
+    function _constructTree(address[4] memory members) private pure returns (bytes32 merkleRoot) {
+        merkleRoot = _hashNode(
+            _hashNode(
+                _hashLeaf(members[0]),
+                _hashLeaf(members[1])
+            ),
+            _hashNode(
+                _hashLeaf(members[2]),
+                _hashLeaf(members[3])
+            )
+        );
+    }
 
-    address[] group2;
-    bytes32 merkleRoot2;
+    function _hashNode(bytes32 a, bytes32 b) private pure returns (bytes32) {
+        return keccak256(a < b ? abi.encodePacked(a, b) : abi.encodePacked(b, a));
+    }
 
-    constructor() {
-        gk = new AllowListGateKeeper();
-
-        group1.push(0x2f45fd5988e20Fc7B63a54e8B45789261558CA0f);
-        group1.push(0xfC9d809c16375C080598f152dc2DAe4B09FA1a86);
-        group1.push(0xE0CD8cf8Ce58973352206f0402275C197800E953);
-        group1.push(0x2657d94b2559cFAe3bB28de86A3131780b1774b5);
-        group1.push(0x94d1272908fF6505A14C39A52B0689D59F2a2Bb6);
-        group1.push(0xF01517a133Fd749ebC661a08f66EFe6B83F1bC8E);
-        group1.push(0x0f06cff1C456Bcd8D7b8391fd298120bef3A9c9D);
-
-        merkleRoot1 = 0x7c359e2d8d5cadd300f4c406ac1cd47ab12d4669cc595f1d5fe62bf747e51b20;
-
-        group2.push(0xd9A284367b6D3e25A91c91b5A430AF2593886EB9);
-        group2.push(0xE6b3367318C5e11a6eED3Cd0D850eC06A02E9b90);
-        group2.push(0x88C0e901bd1fd1a77BdA342f0d2210fDC71Cef6B);
-        group2.push(0x7231C364597f3BfDB72Cf52b197cc59111e71794);
-        group2.push(0x043aEd06383F290Ee28FA02794Ec7215CA099683);
-        group2.push(0x0c95931d95694B3ef74071241827C09f25d40620);
-        group2.push(0x417f3b59eF57C641283C2300fae0f27fe98D518C);
-
-        merkleRoot2 = 0x1f069a91c8331f3dc597b97f3e191f65141273921eb9b2dc1d036bcbbd43baf2;
+    function _hashLeaf(address a) private pure returns (bytes32) {
+        return keccak256(abi.encodePacked(a));
     }
 
     function testUniqueGateIds() public {
-        bytes12 gateId1 = gk.createGate(merkleRoot1);
-        bytes12 gateId2 = gk.createGate(merkleRoot2);
+        bytes12 gateId1 = gk.createGate(_constructTree(_randomAllowList()));
+        bytes12 gateId2 = gk.createGate(_constructTree(_randomAllowList()));
         assertTrue(gateId1 != gateId2);
     }
 
     function testSingleMemberGatePositive() public {
-        address[] memory group = new address[](1);
-        group[0] = _randomAddress();
-        bytes12 gateId = gk.createGate(keccak256(abi.encodePacked(group[0])));
-        assertTrue(gk.isAllowed(group[0], gateId, abi.encode(new bytes32[](0))));
+        address member = _randomAddress();
+        bytes12 gateId = gk.createGate(_hashLeaf(member));
+        assertTrue(gk.isAllowed(member, gateId, abi.encode(new bytes32[](0))));
     }
 
     function testSingleMemberGateNegative() public {
-        address[] memory group = new address[](1);
-        group[0] = _randomAddress();
-        bytes12 gateId = gk.createGate(keccak256(abi.encodePacked(group[0])));
+        address member = _randomAddress();
+        bytes12 gateId = gk.createGate(_hashLeaf(member));
         assertFalse(gk.isAllowed(_randomAddress(), gateId, abi.encode(new bytes32[](0))));
     }
 
     function testMultiMemberGatePositive() public {
-        bytes12 gateId = gk.createGate(merkleRoot1);
+        address[4] memory members = _randomAllowList();
+        bytes12 gateId = gk.createGate(_constructTree(members));
 
-        address participant = group1[0];
+        address member = members[0];
 
-        bytes32[] memory proof = new bytes32[](3);
-        proof[0] = 0xaf69b891d2f70be157fb251366c9da444977b60ba55a8b1d48af520d94803eef;
-        proof[1] = 0xbda2fb5ee52ef5806c18fa06f9413a96753625b03ad8cb12b927b8376efcdea8;
-        proof[2] = 0x5daae69c2378cfb2febedec2061fb3e52d9e7ef216921111853f911de58f2409;
-
+        bytes32[] memory proof = new bytes32[](2);
+        proof[0] = _hashLeaf(members[1]);
+        proof[1] = _hashNode(_hashLeaf(members[2]), _hashLeaf(members[3]));
         bytes memory userData = abi.encode(proof);
 
-        assertTrue(gk.isAllowed(participant, gateId, userData));
+        assertTrue(gk.isAllowed(member, gateId, userData));
     }
 
     function testMultiMemberGateNegative() public {
-        bytes12 gateId = gk.createGate(merkleRoot1);
+        address[4] memory members = _randomAllowList();
+        bytes12 gateId = gk.createGate(_constructTree(members));
 
-        address participant = _randomAddress();
+        address member = members[0];
 
-        bytes32[] memory proof = new bytes32[](3);
-        proof[0] = 0xaf69b891d2f70be157fb251366c9da444977b60ba55a8b1d48af520d94803eef;
-        proof[1] = 0xbda2fb5ee52ef5806c18fa06f9413a96753625b03ad8cb12b927b8376efcdea8;
-        proof[2] = 0x5daae69c2378cfb2febedec2061fb3e52d9e7ef216921111853f911de58f2409;
-
+        bytes32[] memory proof = new bytes32[](2);
+        proof[0] = _hashLeaf(members[1]);
+        proof[1] = _hashNode(_hashLeaf(members[2]), _hashLeaf(members[3]));
         bytes memory userData = abi.encode(proof);
 
-        assertFalse(gk.isAllowed(participant, gateId, userData));
+        assertFalse(gk.isAllowed(_randomAddress(), gateId, userData));
     }
 
     function testSeparateGates() public {
-        bytes12 gateId1 = gk.createGate(merkleRoot1);
-        bytes12 gateId2 = gk.createGate(merkleRoot2);
+        address[4] memory members1 = _randomAllowList();
+        bytes12 gateId1 = gk.createGate(_constructTree(members1));
 
-        address participant1 = group1[0];
-        address participant2 = group2[6];
+        address[4] memory members2 = _randomAllowList();
+        bytes12 gateId2 = gk.createGate(_constructTree(members2));
 
-        bytes32[] memory proof1 = new bytes32[](3);
-        proof1[0] = 0xaf69b891d2f70be157fb251366c9da444977b60ba55a8b1d48af520d94803eef;
-        proof1[1] = 0xbda2fb5ee52ef5806c18fa06f9413a96753625b03ad8cb12b927b8376efcdea8;
-        proof1[2] = 0x5daae69c2378cfb2febedec2061fb3e52d9e7ef216921111853f911de58f2409;
+        address member1 = members1[0];
+        address member2 = members2[3];
+
+        bytes32[] memory proof1 = new bytes32[](2);
+        proof1[0] = _hashLeaf(members1[1]);
+        proof1[1] = _hashNode(_hashLeaf(members1[2]), _hashLeaf(members1[3]));
         bytes memory userData1 = abi.encode(proof1);
 
         bytes32[] memory proof2 = new bytes32[](2);
-        proof2[0] = 0x10fddf671cd55c375f146abb50ca55af74b6afda5f67a1adef573a91a9ddb9ae;
-        proof2[1] = 0xcf1001a58070ce5e0823fc0844e998e2ca35b497ead8530316bef522254e0f38;
+        proof2[0] = _hashLeaf(members2[2]);
+        proof2[1] = _hashNode(_hashLeaf(members2[0]), _hashLeaf(members2[1]));
         bytes memory userData2 = abi.encode(proof2);
 
-        assertEq(gk.isAllowed(participant1, gateId1, userData1), true);
-        assertEq(gk.isAllowed(participant2, gateId2, userData2), true);
-        assertEq(gk.isAllowed(participant2, gateId1, userData1), false);
-        assertEq(gk.isAllowed(participant1, gateId2, userData2), false);
+        assertEq(gk.isAllowed(member1, gateId1, userData1), true);
+        assertEq(gk.isAllowed(member2, gateId2, userData2), true);
+        assertEq(gk.isAllowed(member2, gateId1, userData1), false);
+        assertEq(gk.isAllowed(member1, gateId2, userData2), false);
     }
 }
