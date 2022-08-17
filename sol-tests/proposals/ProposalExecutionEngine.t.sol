@@ -181,12 +181,21 @@ contract ProposalExecutionEngineTest is
         eng.cancelProposal(otherProposalId);
     }
 
+    // Execute a two-step proposal, cancel it, then execute another one-step proposal.
     function test_cancelProposal_works() public {
-        IProposalExecutionEngine.ExecuteProposalParams memory executeParams =
+        IProposalExecutionEngine.ExecuteProposalParams memory executeParams1 =
             _createTestProposal(_createTwoStepProposalData(_randomUint256(), _randomUint256()));
-        assertFalse(_executeProposal(executeParams));
-        eng.cancelProposal(executeParams.proposalId);
+        assertFalse(_executeProposal(executeParams1));
+        assertTrue(eng.getCurrentInProgressProposalId() != 0);
+        assertTrue(eng.getNextProgressDataHash() != 0);
+        eng.cancelProposal(executeParams1.proposalId);
         assertEq(eng.getCurrentInProgressProposalId(), 0);
+        assertEq(eng.getNextProgressDataHash(), 0);
+        IProposalExecutionEngine.ExecuteProposalParams memory executeParams2 =
+            _createTestProposal(_createOneStepProposalData(_randomUint256()));
+        assertTrue(_executeProposal(executeParams2));
+        assertEq(eng.getCurrentInProgressProposalId(), 0);
+        assertEq(eng.getNextProgressDataHash(), 0);
     }
 
     function _executeProposal(IProposalExecutionEngine.ExecuteProposalParams memory params)
