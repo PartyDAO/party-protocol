@@ -62,4 +62,13 @@ contract TestableProposalExecutionEngine is ProposalExecutionEngine {
         }
         return super._execute(pt, params);
     }
+
+    function getNextProgressDataHash()
+        external
+        view
+        returns (bytes32 nextProgressDataHash)
+    {
+        return _getStorage().nextProgressDataHash;
+    }
+
 }
