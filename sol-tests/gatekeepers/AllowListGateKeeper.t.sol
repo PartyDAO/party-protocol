@@ -56,6 +56,12 @@ contract AllowListGateKeeperTest is Test, TestUtils {
         assertFalse(gk.isAllowed(_randomAddress(), gateId, abi.encode(new bytes32[](0))));
     }
 
+    function testSingleMemberGateWithInvalidProof() public {
+        address member = _randomAddress();
+        bytes12 gateId = gk.createGate(_hashLeaf(member));
+        assertFalse(gk.isAllowed(_randomAddress(), gateId, abi.encode(0)));
+    }
+
     function testMultiMemberGatePositive() public {
         address[4] memory members = _randomAllowList();
         bytes12 gateId = gk.createGate(_constructTree(members));
@@ -82,6 +88,15 @@ contract AllowListGateKeeperTest is Test, TestUtils {
         bytes memory userData = abi.encode(proof);
 
         assertFalse(gk.isAllowed(_randomAddress(), gateId, userData));
+    }
+
+    function testMultiMemberGateWithInvalidProof() public {
+        address[4] memory members = _randomAllowList();
+        bytes12 gateId = gk.createGate(_constructTree(members));
+
+        address member = members[0];
+
+        assertFalse(gk.isAllowed(member, gateId, abi.encode(0)));
     }
 
     function testSeparateGates() public {
