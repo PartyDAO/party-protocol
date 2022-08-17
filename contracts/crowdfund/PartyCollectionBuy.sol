@@ -16,6 +16,8 @@ contract PartyCollectionBuy is PartyBuyBase {
     using LibSafeERC721 for IERC721;
     using LibSafeCast for uint256;
 
+    error OnlyPartyHostError();
+
     struct PartyCollectionBuyOptions {
         // The name of the crowdfund.
         // This will also carry over to the governance party.
@@ -53,6 +55,22 @@ contract PartyCollectionBuy is PartyBuyBase {
     /// @notice The NFT contract to buy.
     IERC721 public nftContract;
 
+    modifier onlyHost(address[] memory hosts) {
+        bool isHost;
+        for (uint256 i; i < hosts.length; i++) {
+            if (hosts[i] == msg.sender) {
+                isHost = true;
+                break;
+            }
+        }
+
+        if (!isHost) {
+            revert OnlyPartyHostError();
+        }
+
+        _;
+    }
+
     constructor(IGlobals globals) PartyBuyBase(globals) {}
 
     /// @notice intializer to be delegatecalled by Proxy constructor.
@@ -86,9 +104,10 @@ contract PartyCollectionBuy is PartyBuyBase {
         FixedGovernanceOpts memory governanceOpts
     )
         external
+        onlyHost(governanceOpts.hosts)
         returns (Party party_)
     {
-        party_ = _buy(
+        return _buy(
             nftContract,
             tokenId,
             callTarget,
