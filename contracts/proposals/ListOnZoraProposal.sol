@@ -47,7 +47,7 @@ contract ListOnZoraProposal is ZoraHelpers {
     );
     event ZoraAuctionExpired(uint256 auctionId, uint256 expiry);
     event ZoraAuctionSold(uint256 auctionId);
-    error FailedToBuyNFTError(IERC721 token, uint256 tokenId);
+    event ZoraAuctionFailed(uint256 auctionId);
 
     // keccak256(abi.encodeWithSignature('Error(string)', "Auction hasn't begun"))
     bytes32 constant internal AUCTION_HASNT_BEGUN_ERROR_HASH =
@@ -148,6 +148,10 @@ contract ListOnZoraProposal is ZoraHelpers {
         // Getting the state of an auction is super expensive so it seems
         // cheaper to just let `endAuction` fail and react to the error.
         try ZORA.endAuction(auctionId) {
+            if (token.safeOwnerOf(tokenId) == address(this)) {
+                emit ZoraAuctionFailed(auctionId);
+                return false;
+            }
         } catch (bytes memory errData) {
             bytes32 errHash = keccak256(errData);
             if (errHash == AUCTION_HASNT_BEGUN_ERROR_HASH) {
@@ -166,10 +170,6 @@ contract ListOnZoraProposal is ZoraHelpers {
                 errData.rawRevert();
             }
             // Already ended by someone else. Nothing to do.
-        }
-        // Ensure the NFT was received.
-        if (token.safeOwnerOf(tokenId) != address(this)) {
-            revert FailedToBuyNFTError(token, tokenId);
         }
         emit ZoraAuctionSold(auctionId);
         return true;
