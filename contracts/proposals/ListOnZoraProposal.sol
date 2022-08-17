@@ -47,6 +47,7 @@ contract ListOnZoraProposal is ZoraHelpers {
     );
     event ZoraAuctionExpired(uint256 auctionId, uint256 expiry);
     event ZoraAuctionSold(uint256 auctionId);
+    error FailedToBuyNFTError(IERC721 token, uint256 tokenId);
 
     // keccak256(abi.encodeWithSignature('Error(string)', "Auction hasn't begun"))
     bytes32 constant internal AUCTION_HASNT_BEGUN_ERROR_HASH =
@@ -93,7 +94,7 @@ contract ListOnZoraProposal is ZoraHelpers {
         assert(step == ZoraStep.ListedOnZora);
         (, ZoraProgressData memory pd) =
             abi.decode(params.progressData, (ZoraStep, ZoraProgressData));
-        _settleZoraAuction(pd.auctionId, pd.minExpiry);
+        _settleZoraAuction(pd.auctionId, pd.minExpiry, data.token, data.tokenId);
         // Nothing left to do.
         return "";
     }
@@ -136,7 +137,9 @@ contract ListOnZoraProposal is ZoraHelpers {
     // Either cancel or finalize a zora auction.
     function _settleZoraAuction(
         uint256 auctionId,
-        uint40 minExpiry
+        uint40 minExpiry,
+        IERC721 token,
+        uint256 tokenId
     )
         internal
         override
@@ -163,6 +166,10 @@ contract ListOnZoraProposal is ZoraHelpers {
                 errData.rawRevert();
             }
             // Already ended by someone else. Nothing to do.
+        }
+        // Ensure the NFT was received.
+        if (token.safeOwnerOf(tokenId) != address(this)) {
+            revert FailedToBuyNFTError(token, tokenId);
         }
         emit ZoraAuctionSold(auctionId);
         return true;
