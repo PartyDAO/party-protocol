@@ -55,6 +55,22 @@ contract PartyCollectionBuy is PartyBuyBase {
     /// @notice The NFT contract to buy.
     IERC721 public nftContract;
 
+    modifier onlyHost(address[] memory hosts) {
+        bool isHost;
+        for (uint256 i; i < hosts.length; i++) {
+            if (hosts[i] == msg.sender) {
+                isHost = true;
+                break;
+            }
+        }
+
+        if (!isHost) {
+            revert OnlyPartyHostError();
+        }
+
+        _;
+    }
+
     constructor(IGlobals globals) PartyBuyBase(globals) {}
 
     /// @notice intializer to be delegatecalled by Proxy constructor.
@@ -88,23 +104,16 @@ contract PartyCollectionBuy is PartyBuyBase {
         FixedGovernanceOpts memory governanceOpts
     )
         external
+        onlyHost(governanceOpts.hosts)
         returns (Party party_)
     {
-        for (uint256 i; i < governanceOpts.hosts.length; i++) {
-            // Only hosts can buy
-            if (governanceOpts.hosts[i] == msg.sender) {
-                return _buy(
-                    nftContract,
-                    tokenId,
-                    callTarget,
-                    callValue,
-                    callData,
-                    governanceOpts
-                );
-            }
-        }
-
-        // If it gets here, the sender is not a host
-        revert OnlyPartyHostError();
+        return _buy(
+            nftContract,
+            tokenId,
+            callTarget,
+            callValue,
+            callData,
+            governanceOpts
+        );
     }
 }
