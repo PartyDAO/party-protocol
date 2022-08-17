@@ -96,7 +96,7 @@ contract PartyBid is Implementation, PartyCrowdfund {
     /// @notice intializer to be delegatecalled by Proxy constructor.
     function initialize(PartyBidOptions memory opts)
         external
-        onlyDelegateCall
+        onlyConstructor
     {
         PartyCrowdfund._initialize(PartyCrowdfundOptions({
             name: opts.name,

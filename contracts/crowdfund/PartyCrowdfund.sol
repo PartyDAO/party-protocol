@@ -117,7 +117,7 @@ abstract contract PartyCrowdfund is ERC721Receiver, PartyCrowdfundNFT {
     function _initialize(PartyCrowdfundOptions memory opts)
         internal
     {
-        PartyCrowdfundNFT.initialize(opts.name, opts.symbol);
+        PartyCrowdfundNFT._initialize(opts.name, opts.symbol);
         governanceOptsHash = _hashFixedGovernanceOpts(opts.governanceOpts);
         splitRecipient = opts.splitRecipient;
         splitBps = opts.splitBps;
