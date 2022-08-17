@@ -26,4 +26,5 @@ abstract contract Implementation {
             revert ConstructorOnlyError();
         }
         _;
-    }}
+    }
+}
