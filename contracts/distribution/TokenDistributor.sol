@@ -5,7 +5,7 @@ import "../globals/IGlobals.sol";
 import "../globals/LibGlobals.sol";
 import "../tokens/IERC20.sol";
 import "../tokens/IERC1155.sol";
-import "../tokens/ERC1155TokenReceiver.sol";
+import "../tokens/ERC1155Receiver.sol";
 import "../utils/LibAddress.sol";
 import "../utils/LibERC20Compat.sol";
 import "../utils/LibRawResult.sol";
@@ -14,7 +14,7 @@ import "../utils/LibSafeCast.sol";
 import "./ITokenDistributor.sol";
 
 /// @notice Creates token distributions for parties.
-contract TokenDistributor is ITokenDistributor, ERC1155TokenReceiver {
+contract TokenDistributor is ITokenDistributor, ERC1155Receiver {
     using LibAddress for address payable;
     using LibERC20Compat for IERC20;
     using LibRawResult for bytes;
@@ -91,9 +91,6 @@ contract TokenDistributor is ITokenDistributor, ERC1155TokenReceiver {
     constructor(IGlobals globals) {
         GLOBALS = globals;
     }
-
-    /// @notice For receiving ETH
-    receive() external payable {}
 
     /// @inheritdoc ITokenDistributor
     function createNativeDistribution(
