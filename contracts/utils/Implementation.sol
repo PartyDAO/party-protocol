@@ -4,7 +4,7 @@ pragma solidity ^0.8;
 // Base contract for all contracts intended to be delegatecalled into.
 abstract contract Implementation {
     error OnlyDelegateCallError();
-    error ConstructorOnlyError();
+    error OnlyConstructorError();
 
     address public immutable IMPL;
 
@@ -23,7 +23,7 @@ abstract contract Implementation {
         uint256 codeSize;
         assembly { codeSize := extcodesize(address()) }
         if (codeSize != 0) {
-            revert ConstructorOnlyError();
+            revert OnlyConstructorError();
         }
         _;
     }

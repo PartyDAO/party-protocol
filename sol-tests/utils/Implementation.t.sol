@@ -29,7 +29,7 @@ contract ImplementationTest is Test, TestUtils {
 
     function test_cannotInitializeOutsideOfConstructor() external {
         TestableImplementation impl = new TestableImplementation();
-        vm.expectRevert(abi.encodeWithSelector(Implementation.ConstructorOnlyError.selector));
+        vm.expectRevert(abi.encodeWithSelector(Implementation.OnlyConstructorError.selector));
         impl.initialize();
     }
 

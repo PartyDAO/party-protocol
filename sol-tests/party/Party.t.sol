@@ -25,7 +25,7 @@ contract PartyTest is Test, TestUtils {
             partyImpl,
             abi.encodeCall(Party.initialize, initData)
         ))));
-        vm.expectRevert(abi.encodeWithSelector(Implementation.ConstructorOnlyError.selector));
+        vm.expectRevert(abi.encodeWithSelector(Implementation.OnlyConstructorError.selector));
         party.initialize(initData);
     }
 }

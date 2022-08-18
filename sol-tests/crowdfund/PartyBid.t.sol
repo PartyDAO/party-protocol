@@ -168,7 +168,7 @@ contract PartyBidTest is Test, TestUtils {
     function testCannotReinitialize() public {
         (uint256 auctionId, uint256 tokenId) = market.createAuction(1337);
         PartyBid pb = _createCrowdfund(auctionId, tokenId, 0);
-        vm.expectRevert(abi.encodeWithSelector(Implementation.ConstructorOnlyError.selector));
+        vm.expectRevert(abi.encodeWithSelector(Implementation.OnlyConstructorError.selector));
         PartyBid.PartyBidOptions memory opts;
         pb.initialize(opts);
     }
