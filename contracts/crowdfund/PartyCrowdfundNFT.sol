@@ -31,7 +31,7 @@ contract PartyCrowdfundNFT is IERC721, EIP165, ReadOnlyDelegateCall {
     }
 
     // Must be called once by freshly deployed PartyProxy instances.
-    function initialize(string memory name_, string memory symbol_)
+    function _initialize(string memory name_, string memory symbol_)
         internal
         virtual
     {

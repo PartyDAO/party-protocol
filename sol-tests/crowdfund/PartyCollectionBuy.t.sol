@@ -207,4 +207,11 @@ contract PartyCollectionBuyTest is Test, TestUtils {
         );
         assertTrue(pb.getCrowdfundLifecycle() == PartyCrowdfund.CrowdfundLifecycle.Active);
     }
+
+    function testCannotReinitialize() public {
+        ( PartyCollectionBuy pb,) = _createCrowdfund(new address[](0), 0);
+        vm.expectRevert(abi.encodeWithSelector(Implementation.OnlyConstructorError.selector));
+        PartyCollectionBuy.PartyCollectionBuyOptions memory opts;
+        pb.initialize(opts);
+    }
 }

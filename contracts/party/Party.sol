@@ -25,7 +25,7 @@ contract Party is PartyGovernanceNFT {
 
     function initialize(PartyInitData memory initData)
         external
-        onlyDelegateCall
+        onlyConstructor
     {
         PartyGovernanceNFT._initialize(
             initData.options.name,

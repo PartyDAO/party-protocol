@@ -174,4 +174,13 @@ contract PartyBuyTest is Test, TestUtils {
         );
         assertTrue(pb.getCrowdfundLifecycle() == PartyCrowdfund.CrowdfundLifecycle.Active);
     }
+
+    function testCannotReinitialize() public {
+        IERC721 token = erc721Vault.token();
+        uint256 tokenId = erc721Vault.mint();
+        PartyBuy pb = _createCrowdfund(tokenId, 0);
+        vm.expectRevert(abi.encodeWithSelector(Implementation.OnlyConstructorError.selector));
+        PartyBuy.PartyBuyOptions memory opts;
+        pb.initialize(opts);
+    }
 }

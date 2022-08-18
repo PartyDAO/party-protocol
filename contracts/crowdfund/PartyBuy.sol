@@ -3,7 +3,6 @@ pragma solidity ^0.8;
 
 import "../tokens/IERC721.sol";
 import "../party/Party.sol";
-import "../utils/Implementation.sol";
 import "../utils/LibSafeERC721.sol";
 import "../utils/LibRawResult.sol";
 import "../globals/IGlobals.sol";
@@ -62,7 +61,7 @@ contract PartyBuy is PartyBuyBase {
     /// @notice intializer to be delegatecalled by Proxy constructor.
     function initialize(PartyBuyOptions memory opts)
         external
-        onlyDelegateCall
+        onlyConstructor
     {
         PartyBuyBase._initialize(PartyBuyBaseOptions({
             name: opts.name,
