@@ -189,7 +189,7 @@ abstract contract PartyGovernance is
 
     IGlobals private immutable _GLOBALS;
 
-    /// @notice Whether the DAO has emergency powers for thsi party.
+    /// @notice Whether the DAO has emergency powers for this party.
     bool public emergencyExecuteDisabled;
     /// @notice Distribution fee bps.
     uint16 public feeBps;
@@ -356,8 +356,8 @@ abstract contract PartyGovernance is
         // Hash the proposal in-place. Equivalent to:
         // keccak256(abi.encode(
         //   proposal.minExecutableTime,
-        //   keccak256(proposal.proposalData),
-        //   proposal.cancelDelay
+        //   proposal.cancelDelay,
+        //   keccak256(proposal.proposalData)
         // ))
         bytes32 dataHash = keccak256(proposal.proposalData);
         assembly {
@@ -408,7 +408,7 @@ abstract contract PartyGovernance is
         returns (ITokenDistributor.DistributionInfo memory distInfo)
     {
         ITokenDistributor distributor = ITokenDistributor(
-            payable(_GLOBALS.getAddress(LibGlobals.GLOBAL_TOKEN_DISTRIBUTOR))
+            _GLOBALS.getAddress(LibGlobals.GLOBAL_TOKEN_DISTRIBUTOR)
         );
         emit DistributionCreated(tokenType, token, tokenId);
         if (tokenType == ITokenDistributor.TokenType.Native) {
@@ -417,7 +417,7 @@ abstract contract PartyGovernance is
         }
         if (tokenType == ITokenDistributor.TokenType.Erc20) {
             IERC20(token).compatTransfer(
-                payable(address(distributor)),
+                address(distributor),
                 IERC20(token).balanceOf(address(this))
             );
             return distributor.createErc20Distribution(
@@ -430,7 +430,7 @@ abstract contract PartyGovernance is
         assert(tokenType == ITokenDistributor.TokenType.Erc1155);
         IERC1155(token).safeTransferFrom(
             address(this),
-            payable(address(distributor)),
+            address(distributor),
             tokenId,
             IERC1155(token).balanceOf(address(this), tokenId),
             ""
@@ -616,7 +616,7 @@ abstract contract PartyGovernance is
     /// @notice Cancel a (probably stuck) InProgress proposal.
     /// @dev proposal.cancelDelay seconds must have passed since it was first
     ///       executed for this to be valid.
-    ///       The currently active propgress will simply be yeeted out of existence
+    ///       The currently active proposal will simply be yeeted out of existence
     ///       so another proposal can execute.
     ///       This is intended to be a last resort and can leave the party
     ///       in a broken state. Whenever possible, active proposals should be

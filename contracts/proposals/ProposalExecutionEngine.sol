@@ -66,7 +66,6 @@ contract ProposalExecutionEngine is
     error ProposalProgressDataInvalidError(bytes32 actualProgressDataHash, bytes32 expectedProgressDataHash);
     error ProposalNotInProgressError(uint256 proposalId);
 
-    bytes32 private constant EMPTY_HASH = keccak256("");
     IGlobals private immutable _GLOBALS;
     // Storage slot for `Storage`.
     uint256 private immutable _STORAGE_SLOT;
@@ -105,11 +104,11 @@ contract ProposalExecutionEngine is
         onlyDelegateCall
         returns (bytes memory nextProgressData)
     {
-        Storage storage stor = _getStorage();
         // Must have a valid proposal ID.
         if (params.proposalId == 0) {
             revert ZeroProposalIdError();
         }
+        Storage storage stor = _getStorage();
         uint256 currentInProgressProposalId = stor.currentInProgressProposalId;
         if (currentInProgressProposalId == 0) {
             // No proposal is currently in progress.
@@ -156,7 +155,7 @@ contract ProposalExecutionEngine is
         (pt, params.proposalData) = _extractProposalType(params.proposalData);
         nextProgressData = _execute(pt, params);
 
-        // If progress data is empty, the propsal is complete.
+        // If progress data is empty, the proposal is complete.
         if (nextProgressData.length == 0) {
             stor.currentInProgressProposalId = 0;
             stor.nextProgressDataHash = 0;
@@ -216,7 +215,7 @@ contract ProposalExecutionEngine is
         pure
         returns (ProposalType proposalType, bytes memory offsetProposalData)
     {
-        // First 4 bytes is propsal type.
+        // First 4 bytes is proposal type.
         if (proposalData.length < 4) {
             revert MalformedProposalDataError();
         }

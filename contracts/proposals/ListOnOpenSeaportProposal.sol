@@ -104,12 +104,12 @@ abstract contract ListOnOpenSeaportProposal is ZoraHelpers {
     {
         SEAPORT = seaport;
         CONDUIT_CONTROLLER = conduitController;
-        _GLOBALS =globals;
+        _GLOBALS = globals;
     }
 
     // Try to create a listing (ultimately) on OpenSea (Seaport).
     // Creates a listing on Zora AH for list price first. When that ends,
-    // calling this function again will list in on OpenSea. When that ends,
+    // calling this function again will list on OpenSea. When that ends,
     // calling this function again will cancel the listing.
     function _executeListOnOpenSeaport(
         IProposalExecutionEngine.ExecuteProposalParams memory params
@@ -121,7 +121,7 @@ abstract contract ListOnOpenSeaportProposal is ZoraHelpers {
             abi.decode(params.proposalData, (OpenSeaportProposalData));
         bool isUnanimous = params.flags & LibProposal.PROPOSAL_FLAG_UNANIMOUS
             == LibProposal.PROPOSAL_FLAG_UNANIMOUS;
-        // If there is progressData passed in, we're on the first step,
+        // If there is no progressData passed in, we're on the first step,
         // otherwise parse the first word of the progressData as the current step.
         ListOnOpenSeaportStep step = params.progressData.length == 0
             ? ListOnOpenSeaportStep.None

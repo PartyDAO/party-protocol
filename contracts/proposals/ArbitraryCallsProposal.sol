@@ -147,7 +147,7 @@ contract ArbitraryCallsProposal {
     )
         private
         view
-        returns (bool isProhibited)
+        returns (bool isAllowed)
     {
         // Cannot call ourselves.
         if (call.target == address(this)) {
