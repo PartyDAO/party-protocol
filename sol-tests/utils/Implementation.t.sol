@@ -22,8 +22,6 @@ contract ReinitializingImplementation is TestableImplementation {
         // This should be a noop call because the contract has no bytecode
         // during construction.
         address(this).call(abi.encodeCall(this.initialize, ()));
-        // ?? Should be the same as above but doesn't work?
-        // ReinitializingImplementation(address(this)).initialize();
     }
 }
 
