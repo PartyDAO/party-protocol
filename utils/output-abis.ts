@@ -1,6 +1,7 @@
 import { writeFileSync, readFileSync, existsSync } from "fs";
 
 const RELEVANT_ABIS = [
+  "AllowListGateKeeper",
   "Party",
   "PartyBid",
   "PartyBuy",
@@ -47,7 +48,7 @@ const saveAbis = async () => {
   Object.keys(output).forEach((newFilename) => {
     writeFileSync(
       `./deploy/deployed-contracts/abis/${newFilename}.json`,
-      JSON.stringify(output[newFilename])
+      JSON.stringify(output[newFilename], undefined, 2)
     );
   });
 };
