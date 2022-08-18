@@ -2,6 +2,7 @@ import { writeFileSync, readFileSync, existsSync } from "fs";
 
 const RELEVANT_ABIS = [
   "AllowListGateKeeper",
+  "ERC20TokenGatekeeper",
   "Party",
   "PartyBid",
   "PartyBuy",
@@ -19,6 +20,7 @@ const RELEVANT_ABIS = [
 const camelCaseToUnderscoreCase = (camelCaseString: string) => {
   return camelCaseString
     .replace("NFT", "Nft")
+    .replace("ERC", "Erc")
     .split(/\.?(?=[A-Z])/)
     .join("_")
     .toLowerCase();
