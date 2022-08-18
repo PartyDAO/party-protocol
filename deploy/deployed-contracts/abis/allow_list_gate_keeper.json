@@ -2,9 +2,9 @@
   {
     "inputs": [
       {
-        "internalType": "address[]",
-        "name": "members",
-        "type": "address[]"
+        "internalType": "bytes32",
+        "name": "merkleRoot",
+        "type": "bytes32"
       }
     ],
     "name": "createGate",
@@ -32,7 +32,7 @@
       },
       {
         "internalType": "bytes",
-        "name": "",
+        "name": "userData",
         "type": "bytes"
       }
     ],
@@ -42,6 +42,25 @@
         "internalType": "bool",
         "name": "",
         "type": "bool"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint96",
+        "name": "",
+        "type": "uint96"
+      }
+    ],
+    "name": "merkleRoots",
+    "outputs": [
+      {
+        "internalType": "bytes32",
+        "name": "",
+        "type": "bytes32"
       }
     ],
     "stateMutability": "view",
