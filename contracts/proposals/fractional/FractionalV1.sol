@@ -7,6 +7,7 @@ import "../../tokens/IERC721.sol";
 /// @dev FractionalVaultFactory interface from
 /// https://github.com/fractional-company/contracts/blob/643bb669ad71aac8d1b11f0300c9bb0dec494daa/src/ERC721VaultFactory.sol
 interface IFractionalV1VaultFactory {
+    function vaultCount() external view returns (uint256 count);
     function vaults(uint256 vaultId) external view returns (IERC20 vault);
 
     function mint(
