@@ -35,10 +35,6 @@ contract TestableFractionalizeProposal is FractionalizeProposal {
 
 contract EmptyContract {}
 
-interface IFractionalVault {
-    function reservePrice() external view returns (uint256);
-}
-
 contract FractionalizeProposalForkedTest is TestUtils {
     using LibRawResult for bytes;
 
@@ -63,7 +59,7 @@ contract FractionalizeProposalForkedTest is TestUtils {
         uint256 tokenId = erc721.mint(address(impl));
         uint256 listPrice = 1337 ether;
         uint256 expectedVaultId = VAULT_FACTORY.vaultCount();
-        IERC20 expectedVault = _getNextVault();
+        IFractionalV1Vault expectedVault = _getNextVault();
         _expectEmit2();
         emit FractionalV1VaultCreated(erc721, tokenId, expectedVaultId, expectedVault, listPrice);
         bytes memory nextProgressData =
@@ -81,15 +77,16 @@ contract FractionalizeProposalForkedTest is TestUtils {
             }));
         assertEq(nextProgressData.length, 0);
         assertEq(expectedVault.balanceOf(address(impl)), impl.getGovernanceValues().totalVotingPower);
-        assertEq(IFractionalVault(address(expectedVault)).reservePrice(), listPrice);
+        assertEq(expectedVault.reservePrice(), listPrice);
+        assertEq(expectedVault.curator(), address(0));
     }
 
     function _getNextVault()
         private
-        returns (IERC20)
+        returns (IFractionalV1Vault v)
     {
         try this.__getNextVaultAndRevert() { assert(false); }
-        catch (bytes memory revertData) { return abi.decode(revertData, (IERC20)); }
+        catch (bytes memory revertData) { v = abi.decode(revertData, (IFractionalV1Vault)); }
     }
 
     function __getNextVaultAndRevert() external {

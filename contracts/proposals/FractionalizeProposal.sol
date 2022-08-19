@@ -5,7 +5,7 @@ import "../tokens/IERC721.sol";
 import "../party/PartyGovernance.sol";
 
 import "./IProposalExecutionEngine.sol";
-import "./fractional/FractionalV1.sol";
+import "./vendor/FractionalV1.sol";
 
 // Implements fractionalizing an NFT to ERC20s on Fractional V1.
 contract FractionalizeProposal {
@@ -58,10 +58,12 @@ contract FractionalizeProposal {
             data.listPrice,
             0
         );
-        IERC20 vault = VAULT_FACTORY.vaults(vaultId);
+        IFractionalV1Vault vault = VAULT_FACTORY.vaults(vaultId);
         // Check that we now hold the correct amount of fractional tokens.
         // Should always succeed.
         assert(vault.balanceOf(address(this)) == supply);
+        // Remove ourselves as curator.
+        vault.updateCurator(address(0));
         emit FractionalV1VaultCreated(
             data.token,
             data.tokenId,
