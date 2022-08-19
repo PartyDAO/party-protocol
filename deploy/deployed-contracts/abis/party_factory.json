@@ -1,1 +1,209 @@
-[{"inputs":[{"internalType":"contract IGlobals","name":"globals","type":"address"}],"stateMutability":"nonpayable","type":"constructor"},{"inputs":[{"internalType":"address","name":"authority","type":"address"}],"name":"InvalidAuthorityError","type":"error"},{"inputs":[],"name":"OnlyAuthorityError","type":"error"},{"anonymous":false,"inputs":[{"indexed":false,"internalType":"contract Party","name":"party","type":"address"},{"indexed":false,"internalType":"address","name":"creator","type":"address"}],"name":"PartyCreated","type":"event"},{"inputs":[],"name":"GLOBALS","outputs":[{"internalType":"contract IGlobals","name":"","type":"address"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"contract Party","name":"party","type":"address"}],"name":"abdicate","outputs":[],"stateMutability":"nonpayable","type":"function"},{"inputs":[{"internalType":"address","name":"authority","type":"address"},{"components":[{"components":[{"internalType":"address[]","name":"hosts","type":"address[]"},{"internalType":"uint40","name":"voteDuration","type":"uint40"},{"internalType":"uint40","name":"executionDelay","type":"uint40"},{"internalType":"uint16","name":"passThresholdBps","type":"uint16"},{"internalType":"uint96","name":"totalVotingPower","type":"uint96"},{"internalType":"uint16","name":"feeBps","type":"uint16"},{"internalType":"address payable","name":"feeRecipient","type":"address"}],"internalType":"struct PartyGovernance.GovernanceOpts","name":"governance","type":"tuple"},{"internalType":"string","name":"name","type":"string"},{"internalType":"string","name":"symbol","type":"string"}],"internalType":"struct Party.PartyOptions","name":"opts","type":"tuple"},{"internalType":"contract IERC721[]","name":"preciousTokens","type":"address[]"},{"internalType":"uint256[]","name":"preciousTokenIds","type":"uint256[]"}],"name":"createParty","outputs":[{"internalType":"contract Party","name":"party","type":"address"}],"stateMutability":"nonpayable","type":"function"},{"inputs":[{"internalType":"contract Party","name":"party","type":"address"},{"internalType":"address","name":"owner","type":"address"},{"internalType":"uint256","name":"amount","type":"uint256"},{"internalType":"address","name":"delegate","type":"address"}],"name":"mint","outputs":[],"stateMutability":"nonpayable","type":"function"},{"inputs":[{"internalType":"contract Party","name":"","type":"address"}],"name":"partyAuthorities","outputs":[{"internalType":"address","name":"","type":"address"}],"stateMutability":"view","type":"function"}]
+[
+  {
+    "inputs": [
+      {
+        "internalType": "contract IGlobals",
+        "name": "globals",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "nonpayable",
+    "type": "constructor"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "authority",
+        "type": "address"
+      }
+    ],
+    "name": "InvalidAuthorityError",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "OnlyAuthorityError",
+    "type": "error"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": false,
+        "internalType": "contract Party",
+        "name": "party",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "address",
+        "name": "creator",
+        "type": "address"
+      }
+    ],
+    "name": "PartyCreated",
+    "type": "event"
+  },
+  {
+    "inputs": [],
+    "name": "GLOBALS",
+    "outputs": [
+      {
+        "internalType": "contract IGlobals",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "contract Party",
+        "name": "party",
+        "type": "address"
+      }
+    ],
+    "name": "abdicate",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "authority",
+        "type": "address"
+      },
+      {
+        "components": [
+          {
+            "components": [
+              {
+                "internalType": "address[]",
+                "name": "hosts",
+                "type": "address[]"
+              },
+              {
+                "internalType": "uint40",
+                "name": "voteDuration",
+                "type": "uint40"
+              },
+              {
+                "internalType": "uint40",
+                "name": "executionDelay",
+                "type": "uint40"
+              },
+              {
+                "internalType": "uint16",
+                "name": "passThresholdBps",
+                "type": "uint16"
+              },
+              {
+                "internalType": "uint96",
+                "name": "totalVotingPower",
+                "type": "uint96"
+              },
+              {
+                "internalType": "uint16",
+                "name": "feeBps",
+                "type": "uint16"
+              },
+              {
+                "internalType": "address payable",
+                "name": "feeRecipient",
+                "type": "address"
+              }
+            ],
+            "internalType": "struct PartyGovernance.GovernanceOpts",
+            "name": "governance",
+            "type": "tuple"
+          },
+          {
+            "internalType": "string",
+            "name": "name",
+            "type": "string"
+          },
+          {
+            "internalType": "string",
+            "name": "symbol",
+            "type": "string"
+          }
+        ],
+        "internalType": "struct Party.PartyOptions",
+        "name": "opts",
+        "type": "tuple"
+      },
+      {
+        "internalType": "contract IERC721[]",
+        "name": "preciousTokens",
+        "type": "address[]"
+      },
+      {
+        "internalType": "uint256[]",
+        "name": "preciousTokenIds",
+        "type": "uint256[]"
+      }
+    ],
+    "name": "createParty",
+    "outputs": [
+      {
+        "internalType": "contract Party",
+        "name": "party",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "contract Party",
+        "name": "party",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "owner",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "amount",
+        "type": "uint256"
+      },
+      {
+        "internalType": "address",
+        "name": "delegate",
+        "type": "address"
+      }
+    ],
+    "name": "mint",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "contract Party",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "name": "partyAuthorities",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  }
+]
