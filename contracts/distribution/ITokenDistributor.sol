@@ -2,7 +2,6 @@
 pragma solidity ^0.8;
 
 import "../tokens/IERC20.sol";
-import "../tokens/IERC1155.sol";
 
 import "./ITokenDistributorParty.sol";
 
@@ -10,8 +9,7 @@ import "./ITokenDistributorParty.sol";
 interface ITokenDistributor {
     enum TokenType {
         Native,
-        Erc20,
-        Erc1155
+        Erc20
     }
 
     // Info on a distribution, created by createDistribution().
@@ -26,8 +24,6 @@ interface ITokenDistributor {
         address payable feeRecipient;
         // The token being distributed.
         address token;
-        // For 1155s, the token ID. Zero for every other type.
-        uint256 erc1155TokenId;
         // Total amount of `token` that can be claimed by party members.
         uint128 memberSupply;
         // Amount of `token` to be redeemed by `feeRecipient`.
@@ -43,7 +39,6 @@ interface ITokenDistributor {
         address indexed feeRecipient,
         TokenType tokenType,
         address token,
-        uint256 erc1155TokenId,
         uint256 amount
     );
     event DistributionClaimedByPartyToken(
@@ -52,7 +47,6 @@ interface ITokenDistributor {
         address indexed owner,
         TokenType tokenType,
         address token,
-        uint256 erc1155TokenId,
         uint256 amountClaimed
     );
 
@@ -77,21 +71,6 @@ interface ITokenDistributor {
     ///      attached to the call itself.
     function createErc20Distribution(
         IERC20 token,
-        ITokenDistributorParty party,
-        address payable feeRecipient,
-        uint16 feeBps
-    )
-        external
-        returns (DistributionInfo memory info);
-
-    /// @notice Create a new distribution for an outstanding ERC1155 token balance
-    ///         governed by a party.
-    /// @dev ERC1155 tokens should be transferred directly into this contract
-    ///      immediately prior (same tx) to calling createDistribution() or
-    ///      attached to the call itself.
-    function createErc1155Distribution(
-        IERC1155 token,
-        uint256 tokenId,
         ITokenDistributorParty party,
         address payable feeRecipient,
         uint16 feeBps

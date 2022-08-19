@@ -419,29 +419,13 @@ abstract contract PartyGovernance is
             return distributor.createNativeDistribution
                 { value: address(this).balance }(this, feeRecipient, feeBps);
         }
-        if (tokenType == ITokenDistributor.TokenType.Erc20) {
-            IERC20(token).compatTransfer(
-                address(distributor),
-                IERC20(token).balanceOf(address(this))
-            );
-            return distributor.createErc20Distribution(
-                IERC20(token),
-                this,
-                feeRecipient,
-                feeBps
-            );
-        }
-        assert(tokenType == ITokenDistributor.TokenType.Erc1155);
-        IERC1155(token).safeTransferFrom(
-            address(this),
-            address(distributor),
-            tokenId,
-            IERC1155(token).balanceOf(address(this), tokenId),
-            ""
+        assert(tokenType == ITokenDistributor.TokenType.Erc20);
+        IERC20(token).compatTransfer(
+            payable(address(distributor)),
+            IERC20(token).balanceOf(address(this))
         );
-        return distributor.createErc1155Distribution(
-            IERC1155(token),
-            tokenId,
+        return distributor.createErc20Distribution(
+            IERC20(token),
             this,
             feeRecipient,
             feeBps

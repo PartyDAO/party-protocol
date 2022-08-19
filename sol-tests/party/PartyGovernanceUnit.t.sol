@@ -121,31 +121,6 @@ contract DummyTokenDistributor is ITokenDistributor {
         );
     }
 
-    function createErc1155Distribution(
-        IERC1155 token,
-        uint256 tokenId,
-        ITokenDistributorParty party,
-        address payable feeRecipient,
-        uint16 feeBps
-    )
-        external
-        returns (DistributionInfo memory distInfo)
-    {
-        uint256 amount = token.balanceOf(address(this), tokenId);
-        token.safeTransferFrom(address(this), SINK, tokenId, amount, ""); // Burn it all to keep balances fresh.
-        distInfo.distributionId = ++lastId;
-        emit DummyTokenDistributor_createDistributionCalled(
-            party,
-            ITokenDistributor.TokenType.Erc1155,
-            address(token),
-            tokenId,
-            feeRecipient,
-            feeBps,
-            amount,
-            distInfo.distributionId
-        );
-    }
-
     function claim(DistributionInfo calldata, uint256)
         external
         returns (uint128 amountClaimed) {}
