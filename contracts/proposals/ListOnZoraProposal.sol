@@ -8,7 +8,7 @@ import "../utils/LibRawResult.sol";
 import "../utils/LibSafeERC721.sol";
 import "../utils/LibSafeCast.sol";
 
-import "./zora/IZoraAuctionHouse.sol";
+import "./vendor/IZoraAuctionHouse.sol";
 import "./IProposalExecutionEngine.sol";
 import "./ZoraHelpers.sol";
 

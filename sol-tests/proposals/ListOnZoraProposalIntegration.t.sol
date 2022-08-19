@@ -52,7 +52,8 @@ contract ListOnZoraProposalIntegrationTest is
           globals,
           ISeaportExchange(address(0)),
           ISeaportConduitController(address(0)),
-          ZORA
+          ZORA,
+          IFractionalV1VaultFactory(address(0))
       );
       globalsAdmin.setProposalEng(address(pe));
 

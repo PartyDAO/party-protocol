@@ -77,10 +77,12 @@ contract ProposalExecutionEngine is
         IGlobals globals,
         ISeaportExchange seaport,
         ISeaportConduitController seaportConduitController,
-        IZoraAuctionHouse zoraAuctionHouse
+        IZoraAuctionHouse zoraAuctionHouse,
+        IFractionalV1VaultFactory fractionalVaultFactory
     )
         ListOnOpenSeaportProposal(globals, seaport, seaportConduitController)
         ListOnZoraProposal(globals, zoraAuctionHouse)
+        FractionalizeProposal(fractionalVaultFactory)
     {
         _GLOBALS = globals;
     }

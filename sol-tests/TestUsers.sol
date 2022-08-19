@@ -6,7 +6,7 @@ import "../contracts/globals/Globals.sol";
 import "../contracts/globals/LibGlobals.sol";
 import "../contracts/party/Party.sol";
 import "../contracts/party/PartyFactory.sol";
-import "../contracts/proposals/zora/IZoraAuctionHouse.sol";
+import "../contracts/proposals/vendor/IZoraAuctionHouse.sol";
 
 contract ERC721Holder {
     function onERC721Received(
