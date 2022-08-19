@@ -35,6 +35,10 @@ contract TestableFractionalizeProposal is FractionalizeProposal {
 
 contract EmptyContract {}
 
+interface IFractionalVault {
+    function reservePrice() external view returns (uint256);
+}
+
 contract FractionalizeProposalForkedTest is TestUtils {
     using LibRawResult for bytes;
 
@@ -77,6 +81,7 @@ contract FractionalizeProposalForkedTest is TestUtils {
             }));
         assertEq(nextProgressData.length, 0);
         assertEq(expectedVault.balanceOf(address(impl)), impl.getGovernanceValues().totalVotingPower);
+        assertEq(IFractionalVault(address(expectedVault)).reservePrice(), listPrice);
     }
 
     function _getNextVault()
