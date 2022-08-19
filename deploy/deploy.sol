@@ -117,7 +117,6 @@ contract Deploy is Test {
     console.log('  Globals - successfully set Token Distributor address', address(tokenDistributor));
 
 
-    // DEPLOY_SHARED_WYVERN_V2_MAKER
     console.log('');
 
     console.log('');
@@ -126,6 +125,8 @@ contract Deploy is Test {
     console.log('  Globals - successfully set OpenSea Zora auction duration', deployConstants.osZoraAuctionDuration);
     globals.setUint256(LibGlobals.GLOBAL_OS_ZORA_AUCTION_TIMEOUT, deployConstants.osZoraAuctionTimeout);
     console.log('  Globals - successfully set OpenSea Zora auction timeout', deployConstants.osZoraAuctionTimeout);
+    globals.setUint256(LibGlobals.GLOBAL_ZORA_MIN_AUCTION_DURATION, deployConstants.zoraMinAuctionDuration);
+    console.log('  Globals - successfully set Zora min auction duration', deployConstants.zoraMinAuctionDuration);
 
 
     // DEPLOY_PROPOSAL_EXECUTION_ENGINE

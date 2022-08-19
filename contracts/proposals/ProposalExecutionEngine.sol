@@ -252,7 +252,7 @@ contract ProposalExecutionEngine is
     }
 
     // Retrieve the explicit storage bucket for the ProposalExecutionEngine logic.
-    function _getStorage() internal view returns (Storage storage stor) {
+    function _getStorage() internal pure returns (Storage storage stor) {
         uint256 slot = _STORAGE_SLOT;
         assembly { stor.slot := slot }
     }

@@ -11,6 +11,7 @@ library LibDeployConstants {
     address seaportExchangeAddress;
     uint256 osZoraAuctionDuration;
     uint256 osZoraAuctionTimeout;
+    uint256 zoraMinAuctionDuration;
     address partyDaoMultisig;
     uint256 partyDaoDistributionSplitBps;
     address zoraAuctionHouseAddress;
@@ -32,6 +33,7 @@ library LibDeployConstants {
       seaportExchangeAddress: 0x00000000006c3852cbEf3e08E8dF289169EdE581,
       osZoraAuctionDuration: 24 hours,
       osZoraAuctionTimeout: 24 hours,
+      zoraMinAuctionDuration: 24 hours,
       partyDaoMultisig: 0xF7f52Dd34bc21eDA08c0b804C7c1dbc48375820f,
       partyDaoDistributionSplitBps: PARTY_DAO_DISTRIBUTION_SPLIT_BPS,
       zoraAuctionHouseAddress: 0xE468cE99444174Bd3bBBEd09209577d25D1ad673,
@@ -56,6 +58,7 @@ library LibDeployConstants {
       seaportExchangeAddress: 0x00000000006c3852cbEf3e08E8dF289169EdE581,
       osZoraAuctionDuration: 2 minutes,
       osZoraAuctionTimeout: 2 minutes,
+      zoraMinAuctionDuration: 2 minutes,
       partyDaoMultisig: 0xF7f52Dd34bc21eDA08c0b804C7c1dbc48375820f,
       partyDaoDistributionSplitBps: PARTY_DAO_DISTRIBUTION_SPLIT_BPS,
       zoraAuctionHouseAddress: 0xE7dd1252f50B3d845590Da0c5eADd985049a03ce,
@@ -80,6 +83,7 @@ library LibDeployConstants {
       seaportExchangeAddress: 0x00000000006c3852cbEf3e08E8dF289169EdE581,
       osZoraAuctionDuration: 2 minutes,
       osZoraAuctionTimeout: 2 minutes,
+      zoraMinAuctionDuration: 2 minutes,
       partyDaoMultisig: 0xF7f52Dd34bc21eDA08c0b804C7c1dbc48375820f,
       partyDaoDistributionSplitBps: PARTY_DAO_DISTRIBUTION_SPLIT_BPS,
       zoraAuctionHouseAddress: 0x6a6Cdb103f1072E0aFeADAC9BeBD6E14B287Ca57,
