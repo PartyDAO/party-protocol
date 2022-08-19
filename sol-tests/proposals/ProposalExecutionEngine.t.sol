@@ -40,7 +40,8 @@ contract ProposalExecutionEngineTest is
             globals,
             ISeaportExchange(_randomAddress()),
             ISeaportConduitController(_randomAddress()),
-            IZoraAuctionHouse(_randomAddress())
+            IZoraAuctionHouse(_randomAddress()),
+            IFractionalV1VaultFactory(_randomAddress())
         );
     }
 
