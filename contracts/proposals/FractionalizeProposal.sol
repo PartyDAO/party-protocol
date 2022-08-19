@@ -19,7 +19,13 @@ contract FractionalizeProposal {
         uint256 listPrice;
     }
 
-    event FractionalV1VaultCreated(uint256 vaultId, IERC20 vault);
+    event FractionalV1VaultCreated(
+        IERC721 indexed token,
+        uint256 indexed tokenId,
+        uint256 vaultId,
+        IERC20 vault,
+        uint256 listPrice
+    );
 
     IFractionalV1VaultFactory public immutable VAULT_FACTORY;
 
@@ -39,7 +45,8 @@ contract FractionalizeProposal {
             abi.decode(params.proposalData, (FractionalizeProposalData));
         // The supply of fractional vault ERC20 tokens will be equal to the total
         // voting power of the party.
-        uint256 supply = PartyGovernance(address(this)).getGovernanceValues().totalVotingPower;
+        uint256 supply =
+            PartyGovernance(address(this)).getGovernanceValues().totalVotingPower;
         // Create a vault around the NFT.
         data.token.approve(address(VAULT_FACTORY), data.tokenId);
         uint256 vaultId = VAULT_FACTORY.mint(
@@ -55,7 +62,13 @@ contract FractionalizeProposal {
         // Check that we now hold the correct amount of fractional tokens.
         // Should always succeed.
         assert(vault.balanceOf(address(this)) == supply);
-        emit FractionalV1VaultCreated(vaultId, vault);
+        emit FractionalV1VaultCreated(
+            data.token,
+            data.tokenId,
+            vaultId,
+            vault,
+            data.listPrice
+        );
         // Nothing left to do.
         return "";
     }

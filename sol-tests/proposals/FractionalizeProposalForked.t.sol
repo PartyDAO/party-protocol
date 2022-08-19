@@ -38,7 +38,13 @@ contract EmptyContract {}
 contract FractionalizeProposalForkedTest is TestUtils {
     using LibRawResult for bytes;
 
-    event FractionalV1VaultCreated(uint256 vaultId, IERC20 vault);
+    event FractionalV1VaultCreated(
+        IERC721 indexed token,
+        uint256 indexed tokenId,
+        uint256 vaultId,
+        IERC20 vault,
+        uint256 listPrice
+    );
 
     IFractionalV1VaultFactory VAULT_FACTORY =
         IFractionalV1VaultFactory(0x85Aa7f78BdB2DE8F3e0c0010d99AD5853fFcfC63);
@@ -55,7 +61,7 @@ contract FractionalizeProposalForkedTest is TestUtils {
         uint256 expectedVaultId = VAULT_FACTORY.vaultCount();
         IERC20 expectedVault = _getNextVault();
         _expectEmit2();
-        emit FractionalV1VaultCreated(expectedVaultId, expectedVault);
+        emit FractionalV1VaultCreated(erc721, tokenId, expectedVaultId, expectedVault, listPrice);
         bytes memory nextProgressData =
             impl.executeFractionalize(IProposalExecutionEngine.ExecuteProposalParams({
                 proposalId: _randomUint256(),
