@@ -20,4 +20,5 @@ library LibGlobals {
     uint256 internal constant GLOBAL_OPENSEA_CONDUIT_KEY            = 15;
     uint256 internal constant GLOBAL_OPENSEA_ZONE                   = 16;
     uint256 internal constant GLOBAL_PROPOSAL_MAX_CANCEL_DURATION   = 17;
+    uint256 internal constant GLOBAL_ZORA_MIN_AUCTION_DURATION      = 18;
 }

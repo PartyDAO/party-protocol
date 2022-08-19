@@ -85,13 +85,14 @@ contract ProposalExecutionEngineTest is
         );
     }
 
-    function _createUpgradeProposalData(bytes memory initData)
+    function _createUpgradeProposalData(address expectedEngineImpl, bytes memory initData)
         private
         pure
         returns (bytes memory)
     {
         return abi.encodeWithSelector(
             bytes4(uint32(ProposalExecutionEngine.ProposalType.UpgradeProposalEngineImpl)),
+            expectedEngineImpl,
             initData
         );
     }
@@ -161,11 +162,24 @@ contract ProposalExecutionEngineTest is
     function test_executeProposal_upgradeImplementationWorks() public {
         bytes memory initData = abi.encode('yooo');
         IProposalExecutionEngine.ExecuteProposalParams memory executeParams =
-            _createTestProposal(_createUpgradeProposalData(initData));
+            _createTestProposal(_createUpgradeProposalData(address(newEngImpl), initData));
         vm.expectEmit(true, false, false ,false, address(eng));
         emit TestInitializeCalled(address(eng), keccak256(initData));
         assertTrue(_executeProposal(executeParams));
         assertEq(address(eng.getProposalEngineImpl()), address(newEngImpl));
+    }
+
+    function test_executeProposal_upgradeImplementationFailsIfExpectedEngineIsNotActual() public {
+        bytes memory initData = abi.encode('yooo');
+        address expectedEngImpl = _randomAddress();
+        IProposalExecutionEngine.ExecuteProposalParams memory executeParams =
+            _createTestProposal(_createUpgradeProposalData(expectedEngImpl, initData));
+        vm.expectRevert(abi.encodeWithSelector(
+            ProposalExecutionEngine.UnexpectedProposalEngineImplementationError.selector,
+            address(newEngImpl),
+            expectedEngImpl
+        ));
+        _executeProposal(executeParams);
     }
 
     // Execute a two-step proposal, then try to cancel a different one.

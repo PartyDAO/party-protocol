@@ -172,20 +172,20 @@ contract ArbitraryCallsProposal {
                 if (selector == IERC721.approve.selector) {
                     // Can only call approve() on the precious if the operator is null.
                     (address op, uint256 tokenId) = _decodeApproveCallDataArgs(call.data);
-                    if (LibProposal.isTokenIdPrecious(
-                        IERC721(call.target),
-                        tokenId,
-                        preciousTokens,
-                        preciousTokenIds
-                    )) {
-                        return op == address(0);
+                    if (op != address(0)) {
+                        return !LibProposal.isTokenIdPrecious(
+                            IERC721(call.target),
+                            tokenId,
+                            preciousTokens,
+                            preciousTokenIds
+                        );
                     }
                 // Can only call setApprovalForAll() on the precious if
                 // toggling off.
                 } else if (selector == IERC721.setApprovalForAll.selector) {
                     (, bool isApproved) = _decodeSetApprovalForAllCallDataArgs(call.data);
-                    if (LibProposal.isTokenPrecious(IERC721(call.target), preciousTokens)) {
-                        return !isApproved;
+                    if (isApproved) {
+                        return !LibProposal.isTokenPrecious(IERC721(call.target), preciousTokens);
                     }
                 }
             }

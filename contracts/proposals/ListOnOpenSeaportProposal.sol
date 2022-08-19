@@ -4,6 +4,7 @@ pragma solidity ^0.8;
 import "../globals/IGlobals.sol";
 import "../globals/LibGlobals.sol";
 import "../tokens/IERC721.sol";
+import "../utils/LibSafeCast.sol";
 
 import "./opensea/ISeaportExchange.sol";
 import "./opensea/ISeaportConduitController.sol";
@@ -13,6 +14,8 @@ import "./IProposalExecutionEngine.sol";
 
 // Implements propoasls listing an NFT on open sea.
 abstract contract ListOnOpenSeaportProposal is ZoraHelpers {
+    using LibSafeCast for uint256;
+    
     enum ListOnOpenSeaportStep {
         // The proposal hasn't been executed yet.
         None,
@@ -154,7 +157,7 @@ abstract contract ListOnOpenSeaportProposal is ZoraHelpers {
                     // Return the next step and data required to execute that step.
                     return abi.encode(ListOnOpenSeaportStep.ListedOnZora, ZoraProgressData({
                         auctionId: auctionId,
-                        minExpiry: uint40(block.timestamp + zoraTimeout)
+                        minExpiry: (block.timestamp + zoraTimeout).safeCastUint256ToUint40()
                     }));
                 }
             }

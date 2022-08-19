@@ -19,7 +19,7 @@ contract TestableListOnOpenSeaportProposal is
         IZoraAuctionHouse zora
     )
         ListOnOpenSeaportProposal(globals, seaport, conduitController)
-        ListOnZoraProposal(zora)
+        ListOnZoraProposal(globals, zora)
     {}
 
     receive() external payable {}

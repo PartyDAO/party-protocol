@@ -8,7 +8,7 @@ import "../tokens/IERC721.sol";
 import "../tokens/IERC20.sol";
 import "../tokens/IERC1155.sol";
 import "../tokens/ERC721Receiver.sol";
-import "../tokens/ERC1155TokenReceiver.sol";
+import "../tokens/ERC1155Receiver.sol";
 import "../utils/LibERC20Compat.sol";
 import "../utils/LibRawResult.sol";
 import "../utils/LibSafeCast.sol";
@@ -24,7 +24,7 @@ import "./IPartyFactory.sol";
 abstract contract PartyGovernance is
     ITokenDistributorParty,
     ERC721Receiver,
-    ERC1155TokenReceiver,
+    ERC1155Receiver,
     ProposalStorage,
     Implementation,
     ReadOnlyDelegateCall
@@ -186,6 +186,7 @@ abstract contract PartyGovernance is
     error ProposalCannotBeCancelledYetError(uint40 currentTime, uint40 cancelTime);
 
     uint256 constant private UINT40_HIGH_BIT = 1 << 39;
+    uint96 constant private VETO_VALUE = uint96(int96(-1));
 
     IGlobals private immutable _GLOBALS;
 
@@ -300,16 +301,16 @@ abstract contract PartyGovernance is
         );
     }
 
-    /// @notice Combined logic for ERC721Receiver and ERC1155TokenReceiver
+    /// @notice Combined logic for ERC721Receiver and ERC1155Receiver
     function supportsInterface(bytes4 interfaceId)
         public
-        override(ERC721Receiver, ERC1155TokenReceiver)
+        override(ERC721Receiver, ERC1155Receiver)
         virtual
         pure
         returns (bool)
     {
         return ERC721Receiver.supportsInterface(interfaceId) ||
-            ERC1155TokenReceiver.supportsInterface(interfaceId);
+            ERC1155Receiver.supportsInterface(interfaceId);
     }
 
     /// @notice Get the current IProposalExecutionEngine instance.
@@ -381,12 +382,15 @@ abstract contract PartyGovernance is
 
     /// @notice Transfer party host status to another.
     function abdicate(address newPartyHost) external onlyHost onlyDelegateCall {
-        // cannot transfer host status to an existing host
-        if(isHost[newPartyHost]) {
-            revert InvalidNewHostError();
+        // 0 is a special case burn address.
+        if (newPartyHost != address(0)) {
+            // cannot transfer host status to an existing host.
+            if(isHost[newPartyHost]) {
+                revert InvalidNewHostError();
+            }
+            isHost[newPartyHost] = true;
         }
         isHost[msg.sender] = false;
-        isHost[newPartyHost] = true;
         emit HostStatusTransferred(msg.sender, newPartyHost);
     }
 
@@ -546,7 +550,7 @@ abstract contract PartyGovernance is
         }
 
         // -1 indicates veto.
-        info.values.votes = uint96(int96(-1));
+        info.values.votes = VETO_VALUE;
         emit ProposalVetoed(proposalId, msg.sender);
     }
 

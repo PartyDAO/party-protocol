@@ -65,10 +65,13 @@ contract ProposalExecutionEngine is
     error ProposalExecutionBlockedError(uint256 proposalId, uint256 currentInProgressProposalId);
     error ProposalProgressDataInvalidError(bytes32 actualProgressDataHash, bytes32 expectedProgressDataHash);
     error ProposalNotInProgressError(uint256 proposalId);
+    error UnexpectedProposalEngineImplementationError(IProposalExecutionEngine actualImpl, IProposalExecutionEngine expectedImpl);
+
 
     IGlobals private immutable _GLOBALS;
     // Storage slot for `Storage`.
-    uint256 private immutable _STORAGE_SLOT;
+    // Use a constant, non-overlapping slot offset for the storage bucket.
+    uint256 private constant _STORAGE_SLOT = uint256(keccak256('ProposalExecutionEngine.Storage'));
 
     constructor(
         IGlobals globals,
@@ -77,11 +80,9 @@ contract ProposalExecutionEngine is
         IZoraAuctionHouse zoraAuctionHouse
     )
         ListOnOpenSeaportProposal(globals, seaport, seaportConduitController)
-        ListOnZoraProposal(zoraAuctionHouse)
+        ListOnZoraProposal(globals, zoraAuctionHouse)
     {
         _GLOBALS = globals;
-        // Use a constant, non-overlapping slot offset for the storage bucket.
-        _STORAGE_SLOT = uint256(keccak256('ProposalExecutionEngine.Storage'));
     }
 
     function initialize(address oldImpl, bytes calldata initializeData)
@@ -220,6 +221,8 @@ contract ProposalExecutionEngine is
             revert MalformedProposalDataError();
         }
         assembly {
+            // by reading 4 bytes into the length prefix, the leading 4 bytes
+            // of the data will be in the lower bits of the read word.
             proposalType := and(mload(add(proposalData, 4)), 0xffffffff)
             mstore(add(proposalData, 4), sub(mload(proposalData), 4))
             offsetProposalData := add(proposalData, 4)
@@ -232,17 +235,24 @@ contract ProposalExecutionEngine is
     function _executeUpgradeProposalsImplementation(bytes memory proposalData)
         private
     {
-        bytes memory initData = abi.decode(proposalData, (bytes));
+        (address expectedImpl, bytes memory initData) =
+            abi.decode(proposalData, (address, bytes));
         // Always upgrade to latest implementation stored in _GLOBALS.
         IProposalExecutionEngine newImpl = IProposalExecutionEngine(
             _GLOBALS.getAddress(LibGlobals.GLOBAL_PROPOSAL_ENGINE_IMPL)
         );
+        if (expectedImpl != address(newImpl)) {
+            revert UnexpectedProposalEngineImplementationError(
+                newImpl,
+                IProposalExecutionEngine(expectedImpl)
+            );
+        }
         _initProposalImpl(newImpl, initData);
-        emit ProposalEngineImplementationUpgraded(address(IMPL), address(newImpl));
+        emit ProposalEngineImplementationUpgraded(address(IMPL), expectedImpl);
     }
 
     // Retrieve the explicit storage bucket for the ProposalExecutionEngine logic.
-    function _getStorage() internal view returns (Storage storage stor) {
+    function _getStorage() internal pure returns (Storage storage stor) {
         uint256 slot = _STORAGE_SLOT;
         assembly { stor.slot := slot }
     }
