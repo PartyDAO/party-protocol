@@ -78,8 +78,8 @@ contract PartyGovernanceTest is Test, TestUtils {
 
     // Ensure voting power updated w/ new delegation
     uint40 firstTime = uint40(block.timestamp);
-    assertEq(party.getVotingPowerAt(address(john), firstTime), 59);
-    assertEq(party.getVotingPowerAt(address(danny), firstTime), 0);
+    assertEq(party.getVotingPowerAt(1, address(john), firstTime), 59);
+    assertEq(party.getVotingPowerAt(0, address(danny), firstTime), 0);
 
     // Increase time and have danny delegate to self
     uint40 nextTime = firstTime + 10;
@@ -87,11 +87,11 @@ contract PartyGovernanceTest is Test, TestUtils {
     danny.delegate(party, address(danny));
 
     // Ensure voting power looks correct for diff times
-    assertEq(party.getVotingPowerAt(address(john), firstTime), 59); // stays same for old time
-    assertEq(party.getVotingPowerAt(address(danny), firstTime), 0); // stays same for old time
+    assertEq(party.getVotingPowerAt(1, address(john), firstTime), 59); // stays same for old time
+    assertEq(party.getVotingPowerAt(0, address(danny), firstTime), 0); // stays same for old time
     assertEq(block.timestamp, nextTime);
-    assertEq(party.getVotingPowerAt(address(john), nextTime), 49); // diff for new time
-    assertEq(party.getVotingPowerAt(address(danny), nextTime), 10); // diff for new time
+    assertEq(party.getVotingPowerAt(2, address(john), nextTime), 49); // diff for new time
+    assertEq(party.getVotingPowerAt(1, address(danny), nextTime), 10); // diff for new time
 
     // Generate proposal
     PartyGovernance.Proposal memory p1 = PartyGovernance.Proposal({
@@ -99,21 +99,21 @@ contract PartyGovernanceTest is Test, TestUtils {
       proposalData: abi.encodePacked([0]),
       cancelDelay: uint40(1 days)
     });
-    john.makeProposal(party, p1);
+    john.makeProposal(party, p1, 2);
 
     // Ensure John's votes show up
     assertEq(party.getGovernanceValues().totalVotingPower, 100);
     _assertProposalStatus(party, 1, PartyGovernance.ProposalStatus.Voting, 49);
 
     // Danny votes on proposal
-    danny.vote(party, 1);
+    danny.vote(party, 1, 1);
     _assertProposalStatus(party, 1, PartyGovernance.ProposalStatus.Passed, 59);
 
     // Can't execute before execution time passes
     vm.warp(block.timestamp + 299);
     _assertProposalStatus(party, 1, PartyGovernance.ProposalStatus.Passed, 59);
 
-    // Ensure can execute when exeuctionTime is passed
+    // Ensure can execute when executionTime is passed
     vm.warp(block.timestamp + 2);
     _assertProposalStatus(party, 1, PartyGovernance.ProposalStatus.Ready, 59);
     assertEq(engInstance.getLastExecutedProposalId(), 0);
@@ -180,10 +180,10 @@ contract PartyGovernanceTest is Test, TestUtils {
 
     // Ensure voting power updated w/ new delegation
     uint40 firstTime = uint40(block.timestamp);
-    assertEq(party.getVotingPowerAt(address(john), firstTime), 43);
-    assertEq(party.getVotingPowerAt(address(danny), firstTime), 0);
-    assertEq(party.getVotingPowerAt(address(steve), firstTime), 28);
-    assertEq(party.getVotingPowerAt(address(nicholas), firstTime), 29);
+    assertEq(party.getVotingPowerAt(1, address(john), firstTime), 43);
+    assertEq(party.getVotingPowerAt(0, address(danny), firstTime), 0);
+    assertEq(party.getVotingPowerAt(0, address(steve), firstTime), 28);
+    assertEq(party.getVotingPowerAt(0, address(nicholas), firstTime), 29);
 
     // Increase time and have danny delegate to self
     uint40 nextTime = firstTime + 10;
@@ -191,11 +191,11 @@ contract PartyGovernanceTest is Test, TestUtils {
     danny.delegate(party, address(danny));
 
     // Ensure voting power looks correct for diff times
-    assertEq(party.getVotingPowerAt(address(john), firstTime), 43); // stays same for old time
-    assertEq(party.getVotingPowerAt(address(danny), firstTime), 0); // stays same for old time
+    assertEq(party.getVotingPowerAt(1, address(john), firstTime), 43); // stays same for old time
+    assertEq(party.getVotingPowerAt(0, address(danny), firstTime), 0); // stays same for old time
     assertEq(block.timestamp, nextTime);
-    assertEq(party.getVotingPowerAt(address(john), nextTime), 21); // diff for new time
-    assertEq(party.getVotingPowerAt(address(danny), nextTime), 22); // diff for new time
+    assertEq(party.getVotingPowerAt(2, address(john), nextTime), 21); // diff for new time
+    assertEq(party.getVotingPowerAt(1, address(danny), nextTime), 22); // diff for new time
 
     // Generate proposal
     PartyGovernance.Proposal memory p1 = PartyGovernance.Proposal({
@@ -203,22 +203,22 @@ contract PartyGovernanceTest is Test, TestUtils {
       proposalData: abi.encodePacked([0]),
       cancelDelay: uint40(1 days)
     });
-    john.makeProposal(party, p1);
+    john.makeProposal(party, p1, 2);
 
     // Ensure John's votes show up
     assertEq(party.getGovernanceValues().totalVotingPower, 100);
     _assertProposalStatus(party, 1, PartyGovernance.ProposalStatus.Voting, 21);
 
     // Danny votes on proposal
-    danny.vote(party, 1);
+    danny.vote(party, 1, 1);
     _assertProposalStatus(party, 1, PartyGovernance.ProposalStatus.Voting, 43);
 
     // Steve votes on proposal
-    steve.vote(party, 1);
+    steve.vote(party, 1, 0);
     _assertProposalStatus(party, 1, PartyGovernance.ProposalStatus.Voting, 71);
 
     // Nicholas votes on proposal
-    nicholas.vote(party, 1);
+    nicholas.vote(party, 1, 0);
 
     // Unanimous so can execute immediately.
     _assertProposalStatus(party, 1, PartyGovernance.ProposalStatus.Ready, 100);
@@ -269,12 +269,12 @@ contract PartyGovernanceTest is Test, TestUtils {
       proposalData: abi.encodePacked([0]),
       cancelDelay: uint40(1 days)
     });
-    john.makeProposal(party, p1);
-    danny.vote(party, 1);
+    john.makeProposal(party, p1, 0);
+    danny.vote(party, 1, 0);
 
     _assertProposalStatus(party, 1, PartyGovernance.ProposalStatus.Voting, 150);
 
-    steve.vote(party, 1);
+    steve.vote(party, 1, 0);
     _assertProposalStatus(party, 1, PartyGovernance.ProposalStatus.Passed, 154);
 
     // veto
@@ -326,17 +326,17 @@ contract PartyGovernanceTest is Test, TestUtils {
       proposalData: abi.encodePacked([0]),
       cancelDelay: uint40(1 days)
     });
-    john.makeProposal(party, p1);
+    john.makeProposal(party, p1, 0);
 
     // Vote
-    danny.vote(party, 1);
+    danny.vote(party, 1, 0);
 
     // Ensure that the same member cannot vote twice
     vm.expectRevert(abi.encodeWithSelector(
         PartyGovernance.AlreadyVotedError.selector,
         address(danny)
     ));
-    danny.vote(party, 1);
+    danny.vote(party, 1, 0);
   }
 
   // The voting period is over, so the proposal expired without passing
@@ -367,7 +367,7 @@ contract PartyGovernanceTest is Test, TestUtils {
       proposalData: abi.encodePacked([0]),
       cancelDelay: uint40(1 days)
     });
-    john.makeProposal(party, p1);
+    john.makeProposal(party, p1, 0);
 
     _assertProposalStatus(party, 1, PartyGovernance.ProposalStatus.Voting, 50);
 
@@ -423,10 +423,10 @@ contract PartyGovernanceTest is Test, TestUtils {
       proposalData: abi.encodePacked([0]),
       cancelDelay: uint40(1 days)
     });
-    john.makeProposal(party, p1);
+    john.makeProposal(party, p1, 0);
     _assertProposalStatus(party, 1, PartyGovernance.ProposalStatus.Voting, 1);
 
-    danny.vote(party, 1);
+    danny.vote(party, 1, 0);
     _assertProposalStatus(party, 1, PartyGovernance.ProposalStatus.Passed, 51);
 
     vm.warp(block.timestamp + 98);

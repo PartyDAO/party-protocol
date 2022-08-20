@@ -69,7 +69,12 @@ contract PartyHelpers {
     }
 
     /// @notice Get the total voting power of each voter in `voters` at a timestamp.
-    function getVotingPowersAt(address party, address[] calldata voters, uint40 timestamp)
+    function getVotingPowersAt(
+        address party,
+        address[] calldata voters,
+        uint256[] calldata indexes,
+        uint40 timestamp
+    )
         external
         view
         returns (MemberAndVotingPower[] memory memberAndVotingPower)
@@ -79,7 +84,7 @@ contract PartyHelpers {
         for (uint256 i = 0; i < voters.length; i++) {
             memberAndVotingPower[i] = MemberAndVotingPower({
                 member: voters[i],
-                votingPower: p.getVotingPowerAt(voters[i], timestamp)
+                votingPower: p.getVotingPowerAt(indexes[i], voters[i], timestamp)
             });
         }
     }
