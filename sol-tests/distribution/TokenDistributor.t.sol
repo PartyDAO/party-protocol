@@ -172,7 +172,6 @@ contract TokenDistributorTest is Test, TestUtils {
     distributor.emergencyWithdraw(
       ITokenDistributor.TokenType.Native,
       ETH_ADDRESS,
-      0,
       payable(address(1)),
       10 ether
     );
@@ -185,7 +184,6 @@ contract TokenDistributorTest is Test, TestUtils {
     distributor.emergencyWithdraw(
         ITokenDistributor.TokenType.Native,
         ETH_ADDRESS,
-        0,
         payable(address(5)),
         10 ether
     );
@@ -195,7 +193,6 @@ contract TokenDistributorTest is Test, TestUtils {
     distributor.emergencyWithdraw(
         ITokenDistributor.TokenType.Erc20,
         address(dummyToken1),
-        0,
         payable(address(4)),
         19 ether
     );
@@ -242,7 +239,6 @@ contract TokenDistributorTest is Test, TestUtils {
     distributor.emergencyWithdraw(
         ITokenDistributor.TokenType.Native,
         ETH_ADDRESS,
-        0,
         payable(address(5)),
         1 ether
     );
