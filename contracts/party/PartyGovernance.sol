@@ -322,6 +322,15 @@ abstract contract PartyGovernance is
         return _getProposalExecutionEngine();
     }
 
+    /// @notice Get the total voting power of `voter` at a `timestamp`.
+    function getVotingPowerAt(address voter, uint40 timestamp)
+        external
+        view
+        returns (uint96 votingPower)
+    {
+        return getVotingPowerAt(type(uint256).max, voter, timestamp);
+    }
+
     /// @notice Get the total voting power of `voter` at a snapshot `index`, with checks to
     ///         make sure it is the latest voting snapshot =< `timestamp`.
     function getVotingPowerAt(uint256 snapIndex, address voter, uint40 timestamp)
@@ -372,6 +381,34 @@ abstract contract PartyGovernance is
             // Restore the data field.
             mstore(dataPos, t)
         }
+    }
+
+    // Get the index of the most recent voting power snapshot <= timestamp.
+    function findVotingPowerSnapshotIndex(address voter, uint40 timestamp)
+        public
+        view
+        returns (uint256 index)
+    {
+        VotingPowerSnapshot[] storage snaps = _votingPowerSnapshotsByVoter[voter];
+
+        // Derived from Open Zeppelin binary search
+        // ref: https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/utils/Checkpoints.sol#L39
+        uint256 high = snaps.length;
+        uint256 low = 0;
+        while (low < high) {
+            uint256 mid = (low + high) / 2;
+            if (snaps[mid].timestamp > timestamp) {
+                // Entry is too recent.
+                high = mid;
+            } else {
+                // Entry is older. This is our best guess for now.
+                low = mid + 1;
+            }
+        }
+
+        // Return `type(uint256).max` if not voting snapshot found before
+        // timestamp or no voting snapshots.
+        return high == 0 ? type(uint256).max : high - 1;
     }
 
     /// @notice Pledge your intrinsic voting power to a new delegate, removing it from
@@ -746,10 +783,13 @@ abstract contract PartyGovernance is
         returns (VotingPowerSnapshot memory snap)
     {
         VotingPowerSnapshot[] storage snaps = _votingPowerSnapshotsByVoter[voter];
-        // No voting power held by this user.
         uint256 snapsLength = snaps.length;
+        // No voting power held by this user.
         if (snapsLength == 0) {
             return snap;
+        }
+        if (index >= snapsLength) {
+            index = findVotingPowerSnapshotIndex(voter, timestamp);
         }
         snap = snaps[index];
         uint40 snapTimestamp = snap.timestamp;

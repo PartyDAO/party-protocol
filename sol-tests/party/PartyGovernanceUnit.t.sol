@@ -1843,6 +1843,50 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
         gov.getVotingPowerAt(2, voter, timestamp);
     }
 
+    function testVotingPower_findVotingPowerSnapshotIndexWithSingleSnapshot() external {
+        (IERC721[] memory preciousTokens, uint256[] memory preciousTokenIds) =
+            _createPreciousTokens(2);
+        TestablePartyGovernance gov =
+            _createGovernance(100e18, preciousTokens, preciousTokenIds);
+        address voter = _randomAddress();
+
+        gov.rawAdjustVotingPower(voter, 1, address(0));
+        assertEq(gov.findVotingPowerSnapshotIndex(voter, uint40(block.timestamp)), 0);
+    }
+
+    function testVotingPower_findVotingPowerSnapshotIndex() external {
+        (IERC721[] memory preciousTokens, uint256[] memory preciousTokenIds) =
+            _createPreciousTokens(2);
+        TestablePartyGovernance gov =
+            _createGovernance(100e18, preciousTokens, preciousTokenIds);
+        address voter = _randomAddress();
+
+        // voter has no voting power snapshots
+        assertEq(gov.findVotingPowerSnapshotIndex(voter, uint40(block.timestamp)), type(uint256).max);
+
+        // 30s ago (no voting power)
+        skip(10);
+        // 20s ago
+        gov.rawAdjustVotingPower(voter, 1, address(0));
+        skip(10);
+        // 10s ago
+        gov.rawAdjustVotingPower(voter, 1, address(0));
+        skip(10);
+        // 0s ago
+        gov.rawAdjustVotingPower(voter, 1, address(0));
+
+        uint40 timestamp = uint40(block.timestamp);
+
+        // 0s ago
+        assertEq(gov.findVotingPowerSnapshotIndex(voter, timestamp), 2);
+        // 5s ago
+        assertEq(gov.findVotingPowerSnapshotIndex(voter, timestamp - 5), 1);
+        // 15s ago
+        assertEq(gov.findVotingPowerSnapshotIndex(voter, timestamp - 15), 0);
+        // 25s ago
+        assertEq(gov.findVotingPowerSnapshotIndex(voter, timestamp - 25), type(uint256).max);
+    }
+
     // _adjustVotingPower() updates delegated VP correctly
     function testVotingPower_adjustVotingPowerUpdatesDelegatesCorrectly() external {
         (IERC721[] memory preciousTokens, uint256[] memory preciousTokenIds) =
