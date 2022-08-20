@@ -421,7 +421,7 @@ abstract contract PartyGovernance is
         }
         assert(tokenType == ITokenDistributor.TokenType.Erc20);
         IERC20(token).compatTransfer(
-            payable(address(distributor)),
+            address(distributor),
             IERC20(token).balanceOf(address(this))
         );
         return distributor.createErc20Distribution(
