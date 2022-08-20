@@ -477,7 +477,7 @@ abstract contract PartyGovernance is
 
     /// @notice Vote to support a proposed proposal.
     /// @dev The voting power cast will be the effective voting power of the caller
-    ///      at the time propose() was called (see _getVotingPowerAtIndex()).
+    ///      at the time propose() was called (see getVotingPowerAt()).
     ///      If the proposal reaches passThresholdBps acceptance ratio then the
     ///      proposal will be in the Passed state and will be executable after
     ///      the executionDelay has passed, putting it in the Ready state.
