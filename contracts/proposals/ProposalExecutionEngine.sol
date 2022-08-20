@@ -136,14 +136,14 @@ contract ProposalExecutionEngine is
                     );
                 }
             } else { // Expecting progress data.
-                 bytes32 progressDataHash = keccak256(params.progressData);
-                 // Progress data must match the one stored.
-                 if (nextProgressDataHash != progressDataHash) {
-                     revert ProposalProgressDataInvalidError(
-                         progressDataHash,
-                         nextProgressDataHash
-                     );
-                 }
+                bytes32 progressDataHash = keccak256(params.progressData);
+                // Progress data must match the one stored.
+                if (nextProgressDataHash != progressDataHash) {
+                    revert ProposalProgressDataInvalidError(
+                        progressDataHash,
+                        nextProgressDataHash
+                    );
+                }
             }
             // Temporarily set the expected next progress data hash to an
             // unachievable constant to act as a reentrancy guard.
