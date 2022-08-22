@@ -2,21 +2,24 @@
 pragma solidity ^0.8;
 
 import {IGateKeeper} from "./IGateKeeper.sol";
-import {IERC20} from "../tokens/IERC20.sol";
+
+interface Token {
+    function balanceOf(address owner) external view returns (uint256);
+}
 
 /**
- * @notice a contract that implements an ERC20 gatekeeper
+ * @notice a contract that implements an token gatekeeper
  */
-contract ERC20TokenGateKeeper is IGateKeeper {
+contract TokenGateKeeper is IGateKeeper {
     // last gate id
     uint96 private _lastId;
 
     struct TokenGate {
-        IERC20 token;
+        Token token;
         uint256 minimumBalance;
     }
 
-    event ERC20TokenGateCreated(IERC20 token, uint256 minimumBalance);
+    event TokenGateCreated(Token token, uint256 minimumBalance);
 
     // id -> TokenGate
     mapping(uint96 => TokenGate) public gateInfo;
@@ -34,16 +37,16 @@ contract ERC20TokenGateKeeper is IGateKeeper {
         bytes memory /* userData */
     ) external view returns (bool) {
         TokenGate memory _gate = gateInfo[uint96(id)];
-        return IERC20(_gate.token).balanceOf(participant) >= _gate.minimumBalance;
+        return _gate.token.balanceOf(participant) >= _gate.minimumBalance;
     }
 
     /**
      * @notice creates a gateway and returns id
-     * @param  token ERC-20 token address
+     * @param  token token address (eg. ERC20 or ERC721)
      * @param  minimumBalance minimum balance allowed for participation
      * @return id gate id
      */
-    function createGate(IERC20 token, uint256 minimumBalance)
+    function createGate(Token token, uint256 minimumBalance)
         external
         returns (bytes12 id)
     {
@@ -51,6 +54,6 @@ contract ERC20TokenGateKeeper is IGateKeeper {
         id = bytes12(id_);
         gateInfo[id_].token = token;
         gateInfo[id_].minimumBalance = minimumBalance;
-        emit ERC20TokenGateCreated(token, minimumBalance);
+        emit TokenGateCreated(token, minimumBalance);
     }
 }
