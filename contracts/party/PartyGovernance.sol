@@ -184,7 +184,6 @@ abstract contract PartyGovernance is
     error AlreadyVotedError(address voter);
     error InvalidNewHostError();
     error ProposalCannotBeCancelledYetError(uint40 currentTime, uint40 cancelTime);
-    error InvalidSnapshotIndex(uint256 index, uint40 snapTime, uint40 proposedTime);
 
     uint256 constant private UINT40_HIGH_BIT = 1 << 39;
 
