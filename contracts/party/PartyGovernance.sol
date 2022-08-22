@@ -330,7 +330,7 @@ abstract contract PartyGovernance is
         return getVotingPowerAt(type(uint256).max, voter, timestamp);
     }
 
-    /// @notice Get the total voting power of `voter` at a snapshot `index`, with checks to
+    /// @notice Get the total voting power of `voter` at a snapshot `snapIndex`, with checks to
     ///         make sure it is the latest voting snapshot =< `timestamp`.
     function getVotingPowerAt(uint256 snapIndex, address voter, uint40 timestamp)
         public
@@ -382,7 +382,7 @@ abstract contract PartyGovernance is
         }
     }
 
-    // Get the index of the most recent voting power snapshot <= timestamp.
+    // Get the index of the most recent voting power snapshot <= `timestamp`.
     function findVotingPowerSnapshotIndex(address voter, uint40 timestamp)
         public
         view
@@ -405,8 +405,7 @@ abstract contract PartyGovernance is
             }
         }
 
-        // Return `type(uint256).max` if not voting snapshot found before
-        // timestamp or no voting snapshots.
+        // Return `type(uint256).max` if no valid voting snapshots found.
         return high == 0 ? type(uint256).max : high - 1;
     }
 
