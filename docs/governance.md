@@ -423,6 +423,36 @@ This proposal has between 2-3 steps:
     - If the order was filled, the Party has the `listPrice` ETH, the NFT allowance was consumed, and there is nothing left to do.
     - If the order expired, no one bought the listing and the Party still owns the NFT. Revoke OpenSea's token allowance.
 
+### Fractionalize Proposal Type
+
+This proposal type fractionalizes an NFT on Fractional V1, minting Fractional ERC20 tokens claimable by all party members via distributions.
+
+#### Proposal Data
+
+The `proposalData` should be encoded as:
+```solidity
+abi.encodeWithSelector(
+    // Prefix identifying this proposal type.
+    bytes4(ProposalType.FractionalizeProposal),
+    FractionalizeProposalData(
+        // The ERC721 token contract to fractionalize.
+        /* IERC721 */ token;
+        // The ERC721 token ID to fractionalize.
+        /* uint256 */ tokenId;
+        // The starting reserve price for the fractional vault.
+        /* uint256 */ listPrice;
+    )
+);
+```
+
+#### Steps
+
+This proposal is atomic, completing in one step/execute:
+1. Create a new Fractional V1 vault around `token` + `tokenId`.
+    - Reserve price will be set to the proposal's `listPrice`.
+    - Curator will be set to `address(0)`.
+    - `totalVotingPower` fractional ERC20 tokens will be minted and held by the Party, which can later be claimed through an ERC20 distribution.
+
 ### UpgradeProposalEngineImpl Proposal Type
 
 This proposal type upgrades the `ProposalExecutionEngine` instance for a party to the latest version defined in the `GLOBAL_PROPOSAL_ENGINE_IMPL` global value.
