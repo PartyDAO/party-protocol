@@ -776,7 +776,7 @@ abstract contract PartyGovernance is
         return nextProgressData.length == 0;
     }
 
-    // Get the most recent voting power snapshot <= timestamp using `index` as "hint".
+    // Get the most recent voting power snapshot <= timestamp using `index` as a "hint".
     function _getVotingPowerSnapshotAt(uint256 index, address voter, uint40 timestamp)
         internal
         view
@@ -784,21 +784,27 @@ abstract contract PartyGovernance is
     {
         VotingPowerSnapshot[] storage snaps = _votingPowerSnapshotsByVoter[voter];
         uint256 snapsLength = snaps.length;
-        // No voting power held by this user.
-        if (snapsLength == 0) {
-            return snap;
+        if (snapsLength != 0) {
+            if (
+                // Hint is within bounds.
+                index < snapsLength &&
+                // Snapshot is not too recent.
+                snaps[index].timestamp <= timestamp &&
+                // Snapshot is not too old.
+                (index == snapsLength - 1 || snaps[index+1].timestamp > timestamp)
+            ) {
+                return snaps[index];
+            } else {
+                index = findVotingPowerSnapshotIndex(voter, timestamp);
+                // Check that snapshot was found.
+                if (index != type(uint256).max) {
+                    return snaps[index];
+                }
+            }
         }
-        if (index >= snapsLength) {
-            index = findVotingPowerSnapshotIndex(voter, timestamp);
-        }
-        snap = snaps[index];
-        uint40 snapTimestamp = snap.timestamp;
-        if (snapTimestamp > timestamp) {
-            revert InvalidSnapshotIndex(index, snapTimestamp, timestamp);
-        }
-        if (index != snapsLength - 1 && snaps[index+1].timestamp <= timestamp) {
-            revert InvalidSnapshotIndex(index, snapTimestamp, timestamp);
-        }
+
+        // No snapshot found.
+        return snap;
     }
 
     // Transfers some voting power of `from` to `to`. The total voting power of

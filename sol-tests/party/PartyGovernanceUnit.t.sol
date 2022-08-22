@@ -1805,8 +1805,22 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
         gov.rawAdjustVotingPower(undelegatedVoter, -51e18 - 1, address(0));
     }
 
+    function testVotingPower_getVotingPowerWithValidHint() external {
+        (IERC721[] memory preciousTokens, uint256[] memory preciousTokenIds) =
+            _createPreciousTokens(2);
+        TestablePartyGovernance gov =
+            _createGovernance(100e18, preciousTokens, preciousTokenIds);
+        address voter = _randomAddress();
 
-    function testVotingPower_invalidSnapIndexReverts() external {
+        // voter has 50 intrinsic VP at snapshot index 0
+        skip(10);
+        gov.rawAdjustVotingPower(voter, 50e18, address(0));
+
+        assertEq(gov.findVotingPowerSnapshotIndex(voter, uint40(block.timestamp)), 0);
+        assertEq(gov.getVotingPowerAt(0, voter, uint40(block.timestamp)), 50e18);
+    }
+
+    function testVotingPower_getVotingPowerWithInvalidHint() external {
         (IERC721[] memory preciousTokens, uint256[] memory preciousTokenIds) =
             _createPreciousTokens(2);
         TestablePartyGovernance gov =
@@ -1820,38 +1834,48 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
 
         uint40 timestamp = uint40(block.timestamp);
 
-        // revert because snapshot index is before latest snapshot at `timestamp`
-        vm.expectRevert(abi.encodeWithSelector(
-            PartyGovernance.InvalidSnapshotIndex.selector,
-            0,
-            timestamp - 10,
-            timestamp
-        ));
-        gov.getVotingPowerAt(0, voter, timestamp);
+        // snapshot index is before latest snapshot at `timestamp`, should
+        // fallback to `findVotingPowerSnapshotIndex` to find and return correct
+        // snapshot
+        assertEq(gov.getVotingPowerAt(0, voter, timestamp), 100e18);
+        assertEq(gov.findVotingPowerSnapshotIndex(voter, timestamp), 1);
 
         // voter has 150 intrinsic VP at snapshot index 2
         skip(10);
         gov.rawAdjustVotingPower(voter, 50e18, address(0));
 
-        // revert because snapshot index is ahead of latest snapshot at `timestamp`
-        vm.expectRevert(abi.encodeWithSelector(
-            PartyGovernance.InvalidSnapshotIndex.selector,
-            2,
-            timestamp + 10,
-            timestamp
-        ));
-        gov.getVotingPowerAt(2, voter, timestamp);
+        // snapshot index is ahead of latest snapshot at `timestamp`, should
+        // fallback to `findVotingPowerSnapshotIndex` to find and return correct
+        // snapshot
+        assertEq(gov.getVotingPowerAt(2, voter, timestamp), 100e18);
+        assertEq(gov.findVotingPowerSnapshotIndex(voter, timestamp), 1);
     }
 
-    function testVotingPower_findVotingPowerSnapshotIndexWithSingleSnapshot() external {
+    function testVotingPower_getVotingPowerWithHintAboveSnapshotsLength() external {
         (IERC721[] memory preciousTokens, uint256[] memory preciousTokenIds) =
             _createPreciousTokens(2);
         TestablePartyGovernance gov =
             _createGovernance(100e18, preciousTokens, preciousTokenIds);
         address voter = _randomAddress();
 
-        gov.rawAdjustVotingPower(voter, 1, address(0));
+        // voter has 50 intrinsic VP at snapshot index 0
+        skip(10);
+        gov.rawAdjustVotingPower(voter, 50e18, address(0));
+
+        assertEq(gov.getVotingPowerAt(type(uint256).max, voter, uint40(block.timestamp)), 50e18);
         assertEq(gov.findVotingPowerSnapshotIndex(voter, uint40(block.timestamp)), 0);
+    }
+
+    function testVotingPower_getVotingPowerWithNoSnapshots() external {
+        (IERC721[] memory preciousTokens, uint256[] memory preciousTokenIds) =
+            _createPreciousTokens(2);
+        TestablePartyGovernance gov =
+            _createGovernance(100e18, preciousTokens, preciousTokenIds);
+        address voter = _randomAddress();
+
+        // no snapshots, should return 0 voting power
+        assertEq(gov.getVotingPowerAt(0, voter, uint40(block.timestamp)), 0);
+        assertEq(gov.findVotingPowerSnapshotIndex(voter, uint40(block.timestamp)), type(uint256).max);
     }
 
     function testVotingPower_findVotingPowerSnapshotIndex() external {
