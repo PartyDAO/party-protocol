@@ -227,12 +227,12 @@ Gatekeepers allow crowdfunds to limit who can contribute to them. Each gatekeepe
 
 When a crowdfund is created, users can choose to create a new gate within a gatekeeper implementation or use an existing one by passing in its gate ID. There are currently two gatekeeper types supported:
 
-- [ERC20TokenGateKeeper](https://github.com/PartyDAO/partybidV2/blob/main/docs/crowdfund.md#erc20tokengatekeeper)
+- [TokenGateKeeper](https://github.com/PartyDAO/partybidV2/blob/main/docs/crowdfund.md#tokengatekeeper)
 - [AllowListGateKeeper](https://github.com/PartyDAO/partybidV2/blob/main/docs/crowdfund.md#allowlistgatekeeper)
 
-### ERC20TokenGateKeeper
+### TokenGateKeeper
 
-This gatekeeper only allows contributions from holders of a specific ERC20 above a specific balance. Each gate stores the ERC20 and minimum balance it requires for participation when the gate is created.
+This gatekeeper only allows contributions from holders of a specific token (e.g. ERC20 or ERC721) above a specific balance. Each gate stores the token and minimum balance it requires for participation when the gate is created. While ERC20 and ERC721 tokens will be the predominant usecase, any contract that implements `balanceOf()` can be used to gate.
 
 ### AllowListGateKeeper
 
