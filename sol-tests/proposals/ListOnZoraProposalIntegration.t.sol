@@ -114,10 +114,10 @@ contract ListOnZoraProposalIntegrationTest is
       });
 
 
-      uint256 proposalId = john.makeProposal(party, proposal);
+      uint256 proposalId = john.makeProposal(party, proposal, 0);
 
-      danny.vote(party, proposalId);
-      steve.vote(party, proposalId);
+      danny.vote(party, proposalId, 0);
+      steve.vote(party, proposalId, 0);
 
       vm.warp(block.timestamp + 76 hours);
 

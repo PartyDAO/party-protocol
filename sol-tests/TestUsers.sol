@@ -139,13 +139,18 @@ contract PartyParticipant is ERC721Holder, Test  {
   }
 
   function makeProposal(
-    Party party, PartyGovernance.Proposal memory proposal
-  ) public returns (uint256) {
-    return party.propose(proposal);
+    Party party,
+    PartyGovernance.Proposal memory proposal,
+    uint256 lastestSnapIndex
+  )
+    public
+    returns (uint256)
+  {
+    return party.propose(proposal, lastestSnapIndex);
   }
 
-  function vote(Party party, uint256 proposalId) public {
-    party.accept(proposalId);
+  function vote(Party party, uint256 proposalId, uint256 snapIndex) public {
+    party.accept(proposalId, snapIndex);
   }
 
   function delegate(Party party, address newDelegate) public {

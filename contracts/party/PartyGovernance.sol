@@ -322,13 +322,23 @@ abstract contract PartyGovernance is
         return _getProposalExecutionEngine();
     }
 
-    /// @notice Get the total voting power of `voter` at a timestamp.
+    /// @notice Get the total voting power of `voter` at a `timestamp`.
     function getVotingPowerAt(address voter, uint40 timestamp)
+        external
+        view
+        returns (uint96 votingPower)
+    {
+        return getVotingPowerAt(voter, timestamp, type(uint256).max);
+    }
+
+    /// @notice Get the total voting power of `voter` at a snapshot `snapIndex`, with checks to
+    ///         make sure it is the latest voting snapshot =< `timestamp`.
+    function getVotingPowerAt(address voter, uint40 timestamp, uint256 snapIndex)
         public
         view
         returns (uint96 votingPower)
     {
-        VotingPowerSnapshot memory snap = _getVotingPowerSnapshotAt(voter, timestamp);
+        VotingPowerSnapshot memory snap = _getVotingPowerSnapshotAt(voter, timestamp, snapIndex);
         return (snap.isDelegated ? 0 : snap.intrinsicVotingPower) + snap.delegatedVotingPower;
     }
 
@@ -371,6 +381,33 @@ abstract contract PartyGovernance is
             // Restore the data field.
             mstore(dataPos, t)
         }
+    }
+
+    // Get the index of the most recent voting power snapshot <= `timestamp`.
+    function findVotingPowerSnapshotIndex(address voter, uint40 timestamp)
+        public
+        view
+        returns (uint256 index)
+    {
+        VotingPowerSnapshot[] storage snaps = _votingPowerSnapshotsByVoter[voter];
+
+        // Derived from Open Zeppelin binary search
+        // ref: https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/utils/Checkpoints.sol#L39
+        uint256 high = snaps.length;
+        uint256 low = 0;
+        while (low < high) {
+            uint256 mid = (low + high) / 2;
+            if (snaps[mid].timestamp > timestamp) {
+                // Entry is too recent.
+                high = mid;
+            } else {
+                // Entry is older. This is our best guess for now.
+                low = mid + 1;
+            }
+        }
+
+        // Return `type(uint256).max` if no valid voting snapshots found.
+        return high == 0 ? type(uint256).max : high - 1;
     }
 
     /// @notice Pledge your intrinsic voting power to a new delegate, removing it from
@@ -437,7 +474,7 @@ abstract contract PartyGovernance is
     /// @dev Only an active member (owns a governance token) can call this.
     ///      Afterwards, members can vote to support it with accept() or a party
     ///      host can unilaterally reject the proposal with veto().
-    function propose(Proposal memory proposal)
+    function propose(Proposal memory proposal, uint256 latestSnapIndex)
         external
         onlyActiveMember
         onlyDelegateCall
@@ -458,7 +495,7 @@ abstract contract PartyGovernance is
             getProposalHash(proposal)
         );
         emit Proposed(proposalId, msg.sender, proposal);
-        accept(proposalId);
+        accept(proposalId, latestSnapIndex);
     }
 
     /// @notice Vote to support a proposed proposal.
@@ -467,7 +504,7 @@ abstract contract PartyGovernance is
     ///      If the proposal reaches passThresholdBps acceptance ratio then the
     ///      proposal will be in the Passed state and will be executable after
     ///      the executionDelay has passed, putting it in the Ready state.
-    function accept(uint256 proposalId)
+    function accept(uint256 proposalId, uint256 snapIndex)
         public
         onlyDelegateCall
         returns (uint256 totalVotes)
@@ -496,7 +533,7 @@ abstract contract PartyGovernance is
         }
         info.hasVoted[msg.sender] = true;
 
-        uint96 votingPower = getVotingPowerAt(msg.sender, values.proposedTime);
+        uint96 votingPower = getVotingPowerAt(msg.sender, values.proposedTime, snapIndex);
         values.votes += votingPower;
         info.values = values;
         emit ProposalAccepted(proposalId, msg.sender, votingPower);
@@ -725,38 +762,36 @@ abstract contract PartyGovernance is
         return nextProgressData.length == 0;
     }
 
-    // Get the most recent voting power snapshot <= timestamp.
-    function _getVotingPowerSnapshotAt(address voter, uint40 timestamp)
+    // Get the most recent voting power snapshot <= timestamp using `hintindex` as a "hint".
+    function _getVotingPowerSnapshotAt(address voter, uint40 timestamp, uint256 hintIndex)
         internal
         view
         returns (VotingPowerSnapshot memory snap)
     {
         VotingPowerSnapshot[] storage snaps = _votingPowerSnapshotsByVoter[voter];
+        uint256 snapsLength = snaps.length;
+        if (snapsLength != 0) {
+            if (
+                // Hint is within bounds.
+                hintIndex < snapsLength &&
+                // Snapshot is not too recent.
+                snaps[hintIndex].timestamp <= timestamp &&
+                // Snapshot is not too old.
+                (hintIndex == snapsLength - 1 || snaps[hintIndex+1].timestamp > timestamp)
+            ) {
+                return snaps[hintIndex];
+            }
 
-        // Derived from Open Zepplin binary search
-        // ref: https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/utils/Checkpoints.sol#L39
-        uint256 high = snaps.length;
-        uint256 low = 0;
-        while (low < high) {
-            uint256 mid = (low + high) / 2;
-            VotingPowerSnapshot memory shot_ = snaps[mid];
-            if (shot_.timestamp > timestamp) {
-                // Entry is too recent.
-                high = mid;
-            } else {
-                // Entry is older. This is our best guess for now.
-                low = mid + 1;
+            // Hint was wrong, fallback to binary search to find snapshot.
+            hintIndex = findVotingPowerSnapshotIndex(voter, timestamp);
+            // Check that snapshot was found.
+            if (hintIndex != type(uint256).max) {
+                return snaps[hintIndex];
             }
         }
 
-        return high == 0
-            ? VotingPowerSnapshot({
-                timestamp: 0,
-                delegatedVotingPower: 0,
-                intrinsicVotingPower: 0,
-                isDelegated: false
-                })
-            : snaps[high - 1];
+        // No snapshot found.
+        return snap;
     }
 
     // Transfers some voting power of `from` to `to`. The total voting power of

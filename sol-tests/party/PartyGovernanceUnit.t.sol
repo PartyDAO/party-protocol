@@ -224,12 +224,12 @@ contract TestablePartyGovernance is PartyGovernance {
         return v.votes;
     }
 
-    function getVotingPowerSnapshotAt(address voter, uint256 timestamp)
+    function getVotingPowerSnapshotAt(address voter, uint256 timestamp, uint256 hintIndex)
         external
         view
         returns (VotingPowerSnapshot memory snap)
     {
-        return _getVotingPowerSnapshotAt(voter, uint40(timestamp));
+        return _getVotingPowerSnapshotAt(voter, uint40(timestamp), hintIndex);
     }
 
     function getProposalStatus(uint256 proposalId)
@@ -464,7 +464,7 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
         // Voter has majority VP so it also passes immediately.
         _expectProposalPassedEvent(proposalId);
         vm.prank(undelegatedVoter);
-        assertEq(gov.propose(proposal), proposalId);
+        assertEq(gov.propose(proposal, 0), proposalId);
 
         _assertProposalStatusEq(gov, proposalId, PartyGovernance.ProposalStatus.Passed);
 
@@ -521,7 +521,7 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
         // Voter has majority VP so it also passes immediately.
         _expectProposalPassedEvent(proposalId);
         vm.prank(undelegatedVoter);
-        assertEq(gov.propose(proposal), proposalId);
+        assertEq(gov.propose(proposal, 0), proposalId);
 
         // Skip past execution delay.
         skip(defaultGovernanceOpts.executionDelay);
@@ -600,7 +600,7 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
         // Voter has majority VP so it also passes immediately.
         _expectProposalPassedEvent(proposalId);
         vm.prank(undelegatedVoter);
-        assertEq(gov.propose(proposal), proposalId);
+        assertEq(gov.propose(proposal, 0), proposalId);
         // The vote was unanimous so the proposal should be executable as well.
         _assertProposalStatusEq(gov, proposalId, PartyGovernance.ProposalStatus.Ready);
 
@@ -656,12 +656,12 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
         // Voter has majority VP so it also passes immediately.
         _expectProposalPassedEvent(proposalId);
         vm.prank(undelegatedVoter1);
-        assertEq(gov.propose(proposal), proposalId);
+        assertEq(gov.propose(proposal, 0), proposalId);
 
         // Undelegated voter 2 votes.
         _expectProposalAcceptedEvent(proposalId, undelegatedVoter2, 25e18);
         vm.prank(undelegatedVoter2);
-        gov.accept(proposalId);
+        gov.accept(proposalId, 0);
         // The vote was unanimous so the proposal should be executable as well.
         _assertProposalStatusEq(gov, proposalId, PartyGovernance.ProposalStatus.Ready);
 
@@ -713,7 +713,7 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
         // Voter has majority VP so it also passes immediately.
         _expectProposalPassedEvent(proposalId);
         vm.prank(undelegatedVoter);
-        assertEq(gov.propose(proposal), proposalId);
+        assertEq(gov.propose(proposal, 0), proposalId);
         // The vote was unanimous so the proposal should be executable as well.
         _assertProposalStatusEq(gov, proposalId, PartyGovernance.ProposalStatus.Ready);
 
@@ -759,7 +759,7 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
 
         // Undelegated voter submits proposal.
         vm.prank(undelegatedVoter);
-        assertEq(gov.propose(proposal), proposalId);
+        assertEq(gov.propose(proposal, 0), proposalId);
 
         // Try to execute proposal (fail).
         vm.expectRevert(abi.encodeWithSelector(
@@ -810,7 +810,7 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
         // Voter has majority VP so it also passes immediately.
         _expectProposalPassedEvent(proposalId);
         vm.prank(undelegatedVoter);
-        assertEq(gov.propose(proposal), proposalId);
+        assertEq(gov.propose(proposal, 0), proposalId);
 
         // Try to execute proposal (fail).
         vm.expectRevert(abi.encodeWithSelector(
@@ -845,7 +845,7 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
         // Voter has majority VP so it also passes immediately.
         _expectProposalPassedEvent(proposalId);
         vm.prank(undelegatedVoter);
-        assertEq(gov.propose(proposal), proposalId);
+        assertEq(gov.propose(proposal, 0), proposalId);
 
         // Skip past the proposal expiration.
         vm.warp(proposal.maxExecutableTime + 1);
@@ -884,7 +884,7 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
         // Voter has majority VP so it also passes immediately.
         _expectProposalPassedEvent(proposalId);
         vm.prank(undelegatedVoter);
-        assertEq(gov.propose(proposal), proposalId);
+        assertEq(gov.propose(proposal, 0), proposalId);
 
         // Skip past execution delay.
         skip(defaultGovernanceOpts.executionDelay);
@@ -934,7 +934,7 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
         // Voter has majority VP so it also passes immediately.
         _expectProposalPassedEvent(proposalId);
         vm.prank(undelegatedVoter);
-        assertEq(gov.propose(proposal), proposalId);
+        assertEq(gov.propose(proposal, 0), proposalId);
 
         // Skip past execution delay.
         skip(defaultGovernanceOpts.executionDelay);
@@ -971,7 +971,7 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
         uint256 proposalId = gov.getNextProposalId();
         // Propose and pass it.
         vm.prank(voter);
-        assertEq(gov.propose(proposal), proposalId);
+        assertEq(gov.propose(proposal, 0), proposalId);
 
         // Execute it.
         skip(defaultGovernanceOpts.executionDelay);
@@ -1011,7 +1011,7 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
         uint256 proposalId = gov.getNextProposalId();
         // Propose and pass it.
         vm.prank(voter);
-        assertEq(gov.propose(proposal), proposalId);
+        assertEq(gov.propose(proposal, 0), proposalId);
 
         // Execute it.
         skip(defaultGovernanceOpts.executionDelay);
@@ -1051,7 +1051,7 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
         uint256 proposalId = gov.getNextProposalId();
         // Propose and pass it.
         vm.prank(voter);
-        assertEq(gov.propose(proposal), proposalId);
+        assertEq(gov.propose(proposal, 0), proposalId);
 
         // Execute it.
         skip(defaultGovernanceOpts.executionDelay);
@@ -1100,7 +1100,7 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
         // Undelegated voter submits proposal and votes, but does not have enough
         // to pass on their own.
         vm.prank(undelegatedVoter);
-        assertEq(gov.propose(proposal), proposalId);
+        assertEq(gov.propose(proposal, 0), proposalId);
 
         // Non-host tries to veto.
         vm.expectRevert(abi.encodeWithSelector(
@@ -1147,7 +1147,7 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
         // Undelegated voter submits proposal and votes, but does not have enough
         // to pass on their own.
         vm.prank(undelegatedVoter);
-        assertEq(gov.propose(proposal), proposalId);
+        assertEq(gov.propose(proposal, 0), proposalId);
 
         _assertProposalStatusEq(gov, proposalId, PartyGovernance.ProposalStatus.Voting);
 
@@ -1194,7 +1194,7 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
         // Voter has majority VP so it also passes immediately.
         _expectProposalPassedEvent(proposalId);
         vm.prank(undelegatedVoter);
-        assertEq(gov.propose(proposal), proposalId);
+        assertEq(gov.propose(proposal, 0), proposalId);
 
         // Skip past execution delay.
         skip(defaultGovernanceOpts.executionDelay);
@@ -1241,7 +1241,7 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
         // Voter has majority VP so it also passes immediately.
         _expectProposalPassedEvent(proposalId);
         vm.prank(undelegatedVoter);
-        assertEq(gov.propose(proposal), proposalId);
+        assertEq(gov.propose(proposal, 0), proposalId);
 
         // Skip past execution delay.
         skip(defaultGovernanceOpts.executionDelay);
@@ -1283,7 +1283,7 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
         // Voter has majority VP so it also passes immediately.
         _expectProposalPassedEvent(proposalId);
         vm.prank(undelegatedVoter);
-        assertEq(gov.propose(proposal), proposalId);
+        assertEq(gov.propose(proposal, 0), proposalId);
 
         // Skip past execution delay.
         skip(defaultGovernanceOpts.executionDelay);
@@ -1326,7 +1326,7 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
         // Voter has majority VP so it also passes immediately.
         _expectProposalPassedEvent(proposalId);
         vm.prank(undelegatedVoter);
-        assertEq(gov.propose(proposal), proposalId);
+        assertEq(gov.propose(proposal, 0), proposalId);
 
         // Skip past execution delay.
         skip(defaultGovernanceOpts.executionDelay);
@@ -1375,7 +1375,7 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
 
         // Undelegated voter submits proposal.
         vm.prank(undelegatedVoter);
-        assertEq(gov.propose(proposal), proposalId);
+        assertEq(gov.propose(proposal, 0), proposalId);
 
         _assertProposalStatusEq(gov, proposalId, PartyGovernance.ProposalStatus.Voting);
 
@@ -1423,21 +1423,21 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
         // No intrinsic or delegated votes so no vote cast during proposal.
         _expectProposalAcceptedEvent(proposalId, delegatedVoter, 0);
         vm.prank(delegatedVoter);
-        assertEq(gov.propose(proposal), proposalId);
+        assertEq(gov.propose(proposal, 0), proposalId);
 
         _assertProposalStatusEq(gov, proposalId, PartyGovernance.ProposalStatus.Voting);
 
         // Undelegated (self-delegated) voter votes.
         _expectProposalAcceptedEvent(proposalId, undelegatedVoter, 25e18);
         vm.prank(undelegatedVoter);
-        gov.accept(proposalId);
+        gov.accept(proposalId, 0);
 
         // Delegate votes with delegated and intrinsic voting power.
         _expectProposalAcceptedEvent(proposalId, delegate, 50e18);
         // Combined, votes are enough (75%) to push it over the pass threshold (50%).
         _expectProposalPassedEvent(proposalId);
         vm.prank(delegate);
-        gov.accept(proposalId);
+        gov.accept(proposalId, 0);
 
         _assertProposalStatusEq(gov, proposalId, PartyGovernance.ProposalStatus.Passed);
     }
@@ -1469,17 +1469,17 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
         // No intrinsic or delegated votes so no vote cast during proposal.
         emit ProposalAccepted(proposalId, delegatedVoter, 0);
         vm.prank(delegatedVoter);
-        assertEq(gov.propose(proposal), proposalId);
+        assertEq(gov.propose(proposal, 0), proposalId);
 
         // Undelegated (self-delegated) voter votes.
         _expectProposalAcceptedEvent(proposalId, undelegatedVoter, 10e18);
         vm.prank(undelegatedVoter);
-        gov.accept(proposalId);
+        gov.accept(proposalId, 0);
 
         // Delegate votes with delegated and intrinsic voting power.
         _expectProposalAcceptedEvent(proposalId, delegate, 40e18);
         vm.prank(delegate);
-        gov.accept(proposalId);
+        gov.accept(proposalId, 0);
 
         // 10 + 10 + 30 = 50, but need 51/100 to pass.
         _assertProposalStatusEq(gov, proposalId, PartyGovernance.ProposalStatus.Voting);
@@ -1504,7 +1504,7 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
 
         // Undelegated voter 1 submits proposal (and votes).
         vm.prank(undelegatedVoter1);
-        assertEq(gov.propose(proposal), proposalId);
+        assertEq(gov.propose(proposal, 0), proposalId);
 
         _assertProposalStatusEq(gov, proposalId, PartyGovernance.ProposalStatus.Voting);
 
@@ -1519,7 +1519,7 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
             PartyGovernance.ProposalStatus.Defeated
         ));
         vm.prank(undelegatedVoter2);
-        gov.accept(proposalId);
+        gov.accept(proposalId, 0);
     }
 
     // Try to vote twice (undelegated voter)
@@ -1538,7 +1538,7 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
 
         // Undelegated voter submits proposal (and votes).
         vm.prank(undelegatedVoter);
-        assertEq(gov.propose(proposal), proposalId);
+        assertEq(gov.propose(proposal, 0), proposalId);
 
         // Try to vote again.
         vm.expectRevert(abi.encodeWithSelector(
@@ -1546,7 +1546,7 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
             undelegatedVoter
         ));
         vm.prank(undelegatedVoter);
-        gov.accept(proposalId);
+        gov.accept(proposalId, 0);
     }
 
     // Try to vote twice (delegate)
@@ -1566,7 +1566,7 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
 
         // Delegate submits proposal (and votes).
         vm.prank(delegate);
-        assertEq(gov.propose(proposal), proposalId);
+        assertEq(gov.propose(proposal, 0), proposalId);
 
         // Try to vote again.
         vm.expectRevert(abi.encodeWithSelector(
@@ -1574,7 +1574,7 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
             delegate
         ));
         vm.prank(delegate);
-        gov.accept(proposalId);
+        gov.accept(proposalId, 0);
     }
 
     // Try to vote twice (delegated voter)
@@ -1594,7 +1594,7 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
 
         // Delegated voter submits proposal (and votes).
         vm.prank(delegatedVoter);
-        assertEq(gov.propose(proposal), proposalId);
+        assertEq(gov.propose(proposal, 0), proposalId);
 
         // Try to vote again.
         vm.expectRevert(abi.encodeWithSelector(
@@ -1602,7 +1602,7 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
             delegatedVoter
         ));
         vm.prank(delegatedVoter);
-        gov.accept(proposalId);
+        gov.accept(proposalId, 0);
     }
 
     // Try to vote on a vetoed proposal.
@@ -1624,7 +1624,7 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
 
         // Undelegated voter 1 submits proposal (and votes).
         vm.prank(undelegatedVoter1);
-        assertEq(gov.propose(proposal), proposalId);
+        assertEq(gov.propose(proposal, 0), proposalId);
 
         _assertProposalStatusEq(gov, proposalId, PartyGovernance.ProposalStatus.Voting);
 
@@ -1643,7 +1643,7 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
             PartyGovernance.ProposalStatus.Defeated
         ));
         vm.prank(undelegatedVoter2);
-        gov.accept(proposalId);
+        gov.accept(proposalId, 0);
     }
 
     // Vote using VP from proposal time.
@@ -1674,7 +1674,7 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
         // and not casting any votes because proposer has delegated to
         // someone else.
         vm.prank(proposer);
-        assertEq(gov.propose(proposal), proposalId);
+        assertEq(gov.propose(proposal, 0), proposalId);
 
         // Advance time, moving VP around each time.
         skip(1);
@@ -1693,7 +1693,7 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
             1e18 // Proposal time VP.
         );
         vm.prank(undelegatedVoter);
-        gov.accept(proposalId);
+        gov.accept(proposalId, 0);
 
         // delegatedVoter will vote, who does not have any VP now and also had
         // no VP at proposal time.
@@ -1703,7 +1703,7 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
             0 // Proposal time VP.
         );
         vm.prank(delegatedVoter);
-        gov.accept(proposalId);
+        gov.accept(proposalId, 0);
 
         _assertProposalStatusEq(gov, proposalId, PartyGovernance.ProposalStatus.Voting);
 
@@ -1716,7 +1716,7 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
         );
         _expectProposalPassedEvent(proposalId);
         vm.prank(delegate);
-        gov.accept(proposalId);
+        gov.accept(proposalId, 0);
     }
 
     // Circular delegation.
@@ -1744,7 +1744,7 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
             1e18
         );
         vm.prank(delegate2);
-        gov.propose(proposal);
+        gov.propose(proposal, 0);
 
         assertEq(uint256(gov.getVotes(proposalId)), 1e18);
 
@@ -1757,7 +1757,7 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
         // With 51 total, the proposal will pass.
         _expectProposalPassedEvent(proposalId);
         vm.prank(delegate1);
-        gov.accept(proposalId);
+        gov.accept(proposalId, 0);
 
         assertEq(uint256(gov.getVotes(proposalId)), 51e18);
     }
@@ -1778,6 +1778,112 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
             int192(-1)
         ));
         gov.rawAdjustVotingPower(undelegatedVoter, -51e18 - 1, address(0));
+    }
+
+    function testVotingPower_getVotingPowerWithValidHint() external {
+        (IERC721[] memory preciousTokens, uint256[] memory preciousTokenIds) =
+            _createPreciousTokens(2);
+        TestablePartyGovernance gov =
+            _createGovernance(100e18, preciousTokens, preciousTokenIds);
+        address voter = _randomAddress();
+
+        // voter has 50 intrinsic VP at snapshot index 0
+        skip(10);
+        gov.rawAdjustVotingPower(voter, 50e18, address(0));
+
+        assertEq(gov.findVotingPowerSnapshotIndex(voter, uint40(block.timestamp)), 0);
+        assertEq(gov.getVotingPowerAt(voter, uint40(block.timestamp), 0), 50e18);
+    }
+
+    function testVotingPower_getVotingPowerWithInvalidHint() external {
+        (IERC721[] memory preciousTokens, uint256[] memory preciousTokenIds) =
+            _createPreciousTokens(2);
+        TestablePartyGovernance gov =
+            _createGovernance(100e18, preciousTokens, preciousTokenIds);
+        address voter = _randomAddress();
+        // voter has 50 intrinsic VP at snapshot index 0
+        gov.rawAdjustVotingPower(voter, 50e18, address(0));
+        skip(10);
+        // voter has 100 intrinsic VP at snapshot index 1
+        gov.rawAdjustVotingPower(voter, 50e18, address(0));
+
+        uint40 timestamp = uint40(block.timestamp);
+
+        // snapshot index is before latest snapshot at `timestamp`, should
+        // fallback to `findVotingPowerSnapshotIndex` to find and return correct
+        // snapshot
+        assertEq(gov.getVotingPowerAt(voter, timestamp, 0), 100e18);
+        assertEq(gov.findVotingPowerSnapshotIndex(voter, timestamp), 1);
+
+        // voter has 150 intrinsic VP at snapshot index 2
+        skip(10);
+        gov.rawAdjustVotingPower(voter, 50e18, address(0));
+
+        // snapshot index is ahead of latest snapshot at `timestamp`, should
+        // fallback to `findVotingPowerSnapshotIndex` to find and return correct
+        // snapshot
+        assertEq(gov.getVotingPowerAt(voter, timestamp, 0), 100e18);
+        assertEq(gov.findVotingPowerSnapshotIndex(voter, timestamp), 1);
+    }
+
+    function testVotingPower_getVotingPowerWithHintAboveSnapshotsLength() external {
+        (IERC721[] memory preciousTokens, uint256[] memory preciousTokenIds) =
+            _createPreciousTokens(2);
+        TestablePartyGovernance gov =
+            _createGovernance(100e18, preciousTokens, preciousTokenIds);
+        address voter = _randomAddress();
+
+        // voter has 50 intrinsic VP at snapshot index 0
+        skip(10);
+        gov.rawAdjustVotingPower(voter, 50e18, address(0));
+
+        assertEq(gov.getVotingPowerAt(voter, uint40(block.timestamp), type(uint256).max), 50e18);
+        assertEq(gov.findVotingPowerSnapshotIndex(voter, uint40(block.timestamp)), 0);
+    }
+
+    function testVotingPower_getVotingPowerWithNoSnapshots() external {
+        (IERC721[] memory preciousTokens, uint256[] memory preciousTokenIds) =
+            _createPreciousTokens(2);
+        TestablePartyGovernance gov =
+            _createGovernance(100e18, preciousTokens, preciousTokenIds);
+        address voter = _randomAddress();
+
+        // no snapshots, should return 0 voting power
+        assertEq(gov.getVotingPowerAt(voter, uint40(block.timestamp), 0), 0);
+        assertEq(gov.findVotingPowerSnapshotIndex(voter, uint40(block.timestamp)), type(uint256).max);
+    }
+
+    function testVotingPower_findVotingPowerSnapshotIndex() external {
+        (IERC721[] memory preciousTokens, uint256[] memory preciousTokenIds) =
+            _createPreciousTokens(2);
+        TestablePartyGovernance gov =
+            _createGovernance(100e18, preciousTokens, preciousTokenIds);
+        address voter = _randomAddress();
+
+        // voter has no voting power snapshots
+        assertEq(gov.findVotingPowerSnapshotIndex(voter, uint40(block.timestamp)), type(uint256).max);
+
+        // 30s ago (no voting power)
+        skip(10);
+        // 20s ago
+        gov.rawAdjustVotingPower(voter, 1, address(0));
+        skip(10);
+        // 10s ago
+        gov.rawAdjustVotingPower(voter, 1, address(0));
+        skip(10);
+        // 0s ago
+        gov.rawAdjustVotingPower(voter, 1, address(0));
+
+        uint40 timestamp = uint40(block.timestamp);
+
+        // 0s ago
+        assertEq(gov.findVotingPowerSnapshotIndex(voter, timestamp), 2);
+        // 5s ago
+        assertEq(gov.findVotingPowerSnapshotIndex(voter, timestamp - 5), 1);
+        // 15s ago
+        assertEq(gov.findVotingPowerSnapshotIndex(voter, timestamp - 15), 0);
+        // 25s ago
+        assertEq(gov.findVotingPowerSnapshotIndex(voter, timestamp - 25), type(uint256).max);
     }
 
     // _adjustVotingPower() updates delegated VP correctly
@@ -1808,38 +1914,38 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
         // Now check total VPs.
         // voter: 50 - 5 = 45 intrinsic (delegated: delegate2) + 0 delegated -> 0
         assertEq(
-            uint256(gov.getVotingPowerAt(voter, uint40(block.timestamp))),
-            0e18
+            uint256(gov.getVotingPowerAt(voter, uint40(block.timestamp), 0)),
+            0
         );
         // delegate1: 10 + 5 - 3 = 12 intrinsic (delegated: delegate2) + 20 delegated -> 20
         assertEq(
-            uint256(gov.getVotingPowerAt(delegate1, uint40(block.timestamp))),
+            uint256(gov.getVotingPowerAt(delegate1, uint40(block.timestamp), 0)),
             20e18
         );
         // delegate2: 20 intrinsic (delegated: deleate1) + 45 + 12 = 57 delegated -> 57
         assertEq(
-            uint256(gov.getVotingPowerAt(delegate2, uint40(block.timestamp))),
+            uint256(gov.getVotingPowerAt(delegate2, uint40(block.timestamp), 0)),
             57e18
         );
 
         // Check internal accounting for voter.
         {
             PartyGovernance.VotingPowerSnapshot memory snap =
-                gov.getVotingPowerSnapshotAt(voter, block.timestamp);
+                gov.getVotingPowerSnapshotAt(voter, block.timestamp, 0);
             assertEq(uint256(snap.intrinsicVotingPower), 45e18);
             assertEq(uint256(snap.delegatedVotingPower), 0);
         }
         // Check internal accounting for delegate1.
         {
             PartyGovernance.VotingPowerSnapshot memory snap =
-                gov.getVotingPowerSnapshotAt(delegate1, block.timestamp);
+                gov.getVotingPowerSnapshotAt(delegate1, block.timestamp, 0);
             assertEq(uint256(snap.intrinsicVotingPower), 12e18);
             assertEq(uint256(snap.delegatedVotingPower), 20e18);
         }
         // Check internal accounting for delegate2.
         {
             PartyGovernance.VotingPowerSnapshot memory snap =
-                gov.getVotingPowerSnapshotAt(delegate2, block.timestamp);
+                gov.getVotingPowerSnapshotAt(delegate2, block.timestamp, 0);
             assertEq(uint256(snap.intrinsicVotingPower), 20e18);
             assertEq(uint256(snap.delegatedVotingPower), 57e18);
         }
@@ -1858,8 +1964,8 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
         // voter has 25 intrinsic VP, delegated to self.
         gov.rawAdjustVotingPower(voter2, 25e18, voter2);
 
-        assertEq(gov.getVotingPowerAt(voter1, uint40(block.timestamp)), 50e18);
-        assertEq(gov.getVotingPowerAt(voter2, uint40(block.timestamp)), 25e18);
+        assertEq(gov.getVotingPowerAt(voter1, uint40(block.timestamp), 0), 50e18);
+        assertEq(gov.getVotingPowerAt(voter2, uint40(block.timestamp), 0), 25e18);
 
         // Now flip it via delegateVotingPower()
         vm.prank(voter1);
@@ -1867,8 +1973,8 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
         vm.prank(voter2);
         gov.delegateVotingPower(address(0));
 
-        assertEq(gov.getVotingPowerAt(voter1, uint40(block.timestamp)), 50e18);
-        assertEq(gov.getVotingPowerAt(voter2, uint40(block.timestamp)), 25e18);
+        assertEq(gov.getVotingPowerAt(voter1, uint40(block.timestamp), 0), 50e18);
+        assertEq(gov.getVotingPowerAt(voter2, uint40(block.timestamp), 0), 25e18);
     }
 
     // Hosts can transfer their host status to another address
@@ -1930,13 +2036,13 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
         TestablePartyGovernance gov =
             _createGovernance(100e18, preciousTokens, preciousTokenIds);
         address pastMember = _randomAddress();
-        // Uesd to have VP.
+        // Used to have VP.
         gov.rawAdjustVotingPower(pastMember, 50e18, address(0));
 
         skip(1);
         // pastMember loses all their voting power.
         gov.rawAdjustVotingPower(pastMember, -50e18, pastMember);
-        assertEq(gov.getVotingPowerAt(pastMember, uint40(block.timestamp)), 0);
+        assertEq(gov.getVotingPowerAt(pastMember, uint40(block.timestamp), 1), 0);
     }
 
     // voting power of never member is 0 at current time.
@@ -1947,7 +2053,7 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
             _createGovernance(100e18, preciousTokens, preciousTokenIds);
         skip(1);
         address nonMember = _randomAddress();
-        assertEq(gov.getVotingPowerAt(nonMember, uint40(block.timestamp)), 0);
+        assertEq(gov.getVotingPowerAt(nonMember, uint40(block.timestamp), 1), 0);
     }
 
     // voting power of past member is nonzero at past time.
@@ -1965,7 +2071,7 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
         // pastMember loses all their voting power.
         gov.rawAdjustVotingPower(pastMember, -50e18, pastMember);
         // 1 seconds ago pastMember still had original voting power.
-        assertEq(gov.getVotingPowerAt(pastMember, uint40(block.timestamp - 2)), 50e18);
+        assertEq(gov.getVotingPowerAt(pastMember, uint40(block.timestamp - 2), 0), 50e18);
     }
 
     // voting power of past member is nonzero at past time.
@@ -1997,20 +2103,20 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
         gov.rawAdjustVotingPower(voter2, -1, voter2);
 
         // 35s ago
-        assertEq(gov.getVotingPowerAt(voter1, uint40(block.timestamp - 35)), 50e18 + 1);
-        assertEq(gov.getVotingPowerAt(voter2, uint40(block.timestamp - 35)), 0);
+        assertEq(gov.getVotingPowerAt(voter1, uint40(block.timestamp - 35), 0), 50e18 + 1);
+        assertEq(gov.getVotingPowerAt(voter2, uint40(block.timestamp - 35), 0), 0);
         // 25s ago
-        assertEq(gov.getVotingPowerAt(voter1, uint40(block.timestamp - 25)), 1);
-        assertEq(gov.getVotingPowerAt(voter2, uint40(block.timestamp - 25)), 0);
+        assertEq(gov.getVotingPowerAt(voter1, uint40(block.timestamp - 25), 1), 1);
+        assertEq(gov.getVotingPowerAt(voter2, uint40(block.timestamp - 25), 0), 0);
         // 15s ago
-        assertEq(gov.getVotingPowerAt(voter1, uint40(block.timestamp - 15)), 75e18 + 2);
-        assertEq(gov.getVotingPowerAt(voter2, uint40(block.timestamp - 15)), 0);
+        assertEq(gov.getVotingPowerAt(voter1, uint40(block.timestamp - 15), 2), 75e18 + 2);
+        assertEq(gov.getVotingPowerAt(voter2, uint40(block.timestamp - 15), 1), 0);
         // 5s ago
-        assertEq(gov.getVotingPowerAt(voter1, uint40(block.timestamp - 5)), 2);
-        assertEq(gov.getVotingPowerAt(voter2, uint40(block.timestamp - 5)), 65e18);
+        assertEq(gov.getVotingPowerAt(voter1, uint40(block.timestamp - 5), 3), 2);
+        assertEq(gov.getVotingPowerAt(voter2, uint40(block.timestamp - 5), 2), 65e18);
         // 0s ago
-        assertEq(gov.getVotingPowerAt(voter1, uint40(block.timestamp)), 55e18);
-        assertEq(gov.getVotingPowerAt(voter2, uint40(block.timestamp)), 1);
+        assertEq(gov.getVotingPowerAt(voter1, uint40(block.timestamp), 4), 55e18);
+        assertEq(gov.getVotingPowerAt(voter2, uint40(block.timestamp), 3), 1);
     }
 
     // voting smoke test with random governance params.
@@ -2041,12 +2147,12 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
 
         // voter1 proposes and votes.
         vm.prank(voter1);
-        gov.propose(proposal);
+        gov.propose(proposal, 0);
         _assertProposalStatusEq(gov, proposalId, PartyGovernance.ProposalStatus.Voting);
 
         // voter2 votes, which gets it to pass.
         vm.prank(voter2);
-        gov.accept(proposalId);
+        gov.accept(proposalId, 0);
         _assertProposalStatusEq(gov, proposalId, PartyGovernance.ProposalStatus.Passed);
     }
 
