@@ -78,8 +78,8 @@ contract PartyGovernanceTest is Test, TestUtils {
 
     // Ensure voting power updated w/ new delegation
     uint40 firstTime = uint40(block.timestamp);
-    assertEq(party.getVotingPowerAt(1, address(john), firstTime), 59);
-    assertEq(party.getVotingPowerAt(0, address(danny), firstTime), 0);
+    assertEq(party.getVotingPowerAt(address(john), firstTime, 1), 59);
+    assertEq(party.getVotingPowerAt(address(danny), firstTime, 0), 0);
 
     // Increase time and have danny delegate to self
     uint40 nextTime = firstTime + 10;
@@ -87,11 +87,11 @@ contract PartyGovernanceTest is Test, TestUtils {
     danny.delegate(party, address(danny));
 
     // Ensure voting power looks correct for diff times
-    assertEq(party.getVotingPowerAt(1, address(john), firstTime), 59); // stays same for old time
-    assertEq(party.getVotingPowerAt(0, address(danny), firstTime), 0); // stays same for old time
+    assertEq(party.getVotingPowerAt(address(john), firstTime, 1), 59); // stays same for old time
+    assertEq(party.getVotingPowerAt(address(danny), firstTime, 0), 0); // stays same for old time
     assertEq(block.timestamp, nextTime);
-    assertEq(party.getVotingPowerAt(2, address(john), nextTime), 49); // diff for new time
-    assertEq(party.getVotingPowerAt(1, address(danny), nextTime), 10); // diff for new time
+    assertEq(party.getVotingPowerAt(address(john), nextTime, 2), 49); // diff for new time
+    assertEq(party.getVotingPowerAt(address(danny), nextTime, 1), 10); // diff for new time
 
     // Generate proposal
     PartyGovernance.Proposal memory p1 = PartyGovernance.Proposal({
@@ -180,10 +180,10 @@ contract PartyGovernanceTest is Test, TestUtils {
 
     // Ensure voting power updated w/ new delegation
     uint40 firstTime = uint40(block.timestamp);
-    assertEq(party.getVotingPowerAt(1, address(john), firstTime), 43);
-    assertEq(party.getVotingPowerAt(0, address(danny), firstTime), 0);
-    assertEq(party.getVotingPowerAt(0, address(steve), firstTime), 28);
-    assertEq(party.getVotingPowerAt(0, address(nicholas), firstTime), 29);
+    assertEq(party.getVotingPowerAt(address(john), firstTime, 1), 43);
+    assertEq(party.getVotingPowerAt(address(danny), firstTime, 0), 0);
+    assertEq(party.getVotingPowerAt(address(steve), firstTime, 0), 28);
+    assertEq(party.getVotingPowerAt(address(nicholas), firstTime, 0), 29);
 
     // Increase time and have danny delegate to self
     uint40 nextTime = firstTime + 10;
@@ -191,11 +191,11 @@ contract PartyGovernanceTest is Test, TestUtils {
     danny.delegate(party, address(danny));
 
     // Ensure voting power looks correct for diff times
-    assertEq(party.getVotingPowerAt(1, address(john), firstTime), 43); // stays same for old time
-    assertEq(party.getVotingPowerAt(0, address(danny), firstTime), 0); // stays same for old time
+    assertEq(party.getVotingPowerAt(address(john), firstTime, 1), 43); // stays same for old time
+    assertEq(party.getVotingPowerAt(address(danny), firstTime, 0), 0); // stays same for old time
     assertEq(block.timestamp, nextTime);
-    assertEq(party.getVotingPowerAt(2, address(john), nextTime), 21); // diff for new time
-    assertEq(party.getVotingPowerAt(1, address(danny), nextTime), 22); // diff for new time
+    assertEq(party.getVotingPowerAt(address(john), nextTime, 2), 21); // diff for new time
+    assertEq(party.getVotingPowerAt(address(danny), nextTime, 1), 22); // diff for new time
 
     // Generate proposal
     PartyGovernance.Proposal memory p1 = PartyGovernance.Proposal({

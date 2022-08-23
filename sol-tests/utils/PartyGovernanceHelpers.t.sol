@@ -133,7 +133,7 @@ contract PartyGovernanceHelpersTest is Test, TestUtils {
         voters[3] = address(anna);
         uint256[] memory indexes = new uint256[](4);
         PartyHelpers.MemberAndVotingPower[] memory membersAndVotingPowers =
-            ph.getVotingPowersAt(address(party), voters, indexes, uint40(block.timestamp));
+            ph.getVotingPowersAt(address(party), voters, uint40(block.timestamp), indexes);
         assertTrue(membersAndVotingPowers.length == 4);
         assertTrue(membersAndVotingPowers[0].member == address(john));
         assertTrue(membersAndVotingPowers[0].votingPower == 30);

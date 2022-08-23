@@ -72,8 +72,8 @@ contract PartyHelpers {
     function getVotingPowersAt(
         address party,
         address[] calldata voters,
-        uint256[] calldata indexes,
-        uint40 timestamp
+        uint40 timestamp,
+        uint256[] calldata indexes
     )
         external
         view
@@ -84,7 +84,7 @@ contract PartyHelpers {
         for (uint256 i = 0; i < voters.length; i++) {
             memberAndVotingPower[i] = MemberAndVotingPower({
                 member: voters[i],
-                votingPower: p.getVotingPowerAt(indexes[i], voters[i], timestamp)
+                votingPower: p.getVotingPowerAt(voters[i], timestamp, indexes[i])
             });
         }
     }

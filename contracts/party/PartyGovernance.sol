@@ -327,17 +327,17 @@ abstract contract PartyGovernance is
         view
         returns (uint96 votingPower)
     {
-        return getVotingPowerAt(type(uint256).max, voter, timestamp);
+        return getVotingPowerAt(voter, timestamp, type(uint256).max);
     }
 
     /// @notice Get the total voting power of `voter` at a snapshot `snapIndex`, with checks to
     ///         make sure it is the latest voting snapshot =< `timestamp`.
-    function getVotingPowerAt(uint256 snapIndex, address voter, uint40 timestamp)
+    function getVotingPowerAt(address voter, uint40 timestamp, uint256 snapIndex)
         public
         view
         returns (uint96 votingPower)
     {
-        VotingPowerSnapshot memory snap = _getVotingPowerSnapshotAt(snapIndex, voter, timestamp);
+        VotingPowerSnapshot memory snap = _getVotingPowerSnapshotAt(voter, timestamp, snapIndex);
         return (snap.isDelegated ? 0 : snap.intrinsicVotingPower) + snap.delegatedVotingPower;
     }
 
@@ -545,7 +545,7 @@ abstract contract PartyGovernance is
         }
         info.hasVoted[msg.sender] = true;
 
-        uint96 votingPower = getVotingPowerAt(snapIndex, msg.sender, values.proposedTime);
+        uint96 votingPower = getVotingPowerAt(msg.sender, values.proposedTime, snapIndex);
         values.votes += votingPower;
         info.values = values;
         emit ProposalAccepted(proposalId, msg.sender, votingPower);
@@ -774,8 +774,8 @@ abstract contract PartyGovernance is
         return nextProgressData.length == 0;
     }
 
-    // Get the most recent voting power snapshot <= timestamp using `index` as a "hint".
-    function _getVotingPowerSnapshotAt(uint256 index, address voter, uint40 timestamp)
+    // Get the most recent voting power snapshot <= timestamp using `hintindex` as a "hint".
+    function _getVotingPowerSnapshotAt(address voter, uint40 timestamp, uint256 hintIndex)
         internal
         view
         returns (VotingPowerSnapshot memory snap)
@@ -785,19 +785,20 @@ abstract contract PartyGovernance is
         if (snapsLength != 0) {
             if (
                 // Hint is within bounds.
-                index < snapsLength &&
+                hintIndex < snapsLength &&
                 // Snapshot is not too recent.
-                snaps[index].timestamp <= timestamp &&
+                snaps[hintIndex].timestamp <= timestamp &&
                 // Snapshot is not too old.
-                (index == snapsLength - 1 || snaps[index+1].timestamp > timestamp)
+                (hintIndex == snapsLength - 1 || snaps[hintIndex+1].timestamp > timestamp)
             ) {
-                return snaps[index];
-            } else {
-                index = findVotingPowerSnapshotIndex(voter, timestamp);
-                // Check that snapshot was found.
-                if (index != type(uint256).max) {
-                    return snaps[index];
-                }
+                return snaps[hintIndex];
+            }
+
+            // Hint was wrong, fallback to binary search to find snapshot.
+            hintIndex = findVotingPowerSnapshotIndex(voter, timestamp);
+            // Check that snapshot was found.
+            if (hintIndex != type(uint256).max) {
+                return snaps[hintIndex];
             }
         }
 

@@ -249,12 +249,12 @@ contract TestablePartyGovernance is PartyGovernance {
         return v.votes;
     }
 
-    function getVotingPowerSnapshotAt(uint256 index, address voter, uint256 timestamp)
+    function getVotingPowerSnapshotAt(address voter, uint256 timestamp, uint256 hintIndex)
         external
         view
         returns (VotingPowerSnapshot memory snap)
     {
-        return _getVotingPowerSnapshotAt(index, voter, uint40(timestamp));
+        return _getVotingPowerSnapshotAt(voter, uint40(timestamp), hintIndex);
     }
 
     function getProposalStatus(uint256 proposalId)
@@ -1817,7 +1817,7 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
         gov.rawAdjustVotingPower(voter, 50e18, address(0));
 
         assertEq(gov.findVotingPowerSnapshotIndex(voter, uint40(block.timestamp)), 0);
-        assertEq(gov.getVotingPowerAt(0, voter, uint40(block.timestamp)), 50e18);
+        assertEq(gov.getVotingPowerAt(voter, uint40(block.timestamp), 0), 50e18);
     }
 
     function testVotingPower_getVotingPowerWithInvalidHint() external {
@@ -1837,7 +1837,7 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
         // snapshot index is before latest snapshot at `timestamp`, should
         // fallback to `findVotingPowerSnapshotIndex` to find and return correct
         // snapshot
-        assertEq(gov.getVotingPowerAt(0, voter, timestamp), 100e18);
+        assertEq(gov.getVotingPowerAt(voter, timestamp, 0), 100e18);
         assertEq(gov.findVotingPowerSnapshotIndex(voter, timestamp), 1);
 
         // voter has 150 intrinsic VP at snapshot index 2
@@ -1847,7 +1847,7 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
         // snapshot index is ahead of latest snapshot at `timestamp`, should
         // fallback to `findVotingPowerSnapshotIndex` to find and return correct
         // snapshot
-        assertEq(gov.getVotingPowerAt(2, voter, timestamp), 100e18);
+        assertEq(gov.getVotingPowerAt(voter, timestamp, 0), 100e18);
         assertEq(gov.findVotingPowerSnapshotIndex(voter, timestamp), 1);
     }
 
@@ -1862,7 +1862,7 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
         skip(10);
         gov.rawAdjustVotingPower(voter, 50e18, address(0));
 
-        assertEq(gov.getVotingPowerAt(type(uint256).max, voter, uint40(block.timestamp)), 50e18);
+        assertEq(gov.getVotingPowerAt(voter, uint40(block.timestamp), type(uint256).max), 50e18);
         assertEq(gov.findVotingPowerSnapshotIndex(voter, uint40(block.timestamp)), 0);
     }
 
@@ -1874,7 +1874,7 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
         address voter = _randomAddress();
 
         // no snapshots, should return 0 voting power
-        assertEq(gov.getVotingPowerAt(0, voter, uint40(block.timestamp)), 0);
+        assertEq(gov.getVotingPowerAt(voter, uint40(block.timestamp), 0), 0);
         assertEq(gov.findVotingPowerSnapshotIndex(voter, uint40(block.timestamp)), type(uint256).max);
     }
 
@@ -1939,38 +1939,38 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
         // Now check total VPs.
         // voter: 50 - 5 = 45 intrinsic (delegated: delegate2) + 0 delegated -> 0
         assertEq(
-            uint256(gov.getVotingPowerAt(0, voter, uint40(block.timestamp))),
-            0e18
+            uint256(gov.getVotingPowerAt(voter, uint40(block.timestamp), 0)),
+            0
         );
         // delegate1: 10 + 5 - 3 = 12 intrinsic (delegated: delegate2) + 20 delegated -> 20
         assertEq(
-            uint256(gov.getVotingPowerAt(0, delegate1, uint40(block.timestamp))),
+            uint256(gov.getVotingPowerAt(delegate1, uint40(block.timestamp), 0)),
             20e18
         );
         // delegate2: 20 intrinsic (delegated: deleate1) + 45 + 12 = 57 delegated -> 57
         assertEq(
-            uint256(gov.getVotingPowerAt(0, delegate2, uint40(block.timestamp))),
+            uint256(gov.getVotingPowerAt(delegate2, uint40(block.timestamp), 0)),
             57e18
         );
 
         // Check internal accounting for voter.
         {
             PartyGovernance.VotingPowerSnapshot memory snap =
-                gov.getVotingPowerSnapshotAt(0, voter, block.timestamp);
+                gov.getVotingPowerSnapshotAt(voter, block.timestamp, 0);
             assertEq(uint256(snap.intrinsicVotingPower), 45e18);
             assertEq(uint256(snap.delegatedVotingPower), 0);
         }
         // Check internal accounting for delegate1.
         {
             PartyGovernance.VotingPowerSnapshot memory snap =
-                gov.getVotingPowerSnapshotAt(0, delegate1, block.timestamp);
+                gov.getVotingPowerSnapshotAt(delegate1, block.timestamp, 0);
             assertEq(uint256(snap.intrinsicVotingPower), 12e18);
             assertEq(uint256(snap.delegatedVotingPower), 20e18);
         }
         // Check internal accounting for delegate2.
         {
             PartyGovernance.VotingPowerSnapshot memory snap =
-                gov.getVotingPowerSnapshotAt(0, delegate2, block.timestamp);
+                gov.getVotingPowerSnapshotAt(delegate2, block.timestamp, 0);
             assertEq(uint256(snap.intrinsicVotingPower), 20e18);
             assertEq(uint256(snap.delegatedVotingPower), 57e18);
         }
@@ -1989,8 +1989,8 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
         // voter has 25 intrinsic VP, delegated to self.
         gov.rawAdjustVotingPower(voter2, 25e18, voter2);
 
-        assertEq(gov.getVotingPowerAt(0, voter1, uint40(block.timestamp)), 50e18);
-        assertEq(gov.getVotingPowerAt(0, voter2, uint40(block.timestamp)), 25e18);
+        assertEq(gov.getVotingPowerAt(voter1, uint40(block.timestamp), 0), 50e18);
+        assertEq(gov.getVotingPowerAt(voter2, uint40(block.timestamp), 0), 25e18);
 
         // Now flip it via delegateVotingPower()
         vm.prank(voter1);
@@ -1998,8 +1998,8 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
         vm.prank(voter2);
         gov.delegateVotingPower(address(0));
 
-        assertEq(gov.getVotingPowerAt(0, voter1, uint40(block.timestamp)), 50e18);
-        assertEq(gov.getVotingPowerAt(0, voter2, uint40(block.timestamp)), 25e18);
+        assertEq(gov.getVotingPowerAt(voter1, uint40(block.timestamp), 0), 50e18);
+        assertEq(gov.getVotingPowerAt(voter2, uint40(block.timestamp), 0), 25e18);
     }
 
     // Hosts can transfer their host status to another address
@@ -2067,7 +2067,7 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
         skip(1);
         // pastMember loses all their voting power.
         gov.rawAdjustVotingPower(pastMember, -50e18, pastMember);
-        assertEq(gov.getVotingPowerAt(1, pastMember, uint40(block.timestamp)), 0);
+        assertEq(gov.getVotingPowerAt(pastMember, uint40(block.timestamp), 1), 0);
     }
 
     // voting power of never member is 0 at current time.
@@ -2078,7 +2078,7 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
             _createGovernance(100e18, preciousTokens, preciousTokenIds);
         skip(1);
         address nonMember = _randomAddress();
-        assertEq(gov.getVotingPowerAt(1, nonMember, uint40(block.timestamp)), 0);
+        assertEq(gov.getVotingPowerAt(nonMember, uint40(block.timestamp), 1), 0);
     }
 
     // voting power of past member is nonzero at past time.
@@ -2096,7 +2096,7 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
         // pastMember loses all their voting power.
         gov.rawAdjustVotingPower(pastMember, -50e18, pastMember);
         // 1 seconds ago pastMember still had original voting power.
-        assertEq(gov.getVotingPowerAt(0, pastMember, uint40(block.timestamp - 2)), 50e18);
+        assertEq(gov.getVotingPowerAt(pastMember, uint40(block.timestamp - 2), 0), 50e18);
     }
 
     // voting power of past member is nonzero at past time.
@@ -2128,20 +2128,20 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
         gov.rawAdjustVotingPower(voter2, -1, voter2);
 
         // 35s ago
-        assertEq(gov.getVotingPowerAt(0, voter1, uint40(block.timestamp - 35)), 50e18 + 1);
-        assertEq(gov.getVotingPowerAt(0, voter2, uint40(block.timestamp - 35)), 0);
+        assertEq(gov.getVotingPowerAt(voter1, uint40(block.timestamp - 35), 0), 50e18 + 1);
+        assertEq(gov.getVotingPowerAt(voter2, uint40(block.timestamp - 35), 0), 0);
         // 25s ago
-        assertEq(gov.getVotingPowerAt(1, voter1, uint40(block.timestamp - 25)), 1);
-        assertEq(gov.getVotingPowerAt(0, voter2, uint40(block.timestamp - 25)), 0);
+        assertEq(gov.getVotingPowerAt(voter1, uint40(block.timestamp - 25), 1), 1);
+        assertEq(gov.getVotingPowerAt(voter2, uint40(block.timestamp - 25), 0), 0);
         // 15s ago
-        assertEq(gov.getVotingPowerAt(2, voter1, uint40(block.timestamp - 15)), 75e18 + 2);
-        assertEq(gov.getVotingPowerAt(1, voter2, uint40(block.timestamp - 15)), 0);
+        assertEq(gov.getVotingPowerAt(voter1, uint40(block.timestamp - 15), 2), 75e18 + 2);
+        assertEq(gov.getVotingPowerAt(voter2, uint40(block.timestamp - 15), 1), 0);
         // 5s ago
-        assertEq(gov.getVotingPowerAt(3, voter1, uint40(block.timestamp - 5)), 2);
-        assertEq(gov.getVotingPowerAt(2, voter2, uint40(block.timestamp - 5)), 65e18);
+        assertEq(gov.getVotingPowerAt(voter1, uint40(block.timestamp - 5), 3), 2);
+        assertEq(gov.getVotingPowerAt(voter2, uint40(block.timestamp - 5), 2), 65e18);
         // 0s ago
-        assertEq(gov.getVotingPowerAt(4, voter1, uint40(block.timestamp)), 55e18);
-        assertEq(gov.getVotingPowerAt(3, voter2, uint40(block.timestamp)), 1);
+        assertEq(gov.getVotingPowerAt(voter1, uint40(block.timestamp), 4), 55e18);
+        assertEq(gov.getVotingPowerAt(voter2, uint40(block.timestamp), 3), 1);
     }
 
     // voting smoke test with random governance params.
