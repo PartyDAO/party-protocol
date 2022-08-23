@@ -3,6 +3,9 @@ pragma solidity ^0.8;
 
 import {IGateKeeper} from "./IGateKeeper.sol";
 
+/**
+ * @notice Compatible with both ER20s and ERC721s.
+ */
 interface Token {
     function balanceOf(address owner) external view returns (uint256);
 }
