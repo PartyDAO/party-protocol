@@ -172,7 +172,7 @@ The `contribute()` function accepts a `gateData` parameter, which will be passed
 
 Users can also contribute by transferring ETH directly to the crowdfund, which is handled by the contract's `receive()` handler. Contributions made this way cannot pass in `gateData` (e.g. a merkle proof for the [`AllowlistGateKeeper`](https://github.com/PartyDAO/partybidV2/blob/main/docs/crowdfund.md#allowlistgatekeeper)), so the crowdfund must either be open or the gatekeeper must not require any proof data. If the user has a delegate already set (from a prior contribution), this delegate will remain. Otherwise, they will delegate to themselves.
 
-## Wining
+## Winning
 
 Each crowdfund type has its own criteria and operations for winning.
 
