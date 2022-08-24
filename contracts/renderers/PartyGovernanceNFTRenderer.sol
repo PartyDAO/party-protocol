@@ -105,7 +105,7 @@ contract PartyGovernanceNFTRenderer is IERC721Renderer {
 
         return string(abi.encodePacked('Delegate: ', Strings.toHexString(delegatedAddress)));
     }
- 
+
     function tokenURI(uint256 tokenId) external view returns (string memory) {
         if(_ownerOf[tokenId] == address(0)) {
             revert InvalidTokenIdError();
@@ -150,5 +150,10 @@ contract PartyGovernanceNFTRenderer is IERC721Renderer {
         output = string(abi.encodePacked('data:application/json;base64,', json));
 
         return output;
+    }
+
+    // TODO: Implement
+    function contractURI() external view returns (string memory) {
+        return "PLACEHOLDER";
     }
 }

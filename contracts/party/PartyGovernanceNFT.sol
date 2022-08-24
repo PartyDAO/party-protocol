@@ -3,6 +3,7 @@ pragma solidity ^0.8;
 
 import "../utils/ReadOnlyDelegateCall.sol";
 import "../utils/LibSafeCast.sol";
+import "../utils/IERC2981.sol";
 import "../globals/IGlobals.sol";
 import "../tokens/IERC721.sol";
 import "../vendor/solmate/ERC721.sol";
@@ -11,7 +12,8 @@ import "./PartyGovernance.sol";
 /// @notice ERC721 functionality built on top of PartyGovernance.
 contract PartyGovernanceNFT is
     PartyGovernance,
-    ERC721
+    ERC721,
+    IERC2981
 {
     using LibSafeCast for uint256;
 
@@ -72,18 +74,28 @@ contract PartyGovernanceNFT is
         returns (bool)
     {
         return PartyGovernance.supportsInterface(interfaceId) ||
-            ERC721.supportsInterface(interfaceId);
+            ERC721.supportsInterface(interfaceId) ||
+            // EIP-2981: NFT Royalty Standard
+            interfaceId == 0x2a55205a;
     }
 
-    function tokenURI(uint256) public override view returns (string memory)
-    {
-        // An instance of IERC721Renderer
-        _readOnlyDelegateCall(
-            _GLOBALS.getAddress(LibGlobals.GLOBAL_GOVERNANCE_NFT_RENDER_IMPL),
-            msg.data
-        );
-        assert(false); // Should not be reached.
-        return ""; // Just to appease the compiler.
+    function tokenURI(uint256) public override view returns (string memory) {
+        return _delegateToRenderer();
+    }
+
+    function contractURI() external view returns (string memory) {
+        return _delegateToRenderer();
+    }
+
+    function royaltyInfo(
+        uint256,
+        uint256 _salePrice
+    ) external view returns (
+        address receiver,
+        uint256 royaltyAmount
+    ) {
+        receiver = _GLOBALS.getAddress(LibGlobals.GLOBAL_ROYALTY_RECEIVER);
+        royaltyAmount = _salePrice * _GLOBALS.getUint256(LibGlobals.GLOBAL_ROYALTY_BPS) / 1e4;
     }
 
     /// @notice Get the distribution % of a tokenId, scaled by 1e18.
@@ -137,5 +149,15 @@ contract PartyGovernanceNFT is
         // Transfer voting along with token.
         _transferVotingPower(owner, to, votingPowerByTokenId[tokenId]);
         super.safeTransferFrom(owner, to, tokenId, data);
+    }
+
+    function _delegateToRenderer() private view returns (string memory) {
+        _readOnlyDelegateCall(
+            // Instance of IERC721Renderer.
+            _GLOBALS.getAddress(LibGlobals.GLOBAL_GOVERNANCE_NFT_RENDER_IMPL),
+            msg.data
+        );
+        assert(false); // Will not be reached.
+        return "";
     }
 }

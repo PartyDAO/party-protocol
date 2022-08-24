@@ -94,15 +94,12 @@ contract PartyCrowdfundNFT is IERC721, EIP165, ReadOnlyDelegateCall {
         return super.supportsInterface(interfaceId);
     }
 
-    function tokenURI(uint256) external view returns (string memory)
-    {
-        _readOnlyDelegateCall(
-            // An instance of IERC721Renderer
-            _GLOBALS.getAddress(LibGlobals.GLOBAL_CF_NFT_RENDER_IMPL),
-            msg.data
-        );
-        assert(false); // Will not be reached.
-        return "";
+    function tokenURI(uint256) external view returns (string memory) {
+        return _delegateToRenderer();
+    }
+
+    function contractURI() external view returns (string memory) {
+        return _delegateToRenderer();
     }
 
     function ownerOf(uint256 tokenId) external view returns (address owner) {
@@ -137,5 +134,15 @@ contract PartyCrowdfundNFT is IERC721, EIP165, ReadOnlyDelegateCall {
             return;
         }
         revert AlreadyBurnedError(owner, tokenId);
+    }
+
+    function _delegateToRenderer() private view returns (string memory) {
+        _readOnlyDelegateCall(
+            // Instance of IERC721Renderer.
+            _GLOBALS.getAddress(LibGlobals.GLOBAL_CF_NFT_RENDER_IMPL),
+            msg.data
+        );
+        assert(false); // Will not be reached.
+        return "";
     }
 }

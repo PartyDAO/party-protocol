@@ -151,4 +151,9 @@ contract PartyCrowdfundNFTRenderer is IERC721Renderer {
 
         return output;
     }
+
+    // TODO: Implement
+    function contractURI() external view returns (string memory) {
+        return "PLACEHOLDER";
+    }
 }

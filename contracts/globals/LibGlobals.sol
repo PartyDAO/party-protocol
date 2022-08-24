@@ -21,4 +21,6 @@ library LibGlobals {
     uint256 internal constant GLOBAL_OPENSEA_ZONE                   = 16;
     uint256 internal constant GLOBAL_PROPOSAL_MAX_CANCEL_DURATION   = 17;
     uint256 internal constant GLOBAL_ZORA_MIN_AUCTION_DURATION      = 18;
+    uint256 internal constant GLOBAL_ROYALTY_RECEIVER               = 19;
+    uint256 internal constant GLOBAL_ROYALTY_BPS                    = 20;
 }
