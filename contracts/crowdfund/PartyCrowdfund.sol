@@ -89,7 +89,7 @@ abstract contract PartyCrowdfund is ERC721Receiver, PartyCrowdfundNFT {
     ///         the governance party is created.
     address payable public splitRecipient;
     /// @notice How much governance power to reserve for `splitRecipient`,
-    ///         in bps, where 1000 = 100%.
+    ///         in bps, where 10,000 = 100%.
     uint16 public splitBps;
     // Hash of party governance options passed into initialize().
     // The GovernanceOpts passed into `_createParty()` must match.
@@ -99,7 +99,7 @@ abstract contract PartyCrowdfund is ERC721Receiver, PartyCrowdfundNFT {
     // The gatekeeper contract to use (if non-null) to restrict who can
     // contribute to this crowdfund.
     IGateKeeper public gateKeeper;
-    // The gatekeeper contract to use (if non-null).
+    // The ID of the gatekeeper strategy to use.
     bytes12 public gateKeeperId;
     // Who a contributor last delegated to.
     mapping (address => address) private _delegationsByContributor;
@@ -355,7 +355,7 @@ abstract contract PartyCrowdfund is ERC721Receiver, PartyCrowdfundNFT {
         if (splitRecipient_ == contributor) {
             // Split recipient is also the contributor so just add the split
             // voting power.
-             votingPower += (splitBps_ * totalEthUsed) / (1e4 - 1); // round up
+            votingPower += (splitBps_ * totalEthUsed) / (1e4 - 1); // round up
         }
     }
 
@@ -434,11 +434,9 @@ abstract contract PartyCrowdfund is ERC721Receiver, PartyCrowdfundNFT {
             if (party_ == Party(payable(0))) {
                 revert NoPartyError();
             }
-        } else {
+        } else if (lc != CrowdfundLifecycle.Lost) {
             // Otherwise it must have lost.
-            if (lc != CrowdfundLifecycle.Lost) {
-                revert WrongLifecycleError(lc);
-            }
+            revert WrongLifecycleError(lc);
         }
         // Split recipient can burn even if they don't have a token.
         if (contributor == splitRecipient) {
