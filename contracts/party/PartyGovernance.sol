@@ -805,6 +805,7 @@ abstract contract PartyGovernance is
     }
 
     // Increase `voter`'s intrinsic voting power and update their delegate if delegate is nonzero.
+    // NOTE: What happens when you adjust voting power by 0?
     function _adjustVotingPower(address voter, int192 votingPower, address delegate)
         internal
     {

@@ -295,7 +295,6 @@ This proposal is atomic, always completing in one step/execute.
 
 - Each call is executed in the order declared.
 - ETH to attach to each call must be provided by the caller of the `Party.execute()` call. If the the sum of all successful calls try to consume more than `msg.value`, the entire proposal will revert.
-- If a call has `optional == true` then the call itself is allowed to fail. Otherwise, if the call reverts then the entire proposal will revert.
 - If a call has a non-zero `expectedResultHash` then the result of the call will be hashed and matched against this value. If they do not match, then the entire proposal will revert.
 - If the call is to the `Party` itself, the entire proposal will revert.
 - If the call is to the `IERC721.onERC721Received()` function, the entire proposal will revert.
