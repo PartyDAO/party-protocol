@@ -77,6 +77,7 @@ abstract contract PartyCrowdfund is ERC721Receiver, PartyCrowdfundNFT {
     error OnlyContributorAllowedError();
     error NotAllowedByGateKeeperError(address contributor, IGateKeeper gateKeeper, bytes12 gateKeeperId, bytes gateData);
     error SplitRecipientAlreadyBurnedError();
+    error InvalidBpsError(uint16 bps);
 
     event Burned(address contributor, uint256 ethUsed, uint256 ethOwed, uint256 votingPower);
     event Contributed(address contributor, uint256 amount, address delegate, uint256 previousTotalContributions);
@@ -118,8 +119,17 @@ abstract contract PartyCrowdfund is ERC721Receiver, PartyCrowdfundNFT {
         internal
     {
         PartyCrowdfundNFT._initialize(opts.name, opts.symbol);
+        if (opts.governanceOpts.feeBps > 1e4) {
+            revert InvalidBpsError(opts.governanceOpts.feeBps);
+        }
+        if (opts.governanceOpts.passThresholdBps > 1e4) {
+            revert InvalidBpsError(opts.governanceOpts.passThresholdBps);
+        }
         governanceOptsHash = _hashFixedGovernanceOpts(opts.governanceOpts);
         splitRecipient = opts.splitRecipient;
+        if (opts.splitBps > 1e4) {
+            revert InvalidBpsError(opts.splitBps);
+        }
         splitBps = opts.splitBps;
         // If the deployer passed in some ETH during deployment, credit them.
         uint128 initialBalance = address(this).balance.safeCastUint256ToUint128();

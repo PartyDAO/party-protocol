@@ -1,3 +1,4 @@
 {
-  "solidity.compileUsingRemoteVersion": "v0.8.13+commit.abaa5c0e"
+  "solidity.compileUsingRemoteVersion": "v0.8.13+commit.abaa5c0e",
+  "search.exclude": { "lib": true }
 }

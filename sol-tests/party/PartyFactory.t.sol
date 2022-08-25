@@ -7,25 +7,9 @@ import "../../contracts/party/PartyFactory.sol";
 import "../../contracts/globals/Globals.sol";
 import "../TestUtils.sol";
 
-contract DummyPartyImpl is Implementation {
-    event DummyPartyImplInitializeCalled(Party.PartyInitData initData);
-    event DummyPartyImplMintCalled(address owner, uint256 amount, address delegate);
-
-    function initialize(Party.PartyInitData memory initData) external onlyDelegateCall {
-        emit DummyPartyImplInitializeCalled(initData);
-    }
-
-    function mint(address owner, uint256 amount, address delegate) external {
-        emit DummyPartyImplMintCalled(owner, amount, delegate);
-    }
-}
-
 contract PartyFactoryTest is Test, TestUtils {
-    event DummyPartyImplInitializeCalled(Party.PartyInitData initData);
-    event DummyPartyImplMintCalled(address owner, uint256 amount, address delegate);
-
     Globals globals = new Globals(address(this));
-    DummyPartyImpl partyImpl = new DummyPartyImpl();
+    Party partyImpl = new Party(globals);
     PartyFactory factory = new PartyFactory(globals);
     Party.PartyOptions defaultPartyOptions;
 
@@ -54,27 +38,101 @@ contract PartyFactoryTest is Test, TestUtils {
         }
     }
 
-    function testcreateParty_works() external {
+    function _hashPreciousList(
+        IERC721[] memory preciousTokens,
+        uint256[] memory preciousTokenIds
+    )
+        internal
+        pure
+        returns (bytes32 h)
+    {
+        assembly {
+            mstore(0x00, keccak256(
+                add(preciousTokens, 0x20),
+                mul(mload(preciousTokens), 0x20)
+            ))
+            mstore(0x20, keccak256(
+                add(preciousTokenIds, 0x20),
+                mul(mload(preciousTokenIds), 0x20)
+            ))
+            h := keccak256(0x00, 0x40)
+        }
+    }
+
+    function testCreateParty(
+        string memory randomStr,
+        uint96 randomUint96,
+        uint40 randomUint40,
+        uint16 randomBps
+    ) external {
+        vm.assume(randomBps <= 1e4);
+
         address authority = _randomAddress();
         (IERC721[] memory preciousTokens, uint256[] memory preciousTokenIds) =
             _createPreciouses(3);
-        vm.expectEmit(false, false, false, true);
-        emit DummyPartyImplInitializeCalled(Party.PartyInitData({
-            mintAuthority: address(factory),
-            preciousTokens: preciousTokens,
-            preciousTokenIds: preciousTokenIds,
-            options: defaultPartyOptions
-        }));
+        Party.PartyOptions memory opts = Party.PartyOptions({
+            governance: PartyGovernance.GovernanceOpts({
+                hosts: _toAddressArray(_randomAddress()),
+                voteDuration: randomUint40,
+                executionDelay: randomUint40,
+                passThresholdBps: randomBps,
+                totalVotingPower: randomUint96,
+                feeBps: randomBps,
+                feeRecipient: payable(_randomAddress())
+            }),
+            name: randomStr,
+            symbol: randomStr
+        });
         Party party = factory.createParty(
             authority,
-            defaultPartyOptions,
+            opts,
             preciousTokens,
             preciousTokenIds
         );
         assertEq(factory.partyAuthorities(party), authority);
+        assertEq(party.name(), opts.name);
+        assertEq(party.symbol(), opts.symbol);
+        assertEq(party.mintAuthority(), address(factory));
+        PartyGovernance.GovernanceValues memory values = party.getGovernanceValues();
+        assertEq(values.voteDuration, opts.governance.voteDuration);
+        assertEq(values.executionDelay, opts.governance.executionDelay);
+        assertEq(values.passThresholdBps, opts.governance.passThresholdBps);
+        assertEq(values.totalVotingPower, opts.governance.totalVotingPower);
+        assertEq(party.feeBps(), opts.governance.feeBps);
+        assertEq(party.feeRecipient(), opts.governance.feeRecipient);
+        assertEq(party.preciousListHash(), _hashPreciousList(preciousTokens, preciousTokenIds));
     }
 
-    function testMint_works() external {
+    function testCreatePartyWithInvalidBps(uint16 passThresholdBps, uint16 feeBps) external {
+        // At least one of the BPs must be invalid for this test to work.
+        vm.assume(passThresholdBps > 1e4 || feeBps > 1e4);
+
+        address authority = _randomAddress();
+        (IERC721[] memory preciousTokens, uint256[] memory preciousTokenIds) =
+            _createPreciouses(3);
+
+        Party.PartyOptions memory opts = defaultPartyOptions;
+        opts.governance.feeBps = feeBps;
+        opts.governance.passThresholdBps = passThresholdBps;
+
+        vm.expectRevert(abi.encodeWithSelector(
+            PartyGovernance.InvalidBpsError.selector,
+            feeBps > 1e4 ? feeBps : passThresholdBps
+        ));
+        Party party = factory.createParty(
+            authority,
+            opts,
+            preciousTokens,
+            preciousTokenIds
+        );
+    }
+
+    function testMint_works(address owner, address delegate, uint256 amount) external {
+        vm.assume(
+            amount <= type(uint96).max &&
+            owner != address(0) &&
+            delegate != address(0)
+        );
         address authority = _randomAddress();
         (IERC721[] memory preciousTokens, uint256[] memory preciousTokenIds) =
             _createPreciouses(3);
@@ -84,15 +142,8 @@ contract PartyFactoryTest is Test, TestUtils {
             preciousTokens,
             preciousTokenIds
         );
-        {
-            address owner = _randomAddress();
-            address delegate = _randomAddress();
-            uint256 amount = _randomUint256();
-            vm.expectEmit(false, false, false, true);
-            emit DummyPartyImplMintCalled(owner, amount, delegate);
-            vm.prank(authority);
-            factory.mint(party, owner, amount, delegate);
-        }
+        vm.prank(authority);
+        factory.mint(party, owner, amount, delegate);
     }
 
     function testMint_onlyAuthorityCanCall() external {
