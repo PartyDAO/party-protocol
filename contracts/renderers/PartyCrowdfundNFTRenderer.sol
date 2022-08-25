@@ -45,6 +45,10 @@ contract PartyCrowdfundNFTRenderer is IERC721Renderer {
         ));
     }
 
+    function renderNFTName() internal view returns (string memory) {
+        return string.concat(PartyCrowdfund(payable(address(this))).name(), " Crowdfund Party");
+    }
+
     function renderTokenName(uint256 tokenId) internal view returns (string memory) {
         return string(abi.encodePacked(
             PartyCrowdfund(payable(address(this))).name(),
@@ -152,8 +156,24 @@ contract PartyCrowdfundNFTRenderer is IERC721Renderer {
         return output;
     }
 
-    // TODO: Implement
     function contractURI() external view returns (string memory) {
-        return "PLACEHOLDER";
+        string memory json = Base64.encode(bytes(
+            string(
+                abi.encodePacked(
+                    '{"name":"',
+                    renderNFTName(),
+                    '", "description":"',
+                    // TODO: Add better description?
+                    "PartyBid Crowdfund NFTs represent your spot in a PartyBid party.",
+                    '"}'
+                    // TODO: Add SVG image
+                    // '", "image": "data:image/svg+xml;base64,',
+                    // Base64.encode(bytes(output)),
+                    // '"}'
+                )
+            )
+        ));
+
+        return string(abi.encodePacked('data:application/json;base64,', json));
     }
 }
