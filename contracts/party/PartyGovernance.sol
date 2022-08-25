@@ -196,7 +196,7 @@ abstract contract PartyGovernance is
     /// @notice Distribution fee bps.
     uint16 public feeBps;
     /// @notice Distribution fee recipient.
-    address payable feeRecipient;
+    address payable public feeRecipient;
     /// @notice The hash of the list of precious NFTs guarded by the party.
     bytes32 public preciousListHash;
     /// @notice The last proposal ID that was used. 0 means no proposals have been made.
