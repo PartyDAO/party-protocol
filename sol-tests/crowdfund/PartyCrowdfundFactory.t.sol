@@ -16,28 +16,18 @@ import "forge-std/Test.sol";
 import "../TestUtils.sol";
 
 contract PartyCrowdfundFactoryTest is Test, TestUtils {
-    Globals globals;
-    PartyCrowdfundFactory partyCrowdfundFactory;
-    MockMarketWrapper market;
-    PartyBid partyBid;
-    PartyBuy partyBuy;
-    PartyCollectionBuy partyCollectionBuy;
-    AllowListGateKeeper allowListGateKeeper;
-    TokenGateKeeper tokenGateKeeper;
+    Globals globals = new Globals(address(this));
+    PartyCrowdfundFactory partyCrowdfundFactory = new PartyCrowdfundFactory(globals);
+    MockMarketWrapper market = new MockMarketWrapper();
+    PartyBid partyBid = new PartyBid(globals);
+    PartyBuy partyBuy = new PartyBuy(globals);
+    PartyCollectionBuy partyCollectionBuy = new PartyCollectionBuy(globals);
+    AllowListGateKeeper allowListGateKeeper = new AllowListGateKeeper();
+    TokenGateKeeper tokenGateKeeper = new TokenGateKeeper();
 
     event Contributed(address contributor, uint256 amount, address delegate, uint256 previousTotalContributions);
 
     constructor() {
-        market = new MockMarketWrapper();
-        allowListGateKeeper = new AllowListGateKeeper();
-        tokenGateKeeper = new TokenGateKeeper();
-
-        globals = new Globals(address(this));
-        partyBid = new PartyBid(globals);
-        partyBuy = new PartyBuy(globals);
-        partyCollectionBuy = new PartyCollectionBuy(globals);
-        partyCrowdfundFactory = new PartyCrowdfundFactory(globals);
-
         globals.setAddress(LibGlobals.GLOBAL_PARTY_BID_IMPL, address(partyBid));
         globals.setAddress(LibGlobals.GLOBAL_PARTY_BUY_IMPL, address(partyBuy));
         globals.setAddress(LibGlobals.GLOBAL_PARTY_COLLECTION_BUY_IMPL, address(partyCollectionBuy));
