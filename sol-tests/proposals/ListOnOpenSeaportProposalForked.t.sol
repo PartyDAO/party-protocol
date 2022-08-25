@@ -5,7 +5,7 @@ import "forge-std/Test.sol";
 
 import "../../contracts/globals/Globals.sol";
 import "../../contracts/globals/LibGlobals.sol";
-import "../../contracts/proposals/opensea/ISeaportExchange.sol";
+import "../../contracts/proposals/vendor/ISeaportExchange.sol";
 
 import "../TestUtils.sol";
 import "../DummyERC721.sol";

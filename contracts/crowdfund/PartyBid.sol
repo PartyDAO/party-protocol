@@ -41,7 +41,7 @@ contract PartyBid is Implementation, PartyCrowdfund {
         uint40 duration;
         // Maximum bid allowed.
         uint128 maximumBid;
-        // An address that receieves an extra share of the final voting power
+        // An address that receieves a portion of the final voting power
         // when the party transitions into governance.
         address payable splitRecipient;
         // What percentage (in bps) of the final total voting power `splitRecipient`
@@ -56,7 +56,7 @@ contract PartyBid is Implementation, PartyCrowdfund {
         // The gatekeeper contract to use (if non-null) to restrict who can
         // contribute to this crowdfund.
         IGateKeeper gateKeeper;
-        // The gatekeeper contract to use (if non-null).
+        // The gate ID within the gateKeeper contract to use.
         bytes12 gateKeeperId;
         // Governance options.
         FixedGovernanceOpts governanceOpts;
@@ -96,7 +96,7 @@ contract PartyBid is Implementation, PartyCrowdfund {
     /// @notice intializer to be delegatecalled by Proxy constructor.
     function initialize(PartyBidOptions memory opts)
         external
-        onlyDelegateCall
+        onlyConstructor
     {
         PartyCrowdfund._initialize(PartyCrowdfundOptions({
             name: opts.name,
@@ -172,7 +172,7 @@ contract PartyBid is Implementation, PartyCrowdfund {
             }
         }
         // Mark as finalizing to prevent burn(), bid(), and contribute()
-        // getting called.
+        // getting called because this will result in a `CrowdfundLifecycle.Busy`.
         _finalizeState = FinalizeState.Finalizing;
         uint128 lastBid_ = lastBid;
         // Only finalize on the market if we placed a bid.

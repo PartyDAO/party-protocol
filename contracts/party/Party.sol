@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 pragma solidity ^0.8;
 
-import "../utils/Implementation.sol";
 import "../tokens/IERC721.sol";
 
 import "./PartyGovernanceNFT.sol";
@@ -26,7 +25,7 @@ contract Party is PartyGovernanceNFT {
 
     function initialize(PartyInitData memory initData)
         external
-        onlyDelegateCall
+        onlyConstructor
     {
         PartyGovernanceNFT._initialize(
             initData.options.name,

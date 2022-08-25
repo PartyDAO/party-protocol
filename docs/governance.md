@@ -10,11 +10,11 @@ After a crowdfund has acquired its NFTs, they transfer it to and form a governan
 - **Governance NFTs**: An NFT (721) representing voting power within the governance Party.
 - **Party**: The governance contract itself, which custodies the NFT, tracks voting power, manages the lifecycle of proposals, and is simultaneously the token contract for Governance NFTs.
 - **Proposals**: On-chain actions that will be executed as the party that must progress through the entire governance lifecycle.
-- **Distributions**: An (ungoverned) mechanism by which parties can distribute ETH, ERC20, and ERC1155 tokens held by the party to members proportional to their relative voting power (Governance NFTs).
+- **Distributions**: An (ungoverned) mechanism by which parties can distribute ETH and ERC20 tokens held by the party to members proportional to their relative voting power (Governance NFTs).
 - **Party Hosts**: Predefined accounts that can unilaterally veto proposals in the party. Conventionally defined when the crowdfund is created.
 - **Globals**: A single contract that holds configuration values, referenced by several ecosystem contracts.
 - **Proxies**: All `Party` instances are deployed as simple [`Proxy`](../contracts/utils/Proxy.sol) contracts that forward calls to a `Party` implementation contract.
-- **ProposalExecutionEngine**: An upgradable contract the `Party` contract delegatecalls into that implements the logic for executing specific proposal types.  
+- **ProposalExecutionEngine**: An upgradable contract the `Party` contract delegatecalls into that implements the logic for executing specific proposal types.
 
 ---
 
@@ -29,7 +29,7 @@ The main contracts involved in this phase are:
 - `ProposalExecutionEngine` ([code](../contracts/proposals/ProposalExecutionEngine.sol))
     - An upgradable logic (and some state) contract for executing each proposal type from the context of the `Party`.
 - `TokenDistributor` ([code](../contracts/distribution/TokenDistributor.sol))
-    - Escrow contract for distributing deposited ETH, ERC20, and ERC1155 tokens to members of parties.
+    - Escrow contract for distributing deposited ETH and ERC20 tokens to members of parties.
 - `Globals` ([code](../contracts/globals/Globals.sol))
     - A contract that defines global configuration values referenced by other contracts across the entire protocol.
 
@@ -116,7 +116,7 @@ When determining the effective voting power of a user, we binary search a user's
 
 Distributions allow parties to distribute fungible tokens and ETH to party members, proportional to the voting power of their Governance NFTs.
 
-Unlike proposals, distributions do not require any votes to pass.  Any member of the party can call `distribute` to distribute any ETH, ERC20 or ERC1155s held by the party.
+Unlike proposals, distributions do not require any votes to pass.  Any member of the party can call `distribute` to distribute any ETH or ERC20 held by the party.
 
 Upon `distribute` being called, the entire balance of the specified token will be transfered to the canonical `TokenDistributor` contract, and a new distribution will be created.
 
@@ -145,7 +145,7 @@ When Jerry calls `claim`,  they receive 487.50 DAI  (1000*0.975)*0.5
 
 Our `TokenDistributor` contract was designed to work with parties, but a `Distribution` can be created for any contract that implements the `ITokenDistributorParty` interface.  Implementors of the `ITokenDistributorParty` must implement `getDistributionShareOf(uint256 tokenId)` which returns how much of a distribution a particular tokenId should receive. Denominated in proportion to `1e18` (i.e. `0.5e18` represents 50%), as well as `ownerOf(uint256 tokenId)` which returns the owner of a tokenId.  In the case of a `PartyGovernanceNFT`, the `getDistributionShareOf(uint256 tokenId)` defers to the ratio of the voting power of the specific `tokenId` against the `totalVotingPower`.
 
-When creating a distribution, implementing contracts are expected to transfer the tokens prior to calling the accompanying `create{Erc20Distribution,Erc1155Distribution,createNativeDistribution}` method in the same transaction.
+When creating a distribution, implementing contracts are expected to transfer the tokens prior to calling the accompanying `create{Erc20Distribution,createNativeDistribution}` method in the same transaction.
 
 ### Emergency Actions
 
@@ -295,7 +295,6 @@ This proposal is atomic, always completing in one step/execute.
 
 - Each call is executed in the order declared.
 - ETH to attach to each call must be provided by the caller of the `Party.execute()` call. If the the sum of all successful calls try to consume more than `msg.value`, the entire proposal will revert.
-- If a call has `optional == true` then the call itself is allowed to fail. Otherwise, if the call reverts then the entire proposal will revert.
 - If a call has a non-zero `expectedResultHash` then the result of the call will be hashed and matched against this value. If they do not match, then the entire proposal will revert.
 - If the call is to the `Party` itself, the entire proposal will revert.
 - If the call is to the `IERC721.onERC721Received()` function, the entire proposal will revert.
@@ -422,6 +421,36 @@ This proposal has between 2-3 steps:
 3. Clean up the OpenSea listing, emitting an event with the outcome, and:
     - If the order was filled, the Party has the `listPrice` ETH, the NFT allowance was consumed, and there is nothing left to do.
     - If the order expired, no one bought the listing and the Party still owns the NFT. Revoke OpenSea's token allowance.
+
+### Fractionalize Proposal Type
+
+This proposal type fractionalizes an NFT on Fractional V1, minting Fractional ERC20 tokens claimable by all party members via distributions.
+
+#### Proposal Data
+
+The `proposalData` should be encoded as:
+```solidity
+abi.encodeWithSelector(
+    // Prefix identifying this proposal type.
+    bytes4(ProposalType.FractionalizeProposal),
+    FractionalizeProposalData(
+        // The ERC721 token contract to fractionalize.
+        /* IERC721 */ token;
+        // The ERC721 token ID to fractionalize.
+        /* uint256 */ tokenId;
+        // The starting reserve price for the fractional vault.
+        /* uint256 */ listPrice;
+    )
+);
+```
+
+#### Steps
+
+This proposal is atomic, completing in one step/execute:
+1. Create a new Fractional V1 vault around `token` + `tokenId`.
+    - Reserve price will be set to the proposal's `listPrice`.
+    - Curator will be set to `address(0)`.
+    - `totalVotingPower` fractional ERC20 tokens will be minted and held by the Party, which can later be claimed through an ERC20 distribution.
 
 ### UpgradeProposalEngineImpl Proposal Type
 

@@ -40,7 +40,8 @@ contract ProposalExecutionEngineTest is
             globals,
             ISeaportExchange(_randomAddress()),
             ISeaportConduitController(_randomAddress()),
-            IZoraAuctionHouse(_randomAddress())
+            IZoraAuctionHouse(_randomAddress()),
+            IFractionalV1VaultFactory(_randomAddress())
         );
     }
 
@@ -85,13 +86,14 @@ contract ProposalExecutionEngineTest is
         );
     }
 
-    function _createUpgradeProposalData(bytes memory initData)
+    function _createUpgradeProposalData(address expectedEngineImpl, bytes memory initData)
         private
         pure
         returns (bytes memory)
     {
         return abi.encodeWithSelector(
             bytes4(uint32(ProposalExecutionEngine.ProposalType.UpgradeProposalEngineImpl)),
+            expectedEngineImpl,
             initData
         );
     }
@@ -161,11 +163,24 @@ contract ProposalExecutionEngineTest is
     function test_executeProposal_upgradeImplementationWorks() public {
         bytes memory initData = abi.encode('yooo');
         IProposalExecutionEngine.ExecuteProposalParams memory executeParams =
-            _createTestProposal(_createUpgradeProposalData(initData));
+            _createTestProposal(_createUpgradeProposalData(address(newEngImpl), initData));
         vm.expectEmit(true, false, false ,false, address(eng));
         emit TestInitializeCalled(address(eng), keccak256(initData));
         assertTrue(_executeProposal(executeParams));
         assertEq(address(eng.getProposalEngineImpl()), address(newEngImpl));
+    }
+
+    function test_executeProposal_upgradeImplementationFailsIfExpectedEngineIsNotActual() public {
+        bytes memory initData = abi.encode('yooo');
+        address expectedEngImpl = _randomAddress();
+        IProposalExecutionEngine.ExecuteProposalParams memory executeParams =
+            _createTestProposal(_createUpgradeProposalData(expectedEngImpl, initData));
+        vm.expectRevert(abi.encodeWithSelector(
+            ProposalExecutionEngine.UnexpectedProposalEngineImplementationError.selector,
+            address(newEngImpl),
+            expectedEngImpl
+        ));
+        _executeProposal(executeParams);
     }
 
     // Execute a two-step proposal, then try to cancel a different one.
@@ -181,12 +196,21 @@ contract ProposalExecutionEngineTest is
         eng.cancelProposal(otherProposalId);
     }
 
+    // Execute a two-step proposal, cancel it, then execute another one-step proposal.
     function test_cancelProposal_works() public {
-        IProposalExecutionEngine.ExecuteProposalParams memory executeParams =
+        IProposalExecutionEngine.ExecuteProposalParams memory executeParams1 =
             _createTestProposal(_createTwoStepProposalData(_randomUint256(), _randomUint256()));
-        assertFalse(_executeProposal(executeParams));
-        eng.cancelProposal(executeParams.proposalId);
+        assertFalse(_executeProposal(executeParams1));
+        assertTrue(eng.getCurrentInProgressProposalId() != 0);
+        assertTrue(eng.getNextProgressDataHash() != 0);
+        eng.cancelProposal(executeParams1.proposalId);
         assertEq(eng.getCurrentInProgressProposalId(), 0);
+        assertEq(eng.getNextProgressDataHash(), 0);
+        IProposalExecutionEngine.ExecuteProposalParams memory executeParams2 =
+            _createTestProposal(_createOneStepProposalData(_randomUint256()));
+        assertTrue(_executeProposal(executeParams2));
+        assertEq(eng.getCurrentInProgressProposalId(), 0);
+        assertEq(eng.getNextProgressDataHash(), 0);
     }
 
     function _executeProposal(IProposalExecutionEngine.ExecuteProposalParams memory params)

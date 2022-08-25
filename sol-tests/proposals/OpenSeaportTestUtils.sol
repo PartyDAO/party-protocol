@@ -3,7 +3,7 @@ pragma solidity ^0.8;
 
 import "forge-std/Test.sol";
 
-import "../../contracts/proposals/opensea/ISeaportExchange.sol";
+import "../../contracts/proposals/vendor/ISeaportExchange.sol";
 import "../../contracts/tokens/IERC721.sol";
 
 contract OpenSeaportTestUtils is Test {

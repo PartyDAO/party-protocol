@@ -3,7 +3,6 @@ pragma solidity ^0.8;
 
 import "../tokens/IERC721.sol";
 import "../party/Party.sol";
-import "../utils/Implementation.sol";
 import "../utils/LibSafeERC721.sol";
 import "../utils/LibRawResult.sol";
 import "../globals/IGlobals.sol";
@@ -31,7 +30,7 @@ contract PartyBuy is PartyBuyBase {
         // Maximum amount this crowdfund will pay for the NFT.
         // If zero, no maximum.
         uint128 maximumPrice;
-        // An address that receieves an extra share of the final voting power
+        // An address that receieves a portion of the final voting power
         // when the party transitions into governance.
         address payable splitRecipient;
         // What percentage (in bps) of the final total voting power `splitRecipient`
@@ -46,7 +45,7 @@ contract PartyBuy is PartyBuyBase {
         // The gatekeeper contract to use (if non-null) to restrict who can
         // contribute to this crowdfund.
         IGateKeeper gateKeeper;
-        // The gatekeeper contract to use (if non-null).
+        // The gate ID within the gateKeeper contract to use.
         bytes12 gateKeeperId;
         // Governance options.
         FixedGovernanceOpts governanceOpts;
@@ -62,7 +61,7 @@ contract PartyBuy is PartyBuyBase {
     /// @notice intializer to be delegatecalled by Proxy constructor.
     function initialize(PartyBuyOptions memory opts)
         external
-        onlyDelegateCall
+        onlyConstructor
     {
         PartyBuyBase._initialize(PartyBuyBaseOptions({
             name: opts.name,

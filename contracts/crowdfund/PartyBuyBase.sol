@@ -99,7 +99,7 @@ abstract contract PartyBuyBase is Implementation, PartyCrowdfund {
         returns (Party party_)
     {
         IPartyFactory partyFactory = _getPartyFactory();
-        if (callTarget == address(partyFactory)) {
+        if (callTarget == address(partyFactory) || callTarget == address(this)) {
             revert InvalidCallTargetError(callTarget);
         }
         CrowdfundLifecycle lc = getCrowdfundLifecycle();

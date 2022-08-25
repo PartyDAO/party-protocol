@@ -3,7 +3,6 @@ pragma solidity ^0.8;
 
 import "../tokens/IERC721.sol";
 import "../party/Party.sol";
-import "../utils/Implementation.sol";
 import "../utils/LibSafeERC721.sol";
 import "../utils/LibRawResult.sol";
 import "../globals/IGlobals.sol";
@@ -15,6 +14,8 @@ import "./PartyBuyBase.sol";
 contract PartyCollectionBuy is PartyBuyBase {
     using LibSafeERC721 for IERC721;
     using LibSafeCast for uint256;
+
+    error OnlyPartyHostError();
 
     struct PartyCollectionBuyOptions {
         // The name of the crowdfund.
@@ -29,7 +30,7 @@ contract PartyCollectionBuy is PartyBuyBase {
         // Maximum amount this crowdfund will pay for the NFT.
         // If zero, no maximum.
         uint128 maximumPrice;
-        // An address that receieves an extra share of the final voting power
+        // An address that receieves a portion of the final voting power
         // when the party transitions into governance.
         address payable splitRecipient;
         // What percentage (in bps) of the final total voting power `splitRecipient`
@@ -44,7 +45,7 @@ contract PartyCollectionBuy is PartyBuyBase {
         // The gatekeeper contract to use (if non-null) to restrict who can
         // contribute to this crowdfund.
         IGateKeeper gateKeeper;
-        // The gatekeeper contract to use (if non-null).
+        // The gate ID within the gateKeeper contract to use.
         bytes12 gateKeeperId;
         // Governance options.
         FixedGovernanceOpts governanceOpts;
@@ -53,12 +54,28 @@ contract PartyCollectionBuy is PartyBuyBase {
     /// @notice The NFT contract to buy.
     IERC721 public nftContract;
 
+    modifier onlyHost(address[] memory hosts) {
+        bool isHost;
+        for (uint256 i; i < hosts.length; i++) {
+            if (hosts[i] == msg.sender) {
+                isHost = true;
+                break;
+            }
+        }
+
+        if (!isHost) {
+            revert OnlyPartyHostError();
+        }
+
+        _;
+    }
+
     constructor(IGlobals globals) PartyBuyBase(globals) {}
 
     /// @notice intializer to be delegatecalled by Proxy constructor.
     function initialize(PartyCollectionBuyOptions memory opts)
         external
-        onlyDelegateCall
+        onlyConstructor
     {
         PartyBuyBase._initialize(PartyBuyBaseOptions({
             name: opts.name,
@@ -86,9 +103,10 @@ contract PartyCollectionBuy is PartyBuyBase {
         FixedGovernanceOpts memory governanceOpts
     )
         external
+        onlyHost(governanceOpts.hosts)
         returns (Party party_)
     {
-        party_ = _buy(
+        return _buy(
             nftContract,
             tokenId,
             callTarget,

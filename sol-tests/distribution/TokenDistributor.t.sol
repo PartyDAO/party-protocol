@@ -56,17 +56,13 @@ contract TokenDistributorTest is Test, TestUtils {
 
   function testMultiplePartyDistributions() public {
     // distribution 1 (ds1, ETH)
-    payable(address(distributor)).transfer(0.1 ether);
-    vm.prank(address(dummyParty1)); // must create from party
     ITokenDistributor.DistributionInfo memory ds1 =
-        distributor.createNativeDistribution(dummyParty1, ADMIN_ADDRESS, 0.05e4);
+        distributor.createNativeDistribution{value: 0.1 ether}(dummyParty1, ADMIN_ADDRESS, 0.05e4);
     _createDummyNft(dummyParty1, address(1), 1337, 0.7 ether);
     _createDummyNft(dummyParty1, address(2), 1338, 0.3 ether);
     // distribution 2 (ds2, ETH)
-    payable(address(distributor)).transfer(0.25 ether);
-    vm.prank(address(dummyParty2)); // must create from party
     ITokenDistributor.DistributionInfo memory ds2 =
-        distributor.createNativeDistribution(dummyParty2, ADMIN_ADDRESS, 0.05e4);
+        distributor.createNativeDistribution{value: 0.25 ether}(dummyParty2, ADMIN_ADDRESS, 0.05e4);
     _createDummyNft(dummyParty2, address(1), 1337, 0.33 ether);
     _createDummyNft(dummyParty2, address(3), 1338, 0.66 ether);
     // distribution 3 (ds1, dummyToken1)
@@ -154,9 +150,7 @@ contract TokenDistributorTest is Test, TestUtils {
 
   function testEmergencyDistributionFunctions() public {
     // ETH
-    payable(address(distributor)).transfer(50 ether);
-    vm.prank(address(dummyParty1)); // must create from party
-    distributor.createNativeDistribution(dummyParty1, ADMIN_ADDRESS, 0.05e4);
+    distributor.createNativeDistribution{value: 50 ether}(dummyParty1, ADMIN_ADDRESS, 0.05e4);
 
     // ERC 20
     dummyToken1.deal(address(distributor), 19 ether);
@@ -178,7 +172,6 @@ contract TokenDistributorTest is Test, TestUtils {
     distributor.emergencyWithdraw(
       ITokenDistributor.TokenType.Native,
       ETH_ADDRESS,
-      0,
       payable(address(1)),
       10 ether
     );
@@ -191,7 +184,6 @@ contract TokenDistributorTest is Test, TestUtils {
     distributor.emergencyWithdraw(
         ITokenDistributor.TokenType.Native,
         ETH_ADDRESS,
-        0,
         payable(address(5)),
         10 ether
     );
@@ -201,7 +193,6 @@ contract TokenDistributorTest is Test, TestUtils {
     distributor.emergencyWithdraw(
         ITokenDistributor.TokenType.Erc20,
         address(dummyToken1),
-        0,
         payable(address(4)),
         19 ether
     );
@@ -248,7 +239,6 @@ contract TokenDistributorTest is Test, TestUtils {
     distributor.emergencyWithdraw(
         ITokenDistributor.TokenType.Native,
         ETH_ADDRESS,
-        0,
         payable(address(5)),
         1 ether
     );
@@ -345,9 +335,7 @@ contract TokenDistributorTest is Test, TestUtils {
     uint256 ethAmount
 ) private returns (ITokenDistributor.DistributionInfo memory) {
 
-    payable(address(distributor)).transfer(ethAmount);
-    vm.prank(address(dummyParty)); // must create from party
-    return distributor.createNativeDistribution(dummyParty, ADMIN_ADDRESS, feeSplitBps);
+    return distributor.createNativeDistribution{value: ethAmount}(dummyParty, ADMIN_ADDRESS, feeSplitBps);
   }
 
   function _claim(

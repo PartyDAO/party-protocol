@@ -10,10 +10,14 @@ import '../contracts/crowdfund/PartyBuy.sol';
 import '../contracts/crowdfund/PartyCollectionBuy.sol';
 import '../contracts/crowdfund/PartyCrowdfundFactory.sol';
 import '../contracts/distribution/TokenDistributor.sol';
+import '../contracts/gatekeepers/AllowListGateKeeper.sol';
+import '../contracts/gatekeepers/ERC20TokenGateKeeper.sol';
+import '../contracts/gatekeepers/IGateKeeper.sol';
 import '../contracts/globals/Globals.sol';
 import '../contracts/globals/LibGlobals.sol';
 import '../contracts/party/Party.sol';
 import '../contracts/party/PartyFactory.sol';
+import '../contracts/renderers/PartyCrowdfundNFTRenderer.sol';
 import '../contracts/renderers/PartyGovernanceNFTRenderer.sol';
 import '../contracts/proposals/ProposalExecutionEngine.sol';
 import '../contracts/utils/PartyHelpers.sol';
@@ -43,8 +47,11 @@ contract Deploy is Test {
   ISeaportExchange seaport;
   ProposalExecutionEngine proposalEngineImpl;
   TokenDistributor tokenDistributor;
+  PartyCrowdfundNFTRenderer partyCrowdfundNFTRenderer;
   PartyGovernanceNFTRenderer partyGovernanceNFTRenderer;
   PartyHelpers partyHelpers;
+  IGateKeeper allowListGateKeeper;
+  IGateKeeper erc20TokenGateKeeper;
 
   function run(LibDeployConstants.DeployConstants memory deployConstants) public {
     console.log('Starting deploy script.');
@@ -110,7 +117,6 @@ contract Deploy is Test {
     console.log('  Globals - successfully set Token Distributor address', address(tokenDistributor));
 
 
-    // DEPLOY_SHARED_WYVERN_V2_MAKER
     console.log('');
 
     console.log('');
@@ -119,6 +125,8 @@ contract Deploy is Test {
     console.log('  Globals - successfully set OpenSea Zora auction duration', deployConstants.osZoraAuctionDuration);
     globals.setUint256(LibGlobals.GLOBAL_OS_ZORA_AUCTION_TIMEOUT, deployConstants.osZoraAuctionTimeout);
     console.log('  Globals - successfully set OpenSea Zora auction timeout', deployConstants.osZoraAuctionTimeout);
+    globals.setUint256(LibGlobals.GLOBAL_ZORA_MIN_AUCTION_DURATION, deployConstants.zoraMinAuctionDuration);
+    console.log('  Globals - successfully set Zora min auction duration', deployConstants.zoraMinAuctionDuration);
 
 
     // DEPLOY_PROPOSAL_EXECUTION_ENGINE
@@ -210,6 +218,19 @@ contract Deploy is Test {
     partyCrowdfundFactory = new PartyCrowdfundFactory(globals);
     console.log('  Deployed - PartyCrowdfundFactory', address(partyCrowdfundFactory));
 
+    // DEPLOY_PARTY_CROWDFUND_NFT_RENDERER
+    console.log('');
+    console.log('### PartyCrowdfundNFTRenderer');
+    console.log('  Deploying - PartyCrowdfundNFTRenderer');
+    partyCrowdfundNFTRenderer = new PartyCrowdfundNFTRenderer(globals);
+    console.log('  Deployed - PartyCrowdfundNFTRenderer', address(partyCrowdfundNFTRenderer));
+
+    console.log('');
+    console.log('  Globals - setting PartyCrowdfundNFTRenderer address');
+    globals.setAddress(LibGlobals.GLOBAL_CF_NFT_RENDER_IMPL, address(partyCrowdfundNFTRenderer));
+    console.log('  Globals - successfully set PartyCrowdfundNFTRenderer', address(partyCrowdfundNFTRenderer));
+
+
     // DEPLOY_PARTY_GOVERNANCE_NFT_RENDERER
     console.log('');
     console.log('### PartyGovernanceNFTRenderer');
@@ -229,6 +250,17 @@ contract Deploy is Test {
     partyHelpers = new PartyHelpers();
     console.log('  Deployed - PartyHelpers', address(partyHelpers));
 
+    // DEPLOY_GATE_KEEPRS
+    console.log('');
+    console.log('### GateKeepers');
+    console.log('  Deploying - AllowListGateKeeper');
+    allowListGateKeeper = new AllowListGateKeeper();
+    console.log('  Deployed - AllowListGateKeeper', address(allowListGateKeeper));
+
+    console.log('  Deploying - ERC20TokenGateKeeper');
+    erc20TokenGateKeeper = new ERC20TokenGateKeeper();
+    console.log('  Deployed - ERC20TokenGateKeeper', address(erc20TokenGateKeeper));
+
     // TODO: TRANSFER_OWNERSHIP_TO_PARTYDAO_MULTISIG
     // console.log('');
     // console.log('### Transfer MultiSig');
@@ -237,7 +269,7 @@ contract Deploy is Test {
     // console.log('  Transferred ownership to', deployConstants.partyDaoMultisig);
 
 
-    AddressMapping[] memory addressMapping = new AddressMapping[](12);
+    AddressMapping[] memory addressMapping = new AddressMapping[](15);
     addressMapping[0] = AddressMapping('globals', address(globals));
     addressMapping[1] = AddressMapping('tokenDistributor', address(tokenDistributor));
     addressMapping[2] = AddressMapping('seaportExchange', address(seaport));
@@ -248,8 +280,11 @@ contract Deploy is Test {
     addressMapping[7] = AddressMapping('partyBuyImpl', address(partyBuyImpl));
     addressMapping[8] = AddressMapping('partyCollectionBuyImpl', address(partyCollectionBuyImpl));
     addressMapping[9] = AddressMapping('partyCrowdfundFactory', address(partyCrowdfundFactory));
-    addressMapping[10] = AddressMapping('partyGovernanceNFTRenderer', address(partyGovernanceNFTRenderer));
-    addressMapping[11] = AddressMapping('partyHelpers', address(partyHelpers));
+    addressMapping[10] = AddressMapping('partyCrowdfundNFTRenderer', address(partyCrowdfundNFTRenderer));
+    addressMapping[11] = AddressMapping('partyGovernanceNFTRenderer', address(partyGovernanceNFTRenderer));
+    addressMapping[12] = AddressMapping('partyHelpers', address(partyHelpers));
+    addressMapping[13] = AddressMapping('allowListGateKeeper', address(allowListGateKeeper));
+    addressMapping[14] = AddressMapping('erc20TokenGateKeeper', address(erc20TokenGateKeeper));
 
     console.log('');
     console.log('### Deployed addresses');

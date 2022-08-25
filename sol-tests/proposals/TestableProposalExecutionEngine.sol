@@ -19,9 +19,16 @@ contract TestableProposalExecutionEngine is ProposalExecutionEngine {
         IGlobals globals,
         ISeaportExchange seaport,
         ISeaportConduitController seaportConduitController,
-        IZoraAuctionHouse zora
+        IZoraAuctionHouse zora,
+        IFractionalV1VaultFactory fractionalVaultFactory
     )
-        ProposalExecutionEngine(globals, seaport, seaportConduitController, zora)
+        ProposalExecutionEngine(
+            globals,
+            seaport,
+            seaportConduitController,
+            zora,
+            fractionalVaultFactory
+        )
     {}
 
     function getProposalEngineImpl()
@@ -62,4 +69,13 @@ contract TestableProposalExecutionEngine is ProposalExecutionEngine {
         }
         return super._execute(pt, params);
     }
+
+    function getNextProgressDataHash()
+        external
+        view
+        returns (bytes32 nextProgressDataHash)
+    {
+        return _getStorage().nextProgressDataHash;
+    }
+
 }

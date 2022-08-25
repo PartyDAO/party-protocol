@@ -8,7 +8,7 @@ import "../tokens/IERC721.sol";
 import "../tokens/IERC20.sol";
 import "../tokens/IERC1155.sol";
 import "../tokens/ERC721Receiver.sol";
-import "../tokens/ERC1155TokenReceiver.sol";
+import "../tokens/ERC1155Receiver.sol";
 import "../utils/LibERC20Compat.sol";
 import "../utils/LibRawResult.sol";
 import "../utils/LibSafeCast.sol";
@@ -24,7 +24,7 @@ import "./IPartyFactory.sol";
 abstract contract PartyGovernance is
     ITokenDistributorParty,
     ERC721Receiver,
-    ERC1155TokenReceiver,
+    ERC1155Receiver,
     ProposalStorage,
     Implementation,
     ReadOnlyDelegateCall
@@ -186,10 +186,11 @@ abstract contract PartyGovernance is
     error ProposalCannotBeCancelledYetError(uint40 currentTime, uint40 cancelTime);
 
     uint256 constant private UINT40_HIGH_BIT = 1 << 39;
+    uint96 constant private VETO_VALUE = uint96(int96(-1));
 
     IGlobals private immutable _GLOBALS;
 
-    /// @notice Whether the DAO has emergency powers for thsi party.
+    /// @notice Whether the DAO has emergency powers for this party.
     bool public emergencyExecuteDisabled;
     /// @notice Distribution fee bps.
     uint16 public feeBps;
@@ -300,16 +301,16 @@ abstract contract PartyGovernance is
         );
     }
 
-    /// @notice Combined logic for ERC721Receiver and ERC1155TokenReceiver
+    /// @notice Combined logic for ERC721Receiver and ERC1155Receiver
     function supportsInterface(bytes4 interfaceId)
         public
-        override(ERC721Receiver, ERC1155TokenReceiver)
+        override(ERC721Receiver, ERC1155Receiver)
         virtual
         pure
         returns (bool)
     {
         return ERC721Receiver.supportsInterface(interfaceId) ||
-            ERC1155TokenReceiver.supportsInterface(interfaceId);
+            ERC1155Receiver.supportsInterface(interfaceId);
     }
 
     /// @notice Get the current IProposalExecutionEngine instance.
@@ -321,13 +322,23 @@ abstract contract PartyGovernance is
         return _getProposalExecutionEngine();
     }
 
-    /// @notice Get the total voting power of `voter` at a timestamp.
+    /// @notice Get the total voting power of `voter` at a `timestamp`.
     function getVotingPowerAt(address voter, uint40 timestamp)
+        external
+        view
+        returns (uint96 votingPower)
+    {
+        return getVotingPowerAt(voter, timestamp, type(uint256).max);
+    }
+
+    /// @notice Get the total voting power of `voter` at a snapshot `snapIndex`, with checks to
+    ///         make sure it is the latest voting snapshot =< `timestamp`.
+    function getVotingPowerAt(address voter, uint40 timestamp, uint256 snapIndex)
         public
         view
         returns (uint96 votingPower)
     {
-        VotingPowerSnapshot memory snap = _getVotingPowerSnapshotAt(voter, timestamp);
+        VotingPowerSnapshot memory snap = _getVotingPowerSnapshotAt(voter, timestamp, snapIndex);
         return (snap.isDelegated ? 0 : snap.intrinsicVotingPower) + snap.delegatedVotingPower;
     }
 
@@ -356,8 +367,8 @@ abstract contract PartyGovernance is
         // Hash the proposal in-place. Equivalent to:
         // keccak256(abi.encode(
         //   proposal.minExecutableTime,
-        //   keccak256(proposal.proposalData),
-        //   proposal.cancelDelay
+        //   proposal.cancelDelay,
+        //   keccak256(proposal.proposalData)
         // ))
         bytes32 dataHash = keccak256(proposal.proposalData);
         assembly {
@@ -372,6 +383,33 @@ abstract contract PartyGovernance is
         }
     }
 
+    // Get the index of the most recent voting power snapshot <= `timestamp`.
+    function findVotingPowerSnapshotIndex(address voter, uint40 timestamp)
+        public
+        view
+        returns (uint256 index)
+    {
+        VotingPowerSnapshot[] storage snaps = _votingPowerSnapshotsByVoter[voter];
+
+        // Derived from Open Zeppelin binary search
+        // ref: https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/utils/Checkpoints.sol#L39
+        uint256 high = snaps.length;
+        uint256 low = 0;
+        while (low < high) {
+            uint256 mid = (low + high) / 2;
+            if (snaps[mid].timestamp > timestamp) {
+                // Entry is too recent.
+                high = mid;
+            } else {
+                // Entry is older. This is our best guess for now.
+                low = mid + 1;
+            }
+        }
+
+        // Return `type(uint256).max` if no valid voting snapshots found.
+        return high == 0 ? type(uint256).max : high - 1;
+    }
+
     /// @notice Pledge your intrinsic voting power to a new delegate, removing it from
     ///         the old one (if any).
     function delegateVotingPower(address delegate) external onlyDelegateCall {
@@ -381,12 +419,15 @@ abstract contract PartyGovernance is
 
     /// @notice Transfer party host status to another.
     function abdicate(address newPartyHost) external onlyHost onlyDelegateCall {
-        // cannot transfer host status to an existing host
-        if(isHost[newPartyHost]) {
-            revert InvalidNewHostError();
+        // 0 is a special case burn address.
+        if (newPartyHost != address(0)) {
+            // cannot transfer host status to an existing host.
+            if(isHost[newPartyHost]) {
+                revert InvalidNewHostError();
+            }
+            isHost[newPartyHost] = true;
         }
         isHost[msg.sender] = false;
-        isHost[newPartyHost] = true;
         emit HostStatusTransferred(msg.sender, newPartyHost);
     }
 
@@ -408,36 +449,20 @@ abstract contract PartyGovernance is
         returns (ITokenDistributor.DistributionInfo memory distInfo)
     {
         ITokenDistributor distributor = ITokenDistributor(
-            payable(_GLOBALS.getAddress(LibGlobals.GLOBAL_TOKEN_DISTRIBUTOR))
+            _GLOBALS.getAddress(LibGlobals.GLOBAL_TOKEN_DISTRIBUTOR)
         );
         emit DistributionCreated(tokenType, token, tokenId);
         if (tokenType == ITokenDistributor.TokenType.Native) {
             return distributor.createNativeDistribution
                 { value: address(this).balance }(this, feeRecipient, feeBps);
         }
-        if (tokenType == ITokenDistributor.TokenType.Erc20) {
-            IERC20(token).compatTransfer(
-                payable(address(distributor)),
-                IERC20(token).balanceOf(address(this))
-            );
-            return distributor.createErc20Distribution(
-                IERC20(token),
-                this,
-                feeRecipient,
-                feeBps
-            );
-        }
-        assert(tokenType == ITokenDistributor.TokenType.Erc1155);
-        IERC1155(token).safeTransferFrom(
-            address(this),
-            payable(address(distributor)),
-            tokenId,
-            IERC1155(token).balanceOf(address(this), tokenId),
-            ""
+        assert(tokenType == ITokenDistributor.TokenType.Erc20);
+        IERC20(token).compatTransfer(
+            address(distributor),
+            IERC20(token).balanceOf(address(this))
         );
-        return distributor.createErc1155Distribution(
-            IERC1155(token),
-            tokenId,
+        return distributor.createErc20Distribution(
+            IERC20(token),
             this,
             feeRecipient,
             feeBps
@@ -449,7 +474,7 @@ abstract contract PartyGovernance is
     /// @dev Only an active member (owns a governance token) can call this.
     ///      Afterwards, members can vote to support it with accept() or a party
     ///      host can unilaterally reject the proposal with veto().
-    function propose(Proposal memory proposal)
+    function propose(Proposal memory proposal, uint256 latestSnapIndex)
         external
         onlyActiveMember
         onlyDelegateCall
@@ -470,7 +495,7 @@ abstract contract PartyGovernance is
             getProposalHash(proposal)
         );
         emit Proposed(proposalId, msg.sender, proposal);
-        accept(proposalId);
+        accept(proposalId, latestSnapIndex);
     }
 
     /// @notice Vote to support a proposed proposal.
@@ -479,7 +504,7 @@ abstract contract PartyGovernance is
     ///      If the proposal reaches passThresholdBps acceptance ratio then the
     ///      proposal will be in the Passed state and will be executable after
     ///      the executionDelay has passed, putting it in the Ready state.
-    function accept(uint256 proposalId)
+    function accept(uint256 proposalId, uint256 snapIndex)
         public
         onlyDelegateCall
         returns (uint256 totalVotes)
@@ -508,7 +533,7 @@ abstract contract PartyGovernance is
         }
         info.hasVoted[msg.sender] = true;
 
-        uint96 votingPower = getVotingPowerAt(msg.sender, values.proposedTime);
+        uint96 votingPower = getVotingPowerAt(msg.sender, values.proposedTime, snapIndex);
         values.votes += votingPower;
         info.values = values;
         emit ProposalAccepted(proposalId, msg.sender, votingPower);
@@ -546,7 +571,7 @@ abstract contract PartyGovernance is
         }
 
         // -1 indicates veto.
-        info.values.votes = uint96(int96(-1));
+        info.values.votes = VETO_VALUE;
         emit ProposalVetoed(proposalId, msg.sender);
     }
 
@@ -616,7 +641,7 @@ abstract contract PartyGovernance is
     /// @notice Cancel a (probably stuck) InProgress proposal.
     /// @dev proposal.cancelDelay seconds must have passed since it was first
     ///       executed for this to be valid.
-    ///       The currently active propgress will simply be yeeted out of existence
+    ///       The currently active proposal will simply be yeeted out of existence
     ///       so another proposal can execute.
     ///       This is intended to be a last resort and can leave the party
     ///       in a broken state. Whenever possible, active proposals should be
@@ -737,38 +762,36 @@ abstract contract PartyGovernance is
         return nextProgressData.length == 0;
     }
 
-    // Get the most recent voting power snapshot <= timestamp.
-    function _getVotingPowerSnapshotAt(address voter, uint40 timestamp)
+    // Get the most recent voting power snapshot <= timestamp using `hintindex` as a "hint".
+    function _getVotingPowerSnapshotAt(address voter, uint40 timestamp, uint256 hintIndex)
         internal
         view
         returns (VotingPowerSnapshot memory snap)
     {
         VotingPowerSnapshot[] storage snaps = _votingPowerSnapshotsByVoter[voter];
+        uint256 snapsLength = snaps.length;
+        if (snapsLength != 0) {
+            if (
+                // Hint is within bounds.
+                hintIndex < snapsLength &&
+                // Snapshot is not too recent.
+                snaps[hintIndex].timestamp <= timestamp &&
+                // Snapshot is not too old.
+                (hintIndex == snapsLength - 1 || snaps[hintIndex+1].timestamp > timestamp)
+            ) {
+                return snaps[hintIndex];
+            }
 
-        // Derived from Open Zepplin binary search
-        // ref: https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/utils/Checkpoints.sol#L39
-        uint256 high = snaps.length;
-        uint256 low = 0;
-        while (low < high) {
-            uint256 mid = (low + high) / 2;
-            VotingPowerSnapshot memory shot_ = snaps[mid];
-            if (shot_.timestamp > timestamp) {
-                // Entry is too recent.
-                high = mid;
-            } else {
-                // Entry is older. This is our best guess for now.
-                low = mid + 1;
+            // Hint was wrong, fallback to binary search to find snapshot.
+            hintIndex = findVotingPowerSnapshotIndex(voter, timestamp);
+            // Check that snapshot was found.
+            if (hintIndex != type(uint256).max) {
+                return snaps[hintIndex];
             }
         }
 
-        return high == 0
-            ? VotingPowerSnapshot({
-                timestamp: 0,
-                delegatedVotingPower: 0,
-                intrinsicVotingPower: 0,
-                isDelegated: false
-                })
-            : snaps[high - 1];
+        // No snapshot found.
+        return snap;
     }
 
     // Transfers some voting power of `from` to `to`. The total voting power of
@@ -782,6 +805,7 @@ abstract contract PartyGovernance is
     }
 
     // Increase `voter`'s intrinsic voting power and update their delegate if delegate is nonzero.
+    // NOTE: What happens when you adjust voting power by 0?
     function _adjustVotingPower(address voter, int192 votingPower, address delegate)
         internal
     {

@@ -62,7 +62,7 @@ contract PartyFactory is IPartyFactory {
         emit PartyCreated(party, msg.sender);
     }
 
-    /// @notice Relinquish the ability to call `mint()`` by an authority.
+    /// @notice Relinquish the ability to call `mint()` by an authority.
     function abdicate(Party party) external onlyAuthority(party) {
         partyAuthorities[party] = address(0);
     }

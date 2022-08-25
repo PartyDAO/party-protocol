@@ -51,6 +51,8 @@ export enum GlobalKeys {
     DaoAuthorities              = 14,
     OpenSeaConduitKey           = 15,
     OpenSeaZone                 = 16,
+    ProposalMaxCancelDuration   = 17,
+    ZoraMinAuctionDuration      = 18
 }
 
 export enum ProposalType {
@@ -82,7 +84,7 @@ export enum ListOnOpenSeaStep {
 
 export interface Proposal {
     maxExecutableTime: number;
-    minCancelTime: number;
+    cancelDelay: number;
     proposalData: string;
 }
 
@@ -118,6 +120,9 @@ export class System {
         zoraAuctionHouseV2Address?: string;
         forcedZoraAuctionTimeout?: number;
         forcedZoraAuctionDuration?: number;
+        proposalMaxCancelDuration?: number;
+        zoraMinAuctionDuration?: number;
+        fractionalVaultFactory?: string;
         daoSplit: number;
     }): Promise<System> {
         const worker = createOpts.worker;
@@ -144,15 +149,15 @@ export class System {
         )).wait();
         await (await globals.setUint256(
             GlobalKeys.OpenSeaZoraAuctionTimeout,
-            createOpts.forcedZoraAuctionTimeout,
+            createOpts.forcedZoraAuctionTimeout || 0,
         )).wait();
         await (await globals.setUint256(
             GlobalKeys.OpenSeaZoraAuctionDuration,
-            createOpts.forcedZoraAuctionDuration,
+            createOpts.forcedZoraAuctionDuration || 0,
         )).wait();
         await (await globals.setUint256(
             GlobalKeys.OpenSeaZoraAuctionDuration,
-            createOpts.forcedZoraAuctionDuration,
+            createOpts.forcedZoraAuctionDuration || 0,
         )).wait();
         await (await globals.setBytes32(
             GlobalKeys.OpenSeaConduitKey,
@@ -161,6 +166,14 @@ export class System {
         await (await globals.setAddress(
             GlobalKeys.OpenSeaZone,
             createOpts.seaportZoneAddress || NULL_ADDRESS,
+        )).wait();
+        await (await globals.setUint256(
+            GlobalKeys.ProposalMaxCancelDuration,
+            createOpts.proposalMaxCancelDuration || 0,
+        )).wait();
+        await (await globals.setUint256(
+            GlobalKeys.ZoraMinAuctionDuration,
+            createOpts.zoraMinAuctionDuration || 0,
         )).wait();
         let seaportAddress = createOpts.seaportAddress || NULL_ADDRESS;
         // TODO: could be nice
@@ -180,6 +193,7 @@ export class System {
                 seaportAddress,
                 createOpts.seaportConduitController || NULL_ADDRESS,
                 createOpts.zoraAuctionHouseV2Address || NULL_ADDRESS,
+                createOpts.fractionalVaultFactory || NULL_ADDRESS,
             ],
         );
 
@@ -446,10 +460,10 @@ export async function createDummyERC721TokensAsync(
     return r;
 }
 
-export function createArbitraryCallsProposal(calls: ArbitraryCall[], maxExecutableTime: number, minCancelTime: number): Proposal {
+export function createArbitraryCallsProposal(calls: ArbitraryCall[], maxExecutableTime: number, cancelDelay: number): Proposal {
     return {
         maxExecutableTime,
-        minCancelTime,
+        cancelDelay,
         proposalData: ethers.utils.hexConcat([
             ethers.utils.hexZeroPad(ethers.utils.hexlify(ProposalType.ArbitraryCalls), 4),
             ethers.utils.defaultAbiCoder.encode(
@@ -460,10 +474,10 @@ export function createArbitraryCallsProposal(calls: ArbitraryCall[], maxExecutab
     };
 }
 
-export function createOpenSeaProposal(info: OpenSeaProposalInfo, maxExecutableTime: number, minCancelTime: number): Proposal {
+export function createOpenSeaProposal(info: OpenSeaProposalInfo, maxExecutableTime: number, cancelDelay: number): Proposal {
     return {
         maxExecutableTime,
-        minCancelTime,
+        cancelDelay,
         proposalData: ethers.utils.hexConcat([
             ethers.utils.hexZeroPad(ethers.utils.hexlify(ProposalType.ListOnOpenSea), 4),
             ethers.utils.defaultAbiCoder.encode(

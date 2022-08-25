@@ -31,7 +31,7 @@ contract PartyCrowdfundNFT is IERC721, EIP165, ReadOnlyDelegateCall {
     }
 
     // Must be called once by freshly deployed PartyProxy instances.
-    function initialize(string memory name_, string memory symbol_)
+    function _initialize(string memory name_, string memory symbol_)
         internal
         virtual
     {
@@ -94,9 +94,7 @@ contract PartyCrowdfundNFT is IERC721, EIP165, ReadOnlyDelegateCall {
         return super.supportsInterface(interfaceId);
     }
 
-    /// @dev This function is effectively view but the delegatecall prevents
-    ///      compilation with the view modifier.
-    function tokenURI(uint256) external /* view */ returns (string memory)
+    function tokenURI(uint256) external view returns (string memory)
     {
         _readOnlyDelegateCall(
             // An instance of IERC721Renderer

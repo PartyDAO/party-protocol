@@ -4,8 +4,6 @@ pragma solidity ^0.8;
 import "../globals/IGlobals.sol";
 import "../globals/LibGlobals.sol";
 import "../tokens/IERC20.sol";
-import "../tokens/IERC1155.sol";
-import "../tokens/ERC1155TokenReceiver.sol";
 import "../utils/LibAddress.sol";
 import "../utils/LibERC20Compat.sol";
 import "../utils/LibRawResult.sol";
@@ -14,7 +12,7 @@ import "../utils/LibSafeCast.sol";
 import "./ITokenDistributor.sol";
 
 /// @notice Creates token distributions for parties.
-contract TokenDistributor is ITokenDistributor, ERC1155TokenReceiver {
+contract TokenDistributor is ITokenDistributor {
     using LibAddress for address payable;
     using LibERC20Compat for IERC20;
     using LibRawResult for bytes;
@@ -36,7 +34,6 @@ contract TokenDistributor is ITokenDistributor, ERC1155TokenReceiver {
         ITokenDistributorParty party;
         TokenType tokenType;
         address token;
-        uint256 erc1155TokenId;
         uint256 currentTokenBalance;
         address payable feeRecipient;
         uint16 feeBps;
@@ -92,9 +89,6 @@ contract TokenDistributor is ITokenDistributor, ERC1155TokenReceiver {
         GLOBALS = globals;
     }
 
-    /// @notice For receiving ETH
-    receive() external payable {}
-
     /// @inheritdoc ITokenDistributor
     function createNativeDistribution(
         ITokenDistributorParty party,
@@ -109,7 +103,6 @@ contract TokenDistributor is ITokenDistributor, ERC1155TokenReceiver {
             party: party,
             tokenType: TokenType.Native,
             token: NATIVE_TOKEN_ADDRESS,
-            erc1155TokenId: 0,
             currentTokenBalance: address(this).balance,
             feeRecipient: feeRecipient,
             feeBps: feeBps
@@ -130,30 +123,7 @@ contract TokenDistributor is ITokenDistributor, ERC1155TokenReceiver {
             party: party,
             tokenType: TokenType.Erc20,
             token: address(token),
-            erc1155TokenId: 0,
             currentTokenBalance: token.balanceOf(address(this)),
-            feeRecipient: feeRecipient,
-            feeBps: feeBps
-        }));
-    }
-
-    /// @inheritdoc ITokenDistributor
-    function createErc1155Distribution(
-        IERC1155 token,
-        uint256 erc1155TokenId,
-        ITokenDistributorParty party,
-        address payable feeRecipient,
-        uint16 feeBps
-    )
-        external
-        returns (DistributionInfo memory info)
-    {
-        info = _createDistribution(CreateDistributionArgs({
-            party: party,
-            tokenType: TokenType.Erc1155,
-            token: address(token),
-            erc1155TokenId: erc1155TokenId,
-            currentTokenBalance: token.balanceOf(address(this), erc1155TokenId),
             feeRecipient: feeRecipient,
             feeBps: feeBps
         }));
@@ -198,7 +168,6 @@ contract TokenDistributor is ITokenDistributor, ERC1155TokenReceiver {
         _transfer(
             info.tokenType,
             info.token,
-            info.erc1155TokenId,
             payable(msg.sender),
             amountClaimed
         );
@@ -208,7 +177,6 @@ contract TokenDistributor is ITokenDistributor, ERC1155TokenReceiver {
             msg.sender,
             info.tokenType,
             info.token,
-            info.erc1155TokenId,
             amountClaimed
         );
     }
@@ -236,7 +204,6 @@ contract TokenDistributor is ITokenDistributor, ERC1155TokenReceiver {
         _transfer(
             info.tokenType,
             info.token,
-            info.erc1155TokenId,
             recipient,
             info.fee
         );
@@ -245,7 +212,6 @@ contract TokenDistributor is ITokenDistributor, ERC1155TokenReceiver {
             info.feeRecipient,
             info.tokenType,
             info.token,
-            info.erc1155TokenId,
             info.fee
         );
     }
@@ -342,7 +308,6 @@ contract TokenDistributor is ITokenDistributor, ERC1155TokenReceiver {
     function emergencyWithdraw(
         TokenType tokenType,
         address token,
-        uint256 erc1155TokenId,
         address payable recipient,
         uint256 amount
     )
@@ -350,7 +315,7 @@ contract TokenDistributor is ITokenDistributor, ERC1155TokenReceiver {
         onlyIfEmergencyActionsAllowed
         external
     {
-        _transfer(tokenType, token, erc1155TokenId, recipient, amount);
+        _transfer(tokenType, token, recipient, amount);
     }
 
     /// @notice DAO-only function to disable emergency functions forever.
@@ -367,7 +332,7 @@ contract TokenDistributor is ITokenDistributor, ERC1155TokenReceiver {
         }
         uint128 supply;
         {
-            bytes32 balanceId = _getBalanceId(args.tokenType, args.token, args.erc1155TokenId);
+            bytes32 balanceId = _getBalanceId(args.tokenType, args.token);
             supply = (args.currentTokenBalance - _storedBalances[balanceId])
                 .safeCastUint256ToUint128();
             // Supply must be nonzero.
@@ -386,7 +351,6 @@ contract TokenDistributor is ITokenDistributor, ERC1155TokenReceiver {
             tokenType: args.tokenType,
             distributionId: ++lastDistributionIdPerParty[args.party],
             token: args.token,
-            erc1155TokenId: args.erc1155TokenId,
             party: args.party,
             memberSupply: memberSupply,
             feeRecipient: args.feeRecipient,
@@ -402,22 +366,19 @@ contract TokenDistributor is ITokenDistributor, ERC1155TokenReceiver {
     function _transfer(
         TokenType tokenType,
         address token,
-        uint256 erc1155TokenId,
         address payable recipient,
         uint256 amount
     )
         private
     {
-        bytes32 balanceId = _getBalanceId(tokenType, token, erc1155TokenId);
+        bytes32 balanceId = _getBalanceId(tokenType, token);
         // Reduce stored token balance.
         _storedBalances[balanceId] -= amount;
         if (tokenType == TokenType.Native) {
             recipient.transferEth(amount);
-        } else if (tokenType == TokenType.Erc20) {
-            IERC20(token).compatTransfer(recipient, amount);
         } else {
-            assert(tokenType == TokenType.Erc1155);
-            IERC1155(token).safeTransferFrom(address(this), recipient, erc1155TokenId, amount, "");
+            assert(tokenType == TokenType.Erc20);
+            IERC20(token).compatTransfer(recipient, amount);
         }
     }
 
@@ -428,13 +389,13 @@ contract TokenDistributor is ITokenDistributor, ERC1155TokenReceiver {
     {
         assembly {
             hash := and(
-                keccak256(info, 0x100),
+                keccak256(info, 0xe0),
                 0xffffffffffffffffffffffffffffff0000000000000000000000000000000000
             )
         }
     }
 
-    function _getBalanceId(TokenType tokenType, address token, uint256 erc1155TokenId)
+    function _getBalanceId(TokenType tokenType, address token)
         private
         pure
         returns (bytes32 balanceId)
@@ -442,14 +403,7 @@ contract TokenDistributor is ITokenDistributor, ERC1155TokenReceiver {
         if (tokenType == TokenType.Native) {
             return bytes32(uint256(uint160(NATIVE_TOKEN_ADDRESS)));
         }
-        if (tokenType == TokenType.Erc20) {
-            return bytes32(uint256(uint160(token)));
-        }
-        assert(tokenType == TokenType.Erc1155);
-        assembly {
-            mstore(0x00, token)
-            mstore(0x20, erc1155TokenId)
-            balanceId := keccak256(0x00, 0x40)
-        }
+        assert(tokenType == TokenType.Erc20);
+        return bytes32(uint256(uint160(token)));
     }
 }

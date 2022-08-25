@@ -4,15 +4,18 @@ pragma solidity ^0.8;
 import "../globals/IGlobals.sol";
 import "../globals/LibGlobals.sol";
 import "../tokens/IERC721.sol";
+import "../utils/LibSafeCast.sol";
 
-import "./opensea/ISeaportExchange.sol";
-import "./opensea/ISeaportConduitController.sol";
+import "./vendor/ISeaportExchange.sol";
+import "./vendor/ISeaportConduitController.sol";
 import "./ZoraHelpers.sol";
 import "./LibProposal.sol";
 import "./IProposalExecutionEngine.sol";
 
 // Implements propoasls listing an NFT on open sea.
 abstract contract ListOnOpenSeaportProposal is ZoraHelpers {
+    using LibSafeCast for uint256;
+
     enum ListOnOpenSeaportStep {
         // The proposal hasn't been executed yet.
         None,
@@ -104,12 +107,12 @@ abstract contract ListOnOpenSeaportProposal is ZoraHelpers {
     {
         SEAPORT = seaport;
         CONDUIT_CONTROLLER = conduitController;
-        _GLOBALS =globals;
+        _GLOBALS = globals;
     }
 
     // Try to create a listing (ultimately) on OpenSea (Seaport).
     // Creates a listing on Zora AH for list price first. When that ends,
-    // calling this function again will list in on OpenSea. When that ends,
+    // calling this function again will list on OpenSea. When that ends,
     // calling this function again will cancel the listing.
     function _executeListOnOpenSeaport(
         IProposalExecutionEngine.ExecuteProposalParams memory params
@@ -121,7 +124,7 @@ abstract contract ListOnOpenSeaportProposal is ZoraHelpers {
             abi.decode(params.proposalData, (OpenSeaportProposalData));
         bool isUnanimous = params.flags & LibProposal.PROPOSAL_FLAG_UNANIMOUS
             == LibProposal.PROPOSAL_FLAG_UNANIMOUS;
-        // If there is progressData passed in, we're on the first step,
+        // If there is no progressData passed in, we're on the first step,
         // otherwise parse the first word of the progressData as the current step.
         ListOnOpenSeaportStep step = params.progressData.length == 0
             ? ListOnOpenSeaportStep.None
@@ -154,7 +157,7 @@ abstract contract ListOnOpenSeaportProposal is ZoraHelpers {
                     // Return the next step and data required to execute that step.
                     return abi.encode(ListOnOpenSeaportStep.ListedOnZora, ZoraProgressData({
                         auctionId: auctionId,
-                        minExpiry: uint40(block.timestamp + zoraTimeout)
+                        minExpiry: (block.timestamp + zoraTimeout).safeCastUint256ToUint40()
                     }));
                 }
             }
@@ -170,7 +173,7 @@ abstract contract ListOnOpenSeaportProposal is ZoraHelpers {
                 abi.decode(params.progressData, (uint8, ZoraProgressData));
             // Try to settle the zora auction. This will revert if the auction
             // is still ongoing.
-            if (_settleZoraAuction(zpd.auctionId, zpd.minExpiry)) {
+            if (_settleZoraAuction(zpd.auctionId, zpd.minExpiry, data.token, data.tokenId)) {
                 // Auction sold. Nothing left to do. Return empty progress data
                 // to indicate there are no more steps to execute.
                 return "";

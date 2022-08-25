@@ -9,7 +9,7 @@ abstract contract ZoraHelpers {
 
     // ABI-encoded `progressData` passed into execute in the `ListedOnZora` step.
     struct ZoraProgressData {
-        // Acution ID.
+        // Auction ID.
         uint256 auctionId;
         // The minimum timestamp when we can cancel the auction if no one bids.
         uint40 minExpiry;
@@ -31,7 +31,12 @@ abstract contract ZoraHelpers {
         returns (uint256 auctionId);
 
     // Either cancel or finalize a zora auction.
-    function _settleZoraAuction(uint256 auctionId, uint40 minExpiry)
+    function _settleZoraAuction(
+        uint256 auctionId,
+        uint40 minExpiry,
+        IERC721 token,
+        uint256 tokenId
+    )
         internal
         virtual
         returns (bool sold);

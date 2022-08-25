@@ -74,7 +74,7 @@ contract ArbitraryCallsProposalTest is
         bytes32 stuff
     );
 
-    event ArbitraryCallExecuted(uint256 proposalId, bool succeeded, uint256 idx, uint256 count);
+    event ArbitraryCallExecuted(uint256 proposalId, uint256 idx, uint256 count);
 
     ArbitraryCallTarget target = new ArbitraryCallTarget();
     TestableArbitraryCallsProposal testContract = new TestableArbitraryCallsProposal();
@@ -142,7 +142,6 @@ contract ArbitraryCallsProposalTest is
                     ArbitraryCallTarget.success,
                     (callArgs[i], callResults[i])
                 ),
-                optional: false,
                 expectedResultHash: shouldCallsReturnData
                     ? keccak256(callResults[i]) : bytes32(0)
             });
@@ -160,7 +159,7 @@ contract ArbitraryCallsProposalTest is
             _expectNonIndexedEmit();
             emit ArbitraryCallTargetSuccessCalled(address(testContract), 0, callArgs[i]);
             _expectNonIndexedEmit();
-            emit ArbitraryCallExecuted(prop.proposalId, true, i, calls.length);
+            emit ArbitraryCallExecuted(prop.proposalId, i, calls.length);
         }
         testContract.execute(prop);
     }
@@ -176,7 +175,7 @@ contract ArbitraryCallsProposalTest is
             _expectNonIndexedEmit();
             emit ArbitraryCallTargetSuccessCalled(address(testContract), 0, callArgs[i]);
             _expectNonIndexedEmit();
-            emit ArbitraryCallExecuted(prop.proposalId, true, i, calls.length);
+            emit ArbitraryCallExecuted(prop.proposalId, i, calls.length);
         }
         testContract.execute(prop);
     }
@@ -192,7 +191,7 @@ contract ArbitraryCallsProposalTest is
             _expectNonIndexedEmit();
             emit ArbitraryCallTargetSuccessCalled(address(testContract), 0, callArgs[i]);
             _expectNonIndexedEmit();
-            emit ArbitraryCallExecuted(prop.proposalId, true, i, calls.length);
+            emit ArbitraryCallExecuted(prop.proposalId, i, calls.length);
         }
         testContract.execute(prop);
     }
@@ -214,42 +213,6 @@ contract ArbitraryCallsProposalTest is
         testContract.execute(prop);
     }
 
-    function test_canExecuteOptionalFailingSingleCall() external {
-        (
-            ArbitraryCallsProposal.ArbitraryCall[] memory calls,
-        ) = _createSimpleCalls(1, false);
-        calls[0].data = abi.encodeCall(ArbitraryCallTarget.fail, (0));
-        calls[0].optional = true;
-        IProposalExecutionEngine.ExecuteProposalParams memory prop =
-            _createTestProposal(calls);
-        for (uint256 i = 0; i < calls.length; ++i) {
-            _expectNonIndexedEmit();
-            emit ArbitraryCallExecuted(prop.proposalId, false, i, calls.length);
-        }
-        testContract.execute(prop);
-    }
-
-    function test_canExecuteOneFailingOneSucceedingCalls() external {
-        (
-            ArbitraryCallsProposal.ArbitraryCall[] memory calls,
-            bytes32[] memory callArgs
-        ) = _createSimpleCalls(2, false);
-        // First call will fail, second will succeed.
-        calls[0].data = abi.encodeCall(ArbitraryCallTarget.fail, (0));
-        calls[0].optional = true;
-        IProposalExecutionEngine.ExecuteProposalParams memory prop =
-            _createTestProposal(calls);
-        for (uint256 i = 0; i < calls.length; ++i) {
-            if (!calls[i].optional) {
-                _expectNonIndexedEmit();
-                emit ArbitraryCallTargetSuccessCalled(address(testContract), calls[i].value, callArgs[i]);
-            }
-            _expectNonIndexedEmit();
-            emit ArbitraryCallExecuted(prop.proposalId, !calls[i].optional, i, calls.length);
-        }
-        testContract.execute(prop);
-    }
-
     function test_canExecuteCallWithEth() external {
         (
             ArbitraryCallsProposal.ArbitraryCall[] memory calls,
@@ -262,7 +225,7 @@ contract ArbitraryCallsProposalTest is
             _expectNonIndexedEmit();
             emit ArbitraryCallTargetSuccessCalled(address(testContract), calls[i].value, callArgs[i]);
             _expectNonIndexedEmit();
-            emit ArbitraryCallExecuted(prop.proposalId, true, i, calls.length);
+            emit ArbitraryCallExecuted(prop.proposalId, i, calls.length);
         }
         testContract.execute{ value: 1e18 }(prop);
     }
@@ -280,33 +243,9 @@ contract ArbitraryCallsProposalTest is
             _expectNonIndexedEmit();
             emit ArbitraryCallTargetSuccessCalled(address(testContract), calls[i].value, callArgs[i]);
             _expectNonIndexedEmit();
-            emit ArbitraryCallExecuted(prop.proposalId, true, i, calls.length);
+            emit ArbitraryCallExecuted(prop.proposalId, i, calls.length);
         }
         testContract.execute{ value: 1.5e18 }(prop);
-    }
-
-    function test_canExecuteMultipleCallsWithEth_oneFailing() external {
-        (
-            ArbitraryCallsProposal.ArbitraryCall[] memory calls,
-            bytes32[] memory callArgs
-        ) = _createSimpleCalls(2, false);
-        // First call will fail.
-        calls[0].data = abi.encodeCall(ArbitraryCallTarget.fail, (0));
-        calls[0].value = 1e18;
-        calls[0].optional = true;
-        calls[1].value = 1e18;
-        IProposalExecutionEngine.ExecuteProposalParams memory prop =
-            _createTestProposal(calls);
-        for (uint256 i = 0; i < calls.length; ++i) {
-            if (!calls[i].optional) {
-                _expectNonIndexedEmit();
-                emit ArbitraryCallTargetSuccessCalled(address(testContract), calls[i].value, callArgs[i]);
-            }
-            _expectNonIndexedEmit();
-            emit ArbitraryCallExecuted(prop.proposalId, !calls[i].optional, i, calls.length);
-        }
-        // Only attach enough ETH to cover one succeeding call.
-        testContract.execute{ value: 1e18 }(prop);
     }
 
     function test_cannotConsumeMoreEthThanAttachedWithSingleCall() external {

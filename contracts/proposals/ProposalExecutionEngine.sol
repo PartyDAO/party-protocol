@@ -65,24 +65,26 @@ contract ProposalExecutionEngine is
     error ProposalExecutionBlockedError(uint256 proposalId, uint256 currentInProgressProposalId);
     error ProposalProgressDataInvalidError(bytes32 actualProgressDataHash, bytes32 expectedProgressDataHash);
     error ProposalNotInProgressError(uint256 proposalId);
+    error UnexpectedProposalEngineImplementationError(IProposalExecutionEngine actualImpl, IProposalExecutionEngine expectedImpl);
 
-    bytes32 private constant EMPTY_HASH = keccak256("");
+
     IGlobals private immutable _GLOBALS;
     // Storage slot for `Storage`.
-    uint256 private immutable _STORAGE_SLOT;
+    // Use a constant, non-overlapping slot offset for the storage bucket.
+    uint256 private constant _STORAGE_SLOT = uint256(keccak256('ProposalExecutionEngine.Storage'));
 
     constructor(
         IGlobals globals,
         ISeaportExchange seaport,
         ISeaportConduitController seaportConduitController,
-        IZoraAuctionHouse zoraAuctionHouse
+        IZoraAuctionHouse zoraAuctionHouse,
+        IFractionalV1VaultFactory fractionalVaultFactory
     )
         ListOnOpenSeaportProposal(globals, seaport, seaportConduitController)
-        ListOnZoraProposal(zoraAuctionHouse)
+        ListOnZoraProposal(globals, zoraAuctionHouse)
+        FractionalizeProposal(fractionalVaultFactory)
     {
         _GLOBALS = globals;
-        // Use a constant, non-overlapping slot offset for the storage bucket.
-        _STORAGE_SLOT = uint256(keccak256('ProposalExecutionEngine.Storage'));
     }
 
     function initialize(address oldImpl, bytes calldata initializeData)
@@ -105,11 +107,11 @@ contract ProposalExecutionEngine is
         onlyDelegateCall
         returns (bytes memory nextProgressData)
     {
-        Storage storage stor = _getStorage();
         // Must have a valid proposal ID.
         if (params.proposalId == 0) {
             revert ZeroProposalIdError();
         }
+        Storage storage stor = _getStorage();
         uint256 currentInProgressProposalId = stor.currentInProgressProposalId;
         if (currentInProgressProposalId == 0) {
             // No proposal is currently in progress.
@@ -134,14 +136,14 @@ contract ProposalExecutionEngine is
                     );
                 }
             } else { // Expecting progress data.
-                 bytes32 progressDataHash = keccak256(params.progressData);
-                 // Progress data must match the one stored.
-                 if (nextProgressDataHash != progressDataHash) {
-                     revert ProposalProgressDataInvalidError(
-                         progressDataHash,
-                         nextProgressDataHash
-                     );
-                 }
+                bytes32 progressDataHash = keccak256(params.progressData);
+                // Progress data must match the one stored.
+                if (nextProgressDataHash != progressDataHash) {
+                    revert ProposalProgressDataInvalidError(
+                        progressDataHash,
+                        nextProgressDataHash
+                    );
+                }
             }
             // Temporarily set the expected next progress data hash to an
             // unachievable constant to act as a reentrancy guard.
@@ -156,7 +158,7 @@ contract ProposalExecutionEngine is
         (pt, params.proposalData) = _extractProposalType(params.proposalData);
         nextProgressData = _execute(pt, params);
 
-        // If progress data is empty, the propsal is complete.
+        // If progress data is empty, the proposal is complete.
         if (nextProgressData.length == 0) {
             stor.currentInProgressProposalId = 0;
             stor.nextProgressDataHash = 0;
@@ -183,8 +185,9 @@ contract ProposalExecutionEngine is
                 revert ProposalNotInProgressError(proposalId);
             }
         }
-        // Clear the current InProgress proposal ID.
+        // Clear the current InProgress proposal ID and next progress data.
         stor.currentInProgressProposalId = 0;
+        stor.nextProgressDataHash = 0;
     }
 
     function _execute(ProposalType pt, ExecuteProposalParams memory params)
@@ -215,11 +218,13 @@ contract ProposalExecutionEngine is
         pure
         returns (ProposalType proposalType, bytes memory offsetProposalData)
     {
-        // First 4 bytes is propsal type.
+        // First 4 bytes is proposal type.
         if (proposalData.length < 4) {
             revert MalformedProposalDataError();
         }
         assembly {
+            // by reading 4 bytes into the length prefix, the leading 4 bytes
+            // of the data will be in the lower bits of the read word.
             proposalType := and(mload(add(proposalData, 4)), 0xffffffff)
             mstore(add(proposalData, 4), sub(mload(proposalData), 4))
             offsetProposalData := add(proposalData, 4)
@@ -232,17 +237,24 @@ contract ProposalExecutionEngine is
     function _executeUpgradeProposalsImplementation(bytes memory proposalData)
         private
     {
-        bytes memory initData = abi.decode(proposalData, (bytes));
+        (address expectedImpl, bytes memory initData) =
+            abi.decode(proposalData, (address, bytes));
         // Always upgrade to latest implementation stored in _GLOBALS.
         IProposalExecutionEngine newImpl = IProposalExecutionEngine(
             _GLOBALS.getAddress(LibGlobals.GLOBAL_PROPOSAL_ENGINE_IMPL)
         );
+        if (expectedImpl != address(newImpl)) {
+            revert UnexpectedProposalEngineImplementationError(
+                newImpl,
+                IProposalExecutionEngine(expectedImpl)
+            );
+        }
         _initProposalImpl(newImpl, initData);
-        emit ProposalEngineImplementationUpgraded(address(IMPL), address(newImpl));
+        emit ProposalEngineImplementationUpgraded(address(IMPL), expectedImpl);
     }
 
     // Retrieve the explicit storage bucket for the ProposalExecutionEngine logic.
-    function _getStorage() internal view returns (Storage storage stor) {
+    function _getStorage() internal pure returns (Storage storage stor) {
         uint256 slot = _STORAGE_SLOT;
         assembly { stor.slot := slot }
     }

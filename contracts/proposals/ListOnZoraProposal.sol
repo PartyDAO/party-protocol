@@ -1,11 +1,14 @@
 // SPDX-License-Identifier: Apache-2.0
 pragma solidity ^0.8;
 
+import "../globals/IGlobals.sol";
+import "../globals/LibGlobals.sol";
 import "../tokens/IERC721.sol";
 import "../utils/LibRawResult.sol";
 import "../utils/LibSafeERC721.sol";
+import "../utils/LibSafeCast.sol";
 
-import "./zora/IZoraAuctionHouse.sol";
+import "./vendor/IZoraAuctionHouse.sol";
 import "./IProposalExecutionEngine.sol";
 import "./ZoraHelpers.sol";
 
@@ -13,6 +16,7 @@ import "./ZoraHelpers.sol";
 contract ListOnZoraProposal is ZoraHelpers {
     using LibRawResult for bytes;
     using LibSafeERC721 for IERC721;
+    using LibSafeCast for uint256;
 
     enum ZoraStep {
         // Proposal has not been executed yet and should be listed on Zora.
@@ -47,6 +51,7 @@ contract ListOnZoraProposal is ZoraHelpers {
     );
     event ZoraAuctionExpired(uint256 auctionId, uint256 expiry);
     event ZoraAuctionSold(uint256 auctionId);
+    event ZoraAuctionFailed(uint256 auctionId);
 
     // keccak256(abi.encodeWithSignature('Error(string)', "Auction hasn't begun"))
     bytes32 constant internal AUCTION_HASNT_BEGUN_ERROR_HASH =
@@ -55,9 +60,11 @@ contract ListOnZoraProposal is ZoraHelpers {
     bytes32 constant internal AUCTION_DOESNT_EXIST_ERROR_HASH =
         0x474ba0184a7cd5de777156a56f3859150719340a6974b6ee50f05c58139f4dc2;
     IZoraAuctionHouse public immutable ZORA;
+    IGlobals private immutable _GLOBALS;
 
-    constructor(IZoraAuctionHouse zoraAuctionHouse) {
+    constructor(IGlobals globals, IZoraAuctionHouse zoraAuctionHouse) {
         ZORA = zoraAuctionHouse;
+        _GLOBALS = globals;
     }
 
     // Auction an NFT we hold on zora.
@@ -77,23 +84,28 @@ contract ListOnZoraProposal is ZoraHelpers {
             : abi.decode(params.progressData, (ZoraStep));
         if (step == ZoraStep.None) {
             // Proposal hasn't executed yet.
+            // Clamp the zora auction duration to the global minimum.
+            uint40 effectiveDuration =
+                uint40(_GLOBALS.getUint256(LibGlobals.GLOBAL_ZORA_MIN_AUCTION_DURATION));
+            effectiveDuration = effectiveDuration < data.duration
+                ? data.duration : effectiveDuration;
             // Create a zora auction for the NFT.
             uint256 auctionId = _createZoraAuction(
                 data.listPrice,
                 data.timeout,
-                data.duration,
+                effectiveDuration,
                 data.token,
                 data.tokenId
             );
             return abi.encode(ZoraStep.ListedOnZora, ZoraProgressData({
                 auctionId: auctionId,
-                minExpiry: uint40(block.timestamp + data.timeout)
+                minExpiry: (block.timestamp + data.timeout).safeCastUint256ToUint40()
             }));
         }
         assert(step == ZoraStep.ListedOnZora);
         (, ZoraProgressData memory pd) =
             abi.decode(params.progressData, (ZoraStep, ZoraProgressData));
-        _settleZoraAuction(pd.auctionId, pd.minExpiry);
+        _settleZoraAuction(pd.auctionId, pd.minExpiry, data.token, data.tokenId);
         // Nothing left to do.
         return "";
     }
@@ -136,7 +148,9 @@ contract ListOnZoraProposal is ZoraHelpers {
     // Either cancel or finalize a zora auction.
     function _settleZoraAuction(
         uint256 auctionId,
-        uint40 minExpiry
+        uint40 minExpiry,
+        IERC721 token,
+        uint256 tokenId
     )
         internal
         override
@@ -145,6 +159,12 @@ contract ListOnZoraProposal is ZoraHelpers {
         // Getting the state of an auction is super expensive so it seems
         // cheaper to just let `endAuction` fail and react to the error.
         try ZORA.endAuction(auctionId) {
+            // Check whether auction cancelled due to a failed transfer during
+            // settlement by seeing if we now possess the NFT.
+            if (token.safeOwnerOf(tokenId) == address(this)) {
+                emit ZoraAuctionFailed(auctionId);
+                return false;
+            }
         } catch (bytes memory errData) {
             bytes32 errHash = keccak256(errData);
             if (errHash == AUCTION_HASNT_BEGUN_ERROR_HASH) {

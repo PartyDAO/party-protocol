@@ -7,6 +7,7 @@ import "../../contracts/crowdfund/PartyBid.sol";
 import "../../contracts/gatekeepers/AllowListGateKeeper.sol";
 import "../../contracts/globals/Globals.sol";
 import "../../contracts/globals/LibGlobals.sol";
+import "../../contracts/renderers/PartyCrowdfundNFTRenderer.sol";
 import "../../contracts/utils/Proxy.sol";
 
 import "../DummyERC721.sol";
@@ -63,6 +64,8 @@ contract PartyCrowdfundTest is Test, TestUtils {
     }
 
     function setUp() public {
+        PartyCrowdfundNFTRenderer nftRenderer = new PartyCrowdfundNFTRenderer(globals);
+        globals.setAddress(LibGlobals.GLOBAL_CF_NFT_RENDER_IMPL, address(nftRenderer));
     }
 
     function _createTokens(address owner, uint256 count)
@@ -797,7 +800,7 @@ contract PartyCrowdfundTest is Test, TestUtils {
         address payable contributor2 = _randomAddress();
 
         AllowListGateKeeper gk = new AllowListGateKeeper();
-        bytes12 gateId = gk.createGate(_toAddressArray(contributor1));
+        bytes12 gateId = gk.createGate(keccak256(abi.encodePacked(contributor1)));
         defaultGateKeeper = gk;
         defaultGateKeeperId = gateId;
         TestablePartyCrowdfund cf = _createCrowdfund(0);
@@ -805,7 +808,7 @@ contract PartyCrowdfundTest is Test, TestUtils {
         // contributor1 contributes 1 ETH
         vm.deal(contributor1, 1e18);
         vm.prank(contributor1);
-        cf.contribute{ value: contributor1.balance }(delegate1, "");
+        cf.contribute{ value: contributor1.balance }(delegate1, abi.encode(new bytes32[](0)));
 
         // contributor2 contributes 0.5 ETH but will be blocked by the gatekeeper.
         vm.deal(contributor2, 0.5e18);
@@ -815,8 +818,21 @@ contract PartyCrowdfundTest is Test, TestUtils {
             contributor2,
             defaultGateKeeper,
             gateId,
-            ""
+            abi.encode(new bytes32[](0))
         ));
-        cf.contribute{ value: contributor2.balance }(delegate2, "");
+        cf.contribute{ value: contributor2.balance }(delegate2, abi.encode(new bytes32[](0)));
+    }
+
+    // test nft renderer
+    function test_nftRenderer() public {
+        TestablePartyCrowdfund cf = _createCrowdfund(0);
+        address delegate1 = _randomAddress();
+        address payable contributor1 = _randomAddress();
+        // contributor1 contributes 1 ETH
+        vm.deal(contributor1, 1e18);
+        vm.prank(contributor1);
+        cf.contribute{ value: contributor1.balance }(delegate1, "");
+        string memory tokenURI = cf.tokenURI(uint256(uint160(address(contributor1))));
+        assertTrue(bytes(tokenURI).length > 0);
     }
 }
