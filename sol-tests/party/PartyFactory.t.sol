@@ -6,11 +6,13 @@ import "forge-std/Test.sol";
 import "../../contracts/party/PartyFactory.sol";
 import "../../contracts/globals/Globals.sol";
 import "../TestUtils.sol";
+import "../../contracts/proposals/ProposalExecutionEngine.sol";
 
 contract PartyFactoryTest is Test, TestUtils {
     Globals globals = new Globals(address(this));
     Party partyImpl = new Party(globals);
     PartyFactory factory = new PartyFactory(globals);
+    ProposalExecutionEngine eng;
     Party.PartyOptions defaultPartyOptions;
 
     constructor() {
@@ -22,7 +24,17 @@ contract PartyFactoryTest is Test, TestUtils {
         defaultPartyOptions.governance.executionDelay = 8 hours;
         defaultPartyOptions.governance.passThresholdBps = 0.51e4;
         defaultPartyOptions.governance.totalVotingPower = 100e18;
+
+        eng = new ProposalExecutionEngine(
+            globals,
+            ISeaportExchange(_randomAddress()),
+            ISeaportConduitController(_randomAddress()),
+            IZoraAuctionHouse(_randomAddress()),
+            IFractionalV1VaultFactory(_randomAddress())
+        );
+
         globals.setAddress(LibGlobals.GLOBAL_PARTY_IMPL, address(partyImpl));
+        globals.setAddress(LibGlobals.GLOBAL_PROPOSAL_ENGINE_IMPL, address(eng));
     }
 
     function _createPreciouses(uint256 count)
@@ -100,6 +112,7 @@ contract PartyFactoryTest is Test, TestUtils {
         assertEq(values.totalVotingPower, opts.governance.totalVotingPower);
         assertEq(party.feeBps(), opts.governance.feeBps);
         assertEq(party.feeRecipient(), opts.governance.feeRecipient);
+        assertEq(address(party.getProposalExecutionEngine()), address(eng));
         assertEq(party.preciousListHash(), _hashPreciousList(preciousTokens, preciousTokenIds));
     }
 
@@ -119,12 +132,7 @@ contract PartyFactoryTest is Test, TestUtils {
             PartyGovernance.InvalidBpsError.selector,
             feeBps > 1e4 ? feeBps : passThresholdBps
         ));
-        Party party = factory.createParty(
-            authority,
-            opts,
-            preciousTokens,
-            preciousTokenIds
-        );
+        factory.createParty(authority, opts, preciousTokens, preciousTokenIds);
     }
 
     function testMint_works(address owner, address delegate, uint256 amount) external {
