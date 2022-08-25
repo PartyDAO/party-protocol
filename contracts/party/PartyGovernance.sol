@@ -184,6 +184,7 @@ abstract contract PartyGovernance is
     error AlreadyVotedError(address voter);
     error InvalidNewHostError();
     error ProposalCannotBeCancelledYetError(uint40 currentTime, uint40 cancelTime);
+    error InvalidBpsError(uint16 bps);
 
     uint256 constant private UINT40_HIGH_BIT = 1 << 39;
     uint96 constant private VETO_VALUE = uint96(int96(-1));
@@ -271,6 +272,12 @@ abstract contract PartyGovernance is
         internal
         virtual
     {
+        if (opts.feeBps > 1e4) {
+            revert InvalidBpsError(opts.feeBps);
+        }
+        if (opts.passThresholdBps > 1e4) {
+            revert InvalidBpsError(opts.passThresholdBps);
+        }
         _initProposalImpl(
             IProposalExecutionEngine(
                 _GLOBALS.getAddress(LibGlobals.GLOBAL_PROPOSAL_ENGINE_IMPL)
@@ -805,7 +812,6 @@ abstract contract PartyGovernance is
     }
 
     // Increase `voter`'s intrinsic voting power and update their delegate if delegate is nonzero.
-    // NOTE: What happens when you adjust voting power by 0?
     function _adjustVotingPower(address voter, int192 votingPower, address delegate)
         internal
     {
