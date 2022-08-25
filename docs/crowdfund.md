@@ -164,7 +164,7 @@ The accounting logic for all this is handled in the `PartyCrowdfund` contract fr
 
 ### Extra Parameters
 
-The `contribute()` function accepts a delegate parameter, which will be the user's initial delegate when they mint their voting power in the governance party. Future contributions (even 0-value contributions) can change the initial delegate. Contribute can be called It is valid to call `contribute()` with `0` value even after the crowdfund expires or ends in order to update a user's chosen delegate.
+The `contribute()` function accepts a delegate parameter, which will be the user's initial delegate when they mint their voting power in the governance party. Future contributions (even 0-value contributions) can change the initial delegate. It is valid to call `contribute()` with `0` value even after the crowdfund expires or ends in order to update a user's chosen delegate.
 
 The `contribute()` function accepts a `gateData` parameter, which will be passed to the gatekeeper a party has chosen (if any). If there is a gatekeeper in use, this arbitrary data must be used by the gatekeeper to prove that the contributor is allowed to participate.
 
