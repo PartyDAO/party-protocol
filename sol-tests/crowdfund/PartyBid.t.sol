@@ -43,6 +43,9 @@ contract PartyBidTest is Test, TestUtils {
         uint256 topBid
     );
 
+    event Burned(address contributor, uint256 ethUsed, uint256 ethOwed, uint256 votingPower);
+    event Contributed(address contributor, uint256 amount, address delegate, uint256 previousTotalContributions);
+
     string defaultName = 'PartyBid';
     string defaultSymbol = 'PBID';
     uint40 defaultDuration = 60 * 60;
@@ -121,7 +124,7 @@ contract PartyBidTest is Test, TestUtils {
         });
     }
 
-    function testHappyPath() public {
+    function test_happyPath() external {
         // Create a token and auction with min bid of 1337 wei.
         (uint256 auctionId, uint256 tokenId) = market.createAuction(1337);
         // Create a PartyBid instance.
@@ -129,19 +132,17 @@ contract PartyBidTest is Test, TestUtils {
         // Contribute and delegate.
         address payable contributor = _randomAddress();
         address delegate = _randomAddress();
-        vm.deal(contributor, 1e18);
-        vm.prank(contributor);
-        pb.contribute{ value: 1e18 }(delegate, "");
+        _contribute(pb, contributor, delegate, 1e18);
         // Bid on the auction.
-        vm.expectEmit(false, false, false, true);
+        _expectEmit0();
         emit MockMarketWrapperBid(address(pb), auctionId, 1337);
         pb.bid();
         // End the auction.
-        vm.expectEmit(false, false, false, true);
+        _expectEmit0();
         emit MockMarketWrapperFinalize(address(pb), address(pb), 1337);
-        market.mockEndAuction(auctionId);
-        // Finalize the PartyBid.
-        vm.expectEmit(false, false, false, true);
+        market.endAuction(auctionId);
+        // Finalize the crowdfund.
+        _expectEmit0();
         emit MockPartyFactoryCreateParty(
             address(pb),
             address(pb),
@@ -150,10 +151,10 @@ contract PartyBidTest is Test, TestUtils {
             _toUint256Array(tokenId)
         );
         Party party_ = pb.finalize(defaultGovernanceOpts);
-        assertEq(address(party), address(party_));
+        assertEq(address(party_), address(party));
         // Burn contributor's NFT, mock minting governance tokens and returning
         // unused contribution.
-        vm.expectEmit(false, false, false, true);
+        _expectEmit0();
         emit MockPartyFactoryMint(
             address(pb),
             party_,
@@ -161,15 +162,233 @@ contract PartyBidTest is Test, TestUtils {
             1337,
             delegate
         );
+        _expectEmit0();
+        emit Burned(contributor, 1337, 1e18 - 1337, 1337);
         pb.burn(contributor);
         assertEq(contributor.balance, 1e18 - 1337);
     }
 
-    function testCannotReinitialize() public {
+    function test_cannotReinitialize() external {
         (uint256 auctionId, uint256 tokenId) = market.createAuction(1337);
         PartyBid pb = _createCrowdfund(auctionId, tokenId, 0);
         vm.expectRevert(abi.encodeWithSelector(Implementation.OnlyConstructorError.selector));
         PartyBid.PartyBidOptions memory opts;
         pb.initialize(opts);
+    }
+
+    function test_canRefundIfCrowdfundLosesAndNoBidsMade() external {
+        // Create a token and auction with min bid of 1337 wei.
+        (uint256 auctionId, uint256 tokenId) = market.createAuction(1337);
+        // Create a PartyBid instance.
+        PartyBid pb = _createCrowdfund(auctionId, tokenId, 0);
+        // Contribute and delegate.
+        address payable contributor = _randomAddress();
+        _contribute(pb, contributor, 1e18);
+        // Expire and finalize the crowdfund.
+        skip(defaultDuration);
+        Party party_ = pb.finalize(defaultGovernanceOpts);
+        assertEq(address(party_), address(0));
+        // Burn contributor's NFT, which should refund all contributed ETH.
+        _expectEmit0();
+        emit Burned(contributor, 0, 1e18, 0);
+        pb.burn(contributor);
+        assertEq(contributor.balance, 1e18);
+    }
+
+    function test_canRefundIfCrowdfundLosesWithBidsMade() external {
+        // Create a token and auction with min bid of 1337 wei.
+        (uint256 auctionId, uint256 tokenId) = market.createAuction(1337);
+        // Create a PartyBid instance.
+        PartyBid pb = _createCrowdfund(auctionId, tokenId, 0);
+        // Contribute and delegate.
+        address payable contributor = _randomAddress();
+        _contribute(pb, contributor, 1e18);
+        // Bid on the auction.
+        pb.bid();
+        // Outbid externally so we're losing.
+        _outbidExternally(auctionId);
+        // End the auction.
+        market.endAuction(auctionId);
+        // Expire and finalize the crowdfund.
+        skip(defaultDuration);
+        Party party_ = pb.finalize(defaultGovernanceOpts);
+        assertEq(address(party_), address(0));
+        // Burn contributor's NFT, which should refund all contributed ETH.
+        _expectEmit0();
+        emit Burned(contributor, 0, 1e18, 0);
+        pb.burn(contributor);
+        assertEq(contributor.balance, 1e18);
+    }
+
+    function test_canWinEvenIfExpiredIfAlsoTopBidder() external {
+        // Create a token and auction with min bid of 1337 wei.
+        (uint256 auctionId, uint256 tokenId) = market.createAuction(1337);
+        // Create a PartyBid instance.
+        PartyBid pb = _createCrowdfund(auctionId, tokenId, 0);
+        // Contribute and delegate.
+        address payable contributor = _randomAddress();
+        _contribute(pb, contributor, 1e18);
+        // Bid on the auction.
+        pb.bid();
+        // Expire and finalize the crowdfund.
+        skip(defaultDuration);
+        assertEq(uint8(pb.getCrowdfundLifecycle()), uint8(PartyCrowdfund.CrowdfundLifecycle.Expired));
+        // End the auction.
+        market.endAuction(auctionId);
+        // Finalize the crowdfund.
+        Party party_ = pb.finalize(defaultGovernanceOpts);
+        assertEq(address(party_), address(party));
+        // Burn contributor's NFT, which should refund unused ETH and mint voting power.
+        _expectEmit0();
+        emit Burned(contributor, 1337, 1e18 - 1337, 1337);
+        pb.burn(contributor);
+        assertEq(contributor.balance, 1e18 - 1337);
+    }
+
+    function test_cannotBidAfterFinalize() external {
+        // Create a token and auction with min bid of 1337 wei.
+        (uint256 auctionId, uint256 tokenId) = market.createAuction(1337);
+        // Create a PartyBid instance.
+        PartyBid pb = _createCrowdfund(auctionId, tokenId, 0);
+        // Contribute and delegate.
+        address payable contributor = _randomAddress();
+        _contribute(pb, contributor, 1e18);
+        // Bid on the auction.
+        pb.bid();
+        // End the auction.
+        market.endAuction(auctionId);
+        // Finalize the crowdfund.
+        Party party_ = pb.finalize(defaultGovernanceOpts);
+        assertEq(address(party_), address(party));
+        // Try to bid with the crowdfund again.
+        vm.expectRevert(abi.encodeWithSelector(
+            PartyCrowdfund.WrongLifecycleError.selector,
+            PartyCrowdfund.CrowdfundLifecycle.Won
+        ));
+        pb.bid();
+    }
+
+    function test_cannotFinalizeTwice() external {
+        // Create a token and auction with min bid of 1337 wei.
+        (uint256 auctionId, uint256 tokenId) = market.createAuction(1337);
+        // Create a PartyBid instance.
+        PartyBid pb = _createCrowdfund(auctionId, tokenId, 0);
+        // Contribute and delegate.
+        address payable contributor = _randomAddress();
+        _contribute(pb, contributor, 1e18);
+        // Bid on the auction.
+        pb.bid();
+        // End the auction.
+        market.endAuction(auctionId);
+        // Finalize the crowdfund.
+        Party party_ = pb.finalize(defaultGovernanceOpts);
+        assertEq(address(party_), address(party));
+        // Try to finalize the crowdfund again.
+        vm.expectRevert(abi.encodeWithSelector(
+            PartyCrowdfund.WrongLifecycleError.selector,
+            PartyCrowdfund.CrowdfundLifecycle.Won
+        ));
+        pb.finalize(defaultGovernanceOpts);
+    }
+
+    function test_cannotReenterFinalize() external {
+        // Create a token and auction with min bid of 1337 wei.
+        (uint256 auctionId, uint256 tokenId) = market.createAuction(1337);
+        // Create a PartyBid instance.
+        PartyBid pb = _createCrowdfund(auctionId, tokenId, 0);
+        // Contribute and delegate.
+        address payable contributor = _randomAddress();
+        _contribute(pb, contributor, 1e18);
+        // Bid on the auction.
+        pb.bid();
+        // End the auction.
+        market.endAuction(auctionId);
+        // Set up a callback to reenter finalize().
+        market.setCallback(address(pb), abi.encodeCall(pb.finalize, defaultGovernanceOpts), 0);
+        // Finalize the crowdfund.
+        vm.expectRevert(abi.encodeWithSelector(
+            PartyCrowdfund.WrongLifecycleError.selector,
+            PartyCrowdfund.CrowdfundLifecycle.Busy
+        ));
+        pb.finalize(defaultGovernanceOpts);
+    }
+
+    function test_cannotReenterBid() external {
+        // Create a token and auction with min bid of 1337 wei.
+        (uint256 auctionId, uint256 tokenId) = market.createAuction(1337);
+        // Create a PartyBid instance.
+        PartyBid pb = _createCrowdfund(auctionId, tokenId, 0);
+        // Contribute and delegate.
+        address payable contributor = _randomAddress();
+        _contribute(pb, contributor, 1e18);
+        // Set up a callback to reenter bid().
+        market.setCallback(address(pb), abi.encodeCall(pb.bid, ()), 0);
+        // Bid on the auction.
+        vm.expectRevert(abi.encodeWithSelector(
+            PartyCrowdfund.WrongLifecycleError.selector,
+            PartyCrowdfund.CrowdfundLifecycle.Busy
+        ));
+        pb.bid();
+    }
+
+    function test_cannotReenterContributeThroughBid() external {
+        // Create a token and auction with min bid of 1337 wei.
+        (uint256 auctionId, uint256 tokenId) = market.createAuction(1337);
+        // Create a PartyBid instance.
+        PartyBid pb = _createCrowdfund(auctionId, tokenId, 0);
+        // Contribute and delegate.
+        address payable contributor = _randomAddress();
+        _contribute(pb, contributor, 1e18);
+        // Set up a callback to reenter bid().
+        market.setCallback(address(pb), abi.encodeCall(pb.contribute, (contributor, "")), 1);
+        // Bid on the auction.
+        vm.expectRevert(abi.encodeWithSelector(
+            PartyCrowdfund.WrongLifecycleError.selector,
+            PartyCrowdfund.CrowdfundLifecycle.Busy
+        ));
+        pb.bid();
+    }
+
+    function test_cannotReenterContributeThroughFinalize() external {
+        // Create a token and auction with min bid of 1337 wei.
+        (uint256 auctionId, uint256 tokenId) = market.createAuction(1337);
+        // Create a PartyBid instance.
+        PartyBid pb = _createCrowdfund(auctionId, tokenId, 0);
+        // Contribute and delegate.
+        address payable contributor = _randomAddress();
+        _contribute(pb, contributor, 1e18);
+        // Bid on the auction.
+        pb.bid();
+        // End the auction.
+        market.endAuction(auctionId);
+        // Set up a callback to reenter contribute().
+        market.setCallback(address(pb), abi.encodeCall(pb.contribute, (contributor, "")), 1);
+        // Finalize the crowdfund.
+        vm.expectRevert(abi.encodeWithSelector(
+            PartyCrowdfund.WrongLifecycleError.selector,
+            PartyCrowdfund.CrowdfundLifecycle.Busy
+        ));
+        pb.finalize(defaultGovernanceOpts);
+    }
+
+    function _contribute(PartyBid pb, address contributor, uint256 amount) private {
+        vm.deal(contributor, amount);
+        vm.prank(contributor);
+        pb.contribute{ value: amount }(contributor, "");
+    }
+
+    function _contribute(PartyBid pb, address contributor, address delegate, uint256 amount) private {
+        uint256 previousTotalContributions = pb.totalContributions();
+        vm.deal(contributor, amount);
+        vm.prank(contributor);
+        _expectEmit0();
+        emit Contributed(contributor, amount, delegate, previousTotalContributions);
+        pb.contribute{ value: amount }(delegate, "");
+    }
+
+    function _outbidExternally(uint256 auctionId) private {
+        market.bid
+            { value: market.getMinimumBid(auctionId) }
+            (auctionId, _randomAddress());
     }
 }
