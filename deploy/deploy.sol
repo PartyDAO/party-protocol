@@ -135,7 +135,8 @@ contract Deploy is Test {
     console.log('  Deploying - ProposalExecutionEngine');
     zoraAuctionHouse = IZoraAuctionHouse(deployConstants.zoraAuctionHouseAddress);
     ISeaportConduitController conduitController = ISeaportConduitController(deployConstants.osConduitController);
-    proposalEngineImpl = new ProposalExecutionEngine(globals, seaport, conduitController, zoraAuctionHouse); // fractionalVaultFactory
+    IFractionalV1VaultFactory fractionalVaultFactory = IFractionalV1VaultFactory(deployConstants.fractionalVaultFactory);
+    proposalEngineImpl = new ProposalExecutionEngine(globals, seaport, conduitController, zoraAuctionHouse, fractionalVaultFactory); // fractionalVaultFactory
     console.log('  Deployed - ProposalExecutionEngine', address(proposalEngineImpl));
     console.log('    with seaport', address(seaport));
     console.log('    with zora auction house', address(zoraAuctionHouse));
