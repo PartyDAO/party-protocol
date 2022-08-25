@@ -5,11 +5,14 @@ import "forge-std/Test.sol";
 
 import "../../contracts/crowdfund/IMarketWrapper.sol";
 import "../../contracts/tokens/IERC721.sol";
+import "../../contracts/utils/LibRawResult.sol";
 
 import "../DummyERC721.sol";
 
 
 contract MockMarketWrapper is IMarketWrapper, Test {
+    using LibRawResult for bytes;
+
     enum AuctionState {
         Inactive,
         Active,
@@ -37,10 +40,15 @@ contract MockMarketWrapper is IMarketWrapper, Test {
         uint256 topBid
     );
 
+    uint256[1024] __padding;
+
     DummyERC721 public nftContract = new DummyERC721();
     mapping (uint256 => MockAuction) _auctionByAuctionId;
     address immutable _impl;
     uint256 _lastAuctionId = 8000;
+    address callbackTarget;
+    bytes callbackData;
+    uint256 callbackValue;
 
     modifier onlyDelegateCall() {
         require(address(this) != _impl, 'ONLY_DELEGATECALL');
@@ -49,6 +57,18 @@ contract MockMarketWrapper is IMarketWrapper, Test {
 
     constructor() {
         _impl = address(this);
+    }
+
+    function setCallback(
+        address callbackTarget_,
+        bytes memory callbackData_,
+        uint256 callbackValue_
+    )
+        external
+    {
+        callbackTarget = callbackTarget_;
+        callbackData = callbackData_;
+        callbackValue = callbackValue_;
     }
 
     function createAuction(uint256 minBid)
@@ -65,24 +85,25 @@ contract MockMarketWrapper is IMarketWrapper, Test {
         });
     }
 
-    function mockBid(uint256 auctionId, address payable bidder, uint256 bidAmount)
+    function bid(uint256 auctionId, address payable bidder)
         payable
         external
     {
+        _executeCallback();
         MockAuction storage auc = _auctionByAuctionId[auctionId];
         require(auc.state == AuctionState.Active, 'AUCTION_NOT_ACTIVE');
         uint256 topBid = auc.topBid;
-        require(bidAmount >= getMinimumBid(auctionId), 'BID_TOO_LOW');
+        require(msg.value >= getMinimumBid(auctionId), 'BID_TOO_LOW');
         address payable lastBidder = auc.winner;
         auc.winner = bidder;
-        auc.topBid = bidAmount;
+        auc.topBid = msg.value;
         if (lastBidder != address(0)) {
             lastBidder.transfer(topBid);
         }
-        emit MockMarketWrapperBid(bidder, auctionId, bidAmount);
+        emit MockMarketWrapperBid(bidder, auctionId, msg.value);
     }
 
-    function mockCancelAuction(uint256 auctionId)
+    function cancelAuction(uint256 auctionId)
         external
     {
         MockAuction storage auc = _auctionByAuctionId[auctionId];
@@ -90,7 +111,7 @@ contract MockMarketWrapper is IMarketWrapper, Test {
         auc.state = AuctionState.Cancelled;
     }
 
-    function mockEndAuction(uint256 auctionId)
+    function endAuction(uint256 auctionId)
         external
     {
         MockAuction storage auc = _auctionByAuctionId[auctionId];
@@ -139,12 +160,13 @@ contract MockMarketWrapper is IMarketWrapper, Test {
         external
         onlyDelegateCall
     {
-        MockMarketWrapper(_impl).mockBid
+        MockMarketWrapper(_impl).bid
             { value: bidAmount }
-            (auctionId, payable(address(this)), bidAmount);
+            (auctionId, payable(address(this)));
     }
 
     function finalize(uint256 auctionId) external {
+        _executeCallback();
         MockAuction storage auc = _auctionByAuctionId[auctionId];
         AuctionState state = auc.state;
         require(state == AuctionState.Ended || state == AuctionState.Cancelled, 'AUCTION_NOT_ENDED');
@@ -157,5 +179,14 @@ contract MockMarketWrapper is IMarketWrapper, Test {
             }
         }
         emit MockMarketWrapperFinalize(msg.sender, auc.winner, auc.topBid);
+    }
+
+    function _executeCallback() private {
+        if (callbackTarget != address(0)) {
+            (bool s, bytes memory r) = callbackTarget.call{ value: callbackValue }(callbackData);
+            if (!s) {
+                r.rawRevert();
+            }
+        }
     }
 }

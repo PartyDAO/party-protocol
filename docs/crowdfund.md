@@ -138,7 +138,7 @@ All crowdfunds share a concept of a lifecycle, wherein only certain actions can 
 
 While the crowdfund is in the `Active` lifecycle, users can contribute ETH to it.
 
-The canonical way of contributing to a crowdfund is through the payable `contribute()` function. Contribution records are created per-user, tracking the individual contribution amount as well as the overall total contribution amount, in order to determine what fraction of each user's contribution was used by a successful crowdfund.
+The only way of contributing to a crowdfund is through the payable `contribute()` function. Contribution records are created per-user, tracking the individual contribution amount as well as the overall total contribution amount, in order to determine what fraction of each user's contribution was used by a successful crowdfund.
 
 ### Participation NFTs
 
@@ -164,13 +164,9 @@ The accounting logic for all this is handled in the `PartyCrowdfund` contract fr
 
 ### Extra Parameters
 
-The `contribute()` function accepts a delegate parameter, which will be the user's initial delegate when they mint their voting power in the governance party. Future contributions (even 0-value contributions) can change the initial delegate.
+The `contribute()` function accepts a delegate parameter, which will be the user's initial delegate when they mint their voting power in the governance party. Future contributions (even 0-value contributions) can change the initial delegate. Contribute can be called It is valid to call `contribute()` with `0` value even after the crowdfund expires or ends in order to update a user's chosen delegate.
 
 The `contribute()` function accepts a `gateData` parameter, which will be passed to the gatekeeper a party has chosen (if any). If there is a gatekeeper in use, this arbitrary data must be used by the gatekeeper to prove that the contributor is allowed to participate.
-
-### Direct Transfer Contributions
-
-Users can also contribute by transferring ETH directly to the crowdfund, which is handled by the contract's `receive()` handler. Contributions made this way cannot pass in `gateData` (e.g. a merkle proof for the [`AllowlistGateKeeper`](https://github.com/PartyDAO/partybidV2/blob/main/docs/crowdfund.md#allowlistgatekeeper)), so the crowdfund must either be open or the gatekeeper must not require any proof data. If the user has a delegate already set (from a prior contribution), this delegate will remain. Otherwise, they will delegate to themselves.
 
 ## Winning
 
@@ -213,7 +209,7 @@ If the crowdfund won, burning the participation NFT will refund any of the contr
 
 ### Calculating Voting Power
 
-Voting power for a contributor is equivalent\* to the amount of ETH they contributed that was used to acquire the NFT. Each individual contribution is tracked against the total ETH raised at the time of contribution. If a user contributes after the crowdfund received enough ETH to acquire the NFT, only their contributions from prior will count towards their final voting power. All else will be refunded when they burn their participation token.
+Voting power for a contributor is equivalent to the amount of ETH they contributed that was used to acquire the NFT. Each individual contribution is tracked against the total ETH raised at the time of contribution. If a user contributes after the crowdfund received enough ETH to acquire the NFT, only their contributions from prior will count towards their final voting power. All else will be refunded when they burn their participation token.
 
 - If the crowdfund was created with a valid `splitBps` value, this percent of every contributor's voting power will be reserved for the `splitRecipient` to claim. If they are also a contributor, they will receive the sum of both.
 

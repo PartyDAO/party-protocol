@@ -180,22 +180,6 @@ abstract contract PartyCrowdfund is ERC721Receiver, PartyCrowdfundNFT {
         );
     }
 
-    /// @notice Contribute, reusing the last delegate of the sender or
-    ///         the sender itself if not set.
-    receive() external payable {
-        // If the sender already delegated before then use that delegate.
-        // Otherwise delegate to the sender.
-        address delegate = _delegationsByContributor[msg.sender];
-        delegate = delegate == address(0) ? msg.sender : delegate;
-        _contribute(
-            msg.sender,
-            msg.value.safeCastUint256ToUint128(),
-            delegate,
-            totalContributions,
-            "" // No gatedata supported with naked contribution
-        );
-    }
-
     function supportsInterface(bytes4 interfaceId)
         public
         override(ERC721Receiver, PartyCrowdfundNFT)
