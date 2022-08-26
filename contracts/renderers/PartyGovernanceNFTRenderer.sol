@@ -176,4 +176,14 @@ contract PartyGovernanceNFTRenderer is IERC721Renderer {
 
         return string(abi.encodePacked('data:application/json;base64,', json));
     }
+
+    function royaltyInfo(uint256 _tokenId, uint256 _salePrice)
+        external
+        view
+        returns (address receiver, uint256 royaltyAmount)
+    {
+        // TODO: Set
+        // receiver = <PartyDAO royalty distributor address>;
+        // royaltyAmount = _salePrice * <royalty bps> / 1e4;
+    }
 }

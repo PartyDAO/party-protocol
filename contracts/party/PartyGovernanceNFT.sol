@@ -80,22 +80,22 @@ contract PartyGovernanceNFT is
     }
 
     function tokenURI(uint256) public override view returns (string memory) {
-        return _delegateToRenderer();
+        _delegateToRenderer();
+        return ""; // Just to make the compiler happy.
     }
 
     function contractURI() external view returns (string memory) {
-        return _delegateToRenderer();
+        _delegateToRenderer();
+        return ""; // Just to make the compiler happy.
     }
 
-    function royaltyInfo(
-        uint256,
-        uint256 _salePrice
-    ) external view returns (
-        address receiver,
-        uint256 royaltyAmount
-    ) {
-        receiver = _GLOBALS.getAddress(LibGlobals.GLOBAL_ROYALTY_RECEIVER);
-        royaltyAmount = _salePrice * _GLOBALS.getUint256(LibGlobals.GLOBAL_ROYALTY_BPS) / 1e4;
+    function royaltyInfo(uint256, uint256)
+        external
+        view
+        returns (address, uint256)
+    {
+        _delegateToRenderer();
+        return (address(0), 0); // Just to make the compiler happy.
     }
 
     /// @notice Get the distribution % of a tokenId, scaled by 1e18.
@@ -151,13 +151,12 @@ contract PartyGovernanceNFT is
         super.safeTransferFrom(owner, to, tokenId, data);
     }
 
-    function _delegateToRenderer() private view returns (string memory) {
+    function _delegateToRenderer() private view {
         _readOnlyDelegateCall(
             // Instance of IERC721Renderer.
             _GLOBALS.getAddress(LibGlobals.GLOBAL_GOVERNANCE_NFT_RENDER_IMPL),
             msg.data
         );
         assert(false); // Will not be reached.
-        return "";
     }
 }
