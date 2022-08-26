@@ -720,7 +720,7 @@ contract PartyCrowdfundTest is Test, TestUtils {
         cf.burn(splitRecipient);
     }
 
-    // TODO: intiial contribution tests
+    // TODO: initial contribution tests
 
     // Two contributors, one is blocked
     function test_twoContributors_oneBlockedByGateKeeper() public {
