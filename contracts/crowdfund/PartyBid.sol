@@ -96,8 +96,15 @@ contract PartyBid is Implementation, PartyCrowdfund {
     /// @notice intializer to be delegatecalled by Proxy constructor.
     function initialize(PartyBidOptions memory opts)
         external
+        payable
         onlyConstructor
     {
+        nftContract = opts.nftContract;
+        nftTokenId = opts.nftTokenId;
+        market = opts.market;
+        expiry = uint40(opts.duration + block.timestamp);
+        auctionId = opts.auctionId;
+        maximumBid = opts.maximumBid;
         PartyCrowdfund._initialize(PartyCrowdfundOptions({
             name: opts.name,
             symbol: opts.symbol,
@@ -109,12 +116,6 @@ contract PartyBid is Implementation, PartyCrowdfund {
             gateKeeperId: opts.gateKeeperId,
             governanceOpts: opts.governanceOpts
         }));
-        nftContract = opts.nftContract;
-        nftTokenId = opts.nftTokenId;
-        market = opts.market;
-        expiry = uint40(opts.duration + block.timestamp);
-        auctionId = opts.auctionId;
-        maximumBid = opts.maximumBid;
 
         if (!market.auctionIdMatchesToken(
             opts.auctionId,

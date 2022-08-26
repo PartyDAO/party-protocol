@@ -69,6 +69,8 @@ abstract contract PartyBuyBase is Implementation, PartyCrowdfund {
     function _initialize(PartyBuyBaseOptions memory opts)
         internal
     {
+        expiry = uint40(opts.duration + block.timestamp);
+        maximumPrice = opts.maximumPrice;
         PartyCrowdfund._initialize(PartyCrowdfundOptions({
             name: opts.name,
             symbol: opts.symbol,
@@ -80,8 +82,6 @@ abstract contract PartyBuyBase is Implementation, PartyCrowdfund {
             gateKeeperId: opts.gateKeeperId,
             governanceOpts: opts.governanceOpts
         }));
-        expiry = uint40(opts.duration + block.timestamp);
-        maximumPrice = opts.maximumPrice;
     }
 
     // Execute arbitrary calldata to perform a buy, creating a party

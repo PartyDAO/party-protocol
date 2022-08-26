@@ -52,7 +52,8 @@ contract PartyCrowdfundFactoryTest is Test, TestUtils {
 
     function _randomGateKeeper()
         internal
-        returns (IGateKeeper, bytes12, bytes memory createGateCallData)
+        view
+        returns (IGateKeeper gk, bytes12 gkId, bytes memory createGateCallData)
     {
         uint256 x = _randomRange(0, 2);
 
@@ -98,7 +99,8 @@ contract PartyCrowdfundFactoryTest is Test, TestUtils {
             market: IMarketWrapper(market),
             nftContract: nftContract,
             nftTokenId: tokenId,
-            duration: randomUint40,
+            // This is to avoid overflows when adding to `block.timestamp`.
+            duration: uint40(_randomRange(1, type(uint40).max - block.timestamp)),
             maximumBid: randomUint128,
             splitRecipient: payable(_randomAddress()),
             splitBps: randomBps,
@@ -116,7 +118,8 @@ contract PartyCrowdfundFactoryTest is Test, TestUtils {
             })
         });
 
-        PartyBid inst = partyCrowdfundFactory.createPartyBid(opts, createGateCallData);
+        vm.deal(address(this), randomUint40);
+        PartyBid inst = partyCrowdfundFactory.createPartyBid{ value: randomUint40 }(opts, createGateCallData);
 
         // Check that value are initialized to what we expect.
         assertEq(inst.name(), opts.name);
@@ -129,6 +132,9 @@ contract PartyCrowdfundFactoryTest is Test, TestUtils {
         assertEq(inst.maximumBid(), opts.maximumBid);
         assertEq(inst.splitRecipient(), opts.splitRecipient);
         assertEq(inst.splitBps(), opts.splitBps);
+        assertEq(inst.totalContributions(), uint128(randomUint40));
+        (uint256 ethContributed, , ,) = inst.getContributorInfo(opts.initialContributor);
+        assertEq(ethContributed, randomUint40);
         assertEq(address(inst.gateKeeper()), address(opts.gateKeeper));
         assertEq(
             inst.gateKeeperId(),
@@ -168,7 +174,7 @@ contract PartyCrowdfundFactoryTest is Test, TestUtils {
         });
 
         vm.expectRevert(PartyBid.InvalidAuctionIdError.selector);
-        PartyBid inst = partyCrowdfundFactory.createPartyBid(opts, "");
+        partyCrowdfundFactory.createPartyBid(opts, "");
     }
 
     function testCreatePartyBidWithInvalidNftContract() external {
@@ -201,7 +207,7 @@ contract PartyCrowdfundFactoryTest is Test, TestUtils {
         });
 
         vm.expectRevert(PartyBid.InvalidAuctionIdError.selector);
-        PartyBid inst = partyCrowdfundFactory.createPartyBid(opts, "");
+        partyCrowdfundFactory.createPartyBid(opts, "");
     }
 
     function testCreatePartyBidWithInvalidTokenId() external {
@@ -235,7 +241,7 @@ contract PartyCrowdfundFactoryTest is Test, TestUtils {
         });
 
         vm.expectRevert(PartyBid.InvalidAuctionIdError.selector);
-        PartyBid inst = partyCrowdfundFactory.createPartyBid(opts, "");
+        partyCrowdfundFactory.createPartyBid(opts, "");
     }
 
     function testCreatePartyBuy(
@@ -262,7 +268,8 @@ contract PartyCrowdfundFactoryTest is Test, TestUtils {
             symbol: randomStr,
             nftContract: nftContract,
             nftTokenId: tokenId,
-            duration: randomUint40,
+            // This is to avoid overflows when adding to `block.timestamp`.
+            duration: uint40(_randomRange(1, type(uint40).max - block.timestamp)),
             maximumPrice: randomUint128,
             splitRecipient: payable(_randomAddress()),
             splitBps: randomBps,
@@ -280,7 +287,8 @@ contract PartyCrowdfundFactoryTest is Test, TestUtils {
             })
         });
 
-        PartyBuy inst = partyCrowdfundFactory.createPartyBuy(opts, createGateCallData);
+        vm.deal(address(this), randomUint40);
+        PartyBuy inst = partyCrowdfundFactory.createPartyBuy{ value: randomUint40 }(opts, createGateCallData);
 
         // Check that value are initialized to what we expect.
         assertEq(inst.name(), opts.name);
@@ -291,6 +299,9 @@ contract PartyCrowdfundFactoryTest is Test, TestUtils {
         assertEq(inst.maximumPrice(), opts.maximumPrice);
         assertEq(inst.splitRecipient(), opts.splitRecipient);
         assertEq(inst.splitBps(), opts.splitBps);
+        assertEq(inst.totalContributions(), uint128(randomUint40));
+        (uint256 ethContributed, , ,) = inst.getContributorInfo(opts.initialContributor);
+        assertEq(ethContributed, randomUint40);
         assertEq(address(inst.gateKeeper()), address(opts.gateKeeper));
         assertEq(
             inst.gateKeeperId(),
@@ -322,7 +333,8 @@ contract PartyCrowdfundFactoryTest is Test, TestUtils {
                 name: randomStr,
                 symbol: randomStr,
                 nftContract: nftContract,
-                duration: randomUint40,
+                // This is to avoid overflows when adding to `block.timestamp`.
+                duration: uint40(_randomRange(1, type(uint40).max - block.timestamp)),
                 maximumPrice: randomUint128,
                 splitRecipient: payable(_randomAddress()),
                 splitBps: randomBps,
@@ -340,7 +352,9 @@ contract PartyCrowdfundFactoryTest is Test, TestUtils {
                 })
             });
 
-        PartyCollectionBuy inst = partyCrowdfundFactory.createPartyCollectionBuy(opts, createGateCallData);
+        vm.deal(address(this), randomUint40);
+        PartyCollectionBuy inst = partyCrowdfundFactory.
+            createPartyCollectionBuy{ value: randomUint40 }(opts, createGateCallData);
 
         // Check that value are initialized to what we expect.
         assertEq(inst.name(), opts.name);
@@ -350,6 +364,9 @@ contract PartyCrowdfundFactoryTest is Test, TestUtils {
         assertEq(inst.maximumPrice(), opts.maximumPrice);
         assertEq(inst.splitRecipient(), opts.splitRecipient);
         assertEq(inst.splitBps(), opts.splitBps);
+        assertEq(inst.totalContributions(), uint128(randomUint40));
+        (uint256 ethContributed, , ,) = inst.getContributorInfo(opts.initialContributor);
+        assertEq(ethContributed, randomUint40);
         assertEq(address(inst.gateKeeper()), address(opts.gateKeeper));
         assertEq(
             inst.gateKeeperId(),
@@ -404,6 +421,6 @@ contract PartyCrowdfundFactoryTest is Test, TestUtils {
             invalidBps = splitBps;
         }
         vm.expectRevert(abi.encodeWithSelector(PartyCrowdfund.InvalidBpsError.selector, invalidBps));
-        PartyBid inst = partyCrowdfundFactory.createPartyBid(opts, "");
+        partyCrowdfundFactory.createPartyBid(opts, "");
     }
 }
