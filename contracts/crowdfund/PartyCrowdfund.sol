@@ -103,7 +103,7 @@ abstract contract PartyCrowdfund is ERC721Receiver, PartyCrowdfundNFT {
     // The ID of the gatekeeper strategy to use.
     bytes12 public gateKeeperId;
     // Who a contributor last delegated to.
-    mapping (address => address) private _delegationsByContributor;
+    mapping (address => address) public delegationsByContributor;
     // Array of contributions by a contributor.
     // One is created for every nonzero contribution made.
     mapping (address => Contribution[]) private _contributionsByContributor;
@@ -381,7 +381,7 @@ abstract contract PartyCrowdfund is ERC721Receiver, PartyCrowdfundNFT {
         totalContributions += amount;
         // Update delegate.
         // OK if this happens out of cycle.
-        _delegationsByContributor[contributor] = delegate;
+        delegationsByContributor[contributor] = delegate;
         emit Contributed(contributor, amount, delegate, previousTotalContributions);
 
         if (amount != 0) {
@@ -446,7 +446,7 @@ abstract contract PartyCrowdfund is ERC721Receiver, PartyCrowdfundNFT {
         (uint256 ethUsed, uint256 ethOwed, uint256 votingPower) =
             _getFinalContribution(contributor);
         if (party_ != Party(payable(0)) && votingPower > 0) {
-            address delegate = _delegationsByContributor[contributor];
+            address delegate = delegationsByContributor[contributor];
             if (delegate == address(0)) {
                 // Delegate can be unset for the split recipient if they never
                 // contribute. Self-delegate if this occurs.
