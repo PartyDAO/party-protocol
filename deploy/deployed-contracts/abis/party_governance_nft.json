@@ -622,6 +622,11 @@
         "internalType": "uint256",
         "name": "proposalId",
         "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "snapIndex",
+        "type": "uint256"
       }
     ],
     "name": "accept",
@@ -812,11 +817,6 @@
             "type": "address"
           },
           {
-            "internalType": "uint256",
-            "name": "erc1155TokenId",
-            "type": "uint256"
-          },
-          {
             "internalType": "uint128",
             "name": "memberSupply",
             "type": "uint128"
@@ -935,6 +935,30 @@
         "internalType": "uint16",
         "name": "",
         "type": "uint16"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "voter",
+        "type": "address"
+      },
+      {
+        "internalType": "uint40",
+        "name": "timestamp",
+        "type": "uint40"
+      }
+    ],
+    "name": "findVotingPowerSnapshotIndex",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "index",
+        "type": "uint256"
       }
     ],
     "stateMutability": "view",
@@ -1124,6 +1148,35 @@
         "internalType": "uint40",
         "name": "timestamp",
         "type": "uint40"
+      }
+    ],
+    "name": "getVotingPowerAt",
+    "outputs": [
+      {
+        "internalType": "uint96",
+        "name": "votingPower",
+        "type": "uint96"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "voter",
+        "type": "address"
+      },
+      {
+        "internalType": "uint40",
+        "name": "timestamp",
+        "type": "uint40"
+      },
+      {
+        "internalType": "uint256",
+        "name": "snapIndex",
+        "type": "uint256"
       }
     ],
     "name": "getVotingPowerAt",
@@ -1409,6 +1462,11 @@
         "internalType": "struct PartyGovernance.Proposal",
         "name": "proposal",
         "type": "tuple"
+      },
+      {
+        "internalType": "uint256",
+        "name": "latestSnapIndex",
+        "type": "uint256"
       }
     ],
     "name": "propose",

@@ -20,6 +20,11 @@
         "internalType": "contract IZoraAuctionHouse",
         "name": "zoraAuctionHouse",
         "type": "address"
+      },
+      {
+        "internalType": "contract IFractionalV1VaultFactory",
+        "name": "fractionalVaultFactory",
+        "type": "address"
       }
     ],
     "stateMutability": "nonpayable",
@@ -177,6 +182,17 @@
     "inputs": [
       {
         "internalType": "uint256",
+        "name": "u256",
+        "type": "uint256"
+      }
+    ],
+    "name": "Uint256ToUint40CastOutOfRangeError",
+    "type": "error"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
         "name": "idx",
         "type": "uint256"
       },
@@ -192,6 +208,22 @@
       }
     ],
     "name": "UnexpectedCallResultHashError",
+    "type": "error"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "contract IProposalExecutionEngine",
+        "name": "actualImpl",
+        "type": "address"
+      },
+      {
+        "internalType": "contract IProposalExecutionEngine",
+        "name": "expectedImpl",
+        "type": "address"
+      }
+    ],
+    "name": "UnexpectedProposalEngineImplementationError",
     "type": "error"
   },
   {
@@ -237,12 +269,6 @@
       },
       {
         "indexed": false,
-        "internalType": "bool",
-        "name": "succeeded",
-        "type": "bool"
-      },
-      {
-        "indexed": false,
         "internalType": "uint256",
         "name": "idx",
         "type": "uint256"
@@ -255,6 +281,43 @@
       }
     ],
     "name": "ArbitraryCallExecuted",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "contract IERC721",
+        "name": "token",
+        "type": "address"
+      },
+      {
+        "indexed": true,
+        "internalType": "uint256",
+        "name": "tokenId",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "vaultId",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "internalType": "contract IERC20",
+        "name": "vault",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "listPrice",
+        "type": "uint256"
+      }
+    ],
+    "name": "FractionalV1VaultCreated",
     "type": "event"
   },
   {
@@ -755,6 +818,19 @@
     "outputs": [
       {
         "internalType": "contract ISeaportExchange",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "VAULT_FACTORY",
+    "outputs": [
+      {
+        "internalType": "contract IFractionalV1VaultFactory",
         "name": "",
         "type": "address"
       }

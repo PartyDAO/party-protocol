@@ -11,7 +11,7 @@ import '../contracts/crowdfund/PartyCollectionBuy.sol';
 import '../contracts/crowdfund/PartyCrowdfundFactory.sol';
 import '../contracts/distribution/TokenDistributor.sol';
 import '../contracts/gatekeepers/AllowListGateKeeper.sol';
-import '../contracts/gatekeepers/ERC20TokenGateKeeper.sol';
+import '../contracts/gatekeepers/TokenGateKeeper.sol';
 import '../contracts/gatekeepers/IGateKeeper.sol';
 import '../contracts/globals/Globals.sol';
 import '../contracts/globals/LibGlobals.sol';
@@ -51,7 +51,7 @@ contract Deploy is Test {
   PartyGovernanceNFTRenderer partyGovernanceNFTRenderer;
   PartyHelpers partyHelpers;
   IGateKeeper allowListGateKeeper;
-  IGateKeeper erc20TokenGateKeeper;
+  IGateKeeper tokenGateKeeper;
 
   function run(LibDeployConstants.DeployConstants memory deployConstants) public {
     console.log('Starting deploy script.');
@@ -135,7 +135,8 @@ contract Deploy is Test {
     console.log('  Deploying - ProposalExecutionEngine');
     zoraAuctionHouse = IZoraAuctionHouse(deployConstants.zoraAuctionHouseAddress);
     ISeaportConduitController conduitController = ISeaportConduitController(deployConstants.osConduitController);
-    proposalEngineImpl = new ProposalExecutionEngine(globals, seaport, conduitController, zoraAuctionHouse);
+    IFractionalV1VaultFactory fractionalVaultFactory = IFractionalV1VaultFactory(deployConstants.fractionalVaultFactory);
+    proposalEngineImpl = new ProposalExecutionEngine(globals, seaport, conduitController, zoraAuctionHouse, fractionalVaultFactory);
     console.log('  Deployed - ProposalExecutionEngine', address(proposalEngineImpl));
     console.log('    with seaport', address(seaport));
     console.log('    with zora auction house', address(zoraAuctionHouse));
@@ -257,9 +258,9 @@ contract Deploy is Test {
     allowListGateKeeper = new AllowListGateKeeper();
     console.log('  Deployed - AllowListGateKeeper', address(allowListGateKeeper));
 
-    console.log('  Deploying - ERC20TokenGateKeeper');
-    erc20TokenGateKeeper = new ERC20TokenGateKeeper();
-    console.log('  Deployed - ERC20TokenGateKeeper', address(erc20TokenGateKeeper));
+    console.log('  Deploying - TokenGateKeeper');
+    tokenGateKeeper = new TokenGateKeeper();
+    console.log('  Deployed - TokenGateKeeper', address(tokenGateKeeper));
 
     // TODO: TRANSFER_OWNERSHIP_TO_PARTYDAO_MULTISIG
     // console.log('');
@@ -284,7 +285,7 @@ contract Deploy is Test {
     addressMapping[11] = AddressMapping('partyGovernanceNFTRenderer', address(partyGovernanceNFTRenderer));
     addressMapping[12] = AddressMapping('partyHelpers', address(partyHelpers));
     addressMapping[13] = AddressMapping('allowListGateKeeper', address(allowListGateKeeper));
-    addressMapping[14] = AddressMapping('erc20TokenGateKeeper', address(erc20TokenGateKeeper));
+    addressMapping[14] = AddressMapping('tokenGateKeeper', address(tokenGateKeeper));
 
     console.log('');
     console.log('### Deployed addresses');
