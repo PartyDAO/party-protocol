@@ -720,6 +720,8 @@ contract PartyCrowdfundTest is Test, TestUtils {
         cf.burn(splitRecipient);
     }
 
+    // TODO: initial contribution tests
+
     // Two contributors, one is blocked
     function test_twoContributors_oneBlockedByGateKeeper() public {
         address delegate1 = _randomAddress();
