@@ -33,7 +33,7 @@ contract PartyCrowdfundTest is Test, TestUtils {
         address delegate
     );
 
-    event Contributed(address contributor, uint256 amount, address delegate);
+    event Contributed(address contributor, uint256 amount, address delegate, uint256 previousTotalContributions);
     event Burned(address contributor, uint256 ethUsed, uint256 ethOwed, uint256 votingPower);
 
     string defaultName = 'PartyBid';
@@ -139,6 +139,70 @@ contract PartyCrowdfundTest is Test, TestUtils {
             (uint256(defaultSplitBps) * totalContributions) / (1e4 - 1);
     }
 
+    function test_creation_initialContribution_withDelegate() public {
+        _expectEmit0();
+        address initialContributor = _randomAddress();
+        address initialDelegate = _randomAddress();
+        uint256 initialContribution = _randomRange(1, 1 ether);
+        vm.deal(address(this), initialContribution);
+        emit Contributed(initialContributor, initialContribution, initialDelegate, 0);
+        TestablePartyCrowdfund cf = new TestablePartyCrowdfund{value: initialContribution }(
+            globals,
+            PartyCrowdfund.PartyCrowdfundOptions({
+                name: defaultName,
+                symbol: defaultSymbol,
+                splitRecipient: defaultSplitRecipient,
+                splitBps: defaultSplitBps,
+                initialContributor: initialContributor,
+                initialDelegate: initialDelegate,
+                gateKeeper: defaultGateKeeper,
+                gateKeeperId: defaultGateKeeperId,
+                governanceOpts: defaultGovernanceOpts
+            })
+        );
+        (
+            uint256 ethContributed,
+            uint256 ethUsed,
+            uint256 ethOwed,
+            uint256 votingPower
+        ) = cf.getContributorInfo(initialContributor);
+        assertEq(ethContributed, initialContribution);
+        assertEq(ethUsed, 0);
+        assertEq(ethOwed, 0);
+        assertEq(votingPower, 0);
+        assertEq(uint256(cf.totalContributions()), initialContribution);
+        assertEq(cf.delegationsByContributor(initialContributor), initialDelegate);
+    }
+
+    function test_creation_initialContribution_noValue() public {
+        address initialContributor = _randomAddress();
+        TestablePartyCrowdfund cf = new TestablePartyCrowdfund(
+            globals,
+            PartyCrowdfund.PartyCrowdfundOptions({
+                name: defaultName,
+                symbol: defaultSymbol,
+                splitRecipient: defaultSplitRecipient,
+                splitBps: defaultSplitBps,
+                initialContributor: initialContributor,
+                initialDelegate: initialContributor,
+                gateKeeper: defaultGateKeeper,
+                gateKeeperId: defaultGateKeeperId,
+                governanceOpts: defaultGovernanceOpts
+            })
+        );
+        (
+            uint256 ethContributed,
+            uint256 ethUsed,
+            uint256 ethOwed,
+            uint256 votingPower
+        ) = cf.getContributorInfo(initialContributor);
+        assertEq(ethContributed, 0);
+        assertEq(ethUsed, 0);
+        assertEq(ethOwed, 0);
+        assertEq(votingPower, 0);
+        assertEq(uint256(cf.totalContributions()), 0);
+        assertEq(cf.delegationsByContributor(initialContributor), address(0));
+    }
 
     // One person contributes, their entire contribution is used.
     function testWin_oneContributor() public {
@@ -719,8 +783,6 @@ contract PartyCrowdfundTest is Test, TestUtils {
         );
         cf.burn(splitRecipient);
     }
-
-    // TODO: initial contribution tests
 
     // Two contributors, one is blocked
     function test_twoContributors_oneBlockedByGateKeeper() public {

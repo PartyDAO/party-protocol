@@ -371,6 +371,38 @@ contract PartyBidTest is Test, TestUtils {
         pb.finalize(defaultGovernanceOpts);
     }
 
+    function test_creation_initialContribution() external {
+        (uint256 auctionId, uint256 tokenId) = market.createAuction(1337);
+        uint256 initialContribution = _randomRange(1, 1 ether);
+        address initialContributor = _randomAddress();
+        address initialDelegate = _randomAddress();
+        vm.deal(address(this), initialContribution);
+        emit Contributed(initialContributor, initialContribution, initialDelegate, 0);
+        PartyBid(payable(address(new Proxy{ value: initialContribution }(
+            partyBidImpl,
+            abi.encodeCall(
+                PartyBid.initialize,
+                PartyBid.PartyBidOptions({
+                    name: defaultName,
+                    symbol: defaultSymbol,
+                    auctionId: auctionId,
+                    market: market,
+                    nftContract: tokenToBuy,
+                    nftTokenId: tokenId,
+                    duration: defaultDuration,
+                    maximumBid: defaultMaxBid,
+                    splitRecipient: defaultSplitRecipient,
+                    splitBps: defaultSplitBps,
+                    initialContributor: initialContributor,
+                    initialDelegate: initialDelegate,
+                    gateKeeper: defaultGateKeeper,
+                    gateKeeperId: defaultGateKeeperId,
+                    governanceOpts: defaultGovernanceOpts
+                })
+            )
+        ))));
+    }
+
     function _contribute(PartyBid pb, address contributor, uint256 amount) private {
         vm.deal(contributor, amount);
         vm.prank(contributor);

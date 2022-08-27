@@ -31,6 +31,8 @@ contract PartyCollectionBuyTest is Test, TestUtils {
         address delegate
     );
 
+    event Contributed(address contributor, uint256 amount, address delegate, uint256 previousTotalContributions);
+
     string defaultName = 'PartyCollectionBuy';
     string defaultSymbol = 'PBID';
     uint40 defaultDuration = 60 * 60;
@@ -213,5 +215,33 @@ contract PartyCollectionBuyTest is Test, TestUtils {
         vm.expectRevert(abi.encodeWithSelector(Implementation.OnlyConstructorError.selector));
         PartyCollectionBuy.PartyCollectionBuyOptions memory opts;
         pb.initialize(opts);
+    }
+
+    function test_creation_initialContribution() public {
+        uint256 initialContribution = _randomRange(1, 1 ether);
+        address initialContributor = _randomAddress();
+        address initialDelegate = _randomAddress();
+        vm.deal(address(this), initialContribution);
+        emit Contributed(initialContributor, initialContribution, initialDelegate, 0);
+        PartyCollectionBuy(payable(address(new Proxy{ value: initialContribution }(
+            partyCollectionBuyImpl,
+            abi.encodeCall(
+                PartyCollectionBuy.initialize,
+                PartyCollectionBuy.PartyCollectionBuyOptions({
+                    name: defaultName,
+                    symbol: defaultSymbol,
+                    nftContract: erc721Vault.token(),
+                    duration: defaultDuration,
+                    maximumPrice: defaultMaxPrice,
+                    splitRecipient: defaultSplitRecipient,
+                    splitBps: defaultSplitBps,
+                    initialContributor: initialContributor,
+                    initialDelegate: initialDelegate,
+                    gateKeeper: defaultGateKeeper,
+                    gateKeeperId: defaultGateKeeperId,
+                    governanceOpts: defaultGovernanceOpts
+                })
+            )
+        ))));
     }
 }
