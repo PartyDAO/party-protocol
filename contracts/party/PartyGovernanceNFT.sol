@@ -138,4 +138,9 @@ contract PartyGovernanceNFT is
         _transferVotingPower(owner, to, votingPowerByTokenId[tokenId]);
         super.safeTransferFrom(owner, to, tokenId, data);
     }
+
+    /// @notice Relinquish the ability to call `mint()` by an authority.
+    function abdicate() external onlyMinter onlyDelegateCall {
+        delete mintAuthority;
+    }
 }

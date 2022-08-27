@@ -12,6 +12,7 @@ import "../DummyERC721.sol";
 import "../TestUtils.sol";
 
 import "./MockPartyFactory.sol";
+import "./MockParty.sol";
 import "./MockMarketWrapper.sol";
 
 contract PartyBidTest is Test, TestUtils {
@@ -23,9 +24,8 @@ contract PartyBidTest is Test, TestUtils {
         uint256[] preciousTokenIds
     );
 
-    event MockPartyFactoryMint(
+    event MockMint(
         address caller,
-        Party party,
         address owner,
         uint256 amount,
         address delegate
@@ -62,7 +62,7 @@ contract PartyBidTest is Test, TestUtils {
     MockMarketWrapper market = new MockMarketWrapper();
     DummyERC721 tokenToBuy;
     PartyBid partyBidImpl;
-    Party party;
+    MockParty party;
 
     constructor() {
         globals.setAddress(LibGlobals.GLOBAL_PARTY_FACTORY, address(partyFactory));
@@ -155,9 +155,8 @@ contract PartyBidTest is Test, TestUtils {
         // Burn contributor's NFT, mock minting governance tokens and returning
         // unused contribution.
         _expectEmit0();
-        emit MockPartyFactoryMint(
+        emit MockMint(
             address(pb),
-            party_,
             contributor,
             1337,
             delegate

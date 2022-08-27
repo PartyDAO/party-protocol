@@ -24,7 +24,7 @@ contract PartyGovernanceNFTTest is Test, TestUtils {
     PartyAdmin partyAdmin;
     address globalDaoWalletAddress = address(420);
 
-    function setUp() public {
+    constructor() {
         GlobalsAdmin globalsAdmin = new GlobalsAdmin();
         Globals globals = globalsAdmin.globals();
         Party partyImpl = new Party(globals);
@@ -91,5 +91,87 @@ contract PartyGovernanceNFTTest is Test, TestUtils {
             PartyGovernanceNFTRenderer.InvalidTokenIdError.selector
         ));
         party.tokenURI(1);
+    }
+
+    function testMint() external {
+        (Party party, ,) = partyAdmin.createParty(
+            PartyAdmin.PartyCreationMinimalOptions({
+                host1: address(this),
+                host2: address(0),
+                passThresholdBps: 5100,
+                totalVotingPower: 100,
+                preciousTokenAddress: address(toadz),
+                preciousTokenId: 1,
+                feeBps: 0,
+                feeRecipient: payable(0)
+            })
+        );
+        vm.prank(address(partyAdmin));
+        party.mint(_randomAddress(), 1, _randomAddress());
+    }
+
+    function testMint_onlyMinter() external {
+        (Party party, ,) = partyAdmin.createParty(
+            PartyAdmin.PartyCreationMinimalOptions({
+                host1: address(this),
+                host2: address(0),
+                passThresholdBps: 5100,
+                totalVotingPower: 100,
+                preciousTokenAddress: address(toadz),
+                preciousTokenId: 1,
+                feeBps: 0,
+                feeRecipient: payable(0)
+            })
+        );
+        address notAuthority = _randomAddress();
+        vm.expectRevert(abi.encodeWithSelector(
+            PartyGovernanceNFT.OnlyMintAuthorityError.selector,
+            notAuthority,
+            address(partyAdmin)
+        ));
+        vm.prank(notAuthority);
+        party.mint(_randomAddress(), 1, _randomAddress());
+    }
+
+    function testAbdicate() external {
+        (Party party, ,) = partyAdmin.createParty(
+            PartyAdmin.PartyCreationMinimalOptions({
+                host1: address(this),
+                host2: address(0),
+                passThresholdBps: 5100,
+                totalVotingPower: 100,
+                preciousTokenAddress: address(toadz),
+                preciousTokenId: 1,
+                feeBps: 0,
+                feeRecipient: payable(0)
+            })
+        );
+        assertEq(party.mintAuthority(), address(partyAdmin));
+        vm.prank(address(partyAdmin));
+        party.abdicate();
+        assertEq(party.mintAuthority(), address(0));
+    }
+
+    function testAbdicate_onlyMinter() external {
+        (Party party, ,) = partyAdmin.createParty(
+            PartyAdmin.PartyCreationMinimalOptions({
+                host1: address(this),
+                host2: address(0),
+                passThresholdBps: 5100,
+                totalVotingPower: 100,
+                preciousTokenAddress: address(toadz),
+                preciousTokenId: 1,
+                feeBps: 0,
+                feeRecipient: payable(0)
+            })
+        );
+        address notAuthority = _randomAddress();
+        vm.expectRevert(abi.encodeWithSelector(
+            PartyGovernanceNFT.OnlyMintAuthorityError.selector,
+            notAuthority,
+            address(partyAdmin)
+        ));
+        vm.prank(notAuthority);
+        party.abdicate();
     }
 }

@@ -445,15 +445,14 @@ abstract contract PartyCrowdfund is ERC721Receiver, PartyCrowdfundNFT {
         }
         (uint256 ethUsed, uint256 ethOwed, uint256 votingPower) =
             _getFinalContribution(contributor);
-        if (party_ != Party(payable(0)) && votingPower > 0) {
+        if (votingPower > 0) {
             address delegate = delegationsByContributor[contributor];
             if (delegate == address(0)) {
                 // Delegate can be unset for the split recipient if they never
                 // contribute. Self-delegate if this occurs.
                 delegate = contributor;
             }
-            _getPartyFactory().mint(
-                party_,
+            party_.mint(
                 contributor,
                 votingPower,
                 delegate

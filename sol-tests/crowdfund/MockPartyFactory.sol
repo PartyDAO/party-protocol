@@ -2,10 +2,10 @@
 pragma solidity ^0.8;
 
 import "../../contracts/party/IPartyFactory.sol";
-
+import "./MockParty.sol";
 
 contract MockPartyFactory is IPartyFactory {
-    Party public constant mockParty = Party(payable(address(0xabba)));
+    MockParty public mockParty = new MockParty();
 
     event MockPartyFactoryCreateParty(
         address caller,
@@ -13,14 +13,6 @@ contract MockPartyFactory is IPartyFactory {
         Party.PartyOptions opts,
         IERC721[] preciousTokens,
         uint256[] preciousTokenIds
-    );
-
-    event MockPartyFactoryMint(
-        address caller,
-        Party party,
-        address owner,
-        uint256 amount,
-        address delegate
     );
 
     function GLOBALS() external pure returns (IGlobals g) {}
@@ -42,17 +34,6 @@ contract MockPartyFactory is IPartyFactory {
             preciousTokens,
             preciousTokenIds
         );
-        return mockParty;
-    }
-
-    function mint(
-        Party party,
-        address owner,
-        uint256 amount,
-        address delegate
-    )
-        external
-    {
-        emit MockPartyFactoryMint(msg.sender, party, owner, amount, delegate);
+        return Party(payable(address(mockParty)));
     }
 }
