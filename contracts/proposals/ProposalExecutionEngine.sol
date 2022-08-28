@@ -10,6 +10,7 @@ import "./ListOnOpenSeaportProposal.sol";
 import "./ListOnZoraProposal.sol";
 import "./FractionalizeProposal.sol";
 import "./ArbitraryCallsProposal.sol";
+import "./AddPreciousesProposal.sol";
 import "./LibProposal.sol";
 import "./ProposalStorage.sol";
 
@@ -20,7 +21,8 @@ contract ProposalExecutionEngine is
     ListOnOpenSeaportProposal,
     ListOnZoraProposal,
     FractionalizeProposal,
-    ArbitraryCallsProposal
+    ArbitraryCallsProposal,
+    AddPreciousesProposal
 {
     using LibRawResult for bytes;
 
@@ -37,8 +39,7 @@ contract ProposalExecutionEngine is
         Fractionalize,
         ArbitraryCalls,
         UpgradeProposalEngineImpl,
-        // Append new proposal types here.
-        NumProposalTypes
+        AddPreciouses
     }
 
     // Explicit storage bucket for "private" state owned by the ProposalExecutionEngine.
@@ -205,6 +206,8 @@ contract ProposalExecutionEngine is
             nextProgressData = _executeArbitraryCalls(params);
         } else if (pt == ProposalType.UpgradeProposalEngineImpl) {
             _executeUpgradeProposalsImplementation(params.proposalData);
+        } else if (pt == ProposalType.AddPreciouses) {
+            nextProgressData = _executeAddPreciouses(params);
         } else {
             revert UnsupportedProposalTypeError(uint32(pt));
         }
@@ -230,7 +233,6 @@ contract ProposalExecutionEngine is
             offsetProposalData := add(proposalData, 4)
         }
         require(proposalType != ProposalType.Invalid);
-        require(uint8(proposalType) < uint8(ProposalType.NumProposalTypes));
     }
 
     // Upgrade the implementation of IPartyProposals to the latest version.

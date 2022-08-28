@@ -17,11 +17,13 @@ import "../globals/LibGlobals.sol";
 import "../proposals/IProposalExecutionEngine.sol";
 import "../proposals/LibProposal.sol";
 import "../proposals/ProposalStorage.sol";
+import "./PreciousList.sol";
 
 import "./IPartyFactory.sol";
 
 /// @notice Base contract for a Party encapsulating all governance functionality.
 abstract contract PartyGovernance is
+    PreciousList,
     ITokenDistributorParty,
     ERC721Receiver,
     ERC1155Receiver,
@@ -168,7 +170,6 @@ abstract contract PartyGovernance is
     event VotingPowerDelegated(address indexed owner, address indexed delegate);
     event HostStatusTransferred(address oldHost, address newHost);
 
-    error MismatchedPreciousListLengths();
     error BadProposalStatusError(ProposalStatus status);
     error ProposalExistsError(uint256 proposalId);
     error BadProposalHashError(bytes32 proposalHash, bytes32 actualHash);
@@ -197,8 +198,6 @@ abstract contract PartyGovernance is
     uint16 public feeBps;
     /// @notice Distribution fee recipient.
     address payable public feeRecipient;
-    /// @notice The hash of the list of precious NFTs guarded by the party.
-    bytes32 public preciousListHash;
     /// @notice The last proposal ID that was used. 0 means no proposals have been made.
     uint256 public lastProposalId;
     /// @notice Whether an address is a party host.
@@ -1002,50 +1001,6 @@ abstract contract PartyGovernance is
     {
           return uint256(voteCount) * 1e4
             / uint256(totalVotingPower) >= uint256(passThresholdBps);
-    }
-
-    function _setPreciousList(
-        IERC721[] memory preciousTokens,
-        uint256[] memory preciousTokenIds
-    )
-        private
-    {
-        if (preciousTokens.length != preciousTokenIds.length) {
-            revert MismatchedPreciousListLengths();
-        }
-        preciousListHash = _hashPreciousList(preciousTokens, preciousTokenIds);
-    }
-
-    function _isPreciousListCorrect(
-        IERC721[] memory preciousTokens,
-        uint256[] memory preciousTokenIds
-    )
-        private
-        view
-        returns (bool)
-    {
-        return preciousListHash == _hashPreciousList(preciousTokens, preciousTokenIds);
-    }
-
-    function _hashPreciousList(
-        IERC721[] memory preciousTokens,
-        uint256[] memory preciousTokenIds
-    )
-        internal
-        pure
-        returns (bytes32 h)
-    {
-        assembly {
-            mstore(0x00, keccak256(
-                add(preciousTokens, 0x20),
-                mul(mload(preciousTokens), 0x20)
-            ))
-            mstore(0x20, keccak256(
-                add(preciousTokenIds, 0x20),
-                mul(mload(preciousTokenIds), 0x20)
-            ))
-            h := keccak256(0x00, 0x40)
-        }
     }
 
     // Assert that the hash of a proposal matches expectedHash.
