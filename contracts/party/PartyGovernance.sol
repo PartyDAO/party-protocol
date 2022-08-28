@@ -17,13 +17,11 @@ import "../globals/LibGlobals.sol";
 import "../proposals/IProposalExecutionEngine.sol";
 import "../proposals/LibProposal.sol";
 import "../proposals/ProposalStorage.sol";
-import "./PreciousList.sol";
 
 import "./IPartyFactory.sol";
 
 /// @notice Base contract for a Party encapsulating all governance functionality.
 abstract contract PartyGovernance is
-    PreciousList,
     ITokenDistributorParty,
     ERC721Receiver,
     ERC1155Receiver,
@@ -326,6 +324,11 @@ abstract contract PartyGovernance is
         returns (IProposalExecutionEngine)
     {
         return _getProposalExecutionEngine();
+    }
+
+    /// @notice Get the hash of the list of precious NFTs guarded by the party.
+    function getPreciousListHash() external view returns (bytes32) {
+        return _getPreciousListHash();
     }
 
     /// @notice Get the total voting power of `voter` at a `timestamp`.

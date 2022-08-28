@@ -21,7 +21,6 @@ contract PartyGovernanceNFTRenderer is IERC721Renderer {
     bool emergencyExecuteDisabled;
     uint16 feeBps;
     address payable feeRecipient;
-    bytes32 preciousListHash;
     uint256 lastProposalId;
     mapping(address => bool) isHost;
     mapping(address => address) delegationsByVoter;
@@ -105,7 +104,7 @@ contract PartyGovernanceNFTRenderer is IERC721Renderer {
 
         return string(abi.encodePacked('Delegate: ', Strings.toHexString(delegatedAddress)));
     }
- 
+
     function tokenURI(uint256 tokenId) external view returns (string memory) {
         if(_ownerOf[tokenId] == address(0)) {
             revert InvalidTokenIdError();

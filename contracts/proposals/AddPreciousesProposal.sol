@@ -1,13 +1,12 @@
 // SPDX-License-Identifier: Apache-2.0
 pragma solidity ^0.8;
 
-import "../party/PreciousList.sol";
 import "../tokens/IERC721.sol";
 import "../party/PartyGovernance.sol";
 import "../utils/LibAddress.sol";
 
 // Implements proposal adding new precious tokens to a party.
-contract AddPreciousesProposal is PreciousList {
+contract AddPreciousesProposal is ProposalStorage {
     using LibAddress for address;
 
     // ABI-encoded `proposalData` passed into execute.

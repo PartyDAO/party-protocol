@@ -113,7 +113,7 @@ contract PartyFactoryTest is Test, TestUtils {
         assertEq(party.feeBps(), opts.governance.feeBps);
         assertEq(party.feeRecipient(), opts.governance.feeRecipient);
         assertEq(address(party.getProposalExecutionEngine()), address(eng));
-        assertEq(party.preciousListHash(), _hashPreciousList(preciousTokens, preciousTokenIds));
+        assertEq(party.getPreciousListHash(), _hashPreciousList(preciousTokens, preciousTokenIds));
     }
 
     function testCreatePartyWithInvalidBps(uint16 passThresholdBps, uint16 feeBps) external {
