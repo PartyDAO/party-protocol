@@ -4,13 +4,17 @@ pragma solidity ^0.8;
 import "../tokens/IERC721.sol";
 import "../party/PartyGovernance.sol";
 import "../utils/LibAddress.sol";
+import "../utils/LibSafeERC721.sol";
 
-// Implements proposal adding new precious tokens to a party.
-contract AddPreciousesProposal is ProposalStorage {
+// Implements proposal to set a new list of precious tokens for a party. Can be
+// used to add new preciouses or remove old preciouses from a party's list if it
+// no longer holds them.
+contract SetPreciousListProposal is ProposalStorage {
     using LibAddress for address;
+    using LibSafeERC721 for IERC721;
 
     // ABI-encoded `proposalData` passed into execute.
-    struct AddPreciousesProposalData {
+    struct SetPreciousListProposalData {
         IERC721[] newPreciousTokens;
         uint256[] newPreciousTokenIds;
     }
@@ -25,16 +29,23 @@ contract AddPreciousesProposal is ProposalStorage {
         uint256[] newPreciousTokenIds
     );
 
-    function _executeAddPreciouses(
+    function _executeSetPreciousList(
         IProposalExecutionEngine.ExecuteProposalParams memory params
     ) internal returns (bytes memory nextProgressData) {
         // Decode the proposal data.
-        AddPreciousesProposalData memory data = abi.decode(
+        SetPreciousListProposalData memory data = abi.decode(
             params.proposalData,
-            (AddPreciousesProposalData)
+            (SetPreciousListProposalData)
         );
-        // Set the new preciouses. Do this before `_checkNoMissingPreciouses`
-        // because it will mutate `newPreciousTokens`.
+        // Check for missing preciouses between the old and new precious lists.
+        // Only allow removing preciouses if the party now longer holds them.
+        _checkNoMissingPreciouses(
+            params.preciousTokens,
+            params.preciousTokenIds,
+            data.newPreciousTokens,
+            data.newPreciousTokenIds
+        );
+        // Set the new preciouses.
         _setPreciousList(data.newPreciousTokens, data.newPreciousTokenIds);
         emit UpdatedPreciouses(
             params.preciousTokens,
@@ -42,18 +53,6 @@ contract AddPreciousesProposal is ProposalStorage {
             data.newPreciousTokens,
             data.newPreciousTokenIds
         );
-        // Check that there are no missing preciouses between the old and new
-        // precious lists and null out (ie. set to address(0)) any addresses from
-        // the old list.
-        _checkNoMissingPreciouses(
-            params.preciousTokens,
-            params.preciousTokenIds,
-            data.newPreciousTokens,
-            data.newPreciousTokenIds
-        );
-        // Check that party owns all added preciouses (should have been
-        // transferered to the party before executing proposal).
-        _checkReceived(data.newPreciousTokens, data.newPreciousTokenIds);
         // Nothing left to do.
         return "";
     }
@@ -63,7 +62,7 @@ contract AddPreciousesProposal is ProposalStorage {
         uint256[] memory oldPreciousTokenIds,
         IERC721[] memory newPreciousTokens,
         uint256[] memory newPreciousTokenIds
-    ) internal pure {
+    ) internal view {
         for (uint256 i; i < oldPreciousTokens.length; i++) {
             IERC721 oldPreciousToken = oldPreciousTokens[i];
             uint256 oldPreciousTokenId = oldPreciousTokenIds[i];
@@ -75,31 +74,16 @@ contract AddPreciousesProposal is ProposalStorage {
                     oldPreciousTokenId == newPreciousTokenIds[j]
                 ) {
                     found = true;
-                    delete newPreciousTokens[j];
                     break;
                 }
             }
 
-            if (!found) {
+            // Revert if attempting to remove a precious the party still holds.
+            if (
+                !found &&
+                oldPreciousToken.safeOwnerOf(oldPreciousTokenId) == address(this)
+            ) {
                 revert MissingPrecious(oldPreciousToken, oldPreciousTokenId);
-            }
-        }
-    }
-
-    function _checkReceived(
-        IERC721[] memory newPreciousTokens,
-        uint256[] memory newPreciousTokenIds
-    ) internal view {
-        for (uint256 i; i < newPreciousTokens.length; i++) {
-            IERC721 token = newPreciousTokens[i];
-            uint256 tokenId = newPreciousTokenIds[i];
-
-            // Skip if null address.
-            if (address(token) == address(0)) continue;
-
-            // Check if we have the precious.
-            if (token.ownerOf(tokenId) != address(this)) {
-                revert PreciousNotReceived(token, tokenId);
             }
         }
     }

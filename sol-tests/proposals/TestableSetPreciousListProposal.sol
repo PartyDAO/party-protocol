@@ -1,13 +1,13 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8;
 
-import "../../contracts/proposals/AddPreciousesProposal.sol";
+import "../../contracts/proposals/SetPreciousListProposal.sol";
 
-contract TestableAddPreciousesProposal is AddPreciousesProposal {
-    function executeAddPreciouses(
+contract TestableSetPreciousListProposal is SetPreciousListProposal {
+    function executeSetPreciousList(
         IProposalExecutionEngine.ExecuteProposalParams memory params
     ) external returns (bytes memory nextProgressData) {
-        return _executeAddPreciouses(params);
+        return _executeSetPreciousList(params);
     }
 
     function setPreciousList(

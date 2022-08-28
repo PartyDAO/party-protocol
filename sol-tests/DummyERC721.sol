@@ -53,6 +53,14 @@ contract DummyERC721 is IERC721 {
         emit Transfer(address(0), owner, id);
     }
 
+    function burn(uint256 id) external {
+        address owner = _ownerOf[id];
+        balanceOf[owner]--;
+        delete _ownerOf[id];
+        delete getApproved[id];
+        emit Transfer(owner, address(0), id);
+    }
+
     function approve(address operator, uint256 tokenId)
         onlyOwnedByOrIsApprovedForAll(tokenId, msg.sender)
         external
