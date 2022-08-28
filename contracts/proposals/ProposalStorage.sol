@@ -14,10 +14,13 @@ contract ProposalStorage {
     }
 
     error MismatchedPreciousListLengths();
+    error TooManyPreciousTokens();
 
     uint256 internal constant PROPOSAL_FLAG_UNANIMOUS = 0x1;
+    uint8 internal constant MAX_PRECIOUS_TOKENS = 32;
     uint256 private constant SHARED_STORAGE_SLOT =
         uint256(keccak256("ProposalStorage.SharedProposalStorage"));
+
 
     function _getProposalExecutionEngine()
         internal
@@ -41,6 +44,9 @@ contract ProposalStorage {
     ) internal {
         if (preciousTokens.length != preciousTokenIds.length) {
             revert MismatchedPreciousListLengths();
+        }
+        if (preciousTokens.length > MAX_PRECIOUS_TOKENS) {
+            revert TooManyPreciousTokens();
         }
         _getSharedProposalStorage().preciousListHash = _hashPreciousList(
             preciousTokens,
