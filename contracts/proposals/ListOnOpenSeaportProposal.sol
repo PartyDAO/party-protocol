@@ -190,6 +190,15 @@ abstract contract ListOnOpenSeaportProposal is ZoraHelpers {
             // 2) The last time this proposal was executed, we settled an expired
             //    (no bids) zora auction and can now proceed to the opensea
             //    listing step.
+
+            // Clamp the order duration to the global minimum and maximum.
+            uint40 minDuration = uint40(_GLOBALS.getUint256(LibGlobals.GLOBAL_OS_MIN_ORDER_DURATION));
+            uint40 maxDuration = uint40(_GLOBALS.getUint256(LibGlobals.GLOBAL_OS_MAX_ORDER_DURATION));
+            if (data.duration < minDuration) {
+                data.duration = minDuration;
+            } else if (data.duration > maxDuration) {
+                data.duration = maxDuration;
+            }
             uint256 expiry = block.timestamp + uint256(data.duration);
             bytes32 orderHash = _listOnOpenSeaport(
                 data.token,
