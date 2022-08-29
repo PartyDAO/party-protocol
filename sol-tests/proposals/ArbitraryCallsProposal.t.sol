@@ -104,6 +104,7 @@ contract ArbitraryCallsProposalTest is
             proposalId: _randomUint256(),
             proposalData: abi.encode(calls),
             progressData: "",
+            extraData: "",
             flags: 0,
             preciousTokens: preciousTokens,
             preciousTokenIds: preciousTokenIds
