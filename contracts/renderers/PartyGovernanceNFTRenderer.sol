@@ -2,8 +2,8 @@
 pragma solidity ^0.8;
 
 import "../utils/LibSafeCast.sol";
-import "../utils/Strings.sol";
-import "../utils/Base64.sol";
+import "../utils/vendor/Strings.sol";
+import "../utils/vendor/Base64.sol";
 
 import "./IERC721Renderer.sol";
 import "../globals/IGlobals.sol";
@@ -105,7 +105,7 @@ contract PartyGovernanceNFTRenderer is IERC721Renderer {
 
         return string(abi.encodePacked('Delegate: ', Strings.toHexString(delegatedAddress)));
     }
- 
+
     function tokenURI(uint256 tokenId) external view returns (string memory) {
         if(_ownerOf[tokenId] == address(0)) {
             revert InvalidTokenIdError();
