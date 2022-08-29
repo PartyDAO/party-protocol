@@ -2320,4 +2320,16 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
         bytes32 actualHash = gov.hashPreciousList(preciousTokens, preciousTokenIds);
         assertEq(actualHash, expectedHash);
     }
+
+    function test_supportsInterface() external {
+        (IERC721[] memory preciousTokens, uint256[] memory preciousTokenIds) =
+            _createPreciousTokens(2);
+        TestablePartyGovernance gov =
+            _createGovernance(100e18, preciousTokens, preciousTokenIds);
+        gov.supportsInterface(0x01ffc9a7); // EIP165
+        gov.supportsInterface(0x2a55205a); // ERC2981
+        gov.supportsInterface(0x80ac58cd); // ERC721
+        gov.supportsInterface(0x150b7a02); // ERC721Receiver
+        gov.supportsInterface(0x4e2312e0); // ERC1155Receiver
+    }
 }

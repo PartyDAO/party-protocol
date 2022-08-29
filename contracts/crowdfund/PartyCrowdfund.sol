@@ -196,10 +196,8 @@ abstract contract PartyCrowdfund is ERC721Receiver, PartyCrowdfundNFT {
         pure
         returns (bool)
     {
-        if (ERC721Receiver.supportsInterface(interfaceId)) {
-            return true;
-        }
-        return PartyCrowdfundNFT.supportsInterface(interfaceId);
+        return ERC721Receiver.supportsInterface(interfaceId) ||
+            PartyCrowdfundNFT.supportsInterface(interfaceId);
     }
 
     /// @notice Retrieve info about a participant's contributions.

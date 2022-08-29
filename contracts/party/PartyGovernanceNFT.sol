@@ -75,7 +75,6 @@ contract PartyGovernanceNFT is
     {
         return PartyGovernance.supportsInterface(interfaceId) ||
             ERC721.supportsInterface(interfaceId) ||
-            // EIP-2981: NFT Royalty Standard
             interfaceId == type(IERC2981).interfaceId;
     }
 

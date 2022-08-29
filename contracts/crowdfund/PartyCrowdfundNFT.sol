@@ -10,7 +10,6 @@ import "../globals/LibGlobals.sol";
 // NFT functionality for PartyBid/Buy contributions.
 // This NFT is soulbound and read-only.
 contract PartyCrowdfundNFT is IERC721, EIP165, ReadOnlyDelegateCall {
-
     error AlreadyBurnedError(address owner, uint256 tokenId);
     error InvalidTokenError(uint256 tokenId);
 
@@ -87,11 +86,8 @@ contract PartyCrowdfundNFT is IERC721, EIP165, ReadOnlyDelegateCall {
         pure
         returns (bool)
     {
-        // IERC721
-        if (interfaceId == 0x80ac58cd) {
-            return true;
-        }
-        return super.supportsInterface(interfaceId);
+        return super.supportsInterface(interfaceId) ||
+            interfaceId == type(IERC721).interfaceId;
     }
 
     function tokenURI(uint256) external view returns (string memory) {
