@@ -3,7 +3,7 @@ pragma solidity ^0.8;
 
 import "../utils/ReadOnlyDelegateCall.sol";
 import "../utils/LibSafeCast.sol";
-import "../utils/IERC2981.sol";
+import "openzeppelin/contracts/interfaces/IERC2981.sol";
 import "../globals/IGlobals.sol";
 import "../tokens/IERC721.sol";
 import "../vendor/solmate/ERC721.sol";
@@ -70,13 +70,13 @@ contract PartyGovernanceNFT is
     function supportsInterface(bytes4 interfaceId)
         public
         pure
-        override(PartyGovernance, ERC721)
+        override(PartyGovernance, ERC721, IERC165)
         returns (bool)
     {
         return PartyGovernance.supportsInterface(interfaceId) ||
             ERC721.supportsInterface(interfaceId) ||
             // EIP-2981: NFT Royalty Standard
-            interfaceId == 0x2a55205a;
+            interfaceId == type(IERC2981).interfaceId;
     }
 
     function tokenURI(uint256) public override view returns (string memory) {
