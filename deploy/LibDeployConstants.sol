@@ -18,6 +18,7 @@ library LibDeployConstants {
     address osZone;
     bytes32 osConduitKey;
     address osConduitController;
+    address fractionalVaultFactory;
     string networkName;
   }
 
@@ -40,6 +41,7 @@ library LibDeployConstants {
       osZone: address(0), // TODO,
       osConduitKey: 0, // TODO
       osConduitController: address(0), // TODO
+      fractionalVaultFactory: address(0), // TODO
       networkName: 'mainnet'
     });
 
@@ -65,6 +67,7 @@ library LibDeployConstants {
       osZone: 0x0000000000000000000000000000000000000000,
       osConduitKey: 0x0000007b02230091a7ed01230072f7006a004d60a8d4e71d599b8104250f0000,
       osConduitController: 0x00000000F9490004C11Cef243f5400493c00Ad63,
+      fractionalVaultFactory: 0x09EB641BA93CfA6340E944a22bDd2F1C8c745A9f,
       networkName: 'rinkeby'
     });
 
@@ -90,7 +93,8 @@ library LibDeployConstants {
       osZone: 0x00000000E88FE2628EbC5DA81d2b3CeaD633E89e,
       osConduitKey: 0x0000007b02230091a7ed01230072f7006a004d60a8d4e71d599b8104250f0000,
       osConduitController: 0x00000000F9490004C11Cef243f5400493c00Ad63,
-      networkName: 'goerli'
+      networkName: 'goerli',
+      fractionalVaultFactory: address(0) // TODO
     });
 
     return rinkebyDeployConstants;

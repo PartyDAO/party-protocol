@@ -481,6 +481,7 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
                 proposalId: proposalId,
                 proposalData: proposal.proposalData,
                 progressData: "",
+                extraData: bytes("foo"),
                 flags: 0,
                 preciousTokens: preciousTokens,
                 preciousTokenIds: preciousTokenIds
@@ -493,7 +494,8 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
             proposal,
             preciousTokens,
             preciousTokenIds,
-            ""
+            "",
+            bytes("foo")
         );
 
         _assertProposalStatusEq(gov, proposalId, PartyGovernance.ProposalStatus.Complete);
@@ -534,6 +536,7 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
                 proposalId: proposalId,
                 proposalData: proposal.proposalData,
                 progressData: "",
+                extraData: bytes("foo"),
                 flags: 0,
                 preciousTokens: preciousTokens,
                 preciousTokenIds: preciousTokenIds
@@ -546,7 +549,8 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
             proposal,
             preciousTokens,
             preciousTokenIds,
-            ""
+            "",
+            bytes("foo")
         );
 
         _assertProposalStatusEq(gov, proposalId, PartyGovernance.ProposalStatus.InProgress);
@@ -560,6 +564,7 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
                 proposalId: proposalId,
                 proposalData: proposal.proposalData,
                 progressData: abi.encode(1),
+                extraData: bytes("bar"),
                 flags: 0,
                 preciousTokens: preciousTokens,
                 preciousTokenIds: preciousTokenIds
@@ -572,7 +577,8 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
             proposal,
             preciousTokens,
             preciousTokenIds,
-            abi.encode(1)
+            abi.encode(1),
+            bytes("bar")
         );
 
         _assertProposalStatusEq(gov, proposalId, PartyGovernance.ProposalStatus.Complete);
@@ -613,6 +619,7 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
                 proposalId: proposalId,
                 proposalData: proposal.proposalData,
                 progressData: "",
+                extraData: "",
                 // Should be flagged unanimous.
                 flags: LibProposal.PROPOSAL_FLAG_UNANIMOUS,
                 preciousTokens: preciousTokens,
@@ -626,6 +633,7 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
             proposal,
             preciousTokens,
             preciousTokenIds,
+            "",
             ""
         );
     }
@@ -674,6 +682,7 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
                 proposalId: proposalId,
                 proposalData: proposal.proposalData,
                 progressData: "",
+                extraData: "",
                 // Should be flagged unanimous.
                 flags: LibProposal.PROPOSAL_FLAG_UNANIMOUS,
                 preciousTokens: preciousTokens,
@@ -687,6 +696,7 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
             proposal,
             preciousTokens,
             preciousTokenIds,
+            "",
             ""
         );
     }
@@ -726,6 +736,7 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
                 proposalId: proposalId,
                 proposalData: proposal.proposalData,
                 progressData: "",
+                extraData: "",
                 // Should be flagged unanimous.
                 flags: LibProposal.PROPOSAL_FLAG_UNANIMOUS,
                 preciousTokens: preciousTokens,
@@ -739,6 +750,7 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
             proposal,
             preciousTokens,
             preciousTokenIds,
+            "",
             ""
         );
     }
@@ -772,6 +784,7 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
             proposal,
             preciousTokens,
             preciousTokenIds,
+            "",
             ""
         );
 
@@ -788,6 +801,7 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
             proposal,
             preciousTokens,
             preciousTokenIds,
+            "",
             ""
         );
     }
@@ -823,6 +837,7 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
             proposal,
             preciousTokens,
             preciousTokenIds,
+            "",
             ""
         );
     }
@@ -862,6 +877,7 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
             proposal,
             preciousTokens,
             preciousTokenIds,
+            "",
             ""
         );
     }
@@ -896,6 +912,7 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
             proposal,
             preciousTokens,
             preciousTokenIds,
+            "",
             ""
         );
 
@@ -912,6 +929,7 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
             proposal,
             preciousTokens,
             preciousTokenIds,
+            "",
             ""
         );
     }
@@ -953,6 +971,7 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
             proposal,
             preciousTokens,
             preciousTokenIds,
+            "",
             ""
         );
     }
@@ -981,6 +1000,7 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
             proposal,
             preciousTokens,
             preciousTokenIds,
+            "",
             ""
         );
         _assertProposalStatusEq(gov, proposalId, PartyGovernance.ProposalStatus.InProgress);
@@ -1021,6 +1041,7 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
             proposal,
             preciousTokens,
             preciousTokenIds,
+            "",
             ""
         );
         _assertProposalStatusEq(gov, proposalId, PartyGovernance.ProposalStatus.InProgress);
@@ -1061,6 +1082,7 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
             proposal,
             preciousTokens,
             preciousTokenIds,
+            "",
             ""
         );
         _assertProposalStatusEq(gov, proposalId, PartyGovernance.ProposalStatus.InProgress);
@@ -1172,6 +1194,7 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
             proposal,
             preciousTokens,
             preciousTokenIds,
+            "",
             ""
         );
     }
@@ -1219,6 +1242,7 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
             proposal,
             preciousTokens,
             preciousTokenIds,
+            "",
             ""
         );
     }
@@ -1253,6 +1277,7 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
             proposal,
             preciousTokens,
             preciousTokenIds,
+            "",
             ""
         );
 
@@ -1295,6 +1320,7 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
             proposal,
             preciousTokens,
             preciousTokenIds,
+            "",
             ""
         );
 
@@ -1338,6 +1364,7 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
             proposal,
             preciousTokens,
             preciousTokenIds,
+            "",
             ""
         );
 
@@ -1352,7 +1379,8 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
             proposal,
             preciousTokens,
             preciousTokenIds,
-            abi.encode(1)
+            abi.encode(1),
+            ""
         );
         _assertProposalStatusEq(gov, proposalId, PartyGovernance.ProposalStatus.Complete);
     }
@@ -1393,6 +1421,7 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
             proposal,
             preciousTokens,
             preciousTokenIds,
+            "",
             ""
         );
     }

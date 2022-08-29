@@ -75,6 +75,7 @@ contract PartyCollectionBuy is PartyBuyBase {
     /// @notice intializer to be delegatecalled by Proxy constructor.
     function initialize(PartyCollectionBuyOptions memory opts)
         external
+        payable
         onlyConstructor
     {
         PartyBuyBase._initialize(PartyBuyBaseOptions({

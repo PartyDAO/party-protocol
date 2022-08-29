@@ -121,6 +121,11 @@
         "internalType": "uint40",
         "name": "timestamp",
         "type": "uint40"
+      },
+      {
+        "internalType": "uint256[]",
+        "name": "indexes",
+        "type": "uint256[]"
       }
     ],
     "name": "getVotingPowersAt",

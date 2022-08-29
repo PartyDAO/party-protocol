@@ -2,8 +2,8 @@
 pragma solidity ^0.8;
 
 import "../utils/LibSafeCast.sol";
-import "../utils/Strings.sol";
-import "../utils/Base64.sol";
+import "../utils/vendor/Strings.sol";
+import "../utils/vendor/Base64.sol";
 
 import "./IERC721Renderer.sol";
 import "../globals/IGlobals.sol";

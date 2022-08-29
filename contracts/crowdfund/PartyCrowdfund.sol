@@ -77,6 +77,7 @@ abstract contract PartyCrowdfund is ERC721Receiver, PartyCrowdfundNFT {
     error OnlyContributorAllowedError();
     error NotAllowedByGateKeeperError(address contributor, IGateKeeper gateKeeper, bytes12 gateKeeperId, bytes gateData);
     error SplitRecipientAlreadyBurnedError();
+    error InvalidBpsError(uint16 bps);
 
     event Burned(address contributor, uint256 ethUsed, uint256 ethOwed, uint256 votingPower);
     event Contributed(address contributor, uint256 amount, address delegate, uint256 previousTotalContributions);
@@ -102,7 +103,7 @@ abstract contract PartyCrowdfund is ERC721Receiver, PartyCrowdfundNFT {
     // The ID of the gatekeeper strategy to use.
     bytes12 public gateKeeperId;
     // Who a contributor last delegated to.
-    mapping (address => address) private _delegationsByContributor;
+    mapping (address => address) public delegationsByContributor;
     // Array of contributions by a contributor.
     // One is created for every nonzero contribution made.
     mapping (address => Contribution[]) private _contributionsByContributor;
@@ -118,8 +119,17 @@ abstract contract PartyCrowdfund is ERC721Receiver, PartyCrowdfundNFT {
         internal
     {
         PartyCrowdfundNFT._initialize(opts.name, opts.symbol);
+        if (opts.governanceOpts.feeBps > 1e4) {
+            revert InvalidBpsError(opts.governanceOpts.feeBps);
+        }
+        if (opts.governanceOpts.passThresholdBps > 1e4) {
+            revert InvalidBpsError(opts.governanceOpts.passThresholdBps);
+        }
         governanceOptsHash = _hashFixedGovernanceOpts(opts.governanceOpts);
         splitRecipient = opts.splitRecipient;
+        if (opts.splitBps > 1e4) {
+            revert InvalidBpsError(opts.splitBps);
+        }
         splitBps = opts.splitBps;
         // If the deployer passed in some ETH during deployment, credit them.
         uint128 initialBalance = address(this).balance.safeCastUint256ToUint128();
@@ -177,22 +187,6 @@ abstract contract PartyCrowdfund is ERC721Receiver, PartyCrowdfundNFT {
             // able to reach 100% consensus.
             totalContributions,
             gateData
-        );
-    }
-
-    /// @notice Contribute, reusing the last delegate of the sender or
-    ///         the sender itself if not set.
-    receive() external payable {
-        // If the sender already delegated before then use that delegate.
-        // Otherwise delegate to the sender.
-        address delegate = _delegationsByContributor[msg.sender];
-        delegate = delegate == address(0) ? msg.sender : delegate;
-        _contribute(
-            msg.sender,
-            msg.value.safeCastUint256ToUint128(),
-            delegate,
-            totalContributions,
-            "" // No gatedata supported with naked contribution
         );
     }
 
@@ -387,7 +381,7 @@ abstract contract PartyCrowdfund is ERC721Receiver, PartyCrowdfundNFT {
         totalContributions += amount;
         // Update delegate.
         // OK if this happens out of cycle.
-        _delegationsByContributor[contributor] = delegate;
+        delegationsByContributor[contributor] = delegate;
         emit Contributed(contributor, amount, delegate, previousTotalContributions);
 
         if (amount != 0) {
@@ -452,7 +446,7 @@ abstract contract PartyCrowdfund is ERC721Receiver, PartyCrowdfundNFT {
         (uint256 ethUsed, uint256 ethOwed, uint256 votingPower) =
             _getFinalContribution(contributor);
         if (party_ != Party(payable(0)) && votingPower > 0) {
-            address delegate = _delegationsByContributor[contributor];
+            address delegate = delegationsByContributor[contributor];
             if (delegate == address(0)) {
                 // Delegate can be unset for the split recipient if they never
                 // contribute. Self-delegate if this occurs.

@@ -33,7 +33,7 @@ contract PartyCrowdfundTest is Test, TestUtils {
         address delegate
     );
 
-    event Contributed(address contributor, uint256 amount, address delegate);
+    event Contributed(address contributor, uint256 amount, address delegate, uint256 previousTotalContributions);
     event Burned(address contributor, uint256 ethUsed, uint256 ethOwed, uint256 votingPower);
 
     string defaultName = 'PartyBid';
@@ -139,6 +139,70 @@ contract PartyCrowdfundTest is Test, TestUtils {
             (uint256(defaultSplitBps) * totalContributions) / (1e4 - 1);
     }
 
+    function test_creation_initialContribution_withDelegate() public {
+        _expectEmit0();
+        address initialContributor = _randomAddress();
+        address initialDelegate = _randomAddress();
+        uint256 initialContribution = _randomRange(1, 1 ether);
+        vm.deal(address(this), initialContribution);
+        emit Contributed(initialContributor, initialContribution, initialDelegate, 0);
+        TestablePartyCrowdfund cf = new TestablePartyCrowdfund{value: initialContribution }(
+            globals,
+            PartyCrowdfund.PartyCrowdfundOptions({
+                name: defaultName,
+                symbol: defaultSymbol,
+                splitRecipient: defaultSplitRecipient,
+                splitBps: defaultSplitBps,
+                initialContributor: initialContributor,
+                initialDelegate: initialDelegate,
+                gateKeeper: defaultGateKeeper,
+                gateKeeperId: defaultGateKeeperId,
+                governanceOpts: defaultGovernanceOpts
+            })
+        );
+        (
+            uint256 ethContributed,
+            uint256 ethUsed,
+            uint256 ethOwed,
+            uint256 votingPower
+        ) = cf.getContributorInfo(initialContributor);
+        assertEq(ethContributed, initialContribution);
+        assertEq(ethUsed, 0);
+        assertEq(ethOwed, 0);
+        assertEq(votingPower, 0);
+        assertEq(uint256(cf.totalContributions()), initialContribution);
+        assertEq(cf.delegationsByContributor(initialContributor), initialDelegate);
+    }
+
+    function test_creation_initialContribution_noValue() public {
+        address initialContributor = _randomAddress();
+        TestablePartyCrowdfund cf = new TestablePartyCrowdfund(
+            globals,
+            PartyCrowdfund.PartyCrowdfundOptions({
+                name: defaultName,
+                symbol: defaultSymbol,
+                splitRecipient: defaultSplitRecipient,
+                splitBps: defaultSplitBps,
+                initialContributor: initialContributor,
+                initialDelegate: initialContributor,
+                gateKeeper: defaultGateKeeper,
+                gateKeeperId: defaultGateKeeperId,
+                governanceOpts: defaultGovernanceOpts
+            })
+        );
+        (
+            uint256 ethContributed,
+            uint256 ethUsed,
+            uint256 ethOwed,
+            uint256 votingPower
+        ) = cf.getContributorInfo(initialContributor);
+        assertEq(ethContributed, 0);
+        assertEq(ethUsed, 0);
+        assertEq(ethOwed, 0);
+        assertEq(votingPower, 0);
+        assertEq(uint256(cf.totalContributions()), 0);
+        assertEq(cf.delegationsByContributor(initialContributor), address(0));
+    }
 
     // One person contributes, their entire contribution is used.
     function testWin_oneContributor() public {
@@ -570,76 +634,6 @@ contract PartyCrowdfundTest is Test, TestUtils {
         );
     }
 
-    // One person contributes via fallback, their entire contribution is used.
-    function testWin_contributeThroughFallback() public {
-        TestablePartyCrowdfund cf = _createCrowdfund(0);
-        address payable contributor1 = _randomAddress();
-        // contributor1 contributes 1 ETH
-        vm.deal(contributor1, 1e18);
-        vm.prank(contributor1);
-        payable(address(cf)).call{ value: contributor1.balance }("");
-        assertEq(cf.totalContributions(), 1e18);
-        // set up a win using contributor1's total contribution
-        (IERC721[] memory erc721Tokens, uint256[] memory erc721TokenIds) =
-            _createTokens(address(cf), 2);
-        Party party_ = cf.testSetWon(
-            1e18,
-            defaultGovernanceOpts,
-            erc721Tokens,
-            erc721TokenIds
-        );
-        assertEq(address(party_), address(party));
-        // contributor1 burns tokens
-        vm.expectEmit(false, false, false, true);
-        emit MockPartyFactoryMint(
-            address(cf),
-            party_,
-            contributor1,
-            1e18,
-            contributor1 // will self-delegate because did not delegate before
-        );
-        cf.burn(contributor1);
-        // contributor1 gets back none of their contribution
-        assertEq(contributor1.balance, 0);
-    }
-
-    // One person contributes via contribute() then fallback, their entire contribution is used.
-    function testWin_contributeThroughContributeThenFallback() public {
-        TestablePartyCrowdfund cf = _createCrowdfund(0);
-        address delegate1 = _randomAddress();
-        address payable contributor1 = _randomAddress();
-        // contributor1 contributes 1 ETH
-        vm.deal(contributor1, 1e18);
-        vm.prank(contributor1);
-        cf.contribute{ value: contributor1.balance }(delegate1, "");
-        // contributor1 contributes 0.5 more ETH via fallback
-        vm.deal(contributor1, 0.5e18);
-        vm.prank(contributor1);
-        payable(address(cf)).call{ value: contributor1.balance }("");
-        assertEq(cf.totalContributions(), 1.5e18);
-        // set up a win using contributor1's total contribution
-        (IERC721[] memory erc721Tokens, uint256[] memory erc721TokenIds) =
-            _createTokens(address(cf), 2);
-        Party party_ = cf.testSetWon(
-            1.5e18,
-            defaultGovernanceOpts,
-            erc721Tokens,
-            erc721TokenIds
-        );
-        // contributor1 burns tokens
-        vm.expectEmit(false, false, false, true);
-        emit MockPartyFactoryMint(
-            address(cf),
-            party_,
-            contributor1,
-            1.5e18,
-            delegate1 // will use last contribute() delegate
-        );
-        cf.burn(contributor1);
-        // contributor1 gets back none of their contribution
-        assertEq(contributor1.balance, 0);
-    }
-
     // Split recipient set but does not contribute.
     // Half of contributor's contribution used.
     function testWin_nonParticipatingSplitRecipient() public {
@@ -789,8 +783,6 @@ contract PartyCrowdfundTest is Test, TestUtils {
         );
         cf.burn(splitRecipient);
     }
-
-    // TODO: intiial contribution tests
 
     // Two contributors, one is blocked
     function test_twoContributors_oneBlockedByGateKeeper() public {

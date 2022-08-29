@@ -184,6 +184,7 @@ abstract contract PartyGovernance is
     error AlreadyVotedError(address voter);
     error InvalidNewHostError();
     error ProposalCannotBeCancelledYetError(uint40 currentTime, uint40 cancelTime);
+    error InvalidBpsError(uint16 bps);
 
     uint256 constant private UINT40_HIGH_BIT = 1 << 39;
     uint96 constant private VETO_VALUE = uint96(int96(-1));
@@ -195,7 +196,7 @@ abstract contract PartyGovernance is
     /// @notice Distribution fee bps.
     uint16 public feeBps;
     /// @notice Distribution fee recipient.
-    address payable feeRecipient;
+    address payable public feeRecipient;
     /// @notice The hash of the list of precious NFTs guarded by the party.
     bytes32 public preciousListHash;
     /// @notice The last proposal ID that was used. 0 means no proposals have been made.
@@ -271,6 +272,12 @@ abstract contract PartyGovernance is
         internal
         virtual
     {
+        if (opts.feeBps > 1e4) {
+            revert InvalidBpsError(opts.feeBps);
+        }
+        if (opts.passThresholdBps > 1e4) {
+            revert InvalidBpsError(opts.passThresholdBps);
+        }
         _initProposalImpl(
             IProposalExecutionEngine(
                 _GLOBALS.getAddress(LibGlobals.GLOBAL_PROPOSAL_ENGINE_IMPL)
@@ -583,12 +590,15 @@ abstract contract PartyGovernance is
     ///      The ProposalExecutionEngine enforces that only one InProgress proposal
     ///      is active at a time, so that proposal must be completed or cancelled via cancel()
     ///      in order to execute a different proposal.
+    ///      extraData is optional, off-chain data a proposal might need to execute a step.
     function execute(
         uint256 proposalId,
         Proposal memory proposal,
         IERC721[] memory preciousTokens,
         uint256[] memory preciousTokenIds,
-        bytes calldata progressData
+        bytes calldata progressData,
+        bytes calldata extraData
+
     )
         external
         payable
@@ -630,7 +640,8 @@ abstract contract PartyGovernance is
             preciousTokens,
             preciousTokenIds,
             _getProposalFlags(values),
-            progressData
+            progressData,
+            extraData
         );
         if (!completed) {
             // Proposal did not complete.
@@ -730,7 +741,8 @@ abstract contract PartyGovernance is
         IERC721[] memory preciousTokens,
         uint256[] memory preciousTokenIds,
         uint256 flags,
-        bytes memory progressData
+        bytes memory progressData,
+        bytes memory extraData
     )
         private
         returns (bool completed)
@@ -740,6 +752,7 @@ abstract contract PartyGovernance is
                 proposalId: proposalId,
                 proposalData: proposal.proposalData,
                 progressData: progressData,
+                extraData: extraData,
                 preciousTokens: preciousTokens,
                 preciousTokenIds: preciousTokenIds,
                 flags: flags
@@ -805,7 +818,6 @@ abstract contract PartyGovernance is
     }
 
     // Increase `voter`'s intrinsic voting power and update their delegate if delegate is nonzero.
-    // NOTE: What happens when you adjust voting power by 0?
     function _adjustVotingPower(address voter, int192 votingPower, address delegate)
         internal
     {
