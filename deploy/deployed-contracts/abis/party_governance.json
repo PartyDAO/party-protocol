@@ -70,6 +70,17 @@
     "type": "error"
   },
   {
+    "inputs": [
+      {
+        "internalType": "uint16",
+        "name": "bps",
+        "type": "uint16"
+      }
+    ],
+    "name": "InvalidBpsError",
+    "type": "error"
+  },
+  {
     "inputs": [],
     "name": "InvalidDelegateError",
     "type": "error"
@@ -770,6 +781,11 @@
         "internalType": "bytes",
         "name": "progressData",
         "type": "bytes"
+      },
+      {
+        "internalType": "bytes",
+        "name": "extraData",
+        "type": "bytes"
       }
     ],
     "name": "execute",
@@ -785,6 +801,19 @@
         "internalType": "uint16",
         "name": "",
         "type": "uint16"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "feeRecipient",
+    "outputs": [
+      {
+        "internalType": "address payable",
+        "name": "",
+        "type": "address"
       }
     ],
     "stateMutability": "view",

@@ -81,6 +81,17 @@
     "type": "error"
   },
   {
+    "inputs": [
+      {
+        "internalType": "uint16",
+        "name": "bps",
+        "type": "uint16"
+      }
+    ],
+    "name": "InvalidBpsError",
+    "type": "error"
+  },
+  {
     "inputs": [],
     "name": "InvalidDelegateError",
     "type": "error"
@@ -604,6 +615,13 @@
     "type": "function"
   },
   {
+    "inputs": [],
+    "name": "abdicate",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
     "inputs": [
       {
         "internalType": "address",
@@ -710,6 +728,19 @@
     "name": "cancel",
     "outputs": [],
     "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "contractURI",
+    "outputs": [
+      {
+        "internalType": "string",
+        "name": "",
+        "type": "string"
+      }
+    ],
+    "stateMutability": "view",
     "type": "function"
   },
   {
@@ -920,6 +951,11 @@
         "internalType": "bytes",
         "name": "progressData",
         "type": "bytes"
+      },
+      {
+        "internalType": "bytes",
+        "name": "extraData",
+        "type": "bytes"
       }
     ],
     "name": "execute",
@@ -935,6 +971,19 @@
         "internalType": "uint16",
         "name": "",
         "type": "uint16"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "feeRecipient",
+    "outputs": [
+      {
+        "internalType": "address payable",
+        "name": "",
+        "type": "address"
       }
     ],
     "stateMutability": "view",
@@ -1567,6 +1616,35 @@
       }
     ],
     "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "name": "royaltyInfo",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
     "type": "function"
   },
   {
