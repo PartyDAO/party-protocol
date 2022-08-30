@@ -86,29 +86,28 @@ abstract contract PartyCrowdfund is ERC721Receiver, PartyCrowdfundNFT {
 
     /// @dev The party instance created by `_createParty()`, if any.
     Party public party;
+    // The total (recorded) ETH contributed to this crowdfund.
+    uint96 public totalContributions;
+    // The gatekeeper contract to use (if non-null) to restrict who can
+    // Whether the share for split recipient has been claimed through burn().
+    IGateKeeper public gateKeeper;
+    // The ID of the gatekeeper strategy to use.
+    bytes12 public gateKeeperId;
     /// @notice Who will receive a reserved portion of governance power when
     ///         the governance party is created.
     address payable public splitRecipient;
     /// @notice How much governance power to reserve for `splitRecipient`,
     ///         in bps, where 10,000 = 100%.
     uint16 public splitBps;
+    bool private _splitRecipientHasBurned;
     // Hash of party governance options passed into initialize().
     // The GovernanceOpts passed into `_createParty()` must match.
-    bytes16 public governanceOptsHash;
-    // The total (recorded) ETH contributed to this crowdfund.
-    uint96 public totalContributions;
-    // The gatekeeper contract to use (if non-null) to restrict who can
-    // contribute to this crowdfund.
-    IGateKeeper public gateKeeper;
-    // The ID of the gatekeeper strategy to use.
-    bytes12 public gateKeeperId;
+    bytes32 public governanceOptsHash;
     // Who a contributor last delegated to.
     mapping (address => address) public delegationsByContributor;
     // Array of contributions by a contributor.
     // One is created for every nonzero contribution made.
     mapping (address => Contribution[]) private _contributionsByContributor;
-    // Whether the share for split recipient has been claimed through burn().
-    bool private _splitRecipientHasBurned;
 
     constructor(IGlobals globals) PartyCrowdfundNFT(globals) {
         _GLOBALS = globals;
@@ -306,7 +305,7 @@ abstract contract PartyCrowdfund is ERC721Receiver, PartyCrowdfundNFT {
             let oldHostsFieldValue := mload(opts)
             mstore(opts, keccak256(add(mload(opts), 0x20), mul(mload(mload(opts)), 32)))
             // Hash the entire struct.
-            h := and(keccak256(opts, 0xC0), 0xffffffffffffffffffffffffffffffff00000000000000000000000000000000)
+            h := keccak256(opts, 0xC0)
             // Restore old hosts field value.
             mstore(opts, oldHostsFieldValue)
         }
