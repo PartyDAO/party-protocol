@@ -14,10 +14,8 @@ contract ERC1155Receiver is EIP165, ERC1155TokenReceiverBase {
         pure
         returns (bool)
     {
-        if (interfaceId == 0x4e2312e0) {
-            return true;
-        }
-        return super.supportsInterface(interfaceId);
+        return super.supportsInterface(interfaceId) ||
+            interfaceId == type(ERC1155TokenReceiverBase).interfaceId;
     }
 
 }
