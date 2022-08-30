@@ -35,7 +35,7 @@ contract PartyBuyTest is Test, TestUtils {
     string defaultName = 'PartyBuy';
     string defaultSymbol = 'PBID';
     uint40 defaultDuration = 60 * 60;
-    uint128 defaultMaxPrice = 10e18;
+    uint96 defaultMaxPrice = 10e18;
     address payable defaultSplitRecipient = payable(0);
     uint16 defaultSplitBps = 0.1e4;
     address defaultInitialDelegate;
@@ -60,7 +60,7 @@ contract PartyBuyTest is Test, TestUtils {
 
     function _createCrowdfund(
         uint256 tokenId,
-        uint128 initialContribution
+        uint96 initialContribution
     )
         private
         returns (PartyBuy pb)

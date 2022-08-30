@@ -186,7 +186,7 @@
         "type": "uint256"
       }
     ],
-    "name": "Uint256ToUint128CastOutOfRangeError",
+    "name": "Uint256Touint96CastOutOfRangeError",
     "type": "error"
   },
   {
@@ -727,9 +727,9 @@
             "type": "uint40"
           },
           {
-            "internalType": "uint128",
+            "internalType": "uint96",
             "name": "maximumBid",
-            "type": "uint128"
+            "type": "uint96"
           },
           {
             "internalType": "address payable",
@@ -838,9 +838,9 @@
     "name": "lastBid",
     "outputs": [
       {
-        "internalType": "uint128",
+        "internalType": "uint96",
         "name": "",
-        "type": "uint128"
+        "type": "uint96"
       }
     ],
     "stateMutability": "view",
@@ -864,9 +864,9 @@
     "name": "maximumBid",
     "outputs": [
       {
-        "internalType": "uint128",
+        "internalType": "uint96",
         "name": "",
-        "type": "uint128"
+        "type": "uint96"
       }
     ],
     "stateMutability": "view",
@@ -1128,9 +1128,9 @@
     "name": "totalContributions",
     "outputs": [
       {
-        "internalType": "uint128",
+        "internalType": "uint96",
         "name": "",
-        "type": "uint128"
+        "type": "uint96"
       }
     ],
     "stateMutability": "view",

@@ -64,9 +64,9 @@ abstract contract PartyCrowdfund is ERC721Receiver, PartyCrowdfundNFT {
     // Stored in `_contributionsByContributor`.
     struct Contribution {
         // The value of `PartyCrowdfund.totalContributions` when this contribution was made.
-        uint128 previousTotalContributions;
+        uint96 previousTotalContributions;
         // How much was this contribution.
-        uint128 amount;
+        uint96 amount;
     }
 
     error PartyAlreadyExistsError(Party party);
@@ -96,7 +96,7 @@ abstract contract PartyCrowdfund is ERC721Receiver, PartyCrowdfundNFT {
     // The GovernanceOpts passed into `_createParty()` must match.
     bytes16 public governanceOptsHash;
     // The total (recorded) ETH contributed to this crowdfund.
-    uint128 public totalContributions;
+    uint96 public totalContributions;
     // The gatekeeper contract to use (if non-null) to restrict who can
     // contribute to this crowdfund.
     IGateKeeper public gateKeeper;
@@ -132,7 +132,7 @@ abstract contract PartyCrowdfund is ERC721Receiver, PartyCrowdfundNFT {
         }
         splitBps = opts.splitBps;
         // If the deployer passed in some ETH during deployment, credit them.
-        uint128 initialBalance = address(this).balance.safeCastUint256ToUint128();
+        uint96 initialBalance = address(this).balance.safeCastUint256ToUint96();
         if (initialBalance > 0) {
             // If this contract has ETH, either passed in during deployment or
             // pre-existing, credit it to the `initialContributor`.
@@ -176,7 +176,7 @@ abstract contract PartyCrowdfund is ERC721Receiver, PartyCrowdfundNFT {
     {
         _contribute(
             msg.sender,
-            msg.value.safeCastUint256ToUint128(),
+            msg.value.safeCastUint256ToUint96(),
             delegate,
             // We cannot use `address(this).balance - msg.value` as the previous
             // total contributions in case someone forces (suicides) ETH into this
@@ -353,9 +353,9 @@ abstract contract PartyCrowdfund is ERC721Receiver, PartyCrowdfundNFT {
 
     function _contribute(
         address contributor,
-        uint128 amount,
+        uint96 amount,
         address delegate,
-        uint128 previousTotalContributions,
+        uint96 previousTotalContributions,
         bytes memory gateData
     )
         internal

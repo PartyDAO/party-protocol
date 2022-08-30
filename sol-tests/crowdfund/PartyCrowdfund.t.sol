@@ -40,7 +40,7 @@ contract PartyCrowdfundTest is Test, TestUtils {
     string defaultName = 'PartyBid';
     string defaultSymbol = 'PBID';
     uint40 defaultDuration = 60 * 60;
-    uint128 defaultMaxBid = 10e18;
+    uint96 defaultMaxBid = 10e18;
     address payable defaultSplitRecipient = payable(0);
     uint16 defaultSplitBps = 0.1e4;
     address defaultInitialDelegate;
@@ -81,7 +81,7 @@ contract PartyCrowdfundTest is Test, TestUtils {
         }
     }
 
-    function _createCrowdfund(uint128 initialContribution)
+    function _createCrowdfund(uint96 initialContribution)
         private
         returns (TestablePartyCrowdfund cf)
     {

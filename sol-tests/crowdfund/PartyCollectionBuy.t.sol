@@ -36,7 +36,7 @@ contract PartyCollectionBuyTest is Test, TestUtils {
     string defaultName = 'PartyCollectionBuy';
     string defaultSymbol = 'PBID';
     uint40 defaultDuration = 60 * 60;
-    uint128 defaultMaxPrice = 10e18;
+    uint96 defaultMaxPrice = 10e18;
     address payable defaultSplitRecipient = payable(0);
     uint16 defaultSplitBps = 0.1e4;
     address defaultInitialDelegate;
@@ -56,7 +56,7 @@ contract PartyCollectionBuyTest is Test, TestUtils {
         partyCollectionBuyImpl = new PartyCollectionBuy(globals);
     }
 
-    function _createCrowdfund(address[] memory hosts, uint128 initialContribution)
+    function _createCrowdfund(address[] memory hosts, uint96 initialContribution)
         private
         returns (PartyCollectionBuy pb, PartyCrowdfund.FixedGovernanceOpts memory governanceOpts)
     {

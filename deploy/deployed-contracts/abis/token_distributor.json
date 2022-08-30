@@ -88,14 +88,14 @@
             "type": "address"
           },
           {
-            "internalType": "uint128",
+            "internalType": "uint96",
             "name": "memberSupply",
-            "type": "uint128"
+            "type": "uint96"
           },
           {
-            "internalType": "uint128",
+            "internalType": "uint96",
             "name": "fee",
-            "type": "uint128"
+            "type": "uint96"
           }
         ],
         "internalType": "struct ITokenDistributor.DistributionInfo",
@@ -109,9 +109,9 @@
   {
     "inputs": [
       {
-        "internalType": "uint128",
+        "internalType": "uint96",
         "name": "supply",
-        "type": "uint128"
+        "type": "uint96"
       }
     ],
     "name": "InvalidDistributionSupplyError",
@@ -232,7 +232,7 @@
         "type": "uint256"
       }
     ],
-    "name": "Uint256ToUint128CastOutOfRangeError",
+    "name": "Uint256ToUint96CastOutOfRangeError",
     "type": "error"
   },
   {
@@ -315,14 +315,14 @@
             "type": "address"
           },
           {
-            "internalType": "uint128",
+            "internalType": "uint96",
             "name": "memberSupply",
-            "type": "uint128"
+            "type": "uint96"
           },
           {
-            "internalType": "uint128",
+            "internalType": "uint96",
             "name": "fee",
-            "type": "uint128"
+            "type": "uint96"
           }
         ],
         "indexed": false,
@@ -414,14 +414,14 @@
             "type": "address"
           },
           {
-            "internalType": "uint128",
+            "internalType": "uint96",
             "name": "memberSupply",
-            "type": "uint128"
+            "type": "uint96"
           },
           {
-            "internalType": "uint128",
+            "internalType": "uint96",
             "name": "fee",
-            "type": "uint128"
+            "type": "uint96"
           }
         ],
         "internalType": "struct ITokenDistributor.DistributionInfo[]",
@@ -437,9 +437,9 @@
     "name": "batchClaim",
     "outputs": [
       {
-        "internalType": "uint128[]",
+        "internalType": "uint96[]",
         "name": "amountsClaimed",
-        "type": "uint128[]"
+        "type": "uint96[]"
       }
     ],
     "stateMutability": "nonpayable",
@@ -475,14 +475,14 @@
             "type": "address"
           },
           {
-            "internalType": "uint128",
+            "internalType": "uint96",
             "name": "memberSupply",
-            "type": "uint128"
+            "type": "uint96"
           },
           {
-            "internalType": "uint128",
+            "internalType": "uint96",
             "name": "fee",
-            "type": "uint128"
+            "type": "uint96"
           }
         ],
         "internalType": "struct ITokenDistributor.DistributionInfo[]",
@@ -530,14 +530,14 @@
             "type": "address"
           },
           {
-            "internalType": "uint128",
+            "internalType": "uint96",
             "name": "memberSupply",
-            "type": "uint128"
+            "type": "uint96"
           },
           {
-            "internalType": "uint128",
+            "internalType": "uint96",
             "name": "fee",
-            "type": "uint128"
+            "type": "uint96"
           }
         ],
         "internalType": "struct ITokenDistributor.DistributionInfo",
@@ -553,9 +553,9 @@
     "name": "claim",
     "outputs": [
       {
-        "internalType": "uint128",
+        "internalType": "uint96",
         "name": "amountClaimed",
-        "type": "uint128"
+        "type": "uint96"
       }
     ],
     "stateMutability": "nonpayable",
@@ -591,14 +591,14 @@
             "type": "address"
           },
           {
-            "internalType": "uint128",
+            "internalType": "uint96",
             "name": "memberSupply",
-            "type": "uint128"
+            "type": "uint96"
           },
           {
-            "internalType": "uint128",
+            "internalType": "uint96",
             "name": "fee",
-            "type": "uint128"
+            "type": "uint96"
           }
         ],
         "internalType": "struct ITokenDistributor.DistributionInfo",
@@ -669,14 +669,14 @@
             "type": "address"
           },
           {
-            "internalType": "uint128",
+            "internalType": "uint96",
             "name": "memberSupply",
-            "type": "uint128"
+            "type": "uint96"
           },
           {
-            "internalType": "uint128",
+            "internalType": "uint96",
             "name": "fee",
-            "type": "uint128"
+            "type": "uint96"
           }
         ],
         "internalType": "struct ITokenDistributor.DistributionInfo",
@@ -735,14 +735,14 @@
             "type": "address"
           },
           {
-            "internalType": "uint128",
+            "internalType": "uint96",
             "name": "memberSupply",
-            "type": "uint128"
+            "type": "uint96"
           },
           {
-            "internalType": "uint128",
+            "internalType": "uint96",
             "name": "fee",
-            "type": "uint128"
+            "type": "uint96"
           }
         ],
         "internalType": "struct ITokenDistributor.DistributionInfo",
@@ -840,9 +840,9 @@
     "name": "getClaimAmount",
     "outputs": [
       {
-        "internalType": "uint128",
+        "internalType": "uint96",
         "name": "",
-        "type": "uint128"
+        "type": "uint96"
       }
     ],
     "stateMutability": "view",
@@ -864,9 +864,9 @@
     "name": "getRemainingMemberSupply",
     "outputs": [
       {
-        "internalType": "uint128",
+        "internalType": "uint96",
         "name": "",
-        "type": "uint128"
+        "type": "uint96"
       }
     ],
     "stateMutability": "view",

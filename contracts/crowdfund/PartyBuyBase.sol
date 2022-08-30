@@ -27,7 +27,7 @@ abstract contract PartyBuyBase is Implementation, PartyCrowdfund {
         uint40 duration;
         // Maximum amount this crowdfund will pay for the NFT.
         // If zero, no maximum.
-        uint128 maximumPrice;
+        uint96 maximumPrice;
         // An address that receieves an extra share of the final voting power
         // when the party transitions into governance.
         address payable splitRecipient;
@@ -51,7 +51,7 @@ abstract contract PartyBuyBase is Implementation, PartyCrowdfund {
 
     event Won(Party party, IERC721 token, uint256 tokenId, uint256 settledPrice);
 
-    error MaximumPriceError(uint128 callValue, uint128 maximumPrice);
+    error MaximumPriceError(uint96 callValue, uint96 maximumPrice);
     error NoContributionsError();
     error FailedToBuyNFTError(IERC721 token, uint256 tokenId);
     error InvalidCallTargetError(address callTarget);
@@ -60,9 +60,9 @@ abstract contract PartyBuyBase is Implementation, PartyCrowdfund {
     uint40 public expiry;
     // Maximum amount this crowdfund will pay for the NFT.
     // If zero, no maximum.
-    uint128 public maximumPrice;
+    uint96 public maximumPrice;
     // What the NFT was actually bought for.
-    uint128 public settledPrice;
+    uint96 public settledPrice;
 
     constructor(IGlobals globals) PartyCrowdfund(globals) {}
 
@@ -90,7 +90,7 @@ abstract contract PartyBuyBase is Implementation, PartyCrowdfund {
         IERC721 token,
         uint256 tokenId,
         address payable callTarget,
-        uint128 callValue,
+        uint96 callValue,
         bytes calldata callData,
         FixedGovernanceOpts memory governanceOpts
     )
@@ -106,9 +106,9 @@ abstract contract PartyBuyBase is Implementation, PartyCrowdfund {
         if (lc != CrowdfundLifecycle.Active) {
             revert WrongLifecycleError(lc);
         }
-        uint128 settledPrice_;
+        uint96 settledPrice_;
         {
-            uint128 maximumPrice_ = maximumPrice;
+            uint96 maximumPrice_ = maximumPrice;
             if (maximumPrice_ != 0 && callValue > maximumPrice_) {
                 revert MaximumPriceError(callValue, maximumPrice);
             }
