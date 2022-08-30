@@ -478,6 +478,7 @@ contract PartyCrowdfundTest is Test, TestUtils {
         assertEq(cf.totalContributions(), 1.5e18);
         // set up a loss
         cf.testSetLifeCycle(PartyCrowdfund.CrowdfundLifecycle.Lost);
+        assertEq(address(cf.party()), address(0));
         // contributor1 burns tokens
         vm.expectEmit(false, false, false, true);
         emit Burned(contributor1, 0, 1e18, 0);
@@ -563,6 +564,7 @@ contract PartyCrowdfundTest is Test, TestUtils {
         cf.contribute{ value: contributor1.balance }(delegate1, "");
         // Set up a loss.
         cf.testSetLifeCycle(PartyCrowdfund.CrowdfundLifecycle.Lost);
+        assertEq(address(cf.party()), address(0));
         // contributor1 burns tokens
         cf.burn(contributor1);
         // contributor1 gets back their contribution
