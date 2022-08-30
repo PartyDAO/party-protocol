@@ -9,6 +9,7 @@ interface IProposalExecutionEngine {
         uint256 proposalId;
         bytes proposalData;
         bytes progressData;
+        bytes extraData;
         uint256 flags;
         IERC721[] preciousTokens;
         uint256[] preciousTokenIds;

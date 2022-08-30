@@ -162,7 +162,7 @@ contract PartyParticipant is ERC721Holder, Test  {
     ExecutionOptions memory eo
   ) public {
     party.execute(
-      eo.proposalId, eo.proposal, eo.preciousTokens, eo.preciousTokenIds, eo.progressData
+      eo.proposalId, eo.proposal, eo.preciousTokens, eo.preciousTokenIds, eo.progressData, ""
     );
   }
 

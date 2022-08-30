@@ -8,4 +8,8 @@ contract DummyERC721Renderer is IERC721Renderer {
         // TODO: make this human readable
         return string(abi.encode(address(this), tokenId));
     }
+
+    function contractURI() external pure returns (string memory) {
+        return "";
+    }
 }

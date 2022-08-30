@@ -28,10 +28,7 @@ contract ERC721Receiver is IERC721Receiver, EIP165, ERC721TokenReceiver {
         override
         returns (bool)
     {
-        // IERC721Receiver
-        if (interfaceId == 0x150b7a02) {
-            return true;
-        }
-        return EIP165.supportsInterface(interfaceId);
+        return EIP165.supportsInterface(interfaceId) ||
+            interfaceId == type(IERC721Receiver).interfaceId;
     }
 }

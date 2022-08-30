@@ -9,6 +9,7 @@ import "../../contracts/globals/Globals.sol";
 import "../../contracts/globals/LibGlobals.sol";
 import "../../contracts/renderers/PartyCrowdfundNFTRenderer.sol";
 import "../../contracts/utils/Proxy.sol";
+import "../../contracts/utils/EIP165.sol";
 
 import "../DummyERC721.sol";
 import "../TestUtils.sol";
@@ -814,5 +815,23 @@ contract PartyCrowdfundTest is Test, TestUtils {
         cf.contribute{ value: contributor1.balance }(delegate1, "");
         string memory tokenURI = cf.tokenURI(uint256(uint160(address(contributor1))));
         assertTrue(bytes(tokenURI).length > 0);
+    }
+
+    function test_contractURI() external {
+        TestablePartyCrowdfund cf = _createCrowdfund(0);
+
+        string memory contractURI = cf.contractURI();
+
+        // Uncomment for testing rendering:
+        // console.log(contractURI);
+
+        assertTrue(bytes(contractURI).length > 0);
+    }
+
+    function test_supportsInterface() external {
+        TestablePartyCrowdfund cf = _createCrowdfund(0);
+        cf.supportsInterface(0x01ffc9a7); // EIP165
+        cf.supportsInterface(0x80ac58cd); // ERC721
+        cf.supportsInterface(0x150b7a02); // ERC721Receiver
     }
 }

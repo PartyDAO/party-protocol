@@ -2,8 +2,8 @@
 pragma solidity ^0.8;
 
 import "../utils/LibSafeCast.sol";
-import "../utils/Strings.sol";
-import "../utils/Base64.sol";
+import "../utils/vendor/Strings.sol";
+import "../utils/vendor/Base64.sol";
 
 import "./IERC721Renderer.sol";
 import "../globals/IGlobals.sol";
@@ -43,6 +43,10 @@ contract PartyCrowdfundNFTRenderer is IERC721Renderer {
             parts[1],
             parts[2]
         ));
+    }
+
+    function renderNFTName() internal view returns (string memory) {
+        return string.concat(PartyCrowdfund(payable(address(this))).name(), " Crowdfund Party");
     }
 
     function renderTokenName(uint256 tokenId) internal view returns (string memory) {
@@ -150,5 +154,24 @@ contract PartyCrowdfundNFTRenderer is IERC721Renderer {
         output = string(abi.encodePacked('data:application/json;base64,', json));
 
         return output;
+    }
+
+    function contractURI() external view returns (string memory) {
+        string memory json = Base64.encode(bytes(
+            string(
+                abi.encodePacked(
+                    '{"name":"',
+                    renderNFTName(),
+                    '", "description":"',
+                    "PartyBid Crowdfund NFTs represent your spot in a PartyBid party.",
+                    '"}'
+                    // '", "image": "data:image/svg+xml;base64,',
+                    // Base64.encode(bytes(output)),
+                    // '"}'
+                )
+            )
+        ));
+
+        return string(abi.encodePacked('data:application/json;base64,', json));
     }
 }

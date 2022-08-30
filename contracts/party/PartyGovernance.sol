@@ -590,12 +590,15 @@ abstract contract PartyGovernance is
     ///      The ProposalExecutionEngine enforces that only one InProgress proposal
     ///      is active at a time, so that proposal must be completed or cancelled via cancel()
     ///      in order to execute a different proposal.
+    ///      extraData is optional, off-chain data a proposal might need to execute a step.
     function execute(
         uint256 proposalId,
         Proposal memory proposal,
         IERC721[] memory preciousTokens,
         uint256[] memory preciousTokenIds,
-        bytes calldata progressData
+        bytes calldata progressData,
+        bytes calldata extraData
+
     )
         external
         payable
@@ -637,7 +640,8 @@ abstract contract PartyGovernance is
             preciousTokens,
             preciousTokenIds,
             _getProposalFlags(values),
-            progressData
+            progressData,
+            extraData
         );
         if (!completed) {
             // Proposal did not complete.
@@ -737,7 +741,8 @@ abstract contract PartyGovernance is
         IERC721[] memory preciousTokens,
         uint256[] memory preciousTokenIds,
         uint256 flags,
-        bytes memory progressData
+        bytes memory progressData,
+        bytes memory extraData
     )
         private
         returns (bool completed)
@@ -747,6 +752,7 @@ abstract contract PartyGovernance is
                 proposalId: proposalId,
                 proposalData: proposal.proposalData,
                 progressData: progressData,
+                extraData: extraData,
                 preciousTokens: preciousTokens,
                 preciousTokenIds: preciousTokenIds,
                 flags: flags
