@@ -123,14 +123,14 @@ contract DummyTokenDistributor is ITokenDistributor {
 
     function claim(DistributionInfo calldata, uint256)
         external
-        returns (uint96 amountClaimed) {}
+        returns (uint128 amountClaimed) {}
 
     function claimFee(DistributionInfo calldata, address payable)
         external {}
 
     function batchClaim(DistributionInfo[] calldata infos, uint256[] calldata partyTokenIds)
         external
-        returns (uint96[] memory amountsClaimed) {}
+        returns (uint128[] memory amountsClaimed) {}
 
     /// @inheritdoc ITokenDistributor
     function batchClaimFee(DistributionInfo[] calldata infos, address payable[] calldata recipients)
@@ -143,7 +143,7 @@ contract DummyTokenDistributor is ITokenDistributor {
     )
         public
         view
-        returns (uint96) {}
+        returns (uint128) {}
 
     function wasFeeClaimed(ITokenDistributorParty, uint256)
         external
@@ -164,7 +164,7 @@ contract DummyTokenDistributor is ITokenDistributor {
     )
         external
         view
-        returns (uint96) {}
+        returns (uint128) {}
 
     function emergencyRemoveDistribution(
         ITokenDistributorParty,

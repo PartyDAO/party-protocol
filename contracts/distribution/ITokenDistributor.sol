@@ -25,9 +25,9 @@ interface ITokenDistributor {
         // The token being distributed.
         address token;
         // Total amount of `token` that can be claimed by party members.
-        uint96 memberSupply;
+        uint128 memberSupply;
         // Amount of `token` to be redeemed by `feeRecipient`.
-        uint96 fee;
+        uint128 fee;
     }
 
     event DistributionCreated(
@@ -83,7 +83,7 @@ interface ITokenDistributor {
     ///         must own this token.
     function claim(DistributionInfo calldata info, uint256 partyTokenId)
         external
-        returns (uint96 amountClaimed);
+        returns (uint128 amountClaimed);
 
     /// @notice Claim the fee for a distribution. Only a distribution's feeRecipient
     ///         can call this.
@@ -93,7 +93,7 @@ interface ITokenDistributor {
     /// @notice Batch version of claim().
     function batchClaim(DistributionInfo[] calldata infos, uint256[] calldata partyTokenIds)
         external
-        returns (uint96[] memory amountsClaimed);
+        returns (uint128[] memory amountsClaimed);
 
     /// @notice Batch version of claimFee().
     function batchClaimFee(DistributionInfo[] calldata infos, address payable[] calldata recipients)
@@ -108,7 +108,7 @@ interface ITokenDistributor {
     )
         external
         view
-        returns (uint96);
+        returns (uint128);
 
     /// @notice Check whether the fee has been claimed for a distribution.
     function wasFeeClaimed(ITokenDistributorParty party, uint256 distributionId)
@@ -132,5 +132,5 @@ interface ITokenDistributor {
     )
         external
         view
-        returns (uint96);
+        returns (uint128);
 }

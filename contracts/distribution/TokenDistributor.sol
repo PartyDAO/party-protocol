@@ -20,7 +20,7 @@ contract TokenDistributor is ITokenDistributor {
 
     struct DistributionState {
         // The remaining member supply.
-        uint96 remainingMemberSupply;
+        uint128 remainingMemberSupply;
         // The 15-byte hash of the DistributionInfo.
         bytes15 distributionHash15;
         // Whether the distribution's feeRecipient has claimed its fee.
@@ -46,7 +46,7 @@ contract TokenDistributor is ITokenDistributor {
     error DistributionFeeAlreadyClaimedError(uint256 distributionId);
     error MustOwnTokenError(address sender, address expectedOwner, uint256 partyTokenId);
     error EmergencyActionsNotAllowedError();
-    error InvalidDistributionSupplyError(uint96 supply);
+    error InvalidDistributionSupplyError(uint128 supply);
     error OnlyFeeRecipientError(address caller, address feeRecipient);
     error InvalidFeeBpsError(uint16 feeBps);
 
@@ -132,7 +132,7 @@ contract TokenDistributor is ITokenDistributor {
     /// @inheritdoc ITokenDistributor
     function claim(DistributionInfo calldata info, uint256 partyTokenId)
         public
-        returns (uint96 amountClaimed)
+        returns (uint128 amountClaimed)
     {
         // Caller must own the party token.
         {
@@ -158,7 +158,7 @@ contract TokenDistributor is ITokenDistributor {
 
         // Cap at the remaining member supply. Otherwise a malicious
         // party could drain more than the distribution supply.
-        uint96 remainingMemberSupply = state.remainingMemberSupply;
+        uint128 remainingMemberSupply = state.remainingMemberSupply;
         amountClaimed = amountClaimed > remainingMemberSupply
             ? remainingMemberSupply
             : amountClaimed;
@@ -219,9 +219,9 @@ contract TokenDistributor is ITokenDistributor {
     /// @inheritdoc ITokenDistributor
     function batchClaim(DistributionInfo[] calldata infos, uint256[] calldata partyTokenIds)
         external
-        returns (uint96[] memory amountsClaimed)
+        returns (uint128[] memory amountsClaimed)
     {
-        amountsClaimed = new uint96[](infos.length);
+        amountsClaimed = new uint128[](infos.length);
         for (uint256 i = 0; i < infos.length; ++i) {
             amountsClaimed[i] = claim(infos[i], partyTokenIds[i]);
         }
@@ -244,7 +244,7 @@ contract TokenDistributor is ITokenDistributor {
     )
         public
         view
-        returns (uint96)
+        returns (uint128)
     {
         // getDistributionShareOf() is the fraction of the memberSupply partyTokenId
         // is entitled to, scaled by 1e18.
@@ -256,7 +256,7 @@ contract TokenDistributor is ITokenDistributor {
                 + (1e18 - 1)
             )
             / 1e18
-        ).safeCastUint256ToUint96();
+        ).safeCastUint256ToUint128();
     }
 
     /// @inheritdoc ITokenDistributor
@@ -287,7 +287,7 @@ contract TokenDistributor is ITokenDistributor {
     )
         external
         view
-        returns (uint96)
+        returns (uint128)
     {
         return _distributionStates[party][distributionId].remainingMemberSupply;
     }
@@ -330,11 +330,11 @@ contract TokenDistributor is ITokenDistributor {
         if (args.feeBps > 1e4) {
             revert InvalidFeeBpsError(args.feeBps);
         }
-        uint96 supply;
+        uint128 supply;
         {
             bytes32 balanceId = _getBalanceId(args.tokenType, args.token);
             supply = (args.currentTokenBalance - _storedBalances[balanceId])
-                .safeCastUint256ToUint96();
+                .safeCastUint256ToUint128();
             // Supply must be nonzero.
             if (supply == 0) {
                 revert InvalidDistributionSupplyError(supply);
@@ -344,8 +344,8 @@ contract TokenDistributor is ITokenDistributor {
         }
 
         // Create a distribution.
-        uint96 fee = supply * args.feeBps / 1e4;
-        uint96 memberSupply = supply - fee;
+        uint128 fee = supply * args.feeBps / 1e4;
+        uint128 memberSupply = supply - fee;
 
         info = DistributionInfo({
             tokenType: args.tokenType,
