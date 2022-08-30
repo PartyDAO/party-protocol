@@ -66,10 +66,11 @@ contract PartyGovernanceNFTTest is Test, TestUtils {
         // Mint first governance NFT
         partyAdmin.mintGovNft(party, address(john), 49, address(john));
 
-        // Uncomment for testing rendering
-        // console.log(party.tokenURI(1));
-
         string memory tokenURI = party.tokenURI(1);
+
+        // Uncomment for testing rendering:
+        // console.log(tokenURI);
+
         assertTrue(bytes(tokenURI).length > 0);
     }
 
@@ -91,5 +92,48 @@ contract PartyGovernanceNFTTest is Test, TestUtils {
             PartyGovernanceNFTRenderer.InvalidTokenIdError.selector
         ));
         party.tokenURI(1);
+    }
+
+    function testContractURI() external {
+        // Create party
+        (Party party, ,) = partyAdmin.createParty(
+            PartyAdmin.PartyCreationMinimalOptions({
+                host1: address(this),
+                host2: address(0),
+                passThresholdBps: 5100,
+                totalVotingPower: 100,
+                preciousTokenAddress: address(toadz),
+                preciousTokenId: 1,
+                feeBps: 0,
+                feeRecipient: payable(0)
+            })
+        );
+
+        string memory contractURI = party.contractURI();
+
+        // Uncomment for testing rendering:
+        // console.log(contractURI);
+
+        assertTrue(bytes(contractURI).length > 0);
+    }
+
+    function testRoyaltyInfo() external {
+        // Create party
+        (Party party, ,) = partyAdmin.createParty(
+            PartyAdmin.PartyCreationMinimalOptions({
+                host1: address(this),
+                host2: address(0),
+                passThresholdBps: 5100,
+                totalVotingPower: 100,
+                preciousTokenAddress: address(toadz),
+                preciousTokenId: 1,
+                feeBps: 0,
+                feeRecipient: payable(0)
+            })
+        );
+
+        (address receiver, uint256 royaltyAmount) = party.royaltyInfo(0, 0);
+        assertEq(receiver, address(0));
+        assertEq(royaltyAmount, 0);
     }
 }

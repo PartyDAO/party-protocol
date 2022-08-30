@@ -829,6 +829,17 @@ contract PartyCrowdfundTest is Test, TestUtils {
         assertTrue(bytes(tokenURI).length > 0);
     }
 
+    function test_contractURI() external {
+        TestablePartyCrowdfund cf = _createCrowdfund(0);
+
+        string memory contractURI = cf.contractURI();
+
+        // Uncomment for testing rendering:
+        // console.log(contractURI);
+
+        assertTrue(bytes(contractURI).length > 0);
+    }
+
     function test_supportsInterface() external {
         TestablePartyCrowdfund cf = _createCrowdfund(0);
         cf.supportsInterface(0x01ffc9a7); // EIP165

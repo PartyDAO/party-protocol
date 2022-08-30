@@ -177,7 +177,7 @@ contract PartyGovernanceNFTRenderer is IERC721Renderer {
 
     function royaltyInfo(uint256, uint256)
         external
-        view
+        pure
         returns (address receiver, uint256 royaltyAmount)
     {
         receiver = address(0);
