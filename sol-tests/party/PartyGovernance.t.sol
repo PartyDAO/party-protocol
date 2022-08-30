@@ -54,6 +54,7 @@ contract PartyGovernanceTest is Test, TestUtils {
         host1: address(this),
         host2: address(0),
         passThresholdBps: 5100,
+        quorumThresholdBps: 5000,
         totalVotingPower: 100,
         preciousTokenAddress: address(toadz),
         preciousTokenId: 1,
@@ -106,8 +107,8 @@ contract PartyGovernanceTest is Test, TestUtils {
     _assertProposalStatus(party, 1, PartyGovernance.ProposalStatus.Voting, 49);
 
     // Danny votes on proposal
-    danny.vote(party, 1, 1);
-    _assertProposalStatus(party, 1, PartyGovernance.ProposalStatus.Passed, 59);
+    danny.vote(party, PartyGovernance.Decision.Yes, 1, 1);
+    _assertProposalStatus(party, 1, PartyGovernance.ProposalStatus.Voting, 59);
 
     // Can't execute before execution time passes
     vm.warp(block.timestamp + 299);
@@ -115,7 +116,7 @@ contract PartyGovernanceTest is Test, TestUtils {
 
     // Ensure can execute when executionTime is passed
     vm.warp(block.timestamp + 2);
-    _assertProposalStatus(party, 1, PartyGovernance.ProposalStatus.Ready, 59);
+    _assertProposalStatus(party, 1, PartyGovernance.ProposalStatus.Passed, 59);
     assertEq(engInstance.getLastExecutedProposalId(), 0);
     assertEq(engInstance.getNumExecutedProposals(), 0);
 
@@ -142,6 +143,7 @@ contract PartyGovernanceTest is Test, TestUtils {
         host1: address(this),
         host2: address(0),
         passThresholdBps: 9900,
+        quorumThresholdBps: 5000,
         totalVotingPower: 100,
         preciousTokenAddress: address(toadz),
         preciousTokenId: 1,
@@ -210,18 +212,18 @@ contract PartyGovernanceTest is Test, TestUtils {
     _assertProposalStatus(party, 1, PartyGovernance.ProposalStatus.Voting, 21);
 
     // Danny votes on proposal
-    danny.vote(party, 1, 1);
+    danny.vote(party, PartyGovernance.Decision.Yes, 1, 1);
     _assertProposalStatus(party, 1, PartyGovernance.ProposalStatus.Voting, 43);
 
     // Steve votes on proposal
-    steve.vote(party, 1, 0);
+    steve.vote(party, PartyGovernance.Decision.Yes, 1, 0);
     _assertProposalStatus(party, 1, PartyGovernance.ProposalStatus.Voting, 71);
 
     // Nicholas votes on proposal
-    nicholas.vote(party, 1, 0);
+    nicholas.vote(party, PartyGovernance.Decision.Yes, 1, 0);
 
     // Unanimous so can execute immediately.
-    _assertProposalStatus(party, 1, PartyGovernance.ProposalStatus.Ready, 100);
+    _assertProposalStatus(party, 1, PartyGovernance.ProposalStatus.Passed, 100);
     assertEq(engInstance.getLastExecutedProposalId(), 0);
     assertEq(engInstance.getNumExecutedProposals(), 0);
 
@@ -248,6 +250,7 @@ contract PartyGovernanceTest is Test, TestUtils {
         host1: address(nicholas),
         host2: address(0),
         passThresholdBps: 5100,
+        quorumThresholdBps: 5000,
         totalVotingPower: 300,
         preciousTokenAddress: address(toadz),
         preciousTokenId: 1,
@@ -270,17 +273,17 @@ contract PartyGovernanceTest is Test, TestUtils {
       cancelDelay: uint40(1 days)
     });
     john.makeProposal(party, p1, 0);
-    danny.vote(party, 1, 0);
+    danny.vote(party, PartyGovernance.Decision.Yes, 1, 0);
 
     _assertProposalStatus(party, 1, PartyGovernance.ProposalStatus.Voting, 150);
 
-    steve.vote(party, 1, 0);
-    _assertProposalStatus(party, 1, PartyGovernance.ProposalStatus.Passed, 154);
+    steve.vote(party, PartyGovernance.Decision.Yes, 1, 0);
+    _assertProposalStatus(party, 1, PartyGovernance.ProposalStatus.Voting, 154);
 
     // veto
     nicholas.vetoProposal(party, 1);
     // ensure defeated
-    _assertProposalStatus(party, 1, PartyGovernance.ProposalStatus.Defeated, uint96(int96(-1)));
+    _assertProposalStatus(party, 1, PartyGovernance.ProposalStatus.Defeated, 154);
 
     // ensure can't execute proposal
     vm.expectRevert(
@@ -296,7 +299,6 @@ contract PartyGovernanceTest is Test, TestUtils {
       preciousTokenIds: preciousTokenIds,
       progressData: abi.encodePacked([address(0)])
     }));
-
   }
 
   function testPartyMemberCannotVoteTwice() public {
@@ -306,6 +308,7 @@ contract PartyGovernanceTest is Test, TestUtils {
         host1: address(nicholas),
         host2: address(0),
         passThresholdBps: 5100,
+        quorumThresholdBps: 5000,
         totalVotingPower: 300,
         preciousTokenAddress: address(toadz),
         preciousTokenId: 1,
@@ -329,14 +332,14 @@ contract PartyGovernanceTest is Test, TestUtils {
     john.makeProposal(party, p1, 0);
 
     // Vote
-    danny.vote(party, 1, 0);
+    danny.vote(party, PartyGovernance.Decision.Yes, 1, 0);
 
     // Ensure that the same member cannot vote twice
     vm.expectRevert(abi.encodeWithSelector(
         PartyGovernance.AlreadyVotedError.selector,
         address(danny)
     ));
-    danny.vote(party, 1, 0);
+    danny.vote(party, PartyGovernance.Decision.Yes, 1, 0);
   }
 
   // The voting period is over, so the proposal expired without passing
@@ -347,6 +350,7 @@ contract PartyGovernanceTest is Test, TestUtils {
         host1: address(john),
         host2: address(danny),
         passThresholdBps: 5100,
+        quorumThresholdBps: 5000,
         totalVotingPower: 100,
         preciousTokenAddress: address(toadz),
         preciousTokenId: 1,
@@ -368,6 +372,7 @@ contract PartyGovernanceTest is Test, TestUtils {
       cancelDelay: uint40(1 days)
     });
     john.makeProposal(party, p1, 0);
+    danny.vote(party, PartyGovernance.Decision.No, 1, 0);
 
     _assertProposalStatus(party, 1, PartyGovernance.ProposalStatus.Voting, 50);
 
@@ -394,7 +399,7 @@ contract PartyGovernanceTest is Test, TestUtils {
     }));
   }
 
-  // The proposal passed, but it's now too late to execute because it went over the maxExecutableTime or whatever that variable is called
+  // The proposal passed, but it's now too late to execute because it went over the maxExecutableTime
   function testExpiresWithPassing() public {
     // Create party
     (Party party, IERC721[] memory preciousTokens, uint256[] memory preciousTokenIds) = partyAdmin.createParty(
@@ -402,6 +407,7 @@ contract PartyGovernanceTest is Test, TestUtils {
         host1: address(john),
         host2: address(danny),
         passThresholdBps: 5100,
+        quorumThresholdBps: 5000,
         totalVotingPower: 100,
         preciousTokenAddress: address(toadz),
         preciousTokenId: 1,
@@ -426,18 +432,18 @@ contract PartyGovernanceTest is Test, TestUtils {
     john.makeProposal(party, p1, 0);
     _assertProposalStatus(party, 1, PartyGovernance.ProposalStatus.Voting, 1);
 
-    danny.vote(party, 1, 0);
-    _assertProposalStatus(party, 1, PartyGovernance.ProposalStatus.Passed, 51);
+    danny.vote(party, PartyGovernance.Decision.Yes, 1, 0);
+    _assertProposalStatus(party, 1, PartyGovernance.ProposalStatus.Voting, 51);
 
     vm.warp(block.timestamp + 98);
-    _assertProposalStatus(party, 1, PartyGovernance.ProposalStatus.Passed, 51);
+    _assertProposalStatus(party, 1, PartyGovernance.ProposalStatus.Voting, 51);
 
     vm.warp(block.timestamp + 300);
-    _assertProposalStatus(party, 1, PartyGovernance.ProposalStatus.Ready, 51);
+    _assertProposalStatus(party, 1, PartyGovernance.ProposalStatus.Passed, 51);
 
     // warp to maxExecutabletime
     vm.warp(999999999);
-    _assertProposalStatus(party, 1, PartyGovernance.ProposalStatus.Ready, 51);
+    _assertProposalStatus(party, 1, PartyGovernance.ProposalStatus.Passed, 51);
 
     // warp past maxExecutabletime
     vm.warp(999999999 + 1);
@@ -465,6 +471,7 @@ function testEmergencyWithdrawal() public {
         host1: address(nicholas),
         host2: address(0),
         passThresholdBps: 5100,
+        quorumThresholdBps: 5000,
         totalVotingPower: 300,
         preciousTokenAddress: address(toadz),
         preciousTokenId: 1,
@@ -489,6 +496,7 @@ function testEmergencyWithdrawal() public {
         host1: address(nicholas),
         host2: address(0),
         passThresholdBps: 5100,
+        quorumThresholdBps: 5000,
         totalVotingPower: 300,
         preciousTokenAddress: address(toadz),
         preciousTokenId: 1,
@@ -530,6 +538,6 @@ function testEmergencyWithdrawal() public {
       (PartyGovernance.ProposalStatus ps, PartyGovernance.ProposalStateValues memory pv)
         = party.getProposalStateInfo(proposalId);
       assertEq(uint256(ps), uint256(expectedProposalStatus));
-      assertEq(pv.votes, expectedNumVotes);
+      assertEq(pv.yesVotes, expectedNumVotes);
   }
 }

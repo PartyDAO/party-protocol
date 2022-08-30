@@ -84,7 +84,7 @@ describe('Arbitrary proposals integrations test', () => {
         expect(await party.getProposalStatusAsync(proposalId)).to.eq(ProposalStatus.Passed);
         // Skip execution delay.
         await increaseTime(provider, party.executionDelay);
-        expect(await party.getProposalStatusAsync(proposalId)).to.eq(ProposalStatus.Ready);
+        expect(await party.getProposalStatusAsync(proposalId)).to.eq(ProposalStatus.Passed);
         // Execute.
         const progressData = await voters[0].executeAsync(proposalId, proposal);
         expect(progressData).to.eq(NULL_BYTES);

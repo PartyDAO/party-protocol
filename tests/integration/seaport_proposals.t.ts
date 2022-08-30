@@ -118,7 +118,7 @@ describe('Seaport proposals integrations test', () => {
         expect(await party.getProposalStatusAsync(proposalId)).to.eq(ProposalStatus.Passed);
         // Skip execution delay.
         await increaseTime(provider, party.executionDelay);
-        expect(await party.getProposalStatusAsync(proposalId)).to.eq(ProposalStatus.Ready);
+        expect(await party.getProposalStatusAsync(proposalId)).to.eq(ProposalStatus.Passed);
         // Execute to list on zora.
         let progressData = await voters[0].executeAsync(proposalId, proposal);
         expect(progressData).to.not.eq(NULL_BYTES);
@@ -179,7 +179,7 @@ describe('Seaport proposals integrations test', () => {
         expect(await party.getProposalStatusAsync(proposalId)).to.eq(ProposalStatus.Passed);
         // Skip execution delay.
         await increaseTime(provider, party.executionDelay);
-        expect(await party.getProposalStatusAsync(proposalId)).to.eq(ProposalStatus.Ready);
+        expect(await party.getProposalStatusAsync(proposalId)).to.eq(ProposalStatus.Passed);
         // Execute to list on zora.
         let progressData = await voters[0].executeAsync(proposalId, proposal);
         expect(progressData).to.not.eq(NULL_BYTES);

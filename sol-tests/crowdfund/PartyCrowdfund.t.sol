@@ -59,8 +59,8 @@ contract PartyCrowdfundTest is Test, TestUtils {
         defaultGovernanceOpts.hosts.push(_randomAddress());
         defaultGovernanceOpts.hosts.push(_randomAddress());
         defaultGovernanceOpts.voteDuration = 1 days;
-        defaultGovernanceOpts.executionDelay = 0.5 days;
         defaultGovernanceOpts.passThresholdBps = 0.51e4;
+        defaultGovernanceOpts.quorumThresholdBps = 0.5e4;
     }
 
     function setUp() public {
@@ -113,8 +113,8 @@ contract PartyCrowdfundTest is Test, TestUtils {
             governance: PartyGovernance.GovernanceOpts({
                 hosts: govOpts.hosts,
                 voteDuration: govOpts.voteDuration,
-                executionDelay: govOpts.executionDelay,
                 passThresholdBps: govOpts.passThresholdBps,
+                quorumThresholdBps: govOpts.quorumThresholdBps,
                 totalVotingPower: uint96(finalPrice),
                 feeBps: defaultGovernanceOpts.feeBps,
                 feeRecipient: defaultGovernanceOpts.feeRecipient
@@ -611,9 +611,9 @@ contract PartyCrowdfundTest is Test, TestUtils {
             } else if (r == 1) {
                 defaultGovernanceOpts.voteDuration += 1;
             } else if (r == 2) {
-                defaultGovernanceOpts.executionDelay += 1;
-            } else if (r == 3) {
                 defaultGovernanceOpts.passThresholdBps += 1;
+            } else if (r == 3) {
+                defaultGovernanceOpts.quorumThresholdBps += 1;
             }
         }
         vm.expectRevert(abi.encodeWithSelector(

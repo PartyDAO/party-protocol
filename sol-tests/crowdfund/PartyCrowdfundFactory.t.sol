@@ -111,8 +111,8 @@ contract PartyCrowdfundFactoryTest is Test, TestUtils {
             governanceOpts: PartyCrowdfund.FixedGovernanceOpts({
                 hosts: _toAddressArray(_randomAddress()),
                 voteDuration: randomUint40,
-                executionDelay: randomUint40,
                 passThresholdBps: randomBps,
+                quorumThresholdBps: randomBps,
                 feeBps: randomBps,
                 feeRecipient: payable(_randomAddress())
             })
@@ -166,8 +166,8 @@ contract PartyCrowdfundFactoryTest is Test, TestUtils {
             governanceOpts: PartyCrowdfund.FixedGovernanceOpts({
                 hosts: _toAddressArray(address(this)),
                 voteDuration: 3 days,
-                executionDelay: 1 days,
                 passThresholdBps: 51e2,
+                quorumThresholdBps: 50e2,
                 feeBps: 0,
                 feeRecipient: payable(address(0))
             })
@@ -199,8 +199,8 @@ contract PartyCrowdfundFactoryTest is Test, TestUtils {
             governanceOpts: PartyCrowdfund.FixedGovernanceOpts({
                 hosts: _toAddressArray(address(this)),
                 voteDuration: 3 days,
-                executionDelay: 1 days,
                 passThresholdBps: 51e2,
+                quorumThresholdBps: 50e2,
                 feeBps: 0,
                 feeRecipient: payable(address(0))
             })
@@ -233,8 +233,8 @@ contract PartyCrowdfundFactoryTest is Test, TestUtils {
             governanceOpts: PartyCrowdfund.FixedGovernanceOpts({
                 hosts: _toAddressArray(address(this)),
                 voteDuration: 3 days,
-                executionDelay: 1 days,
                 passThresholdBps: 51e2,
+                quorumThresholdBps: 50e2,
                 feeBps: 0,
                 feeRecipient: payable(address(0))
             })
@@ -280,8 +280,8 @@ contract PartyCrowdfundFactoryTest is Test, TestUtils {
             governanceOpts: PartyCrowdfund.FixedGovernanceOpts({
                 hosts: _toAddressArray(_randomAddress()),
                 voteDuration: randomUint40,
-                executionDelay: randomUint40,
                 passThresholdBps: randomBps,
+                quorumThresholdBps: randomBps,
                 feeBps: randomBps,
                 feeRecipient: payable(_randomAddress())
             })
@@ -345,8 +345,8 @@ contract PartyCrowdfundFactoryTest is Test, TestUtils {
                 governanceOpts: PartyCrowdfund.FixedGovernanceOpts({
                     hosts: _toAddressArray(_randomAddress()),
                     voteDuration: randomUint40,
-                    executionDelay: randomUint40,
                     passThresholdBps: randomBps,
+                    quorumThresholdBps: randomBps,
                     feeBps: randomBps,
                     feeRecipient: payable(_randomAddress())
                 })
@@ -378,10 +378,11 @@ contract PartyCrowdfundFactoryTest is Test, TestUtils {
     function testCreatePartyWithInvalidBps(
         uint16 splitBps,
         uint16 passThresholdBps,
+        uint16 quorumThresholdBps,
         uint16 feeBps
     ) external {
         // At least one of the BPs must be invalid for this test to work.
-        vm.assume(splitBps > 1e4 || passThresholdBps > 1e4 || feeBps > 1e4);
+        vm.assume(splitBps > 1e4 || passThresholdBps > 1e4 || quorumThresholdBps > 1e4 || feeBps > 1e4);
 
         // Create an auction.
         (uint256 auctionId, uint256 tokenId)  = market.createAuction(0);
@@ -405,8 +406,8 @@ contract PartyCrowdfundFactoryTest is Test, TestUtils {
             governanceOpts: PartyCrowdfund.FixedGovernanceOpts({
                 hosts: _toAddressArray(address(this)),
                 voteDuration: 3 days,
-                executionDelay: 1 days,
                 passThresholdBps: passThresholdBps,
+                quorumThresholdBps: quorumThresholdBps,
                 feeBps: feeBps,
                 feeRecipient: payable(address(0))
             })
@@ -417,6 +418,8 @@ contract PartyCrowdfundFactoryTest is Test, TestUtils {
             invalidBps = feeBps;
         } else if (passThresholdBps > 1e4) {
             invalidBps = passThresholdBps;
+        } else if (quorumThresholdBps > 1e4) {
+            invalidBps = quorumThresholdBps;
         } else {
             invalidBps = splitBps;
         }

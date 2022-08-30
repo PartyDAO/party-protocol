@@ -99,8 +99,8 @@ contract PartyBuyTest is Test, TestUtils {
             governance: PartyGovernance.GovernanceOpts({
                 hosts: defaultGovernanceOpts.hosts,
                 voteDuration: defaultGovernanceOpts.voteDuration,
-                executionDelay: defaultGovernanceOpts.executionDelay,
                 passThresholdBps: defaultGovernanceOpts.passThresholdBps,
+                quorumThresholdBps: defaultGovernanceOpts.quorumThresholdBps,
                 totalVotingPower: uint96(finalPrice),
                 feeBps: defaultGovernanceOpts.feeBps,
                 feeRecipient: defaultGovernanceOpts.feeRecipient

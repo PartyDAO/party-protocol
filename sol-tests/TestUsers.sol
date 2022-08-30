@@ -54,6 +54,7 @@ contract PartyAdmin is Test {
     address host1;
     address host2;
     uint16 passThresholdBps;
+    uint16 quorumThresholdBps;
     uint96 totalVotingPower;
     address preciousTokenAddress;
     uint256 preciousTokenId;
@@ -81,8 +82,8 @@ contract PartyAdmin is Test {
     PartyGovernance.GovernanceOpts memory govOpts = PartyGovernance.GovernanceOpts({
       hosts: hosts,
       voteDuration: 99,
-      executionDelay: 300,
       passThresholdBps: opts.passThresholdBps,
+      quorumThresholdBps: opts.quorumThresholdBps,
       totalVotingPower: opts.totalVotingPower,
       feeRecipient: opts.feeRecipient,
       feeBps: opts.feeBps
@@ -149,8 +150,8 @@ contract PartyParticipant is ERC721Holder, Test  {
     return party.propose(proposal, lastestSnapIndex);
   }
 
-  function vote(Party party, uint256 proposalId, uint256 snapIndex) public {
-    party.accept(proposalId, snapIndex);
+  function vote(Party party, PartyGovernance.Decision decision, uint256 proposalId, uint256 snapIndex) public {
+    party.vote(decision, proposalId, snapIndex);
   }
 
   function delegate(Party party, address newDelegate) public {

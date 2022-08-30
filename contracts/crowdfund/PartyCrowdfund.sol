@@ -35,12 +35,11 @@ abstract contract PartyCrowdfund is ERC721Receiver, PartyCrowdfundNFT {
         address[] hosts;
         // How long people can vote on a proposal.
         uint40 voteDuration;
-        // How long to wait after a proposal passes before it can be
-        // executed.
-        uint40 executionDelay;
         // Minimum ratio of accept votes to consider a proposal passed,
         // in bps, where 10,000 == 100%.
         uint16 passThresholdBps;
+        // Minimum ratio of votes to consider a proposal valid, in bps
+        uint16 quorumThresholdBps;
         // Fee bps for governance distributions.
         uint16 feeBps;
         // Fee recipeint for governance distributions.
@@ -124,6 +123,9 @@ abstract contract PartyCrowdfund is ERC721Receiver, PartyCrowdfundNFT {
         }
         if (opts.governanceOpts.passThresholdBps > 1e4) {
             revert InvalidBpsError(opts.governanceOpts.passThresholdBps);
+        }
+        if (opts.governanceOpts.quorumThresholdBps > 1e4) {
+            revert InvalidBpsError(opts.governanceOpts.quorumThresholdBps);
         }
         governanceOptsHash = _hashFixedGovernanceOpts(opts.governanceOpts);
         splitRecipient = opts.splitRecipient;
@@ -262,8 +264,8 @@ abstract contract PartyCrowdfund is ERC721Receiver, PartyCrowdfundNFT {
                     governance: PartyGovernance.GovernanceOpts({
                         hosts: governanceOpts.hosts,
                         voteDuration: governanceOpts.voteDuration,
-                        executionDelay: governanceOpts.executionDelay,
                         passThresholdBps: governanceOpts.passThresholdBps,
+                        quorumThresholdBps: governanceOpts.quorumThresholdBps,
                         totalVotingPower: _getFinalPrice().safeCastUint256ToUint96(),
                         feeBps: governanceOpts.feeBps,
                         feeRecipient: governanceOpts.feeRecipient

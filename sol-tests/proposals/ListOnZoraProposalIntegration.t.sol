@@ -79,6 +79,7 @@ contract ListOnZoraProposalIntegrationTest is
           host1: address(partyAdmin),
           host2: address(0),
           passThresholdBps: 5100,
+          quorumThresholdBps: 5000,
           totalVotingPower: 150,
           preciousTokenAddress: address(toadz),
           preciousTokenId: 1,
@@ -116,13 +117,13 @@ contract ListOnZoraProposalIntegrationTest is
 
       uint256 proposalId = john.makeProposal(party, proposal, 0);
 
-      danny.vote(party, proposalId, 0);
-      steve.vote(party, proposalId, 0);
+      danny.vote(party, PartyGovernance.Decision.Yes, proposalId, 0);
+      steve.vote(party, PartyGovernance.Decision.Yes, proposalId, 0);
 
       vm.warp(block.timestamp + 76 hours);
 
       (PartyGovernance.ProposalStatus s, ) = party.getProposalStateInfo(proposalId);
-      assertEq(uint40(s), uint40(PartyGovernance.ProposalStatus.Ready));
+      assertEq(uint40(s), uint40(PartyGovernance.ProposalStatus.Passed));
 
       PartyParticipant.ExecutionOptions memory eo = PartyParticipant.ExecutionOptions({
         proposalId: proposalId,

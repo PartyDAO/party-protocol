@@ -50,10 +50,6 @@ abstract contract PartyGovernance is
         // waiting for `executionDelay` to pass before it can be executed. Members
         // can continue to vote on the proposal and party hosts can veto at this time.
         Passed,
-        // Same as `Passed` but now `executionDelay` has been satisfied. Any member
-        // may execute the proposal via `execute()`, unless `maxExecutableTime`
-        // has arrived.
-        Ready,
         // The proposal has been executed at least once but has further steps to
         // complete so it needs to be executed again. No other proposals may be
         // executed while a proposal is in the `InProgress` state. No voting or
@@ -68,17 +64,22 @@ abstract contract PartyGovernance is
         Cancelled
     }
 
+    enum Decision {
+        Yes,
+        No,
+        Abstain
+    }
+
     struct GovernanceOpts {
         // Address of initial party hosts.
         address[] hosts;
         // How long people can vote on a proposal.
         uint40 voteDuration;
-        // How long to wait after a proposal passes before it can be
-        // executed.
-        uint40 executionDelay;
         // Minimum ratio of accept votes to consider a proposal passed,
         // in bps, where 10,000 == 100%.
         uint16 passThresholdBps;
+        // Minimum ratio of votes to consider a proposal valid, in bps
+        uint16 quorumThresholdBps;
         // Total voting power of governance NFTs.
         uint96 totalVotingPower;
         // Fee bps for distributions.
@@ -91,11 +92,10 @@ abstract contract PartyGovernance is
     // efficiency.
     struct GovernanceValues {
         uint40 voteDuration;
-        uint40 executionDelay;
         uint16 passThresholdBps;
         uint96 totalVotingPower;
+        uint96 quorumVotingPower;
     }
-
     // A snapshot of voting power for a member.
     struct VotingPowerSnapshot {
         // The timestamp when the snapshot was taken.
@@ -128,14 +128,16 @@ abstract contract PartyGovernance is
     struct ProposalStateValues {
         // When the proposal was proposed.
         uint40 proposedTime;
-        // When the proposal passed the vote.
-        uint40 passedTime;
         // When the proposal was first executed.
         uint40 executedTime;
         // When the proposal completed.
         uint40 completedTime;
         // Number of accept votes.
-        uint96 votes; // -1 == vetoed
+        uint96 yesVotes;
+        // Number of reject votes.
+        uint96 noVotes; // -1 == vetoed
+        // Number of abstain votes.
+        uint96 abstainVotes;
     }
 
     // Storage states for a proposal.
@@ -153,14 +155,14 @@ abstract contract PartyGovernance is
         address proposer,
         Proposal proposal
     );
-    event ProposalAccepted(
+    event Voted(
+        Decision decision,
         uint256 proposalId,
         address voter,
         uint256 weight
     );
 
     event PartyInitialized(GovernanceOpts opts, IERC721[] preciousTokens, uint256[] preciousTokenIds);
-    event ProposalPassed(uint256 indexed proposalId);
     event ProposalVetoed(uint256 indexed proposalId, address host);
     event ProposalExecuted(uint256 indexed proposalId, address executor, bytes nextProgressData);
     event ProposalCancelled(uint256 indexed proposalId);
@@ -278,6 +280,9 @@ abstract contract PartyGovernance is
         if (opts.passThresholdBps > 1e4) {
             revert InvalidBpsError(opts.passThresholdBps);
         }
+        if (opts.quorumThresholdBps > 1e4) {
+            revert InvalidBpsError(opts.quorumThresholdBps);
+        }
         _initProposalImpl(
             IProposalExecutionEngine(
                 _GLOBALS.getAddress(LibGlobals.GLOBAL_PROPOSAL_ENGINE_IMPL)
@@ -286,9 +291,9 @@ abstract contract PartyGovernance is
         );
         _governanceValues = GovernanceValues({
             voteDuration: opts.voteDuration,
-            executionDelay: opts.executionDelay,
             passThresholdBps: opts.passThresholdBps,
-            totalVotingPower: opts.totalVotingPower
+            totalVotingPower: opts.totalVotingPower,
+            quorumVotingPower: opts.totalVotingPower * opts.quorumThresholdBps / 1e4
         });
         feeBps = opts.feeBps;
         feeRecipient = opts.feeRecipient;
@@ -479,7 +484,7 @@ abstract contract PartyGovernance is
     /// @notice Make a proposal for members to vote on and cast a vote to accept it
     ///         as well.
     /// @dev Only an active member (owns a governance token) can call this.
-    ///      Afterwards, members can vote to support it with accept() or a party
+    ///      Afterwards, members can vote to support it with vote(PartyGovernance.Decision.Yes, ) or a party
     ///      host can unilaterally reject the proposal with veto().
     function propose(Proposal memory proposal, uint256 latestSnapIndex)
         external
@@ -488,30 +493,17 @@ abstract contract PartyGovernance is
         returns (uint256 proposalId)
     {
         proposalId = ++lastProposalId;
-        (
-            _proposalStateByProposalId[proposalId].values,
-            _proposalStateByProposalId[proposalId].hash
-        ) = (
-            ProposalStateValues({
-                proposedTime: uint40(block.timestamp),
-                passedTime: 0,
-                executedTime: 0,
-                completedTime: 0,
-                votes: 0
-            }),
-            getProposalHash(proposal)
-        );
+        ProposalState storage info = _proposalStateByProposalId[proposalId];
+        info.values.proposedTime = uint40(block.timestamp);
+        info.hash = getProposalHash(proposal);
         emit Proposed(proposalId, msg.sender, proposal);
-        accept(proposalId, latestSnapIndex);
+        vote(Decision.Yes, proposalId, latestSnapIndex);
     }
 
     /// @notice Vote to support a proposed proposal.
     /// @dev The voting power cast will be the effective voting power of the caller
     ///      at the time propose() was called (see getVotingPowerAt()).
-    ///      If the proposal reaches passThresholdBps acceptance ratio then the
-    ///      proposal will be in the Passed state and will be executable after
-    ///      the executionDelay has passed, putting it in the Ready state.
-    function accept(uint256 proposalId, uint256 snapIndex)
+    function vote(Decision decision, uint256 proposalId, uint256 snapIndex)
         public
         onlyDelegateCall
         returns (uint256 totalVotes)
@@ -519,17 +511,10 @@ abstract contract PartyGovernance is
         ProposalState storage info = _proposalStateByProposalId[proposalId];
         ProposalStateValues memory values = info.values;
 
-        // Can only vote in certain proposal statuses.
+        // Can only vote in active proposals.
         {
             ProposalStatus status = _getProposalStatus(values);
-            // Allow voting even if the proposal is passed/ready so it can
-            // potentially reach 100% consensus, which unlocks special
-            // behaviors for certain proposal types.
-            if (
-                status != ProposalStatus.Voting &&
-                status != ProposalStatus.Passed &&
-                status != ProposalStatus.Ready
-            ) {
+            if (status != ProposalStatus.Voting) {
                 revert BadProposalStatusError(status);
             }
         }
@@ -541,19 +526,17 @@ abstract contract PartyGovernance is
         info.hasVoted[msg.sender] = true;
 
         uint96 votingPower = getVotingPowerAt(msg.sender, values.proposedTime, snapIndex);
-        values.votes += votingPower;
-        info.values = values;
-        emit ProposalAccepted(proposalId, msg.sender, votingPower);
-
-        if (values.passedTime == 0 && _areVotesPassing(
-            values.votes,
-            _governanceValues.totalVotingPower,
-            _governanceValues.passThresholdBps))
-        {
-            info.values.passedTime = uint40(block.timestamp);
-            emit ProposalPassed(proposalId);
+        if (decision == Decision.Yes) {
+            values.yesVotes += votingPower;
+        } else if (decision == Decision.No) {
+            values.noVotes += votingPower;
+        } else {
+            values.abstainVotes += votingPower;
         }
-        return values.votes;
+        info.values = values;
+        emit Voted(decision, proposalId, msg.sender, votingPower);
+
+        return _getTotalVotes(values);
     }
 
     /// @notice As a party host, veto a proposal, unilaterally rejecting it.
@@ -570,15 +553,14 @@ abstract contract PartyGovernance is
             // Proposal must be in one of the following states.
             if (
                 status != ProposalStatus.Voting &&
-                status != ProposalStatus.Passed &&
-                status != ProposalStatus.Ready
+                status != ProposalStatus.Passed
             ) {
                 revert BadProposalStatusError(status);
             }
         }
 
         // -1 indicates veto.
-        info.values.votes = VETO_VALUE;
+        info.values.noVotes = VETO_VALUE;
         emit ProposalVetoed(proposalId, msg.sender);
     }
 
@@ -612,10 +594,10 @@ abstract contract PartyGovernance is
         ProposalStatus status = _getProposalStatus(values);
         // The proposal must be executable or have already been executed but still
         // has more steps to go.
-        if (status != ProposalStatus.Ready && status != ProposalStatus.InProgress) {
+        if (status != ProposalStatus.Passed && status != ProposalStatus.InProgress) {
             revert BadProposalStatusError(status);
         }
-        if (status == ProposalStatus.Ready) {
+        if (status == ProposalStatus.Passed) {
             // If the proposal has not been executed yet, make sure it hasn't
             // expired. Note that proposals that have been executed
             // (but still have more steps) ignore `maxExecutableTime`.
@@ -934,7 +916,7 @@ abstract contract PartyGovernance is
         view
         returns (uint256)
     {
-        if (_isUnanimousVotes(pv.votes, _governanceValues.totalVotingPower)) {
+        if (_isUnanimousVotes(pv.yesVotes, _governanceValues.totalVotingPower)) {
             return LibProposal.PROPOSAL_FLAG_UNANIMOUS;
         }
         return 0;
@@ -961,28 +943,39 @@ abstract contract PartyGovernance is
             return ProposalStatus.Complete;
         }
         // Vetoed.
-        if (pv.votes == uint96(int96(-1))) {
+        if (pv.noVotes == uint96(int96(-1))) {
             return ProposalStatus.Defeated;
         }
-        uint40 t = uint40(block.timestamp);
         GovernanceValues memory gv = _governanceValues;
-        if (pv.passedTime != 0) {
-            // Ready.
-            if (pv.passedTime + gv.executionDelay <= t) {
-                return ProposalStatus.Ready;
-            }
-            // If unanimous, we skip the execution delay.
-            if (_isUnanimousVotes(pv.votes, gv.totalVotingPower)) {
-                return ProposalStatus.Ready;
-            }
-            // Passed.
+        // If unanimous, we skip the vote duration and can execute immediately.
+        if (_isUnanimousVotes(pv.yesVotes, gv.totalVotingPower)) {
             return ProposalStatus.Passed;
         }
-        // Voting window expired.
-        if (pv.proposedTime + gv.voteDuration <= t) {
-            return ProposalStatus.Defeated;
+        uint40 timestamp = uint40(block.timestamp);
+        // Voting has concluded.
+        if (pv.proposedTime + gv.voteDuration <= timestamp) {
+            uint96 totalVotes = _getTotalVotes(pv);
+            // Determine result.
+            if (
+                // Reached quorum.
+                totalVotes >= gv.quorumVotingPower &&
+                // Reached passing threshold.
+                _areVotesPassing(pv.yesVotes, totalVotes, gv.passThresholdBps)
+            ) {
+                return ProposalStatus.Passed;
+            } else {
+                return ProposalStatus.Defeated;
+            }
         }
         return ProposalStatus.Voting;
+    }
+
+    function _getTotalVotes(ProposalStateValues memory pv)
+        private
+        pure
+        returns (uint96)
+    {
+        return pv.yesVotes + pv.noVotes + pv.abstainVotes;
     }
 
     function _isUnanimousVotes(uint96 totalVotes, uint96 totalVotingPower)
@@ -998,16 +991,16 @@ abstract contract PartyGovernance is
     }
 
     function _areVotesPassing(
-        uint96 voteCount,
-        uint96 totalVotingPower,
+        uint96 yesVotes,
+        uint96 totalVotes,
         uint16 passThresholdBps
     )
         private
         pure
         returns (bool)
     {
-          return uint256(voteCount) * 1e4
-            / uint256(totalVotingPower) >= uint256(passThresholdBps);
+          return uint256(yesVotes) * 1e4
+            / uint256(totalVotes) >= uint256(passThresholdBps);
     }
 
     function _setPreciousList(

@@ -398,7 +398,7 @@ export class Voter {
     }
 
     public async acceptAsync(proposalId: BigNumber): Promise<boolean> {
-        const tx = await (await this.party.contract.connect(this.wallet).accept(
+        const tx = await (await this.party.contract.connect(this.wallet).vote(PartyGovernance.Decision.Yes,
             proposalId,
         )).wait();
         return !!tx.events.find((e: any) => e.event === 'ProposalPassed');

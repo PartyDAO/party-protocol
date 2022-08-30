@@ -21,8 +21,8 @@ contract PartyFactoryTest is Test, TestUtils {
         defaultPartyOptions.governance.hosts.push(_randomAddress());
         defaultPartyOptions.governance.hosts.push(_randomAddress());
         defaultPartyOptions.governance.voteDuration = 1 days;
-        defaultPartyOptions.governance.executionDelay = 8 hours;
         defaultPartyOptions.governance.passThresholdBps = 0.51e4;
+        defaultPartyOptions.governance.quorumThresholdBps = 0.5e4;
         defaultPartyOptions.governance.totalVotingPower = 100e18;
 
         eng = new ProposalExecutionEngine(
@@ -73,7 +73,7 @@ contract PartyFactoryTest is Test, TestUtils {
 
     function testCreateParty(
         string memory randomStr,
-        uint96 randomUint96,
+        uint72 randomUint72,
         uint40 randomUint40,
         uint16 randomBps
     ) external {
@@ -86,9 +86,9 @@ contract PartyFactoryTest is Test, TestUtils {
             governance: PartyGovernance.GovernanceOpts({
                 hosts: _toAddressArray(_randomAddress()),
                 voteDuration: randomUint40,
-                executionDelay: randomUint40,
                 passThresholdBps: randomBps,
-                totalVotingPower: randomUint96,
+                quorumThresholdBps: randomBps,
+                totalVotingPower: randomUint72,
                 feeBps: randomBps,
                 feeRecipient: payable(_randomAddress())
             }),
@@ -106,8 +106,11 @@ contract PartyFactoryTest is Test, TestUtils {
         assertEq(party.mintAuthority(), authority);
         PartyGovernance.GovernanceValues memory values = party.getGovernanceValues();
         assertEq(values.voteDuration, opts.governance.voteDuration);
-        assertEq(values.executionDelay, opts.governance.executionDelay);
         assertEq(values.passThresholdBps, opts.governance.passThresholdBps);
+        assertEq(
+            values.quorumVotingPower,
+            opts.governance.totalVotingPower * opts.governance.quorumThresholdBps / 1e4
+        );
         assertEq(values.totalVotingPower, opts.governance.totalVotingPower);
         assertEq(party.feeBps(), opts.governance.feeBps);
         assertEq(party.feeRecipient(), opts.governance.feeRecipient);
@@ -115,9 +118,13 @@ contract PartyFactoryTest is Test, TestUtils {
         assertEq(party.preciousListHash(), _hashPreciousList(preciousTokens, preciousTokenIds));
     }
 
-    function testCreatePartyWithInvalidBps(uint16 passThresholdBps, uint16 feeBps) external {
+    function testCreatePartyWithInvalidBps(
+        uint16 passThresholdBps,
+        uint16 quorumThresholdBps,
+        uint16 feeBps
+    ) external {
         // At least one of the BPs must be invalid for this test to work.
-        vm.assume(passThresholdBps > 1e4 || feeBps > 1e4);
+        vm.assume(passThresholdBps > 1e4 || quorumThresholdBps > 1e4 || feeBps > 1e4);
 
         address authority = _randomAddress();
         (IERC721[] memory preciousTokens, uint256[] memory preciousTokenIds) =
@@ -126,10 +133,11 @@ contract PartyFactoryTest is Test, TestUtils {
         Party.PartyOptions memory opts = defaultPartyOptions;
         opts.governance.feeBps = feeBps;
         opts.governance.passThresholdBps = passThresholdBps;
+        opts.governance.quorumThresholdBps = quorumThresholdBps;
 
         vm.expectRevert(abi.encodeWithSelector(
             PartyGovernance.InvalidBpsError.selector,
-            feeBps > 1e4 ? feeBps : passThresholdBps
+            feeBps > 1e4 ? feeBps : passThresholdBps > 1e4 ? passThresholdBps : quorumThresholdBps
         ));
         factory.createParty(authority, opts, preciousTokens, preciousTokenIds);
     }
