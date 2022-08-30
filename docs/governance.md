@@ -53,14 +53,14 @@ The sequence of events is:
         uint256[] memory preciousTokenIds
     )
     ```
-    - `authority` will be the address that can mint tokens on the created Party (indirectly through `PartyFactory.mint()`). In typical flow, the crowdfund contract will set this to itself.
+    - `authority` will be the address that can mint tokens on the created Party. In typical flow, the crowdfund contract will set this to itself.
     - `opts` are (mostly) immutable [configuration parameters](#governance-options) for the Party, defining the Party name and symbol (the Party instance will also be an ERC721) and governance parameters.
     - `preciousTokens` and `preciousTokenIds` together define the NFTs the Party will custody and enforce extra restrictions on so they are not easily transferred out of the Party. This list cannot be changed after Party creation. Note that this list is never stored on-chain (only the hash is) and will need to be passed into the `execute()` call when executing proposals.
     - This will deploy a new `Proxy` instance with an implementation pointing to the Party contract defined by in the `Globals` contract by the key `GLOBAL_PARTY_IMPL`.
 2. Transfer assets to the created Party, which will typically be the precious NFTs.
-3. As the `authority`, mint Governance NFTs to members of the party by calling `PartyFactory.mint()`.
+3. As the `authority`, mint Governance NFTs to members of the party by calling `Party.mint()`.
     - In typical flow, the crowdfund contract will call this when contributors burn their contribution NFTs.
-4. Optionally, call `PartyFactory.abdicate()`, as the `authority`, to revoke minting privilege once all Governance NFTs have been minted.
+4. Optionally, call `Party.abdicate()`, as the `authority`, to revoke minting privilege once all Governance NFTs have been minted.
 5. At any step after the party creation, members with Governance NFTs can perform governance actions, though they may not be able to reach consensus if the total supply of voting power hasn't been minted/distributed yet.
 
 ---

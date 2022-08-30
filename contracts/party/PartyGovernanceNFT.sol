@@ -150,6 +150,11 @@ contract PartyGovernanceNFT is
         super.safeTransferFrom(owner, to, tokenId, data);
     }
 
+    /// @notice Relinquish the ability to call `mint()` by an authority.
+    function abdicate() external onlyMinter onlyDelegateCall {
+        delete mintAuthority;
+    }
+
     function _delegateToRenderer() private view {
         _readOnlyDelegateCall(
             // Instance of IERC721Renderer.

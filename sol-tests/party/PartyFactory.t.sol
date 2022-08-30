@@ -101,10 +101,9 @@ contract PartyFactoryTest is Test, TestUtils {
             preciousTokens,
             preciousTokenIds
         );
-        assertEq(factory.partyAuthorities(party), authority);
         assertEq(party.name(), opts.name);
         assertEq(party.symbol(), opts.symbol);
-        assertEq(party.mintAuthority(), address(factory));
+        assertEq(party.mintAuthority(), authority);
         PartyGovernance.GovernanceValues memory values = party.getGovernanceValues();
         assertEq(values.voteDuration, opts.governance.voteDuration);
         assertEq(values.executionDelay, opts.governance.executionDelay);
@@ -133,63 +132,5 @@ contract PartyFactoryTest is Test, TestUtils {
             feeBps > 1e4 ? feeBps : passThresholdBps
         ));
         factory.createParty(authority, opts, preciousTokens, preciousTokenIds);
-    }
-
-    function testMint_works(address owner, address delegate, uint256 amount) external {
-        vm.assume(
-            amount <= type(uint96).max &&
-            owner != address(0) &&
-            delegate != address(0)
-        );
-        address authority = _randomAddress();
-        (IERC721[] memory preciousTokens, uint256[] memory preciousTokenIds) =
-            _createPreciouses(3);
-        Party party = factory.createParty(
-            authority,
-            defaultPartyOptions,
-            preciousTokens,
-            preciousTokenIds
-        );
-        vm.prank(authority);
-        factory.mint(party, owner, amount, delegate);
-    }
-
-    function testMint_onlyAuthorityCanCall() external {
-        address authority = _randomAddress();
-        address notAuthority = _randomAddress();
-        (IERC721[] memory preciousTokens, uint256[] memory preciousTokenIds) =
-            _createPreciouses(3);
-        Party party = factory.createParty(
-            authority,
-            defaultPartyOptions,
-            preciousTokens,
-            preciousTokenIds
-        );
-        {
-            address owner = _randomAddress();
-            address delegate = _randomAddress();
-            uint256 amount = _randomUint256();
-            vm.expectRevert(abi.encodeWithSelector(
-                PartyFactory.OnlyAuthorityError.selector
-            ));
-            vm.prank(notAuthority);
-            factory.mint(party, owner, amount, delegate);
-        }
-    }
-
-    function testAbdicate_works() external {
-        address authority = _randomAddress();
-        (IERC721[] memory preciousTokens, uint256[] memory preciousTokenIds) =
-            _createPreciouses(3);
-        Party party = factory.createParty(
-            authority,
-            defaultPartyOptions,
-            preciousTokens,
-            preciousTokenIds
-        );
-        assertEq(factory.partyAuthorities(party), authority);
-        vm.prank(authority);
-        factory.abdicate(party);
-        assertEq(factory.partyAuthorities(party), address(0));
     }
 }

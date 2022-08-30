@@ -110,7 +110,7 @@ contract PartyAdmin is Test {
     uint256 votingPower,
     address delegateTo
   ) public {
-    _partyFactory.mint(party, mintTo, votingPower, delegateTo);
+    party.mint(mintTo, votingPower, delegateTo);
   }
 
   function mintGovNft(
@@ -118,7 +118,7 @@ contract PartyAdmin is Test {
     address mintTo,
     uint256 votingPower
   ) public {
-    _partyFactory.mint(party, mintTo, votingPower, mintTo);
+    party.mint(mintTo, votingPower, mintTo);
   }
 }
 
