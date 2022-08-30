@@ -136,7 +136,7 @@ contract PartyCrowdfundTest is Test, TestUtils {
         returns (uint256 r)
     {
         return _getAmountWithoutSplit(contribution) +
-            (uint256(defaultSplitBps) * totalContributions) / (1e4 - 1);
+            (uint256(defaultSplitBps) * totalContributions + (1e4 - 1)) / 1e4;
     }
 
     function test_creation_initialContribution_withDelegate() public {
