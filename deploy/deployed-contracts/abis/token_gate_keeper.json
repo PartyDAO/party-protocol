@@ -1,0 +1,98 @@
+[
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": false,
+        "internalType": "contract Token",
+        "name": "token",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "minimumBalance",
+        "type": "uint256"
+      }
+    ],
+    "name": "TokenGateCreated",
+    "type": "event"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "contract Token",
+        "name": "token",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "minimumBalance",
+        "type": "uint256"
+      }
+    ],
+    "name": "createGate",
+    "outputs": [
+      {
+        "internalType": "bytes12",
+        "name": "id",
+        "type": "bytes12"
+      }
+    ],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint96",
+        "name": "",
+        "type": "uint96"
+      }
+    ],
+    "name": "gateInfo",
+    "outputs": [
+      {
+        "internalType": "contract Token",
+        "name": "token",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "minimumBalance",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "participant",
+        "type": "address"
+      },
+      {
+        "internalType": "bytes12",
+        "name": "id",
+        "type": "bytes12"
+      },
+      {
+        "internalType": "bytes",
+        "name": "",
+        "type": "bytes"
+      }
+    ],
+    "name": "isAllowed",
+    "outputs": [
+      {
+        "internalType": "bool",
+        "name": "",
+        "type": "bool"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  }
+]
