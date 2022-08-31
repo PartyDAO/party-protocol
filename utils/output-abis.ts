@@ -2,7 +2,6 @@ import { writeFileSync, readFileSync, existsSync } from "fs";
 
 const RELEVANT_ABIS = [
   "AllowListGateKeeper",
-  "ERC20TokenGatekeeper",
   "Party",
   "PartyBid",
   "PartyBuy",
@@ -14,6 +13,7 @@ const RELEVANT_ABIS = [
   "PartyHelpers",
   "ProposalExecutionEngine",
   "TokenDistributor",
+  "TokenGateKeeper"
 ];
 
 // AFileName -> a_file_name

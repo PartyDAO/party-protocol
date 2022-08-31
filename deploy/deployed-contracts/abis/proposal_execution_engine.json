@@ -884,6 +884,11 @@
             "type": "bytes"
           },
           {
+            "internalType": "bytes",
+            "name": "extraData",
+            "type": "bytes"
+          },
+          {
             "internalType": "uint256",
             "name": "flags",
             "type": "uint256"
