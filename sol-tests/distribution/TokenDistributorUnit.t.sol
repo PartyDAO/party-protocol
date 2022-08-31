@@ -129,8 +129,8 @@ contract TokenDistributorUnitTest is Test, TestUtils {
                 party: party,
                 tokenType: ITokenDistributor.TokenType.Native,
                 token: ETH_TOKEN_ADDRESS,
-                memberSupply: uint96(_computeLessFees(supply, DEFAULT_FEE_BPS)),
-                fee: uint96(_computeFees(supply, DEFAULT_FEE_BPS)),
+                memberSupply: uint128(_computeLessFees(supply, DEFAULT_FEE_BPS)),
+                fee: uint128(_computeFees(supply, DEFAULT_FEE_BPS)),
                 feeRecipient: DEFAULT_FEE_RECIPIENT
             })
         );
@@ -153,8 +153,8 @@ contract TokenDistributorUnitTest is Test, TestUtils {
                 party: party,
                 tokenType: ITokenDistributor.TokenType.Erc20,
                 token: address(erc20),
-                memberSupply: uint96(_computeLessFees(supply, DEFAULT_FEE_BPS)),
-                fee: uint96(_computeFees(supply, DEFAULT_FEE_BPS)),
+                memberSupply: uint128(_computeLessFees(supply, DEFAULT_FEE_BPS)),
+                fee: uint128(_computeFees(supply, DEFAULT_FEE_BPS)),
                 feeRecipient: DEFAULT_FEE_RECIPIENT
             })
         );
@@ -466,9 +466,9 @@ contract TokenDistributorUnitTest is Test, TestUtils {
             } else if (i == 4) {
                 di_.token = _randomAddress();
             } else if (i == 5) {
-                di_.memberSupply = uint96(_randomUint256() % type(uint96).max);
+                di_.memberSupply = uint128(_randomUint256() % type(uint128).max);
             } else if (i == 6) {
-                di_.fee = uint96(_randomUint256() % type(uint96).max);
+                di_.fee = uint128(_randomUint256() % type(uint128).max);
             }
             vm.expectRevert(abi.encodeWithSelector(
                 TokenDistributor.InvalidDistributionInfoError.selector,
@@ -606,8 +606,8 @@ contract TokenDistributorUnitTest is Test, TestUtils {
             party: ITokenDistributorParty(_randomAddress()),
             feeRecipient: _randomAddress(),
             token: _randomAddress(),
-            memberSupply: uint96(_randomUint256()),
-            fee: uint96(_randomUint256())
+            memberSupply: uint128(_randomUint256()),
+            fee: uint128(_randomUint256())
         });
         bytes15 expectedHash = bytes15(keccak256(abi.encode(di)));
         bytes15 actualHash = new TestTokenDistributorHash().getDistributionHash(di);
