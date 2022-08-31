@@ -3,7 +3,6 @@ pragma solidity ^0.8;
 
 import 'forge-std/Test.sol';
 
-
 import '../contracts/crowdfund/PartyBid.sol';
 import '../contracts/crowdfund/PartyBuy.sol';
 import '../contracts/crowdfund/PartyCollectionBuy.sol';
@@ -119,13 +118,21 @@ contract Deploy is Test {
     console.log('');
 
     console.log('');
-    console.log('  Globals - setting OpenSea Zora auction variables');
+    console.log('  Globals - setting OpenSea and Zora auction variables');
     globals.setUint256(LibGlobals.GLOBAL_OS_ZORA_AUCTION_DURATION, deployConstants.osZoraAuctionDuration);
     console.log('  Globals - successfully set OpenSea Zora auction duration', deployConstants.osZoraAuctionDuration);
     globals.setUint256(LibGlobals.GLOBAL_OS_ZORA_AUCTION_TIMEOUT, deployConstants.osZoraAuctionTimeout);
     console.log('  Globals - successfully set OpenSea Zora auction timeout', deployConstants.osZoraAuctionTimeout);
+    globals.setUint256(LibGlobals.GLOBAL_OS_MIN_ORDER_DURATION, deployConstants.osMinOrderDuration);
+    console.log('  Globals - successfully set OpenSea min order duration', deployConstants.osMinOrderDuration);
+    globals.setUint256(LibGlobals.GLOBAL_OS_MAX_ORDER_DURATION, deployConstants.osMaxOrderDuration);
+    console.log('  Globals - successfully set OpenSea max order duration', deployConstants.osMaxOrderDuration);
     globals.setUint256(LibGlobals.GLOBAL_ZORA_MIN_AUCTION_DURATION, deployConstants.zoraMinAuctionDuration);
     console.log('  Globals - successfully set Zora min auction duration', deployConstants.zoraMinAuctionDuration);
+    globals.setUint256(LibGlobals.GLOBAL_ZORA_MAX_AUCTION_DURATION, deployConstants.zoraMaxAuctionDuration);
+    console.log('  Globals - successfully set Zora max auction duration', deployConstants.zoraMaxAuctionDuration);
+    globals.setUint256(LibGlobals.GLOBAL_ZORA_MAX_AUCTION_TIMEOUT, deployConstants.zoraMaxAuctionTimeout);
+    console.log('  Globals - successfully set Zora max auction timeout', deployConstants.zoraMaxAuctionTimeout);
 
 
     // DEPLOY_PROPOSAL_EXECUTION_ENGINE

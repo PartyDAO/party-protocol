@@ -86,6 +86,14 @@ contract ListOnOpenSeaportProposalForkedTest is
             LibGlobals.GLOBAL_OS_ZORA_AUCTION_DURATION,
             ZORA_AUCTION_DURATION
         );
+        globals.setUint256(
+            LibGlobals.GLOBAL_OS_MIN_ORDER_DURATION,
+            1 days
+        );
+        globals.setUint256(
+            LibGlobals.GLOBAL_OS_MAX_ORDER_DURATION,
+            7 days
+        );
         impl = new TestableListOnOpenSeaportProposal(
             globals,
             SEAPORT,
@@ -144,6 +152,73 @@ contract ListOnOpenSeaportProposalForkedTest is
             });
     }
 
+    function _generateOrderParams(ListOnOpenSeaportProposal.OpenSeaportProposalData memory data)
+        private
+        view
+        returns (ISeaportExchange.OrderParameters memory orderParams)
+    {
+        orderParams.offerer = address(impl);
+        orderParams.startTime = block.timestamp;
+        orderParams.endTime = block.timestamp + uint256(data.duration);
+        orderParams.zone = globals.getAddress(LibGlobals.GLOBAL_OPENSEA_ZONE);
+        orderParams.orderType = orderParams.zone == address(0)
+            ? ISeaportExchange.OrderType.FULL_OPEN
+            : ISeaportExchange.OrderType.FULL_RESTRICTED;
+        orderParams.salt = 0;
+        orderParams.conduitKey = globals.getBytes32(LibGlobals.GLOBAL_OPENSEA_CONDUIT_KEY);
+        orderParams.totalOriginalConsiderationItems = 1 + data.fees.length;
+        // What we are selling.
+        orderParams.offer = new ISeaportExchange.OfferItem[](1);
+        {
+            ISeaportExchange.OfferItem memory offer = orderParams.offer[0];
+            offer.itemType = ISeaportExchange.ItemType.ERC721;
+            offer.token = address(data.token);
+            offer.identifierOrCriteria = data.tokenId;
+            offer.startAmount = 1;
+            offer.endAmount = 1;
+        }
+        // What we want for it.
+        orderParams.consideration = new ISeaportExchange.ConsiderationItem[](1 + data.fees.length);
+        {
+            ISeaportExchange.ConsiderationItem memory cons = orderParams.consideration[0];
+            cons.itemType = ISeaportExchange.ItemType.NATIVE;
+            cons.token = address(0);
+            cons.identifierOrCriteria = 0;
+            cons.startAmount = cons.endAmount = data.listPrice;
+            cons.recipient = payable(address(impl));
+            for (uint256 i = 0; i < data.fees.length; ++i) {
+                cons = orderParams.consideration[1 + i];
+                cons.itemType = ISeaportExchange.ItemType.NATIVE;
+                cons.token = address(0);
+                cons.identifierOrCriteria = 0;
+                cons.startAmount = cons.endAmount = data.fees[i];
+                cons.recipient = data.feeRecipients[i];
+            }
+        }
+    }
+
+    function _getOrderHash(ISeaportExchange.OrderParameters memory orderParams)
+        private
+        view
+        returns (bytes32 orderHash)
+    {
+        // getOrderHash() wants an OrderComponents struct, which is an OrderParameters
+        // struct but with the last field (totalOriginalConsiderationItems)
+        // replaced with the maker's nonce. Since we (the maker) never increment
+        // our seaport nonce, it is always 0.
+        // So we temporarily set the totalOriginalConsiderationItems field to 0,
+        // force cast the OrderParameters into a OrderComponents type, call
+        // getOrderHash(), and then restore the totalOriginalConsiderationItems
+        // field's value before returning.
+        uint256 origTotalOriginalConsiderationItems =
+            orderParams.totalOriginalConsiderationItems;
+        orderParams.totalOriginalConsiderationItems = 0;
+        ISeaportExchange.OrderComponents memory orderComps;
+        assembly { orderComps := orderParams }
+        orderHash = SEAPORT.getOrderHash(orderComps);
+        orderParams.totalOriginalConsiderationItems = origTotalOriginalConsiderationItems;
+    }
+
     function _randomPreciousToken()
         private
         view
@@ -151,6 +226,65 @@ contract ListOnOpenSeaportProposalForkedTest is
     {
         uint256 idx = _randomRange(0, preciousTokens.length);
         return (preciousTokens[idx], preciousTokenIds[idx]);
+    }
+
+    function testForked_Execution_durationBounds() public onlyForked {
+        uint256 listPrice = 1e18;
+        uint40 listDuration = 7 days;
+        (IERC721 token, uint256 tokenId) = _randomPreciousToken();
+        (
+            ListOnOpenSeaportProposal.OpenSeaportProposalData memory data,
+            IProposalExecutionEngine.ExecuteProposalParams memory params
+        ) = _createTestProposal(
+            token,
+            tokenId,
+            listPrice,
+            listDuration,
+            new uint256[](0),
+            new address payable[](0)
+        );
+        // Skip to relevant step
+        params.progressData = abi.encode(ListOnOpenSeaportProposal.ListOnOpenSeaportStep.RetrievedFromZora);
+
+        // Test minimum order duration is enforced
+        uint40 minDuration = uint40(globals.getUint256(LibGlobals.GLOBAL_OS_MIN_ORDER_DURATION));
+        data.duration = minDuration;
+        ISeaportExchange.OrderParameters memory orderParams = _generateOrderParams(data);
+        bytes32 orderHash = _getOrderHash(orderParams);
+
+        data.duration = minDuration / 2;
+        params.proposalData = abi.encode(data);
+
+        _expectEmit0();
+        emit OpenSeaportOrderListed(
+            orderParams,
+            orderHash,
+            token,
+            tokenId,
+            listPrice,
+            uint40(block.timestamp) + minDuration
+        );
+        impl.executeListOnOpenSeaport(params);
+
+        // Test maximum order duration is enforced
+        uint40 maxDuration = uint40(globals.getUint256(LibGlobals.GLOBAL_OS_MAX_ORDER_DURATION));
+        data.duration = maxDuration;
+        orderParams = _generateOrderParams(data);
+        orderHash = _getOrderHash(orderParams);
+
+        data.duration = maxDuration * 2;
+        params.proposalData = abi.encode(data);
+
+        _expectEmit0();
+        emit OpenSeaportOrderListed(
+            orderParams,
+            orderHash,
+            token,
+            tokenId,
+            listPrice,
+            uint40(block.timestamp) + maxDuration
+        );
+        impl.executeListOnOpenSeaport(params);
     }
 
     // Test a proposal where the zora listing times out and the

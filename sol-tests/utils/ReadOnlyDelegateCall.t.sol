@@ -18,7 +18,7 @@ contract TestImpl {
         return _retVal++;
     }
 
-    function fooFails() external view returns (uint256) {
+    function fooFails() external pure returns (uint256) {
         revert("oopsie");
     }
 }
@@ -30,7 +30,7 @@ contract TestContract is ReadOnlyDelegateCall {
         _retVal = retVal;
     }
 
-    function readOnlyDelegateCall(address impl, bytes memory callData) external view returns (uint256) {
+    function readOnlyDelegateCall(address impl, bytes memory callData) external view {
         _readOnlyDelegateCall(impl, callData);
         assert(false);
     }
@@ -59,7 +59,7 @@ contract ReadOnlyDelegateCallTest is Test, TestUtils {
         uint256 expectedResult = _randomUint256();
         testContract.setRetVal(expectedResult);
         vm.expectRevert();
-        uint256 result = ICallReadOnlyDelegateCall(address(testContract)).readOnlyDelegateCall(
+        ICallReadOnlyDelegateCall(address(testContract)).readOnlyDelegateCall(
             address(impl),
             abi.encodeCall(TestImpl.fooWrites, ())
         );
@@ -69,7 +69,7 @@ contract ReadOnlyDelegateCallTest is Test, TestUtils {
         uint256 expectedResult = _randomUint256();
         testContract.setRetVal(expectedResult);
         vm.expectRevert("oopsie");
-        uint256 result = ICallReadOnlyDelegateCall(address(testContract)).readOnlyDelegateCall(
+        ICallReadOnlyDelegateCall(address(testContract)).readOnlyDelegateCall(
             address(impl),
             abi.encodeCall(TestImpl.fooFails, ())
         );

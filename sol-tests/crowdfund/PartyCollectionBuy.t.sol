@@ -166,7 +166,7 @@ contract PartyCollectionBuyTest is Test, TestUtils {
         // Buy the token as a non-host contributor and expect revert.
         vm.expectRevert(PartyCollectionBuy.OnlyPartyHostError.selector);
         vm.prank(contributor);
-        Party party_ = pb.buy(
+        pb.buy(
             tokenId,
             payable(address(erc721Vault)),
             0.5e18,
