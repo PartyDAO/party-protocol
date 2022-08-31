@@ -960,7 +960,10 @@ abstract contract PartyGovernance is
                 // Reached quorum.
                 totalVotes >= gv.quorumVotingPower &&
                 // Reached passing threshold.
-                _areVotesPassing(pv.yesVotes, totalVotes, gv.passThresholdBps)
+                _areVotesPassing(
+                    pv.yesVotes,
+                    totalVotes - pv.abstainVotes,
+                    gv.passThresholdBps)
             ) {
                 return ProposalStatus.Passed;
             } else {
