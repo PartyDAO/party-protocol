@@ -35,7 +35,7 @@ abstract contract PartyCrowdfund is ERC721Receiver, PartyCrowdfundNFT {
         address[] hosts;
         // How long people can vote on a proposal.
         uint40 voteDuration;
-        // Minimum ratio of accept votes to consider a proposal passed,
+        // Minimum ratio of yes votes to consider a proposal passed,
         // in bps, where 10,000 == 100%.
         uint16 passThresholdBps;
         // Minimum ratio of votes to consider a proposal valid, in bps

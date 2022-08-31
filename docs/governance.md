@@ -71,8 +71,8 @@ Parties are initialized with fixed governance options which will (mostly) never 
 
 - `hosts`: Array of initial party hosts. This is the only configuration that can change because hosts can transfer their privilege to other accounts.
 - `voteDuration`: After being a proposal has been proposed, this is how long (in seconds) members can vote for it to pass. If this window expires before the proposal passes, it will be considered defeated.
-- `executionDelay`: Duration in seconds a proposal must wait after being passed before it can be executed. This gives hosts time to veto malicious proposals that have passed.
-- `passThresholdBps`: Minimum ratio of votes vs `totalVotingPower` supply to consider a proposal passed. This is expressed in basis points, i.e. `100 = 1%`
+- `passThresholdBps`: Minimum ratio of votes vs total votes cast supply to consider a proposal passed. This is expressed in basis points, i.e. `100 = 1%`
+- `quorumThresholdBps`: Minimum ratio of votes to consider a proposal valid, in basis points
 - `totalVotingPower`: Total voting power of the Party. This should be the sum of weights of all (possible) Governance NFTs given to members. Note that nowhere is this assumption enforced, as there may be use-cases for minting more than 100% of voting power, but the logic in crowdfund contracts cannot mint more than `totalVotingPower`.
 - `feeBps`: The fee taken out of this Party's [distributions](#distributions) to reserve for `feeRecipient` to claim. Typically this will be set to an address controlled by PartyDAO.
 - `feeRecipient`: The address that can claim distribution fees for this Party.
@@ -170,9 +170,8 @@ The stages of a proposal are defined in `PartyGovernance.ProposalStatus`:
 
 - `Invalid`: The proposal does not exist.
 - `Voting`: The proposal has been proposed (via `propose()`), has not been vetoed by a party host, and is within the voting window. Members can vote on the proposal and party hosts can veto the proposal.
-- `Defeated`: The proposal has either exceeded its voting window without reaching `passThresholdBps` of votes or was vetoed by a party host.
-- `Passed`: The proposal reached at least `passThresholdBps` of votes but is still waiting for `executionDelay` to pass before it can be executed. Members can continue to vote on the proposal and party hosts can veto at this time.
-- `Ready`: Same as `Passed` but now `executionDelay` has been satisfied or the proposal passed unanimously. Any member may execute the proposal via `execute()`, unless `maxExecutableTime` has arrived.
+- `Defeated`: The proposal has either exceeded its voting window without reaching `passThresholdBps` of votes, passing `quorumVotingPower`, or was vetoed by a party host.
+- `Passed`: The proposal reached at least `passThresholdBps` of votes and met quorum. It can now be executed. The party hosts can still veto at this time.
 - `InProgress`: The proposal has been executed at least once but has further steps to complete so it needs to be executed again. No other proposals may be executed while a proposal is in the `InProgress` status, and therefore only a single proposal may ever be in the `InProgress` status. No voting or vetoing of an `InProgress` proposal is allowed, however it may be forcibly cancelled via `cancel()` if the `cancelDelay` has arrived.
 - `Complete`: The proposal was executed and completed all its steps. No voting or vetoing can occur and it cannot be cancelled nor executed again.
 - `Cancelled`: The proposal was executed at least once but did not complete before `cancelDelay` seconds passed since the first execute and was forcibly cancelled.
@@ -185,19 +184,19 @@ Once ready, an active member or delegate (someone with nonzero effective voting 
 
 ### Voting on Proposals
 
-Any proposal in the `Voting`, `Passed`, or `Ready` status can be voted on by members and delegates via `Party.accept()`. The `accept()` function casts the caller's *total* effective voting power at the time the proposal was proposed for it. Once the total voting power cast for the proposal meets or exceeds the `passThresholdBps` ratio, given by `total cast voting power / totalVotingPower`, the proposal will enter the `Passed` state.
+Only proposals in the `Voting` status can be voted on by members and delegates via `Party.vote()`. The `vote()` function casts the caller's *total* effective voting power at the time the proposal was proposed for it as either a `yesVote`, `noVote`, or `abstainVote`. Once the total voting power cast for the proposal meets or exceeds the `passThresholdBps` ratio, given by `yesVotes / totalVotes` where `totalVotes = yesVotes + noVotes + abstainVotes`, the proposal will enter the `Passed` state.
 
-Members can continue to vote even beyond the `Passed` state in order to achieve a unanimous vote, which allows the proposal to bypass the `executionDelay` and unlocks specific behavior for certain proposal types. A unanimous vote condition is met when 99.99% of `totalVotingPower` has been cast for a proposal. We do not check for 100% because of possible rounding errors during minting from crowdfunds.
+Achieving a unanimous vote allows the proposal to bypass the `voteDuration` and unlocks specific behavior for certain proposal types. A unanimous vote condition is met when 99.99% of `totalVotingPower` has been cast for a proposal. We do not check for 100% because of possible rounding errors during minting from crowdfunds.
 
 ### Vetoes
 
-During the `Voting`, `Passed`, and `Ready` phases of a proposal, a Party host may unilaterally veto that proposal by calling `Party.veto()`, immediately putting the proposal in the `Defeated` state. At that point, no further action can be taken on the proposal.
+During the `Voting` and `Passed` phases of a proposal, a Party host may unilaterally veto that proposal by calling `Party.veto()`, immediately putting the proposal in the `Defeated` state. At that point, no further action can be taken on the proposal.
 
 The rationale behind the veto power that if voting power in a Party becomes so consolidated that a bad actor can pass a malicious proposal, the party host can act as the final backstop. On the other hand, a party host can also stall a Party by vetoing every legitimate proposal, so Parties need to be extremely careful with who they agree to be hosts.
 
 ### Executing Proposals
 
-After a proposal has achieved enough votes to pass and the `executionDelay` window has expired, or if the proposal reached unanimous consensus, the proposal can be executed by any member with currently nonzero effective voting power. This occurs via the `Party.execute()` function.
+After a proposal has achieved enough votes to pass and the `voteDuration` window has passed, or if the proposal reached unanimous consensus, the proposal can be executed by any member with currently nonzero effective voting power. This occurs via the `Party.execute()` function.
 
 The call to `execute()` will fail if:
 - The proposal has already been executed and completed (in the `Complete` status).

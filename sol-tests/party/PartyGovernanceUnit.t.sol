@@ -1184,8 +1184,8 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
         );
     }
 
-    // can veto a proposal that's ready.
-    function testProposalLifecycle_canVetoReadyProposal() external {
+    // can veto a proposal that's passed.
+    function testProposalLifecycle_canVetoPassedProposal() external {
         (IERC721[] memory preciousTokens, uint256[] memory preciousTokenIds) =
             _createPreciousTokens(2);
         TestablePartyGovernance gov =

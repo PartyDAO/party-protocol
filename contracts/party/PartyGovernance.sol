@@ -44,23 +44,26 @@ abstract contract PartyGovernance is
         // the proposal and party hosts can veto the proposal.
         Voting,
         // The proposal has either exceeded its voting window without reaching
-        // `passThresholdBps` of votes or was vetoed by a party host.
+        // `passThresholdBps` of votes, passing `quorumVotingPower`, or was
+        // vetoed by a party host.
         Defeated,
-        // The proposal reached at least `passThresholdBps` of votes but is still
-        // waiting for `executionDelay` to pass before it can be executed. Members
-        // can continue to vote on the proposal and party hosts can veto at this time.
+        // The proposal reached at least `passThresholdBps` of votes and met quorum. It
+        // can now be executed. The party hosts can still veto at this time.
         Passed,
         // The proposal has been executed at least once but has further steps to
         // complete so it needs to be executed again. No other proposals may be
-        // executed while a proposal is in the `InProgress` state. No voting or
-        // vetoing of the proposal is allowed, however it may be forcibly cancelled
-        // via `cancel()` if the `cancelDelay` has passed since being first executed.
+        // executed while a proposal is in the `InProgress` status, and
+        // therefore only a single proposal may ever be in the `InProgress`
+        // status. No voting or vetoing of an `InProgress` proposal is allowed,
+        // however it may be forcibly cancelled via `cancel()` if the
+        // `cancelDelay` has arrived.
         InProgress,
         // The proposal was executed and completed all its steps. No voting or
         // vetoing can occur and it cannot be cancelled nor executed again.
         Complete,
         // The proposal was executed at least once but did not complete before
-        // `cancelDelay` seconds passed since the first execute and was forcibly cancelled.
+        // `cancelDelay` seconds passed since the first execute and was forcibly
+        // cancelled.
         Cancelled
     }
 
@@ -75,7 +78,7 @@ abstract contract PartyGovernance is
         address[] hosts;
         // How long people can vote on a proposal.
         uint40 voteDuration;
-        // Minimum ratio of accept votes to consider a proposal passed,
+        // Minimum ratio of yes votes to consider a proposal passed,
         // in bps, where 10,000 == 100%.
         uint16 passThresholdBps;
         // Minimum ratio of votes to consider a proposal valid, in bps
@@ -132,9 +135,9 @@ abstract contract PartyGovernance is
         uint40 executedTime;
         // When the proposal completed.
         uint40 completedTime;
-        // Number of accept votes.
+        // Number of yes votes.
         uint96 yesVotes;
-        // Number of reject votes.
+        // Number of no votes.
         uint96 noVotes; // -1 == vetoed
         // Number of abstain votes.
         uint96 abstainVotes;
@@ -484,7 +487,7 @@ abstract contract PartyGovernance is
     /// @notice Make a proposal for members to vote on and cast a vote to accept it
     ///         as well.
     /// @dev Only an active member (owns a governance token) can call this.
-    ///      Afterwards, members can vote to support it with vote(PartyGovernance.Decision.Yes, ) or a party
+    ///      Afterwards, members can vote to support it with vote() or a party
     ///      host can unilaterally reject the proposal with veto().
     function propose(Proposal memory proposal, uint256 latestSnapIndex)
         external
@@ -565,7 +568,7 @@ abstract contract PartyGovernance is
     }
 
     /// @notice Executes a proposal that has passed governance.
-    /// @dev The proposal must be in the Ready or InProgress status.
+    /// @dev The proposal must be in the Passed or InProgress status.
     ///      A ProposalExecuted event will be emitted with a non-empty nextProgressData
     ///      if the proposal has extra steps (must be executed again) to carry out,
     ///      in which case nextProgressData should be passed into the next execute() call.
@@ -943,7 +946,7 @@ abstract contract PartyGovernance is
             return ProposalStatus.Complete;
         }
         // Vetoed.
-        if (pv.noVotes == uint96(int96(-1))) {
+        if (pv.noVotes == VETO_VALUE) {
             return ProposalStatus.Defeated;
         }
         GovernanceValues memory gv = _governanceValues;
@@ -951,10 +954,9 @@ abstract contract PartyGovernance is
         if (_isUnanimousVotes(pv.yesVotes, gv.totalVotingPower)) {
             return ProposalStatus.Passed;
         }
-        uint40 timestamp = uint40(block.timestamp);
         // Voting has concluded.
-        if (pv.proposedTime + gv.voteDuration <= timestamp) {
-            uint96 totalVotes = _getTotalVotes(pv);
+        if (pv.proposedTime + gv.voteDuration <= uint40(block.timestamp)) {
+            uint96 totalVotes = pv.yesVotes + pv.noVotes;
             // Determine result.
             if (
                 // Reached quorum.
