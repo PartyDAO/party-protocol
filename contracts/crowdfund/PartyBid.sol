@@ -230,12 +230,12 @@ contract PartyBid is Implementation, PartyCrowdfund {
     /// @inheritdoc PartyCrowdfund
     function getCrowdfundLifecycle() public override view returns (CrowdfundLifecycle) {
         // Do not rely on `market.isFinalized()` in case `auctionId` gets reused.
-        PartyBidStatus finalizeState_ = _bidStatus;
-        if (finalizeState_ == PartyBidStatus.Busy) {
+        PartyBidStatus status = _bidStatus;
+        if (status == PartyBidStatus.Busy) {
             // In the midst of finalizing/bidding (trying to reenter).
             return CrowdfundLifecycle.Busy;
         }
-        if (finalizeState_ == PartyBidStatus.Finalized) {
+        if (status == PartyBidStatus.Finalized) {
             return address(party) != address(0)
                 // If we're fully finalized and we have a party instance then we won.
                 ? CrowdfundLifecycle.Won
