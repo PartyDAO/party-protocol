@@ -84,18 +84,20 @@ contract ListOnZoraProposal is ZoraHelpers {
             : abi.decode(params.progressData, (ZoraStep));
         if (step == ZoraStep.None) {
             // Proposal hasn't executed yet.
-            // Clamp the zora auction duration to the global minimum and maximum.
-            uint40 minDuration = uint40(_GLOBALS.getUint256(LibGlobals.GLOBAL_ZORA_MIN_AUCTION_DURATION));
-            uint40 maxDuration = uint40(_GLOBALS.getUint256(LibGlobals.GLOBAL_ZORA_MAX_AUCTION_DURATION));
-            if (data.duration < minDuration) {
-                data.duration = minDuration;
-            } else if (data.duration > maxDuration) {
-                data.duration = maxDuration;
-            }
-            // Clamp the zora auction timeout to the global maximum.
-            uint40 maxTimeout = uint40(_GLOBALS.getUint256(LibGlobals.GLOBAL_ZORA_MAX_AUCTION_TIMEOUT));
-            if (data.timeout > maxTimeout) {
-                data.timeout = maxTimeout;
+            {
+                // Clamp the zora auction duration to the global minimum and maximum.
+                uint40 minDuration = uint40(_GLOBALS.getUint256(LibGlobals.GLOBAL_ZORA_MIN_AUCTION_DURATION));
+                uint40 maxDuration = uint40(_GLOBALS.getUint256(LibGlobals.GLOBAL_ZORA_MAX_AUCTION_DURATION));
+                if (minDuration != 0 && data.duration < minDuration) {
+                    data.duration = minDuration;
+                } else if (maxDuration != 0 && data.duration > maxDuration) {
+                    data.duration = maxDuration;
+                }
+                // Clamp the zora auction timeout to the global maximum.
+                uint40 maxTimeout = uint40(_GLOBALS.getUint256(LibGlobals.GLOBAL_ZORA_MAX_AUCTION_TIMEOUT));
+                if (maxTimeout != 0 && data.timeout > maxTimeout) {
+                    data.timeout = maxTimeout;
+                }
             }
             // Create a zora auction for the NFT.
             uint256 auctionId = _createZoraAuction(
