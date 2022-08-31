@@ -27,6 +27,11 @@ contract TokenDistributorTest is Test, TestUtils {
     vm.prank(DAO_ADDRESS);
     globals.setAddress(LibGlobals.GLOBAL_DAO_WALLET, DAO_ADDRESS);
     distributor = new TokenDistributor(globals);
+
+    // Reset addresses used in tests (can be non-zero when running forked tests)
+    for (uint160 i; i < 10; i++) {
+      vm.deal(address(i), 0);
+    }
   }
 
   function testEthDistributionSimple() public {
