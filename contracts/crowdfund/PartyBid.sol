@@ -40,7 +40,7 @@ contract PartyBid is Implementation, PartyCrowdfund {
         // How long this crowdfund has to bid on the NFT, in seconds.
         uint40 duration;
         // Maximum bid allowed.
-        uint128 maximumBid;
+        uint96 maximumBid;
         // An address that receieves a portion of the final voting power
         // when the party transitions into governance.
         address payable splitRecipient;
@@ -76,15 +76,15 @@ contract PartyBid is Implementation, PartyCrowdfund {
     IERC721 public nftContract;
     /// @notice The NFT token ID to buy.
     uint256 public nftTokenId;
-    /// @notice The auction ID to identify the auction on the `market`.
-    uint256 public auctionId;
-    /// @notice The last successful bid() amount.
-    uint128 public lastBid;
-    /// @notice The maximum possible bid this crowdfund can make.
-    uint128 public maximumBid;
     /// @notice An adapter for the auction market (zora, opensea, etc).
     /// @dev This will be delegatecalled into to execute bids.
     IMarketWrapper public market;
+    /// @notice The auction ID to identify the auction on the `market`.
+    uint256 public auctionId;
+    /// @notice The maximum possible bid this crowdfund can make.
+    uint96 public maximumBid;
+    /// @notice The last successful bid() amount.
+    uint96 public lastBid;
     /// @notice When this crowdfund expires. If the NFT has not been bought
     ///         by this time, participants can withdraw their contributions.
     uint40 public expiry;
@@ -148,7 +148,7 @@ contract PartyBid is Implementation, PartyCrowdfund {
         if (market.getCurrentHighestBidder(auctionId_) == address(this)) {
             revert AlreadyHighestBidderError();
         }
-        uint128 bidAmount = market.getMinimumBid(auctionId_).safeCastUint256ToUint128();
+        uint96 bidAmount = market.getMinimumBid(auctionId_).safeCastUint256ToUint96();
         if (bidAmount > maximumBid) {
             revert ExceedsMaximumBidError(bidAmount, maximumBid);
         }
@@ -185,7 +185,7 @@ contract PartyBid is Implementation, PartyCrowdfund {
         // getting called because this will result in a `CrowdfundLifecycle.Busy`.
         _bidStatus = PartyBidStatus.Busy;
 
-        uint128 lastBid_ = lastBid;
+        uint96 lastBid_ = lastBid;
         // Only finalize on the market if we placed a bid.
         if (lastBid_ != 0) {
             // Note that even if this crowdfund has expired but the auction is still
@@ -230,12 +230,12 @@ contract PartyBid is Implementation, PartyCrowdfund {
     /// @inheritdoc PartyCrowdfund
     function getCrowdfundLifecycle() public override view returns (CrowdfundLifecycle) {
         // Do not rely on `market.isFinalized()` in case `auctionId` gets reused.
-        PartyBidStatus finalizeState_ = _bidStatus;
-        if (finalizeState_ == PartyBidStatus.Busy) {
+        PartyBidStatus status = _bidStatus;
+        if (status == PartyBidStatus.Busy) {
             // In the midst of finalizing/bidding (trying to reenter).
             return CrowdfundLifecycle.Busy;
         }
-        if (finalizeState_ == PartyBidStatus.Finalized) {
+        if (status == PartyBidStatus.Finalized) {
             return address(party) != address(0)
                 // If we're fully finalized and we have a party instance then we won.
                 ? CrowdfundLifecycle.Won

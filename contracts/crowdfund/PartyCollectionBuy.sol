@@ -29,7 +29,7 @@ contract PartyCollectionBuy is PartyBuyBase {
         uint40 duration;
         // Maximum amount this crowdfund will pay for the NFT.
         // If zero, no maximum.
-        uint128 maximumPrice;
+        uint96 maximumPrice;
         // An address that receieves a portion of the final voting power
         // when the party transitions into governance.
         address payable splitRecipient;
@@ -99,7 +99,7 @@ contract PartyCollectionBuy is PartyBuyBase {
     function buy(
         uint256 tokenId,
         address payable callTarget,
-        uint128 callValue,
+        uint96 callValue,
         bytes calldata callData,
         FixedGovernanceOpts memory governanceOpts
     )

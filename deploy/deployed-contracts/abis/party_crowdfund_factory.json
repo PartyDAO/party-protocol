@@ -57,9 +57,9 @@
             "type": "uint40"
           },
           {
-            "internalType": "uint128",
+            "internalType": "uint96",
             "name": "maximumBid",
-            "type": "uint128"
+            "type": "uint96"
           },
           {
             "internalType": "address payable",
@@ -175,9 +175,9 @@
             "type": "uint40"
           },
           {
-            "internalType": "uint128",
+            "internalType": "uint96",
             "name": "maximumPrice",
-            "type": "uint128"
+            "type": "uint96"
           },
           {
             "internalType": "address payable",
@@ -288,9 +288,9 @@
             "type": "uint40"
           },
           {
-            "internalType": "uint128",
+            "internalType": "uint96",
             "name": "maximumPrice",
-            "type": "uint128"
+            "type": "uint96"
           },
           {
             "internalType": "address payable",
@@ -409,9 +409,9 @@
             "type": "uint40"
           },
           {
-            "internalType": "uint128",
+            "internalType": "uint96",
             "name": "maximumBid",
-            "type": "uint128"
+            "type": "uint96"
           },
           {
             "internalType": "address payable",
@@ -532,9 +532,9 @@
             "type": "uint40"
           },
           {
-            "internalType": "uint128",
+            "internalType": "uint96",
             "name": "maximumPrice",
-            "type": "uint128"
+            "type": "uint96"
           },
           {
             "internalType": "address payable",
@@ -650,9 +650,9 @@
             "type": "uint40"
           },
           {
-            "internalType": "uint128",
+            "internalType": "uint96",
             "name": "maximumPrice",
-            "type": "uint128"
+            "type": "uint96"
           },
           {
             "internalType": "address payable",

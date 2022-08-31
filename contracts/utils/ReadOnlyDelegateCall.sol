@@ -29,14 +29,13 @@ contract ReadOnlyDelegateCall {
     function _readOnlyDelegateCall(address impl, bytes memory callData)
         internal
         view
-        returns (bool success, bytes memory resultData)
     {
         try IReadOnlyDelegateCall(address(this)).delegateCallAndRevert(impl, callData) {
             // Should never happen.
             assert(false);
         }
         catch (bytes memory r) {
-            (success, resultData) = abi.decode(r, (bool, bytes));
+            (bool success, bytes memory resultData) = abi.decode(r, (bool, bytes));
             if (!success) {
                 resultData.rawRevert();
             }

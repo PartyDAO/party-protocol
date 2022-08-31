@@ -75,7 +75,7 @@ contract PartyCrowdfundFactoryTest is Test, TestUtils {
 
     function testCreatePartyBid(
         string memory randomStr,
-        uint128 randomUint128,
+        uint96 randomUint96,
         uint40 randomUint40,
         uint16 randomBps
     ) external {
@@ -101,7 +101,7 @@ contract PartyCrowdfundFactoryTest is Test, TestUtils {
             nftTokenId: tokenId,
             // This is to avoid overflows when adding to `block.timestamp`.
             duration: uint40(_randomRange(1, type(uint40).max - block.timestamp)),
-            maximumBid: randomUint128,
+            maximumBid: randomUint96,
             splitRecipient: payable(_randomAddress()),
             splitBps: randomBps,
             initialContributor: _randomAddress(),
@@ -132,7 +132,7 @@ contract PartyCrowdfundFactoryTest is Test, TestUtils {
         assertEq(inst.maximumBid(), opts.maximumBid);
         assertEq(inst.splitRecipient(), opts.splitRecipient);
         assertEq(inst.splitBps(), opts.splitBps);
-        assertEq(inst.totalContributions(), uint128(randomUint40));
+        assertEq(inst.totalContributions(), uint96(randomUint40));
         (uint256 ethContributed, , ,) = inst.getContributorInfo(opts.initialContributor);
         assertEq(ethContributed, randomUint40);
         assertEq(address(inst.gateKeeper()), address(opts.gateKeeper));
@@ -156,7 +156,7 @@ contract PartyCrowdfundFactoryTest is Test, TestUtils {
             nftContract: nftContract,
             nftTokenId: tokenId,
             duration: 7 days,
-            maximumBid: type(uint128).max,
+            maximumBid: type(uint96).max,
             splitRecipient: payable(address(0)),
             splitBps: 0,
             initialContributor: address(0),
@@ -189,7 +189,7 @@ contract PartyCrowdfundFactoryTest is Test, TestUtils {
             nftContract: IERC721(address(0)),
             nftTokenId: tokenId,
             duration: 7 days,
-            maximumBid: type(uint128).max,
+            maximumBid: type(uint96).max,
             splitRecipient: payable(address(0)),
             splitBps: 0,
             initialContributor: address(0),
@@ -223,7 +223,7 @@ contract PartyCrowdfundFactoryTest is Test, TestUtils {
             nftContract: nftContract,
             nftTokenId: tokenId + 1,
             duration: 7 days,
-            maximumBid: type(uint128).max,
+            maximumBid: type(uint96).max,
             splitRecipient: payable(address(0)),
             splitBps: 0,
             initialContributor: address(0),
@@ -246,7 +246,7 @@ contract PartyCrowdfundFactoryTest is Test, TestUtils {
 
     function testCreatePartyBuy(
         string memory randomStr,
-        uint128 randomUint128,
+        uint96 randomUint96,
         uint40 randomUint40,
         uint16 randomBps
     ) external {
@@ -270,7 +270,7 @@ contract PartyCrowdfundFactoryTest is Test, TestUtils {
             nftTokenId: tokenId,
             // This is to avoid overflows when adding to `block.timestamp`.
             duration: uint40(_randomRange(1, type(uint40).max - block.timestamp)),
-            maximumPrice: randomUint128,
+            maximumPrice: randomUint96,
             splitRecipient: payable(_randomAddress()),
             splitBps: randomBps,
             initialContributor: _randomAddress(),
@@ -299,7 +299,7 @@ contract PartyCrowdfundFactoryTest is Test, TestUtils {
         assertEq(inst.maximumPrice(), opts.maximumPrice);
         assertEq(inst.splitRecipient(), opts.splitRecipient);
         assertEq(inst.splitBps(), opts.splitBps);
-        assertEq(inst.totalContributions(), uint128(randomUint40));
+        assertEq(inst.totalContributions(), uint96(randomUint40));
         (uint256 ethContributed, , ,) = inst.getContributorInfo(opts.initialContributor);
         assertEq(ethContributed, randomUint40);
         assertEq(address(inst.gateKeeper()), address(opts.gateKeeper));
@@ -312,7 +312,7 @@ contract PartyCrowdfundFactoryTest is Test, TestUtils {
 
     function testCreatePartyCollectionBuy(
         string memory randomStr,
-        uint128 randomUint128,
+        uint96 randomUint96,
         uint40 randomUint40,
         uint16 randomBps
     ) external {
@@ -335,7 +335,7 @@ contract PartyCrowdfundFactoryTest is Test, TestUtils {
                 nftContract: nftContract,
                 // This is to avoid overflows when adding to `block.timestamp`.
                 duration: uint40(_randomRange(1, type(uint40).max - block.timestamp)),
-                maximumPrice: randomUint128,
+                maximumPrice: randomUint96,
                 splitRecipient: payable(_randomAddress()),
                 splitBps: randomBps,
                 initialContributor: _randomAddress(),
@@ -364,7 +364,7 @@ contract PartyCrowdfundFactoryTest is Test, TestUtils {
         assertEq(inst.maximumPrice(), opts.maximumPrice);
         assertEq(inst.splitRecipient(), opts.splitRecipient);
         assertEq(inst.splitBps(), opts.splitBps);
-        assertEq(inst.totalContributions(), uint128(randomUint40));
+        assertEq(inst.totalContributions(), uint96(randomUint40));
         (uint256 ethContributed, , ,) = inst.getContributorInfo(opts.initialContributor);
         assertEq(ethContributed, randomUint40);
         assertEq(address(inst.gateKeeper()), address(opts.gateKeeper));
@@ -395,7 +395,7 @@ contract PartyCrowdfundFactoryTest is Test, TestUtils {
             nftContract: nftContract,
             nftTokenId: tokenId,
             duration: 7 days,
-            maximumBid: type(uint128).max,
+            maximumBid: type(uint96).max,
             splitRecipient: payable(address(0)),
             splitBps: splitBps,
             initialContributor: address(0),
