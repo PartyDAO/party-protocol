@@ -848,14 +848,14 @@
             "type": "address"
           },
           {
-            "internalType": "uint96",
+            "internalType": "uint128",
             "name": "memberSupply",
-            "type": "uint96"
+            "type": "uint128"
           },
           {
-            "internalType": "uint96",
+            "internalType": "uint128",
             "name": "fee",
-            "type": "uint96"
+            "type": "uint128"
           }
         ],
         "internalType": "struct ITokenDistributor.DistributionInfo",

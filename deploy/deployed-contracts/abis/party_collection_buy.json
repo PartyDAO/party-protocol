@@ -204,17 +204,6 @@
     "inputs": [
       {
         "internalType": "uint256",
-        "name": "u256",
-        "type": "uint256"
-      }
-    ],
-    "name": "Uint256Touint96CastOutOfRangeError",
-    "type": "error"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "uint256",
         "name": "v",
         "type": "uint256"
       }
@@ -726,9 +715,9 @@
     "name": "governanceOptsHash",
     "outputs": [
       {
-        "internalType": "bytes16",
+        "internalType": "bytes32",
         "name": "",
-        "type": "bytes16"
+        "type": "bytes32"
       }
     ],
     "stateMutability": "view",
