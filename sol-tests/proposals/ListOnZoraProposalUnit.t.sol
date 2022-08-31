@@ -57,6 +57,7 @@ contract ListOnZoraProposalUnitTest is Test, TestUtils {
             proposalId: _randomUint256(),
             proposalData: abi.encode(data),
             progressData: abi.encode(step),
+            extraData: "",
             flags: 0,
             preciousTokens: new IERC721[](0),
             preciousTokenIds: new uint256[](0)

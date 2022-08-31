@@ -329,7 +329,7 @@ contract PartyCrowdfundTest is Test, TestUtils {
             erc721Tokens,
             erc721TokenIds
         );
-        Party party_ = cf.testSetWon(
+        cf.testSetWon(
             1.25e18,
             defaultGovernanceOpts,
             erc721Tokens,
@@ -390,7 +390,7 @@ contract PartyCrowdfundTest is Test, TestUtils {
             erc721Tokens,
             erc721TokenIds
         );
-        Party party_ = cf.testSetWon(
+        cf.testSetWon(
             1.65e18,
             defaultGovernanceOpts,
             erc721Tokens,
@@ -645,7 +645,7 @@ contract PartyCrowdfundTest is Test, TestUtils {
         // set up a win using half of contributor1's total contribution
         (IERC721[] memory erc721Tokens, uint256[] memory erc721TokenIds) =
             _createTokens(address(cf), 2);
-        Party party_ = cf.testSetWon(
+        cf.testSetWon(
             0.5e18,
             defaultGovernanceOpts,
             erc721Tokens,
@@ -695,7 +695,7 @@ contract PartyCrowdfundTest is Test, TestUtils {
         // set up a win using half of split recipient's total contribution
         (IERC721[] memory erc721Tokens, uint256[] memory erc721TokenIds) =
             _createTokens(address(cf), 2);
-        Party party_ = cf.testSetWon(
+        cf.testSetWon(
             1.25e18,
             defaultGovernanceOpts,
             erc721Tokens,
@@ -745,7 +745,7 @@ contract PartyCrowdfundTest is Test, TestUtils {
         // set up a win using none of split recipient's total contribution
         (IERC721[] memory erc721Tokens, uint256[] memory erc721TokenIds) =
             _createTokens(address(cf), 2);
-        Party party_ = cf.testSetWon(
+        cf.testSetWon(
             1e18,
             defaultGovernanceOpts,
             erc721Tokens,
