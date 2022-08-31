@@ -57,6 +57,7 @@ contract ProposalExecutionEngineTest is
                 proposalId: _randomUint256(),
                 proposalData: proposalData,
                 progressData: "",
+                extraData: "",
                 flags: 0,
                 preciousTokens: new IERC721[](0),
                 preciousTokenIds: new uint256[](0)

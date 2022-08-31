@@ -61,7 +61,7 @@ The `PartyCrowdfundFactory` contract is the canonical contract for creating crow
 - `IERC721 nftContract`: The ERC721 contract of the NFT being bought.
 - `uint256 nftTokenId`: ID of the NFT being bought.
 - `uint40 duration`: How long this crowdfund has to bid on the NFT, in seconds.
-- `uint128 maximumPrice`: Maximum amount of ETH this crowdfund will pay for the NFT. If zero, no maximum.
+- `uint96 maximumPrice`: Maximum amount of ETH this crowdfund will pay for the NFT. If zero, no maximum.
 
 ### PartyCollectionBuy Crowdfunds
 
@@ -76,7 +76,7 @@ The `PartyCrowdfundFactory` contract is the canonical contract for creating crow
 
 - `IERC721 nftContract`: The ERC721 contract of the NFT being bought.
 - `uint40 duration`: How long this crowdfund has to bid on an NFT, in seconds.
-- `uint128 maximumPrice`: Maximum amount of ETH this crowdfund will pay for an NFT. If zero, no maximum.
+- `uint96 maximumPrice`: Maximum amount of ETH this crowdfund will pay for an NFT. If zero, no maximum.
 
 ### PartyBid Crowdfunds
 
@@ -97,7 +97,7 @@ The `PartyCrowdfundFactory` contract is the canonical contract for creating crow
 - `IERC721 nftContract`: The ERC721 contract of the NFT being bought.
 - `uint256 nftTokenId`: ID of the NFT being bought.
 - `uint40 duration`: How long this crowdfund has to bid on the NFT, in seconds.
-- `uint128 maximumBid`: Maximum amount of ETH this crowdfund will bid on the NFT.
+- `uint96 maximumBid`: Maximum amount of ETH this crowdfund will bid on the NFT.
 
 ### Common Creation Options
 

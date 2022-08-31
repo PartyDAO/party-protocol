@@ -590,12 +590,11 @@ contract TokenDistributorUnitTest is Test, TestUtils {
         assertEq(dest.balance, di.fee);
     }
 
-    function test_cannotReceive1155Token() external {
+    function testFail_cannotReceive1155Token() external {
         DummyERC1155 erc1155_ = new DummyERC1155();
         address owner = _randomAddress();
         erc1155_.deal(owner, 1337, 1e18);
         vm.prank(owner);
-        vm.expectRevert();
         erc1155_.safeTransferFrom(owner, address(distributor), 1337, 1, "");
     }
 

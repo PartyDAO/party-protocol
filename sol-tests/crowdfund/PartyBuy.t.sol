@@ -23,9 +23,8 @@ contract PartyBuyTest is Test, TestUtils {
         uint256[] preciousTokenIds
     );
 
-    event MockPartyFactoryMint(
+    event MockMint(
         address caller,
-        Party party,
         address owner,
         uint256 amount,
         address delegate
@@ -36,7 +35,7 @@ contract PartyBuyTest is Test, TestUtils {
     string defaultName = 'PartyBuy';
     string defaultSymbol = 'PBID';
     uint40 defaultDuration = 60 * 60;
-    uint128 defaultMaxPrice = 10e18;
+    uint96 defaultMaxPrice = 10e18;
     address payable defaultSplitRecipient = payable(0);
     uint16 defaultSplitBps = 0.1e4;
     address defaultInitialDelegate;
@@ -48,7 +47,7 @@ contract PartyBuyTest is Test, TestUtils {
     MockPartyFactory partyFactory = new MockPartyFactory();
     TestERC721Vault erc721Vault = new TestERC721Vault();
     PartyBuy partyBuyImpl;
-    Party party;
+    MockParty party;
 
     constructor() {
         globals.setAddress(LibGlobals.GLOBAL_PARTY_FACTORY, address(partyFactory));
@@ -61,7 +60,7 @@ contract PartyBuyTest is Test, TestUtils {
 
     function _createCrowdfund(
         uint256 tokenId,
-        uint128 initialContribution
+        uint96 initialContribution
     )
         private
         returns (PartyBuy pb)
@@ -138,9 +137,8 @@ contract PartyBuyTest is Test, TestUtils {
         // Burn contributor's NFT, mock minting governance tokens and returning
         // unused contribution.
         vm.expectEmit(false, false, false, true);
-        emit MockPartyFactoryMint(
+        emit MockMint(
             address(pb),
-            party_,
             contributor,
             0.5e18,
             delegate

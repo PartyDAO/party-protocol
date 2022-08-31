@@ -66,6 +66,7 @@ contract FractionalizeProposalForkedTest is TestUtils {
             impl.executeFractionalize(IProposalExecutionEngine.ExecuteProposalParams({
                 proposalId: _randomUint256(),
                 progressData: "",
+                extraData: "",
                 flags: 0,
                 preciousTokens: new IERC721[](0),
                 preciousTokenIds: new uint256[](0),

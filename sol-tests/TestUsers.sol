@@ -110,7 +110,7 @@ contract PartyAdmin is Test {
     uint256 votingPower,
     address delegateTo
   ) public {
-    _partyFactory.mint(party, mintTo, votingPower, delegateTo);
+    party.mint(mintTo, votingPower, delegateTo);
   }
 
   function mintGovNft(
@@ -118,7 +118,7 @@ contract PartyAdmin is Test {
     address mintTo,
     uint256 votingPower
   ) public {
-    _partyFactory.mint(party, mintTo, votingPower, mintTo);
+    party.mint(mintTo, votingPower, mintTo);
   }
 }
 
@@ -162,7 +162,7 @@ contract PartyParticipant is ERC721Holder, Test  {
     ExecutionOptions memory eo
   ) public {
     party.execute(
-      eo.proposalId, eo.proposal, eo.preciousTokens, eo.preciousTokenIds, eo.progressData
+      eo.proposalId, eo.proposal, eo.preciousTokens, eo.preciousTokenIds, eo.progressData, ""
     );
   }
 

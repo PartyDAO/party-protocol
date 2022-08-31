@@ -67,6 +67,10 @@ contract PartyGovernanceNFTRenderer is IERC721Renderer {
         ));
     }
 
+    function renderNFTName() internal view returns (string memory) {
+        return string.concat(name, " Party");
+    }
+
     function renderTokenName(uint256 tokenId) internal view returns (string memory) {
         return string(abi.encodePacked(
             name,
@@ -150,5 +154,33 @@ contract PartyGovernanceNFTRenderer is IERC721Renderer {
         output = string(abi.encodePacked('data:application/json;base64,', json));
 
         return output;
+    }
+
+    function contractURI() external view returns (string memory) {
+        string memory json = Base64.encode(bytes(
+            string(
+                abi.encodePacked(
+                    '{"name":"',
+                    renderNFTName(),
+                    '", "description":"',
+                    "PartyBid Governance NFTs give you voting power in a PartyBid party.",
+                    '"}'
+                    // '", "image": "data:image/svg+xml;base64,',
+                    // Base64.encode(bytes(output)),
+                    // '"}'
+                )
+            )
+        ));
+
+        return string(abi.encodePacked('data:application/json;base64,', json));
+    }
+
+    function royaltyInfo(uint256, uint256)
+        external
+        pure
+        returns (address receiver, uint256 royaltyAmount)
+    {
+        receiver = address(0);
+        royaltyAmount = 0;
     }
 }

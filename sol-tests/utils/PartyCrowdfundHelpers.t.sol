@@ -20,8 +20,8 @@ contract PartyCrowdfundHelpers is Test, TestUtils {
     string defaultName = 'PartyBid';
     string defaultSymbol = 'PBID';
     uint40 defaultDuration = 60 * 60;
-    uint128 defaultMaxBid = 10e18;
-    uint128 defaultMaxPrice = 10e18;
+    uint96 defaultMaxBid = 10e18;
+    uint96 defaultMaxPrice = 10e18;
     address payable defaultSplitRecipient = payable(0);
     uint16 defaultSplitBps = 0.1e4;
     address defaultInitialDelegate;
@@ -56,7 +56,7 @@ contract PartyCrowdfundHelpers is Test, TestUtils {
     function _createPartyBidCrowdfund(
         uint256 auctionId,
         uint256 tokenId,
-        uint128 initialContribution
+        uint96 initialContribution
     )
         private
         returns (PartyBid pb)
@@ -86,7 +86,7 @@ contract PartyCrowdfundHelpers is Test, TestUtils {
         ))));
     }
 
-    function _createPartyBuyCrowdfund(uint128 initialContribution)
+    function _createPartyBuyCrowdfund(uint96 initialContribution)
         private
         returns (PartyBuy pb)
     {
@@ -113,7 +113,7 @@ contract PartyCrowdfundHelpers is Test, TestUtils {
         ))));
     }
 
-    function _createPartyCollectionBuyCrowdfund(uint128 initialContribution)
+    function _createPartyCollectionBuyCrowdfund(uint96 initialContribution)
         private
         returns (PartyCollectionBuy pb)
     {

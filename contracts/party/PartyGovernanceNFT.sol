@@ -3,6 +3,7 @@ pragma solidity ^0.8;
 
 import "../utils/ReadOnlyDelegateCall.sol";
 import "../utils/LibSafeCast.sol";
+import "openzeppelin/contracts/interfaces/IERC2981.sol";
 import "../globals/IGlobals.sol";
 import "../tokens/IERC721.sol";
 import "../vendor/solmate/ERC721.sol";
@@ -11,7 +12,8 @@ import "./PartyGovernance.sol";
 /// @notice ERC721 functionality built on top of PartyGovernance.
 contract PartyGovernanceNFT is
     PartyGovernance,
-    ERC721
+    ERC721,
+    IERC2981
 {
     using LibSafeCast for uint256;
 
@@ -68,22 +70,31 @@ contract PartyGovernanceNFT is
     function supportsInterface(bytes4 interfaceId)
         public
         pure
-        override(PartyGovernance, ERC721)
+        override(PartyGovernance, ERC721, IERC165)
         returns (bool)
     {
         return PartyGovernance.supportsInterface(interfaceId) ||
-            ERC721.supportsInterface(interfaceId);
+            ERC721.supportsInterface(interfaceId) ||
+            interfaceId == type(IERC2981).interfaceId;
     }
 
-    function tokenURI(uint256) public override view returns (string memory)
+    function tokenURI(uint256) public override view returns (string memory) {
+        _delegateToRenderer();
+        return ""; // Just to make the compiler happy.
+    }
+
+    function contractURI() external view returns (string memory) {
+        _delegateToRenderer();
+        return ""; // Just to make the compiler happy.
+    }
+
+    function royaltyInfo(uint256, uint256)
+        external
+        view
+        returns (address, uint256)
     {
-        // An instance of IERC721Renderer
-        _readOnlyDelegateCall(
-            _GLOBALS.getAddress(LibGlobals.GLOBAL_GOVERNANCE_NFT_RENDER_IMPL),
-            msg.data
-        );
-        assert(false); // Should not be reached.
-        return ""; // Just to appease the compiler.
+        _delegateToRenderer();
+        return (address(0), 0); // Just to make the compiler happy.
     }
 
     /// @notice Get the distribution % of a tokenId, scaled by 1e18.
@@ -137,5 +148,19 @@ contract PartyGovernanceNFT is
         // Transfer voting along with token.
         _transferVotingPower(owner, to, votingPowerByTokenId[tokenId]);
         super.safeTransferFrom(owner, to, tokenId, data);
+    }
+
+    /// @notice Relinquish the ability to call `mint()` by an authority.
+    function abdicate() external onlyMinter onlyDelegateCall {
+        delete mintAuthority;
+    }
+
+    function _delegateToRenderer() private view {
+        _readOnlyDelegateCall(
+            // Instance of IERC721Renderer.
+            _GLOBALS.getAddress(LibGlobals.GLOBAL_GOVERNANCE_NFT_RENDER_IMPL),
+            msg.data
+        );
+        assert(false); // Will not be reached.
     }
 }

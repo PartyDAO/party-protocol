@@ -145,6 +145,7 @@ contract ListOnOpenSeaportProposalForkedTest is
                 proposalId: _randomUint256(),
                 proposalData: abi.encode(proposalData),
                 progressData: "",
+                extraData: "",
                 flags: 0,
                 preciousTokens: preciousTokens,
                 preciousTokenIds: preciousTokenIds

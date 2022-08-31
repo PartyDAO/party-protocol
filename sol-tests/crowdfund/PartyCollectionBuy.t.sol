@@ -12,6 +12,7 @@ import "../DummyERC721.sol";
 import "../TestUtils.sol";
 
 import "./MockPartyFactory.sol";
+import "./MockParty.sol";
 import "./TestERC721Vault.sol";
 
 contract PartyCollectionBuyTest is Test, TestUtils {
@@ -23,9 +24,8 @@ contract PartyCollectionBuyTest is Test, TestUtils {
         uint256[] preciousTokenIds
     );
 
-    event MockPartyFactoryMint(
+    event MockMint(
         address caller,
-        Party party,
         address owner,
         uint256 amount,
         address delegate
@@ -36,7 +36,7 @@ contract PartyCollectionBuyTest is Test, TestUtils {
     string defaultName = 'PartyCollectionBuy';
     string defaultSymbol = 'PBID';
     uint40 defaultDuration = 60 * 60;
-    uint128 defaultMaxPrice = 10e18;
+    uint96 defaultMaxPrice = 10e18;
     address payable defaultSplitRecipient = payable(0);
     uint16 defaultSplitBps = 0.1e4;
     address defaultInitialDelegate;
@@ -48,7 +48,7 @@ contract PartyCollectionBuyTest is Test, TestUtils {
     MockPartyFactory partyFactory = new MockPartyFactory();
     TestERC721Vault erc721Vault = new TestERC721Vault();
     PartyCollectionBuy partyCollectionBuyImpl;
-    Party party;
+    MockParty party;
 
     constructor() {
         globals.setAddress(LibGlobals.GLOBAL_PARTY_FACTORY, address(partyFactory));
@@ -56,7 +56,7 @@ contract PartyCollectionBuyTest is Test, TestUtils {
         partyCollectionBuyImpl = new PartyCollectionBuy(globals);
     }
 
-    function _createCrowdfund(address[] memory hosts, uint128 initialContribution)
+    function _createCrowdfund(address[] memory hosts, uint96 initialContribution)
         private
         returns (PartyCollectionBuy pb, PartyCrowdfund.FixedGovernanceOpts memory governanceOpts)
     {
@@ -139,9 +139,8 @@ contract PartyCollectionBuyTest is Test, TestUtils {
         // Burn contributor's NFT, mock minting governance tokens and returning
         // unused contribution.
         vm.expectEmit(false, false, false, true);
-        emit MockPartyFactoryMint(
+        emit MockMint(
             address(pb),
-            party_,
             contributor,
             0.5e18,
             delegate

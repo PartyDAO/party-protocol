@@ -61,6 +61,17 @@
   {
     "inputs": [
       {
+        "internalType": "uint16",
+        "name": "bps",
+        "type": "uint16"
+      }
+    ],
+    "name": "InvalidBpsError",
+    "type": "error"
+  },
+  {
+    "inputs": [
+      {
         "internalType": "address",
         "name": "callTarget",
         "type": "address"
@@ -104,14 +115,14 @@
   {
     "inputs": [
       {
-        "internalType": "uint128",
+        "internalType": "uint96",
         "name": "callValue",
-        "type": "uint128"
+        "type": "uint96"
       },
       {
-        "internalType": "uint128",
+        "internalType": "uint96",
         "name": "maximumPrice",
-        "type": "uint128"
+        "type": "uint96"
       }
     ],
     "name": "MaximumPriceError",
@@ -187,17 +198,6 @@
   {
     "inputs": [],
     "name": "SplitRecipientAlreadyBurnedError",
-    "type": "error"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "uint256",
-        "name": "u256",
-        "type": "uint256"
-      }
-    ],
-    "name": "Uint256ToUint128CastOutOfRangeError",
     "type": "error"
   },
   {
@@ -479,9 +479,9 @@
         "type": "address"
       },
       {
-        "internalType": "uint128",
+        "internalType": "uint96",
         "name": "callValue",
-        "type": "uint128"
+        "type": "uint96"
       },
       {
         "internalType": "bytes",
@@ -538,6 +538,19 @@
     "type": "function"
   },
   {
+    "inputs": [],
+    "name": "contractURI",
+    "outputs": [
+      {
+        "internalType": "string",
+        "name": "",
+        "type": "string"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
     "inputs": [
       {
         "internalType": "address",
@@ -571,6 +584,25 @@
     "name": "delegateCallAndRevert",
     "outputs": [],
     "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "name": "delegationsByContributor",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
     "type": "function"
   },
   {
@@ -683,9 +715,9 @@
     "name": "governanceOptsHash",
     "outputs": [
       {
-        "internalType": "bytes16",
+        "internalType": "bytes32",
         "name": "",
-        "type": "bytes16"
+        "type": "bytes32"
       }
     ],
     "stateMutability": "view",
@@ -716,9 +748,9 @@
             "type": "uint40"
           },
           {
-            "internalType": "uint128",
+            "internalType": "uint96",
             "name": "maximumPrice",
-            "type": "uint128"
+            "type": "uint96"
           },
           {
             "internalType": "address payable",
@@ -795,7 +827,7 @@
     ],
     "name": "initialize",
     "outputs": [],
-    "stateMutability": "nonpayable",
+    "stateMutability": "payable",
     "type": "function"
   },
   {
@@ -827,9 +859,9 @@
     "name": "maximumPrice",
     "outputs": [
       {
-        "internalType": "uint128",
+        "internalType": "uint96",
         "name": "",
-        "type": "uint128"
+        "type": "uint96"
       }
     ],
     "stateMutability": "view",
@@ -1001,9 +1033,9 @@
     "name": "settledPrice",
     "outputs": [
       {
-        "internalType": "uint128",
+        "internalType": "uint96",
         "name": "",
-        "type": "uint128"
+        "type": "uint96"
       }
     ],
     "stateMutability": "view",
@@ -1091,9 +1123,9 @@
     "name": "totalContributions",
     "outputs": [
       {
-        "internalType": "uint128",
+        "internalType": "uint96",
         "name": "",
-        "type": "uint128"
+        "type": "uint96"
       }
     ],
     "stateMutability": "view",

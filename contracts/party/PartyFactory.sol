@@ -13,26 +13,14 @@ import "./IPartyFactory.sol";
 contract PartyFactory is IPartyFactory {
 
     error InvalidAuthorityError(address authority);
-    error OnlyAuthorityError();
 
     IGlobals public immutable GLOBALS;
-
-    mapping (Party => address) public partyAuthorities;
 
     constructor(IGlobals globals) {
         GLOBALS = globals;
     }
 
-    modifier onlyAuthority(Party party) {
-        if (partyAuthorities[party] != msg.sender) {
-            revert OnlyAuthorityError();
-        }
-        _;
-    }
-
-    /// @notice Deploy a new party instance. Afterwards, governance NFTs can be minted
-    ///      for party members using the `PartyFactory.mint()` function.
-    ///      `authority` is the address that can call `mint()`.
+    /// @inheritdoc IPartyFactory
     function createParty(
         address authority,
         Party.PartyOptions memory opts,
@@ -49,8 +37,7 @@ contract PartyFactory is IPartyFactory {
             options: opts,
             preciousTokens: preciousTokens,
             preciousTokenIds: preciousTokenIds,
-            // authority must call mint() through this contract
-            mintAuthority: address(this)
+            mintAuthority: authority
         });
         party = Party(payable(
             new Proxy(
@@ -58,26 +45,6 @@ contract PartyFactory is IPartyFactory {
                 abi.encodeCall(Party.initialize, (initData))
             )
         ));
-        partyAuthorities[party] = authority;
         emit PartyCreated(party, msg.sender);
-    }
-
-    /// @notice Relinquish the ability to call `mint()` by an authority.
-    function abdicate(Party party) external onlyAuthority(party) {
-        partyAuthorities[party] = address(0);
-    }
-
-    /// @notice Mint governance tokens on a party created through this factory.
-    ///         Only the authortiy set in `createParty()` can call this function.
-    function mint(
-        Party party,
-        address owner,
-        uint256 amount,
-        address delegate
-    )
-        external
-        onlyAuthority(party)
-    {
-        party.mint(owner, amount, delegate);
     }
 }

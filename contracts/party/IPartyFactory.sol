@@ -11,8 +11,8 @@ interface IPartyFactory {
     event PartyCreated(Party party, address creator);
 
     // Deploy a new party instance. Afterwards, governance NFTs can be minted
-    // for party members using the `PartyFactory.mint()` function.
-    // `authority` is the address that can call `mint()`.
+    // for party members using the `Party.mint()` function from the newly created
+    // party. `authority` is the address that can call `mint()`.
     function createParty(
         address authority,
         Party.PartyOptions calldata opts,
@@ -21,19 +21,6 @@ interface IPartyFactory {
     )
         external
         returns (Party party);
-
-    // Relinquish the ability to call `mint()`` by an authority.
-    function abdicate(Party party) external;
-
-    // Mint governance tokens on a party created through this factory.
-    // Only the authortiy set in `createParty()` can call this function.
-    function mint(
-        Party party,
-        address owner,
-        uint256 amount,
-        address delegate
-    )
-        external;
 
     function GLOBALS() external view returns (IGlobals);
 }

@@ -95,7 +95,7 @@ contract PartyGovernanceTest is Test, TestUtils {
 
     // Generate proposal
     PartyGovernance.Proposal memory p1 = PartyGovernance.Proposal({
-      maxExecutableTime: 999999999,
+      maxExecutableTime: 9999999999,
       proposalData: abi.encodePacked([0]),
       cancelDelay: uint40(1 days)
     });
@@ -199,7 +199,7 @@ contract PartyGovernanceTest is Test, TestUtils {
 
     // Generate proposal
     PartyGovernance.Proposal memory p1 = PartyGovernance.Proposal({
-      maxExecutableTime: 999999999,
+      maxExecutableTime: 9999999999,
       proposalData: abi.encodePacked([0]),
       cancelDelay: uint40(1 days)
     });
@@ -265,7 +265,7 @@ contract PartyGovernanceTest is Test, TestUtils {
 
     // Generate proposal
     PartyGovernance.Proposal memory p1 = PartyGovernance.Proposal({
-      maxExecutableTime: 999999999,
+      maxExecutableTime: 9999999999,
       proposalData: abi.encodePacked([0]),
       cancelDelay: uint40(1 days)
     });
@@ -322,7 +322,7 @@ contract PartyGovernanceTest is Test, TestUtils {
 
     // Generate and submit proposal
     PartyGovernance.Proposal memory p1 = PartyGovernance.Proposal({
-      maxExecutableTime: 999999999,
+      maxExecutableTime: 9999999999,
       proposalData: abi.encodePacked([0]),
       cancelDelay: uint40(1 days)
     });
@@ -363,7 +363,7 @@ contract PartyGovernanceTest is Test, TestUtils {
 
     // Generate proposal
     PartyGovernance.Proposal memory p1 = PartyGovernance.Proposal({
-      maxExecutableTime: 999999999,
+      maxExecutableTime: 9999999999,
       proposalData: abi.encodePacked([0]),
       cancelDelay: uint40(1 days)
     });
@@ -419,7 +419,7 @@ contract PartyGovernanceTest is Test, TestUtils {
 
     // Generate proposal
     PartyGovernance.Proposal memory p1 = PartyGovernance.Proposal({
-      maxExecutableTime: 999999999,
+      maxExecutableTime: 9999999999,
       proposalData: abi.encodePacked([0]),
       cancelDelay: uint40(1 days)
     });
@@ -436,17 +436,17 @@ contract PartyGovernanceTest is Test, TestUtils {
     _assertProposalStatus(party, 1, PartyGovernance.ProposalStatus.Ready, 51);
 
     // warp to maxExecutabletime
-    vm.warp(999999999);
+    vm.warp(9999999999);
     _assertProposalStatus(party, 1, PartyGovernance.ProposalStatus.Ready, 51);
 
     // warp past maxExecutabletime
-    vm.warp(999999999 + 1);
+    vm.warp(9999999999 + 1);
 
     // ensure can't execute proposal due to maxExecutableTime
     vm.expectRevert(
       abi.encodeWithSelector(
           PartyGovernance.ExecutionTimeExceededError.selector,
-          999999999,
+          9999999999,
           block.timestamp
       )
     );

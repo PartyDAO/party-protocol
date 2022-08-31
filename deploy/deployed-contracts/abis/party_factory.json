@@ -22,11 +22,6 @@
     "type": "error"
   },
   {
-    "inputs": [],
-    "name": "OnlyAuthorityError",
-    "type": "error"
-  },
-  {
     "anonymous": false,
     "inputs": [
       {
@@ -56,19 +51,6 @@
       }
     ],
     "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "contract Party",
-        "name": "party",
-        "type": "address"
-      }
-    ],
-    "name": "abdicate",
-    "outputs": [],
-    "stateMutability": "nonpayable",
     "type": "function"
   },
   {
@@ -157,53 +139,6 @@
       }
     ],
     "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "contract Party",
-        "name": "party",
-        "type": "address"
-      },
-      {
-        "internalType": "address",
-        "name": "owner",
-        "type": "address"
-      },
-      {
-        "internalType": "uint256",
-        "name": "amount",
-        "type": "uint256"
-      },
-      {
-        "internalType": "address",
-        "name": "delegate",
-        "type": "address"
-      }
-    ],
-    "name": "mint",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "contract Party",
-        "name": "",
-        "type": "address"
-      }
-    ],
-    "name": "partyAuthorities",
-    "outputs": [
-      {
-        "internalType": "address",
-        "name": "",
-        "type": "address"
-      }
-    ],
-    "stateMutability": "view",
     "type": "function"
   }
 ]

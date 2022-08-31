@@ -9,11 +9,13 @@ import "../../contracts/globals/Globals.sol";
 import "../../contracts/globals/LibGlobals.sol";
 import "../../contracts/renderers/PartyCrowdfundNFTRenderer.sol";
 import "../../contracts/utils/Proxy.sol";
+import "../../contracts/utils/EIP165.sol";
 
 import "../DummyERC721.sol";
 import "../TestUtils.sol";
 
 import "./MockPartyFactory.sol";
+import "./MockParty.sol";
 import "./TestablePartyCrowdfund.sol";
 
 contract PartyCrowdfundTest is Test, TestUtils {
@@ -25,9 +27,8 @@ contract PartyCrowdfundTest is Test, TestUtils {
         uint256[] preciousTokenIds
     );
 
-    event MockPartyFactoryMint(
+    event MockMint(
         address caller,
-        Party party,
         address owner,
         uint256 amount,
         address delegate
@@ -39,7 +40,7 @@ contract PartyCrowdfundTest is Test, TestUtils {
     string defaultName = 'PartyBid';
     string defaultSymbol = 'PBID';
     uint40 defaultDuration = 60 * 60;
-    uint128 defaultMaxBid = 10e18;
+    uint96 defaultMaxBid = 10e18;
     address payable defaultSplitRecipient = payable(0);
     uint16 defaultSplitBps = 0.1e4;
     address defaultInitialDelegate;
@@ -49,11 +50,10 @@ contract PartyCrowdfundTest is Test, TestUtils {
 
     Globals globals = new Globals(address(this));
     MockPartyFactory partyFactory = new MockPartyFactory();
-    Party party;
+    MockParty party;
 
     constructor() {
         globals.setAddress(LibGlobals.GLOBAL_PARTY_FACTORY, address(partyFactory));
-        partyFactory = new MockPartyFactory();
         party = partyFactory.mockParty();
         defaultGovernanceOpts.hosts.push(_randomAddress());
         defaultGovernanceOpts.hosts.push(_randomAddress());
@@ -81,7 +81,7 @@ contract PartyCrowdfundTest is Test, TestUtils {
         }
     }
 
-    function _createCrowdfund(uint128 initialContribution)
+    function _createCrowdfund(uint96 initialContribution)
         private
         returns (TestablePartyCrowdfund cf)
     {
@@ -136,7 +136,7 @@ contract PartyCrowdfundTest is Test, TestUtils {
         returns (uint256 r)
     {
         return _getAmountWithoutSplit(contribution) +
-            (uint256(defaultSplitBps) * totalContributions) / (1e4 - 1);
+            (uint256(defaultSplitBps) * totalContributions + (1e4 - 1)) / 1e4;
     }
 
     function test_creation_initialContribution_withDelegate() public {
@@ -234,9 +234,8 @@ contract PartyCrowdfundTest is Test, TestUtils {
         assertEq(address(party_), address(party));
         // contributor1 burns tokens
         vm.expectEmit(false, false, false, true);
-        emit MockPartyFactoryMint(
+        emit MockMint(
             address(cf),
-            party_,
             contributor1,
             1e18,
             delegate1
@@ -282,9 +281,8 @@ contract PartyCrowdfundTest is Test, TestUtils {
         assertEq(address(party_), address(party));
         // contributor1 burns tokens
         vm.expectEmit(false, false, false, true);
-        emit MockPartyFactoryMint(
+        emit MockMint(
             address(cf),
-            party_,
             contributor1,
             1e18,
             delegate1
@@ -294,9 +292,8 @@ contract PartyCrowdfundTest is Test, TestUtils {
         assertEq(contributor1.balance, 0);
         // contributor2 burns tokens
         vm.expectEmit(false, false, false, true);
-        emit MockPartyFactoryMint(
+        emit MockMint(
             address(cf),
-            party_,
             contributor2,
             0.5e18,
             delegate2
@@ -340,9 +337,8 @@ contract PartyCrowdfundTest is Test, TestUtils {
         );
         // contributor1 burns tokens
         vm.expectEmit(false, false, false, true);
-        emit MockPartyFactoryMint(
+        emit MockMint(
             address(cf),
-            party_,
             contributor1,
             1e18,
             delegate1
@@ -352,9 +348,8 @@ contract PartyCrowdfundTest is Test, TestUtils {
         assertEq(contributor1.balance, 0);
         // contributor2 burns tokens
         vm.expectEmit(false, false, false, true);
-        emit MockPartyFactoryMint(
+        emit MockMint(
             address(cf),
-            party_,
             contributor2,
             0.25e18,
             delegate2
@@ -403,9 +398,8 @@ contract PartyCrowdfundTest is Test, TestUtils {
         );
         // contributor1 burns tokens
         vm.expectEmit(false, false, false, true);
-        emit MockPartyFactoryMint(
+        emit MockMint(
             address(cf),
-            party_,
             contributor1,
             1.15e18,
             delegate1
@@ -415,9 +409,8 @@ contract PartyCrowdfundTest is Test, TestUtils {
         assertEq(contributor1.balance, 0.1e18);
         // contributor2 burns tokens
         vm.expectEmit(false, false, false, true);
-        emit MockPartyFactoryMint(
+        emit MockMint(
             address(cf),
-            party_,
             contributor2,
             0.5e18,
             delegate2
@@ -486,6 +479,7 @@ contract PartyCrowdfundTest is Test, TestUtils {
         assertEq(cf.totalContributions(), 1.5e18);
         // set up a loss
         cf.testSetLifeCycle(PartyCrowdfund.CrowdfundLifecycle.Lost);
+        assertEq(address(cf.party()), address(0));
         // contributor1 burns tokens
         vm.expectEmit(false, false, false, true);
         emit Burned(contributor1, 0, 1e18, 0);
@@ -571,6 +565,7 @@ contract PartyCrowdfundTest is Test, TestUtils {
         cf.contribute{ value: contributor1.balance }(delegate1, "");
         // Set up a loss.
         cf.testSetLifeCycle(PartyCrowdfund.CrowdfundLifecycle.Lost);
+        assertEq(address(cf.party()), address(0));
         // contributor1 burns tokens
         cf.burn(contributor1);
         // contributor1 gets back their contribution
@@ -658,9 +653,8 @@ contract PartyCrowdfundTest is Test, TestUtils {
         );
         // contributor1 burns tokens
         vm.expectEmit(false, false, false, true);
-        emit MockPartyFactoryMint(
+        emit MockMint(
             address(cf),
-            party_,
             contributor1,
             _getAmountWithoutSplit(0.5e18),
             delegate1 // will use last contribute() delegate
@@ -670,9 +664,8 @@ contract PartyCrowdfundTest is Test, TestUtils {
         assertEq(contributor1.balance, 0.5e18);
         // split recipient burns
         vm.expectEmit(false, false, false, true);
-        emit MockPartyFactoryMint(
+        emit MockMint(
             address(cf),
-            party_,
             splitRecipient,
             _getAmountWithSplit(0, 0.5e18),
             splitRecipient
@@ -710,9 +703,8 @@ contract PartyCrowdfundTest is Test, TestUtils {
         );
         // contributor1 burns tokens
         vm.expectEmit(false, false, false, true);
-        emit MockPartyFactoryMint(
+        emit MockMint(
             address(cf),
-            party_,
             contributor1,
             _getAmountWithoutSplit(1e18),
             delegate1 // will use last contribute() delegate
@@ -722,9 +714,8 @@ contract PartyCrowdfundTest is Test, TestUtils {
         assertEq(contributor1.balance, 0);
         // split recipient burns
         vm.expectEmit(false, false, false, true);
-        emit MockPartyFactoryMint(
+        emit MockMint(
             address(cf),
-            party_,
             splitRecipient,
             _getAmountWithSplit(0.25e18, 1.25e18),
             delegate2
@@ -762,9 +753,8 @@ contract PartyCrowdfundTest is Test, TestUtils {
         );
         // contributor1 burns tokens
         vm.expectEmit(false, false, false, true);
-        emit MockPartyFactoryMint(
+        emit MockMint(
             address(cf),
-            party_,
             contributor1,
             _getAmountWithoutSplit(1e18),
             delegate1 // will use last contribute() delegate
@@ -774,9 +764,8 @@ contract PartyCrowdfundTest is Test, TestUtils {
         assertEq(contributor1.balance, 0);
         // split recipient burns
         vm.expectEmit(false, false, false, true);
-        emit MockPartyFactoryMint(
+        emit MockMint(
             address(cf),
-            party_,
             splitRecipient,
             _getAmountWithSplit(0, 1e18),
             delegate2
@@ -826,5 +815,23 @@ contract PartyCrowdfundTest is Test, TestUtils {
         cf.contribute{ value: contributor1.balance }(delegate1, "");
         string memory tokenURI = cf.tokenURI(uint256(uint160(address(contributor1))));
         assertTrue(bytes(tokenURI).length > 0);
+    }
+
+    function test_contractURI() external {
+        TestablePartyCrowdfund cf = _createCrowdfund(0);
+
+        string memory contractURI = cf.contractURI();
+
+        // Uncomment for testing rendering:
+        // console.log(contractURI);
+
+        assertTrue(bytes(contractURI).length > 0);
+    }
+
+    function test_supportsInterface() external {
+        TestablePartyCrowdfund cf = _createCrowdfund(0);
+        cf.supportsInterface(0x01ffc9a7); // EIP165
+        cf.supportsInterface(0x80ac58cd); // ERC721
+        cf.supportsInterface(0x150b7a02); // ERC721Receiver
     }
 }
