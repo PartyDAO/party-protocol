@@ -35,13 +35,14 @@ contract NounsForkedTest is TestUtils {
     NounsMarketWrapper nounsMarket = new NounsMarketWrapper(
         address(nounsAuctionHouse)
     );
-    IERC721 nounsToken = nounsAuctionHouse.nouns();
+    IERC721 nounsToken;
     uint256 tokenId;
 
     constructor() onlyForked {
         // Initialize PartyFactory for creating parties after a successful crowdfund.
         globals.setAddress(LibGlobals.GLOBAL_PARTY_FACTORY, address(partyFactory));
 
+        nounsToken = nounsAuctionHouse.nouns();
         (tokenId, , , , , ) = nounsAuctionHouse.auction();
 
         // Create a PartyBid crowdfund
