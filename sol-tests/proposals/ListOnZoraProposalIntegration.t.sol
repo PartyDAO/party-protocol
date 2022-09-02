@@ -20,7 +20,6 @@ contract ListOnZoraProposalIntegrationTest is
 {
     IZoraAuctionHouse ZORA =
         IZoraAuctionHouse(0xE468cE99444174Bd3bBBEd09209577d25D1ad673);
-    IERC20 private constant ETH_TOKEN = IERC20(0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE);
 
     GlobalsAdmin globalsAdmin;
     Globals globals;
