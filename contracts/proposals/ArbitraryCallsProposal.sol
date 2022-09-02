@@ -29,6 +29,7 @@ contract ArbitraryCallsProposal {
     error ArbitraryCallFailedError(bytes revertData);
     error UnexpectedCallResultHashError(uint256 idx, bytes32 resultHash, bytes32 expectedResultHash);
     error NotEnoughEthAttachedError(uint256 callValue, uint256 ethAvailable);
+    error InvalidApprovalCallLength(uint256 callDataLength);
 
     event ArbitraryCallExecuted(uint256 proposalId, uint256 idx, uint256 count);
 
@@ -194,7 +195,7 @@ contract ArbitraryCallsProposal {
         returns (address operator, uint256 tokenId)
     {
         if (callData.length < 68) {
-            return (address(0), 0);
+            revert InvalidApprovalCallLength(callData.length);
         }
         assembly {
             operator := and(
@@ -211,7 +212,7 @@ contract ArbitraryCallsProposal {
         returns (address operator, bool isApproved)
     {
         if (callData.length < 68) {
-            return (address(0), false);
+            revert InvalidApprovalCallLength(callData.length);
         }
         assembly {
             operator := and(
