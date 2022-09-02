@@ -138,7 +138,7 @@ contract ListOnZoraProposalForkedTest is ZoraTestUtils, TestUtils {
             proposalData.duration,
             uint40(block.timestamp + proposalData.timeout)
         );
-        proposal.executeListOnZora(executeParams);
+        assertTrue(proposal.executeListOnZora(executeParams).length > 0);
         assertEq(proposalData.token.ownerOf(proposalData.tokenId), address(ZORA));
     }
 
@@ -167,7 +167,9 @@ contract ListOnZoraProposalForkedTest is ZoraTestUtils, TestUtils {
             address(proposalData.token),
             address(proposal)
         );
-        proposal.executeListOnZora(executeParams);
+        _expectEmit0();
+        emit ZoraAuctionExpired(auctionId, block.timestamp);
+        assertTrue(proposal.executeListOnZora(executeParams).length == 0);
     }
 
     function testForked_cannotCancelUnexpiredListing() external onlyForked {
@@ -209,7 +211,7 @@ contract ListOnZoraProposalForkedTest is ZoraTestUtils, TestUtils {
         skip(proposalData.duration);
         _expectEmit0();
         emit ZoraAuctionSold(auctionId);
-        proposal.executeListOnZora(executeParams);
+        assertTrue(proposal.executeListOnZora(executeParams).length == 0);
         assertEq(address(proposal).balance, proposalData.listPrice);
     }
 
@@ -225,7 +227,7 @@ contract ListOnZoraProposalForkedTest is ZoraTestUtils, TestUtils {
         ZORA.endAuction(auctionId);
         _expectEmit0();
         emit ZoraAuctionSold(auctionId);
-        proposal.executeListOnZora(executeParams);
+        assertTrue(proposal.executeListOnZora(executeParams).length == 0);
         assertEq(address(proposal).balance, proposalData.listPrice);
     }
 
@@ -242,14 +244,14 @@ contract ListOnZoraProposalForkedTest is ZoraTestUtils, TestUtils {
         skip(proposalData.duration);
         _expectEmit0();
         emit ZoraAuctionFailed(auctionId);
-        proposal.executeListOnZora(executeParams);
+        assertTrue(proposal.executeListOnZora(executeParams).length == 0);
         assertEq(address(proposal).balance, 0);
         assertEq(proposalData.token.ownerOf(proposalData.tokenId), address(proposal));
     }
 }
 
 contract BadBidder {
-    function onERC721Received(address, address, uint256, bytes memory) external returns (bytes4) {
+    function onERC721Received(address, address, uint256, bytes memory) external pure returns (bytes4) {
         revert('nope');
     }
 }
