@@ -13,6 +13,12 @@ interface IFoundationMarket {
         uint256 amount;
     }
 
+    function createReserveAuction(
+        address nftContract,
+        uint256 tokenId,
+        uint256 reservePrice
+    ) external;
+
     function getMinBidAmount(uint256 auctionId) external view returns (uint256);
 
     function placeBid(uint256 auctionId) external payable;
