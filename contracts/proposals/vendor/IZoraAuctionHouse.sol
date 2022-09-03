@@ -44,10 +44,9 @@ interface IZoraAuctionHouse {
         uint8 curatorFeePercentages,
         IERC20 auctionCurrency
     ) external returns (uint256);
-    function setAuctionApproval(uint256 auctionId, bool approved) external;
-    function setAuctionReservePrice(uint256 auctionId, uint256 reservePrice) external;
     function createBid(uint256 auctionId, uint256 amount) external payable;
     function endAuction(uint256 auctionId) external;
     function cancelAuction(uint256 auctionId) external;
     function auctions(uint256 auctionId) external returns(Auction memory auction);
+    function timeBuffer() external view returns (uint256);
 }

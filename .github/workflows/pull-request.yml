@@ -12,5 +12,7 @@ jobs:
       - uses: foundry-rs/foundry-toolchain@v1
         with:
           version: nightly
-      - run: forge test -vvv
+      - uses: actions/setup-node@v3
+      - run: npm install --dev
+      - run: npm run test
       # - run: forge snapshot

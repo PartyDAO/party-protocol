@@ -520,4 +520,49 @@ contract ArbitraryCallsProposalTest is
         ));
         testContract.execute(prop);
     }
+
+    function test_cannotExecuteShortApproveCallData() external {
+        (
+            ArbitraryCallsProposal.ArbitraryCall[] memory calls,
+        ) = _createSimpleCalls(1, false);
+        calls[0].target = _randomAddress();
+        calls[0].data = abi.encodeCall(
+            IERC721.approve,
+            (address(0), _randomUint256())
+        );
+        _truncate(calls[0].data, 1);
+        IProposalExecutionEngine.ExecuteProposalParams memory prop =
+            _createTestProposal(calls);
+        vm.expectRevert(abi.encodeWithSelector(
+            ArbitraryCallsProposal.InvalidApprovalCallLength.selector,
+            calls[0].data.length
+        ));
+        testContract.execute(prop);
+    }
+
+    function test_cannotExecuteShortSetApprovalForAllCallData() external {
+        (
+            ArbitraryCallsProposal.ArbitraryCall[] memory calls,
+        ) = _createSimpleCalls(1, false);
+        calls[0].target = _randomAddress();
+        calls[0].data = abi.encodeCall(
+            IERC721.setApprovalForAll,
+            (_randomAddress(), false)
+        );
+        _truncate(calls[0].data, 1);
+        IProposalExecutionEngine.ExecuteProposalParams memory prop =
+            _createTestProposal(calls);
+        vm.expectRevert(abi.encodeWithSelector(
+            ArbitraryCallsProposal.InvalidApprovalCallLength.selector,
+            calls[0].data.length
+        ));
+        testContract.execute(prop);
+    }
+
+    function _truncate(bytes memory data, uint256 bytesFromEnd) private {
+        require(data.length >= bytesFromEnd, 'data too short');
+        assembly {
+            mstore(data, sub(mload(data), bytesFromEnd))
+        }
+    }
 }
