@@ -360,8 +360,7 @@ export class Party {
         votingPower: BigNumber,
         delegateAddress: string,
     ): Promise<Voter> {
-        const tx = await (await this.sys.partyFactory.mint(
-            this.address,
+        const tx = await (await this.contract.mint(
             wallet.address,
             votingPower,
             delegateAddress,
@@ -380,6 +379,13 @@ export class Party {
         const [status] = await this.contract.connect(this.minter).getProposalStateInfo(proposalId);
         return status as ProposalStatus;
     }
+
+    public async findLatestVotingPowerSnapshotIndexAsync(memberAddress: string): Promise<BigInt> {
+        return await this.contract.findVotingPowerSnapshotIndex(
+            memberAddress,
+            Math.floor(Date.now() / 1000),
+        );
+    }
 }
 
 export class Voter {
@@ -390,16 +396,24 @@ export class Voter {
         public readonly votingPower: BigNumber,
     ) {}
 
+    public get address(): string {
+        return this.wallet.address;
+    }
+
     public async proposeAsync(proposal: Proposal): Promise<BigNumber> {
+        const snapIndex = await this.party.findLatestVotingPowerSnapshotIndexAsync(this.address);
         const tx = await (await this.party.contract.connect(this.wallet).propose(
             proposal,
+            snapIndex,
         )).wait();
         return tx.events.find((e: any) => e.event === 'Proposed').args[0];
     }
 
     public async acceptAsync(proposalId: BigNumber): Promise<boolean> {
+        const snapIndex = await this.party.findLatestVotingPowerSnapshotIndexAsync(this.address);
         const tx = await (await this.party.contract.connect(this.wallet).accept(
             proposalId,
+            snapIndex,
         )).wait();
         return !!tx.events.find((e: any) => e.event === 'ProposalPassed');
     }
@@ -408,6 +422,7 @@ export class Voter {
         proposalId: BigNumber,
         proposal: Proposal,
         progressData: string = NULL_BYTES,
+        extraData: string = NULL_BYTES,
         eventsHandler?: (events: Event[]) => void,
     ): Promise<string> {
         const tx = await (await this.party.contract.connect(this.wallet).execute(
@@ -416,6 +431,7 @@ export class Voter {
             this.party.preciousTokens.map(p => p.token.address),
             this.party.preciousTokens.map(p => p.tokenId),
             progressData,
+            extraData,
         )).wait();
         const events = parseLogs(tx.logs);
         if (eventsHandler) {

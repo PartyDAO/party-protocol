@@ -193,6 +193,7 @@ describe('Seaport proposals integrations test', () => {
             proposalId,
             proposal,
             progressData,
+            NULL_BYTES,
             events => {
                 orderParams = events.find(e => e.name == 'OpenSeaportOrderListed').args[0];
             }
