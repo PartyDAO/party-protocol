@@ -46,7 +46,7 @@ contract MockMarketWrapper is IMarketWrapper, Test {
     DummyERC721 public nftContract = new DummyERC721();
     mapping (uint256 => MockAuction) _auctionByAuctionId;
     address immutable _impl;
-    uint256 public lastAuctionId = 8000;
+    uint256 _lastAuctionId = 8000;
     address callbackTarget;
     bytes callbackData;
     uint256 callbackValue;
@@ -77,32 +77,10 @@ contract MockMarketWrapper is IMarketWrapper, Test {
         returns (uint256 auctionId, uint256 tokenId)
     {
         tokenId = nftContract.mint(address(this));
-        auctionId = ++lastAuctionId;
+        auctionId = ++_lastAuctionId;
         _auctionByAuctionId[auctionId] = MockAuction({
             tokenId: tokenId,
             topBid: minBid,
-            winner: payable(0),
-            state: AuctionState.Active
-        });
-    }
-
-    // For mocking Zora auction house
-    function createAuction(
-        uint256 tokenId,
-        IERC721,
-        uint256,
-        uint256 reservePrice,
-        address,
-        uint8,
-        IERC20
-    )
-        external
-        returns (uint256 auctionId)
-    {
-        auctionId = ++lastAuctionId;
-        _auctionByAuctionId[auctionId] = MockAuction({
-            tokenId: tokenId,
-            topBid: reservePrice,
             winner: payable(0),
             state: AuctionState.Active
         });

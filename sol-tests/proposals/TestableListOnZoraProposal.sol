@@ -7,7 +7,7 @@ import "../../contracts/proposals/ListOnOpenSeaportProposal.sol";
 import "../../contracts/proposals/ListOnZoraProposal.sol";
 import "../../contracts/tokens/ERC721Receiver.sol";
 
-contract TestableListOnZoraProposal is ListOnZoraProposal {
+contract TestableListOnZoraProposal is ListOnZoraProposal, ERC721Receiver {
     constructor(IGlobals globals, IZoraAuctionHouse zoraAuctionHouse)
         ListOnZoraProposal(globals, zoraAuctionHouse) { }
 
@@ -19,4 +19,6 @@ contract TestableListOnZoraProposal is ListOnZoraProposal {
     {
         return _executeListOnZora(params);
     }
+
+    receive() external payable {}
 }

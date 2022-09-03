@@ -3,18 +3,19 @@ pragma solidity ^0.8;
 
 import "contracts/proposals/ListOnZoraProposal.sol";
 import "contracts/globals/Globals.sol";
-import "../crowdfund/MockMarketWrapper.sol";
-import "./TestableListOnZoraProposal.sol";
 import "../TestUtils.sol";
+import "./MockZoraAuctionHouse.sol";
+import "./TestableListOnZoraProposal.sol";
+import "../DummyERC721.sol";
 
 contract ListOnZoraProposalUnitTest is Test, TestUtils {
-    MockMarketWrapper market = new MockMarketWrapper();
+    MockZoraAuctionHouse zora = new MockZoraAuctionHouse();
     Globals globals = new Globals(address(this));
     TestableListOnZoraProposal impl = new TestableListOnZoraProposal(
         IGlobals(address(globals)),
-        IZoraAuctionHouse(address(market))
+        IZoraAuctionHouse(zora)
     );
-    DummyERC721 token = market.nftContract();
+    DummyERC721 token = new DummyERC721();
     uint256 tokenId = token.mint(address(impl));
 
     event ZoraAuctionCreated(
@@ -87,7 +88,7 @@ contract ListOnZoraProposalUnitTest is Test, TestUtils {
         params.proposalData = abi.encode(data);
         _expectEmit0();
         emit ZoraAuctionCreated(
-            market.lastAuctionId() + 1,
+            zora.lastAuctionId() + 1,
             data.token,
             data.tokenId,
             data.listPrice,
@@ -102,7 +103,7 @@ contract ListOnZoraProposalUnitTest is Test, TestUtils {
         params.proposalData = abi.encode(data);
         _expectEmit0();
         emit ZoraAuctionCreated(
-            market.lastAuctionId() + 1,
+            zora.lastAuctionId() + 1,
             data.token,
             data.tokenId,
             data.listPrice,
@@ -124,7 +125,7 @@ contract ListOnZoraProposalUnitTest is Test, TestUtils {
         params.proposalData = abi.encode(data);
         _expectEmit0();
         emit ZoraAuctionCreated(
-            market.lastAuctionId() + 1,
+            zora.lastAuctionId() + 1,
             data.token,
             data.tokenId,
             data.listPrice,
