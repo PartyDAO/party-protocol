@@ -12,5 +12,6 @@ jobs:
       - uses: foundry-rs/foundry-toolchain@v1
         with:
           version: nightly
-      - run: forge test -vvv
+      - uses: actions/setup-node@v3
+      - run: yarn test
       # - run: forge snapshot
