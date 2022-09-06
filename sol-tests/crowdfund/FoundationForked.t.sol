@@ -8,7 +8,6 @@ import "../../contracts/crowdfund/PartyCrowdfund.sol";
 import "../../contracts/globals/Globals.sol";
 import "../../contracts/globals/LibGlobals.sol";
 import "../../contracts/utils/Proxy.sol";
-import "../../contracts/market-wrapper/FoundationMarketWrapper.sol";
 
 import "./MockPartyFactory.sol";
 import "./MockParty.sol";
@@ -51,8 +50,8 @@ contract FoundationForkedTest is TestUtils {
     IFoundationMarket foundation = IFoundationMarket(
         0xcDA72070E455bb31C7690a170224Ce43623d0B6f
     );
-    FoundationMarketWrapper foundationMarket = new FoundationMarketWrapper(
-        address(foundation)
+    IMarketWrapper foundationMarket = IMarketWrapper(
+        0x96e5b0519983f2f984324b926e6d28C3A4Eb92A1
     );
     FNDMiddleware foundationHelper = FNDMiddleware(0x22B111b81287138038b1b8DA0362B8C2f7A222fC);
     DummyERC721 nftContract = new DummyERC721();
@@ -144,4 +143,14 @@ contract FoundationForkedTest is TestUtils {
         assertEq(address(pb.party()), address(0));
         assertTrue(foundationMarket.isFinalized(tokenId));
     }
+}
+
+interface IFoundationMarket {
+    function createReserveAuction(
+        address nftContract,
+        uint256 tokenId,
+        uint256 reservePrice
+    ) external;
+
+    function placeBid(uint256 auctionId) external payable;
 }

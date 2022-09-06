@@ -8,7 +8,6 @@ import "../../contracts/crowdfund/PartyCrowdfund.sol";
 import "../../contracts/globals/Globals.sol";
 import "../../contracts/globals/LibGlobals.sol";
 import "../../contracts/utils/Proxy.sol";
-import "../../contracts/market-wrapper/NounsMarketWrapper.sol";
 
 import "./MockPartyFactory.sol";
 import "./MockParty.sol";
@@ -32,8 +31,8 @@ contract NounsForkedTest is TestUtils {
     INounsAuctionHouse nounsAuctionHouse = INounsAuctionHouse(
         0x830BD73E4184ceF73443C15111a1DF14e495C706
     );
-    NounsMarketWrapper nounsMarket = new NounsMarketWrapper(
-        address(nounsAuctionHouse)
+    IMarketWrapper nounsMarket = IMarketWrapper(
+        0x9319DAd8736D752C5c72DB229f8e1b280DC80ab1
     );
     IERC721 nounsToken;
     uint256 tokenId;
@@ -118,4 +117,19 @@ contract NounsForkedTest is TestUtils {
         assertEq(address(pb.party()), address(0));
         assertTrue(nounsMarket.isFinalized(tokenId));
     }
+}
+
+interface INounsAuctionHouse {
+    function nouns() external view returns (IERC721);
+
+    function auction() external view returns (
+        uint256 nounId,
+        uint256 amount,
+        uint256 startTime,
+        uint256 endTime,
+        address payable bidder,
+        bool settled
+    );
+
+    function createBid(uint256 auctionId) external payable;
 }
