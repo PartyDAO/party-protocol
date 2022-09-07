@@ -10,14 +10,12 @@ interface IReadOnlyDelegateCall {
         view;
 }
 
-// Performs read-only delegate calls.
+// Inherited by contracts to performs read-only delegate calls.
 contract ReadOnlyDelegateCall {
     using LibRawResult for bytes;
 
-    // Delegatecall into impl and revert with the raw result.
-    function delegateCallAndRevert(address impl, bytes memory callData)
-        external
-    {
+    // Delegatecall into implement and revert with the raw result.
+    function delegateCallAndRevert(address impl, bytes memory callData) external {
         // Attempt to gate to only `_readOnlyDelegateCall()` invocations.
         require(msg.sender == address(this));
         (bool s, bytes memory r) = impl.delegatecall(callData);
@@ -25,11 +23,8 @@ contract ReadOnlyDelegateCall {
         abi.encode(s, r).rawRevert();
     }
 
-    // Perform a delegateCallAndRevert() then return the raw result data.
-    function _readOnlyDelegateCall(address impl, bytes memory callData)
-        internal
-        view
-    {
+    // Perform a `delegateCallAndRevert()` then return the raw result data.
+    function _readOnlyDelegateCall(address impl, bytes memory callData) internal view {
         try IReadOnlyDelegateCall(address(this)).delegateCallAndRevert(impl, callData) {
             // Should never happen.
             assert(false);

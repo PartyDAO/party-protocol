@@ -3,6 +3,7 @@ pragma solidity ^0.8;
 
 import "../party/Party.sol";
 
+/// @notice Helpers for getting data from contract off-chain.
 contract PartyHelpers {
     enum CrowdfundType {
         Bid,

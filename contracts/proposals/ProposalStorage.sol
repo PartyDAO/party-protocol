@@ -5,6 +5,9 @@ import "./IProposalExecutionEngine.sol";
 import "../utils/LibRawResult.sol";
 import "../tokens/IERC721.sol";
 
+// The storage bucket shared by `PartyGovernance` and the `ProposalExecutionEngine`.
+// Read this for more context on the pattern motivating this:
+// https://github.com/Dragonfly-Capital/useful-solidity-patterns/tree/main/patterns/explicit-storage-buckets
 contract ProposalStorage {
     using LibRawResult for bytes;
 

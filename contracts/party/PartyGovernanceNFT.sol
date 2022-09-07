@@ -9,7 +9,7 @@ import "../tokens/IERC721.sol";
 import "../vendor/solmate/ERC721.sol";
 import "./PartyGovernance.sol";
 
-/// @notice ERC721 functionality built on top of PartyGovernance.
+/// @notice ERC721 functionality built on top of `PartyGovernance`.
 contract PartyGovernanceNFT is
     PartyGovernance,
     ERC721,
@@ -19,13 +19,17 @@ contract PartyGovernanceNFT is
 
     error OnlyMintAuthorityError(address actual, address expected);
 
+    // The `Globals` contract storing global configuration values. This contract
+    // is immutable and it’s address will never change.
     IGlobals private immutable _GLOBALS;
 
-    // Who can call mint()
+    /// @notice Who can call `mint()`. Usually this will be the crowdfund contract that
+    /// created the party.
     address public mintAuthority;
 
+    /// @notice The number of tokens that have been minted.
     uint256 public tokenCount;
-    // tokenId -> voting power
+    /// @notice The voting power of `tokenId`.
     mapping (uint256 => uint256) public votingPowerByTokenId;
 
     modifier onlyMinter() {
@@ -35,6 +39,8 @@ contract PartyGovernanceNFT is
         _;
     }
 
+    // Set the `Globals` contract. The name of symbol of ERC721 does not matter;
+    // it will be set in `_initialize()`.
     constructor(IGlobals globals) PartyGovernance(globals) ERC721('', '') {
         _GLOBALS = globals;
     }
@@ -78,16 +84,20 @@ contract PartyGovernanceNFT is
             interfaceId == type(IERC2981).interfaceId;
     }
 
+    /// @inheritdoc ERC721
     function tokenURI(uint256) public override view returns (string memory) {
         _delegateToRenderer();
         return ""; // Just to make the compiler happy.
     }
 
+    /// @notice Returns a URI for the storefront-level metadata for your contract.
     function contractURI() external view returns (string memory) {
         _delegateToRenderer();
         return ""; // Just to make the compiler happy.
     }
 
+    /// @notice Called with the sale price to determine how much royalty
+    //          is owed and to whom.
     function royaltyInfo(uint256, uint256)
         external
         view
@@ -97,13 +107,16 @@ contract PartyGovernanceNFT is
         return (address(0), 0); // Just to make the compiler happy.
     }
 
-    /// @notice Get the distribution % of a tokenId, scaled by 1e18.
+    /// @inheritdoc ITokenDistributorParty
     function getDistributionShareOf(uint256 tokenId) external view returns (uint256) {
         return votingPowerByTokenId[tokenId] * 1e18 / _getTotalVotingPower();
     }
 
     /// @notice Mint a governance NFT for `owner` with `votingPower` and
     /// immediately delegate voting power to `delegate.`
+    /// @param owner The owner of the NFT.
+    /// @param votingPower The voting power of the NFT.
+    /// @param delegate The address to delegate voting power to.
     function mint(
         address owner,
         uint256 votingPower,
@@ -130,6 +143,7 @@ contract PartyGovernanceNFT is
         super.transferFrom(owner, to, tokenId);
     }
 
+    /// @inheritdoc ERC721
     function safeTransferFrom(address owner, address to, uint256 tokenId)
         public
         override
@@ -140,6 +154,7 @@ contract PartyGovernanceNFT is
         super.safeTransferFrom(owner, to, tokenId);
     }
 
+    /// @inheritdoc ERC721
     function safeTransferFrom(address owner, address to, uint256 tokenId, bytes calldata data)
         public
         override

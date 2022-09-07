@@ -12,14 +12,15 @@ import "./ZoraHelpers.sol";
 import "./LibProposal.sol";
 import "./IProposalExecutionEngine.sol";
 
-// Implements propoasls listing an NFT on open sea.
+// Implements proposal listing an NFT on OpenSea (Seaport). Inherited by the `ProposalExecutionEngine`.
+// This contract will be delegatecall'ed into by `Party` proxy instances.
 abstract contract ListOnOpenSeaportProposal is ZoraHelpers {
     using LibSafeCast for uint256;
 
     enum ListOnOpenSeaportStep {
         // The proposal hasn't been executed yet.
         None,
-        // The NFT was placed in a zora auction.
+        // The NFT was placed in a Zora auction.
         ListedOnZora,
         // The Zora auction was either skipped or cancelled.
         RetrievedFromZora,
@@ -95,10 +96,15 @@ abstract contract ListOnOpenSeaportProposal is ZoraHelpers {
         uint256 counter
     );
 
+    /// @notice The Seaport contract.
     ISeaportExchange public immutable SEAPORT;
+    /// @notice The Seaport conduit controller.
     ISeaportConduitController public immutable CONDUIT_CONTROLLER;
+    // The `Globals` contract storing global configuration values. This contract
+    // is immutable and it’s address will never change.
     IGlobals private immutable _GLOBALS;
 
+    // Set immutables.
     constructor(
         IGlobals globals,
         ISeaportExchange seaport,
@@ -111,7 +117,7 @@ abstract contract ListOnOpenSeaportProposal is ZoraHelpers {
     }
 
     // Try to create a listing (ultimately) on OpenSea (Seaport).
-    // Creates a listing on Zora AH for list price first. When that ends,
+    // Creates a listing on Zora auction house for list price first. When that ends,
     // calling this function again will list on OpenSea. When that ends,
     // calling this function again will cancel the listing.
     function _executeListOnOpenSeaport(
@@ -124,8 +130,8 @@ abstract contract ListOnOpenSeaportProposal is ZoraHelpers {
             abi.decode(params.proposalData, (OpenSeaportProposalData));
         bool isUnanimous = params.flags & LibProposal.PROPOSAL_FLAG_UNANIMOUS
             == LibProposal.PROPOSAL_FLAG_UNANIMOUS;
-        // If there is no progressData passed in, we're on the first step,
-        // otherwise parse the first word of the progressData as the current step.
+        // If there is no `progressData` passed in, we're on the first step,
+        // otherwise parse the first word of the `progressData` as the current step.
         ListOnOpenSeaportStep step = params.progressData.length == 0
             ? ListOnOpenSeaportStep.None
             : abi.decode(params.progressData, (ListOnOpenSeaportStep));
@@ -140,8 +146,8 @@ abstract contract ListOnOpenSeaportProposal is ZoraHelpers {
                     params.preciousTokenIds
                 )
             ) {
-                // Not a unanimous vote and the token is precious, so list on zora
-                // AH first.
+                // Not a unanimous vote and the token is precious, so list on Zora
+                // auction house first.
                 uint40 zoraTimeout =
                     uint40(_GLOBALS.getUint256(LibGlobals.GLOBAL_OS_ZORA_AUCTION_TIMEOUT));
                 uint40 zoraDuration =
@@ -161,17 +167,17 @@ abstract contract ListOnOpenSeaportProposal is ZoraHelpers {
                     }));
                 }
             }
-            // Unanimous vote, not a precious, or no zora duration.
-            // Advance past the zora auction phase by pretending we already
-            // retrieved it from zora.
+            // Unanimous vote, not a precious, or no Zora duration.
+            // Advance past the Zora auction phase by pretending we already
+            // retrieved it from Zora.
             step = ListOnOpenSeaportStep.RetrievedFromZora;
         }
         if (step == ListOnOpenSeaportStep.ListedOnZora) {
-            // The last time this proposal was executed, we listed it on zora.
-            // Now retrieve it from zora.
+            // The last time this proposal was executed, we listed it on Zora.
+            // Now retrieve it from Zora.
             (, ZoraProgressData memory zpd) =
                 abi.decode(params.progressData, (uint8, ZoraProgressData));
-            // Try to settle the zora auction. This will revert if the auction
+            // Try to settle the Zora auction. This will revert if the auction
             // is still ongoing.
             if (_settleZoraAuction(zpd.auctionId, zpd.minExpiry, data.token, data.tokenId)) {
                 // Auction sold. Nothing left to do. Return empty progress data
@@ -179,16 +185,16 @@ abstract contract ListOnOpenSeaportProposal is ZoraHelpers {
                 return "";
             }
             // The auction simply expired before anyone bid on it. We have the NFT
-            // back now so move on to listing it on opensea immediately.
+            // back now so move on to listing it on OpenSea immediately.
             step = ListOnOpenSeaportStep.RetrievedFromZora;
         }
         if (step == ListOnOpenSeaportStep.RetrievedFromZora) {
             // This step occurs if either:
             // 1) This is the first time this proposal is being executed and
             //    it is a unanimous vote or the NFT is not precious (guarded)
-            //    so we intentionally skip the zora listing step.
+            //    so we intentionally skip the Zora listing step.
             // 2) The last time this proposal was executed, we settled an expired
-            //    (no bids) zora auction and can now proceed to the opensea
+            //    (no bids) Zora auction and can now proceed to the OpenSea
             //    listing step.
 
             {
@@ -213,7 +219,7 @@ abstract contract ListOnOpenSeaportProposal is ZoraHelpers {
             return abi.encode(ListOnOpenSeaportStep.ListedOnOpenSea, orderHash, expiry);
         }
         assert(step == ListOnOpenSeaportStep.ListedOnOpenSea);
-        // The last time this proposal was executed, we listed it on opensea.
+        // The last time this proposal was executed, we listed it on OpenSea.
         // Now try to settle the listing (either it has expired or been filled).
         (, OpenSeaportProgressData memory opd) =
             abi.decode(params.progressData, (uint8, OpenSeaportProgressData));
@@ -243,13 +249,13 @@ abstract contract ListOnOpenSeaportProposal is ZoraHelpers {
         if (fees.length != feeRecipients.length) {
             revert InvalidFeeRecipients();
         }
-        // Approve opensea's conduit to spend our NFT. This should revert if we do not own
-        // the NFT.
+        // Approve OpenSea's conduit to spend our NFT. This should revert if we
+        // do not own the NFT.
         bytes32 conduitKey = _GLOBALS.getBytes32(LibGlobals.GLOBAL_OPENSEA_CONDUIT_KEY);
         (address conduit,) = CONDUIT_CONTROLLER.getConduit(conduitKey);
         token.approve(conduit, tokenId);
 
-        // Create a (basic) seaport 721 sell order.
+        // Create a (basic) Seaport 721 sell order.
         ISeaportExchange.Order[] memory orders = new ISeaportExchange.Order[](1);
         ISeaportExchange.Order memory order = orders[0];
         ISeaportExchange.OrderParameters memory orderParams = order.parameters;
@@ -324,13 +330,13 @@ abstract contract ListOnOpenSeaportProposal is ZoraHelpers {
         view
         returns (bytes32 orderHash)
     {
-        // getOrderHash() wants an OrderComponents struct, which is an OrderParameters
-        // struct but with the last field (totalOriginalConsiderationItems)
+        // `getOrderHash()` wants an `OrderComponents` struct, which is an `OrderParameters`
+        // struct but with the last field (`totalOriginalConsiderationItems`)
         // replaced with the maker's nonce. Since we (the maker) never increment
-        // our seaport nonce, it is always 0.
-        // So we temporarily set the totalOriginalConsiderationItems field to 0,
-        // force cast the OrderParameters into a OrderComponents type, call
-        // getOrderHash(), and then restore the totalOriginalConsiderationItems
+        // our Seaport nonce, it is always 0.
+        // So we temporarily set the `totalOriginalConsiderationItems` field to 0,
+        // force cast the `OrderParameters` into a `OrderComponents` type, call
+        // `getOrderHash()`, and then restore the `totalOriginalConsiderationItems`
         // field's value before returning.
         uint256 origTotalOriginalConsiderationItems =
             orderParams.totalOriginalConsiderationItems;
@@ -357,7 +363,7 @@ abstract contract ListOnOpenSeaportProposal is ZoraHelpers {
             emit OpenSeaportOrderSold(orderHash, token, tokenId, listPrice);
         } else if (expiry <= block.timestamp) {
             // The order expired before it was filled. We retain the NFT.
-            // Revoke seaport approval.
+            // Revoke Seaport approval.
             token.approve(address(0), tokenId);
             emit OpenSeaportOrderExpired(orderHash, token, tokenId, expiry);
         } else {

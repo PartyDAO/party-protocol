@@ -10,7 +10,8 @@ import "../gatekeepers/IGateKeeper.sol";
 
 import "./PartyBuyBase.sol";
 
-// Instant buy a specific token ID.
+/// @notice A crowdfund that purchases a specific NFT (i.e., with a known token
+///         ID) listing for a known price.
 contract PartyBuy is PartyBuyBase {
     using LibSafeERC721 for IERC721;
     using LibSafeCast for uint256;
@@ -30,7 +31,7 @@ contract PartyBuy is PartyBuyBase {
         // Maximum amount this crowdfund will pay for the NFT.
         // If zero, no maximum.
         uint96 maximumPrice;
-        // An address that receieves a portion of the final voting power
+        // An address that receives a portion of the final voting power
         // when the party transitions into governance.
         address payable splitRecipient;
         // What percentage (in bps) of the final total voting power `splitRecipient`
@@ -47,7 +48,8 @@ contract PartyBuy is PartyBuyBase {
         IGateKeeper gateKeeper;
         // The gate ID within the gateKeeper contract to use.
         bytes12 gateKeeperId;
-        // Governance options.
+        // Fixed governance options (i.e. cannot be changed) that the governance
+        // `Party` will be created with if the crowdfund succeeds.
         FixedGovernanceOpts governanceOpts;
     }
 
@@ -56,9 +58,13 @@ contract PartyBuy is PartyBuyBase {
     /// @notice The NFT contract to buy.
     IERC721 public nftContract;
 
+    // Set the `Globals` contract.
     constructor(IGlobals globals) PartyBuyBase(globals) {}
 
-    /// @notice intializer to be delegatecalled by Proxy constructor.
+    /// @notice Initializer to be delegatecalled by `Proxy` constructor. Will
+    ///         revert if called outside the constructor.
+    /// @param opts Options used to initialize the crowdfund. These are fixed
+    ///             and cannot be changed later.
     function initialize(PartyBuyOptions memory opts)
         external
         payable
@@ -83,6 +89,12 @@ contract PartyBuy is PartyBuyBase {
 
     /// @notice Execute arbitrary calldata to perform a buy, creating a party
     ///         if it successfully buys the NFT.
+    /// @param callTarget The target contract to call to buy the NFT.
+    /// @param callValue The amount of ETH to send with the call.
+    /// @param callData The calldata to execute.
+    /// @param governanceOpts The options used to initialize governance in the
+    ///                       `Party` instance created if the buy was successful.
+    /// @return party_ Address of the `Party` instance created after its bought.
     function buy(
         address payable callTarget,
         uint96 callValue,

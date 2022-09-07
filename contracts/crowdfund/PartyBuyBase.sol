@@ -58,14 +58,15 @@ abstract contract PartyBuyBase is Implementation, PartyCrowdfund {
 
     /// @notice When this crowdfund expires.
     uint40 public expiry;
-    // Maximum amount this crowdfund will pay for the NFT.
-    // If zero, no maximum.
+    /// @notice Maximum amount this crowdfund will pay for the NFT. If zero, no maximum.
     uint96 public maximumPrice;
-    // What the NFT was actually bought for.
+    /// @notice What the NFT was actually bought for.
     uint96 public settledPrice;
 
+    // Set the `Globals` contract.
     constructor(IGlobals globals) PartyCrowdfund(globals) {}
 
+    // Initialize storage for proxy contracts.
     function _initialize(PartyBuyBaseOptions memory opts)
         internal
     {
@@ -98,22 +99,26 @@ abstract contract PartyBuyBase is Implementation, PartyCrowdfund {
         onlyDelegateCall
         returns (Party party_)
     {
+        // Ensure the call target isn't trying to reenter or trying to do
+        // anything weird with `PartyFactory`.
         IPartyFactory partyFactory = _getPartyFactory();
         if (callTarget == address(partyFactory) || callTarget == address(this)) {
             revert InvalidCallTargetError(callTarget);
         }
+        // Check that the crowdfund is still active.
         CrowdfundLifecycle lc = getCrowdfundLifecycle();
         if (lc != CrowdfundLifecycle.Active) {
             revert WrongLifecycleError(lc);
         }
+        // Used to store the price the NFT was bought for.
         uint96 settledPrice_;
         {
             uint96 maximumPrice_ = maximumPrice;
             if (maximumPrice_ != 0 && callValue > maximumPrice_) {
                 revert MaximumPriceError(callValue, maximumPrice);
             }
-            // If the purchase would be free, set the settled price to totalContributions
-            // so everybody who contributed wins.
+            // If the purchase would be free, set the settled price to
+            // `totalContributions` so everybody who contributed wins.
             settledPrice_ = callValue == 0 ? totalContributions : callValue;
             if (settledPrice_ == 0) {
                 // Still zero, which means no contributions.
@@ -122,7 +127,7 @@ abstract contract PartyBuyBase is Implementation, PartyCrowdfund {
             settledPrice = settledPrice_;
         }
         {
-            // Execute the call.
+            // Execute the call to buy the NFT.
             (bool s, bytes memory r) = callTarget.call{ value: callValue }(callData);
             if (!s) {
                 r.rawRevert();
@@ -133,6 +138,7 @@ abstract contract PartyBuyBase is Implementation, PartyCrowdfund {
             revert FailedToBuyNFTError(token, tokenId);
         }
         emit Won(
+            // Create a party around the newly bought NFT.
             party_ = _createParty(partyFactory, governanceOpts, token, tokenId),
             token,
             tokenId,

@@ -13,6 +13,8 @@ import "./ArbitraryCallsProposal.sol";
 import "./LibProposal.sol";
 import "./ProposalStorage.sol";
 
+/// @notice Upgradable implementation of proposal execution logic for parties that use it.
+/// @dev This contract will be delegatecall'ed into by `Party` proxy instances.
 contract ProposalExecutionEngine is
     IProposalExecutionEngine,
     Implementation,
@@ -41,17 +43,20 @@ contract ProposalExecutionEngine is
         NumProposalTypes
     }
 
-    // Explicit storage bucket for "private" state owned by the ProposalExecutionEngine.
-    // See _getStorage() for how this is addressed.
+    // Explicit storage bucket for "private" state owned by the `ProposalExecutionEngine`.
+    // See `_getStorage()` for how this is addressed.
+    //
+    // Read this for more context on the pattern motivating this:
+    // https://github.com/Dragonfly-Capital/useful-solidity-patterns/tree/main/patterns/explicit-storage-buckets
     struct Storage {
-        // The hash of the next progressData for the current InProgress
-        // proposal. This is updated to the hash of the next progressData every
+        // The hash of the next `progressData` for the current `InProgress`
+        // proposal. This is updated to the hash of the next `progressData` every
         // time a proposal is executed. This enforces that the next call to
-        // executeProposal() receives the correct progressData.
-        // If there is no current InProgress proposal, this will be 0x0.
+        // `executeProposal()` receives the correct `progressData`.
+        // If there is no current `InProgress` proposal, this will be 0x0.
         bytes32 nextProgressDataHash;
         // The proposal ID of the current, in progress proposal being executed.
-        // InProgress proposals need to have executeProposal() called on them
+        // `InProgress` proposals need to have `executeProposal()` called on them
         // multiple times until they complete. Only one proposal may be
         // in progress at a time, meaning no other proposals can be executed
         // if this value is nonzero.
@@ -67,12 +72,14 @@ contract ProposalExecutionEngine is
     error ProposalNotInProgressError(uint256 proposalId);
     error UnexpectedProposalEngineImplementationError(IProposalExecutionEngine actualImpl, IProposalExecutionEngine expectedImpl);
 
-
+    // The `Globals` contract storing global configuration values. This contract
+    // is immutable and it’s address will never change.
     IGlobals private immutable _GLOBALS;
     // Storage slot for `Storage`.
     // Use a constant, non-overlapping slot offset for the storage bucket.
     uint256 private constant _STORAGE_SLOT = uint256(keccak256('ProposalExecutionEngine.Storage'));
 
+    // Set immutables.
     constructor(
         IGlobals globals,
         ISeaportExchange seaport,
@@ -87,12 +94,16 @@ contract ProposalExecutionEngine is
         _GLOBALS = globals;
     }
 
+    // Used by `Party` to setup the execution engine.
+    // Currently does nothing, but may be changed in future versions.
     function initialize(address oldImpl, bytes calldata initializeData)
         external
         override
         onlyDelegateCall
     { /* NOOP */ }
 
+    /// @notice Get the current `InProgress` proposal ID.
+    /// @dev With this version, only one proposal may be in progress at a time.
     function getCurrentInProgressProposalId()
         external
         view
@@ -127,7 +138,7 @@ contract ProposalExecutionEngine is
         {
             bytes32 nextProgressDataHash = stor.nextProgressDataHash;
             if (nextProgressDataHash == 0) { // Expecting no progress data.
-                // This is the state if there is no current InProgress proposal.
+                // This is the state if there is no current `InProgress` proposal.
                 assert(currentInProgressProposalId == 0);
                 if (params.progressData.length != 0) {
                     revert ProposalProgressDataInvalidError(
@@ -190,6 +201,7 @@ contract ProposalExecutionEngine is
         stor.nextProgressDataHash = 0;
     }
 
+    // Switch statement used to execute the right proposal.
     function _execute(ProposalType pt, ExecuteProposalParams memory params)
         internal
         virtual
@@ -210,7 +222,7 @@ contract ProposalExecutionEngine is
         }
     }
 
-    // Destructively pops off the first 4 bytes of proposalData to determine
+    // Destructively pops off the first 4 bytes of `proposalData` to determine
     // the type. This modifies `proposalData` and returns the updated
     // pointer to it.
     function _extractProposalType(bytes memory proposalData)
@@ -218,12 +230,14 @@ contract ProposalExecutionEngine is
         pure
         returns (ProposalType proposalType, bytes memory offsetProposalData)
     {
-        // First 4 bytes is proposal type.
+        // First 4 bytes is proposal type. While the proposal type could be
+        // stored in just 1 byte, this makes it easier to encode with
+        // `abi.encodeWithSelector`.
         if (proposalData.length < 4) {
             revert MalformedProposalDataError();
         }
         assembly {
-            // by reading 4 bytes into the length prefix, the leading 4 bytes
+            // By reading 4 bytes into the length prefix, the leading 4 bytes
             // of the data will be in the lower bits of the read word.
             proposalType := and(mload(add(proposalData, 4)), 0xffffffff)
             mstore(add(proposalData, 4), sub(mload(proposalData), 4))
@@ -233,13 +247,13 @@ contract ProposalExecutionEngine is
         require(uint8(proposalType) < uint8(ProposalType.NumProposalTypes));
     }
 
-    // Upgrade the implementation of IPartyProposals to the latest version.
+    // Upgrade implementation to the latest version.
     function _executeUpgradeProposalsImplementation(bytes memory proposalData)
         private
     {
         (address expectedImpl, bytes memory initData) =
             abi.decode(proposalData, (address, bytes));
-        // Always upgrade to latest implementation stored in _GLOBALS.
+        // Always upgrade to latest implementation stored in `_GLOBALS`.
         IProposalExecutionEngine newImpl = IProposalExecutionEngine(
             _GLOBALS.getAddress(LibGlobals.GLOBAL_PROPOSAL_ENGINE_IMPL)
         );

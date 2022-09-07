@@ -12,7 +12,8 @@ import "./vendor/IZoraAuctionHouse.sol";
 import "./IProposalExecutionEngine.sol";
 import "./ZoraHelpers.sol";
 
-// Implements proposals auctioning an NFT on zora.
+// Implements proposals auctioning an NFT on Zora. Inherited by the `ProposalExecutionEngine`.
+// This contract will be delegatecall'ed into by `Party` proxy instances.
 contract ListOnZoraProposal is ZoraHelpers {
     using LibRawResult for bytes;
     using LibSafeERC721 for IERC721;
@@ -59,16 +60,20 @@ contract ListOnZoraProposal is ZoraHelpers {
     // keccak256(abi.encodeWithSignature('Error(string)', "Auction doesn't exit"))
     bytes32 constant internal AUCTION_DOESNT_EXIST_ERROR_HASH =
         0x474ba0184a7cd5de777156a56f3859150719340a6974b6ee50f05c58139f4dc2;
+    /// @notice Zora auction house contract.
     IZoraAuctionHouse public immutable ZORA;
+    // The `Globals` contract storing global configuration values. This contract
+    // is immutable and it’s address will never change.
     IGlobals private immutable _GLOBALS;
 
+    // Set immutables.
     constructor(IGlobals globals, IZoraAuctionHouse zoraAuctionHouse) {
         ZORA = zoraAuctionHouse;
         _GLOBALS = globals;
     }
 
-    // Auction an NFT we hold on zora.
-    // Calling this the first time will create a zora auction.
+    // Auction an NFT we hold on Zora.
+    // Calling this the first time will create a Zora auction.
     // Calling this the second time will either cancel or finalize the auction.
     function _executeListOnZora(
         IProposalExecutionEngine.ExecuteProposalParams memory params
@@ -85,7 +90,7 @@ contract ListOnZoraProposal is ZoraHelpers {
         if (step == ZoraStep.None) {
             // Proposal hasn't executed yet.
             {
-                // Clamp the zora auction duration to the global minimum and maximum.
+                // Clamp the Zora auction duration to the global minimum and maximum.
                 uint40 minDuration = uint40(_GLOBALS.getUint256(LibGlobals.GLOBAL_ZORA_MIN_AUCTION_DURATION));
                 uint40 maxDuration = uint40(_GLOBALS.getUint256(LibGlobals.GLOBAL_ZORA_MAX_AUCTION_DURATION));
                 if (minDuration != 0 && data.duration < minDuration) {
@@ -93,13 +98,13 @@ contract ListOnZoraProposal is ZoraHelpers {
                 } else if (maxDuration != 0 && data.duration > maxDuration) {
                     data.duration = maxDuration;
                 }
-                // Clamp the zora auction timeout to the global maximum.
+                // Clamp the Zora auction timeout to the global maximum.
                 uint40 maxTimeout = uint40(_GLOBALS.getUint256(LibGlobals.GLOBAL_ZORA_MAX_AUCTION_TIMEOUT));
                 if (maxTimeout != 0 && data.timeout > maxTimeout) {
                     data.timeout = maxTimeout;
                 }
             }
-            // Create a zora auction for the NFT.
+            // Create a Zora auction for the NFT.
             uint256 auctionId = _createZoraAuction(
                 data.listPrice,
                 data.timeout,
@@ -120,7 +125,7 @@ contract ListOnZoraProposal is ZoraHelpers {
         return "";
     }
 
-    // Transfer and create a zora auction for the token + tokenId.
+    // Transfer and create a Zora auction for the `token` + `tokenId`.
     function _createZoraAuction(
         // The minimum bid.
         uint256 listPrice,
@@ -155,7 +160,7 @@ contract ListOnZoraProposal is ZoraHelpers {
         );
     }
 
-    // Either cancel or finalize a zora auction.
+    // Either cancel or finalize a Zora auction.
     function _settleZoraAuction(
         uint256 auctionId,
         uint40 minExpiry,
@@ -167,7 +172,7 @@ contract ListOnZoraProposal is ZoraHelpers {
         returns (bool sold)
     {
         // Getting the state of an auction is super expensive so it seems
-        // cheaper to just let `endAuction` fail and react to the error.
+        // cheaper to just let `endAuction()` fail and react to the error.
         try ZORA.endAuction(auctionId) {
             // Check whether auction cancelled due to a failed transfer during
             // settlement by seeing if we now possess the NFT.
@@ -188,7 +193,7 @@ contract ListOnZoraProposal is ZoraHelpers {
                 return false;
             } else if (errHash != AUCTION_DOESNT_EXIST_ERROR_HASH) {
                 // Otherwise, we should get an auction doesn't exist error,
-                // because someone else must have called endAuction().
+                // because someone else must have called `endAuction()`.
                 // If we didn't then something is wrong, so revert.
                 errData.rawRevert();
             }
