@@ -99,7 +99,7 @@ contract FoundationForkedTest is TestUtils {
     }
 
     // Test creating a crowdfund party around a Foundation auction + winning the auction
-    function testWinningFoundationAuction() external onlyForked {
+    function testForked_WinningFoundationAuction() external onlyForked {
         // Bid on current Foundation auction.
         pb.bid();
 
@@ -123,7 +123,7 @@ contract FoundationForkedTest is TestUtils {
     }
 
     // Test creating a crowdfund party around a Foundation auction + losing the auction
-    function testLosingNounAuction() external onlyForked {
+    function testForked_LosingNounAuction() external onlyForked {
         // Bid on current Foundation auction.
         pb.bid();
 

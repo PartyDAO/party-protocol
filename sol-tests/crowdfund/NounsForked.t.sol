@@ -75,7 +75,7 @@ contract NounsForkedTest is TestUtils {
     }
 
     // Test creating a crowdfund party around a Noun + winning the auction
-    function testWinningNounAuction() external onlyForked {
+    function testForked_WinningNounAuction() external onlyForked {
         // Bid on current Noun auction.
         pb.bid();
 
@@ -99,7 +99,7 @@ contract NounsForkedTest is TestUtils {
     }
 
     // Test creating a crowdfund party around a Noun + losing the auction
-    function testLosingNounAuction() external onlyForked {
+    function testForked_LosingNounAuction() external onlyForked {
         // Bid on current Noun auction.
         pb.bid();
 
