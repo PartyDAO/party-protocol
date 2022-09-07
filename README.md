@@ -43,14 +43,13 @@ contracts/
     └── PartyGovernanceNFTRenderer.sol
 sol-tests/ # Foundry tests
 tests/ # TS tests
-
 ```
 
 ## Getting started
 
 First install [Foundry](https://book.getfoundry.sh/getting-started/installation.html).
 
-```
+```bash
 forge install
 yarn -D
 yarn build
@@ -60,16 +59,24 @@ yarn build
 
 ### Run all tests (except fork tests):
 
+```bash
 yarn test
+```
 
 ### Run only TS tests
 
+```bash
 yarn test:ts
+```
 
 ### Run only Foundry tests
 
+```bash
 yarn test:sol
+```
 
 ### Run forked Foundry tests
 
+```bash
 forge test -m testFork --fork-url $YOUR_RPC_URL
+```
