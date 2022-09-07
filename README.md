@@ -1,8 +1,54 @@
-# partybidV2
+# Party Bid V2
 
-## Building
+The PartyBid V1 protocol allowed people to pool funds together to acquire NFTs. PartyBid V2 adds new features to allow parties to use and govern those NFTs together as well. The party never ends!
 
-First install [foundry](https://book.getfoundry.sh/getting-started/installation.html)
+## Layout
+
+```
+docs/ # Start here
+├── overview.md
+├── crowdfund.md
+└── governance.md
+contracts/
+│   # Used during the crowdfund phase
+├── crowdfund/
+│   ├── PartyBid.sol
+│   ├── PartyBuy.sol
+│   ├── PartyCollectionBuy.sol
+│   ├── PartyCrowdfundFactory.sol
+│   ├── PartyCrowdfund.sol
+│   └── PartyCrowdfundNFT.sol
+├── gatekeepers/
+│   ├── AllowListGateKeeper.sol
+│   └── TokenGateKeeper.sol
+├── globals/
+│   └── Globals.sol
+│   # Used during the governance phase
+├── party/
+│   ├── Party.sol
+│   ├── PartyFactory.sol
+│   ├── PartyGovernance.sol
+│   └── PartyGovernanceNFT.sol
+├── proposals/
+│   ├── ProposalExecutionEngine.sol
+│   ├── ArbitraryCallsProposal.sol
+│   ├── FractionalizeProposal.sol
+│   ├── ListOnOpenSeaportProposal.sol
+│   └── ListOnZoraProposal.sol
+├── distribution/
+│   └── TokenDistributor.sol
+|   # Used to render crowdfund and governance NFTs
+└── renderers/
+    ├── PartyCrowdfundNFTRenderer.sol
+    └── PartyGovernanceNFTRenderer.sol
+sol-tests/ # Foundry tests
+tests/ # TS tests
+
+```
+
+## Getting started
+
+First install [Foundry](https://book.getfoundry.sh/getting-started/installation.html).
 
 ```
 forge install
@@ -12,16 +58,18 @@ yarn build
 
 ## Testing
 
-``
-# run all tests (except fork tests)
-yarn test
-# run only ts tests
-yarn test:ts
-# run only solidity tests
-yarn test:sol
-# run fork tests
-forge test -m testFork --fork-url $YOUR_RPC_URL --fork-block-number $LATEST_MAINNET_BLOCK
+### Run all tests (except fork tests):
 
-# console.log something in foundry tests
-import console.sol from forge-std and run forge test -vv
-```
+yarn test
+
+### Run only TS tests
+
+yarn test:ts
+
+### Run only Foundry tests
+
+yarn test:sol
+
+### Run forked Foundry tests
+
+forge test -m testFork --fork-url $YOUR_RPC_URL
