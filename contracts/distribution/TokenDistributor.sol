@@ -11,7 +11,8 @@ import "../utils/LibSafeCast.sol";
 
 import "./ITokenDistributor.sol";
 
-/// @notice Creates token distributions for parties.
+/// @notice Creates token distributions for parties (or any contract that
+///         implements `ITokenDistributorParty`).
 contract TokenDistributor is ITokenDistributor {
     using LibAddress for address payable;
     using LibERC20Compat for IERC20;
@@ -21,15 +22,15 @@ contract TokenDistributor is ITokenDistributor {
     struct DistributionState {
         // The remaining member supply.
         uint128 remainingMemberSupply;
-        // The 15-byte hash of the DistributionInfo.
+        // The 15-byte hash of the `DistributionInfo`.
         bytes15 distributionHash15;
         // Whether the distribution's feeRecipient has claimed its fee.
         bool wasFeeClaimed;
         // Whether a governance token has claimed its distribution share.
-        mapping (uint256 => bool) hasPartyTokenClaimed;
+        mapping(uint256 => bool) hasPartyTokenClaimed;
     }
 
-    // Args for _createDistribution()
+    // Arguments for `_createDistribution()`.
     struct CreateDistributionArgs {
         ITokenDistributorParty party;
         TokenType tokenType;
@@ -50,8 +51,11 @@ contract TokenDistributor is ITokenDistributor {
     error OnlyFeeRecipientError(address caller, address feeRecipient);
     error InvalidFeeBpsError(uint16 feeBps);
 
+    // Token address used to indicate a native distribution (i.e. distribution of ETH).
     address private constant NATIVE_TOKEN_ADDRESS = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
 
+    /// @notice The `Globals` contract storing global configuration values. This contract
+    ///         is immutable and it’s address will never change.
     IGlobals public immutable GLOBALS;
 
     /// @notice Whether the DAO is no longer allowed to call emergency functions.
@@ -85,6 +89,7 @@ contract TokenDistributor is ITokenDistributor {
         _;
     }
 
+    // Set the `Globals` contract.
     constructor(IGlobals globals) {
         GLOBALS = globals;
     }

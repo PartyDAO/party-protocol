@@ -9,13 +9,15 @@ import "../utils/Proxy.sol";
 import "./Party.sol";
 import "./IPartyFactory.sol";
 
-// Creates generic Party instances.
+/// @notice Factory used to deploys new proxified `Party` instances.
 contract PartyFactory is IPartyFactory {
 
     error InvalidAuthorityError(address authority);
 
+    /// @inheritdoc IPartyFactory
     IGlobals public immutable GLOBALS;
 
+    // Set the `Globals` contract.
     constructor(IGlobals globals) {
         GLOBALS = globals;
     }
@@ -30,9 +32,11 @@ contract PartyFactory is IPartyFactory {
         external
         returns (Party party)
     {
+        // Ensure a valid authority is set to mint governance NFTs.
         if (authority == address(0)) {
             revert InvalidAuthorityError(authority);
         }
+        // Deploy a new proxified `Party` instance.
         Party.PartyInitData memory initData = Party.PartyInitData({
             options: opts,
             preciousTokens: preciousTokens,

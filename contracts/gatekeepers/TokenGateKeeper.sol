@@ -24,16 +24,10 @@ contract TokenGateKeeper is IGateKeeper {
 
     event TokenGateCreated(Token token, uint256 minimumBalance);
 
-    // id -> TokenGate
+    /// @notice Get the information for a gate identifyied by it's `id`.
     mapping(uint96 => TokenGate) public gateInfo;
 
-    /**
-     * @notice defines whether or not a user can access party
-     * @param  participant contributor address
-     * @param  id to identify the specific strategy
-     * @return bool true of false depending if the user has enough balance
-     * of a particular token
-     */
+    /// @inheritdoc IGateKeeper
     function isAllowed(
         address participant,
         bytes12 id,
@@ -43,12 +37,10 @@ contract TokenGateKeeper is IGateKeeper {
         return _gate.token.balanceOf(participant) >= _gate.minimumBalance;
     }
 
-    /**
-     * @notice creates a gateway and returns id
-     * @param  token token address (eg. ERC20 or ERC721)
-     * @param  minimumBalance minimum balance allowed for participation
-     * @return id gate id
-     */
+    /// @notice Creates a gate that requires a minimum balance of a token.
+    /// @param  token The token address (eg. ERC20 or ERC721).
+    /// @param  minimumBalance The minimum balance allowed for participation.
+    /// @return id The ID of the new gate.
     function createGate(Token token, uint256 minimumBalance)
         external
         returns (bytes12 id)

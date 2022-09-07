@@ -8,7 +8,7 @@ library LibERC20Compat {
     error NotATokenError(IERC20 token);
     error TokenTransferFailedError(IERC20 token, address to, uint256 amount);
 
-    // Peform an IERC20.transfer() handling non-compliant implementations.
+    // Perform an `IERC20.transfer()` handling non-compliant implementations.
     function compatTransfer(IERC20 token, address to, uint256 amount)
         internal
     {

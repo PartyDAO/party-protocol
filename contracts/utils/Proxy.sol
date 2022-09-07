@@ -4,12 +4,15 @@ pragma solidity ^0.8;
 import "./LibRawResult.sol";
 import "./Implementation.sol";
 
-// Base class for all proxy contracts
+/// @notice Base class for all proxy contracts.
 contract Proxy {
     using LibRawResult for bytes;
 
+    /// @notice The address of the implementation contract used by this proxy.
     Implementation public immutable IMPL;
 
+    // Made `payable` to allow initialized crowdfunds to receive ETH as an
+    // initial contribution.
     constructor(Implementation impl, bytes memory initCallData) payable {
         IMPL = impl;
         (bool s, bytes memory r) = address(impl).delegatecall(initCallData);

@@ -334,14 +334,14 @@ abi.encodeWithSelector(
 #### Steps
 
 This proposal always has two steps:
-1. Transfer the token to the Zora AH contract and create an auction with `listPrice` reserve price and `duration` auction duration (which starts after someone places a bid).
+1. Transfer the token to the Zora auction house contract and create an auction with `listPrice` reserve price and `duration` auction duration (which starts after someone places a bid).
     - This will emit the next `progressData`:
     ```solidity
     abi.encode(
         // The current step.
         ListOnZoraStep.ListedOnZora,
         ZoraProposalData(
-            // The zora auction ID.
+            // The Zora auction ID.
             /* uint256 */ auctionId,
             // The minimum time when the auction can be cancelled.
             /* minExpiry */ minExpiry
@@ -386,14 +386,14 @@ abi.encodeWithSelector(
 This proposal has between 2-3 steps:
 
 1. If the proposal did not pass unanimously and the `token` + `tokenId` is precious:
-    1. Transfer the token to the Zora AH contract and create an auction with `listPrice` reserve price and `GLOBAL_OS_ZORA_AUCTION_DURATION` auction duration (which starts after someone places a bid).
+    1. Transfer the token to the Zora auction house contract and create an auction with `listPrice` reserve price and `GLOBAL_OS_ZORA_AUCTION_DURATION` auction duration (which starts after someone places a bid).
         - This will emit the next `progressData`:
         ```solidity
         abi.encode(
             // The current step.
             ListOnOpenSeaportStep.ListedOnZora,
             ZoraProposalData(
-                // The zora auction ID.
+                // The Zora auction ID.
                 /* uint256 */ auctionId,
                 // The minimum time when the auction can be cancelled.
                 /* minExpiry */ minExpiry

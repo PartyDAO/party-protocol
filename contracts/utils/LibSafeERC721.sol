@@ -7,7 +7,7 @@ import "./LibRawResult.sol";
 library LibSafeERC721 {
     using LibRawResult for bytes;
 
-    // Call IERC721.ownerOf() without reverting and return `address(0)` if:
+    // Call `IERC721.ownerOf()` without reverting and return `address(0)` if:
     // - `tokenID` does not exist.
     // - `token` is an EOA
     // - `token` is an empty contract

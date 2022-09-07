@@ -25,7 +25,7 @@ The main contracts involved in this phase are:
 - `PartyBuy` ([source](../contracts/crowdfund/PartyBuy.sol))
   - A crowdfund that purchases a specific NFT (i.e., with a known token ID) listing for a known price.
 - `PartyCollectionBuy` ([source](../contracts/crowdfund/PartyCollectionBuy.sol))
-  - A crowdfund that purchases any NFT from a collection (i.e., any token ID) from a collection for a known price.
+  - A crowdfund that purchases any NFT from a collection (i.e., any token ID) from a collection for a known price. Like `PartyBuy` but allows any token ID in a collection to be bought.
 - `PartyBid` ([source](../contracts/crowdfund/PartyBid.sol))
   - A crowdfund that can repeatedly bid on an auction for a specific NFT (i.e., with a known token ID) until it wins.
 - `IMarketWrapper` ([source](../contracts/crowdfund/IMarketWrapper.sol))

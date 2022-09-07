@@ -3,10 +3,9 @@ pragma solidity ^0.8;
 
 import "../tokens/IERC721.sol";
 
-// Abstract zora interaction functions.
-// Implemented by ListOnZoraProposal.
+// Abstract Zora interaction functions.
+// Used by both `ListOnZoraProposal` and `ListOnOpenSeaportProposal`.
 abstract contract ZoraHelpers {
-
     // ABI-encoded `progressData` passed into execute in the `ListedOnZora` step.
     struct ZoraProgressData {
         // Auction ID.
@@ -15,7 +14,7 @@ abstract contract ZoraHelpers {
         uint40 minExpiry;
     }
 
-    // Transfer and create a zora auction for the token + tokenId.
+    // Transfer and create a Zora auction for the token + tokenId.
     function _createZoraAuction(
         // The minimum bid.
         uint256 listPrice,
@@ -30,7 +29,7 @@ abstract contract ZoraHelpers {
         virtual
         returns (uint256 auctionId);
 
-    // Either cancel or finalize a zora auction.
+    // Either cancel or finalize a Zora auction.
     function _settleZoraAuction(
         uint256 auctionId,
         uint40 minExpiry,

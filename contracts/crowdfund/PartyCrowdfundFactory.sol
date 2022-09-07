@@ -9,6 +9,7 @@ import "./PartyBid.sol";
 import "./PartyBuy.sol";
 import "./PartyCollectionBuy.sol";
 
+/// @notice Factory used to deploys new proxified `PartyCrowdfund` instances.
 contract PartyCrowdfundFactory {
     using LibRawResult for bytes;
 
@@ -16,12 +17,21 @@ contract PartyCrowdfundFactory {
     event PartyBidCreated(PartyBid crowdfund, PartyBid.PartyBidOptions opts);
     event PartyCollectionBuyCreated(PartyCollectionBuy crowdfund, PartyCollectionBuy.PartyCollectionBuyOptions opts);
 
+    // The `Globals` contract storing global configuration values. This contract
+    // is immutable and it’s address will never change.
     IGlobals private immutable _GLOBALS;
 
+    // Set the `Globals` contract.
     constructor(IGlobals globals) {
         _GLOBALS = globals;
     }
 
+    /// @notice Create a new crowdfund to purchases a specific NFT (i.e., with a
+    ///         known token ID) listing for a known price.
+    /// @param opts Options used to initialize the crowdfund. These are fixed
+    ///             and cannot be changed later.
+    /// @param createGateCallData Encoded calldata used by `createGate()` to
+    ///                           create the crowdfund if one is specified in `opts`.
     function createPartyBuy(
         PartyBuy.PartyBuyOptions memory opts,
         bytes memory createGateCallData
@@ -42,6 +52,12 @@ contract PartyCrowdfundFactory {
         emit PartyBuyCreated(inst, opts);
     }
 
+    /// @notice Create a new crowdfund to bid on an auction for a specific NFT
+    ///         (i.e. with a known token ID).
+    /// @param opts Options used to initialize the crowdfund. These are fixed
+    ///             and cannot be changed later.
+    /// @param createGateCallData Encoded calldata used by `createGate()` to create
+    ///                           the crowdfund if one is specified in `opts`.
     function createPartyBid(
         PartyBid.PartyBidOptions memory opts,
         bytes memory createGateCallData
@@ -62,6 +78,12 @@ contract PartyCrowdfundFactory {
         emit PartyBidCreated(inst, opts);
     }
 
+    /// @notice Create a new crowdfund to purchases any NFT from a collection
+    ///         (i.e. any token ID) from a collection for a known price.
+    /// @param opts Options used to initialize the crowdfund. These are fixed
+    ///             and cannot be changed later.
+    /// @param createGateCallData Encoded calldata used by `createGate()` to create
+    ///                           the crowdfund if one is specified in `opts`.
     function createPartyCollectionBuy(
         PartyCollectionBuy.PartyCollectionBuyOptions memory opts,
         bytes memory createGateCallData

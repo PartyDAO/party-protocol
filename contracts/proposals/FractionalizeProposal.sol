@@ -7,9 +7,9 @@ import "../party/PartyGovernance.sol";
 import "./IProposalExecutionEngine.sol";
 import "./vendor/FractionalV1.sol";
 
-// Implements fractionalizing an NFT to ERC20s on Fractional V1.
+// Implements fractionalizing an NFT to ERC20s on Fractional V1. Inherited by the `ProposalExecutionEngine`.
+// This contract will be delegatecall'ed into by `Party` proxy instances.
 contract FractionalizeProposal {
-
     struct FractionalizeProposalData {
         // The ERC721 token contract to fractionalize.
         IERC721 token;
@@ -27,8 +27,10 @@ contract FractionalizeProposal {
         uint256 listPrice
     );
 
+    /// @notice Deployment of https://github.com/fractional-company/contracts/blob/master/src/ERC721TokenVault.sol.
     IFractionalV1VaultFactory public immutable VAULT_FACTORY;
 
+    // Set the `VAULT_FACTORY`.
     constructor(IFractionalV1VaultFactory vaultFactory) {
         VAULT_FACTORY = vaultFactory;
     }
@@ -58,6 +60,7 @@ contract FractionalizeProposal {
             data.listPrice,
             0
         );
+        // Get the vault we just created.
         IFractionalV1Vault vault = VAULT_FACTORY.vaults(vaultId);
         // Check that we now hold the correct amount of fractional tokens.
         // Should always succeed.

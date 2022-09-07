@@ -12,14 +12,21 @@ import "../gatekeepers/IGateKeeper.sol";
 import "./IMarketWrapper.sol";
 import "./PartyCrowdfund.sol";
 
+/// @notice A crowdfund that can repeatedly bid on an auction for a specific NFT
+///         (i.e. with a known token ID) until it wins.
 contract PartyBid is Implementation, PartyCrowdfund {
     using LibSafeERC721 for IERC721;
     using LibSafeCast for uint256;
     using LibRawResult for bytes;
 
     enum PartyBidStatus {
+        // The crowdfund has been created and contributions can be made and
+        // acquisition functions may be called.
         Active,
+        // An temporary state set by the contract during complex operations to
+        // act as a reentrancy guard.
         Busy,
+        // The crowdfund is over and has either won or lost.
         Finalized
     }
 
@@ -41,7 +48,7 @@ contract PartyBid is Implementation, PartyCrowdfund {
         uint40 duration;
         // Maximum bid allowed.
         uint96 maximumBid;
-        // An address that receieves a portion of the final voting power
+        // An address that receives a portion of the final voting power
         // when the party transitions into governance.
         address payable splitRecipient;
         // What percentage (in bps) of the final total voting power `splitRecipient`
@@ -58,7 +65,8 @@ contract PartyBid is Implementation, PartyCrowdfund {
         IGateKeeper gateKeeper;
         // The gate ID within the gateKeeper contract to use.
         bytes12 gateKeeperId;
-        // Governance options.
+        // Fixed governance options (i.e. cannot be changed) that the governance
+        // `Party` will be created with if the crowdfund succeeds.
         FixedGovernanceOpts governanceOpts;
     }
 
@@ -76,7 +84,7 @@ contract PartyBid is Implementation, PartyCrowdfund {
     IERC721 public nftContract;
     /// @notice The NFT token ID to buy.
     uint256 public nftTokenId;
-    /// @notice An adapter for the auction market (zora, opensea, etc).
+    /// @notice An adapter for the auction market (Zora, OpenSea, etc).
     /// @dev This will be delegatecalled into to execute bids.
     IMarketWrapper public market;
     /// @notice The auction ID to identify the auction on the `market`.
@@ -91,9 +99,13 @@ contract PartyBid is Implementation, PartyCrowdfund {
     // Track extra status of the crowdfund specific to bids.
     PartyBidStatus private _bidStatus;
 
+    // Set the `Globals` contract.
     constructor(IGlobals globals) PartyCrowdfund(globals) {}
 
-    /// @notice intializer to be delegatecalled by Proxy constructor.
+    /// @notice Initializer to be delegatecalled by `Proxy` constructor. Will
+    ///         revert if called outside the constructor.
+    /// @param opts Options used to initialize the crowdfund. These are fixed
+    ///             and cannot be changed later.
     function initialize(PartyBidOptions memory opts)
         external
         payable
@@ -117,6 +129,7 @@ contract PartyBid is Implementation, PartyCrowdfund {
             governanceOpts: opts.governanceOpts
         }));
 
+        // Check that the auction can be bid on and is valid.
         if (!market.auctionIdMatchesToken(
             opts.auctionId,
             address(opts.nftContract),
@@ -129,32 +142,38 @@ contract PartyBid is Implementation, PartyCrowdfund {
     /// @notice Accept naked ETH, e.g., if an auction needs to return ETH to us.
     receive() external payable {}
 
-    /// @notice Place a bid on the NFT using the funds in this crowdfund.
+    /// @notice Place a bid on the NFT using the funds in this crowdfund,
+    ///         placing the minimum possible bid to be the highest bidder, up to
+    ///         `maximumBid`.
     function bid() external onlyDelegateCall {
+        // Check that the auction is still active.
         {
             CrowdfundLifecycle lc = getCrowdfundLifecycle();
             if (lc != CrowdfundLifecycle.Active) {
                 revert WrongLifecycleError(lc);
             }
         }
-        // Mark as busy to prevent burn(), bid(), and contribute()
+        // Mark as busy to prevent `burn()`, `bid()`, and `contribute()`
         // getting called because this will result in a `CrowdfundLifecycle.Busy`.
         _bidStatus = PartyBidStatus.Busy;
-
+        // Make sure the auction is not finalized.
         uint256 auctionId_ = auctionId;
         if (market.isFinalized(auctionId_)) {
             revert AuctionFinalizedError(auctionId_);
         }
+        // Only bid if we are not already the highest bidder.
         if (market.getCurrentHighestBidder(auctionId_) == address(this)) {
             revert AlreadyHighestBidderError();
         }
+        // Get the minimum necessary bid to be the highest bidder.
         uint96 bidAmount = market.getMinimumBid(auctionId_).safeCastUint256ToUint96();
+        // Make sure the bid is less than the maximum bid.
         if (bidAmount > maximumBid) {
             revert ExceedsMaximumBidError(bidAmount, maximumBid);
         }
         lastBid = bidAmount;
-        // No need to check that we have bidAmount since this will attempt to transfer
-        // bidAmount ETH to the auction platform.
+        // No need to check that we have `bidAmount` since this will attempt to
+        // transfer `bidAmount` ETH to the auction platform.
         (bool s, bytes memory r) = address(market).delegatecall(abi.encodeCall(
             IMarketWrapper.bid,
             (auctionId_, bidAmount)
@@ -170,11 +189,15 @@ contract PartyBid is Implementation, PartyCrowdfund {
     /// @notice Calls finalize() on the market adapter, which will claim the NFT
     ///         (if necessary) if we won, or recover our bid (if necessary)
     ///         if we lost. If we won, a governance party will also be created.
+    /// @param governanceOpts The options used to initialize governance in the
+    ///                       `Party` instance created if the crowdfund wins.
+    /// @return party_ Address of the `Party` instance created if successful.
     function finalize(FixedGovernanceOpts memory governanceOpts)
         external
         onlyDelegateCall
         returns (Party party_)
     {
+        // Check that the auction is still active and has not passed the `expiry` time.
         {
             CrowdfundLifecycle lc = getCrowdfundLifecycle();
             if (lc != CrowdfundLifecycle.Active && lc != CrowdfundLifecycle.Expired) {
@@ -218,7 +241,7 @@ contract PartyBid is Implementation, PartyCrowdfund {
             );
             emit Won(lastBid_, party_);
         } else {
-            // Clear lastBid so no _getFinalPrice() is 0 and people can redeem their
+            // Clear `lastBid` so `_getFinalPrice()` is 0 and people can redeem their
             // full contributions when they burn their participation NFTs.
             lastBid = 0;
             emit Lost();
@@ -243,7 +266,7 @@ contract PartyBid is Implementation, PartyCrowdfund {
                 : CrowdfundLifecycle.Lost;
         }
         if (block.timestamp >= expiry) {
-            // Expired. finalize() needs to be called.
+            // Expired. `finalize()` needs to be called.
             return CrowdfundLifecycle.Expired;
         }
         return CrowdfundLifecycle.Active;
