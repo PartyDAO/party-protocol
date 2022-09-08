@@ -232,4 +232,4 @@ This gatekeeper only allows contributions from holders of a specific token (e.g.
 
 ### AllowListGateKeeper
 
-This gatekeeper only allows contributions from addresses on an allowlist. The gatekeeper stores a [merkle root](https://www.investopedia.com/terms/m/merkle-root-cryptocurrency.asp) it uses to check whether an address belongs in the allowlist or not using [proof](https://github.com/Dragonfly-Capital/useful-solidity-patterns/tree/main/examples/merkle-proofs#merkle-proofs-1) provided along with their address. Each gate stores the merkle root it uses which is set when the gate is created.
+This gatekeeper only allows contributions from addresses on an allowlist. The gatekeeper stores a [merkle root](https://www.investopedia.com/terms/m/merkle-root-cryptocurrency.asp) it uses to check whether an address belongs in the allowlist or not using [proof](https://github.com/dragonfly-xyz/useful-solidity-patterns/tree/main/examples/merkle-proofs#merkle-proofs-1) provided along with their address. Each gate stores the merkle root it uses which is set when the gate is created.

@@ -47,7 +47,7 @@ contract ProposalExecutionEngine is
     // See `_getStorage()` for how this is addressed.
     //
     // Read this for more context on the pattern motivating this:
-    // https://github.com/Dragonfly-Capital/useful-solidity-patterns/tree/main/patterns/explicit-storage-buckets
+    // https://github.com/dragonfly-xyz/useful-solidity-patterns/tree/main/patterns/explicit-storage-buckets
     struct Storage {
         // The hash of the next `progressData` for the current `InProgress`
         // proposal. This is updated to the hash of the next `progressData` every
