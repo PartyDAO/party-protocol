@@ -92,7 +92,7 @@ abstract contract PartyCrowdfund is ERC721Receiver, PartyCrowdfundNFT {
     /// @notice The total (recorded) ETH contributed to this crowdfund.
     uint96 public totalContributions;
     /// @notice The gatekeeper contract to use (if non-null) to restrict who can
-    ///         Whether the share for split recipient has been claimed through `burn()`.
+    ///         contribute to the party.
     IGateKeeper public gateKeeper;
     /// @notice The ID of the gatekeeper strategy to use.
     bytes12 public gateKeeperId;
