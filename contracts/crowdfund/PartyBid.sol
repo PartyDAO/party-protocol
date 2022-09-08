@@ -187,7 +187,7 @@ contract PartyBid is Implementation, PartyCrowdfund {
 
         uint96 lastBid_ = lastBid;
         // Only finalize on the market if we placed a bid.
-        if (lastBid_ != 0) {
+        if (lastBid_ != 0 && !market.isFinalized(auctionId)) {
             // Note that even if this crowdfund has expired but the auction is still
             // ongoing, this call can fail and block finalization until the auction ends.
             (bool s, bytes memory r) = address(market).call(abi.encodeCall(

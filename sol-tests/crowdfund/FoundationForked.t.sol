@@ -122,8 +122,34 @@ contract FoundationForkedTest is TestUtils {
         assertTrue(foundationMarket.isFinalized(tokenId));
     }
 
+    function testForked_WinningFoundationAuction_finalizedBefore() external onlyForked {
+        // Bid on current Foundation auction.
+        pb.bid();
+
+        // Check that we are highest bidder.
+        uint256 lastBid = pb.lastBid();
+        (, , address highestBidder, uint256 endTime, uint256 highestBid, , , , ,) =
+            foundationHelper.getNFTDetails(address(nftContract), tokenId);
+        assertEq(lastBid, highestBid);
+        assertEq(address(pb), highestBidder);
+
+        // Wait for the auction to end and check that we won.
+        vm.warp(endTime + 1);
+
+        // Finalize the auction before `finalize()` is called by the crowdfund.
+        foundationMarket.finalize(auctionId);
+
+        // Finalize the crowdfund.
+        _expectEmit0();
+        emit Won(lastBid, Party(payable(address(party))));
+        pb.finalize(defaultGovOpts);
+        assertEq(nftContract.ownerOf(tokenId), address(party));
+        assertEq(address(pb.party()), address(party));
+        assertTrue(foundationMarket.isFinalized(tokenId));
+    }
+
     // Test creating a crowdfund party around a Foundation auction + losing the auction
-    function testForked_LosingNounAuction() external onlyForked {
+    function testForked_LosingFoundationAuction() external onlyForked {
         // Bid on current Foundation auction.
         pb.bid();
 
@@ -135,6 +161,30 @@ contract FoundationForkedTest is TestUtils {
         (, , , uint256 endTime, , , , , ,) =
             foundationHelper.getNFTDetails(address(nftContract), tokenId);
         vm.warp(endTime + 1);
+
+        // Finalize the crowdfund.
+        _expectEmit0();
+        emit Lost();
+        pb.finalize(defaultGovOpts);
+        assertEq(address(pb.party()), address(0));
+        assertTrue(foundationMarket.isFinalized(tokenId));
+    }
+
+    function testForked_LosingFoundationAuction_finalizedBefore() external onlyForked {
+        // Bid on current Foundation auction.
+        pb.bid();
+
+        // We outbid our own party (sneaky!)
+        vm.deal(address(this), 1001 ether);
+        foundation.placeBid{ value: 1001 ether }(auctionId);
+
+        // Wait for the auction to end and check that we lost.
+        (, , , uint256 endTime, , , , , ,) =
+            foundationHelper.getNFTDetails(address(nftContract), tokenId);
+        vm.warp(endTime + 1);
+
+        // Finalize the auction before `finalize()` is called by the crowdfund.
+        foundationMarket.finalize(auctionId);
 
         // Finalize the crowdfund.
         _expectEmit0();

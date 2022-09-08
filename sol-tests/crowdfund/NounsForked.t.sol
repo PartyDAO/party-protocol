@@ -98,6 +98,32 @@ contract NounsForkedTest is TestUtils {
         assertTrue(nounsMarket.isFinalized(tokenId));
     }
 
+    function testForked_WinningNounsAuction_finalizedBefore() external {
+        // Bid on current Noun auction.
+        pb.bid();
+
+        // Check that we are highest bidder.
+        uint256 lastBid = pb.lastBid();
+        (, uint256 highestBid, , , address payable highestBidder, )
+            = nounsAuctionHouse.auction();
+        assertEq(lastBid, highestBid);
+        assertEq(address(pb), highestBidder);
+
+        // Wait for the auction to end and check that we won.
+        skip(1 days);
+
+        // Finalize the auction before `finalize()` is called by the crowdfund.
+        nounsMarket.finalize(tokenId);
+
+        // Finalize the crowdfund.
+        _expectEmit0();
+        emit Won(lastBid, Party(payable(address(party))));
+        pb.finalize(defaultGovOpts);
+        assertEq(nounsToken.ownerOf(tokenId), address(party));
+        assertEq(address(pb.party()), address(party));
+        assertTrue(nounsMarket.isFinalized(tokenId));
+    }
+
     // Test creating a crowdfund party around a Noun + losing the auction
     function testForked_LosingNounAuction() external onlyForked {
         // Bid on current Noun auction.
@@ -109,6 +135,28 @@ contract NounsForkedTest is TestUtils {
 
         // Wait for the auction to end and check that we lost.
         skip(1 days);
+
+        // Finalize the crowdfund.
+        _expectEmit0();
+        emit Lost();
+        pb.finalize(defaultGovOpts);
+        assertEq(address(pb.party()), address(0));
+        assertTrue(nounsMarket.isFinalized(tokenId));
+    }
+
+    function testForked_LosingNounAuction_finalizeBefore() external onlyForked {
+        // Bid on current Noun auction.
+        pb.bid();
+
+        // We outbid our own party (sneaky!)
+        vm.deal(address(this), 1001 ether);
+        nounsAuctionHouse.createBid{ value: 1001 ether }(tokenId);
+
+        // Wait for the auction to end and check that we lost.
+        skip(1 days);
+
+        // Finalize the auction before `finalize()` is called by the crowdfund.
+        nounsMarket.finalize(tokenId);
 
         // Finalize the crowdfund.
         _expectEmit0();
