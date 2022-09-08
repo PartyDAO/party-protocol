@@ -888,7 +888,7 @@
     "outputs": [
       {
         "internalType": "bool",
-        "name": "",
+        "name": "success",
         "type": "bool"
       }
     ],
@@ -1128,7 +1128,7 @@
     "outputs": [
       {
         "internalType": "bytes32",
-        "name": "h",
+        "name": "proposalHash",
         "type": "bytes32"
       }
     ],
