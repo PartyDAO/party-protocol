@@ -3,9 +3,9 @@ pragma solidity ^0.8;
 
 import "forge-std/Test.sol";
 
-import "../../contracts/crowdfund/PartyBid.sol";
-import "../../contracts/crowdfund/PartyBuy.sol";
-import "../../contracts/crowdfund/PartyCollectionBuy.sol";
+import "../../contracts/crowdfund/AuctionCrowdfund.sol";
+import "../../contracts/crowdfund/BuyCrowdfund.sol";
+import "../../contracts/crowdfund/CollectionBuyCrowdfund.sol";
 import "../../contracts/globals/Globals.sol";
 import "../../contracts/globals/LibGlobals.sol";
 import "../../contracts/utils/PartyHelpers.sol";
@@ -16,8 +16,8 @@ import "../crowdfund/TestERC721Vault.sol";
 import "../DummyERC721.sol";
 import "../TestUtils.sol";
 
-contract PartyCrowdfundHelpers is Test, TestUtils {
-    string defaultName = 'PartyBid';
+contract CrowdfundHelpers is Test, TestUtils {
+    string defaultName = 'AuctionCrowdfund';
     string defaultSymbol = 'PBID';
     uint40 defaultDuration = 60 * 60;
     uint96 defaultMaxBid = 10e18;
@@ -27,12 +27,12 @@ contract PartyCrowdfundHelpers is Test, TestUtils {
     address defaultInitialDelegate;
     IGateKeeper defaultGateKeeper;
     bytes12 defaultGateKeeperId;
-    PartyCrowdfund.FixedGovernanceOpts defaultGovernanceOpts;
+    Crowdfund.FixedGovernanceOpts defaultGovernanceOpts;
 
     Globals globals;
-    PartyBid partyBidImpl;
-    PartyBuy partyBuyImpl;
-    PartyCollectionBuy partyCollectionBuyImpl;
+    AuctionCrowdfund auctionCrowdfundImpl;
+    BuyCrowdfund buyCrowdfundImpl;
+    CollectionBuyCrowdfund collectionBuyCrowdfundImpl;
     MockMarketWrapper market = new MockMarketWrapper();
     TestERC721Vault erc721Vault = new TestERC721Vault();
 
@@ -41,31 +41,31 @@ contract PartyCrowdfundHelpers is Test, TestUtils {
       globals = new Globals(address(this));
 
       // set partybid crowdfund implementation on globals
-      partyBidImpl = new PartyBid(globals);
-      globals.setAddress(LibGlobals.GLOBAL_PARTY_BID_IMPL, address(partyBidImpl));
+      auctionCrowdfundImpl = new AuctionCrowdfund(globals);
+      globals.setAddress(LibGlobals.GLOBAL_AUCTION_CF_IMPL, address(auctionCrowdfundImpl));
 
       // set partybuy crowdfund implementation on globals
-      partyBuyImpl = new PartyBuy(globals);
-      globals.setAddress(LibGlobals.GLOBAL_PARTY_BUY_IMPL, address(partyBuyImpl));
+      buyCrowdfundImpl = new BuyCrowdfund(globals);
+      globals.setAddress(LibGlobals.GLOBAL_BUY_CF_IMPL, address(buyCrowdfundImpl));
 
       // set partycollectionbuy crowdfund implementation on globals
-      partyCollectionBuyImpl = new PartyCollectionBuy(globals);
-      globals.setAddress(LibGlobals.GLOBAL_PARTY_COLLECTION_BUY_IMPL, address(partyCollectionBuyImpl));
+      collectionBuyCrowdfundImpl = new CollectionBuyCrowdfund(globals);
+      globals.setAddress(LibGlobals.GLOBAL_COLLECTION_BUY_CF_IMPL, address(collectionBuyCrowdfundImpl));
     }
 
-    function _createPartyBidCrowdfund(
+    function _createAuctionCrowdfundCrowdfund(
         uint256 auctionId,
         uint256 tokenId,
         uint96 initialContribution
     )
         private
-        returns (PartyBid pb)
+        returns (AuctionCrowdfund pb)
     {
-        pb = PartyBid(payable(address(new Proxy{ value: initialContribution }(
-            partyBidImpl,
+        pb = AuctionCrowdfund(payable(address(new Proxy{ value: initialContribution }(
+            auctionCrowdfundImpl,
             abi.encodeCall(
-                PartyBid.initialize,
-                PartyBid.PartyBidOptions({
+                AuctionCrowdfund.initialize,
+                AuctionCrowdfund.AuctionCrowdfundOptions({
                     name: defaultName,
                     symbol: defaultSymbol,
                     auctionId: auctionId,
@@ -86,15 +86,15 @@ contract PartyCrowdfundHelpers is Test, TestUtils {
         ))));
     }
 
-    function _createPartyBuyCrowdfund(uint96 initialContribution)
+    function _createBuyCrowdfundCrowdfund(uint96 initialContribution)
         private
-        returns (PartyBuy pb)
+        returns (BuyCrowdfund pb)
     {
-        pb = PartyBuy(payable(address(new Proxy{ value: initialContribution }(
-            partyBuyImpl,
+        pb = BuyCrowdfund(payable(address(new Proxy{ value: initialContribution }(
+            buyCrowdfundImpl,
             abi.encodeCall(
-                PartyBuy.initialize,
-                PartyBuy.PartyBuyOptions({
+                BuyCrowdfund.initialize,
+                BuyCrowdfund.BuyCrowdfundOptions({
                     name: defaultName,
                     symbol: defaultSymbol,
                     nftContract: erc721Vault.token(),
@@ -113,15 +113,15 @@ contract PartyCrowdfundHelpers is Test, TestUtils {
         ))));
     }
 
-    function _createPartyCollectionBuyCrowdfund(uint96 initialContribution)
+    function _createCollectionBuyCrowdfundCrowdfund(uint96 initialContribution)
         private
-        returns (PartyCollectionBuy pb)
+        returns (CollectionBuyCrowdfund pb)
     {
-        pb = PartyCollectionBuy(payable(address(new Proxy{ value: initialContribution }(
-            partyCollectionBuyImpl,
+        pb = CollectionBuyCrowdfund(payable(address(new Proxy{ value: initialContribution }(
+            collectionBuyCrowdfundImpl,
             abi.encodeCall(
-                PartyCollectionBuy.initialize,
-                PartyCollectionBuy.PartyCollectionBuyOptions({
+                CollectionBuyCrowdfund.initialize,
+                CollectionBuyCrowdfund.CollectionBuyCrowdfundOptions({
                     name: defaultName,
                     symbol: defaultSymbol,
                     nftContract: erc721Vault.token(),
@@ -139,11 +139,11 @@ contract PartyCrowdfundHelpers is Test, TestUtils {
         ))));
     }
 
-    function testGetPartyBidCrowdfundType() public {
+    function testGetAuctionCrowdfundCrowdfundType() public {
       (uint256 auctionId, uint256 tokenId) = market.createAuction(1337);
 
       // create partybid crowdfund
-      PartyBid pbid = _createPartyBidCrowdfund(auctionId, tokenId, 0);
+      AuctionCrowdfund pbid = _createAuctionCrowdfundCrowdfund(auctionId, tokenId, 0);
 
       // create party helpers
       PartyHelpers ph = new PartyHelpers();
@@ -152,9 +152,9 @@ contract PartyCrowdfundHelpers is Test, TestUtils {
       assertEq(uint256(cft), 0);
     }
 
-    function testGetPartyBuyCrowdfundType() public {
+    function testGetBuyCrowdfundCrowdfundType() public {
       // create partybuy crowdfund
-      PartyBuy pbuy = _createPartyBuyCrowdfund(0);
+      BuyCrowdfund pbuy = _createBuyCrowdfundCrowdfund(0);
 
       // create party helpers
       PartyHelpers ph = new PartyHelpers();
@@ -163,9 +163,9 @@ contract PartyCrowdfundHelpers is Test, TestUtils {
       assertEq(uint256(cft), 1);
     }
 
-    function testGetPartyCollectionBuyCrowdfundType() public {
+    function testGetCollectionBuyCrowdfundCrowdfundType() public {
       // create partycollectionbuy crowdfund
-      PartyCollectionBuy pcb = _createPartyCollectionBuyCrowdfund(0);
+      CollectionBuyCrowdfund pcb = _createCollectionBuyCrowdfundCrowdfund(0);
 
       // create party helpers
       PartyHelpers ph = new PartyHelpers();

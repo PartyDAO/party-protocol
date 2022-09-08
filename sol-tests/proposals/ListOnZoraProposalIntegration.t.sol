@@ -49,8 +49,8 @@ contract ListOnZoraProposalIntegrationTest is
 
       ProposalExecutionEngine pe = new ProposalExecutionEngine(
           globals,
-          ISeaportExchange(address(0)),
-          ISeaportConduitController(address(0)),
+          IOpenseaExchange(address(0)),
+          IOpenseaConduitController(address(0)),
           ZORA,
           IFractionalV1VaultFactory(address(0))
       );

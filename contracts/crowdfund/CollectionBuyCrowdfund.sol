@@ -8,15 +8,18 @@ import "../utils/LibRawResult.sol";
 import "../globals/IGlobals.sol";
 import "../gatekeepers/IGateKeeper.sol";
 
-import "./PartyBuyBase.sol";
+import "./BuyCrowdfundBase.sol";
 
-/// @notice A crowdfund that purchases a specific NFT (i.e., with a known token
-///         ID) listing for a known price.
-contract PartyBuy is PartyBuyBase {
+/// @notice A crowdfund that purchases any NFT from a collection (i.e., any
+/// token ID) from a collection for a known price. Like `BuyCrowdfund` but allows
+/// any token ID to be bought.
+contract CollectionBuyCrowdfund is BuyCrowdfundBase {
     using LibSafeERC721 for IERC721;
     using LibSafeCast for uint256;
 
-    struct PartyBuyOptions {
+    error OnlyPartyHostError();
+
+    struct CollectionBuyCrowdfundOptions {
         // The name of the crowdfund.
         // This will also carry over to the governance party.
         string name;
@@ -24,8 +27,6 @@ contract PartyBuy is PartyBuyBase {
         string symbol;
         // The ERC721 contract of the NFT being bought.
         IERC721 nftContract;
-        // ID of the NFT being bought.
-        uint256 nftTokenId;
         // How long this crowdfund has to bid on the NFT, in seconds.
         uint40 duration;
         // Maximum amount this crowdfund will pay for the NFT.
@@ -53,24 +54,38 @@ contract PartyBuy is PartyBuyBase {
         FixedGovernanceOpts governanceOpts;
     }
 
-    /// @notice The NFT token ID to buy.
-    uint256 public nftTokenId;
     /// @notice The NFT contract to buy.
     IERC721 public nftContract;
 
+    modifier onlyHost(address[] memory hosts) {
+        bool isHost;
+        for (uint256 i; i < hosts.length; i++) {
+            if (hosts[i] == msg.sender) {
+                isHost = true;
+                break;
+            }
+        }
+
+        if (!isHost) {
+            revert OnlyPartyHostError();
+        }
+
+        _;
+    }
+
     // Set the `Globals` contract.
-    constructor(IGlobals globals) PartyBuyBase(globals) {}
+    constructor(IGlobals globals) BuyCrowdfundBase(globals) {}
 
     /// @notice Initializer to be delegatecalled by `Proxy` constructor. Will
     ///         revert if called outside the constructor.
     /// @param opts Options used to initialize the crowdfund. These are fixed
     ///             and cannot be changed later.
-    function initialize(PartyBuyOptions memory opts)
+    function initialize(CollectionBuyCrowdfundOptions memory opts)
         external
         payable
         onlyConstructor
     {
-        PartyBuyBase._initialize(PartyBuyBaseOptions({
+        BuyCrowdfundBase._initialize(BuyCrowdfundBaseOptions({
             name: opts.name,
             symbol: opts.symbol,
             duration: opts.duration,
@@ -83,12 +98,12 @@ contract PartyBuy is PartyBuyBase {
             gateKeeperId: opts.gateKeeperId,
             governanceOpts: opts.governanceOpts
         }));
-        nftTokenId = opts.nftTokenId;
         nftContract = opts.nftContract;
     }
 
     /// @notice Execute arbitrary calldata to perform a buy, creating a party
     ///         if it successfully buys the NFT.
+    /// @param tokenId The token ID of the NFT in the collection to buy.
     /// @param callTarget The target contract to call to buy the NFT.
     /// @param callValue The amount of ETH to send with the call.
     /// @param callData The calldata to execute.
@@ -96,17 +111,19 @@ contract PartyBuy is PartyBuyBase {
     ///                       `Party` instance created if the buy was successful.
     /// @return party_ Address of the `Party` instance created after its bought.
     function buy(
+        uint256 tokenId,
         address payable callTarget,
         uint96 callValue,
         bytes calldata callData,
         FixedGovernanceOpts memory governanceOpts
     )
         external
+        onlyHost(governanceOpts.hosts)
         returns (Party party_)
     {
         return _buy(
             nftContract,
-            nftTokenId,
+            tokenId,
             callTarget,
             callValue,
             callData,

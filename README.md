@@ -1,6 +1,6 @@
-# Party Bid V2
+# Party Protocol
 
-The PartyBid V1 protocol allowed people to pool funds together to acquire NFTs. PartyBid V2 adds new features to allow parties to use and govern those NFTs together as well. The party never ends!
+The PartyBid V1 protocol allowed people to pool funds together to acquire NFTs. V2 (Party Protocol) adds new features to allow parties to use and govern those NFTs together as well. The party never ends!
 
 ## Layout
 
@@ -12,12 +12,12 @@ docs/ # Start here
 contracts/
 │   # Used during the crowdfund phase
 ├── crowdfund/
-│   ├── PartyBid.sol
-│   ├── PartyBuy.sol
-│   ├── PartyCollectionBuy.sol
-│   ├── PartyCrowdfundFactory.sol
-│   ├── PartyCrowdfund.sol
-│   └── PartyCrowdfundNFT.sol
+│   ├── AuctionCrowdfund.sol
+│   ├── BuyCrowdfund.sol
+│   ├── CollectionBuyCrowdfund.sol
+│   ├── CrowdfundFactory.sol
+│   ├── Crowdfund.sol
+│   └── CrowdfundNFT.sol
 ├── gatekeepers/
 │   ├── AllowListGateKeeper.sol
 │   └── TokenGateKeeper.sol
@@ -33,13 +33,13 @@ contracts/
 │   ├── ProposalExecutionEngine.sol
 │   ├── ArbitraryCallsProposal.sol
 │   ├── FractionalizeProposal.sol
-│   ├── ListOnOpenSeaportProposal.sol
+│   ├── ListOnOpenseaProposal.sol
 │   └── ListOnZoraProposal.sol
 ├── distribution/
 │   └── TokenDistributor.sol
 |   # Used to render crowdfund and governance NFTs
 └── renderers/
-    ├── PartyCrowdfundNFTRenderer.sol
+    ├── CrowdfundNFTRenderer.sol
     └── PartyGovernanceNFTRenderer.sol
 sol-tests/ # Foundry tests
 tests/ # TS tests
@@ -73,6 +73,8 @@ yarn test:ts
 
 ```bash
 yarn test:sol
+# If you want gas reports:
+yarn test:sol --gas-report
 ```
 
 ### Run forked Foundry tests

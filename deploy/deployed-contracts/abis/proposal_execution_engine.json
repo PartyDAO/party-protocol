@@ -7,12 +7,12 @@
         "type": "address"
       },
       {
-        "internalType": "contract ISeaportExchange",
+        "internalType": "contract IOpenseaExchange",
         "name": "seaport",
         "type": "address"
       },
       {
-        "internalType": "contract ISeaportConduitController",
+        "internalType": "contract IOpenseaConduitController",
         "name": "seaportConduitController",
         "type": "address"
       },
@@ -116,7 +116,7 @@
         "type": "uint256"
       }
     ],
-    "name": "OpenSeaportOrderStillActiveError",
+    "name": "OpenseaOrderStillActiveError",
     "type": "error"
   },
   {
@@ -348,7 +348,7 @@
         "type": "uint256"
       }
     ],
-    "name": "OpenSeaportOrderExpired",
+    "name": "OpenseaOrderExpired",
     "type": "event"
   },
   {
@@ -369,7 +369,7 @@
           {
             "components": [
               {
-                "internalType": "enum ISeaportExchange.ItemType",
+                "internalType": "enum IOpenseaExchange.ItemType",
                 "name": "itemType",
                 "type": "uint8"
               },
@@ -394,14 +394,14 @@
                 "type": "uint256"
               }
             ],
-            "internalType": "struct ISeaportExchange.OfferItem[]",
+            "internalType": "struct IOpenseaExchange.OfferItem[]",
             "name": "offer",
             "type": "tuple[]"
           },
           {
             "components": [
               {
-                "internalType": "enum ISeaportExchange.ItemType",
+                "internalType": "enum IOpenseaExchange.ItemType",
                 "name": "itemType",
                 "type": "uint8"
               },
@@ -431,12 +431,12 @@
                 "type": "address"
               }
             ],
-            "internalType": "struct ISeaportExchange.ConsiderationItem[]",
+            "internalType": "struct IOpenseaExchange.ConsiderationItem[]",
             "name": "consideration",
             "type": "tuple[]"
           },
           {
-            "internalType": "enum ISeaportExchange.OrderType",
+            "internalType": "enum IOpenseaExchange.OrderType",
             "name": "orderType",
             "type": "uint8"
           },
@@ -472,7 +472,7 @@
           }
         ],
         "indexed": false,
-        "internalType": "struct ISeaportExchange.OrderParameters",
+        "internalType": "struct IOpenseaExchange.OrderParameters",
         "name": "orderParams",
         "type": "tuple"
       },
@@ -507,7 +507,7 @@
         "type": "uint256"
       }
     ],
-    "name": "OpenSeaportOrderListed",
+    "name": "OpenseaOrderListed",
     "type": "event"
   },
   {
@@ -538,7 +538,7 @@
         "type": "uint256"
       }
     ],
-    "name": "OpenSeaportOrderSold",
+    "name": "OpenseaOrderSold",
     "type": "event"
   },
   {
@@ -565,7 +565,7 @@
       {
         "components": [
           {
-            "internalType": "enum ISeaportExchange.ItemType",
+            "internalType": "enum IOpenseaExchange.ItemType",
             "name": "itemType",
             "type": "uint8"
           },
@@ -591,14 +591,14 @@
           }
         ],
         "indexed": false,
-        "internalType": "struct ISeaportExchange.OfferItem[]",
+        "internalType": "struct IOpenseaExchange.OfferItem[]",
         "name": "offer",
         "type": "tuple[]"
       },
       {
         "components": [
           {
-            "internalType": "enum ISeaportExchange.ItemType",
+            "internalType": "enum IOpenseaExchange.ItemType",
             "name": "itemType",
             "type": "uint8"
           },
@@ -629,13 +629,13 @@
           }
         ],
         "indexed": false,
-        "internalType": "struct ISeaportExchange.ConsiderationItem[]",
+        "internalType": "struct IOpenseaExchange.ConsiderationItem[]",
         "name": "consideration",
         "type": "tuple[]"
       },
       {
         "indexed": false,
-        "internalType": "enum ISeaportExchange.OrderType",
+        "internalType": "enum IOpenseaExchange.OrderType",
         "name": "orderType",
         "type": "uint8"
       },
@@ -791,7 +791,7 @@
     "name": "CONDUIT_CONTROLLER",
     "outputs": [
       {
-        "internalType": "contract ISeaportConduitController",
+        "internalType": "contract IOpenseaConduitController",
         "name": "",
         "type": "address"
       }
@@ -817,7 +817,7 @@
     "name": "SEAPORT",
     "outputs": [
       {
-        "internalType": "contract ISeaportExchange",
+        "internalType": "contract IOpenseaExchange",
         "name": "",
         "type": "address"
       }

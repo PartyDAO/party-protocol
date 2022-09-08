@@ -1,18 +1,18 @@
 // SPDX-License-Identifier: Apache-2.0
 pragma solidity ^0.8;
 
-import "../../contracts/crowdfund/PartyCrowdfund.sol";
+import "../../contracts/crowdfund/Crowdfund.sol";
 
 
-contract TestablePartyCrowdfund is PartyCrowdfund {
+contract TestableCrowdfund is Crowdfund {
 
     uint256 public finalPrice;
     CrowdfundLifecycle public lifeCycle = CrowdfundLifecycle.Active;
     FixedGovernanceOpts public govOpts;
 
-    constructor(IGlobals globals, PartyCrowdfundOptions memory opts)
+    constructor(IGlobals globals, CrowdfundOptions memory opts)
         payable
-        PartyCrowdfund(globals)
+        Crowdfund(globals)
     {
         _initialize(opts);
         govOpts = opts.governanceOpts;

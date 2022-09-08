@@ -9,17 +9,17 @@ import "../utils/LibRawResult.sol";
 import "../globals/IGlobals.sol";
 import "../gatekeepers/IGateKeeper.sol";
 
-import "./IMarketWrapper.sol";
-import "./PartyCrowdfund.sol";
+import "../market-wrapper/IMarketWrapper.sol";
+import "./Crowdfund.sol";
 
 /// @notice A crowdfund that can repeatedly bid on an auction for a specific NFT
 ///         (i.e. with a known token ID) until it wins.
-contract PartyBid is Implementation, PartyCrowdfund {
+contract AuctionCrowdfund is Implementation, Crowdfund {
     using LibSafeERC721 for IERC721;
     using LibSafeCast for uint256;
     using LibRawResult for bytes;
 
-    enum PartyBidStatus {
+    enum AuctionCrowdfundStatus {
         // The crowdfund has been created and contributions can be made and
         // acquisition functions may be called.
         Active,
@@ -30,7 +30,7 @@ contract PartyBid is Implementation, PartyCrowdfund {
         Finalized
     }
 
-    struct PartyBidOptions {
+    struct AuctionCrowdfundOptions {
         // The name of the crowdfund.
         // This will also carry over to the governance party.
         string name;
@@ -97,16 +97,16 @@ contract PartyBid is Implementation, PartyCrowdfund {
     ///         by this time, participants can withdraw their contributions.
     uint40 public expiry;
     // Track extra status of the crowdfund specific to bids.
-    PartyBidStatus private _bidStatus;
+    AuctionCrowdfundStatus private _bidStatus;
 
     // Set the `Globals` contract.
-    constructor(IGlobals globals) PartyCrowdfund(globals) {}
+    constructor(IGlobals globals) Crowdfund(globals) {}
 
     /// @notice Initializer to be delegatecalled by `Proxy` constructor. Will
     ///         revert if called outside the constructor.
     /// @param opts Options used to initialize the crowdfund. These are fixed
     ///             and cannot be changed later.
-    function initialize(PartyBidOptions memory opts)
+    function initialize(AuctionCrowdfundOptions memory opts)
         external
         payable
         onlyConstructor
@@ -117,7 +117,7 @@ contract PartyBid is Implementation, PartyCrowdfund {
         expiry = uint40(opts.duration + block.timestamp);
         auctionId = opts.auctionId;
         maximumBid = opts.maximumBid;
-        PartyCrowdfund._initialize(PartyCrowdfundOptions({
+        Crowdfund._initialize(CrowdfundOptions({
             name: opts.name,
             symbol: opts.symbol,
             splitRecipient: opts.splitRecipient,
@@ -155,7 +155,7 @@ contract PartyBid is Implementation, PartyCrowdfund {
         }
         // Mark as busy to prevent `burn()`, `bid()`, and `contribute()`
         // getting called because this will result in a `CrowdfundLifecycle.Busy`.
-        _bidStatus = PartyBidStatus.Busy;
+        _bidStatus = AuctionCrowdfundStatus.Busy;
         // Make sure the auction is not finalized.
         uint256 auctionId_ = auctionId;
         if (market.isFinalized(auctionId_)) {
@@ -183,7 +183,7 @@ contract PartyBid is Implementation, PartyCrowdfund {
         }
         emit Bid(bidAmount);
 
-        _bidStatus = PartyBidStatus.Active;
+        _bidStatus = AuctionCrowdfundStatus.Active;
     }
 
     /// @notice Calls finalize() on the market adapter, which will claim the NFT
@@ -206,7 +206,7 @@ contract PartyBid is Implementation, PartyCrowdfund {
         }
         // Mark as busy to prevent burn(), bid(), and contribute()
         // getting called because this will result in a `CrowdfundLifecycle.Busy`.
-        _bidStatus = PartyBidStatus.Busy;
+        _bidStatus = AuctionCrowdfundStatus.Busy;
 
         uint96 lastBid_ = lastBid;
         // Only finalize on the market if we placed a bid.
@@ -247,18 +247,18 @@ contract PartyBid is Implementation, PartyCrowdfund {
             emit Lost();
         }
 
-        _bidStatus = PartyBidStatus.Finalized;
+        _bidStatus = AuctionCrowdfundStatus.Finalized;
     }
 
-    /// @inheritdoc PartyCrowdfund
+    /// @inheritdoc Crowdfund
     function getCrowdfundLifecycle() public override view returns (CrowdfundLifecycle) {
         // Do not rely on `market.isFinalized()` in case `auctionId` gets reused.
-        PartyBidStatus status = _bidStatus;
-        if (status == PartyBidStatus.Busy) {
+        AuctionCrowdfundStatus status = _bidStatus;
+        if (status == AuctionCrowdfundStatus.Busy) {
             // In the midst of finalizing/bidding (trying to reenter).
             return CrowdfundLifecycle.Busy;
         }
-        if (status == PartyBidStatus.Finalized) {
+        if (status == AuctionCrowdfundStatus.Finalized) {
             return address(party) != address(0)
                 // If we're fully finalized and we have a party instance then we won.
                 ? CrowdfundLifecycle.Won

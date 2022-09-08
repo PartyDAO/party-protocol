@@ -3,12 +3,12 @@ pragma solidity ^0.8;
 
 import "forge-std/Test.sol";
 
-import "../../contracts/crowdfund/PartyBid.sol";
-import "../../contracts/crowdfund/PartyCrowdfund.sol";
+import "../../contracts/crowdfund/AuctionCrowdfund.sol";
+import "../../contracts/crowdfund/Crowdfund.sol";
 import "../../contracts/globals/Globals.sol";
 import "../../contracts/globals/LibGlobals.sol";
 import "../../contracts/utils/Proxy.sol";
-import "../../contracts/proposals/vendor/IZoraAuctionHouse.sol";
+import "../../contracts/vendor/markets/IZoraAuctionHouse.sol";
 
 import "./MockPartyFactory.sol";
 import "./MockParty.sol";
@@ -24,10 +24,10 @@ contract ZoraForkedTest is TestUtils, ERC721Receiver {
     Globals globals = new Globals(address(this));
     MockPartyFactory partyFactory = new MockPartyFactory();
     MockParty party = partyFactory.mockParty();
-    PartyBid pbImpl = new PartyBid(globals);
-    PartyBid pb;
+    AuctionCrowdfund pbImpl = new AuctionCrowdfund(globals);
+    AuctionCrowdfund pb;
 
-    PartyCrowdfund.FixedGovernanceOpts defaultGovOpts;
+    Crowdfund.FixedGovernanceOpts defaultGovOpts;
 
     // Initialize Zora contracts
     IZoraAuctionHouse zora =
@@ -57,15 +57,15 @@ contract ZoraForkedTest is TestUtils, ERC721Receiver {
             IERC20(address(0)) // Indicates ETH sale
         );
 
-        // Create a PartyBid crowdfund
-        pb = PartyBid(
+        // Create a AuctionCrowdfund crowdfund
+        pb = AuctionCrowdfund(
             payable(
                 address(
                     new Proxy(
                         pbImpl,
                         abi.encodeCall(
-                            PartyBid.initialize,
-                            PartyBid.PartyBidOptions({
+                            AuctionCrowdfund.initialize,
+                            AuctionCrowdfund.AuctionCrowdfundOptions({
                                 name: "Party",
                                 symbol: "PRTY",
                                 auctionId: auctionId,

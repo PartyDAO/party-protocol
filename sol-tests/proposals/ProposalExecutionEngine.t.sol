@@ -38,8 +38,8 @@ contract ProposalExecutionEngineTest is
         );
         eng = new TestableProposalExecutionEngine(
             globals,
-            ISeaportExchange(_randomAddress()),
-            ISeaportConduitController(_randomAddress()),
+            IOpenseaExchange(_randomAddress()),
+            IOpenseaConduitController(_randomAddress()),
             IZoraAuctionHouse(_randomAddress()),
             IFractionalV1VaultFactory(_randomAddress())
         );
@@ -70,7 +70,7 @@ contract ProposalExecutionEngineTest is
         returns (bytes memory)
     {
         return abi.encodeWithSelector(
-            bytes4(uint32(ProposalExecutionEngine.ProposalType.ListOnOpenSeaport)),
+            bytes4(uint32(ProposalExecutionEngine.ProposalType.ListOnOpensea)),
             emitValue1,
             emitValue2
         );

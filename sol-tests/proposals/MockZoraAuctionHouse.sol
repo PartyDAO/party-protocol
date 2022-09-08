@@ -5,7 +5,7 @@ import "forge-std/Test.sol";
 
 import "../../contracts/tokens/IERC20.sol";
 import "../../contracts/tokens/IERC721.sol";
-import "../../contracts/proposals/vendor/IZoraAuctionHouse.sol";
+import "../../contracts/vendor/markets/IZoraAuctionHouse.sol";
 
 contract MockZoraAuctionHouse is IZoraAuctionHouse {
     uint256 public lastAuctionId = 8000;
@@ -30,15 +30,19 @@ contract MockZoraAuctionHouse is IZoraAuctionHouse {
         revert('no implementado');
     }
 
-    function endAuction(uint256) external {
+    function endAuction(uint256) external pure {
         revert('no implementado');
     }
 
-    function cancelAuction(uint256) external {
+    function cancelAuction(uint256) external pure {
         revert('no implementado');
     }
 
-    function auctions(uint256) external returns (Auction memory) {
+    function auctions(uint256) external pure returns (Auction memory) {
+        revert('no implementado');
+    }
+
+    function minBidIncrementPercentage() external pure returns (uint8) {
         revert('no implementado');
     }
 }

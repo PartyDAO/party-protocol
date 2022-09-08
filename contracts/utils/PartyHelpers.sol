@@ -28,7 +28,7 @@ contract PartyHelpers {
     }
 
     ////////////////////////////
-    // PartyCrowdfund helpers //
+    // Crowdfund helpers //
     ////////////////////////////
 
     function getCrowdfundType(address globals, address crowdfund)
@@ -39,11 +39,11 @@ contract PartyHelpers {
         IGlobals g = IGlobals(globals);
         Implementation cf = Implementation(crowdfund);
         address impl = cf.IMPL();
-        if (impl == g.getImplementation(LibGlobals.GLOBAL_PARTY_BID_IMPL).IMPL()) {
+        if (impl == g.getImplementation(LibGlobals.GLOBAL_AUCTION_CF_IMPL).IMPL()) {
             return CrowdfundType.Bid;
-        } else if (impl == g.getImplementation(LibGlobals.GLOBAL_PARTY_BUY_IMPL).IMPL()) {
+        } else if (impl == g.getImplementation(LibGlobals.GLOBAL_BUY_CF_IMPL).IMPL()) {
             return CrowdfundType.Buy;
-        } else if (impl == g.getImplementation(LibGlobals.GLOBAL_PARTY_COLLECTION_BUY_IMPL).IMPL()) {
+        } else if (impl == g.getImplementation(LibGlobals.GLOBAL_COLLECTION_BUY_CF_IMPL).IMPL()) {
             return CrowdfundType.CollectionBuy;
         }
         revert("PartyHelpers::Unknown CrowdfundType");

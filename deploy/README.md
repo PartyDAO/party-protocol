@@ -54,7 +54,7 @@ Other flag options
 --verify # verifies contract source on etherscan. can also be done separately with the `forge verify-contract` command
 ```
 
-### PartyBid v1 HardHat configs
+### AuctionCrowdfund v1 HardHat configs
 
 - [hardhat config](https://github.com/PartyDAO/partybid/blob/main/hardhat.config.js)
 - [mainnet config](https://github.com/PartyDAO/partybid/blob/main/deploy/configs/mainnet.json)

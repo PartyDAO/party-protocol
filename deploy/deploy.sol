@@ -3,10 +3,10 @@ pragma solidity ^0.8;
 
 import 'forge-std/Script.sol';
 
-import '../contracts/crowdfund/PartyBid.sol';
-import '../contracts/crowdfund/PartyBuy.sol';
-import '../contracts/crowdfund/PartyCollectionBuy.sol';
-import '../contracts/crowdfund/PartyCrowdfundFactory.sol';
+import '../contracts/crowdfund/AuctionCrowdfund.sol';
+import '../contracts/crowdfund/BuyCrowdfund.sol';
+import '../contracts/crowdfund/CollectionBuyCrowdfund.sol';
+import '../contracts/crowdfund/CrowdfundFactory.sol';
 import '../contracts/distribution/TokenDistributor.sol';
 import '../contracts/gatekeepers/AllowListGateKeeper.sol';
 import '../contracts/gatekeepers/TokenGateKeeper.sol';
@@ -15,7 +15,7 @@ import '../contracts/globals/Globals.sol';
 import '../contracts/globals/LibGlobals.sol';
 import '../contracts/party/Party.sol';
 import '../contracts/party/PartyFactory.sol';
-import '../contracts/renderers/PartyCrowdfundNFTRenderer.sol';
+import '../contracts/renderers/CrowdfundNFTRenderer.sol';
 import '../contracts/renderers/PartyGovernanceNFTRenderer.sol';
 import '../contracts/proposals/ProposalExecutionEngine.sol';
 import '../contracts/utils/PartyHelpers.sol';
@@ -36,16 +36,16 @@ contract Deploy is Script {
   // temporary variables to store deployed contract addresses
   Globals globals;
   IZoraAuctionHouse zoraAuctionHouse;
-  PartyBid partyBidImpl;
-  PartyBuy partyBuyImpl;
-  PartyCollectionBuy partyCollectionBuyImpl;
-  PartyCrowdfundFactory partyCrowdfundFactory;
+  AuctionCrowdfund auctionCrowdfundImpl;
+  BuyCrowdfund buyCrowdfundImpl;
+  CollectionBuyCrowdfund collectionBuyCrowdfundImpl;
+  CrowdfundFactory partyCrowdfundFactory;
   Party partyImpl;
   PartyFactory partyFactory;
-  ISeaportExchange seaport;
+  IOpenseaExchange seaport;
   ProposalExecutionEngine proposalEngineImpl;
   TokenDistributor tokenDistributor;
-  PartyCrowdfundNFTRenderer partyCrowdfundNFTRenderer;
+  CrowdfundNFTRenderer partyCrowdfundNFTRenderer;
   PartyGovernanceNFTRenderer partyGovernanceNFTRenderer;
   PartyHelpers partyHelpers;
   IGateKeeper allowListGateKeeper;
@@ -56,7 +56,7 @@ contract Deploy is Script {
     console.log('DEPLOYER_ADDRESS', DEPLOYER_ADDRESS);
     vm.startBroadcast();
 
-    seaport = ISeaportExchange(deployConstants.seaportExchangeAddress);
+    seaport = IOpenseaExchange(deployConstants.seaportExchangeAddress);
 
     // DEPLOY_GLOBALS
     console.log('');
@@ -140,7 +140,7 @@ contract Deploy is Script {
     console.log('### ProposalExecutionEngine');
     console.log('  Deploying - ProposalExecutionEngine');
     zoraAuctionHouse = IZoraAuctionHouse(deployConstants.zoraAuctionHouseAddress);
-    ISeaportConduitController conduitController = ISeaportConduitController(deployConstants.osConduitController);
+    IOpenseaConduitController conduitController = IOpenseaConduitController(deployConstants.osConduitController);
     IFractionalV1VaultFactory fractionalVaultFactory = IFractionalV1VaultFactory(deployConstants.fractionalVaultFactory);
     proposalEngineImpl = new ProposalExecutionEngine(globals, seaport, conduitController, zoraAuctionHouse, fractionalVaultFactory);
     console.log('  Deployed - ProposalExecutionEngine', address(proposalEngineImpl));
@@ -179,63 +179,63 @@ contract Deploy is Script {
     console.log('  Globals - successfully set Party Factory address', address(partyFactory));
 
 
-    // DEPLOY_PARTY_BID_IMPLEMENTATION
+    // DEPLOY_AUCTION_CF_IMPLEMENTATION
     console.log('');
-    console.log('### PartyBid crowdfund implementation');
-    console.log('  Deploying - PartyBid crowdfund implementation');
-    partyBidImpl = new PartyBid(globals);
-    console.log('  Deployed - PartyBid crowdfund implementation', address(partyBidImpl));
-
-    console.log('');
-    console.log('  Globals - setting PartyBid crowdfund implementation address');
-    globals.setAddress(LibGlobals.GLOBAL_PARTY_BID_IMPL, address(partyBidImpl));
-    console.log('  Globals - successfully set PartyBid crowdfund implementation address', address(partyBidImpl));
-
-
-    // DEPLOY_PARTY_BUY_IMPLEMENTATION
-    console.log('');
-    console.log('### PartyBuy crowdfund implementation');
-    console.log('  Deploying - PartyBuy crowdfund implementation');
-    partyBuyImpl = new PartyBuy(globals);
-    console.log('  Deployed - PartyBuy crowdfund implementation', address(partyBuyImpl));
+    console.log('### AuctionCrowdfund crowdfund implementation');
+    console.log('  Deploying - AuctionCrowdfund crowdfund implementation');
+    auctionCrowdfundImpl = new AuctionCrowdfund(globals);
+    console.log('  Deployed - AuctionCrowdfund crowdfund implementation', address(auctionCrowdfundImpl));
 
     console.log('');
-    console.log('  Globals - setting PartyBuy crowdfund implementation address');
-    globals.setAddress(LibGlobals.GLOBAL_PARTY_BUY_IMPL, address(partyBuyImpl));
-    console.log('  Globals - successfully set PartyBuy crowdfund implementation address', address(partyBuyImpl));
+    console.log('  Globals - setting AuctionCrowdfund crowdfund implementation address');
+    globals.setAddress(LibGlobals.GLOBAL_AUCTION_CF_IMPL, address(auctionCrowdfundImpl));
+    console.log('  Globals - successfully set AuctionCrowdfund crowdfund implementation address', address(auctionCrowdfundImpl));
 
 
-    // DEPLOY_PARTY_COLLECTION_BUY_IMPLEMENTATION
+    // DEPLOY_BUY_CF_IMPLEMENTATION
     console.log('');
-    console.log('### PartyCollectionBuy crowdfund implementation');
-    console.log('  Deploying - PartyCollectionBuy crowdfund implementation');
-    partyCollectionBuyImpl = new PartyCollectionBuy(globals);
-    console.log('  Deployed - PartyCollectionBuy crowdfund implementation', address(partyCollectionBuyImpl));
+    console.log('### BuyCrowdfund crowdfund implementation');
+    console.log('  Deploying - BuyCrowdfund crowdfund implementation');
+    buyCrowdfundImpl = new BuyCrowdfund(globals);
+    console.log('  Deployed - BuyCrowdfund crowdfund implementation', address(buyCrowdfundImpl));
 
     console.log('');
-    console.log('  Globals - setting PartyCollectionBuy crowdfund implementation address');
-    globals.setAddress(LibGlobals.GLOBAL_PARTY_COLLECTION_BUY_IMPL, address(partyCollectionBuyImpl));
-    console.log('  Globals - successfully set PartyCollectionBuy crowdfund implementation address', address(partyCollectionBuyImpl));
+    console.log('  Globals - setting BuyCrowdfund crowdfund implementation address');
+    globals.setAddress(LibGlobals.GLOBAL_BUY_CF_IMPL, address(buyCrowdfundImpl));
+    console.log('  Globals - successfully set BuyCrowdfund crowdfund implementation address', address(buyCrowdfundImpl));
+
+
+    // DEPLOY_COLLECTION_BUY_CF_IMPLEMENTATION
+    console.log('');
+    console.log('### CollectionBuyCrowdfund crowdfund implementation');
+    console.log('  Deploying - CollectionBuyCrowdfund crowdfund implementation');
+    collectionBuyCrowdfundImpl = new CollectionBuyCrowdfund(globals);
+    console.log('  Deployed - CollectionBuyCrowdfund crowdfund implementation', address(collectionBuyCrowdfundImpl));
+
+    console.log('');
+    console.log('  Globals - setting CollectionBuyCrowdfund crowdfund implementation address');
+    globals.setAddress(LibGlobals.GLOBAL_COLLECTION_BUY_CF_IMPL, address(collectionBuyCrowdfundImpl));
+    console.log('  Globals - successfully set CollectionBuyCrowdfund crowdfund implementation address', address(collectionBuyCrowdfundImpl));
 
 
     // DEPLOY_PARTY_CROWDFUND_FACTORY
     console.log('');
-    console.log('### PartyCrowdfundFactory');
-    console.log('  Deploying - PartyCrowdfundFactory');
-    partyCrowdfundFactory = new PartyCrowdfundFactory(globals);
-    console.log('  Deployed - PartyCrowdfundFactory', address(partyCrowdfundFactory));
+    console.log('### CrowdfundFactory');
+    console.log('  Deploying - CrowdfundFactory');
+    partyCrowdfundFactory = new CrowdfundFactory(globals);
+    console.log('  Deployed - CrowdfundFactory', address(partyCrowdfundFactory));
 
     // DEPLOY_PARTY_CROWDFUND_NFT_RENDERER
     console.log('');
-    console.log('### PartyCrowdfundNFTRenderer');
-    console.log('  Deploying - PartyCrowdfundNFTRenderer');
-    partyCrowdfundNFTRenderer = new PartyCrowdfundNFTRenderer(globals);
-    console.log('  Deployed - PartyCrowdfundNFTRenderer', address(partyCrowdfundNFTRenderer));
+    console.log('### CrowdfundNFTRenderer');
+    console.log('  Deploying - CrowdfundNFTRenderer');
+    partyCrowdfundNFTRenderer = new CrowdfundNFTRenderer(globals);
+    console.log('  Deployed - CrowdfundNFTRenderer', address(partyCrowdfundNFTRenderer));
 
     console.log('');
-    console.log('  Globals - setting PartyCrowdfundNFTRenderer address');
+    console.log('  Globals - setting CrowdfundNFTRenderer address');
     globals.setAddress(LibGlobals.GLOBAL_CF_NFT_RENDER_IMPL, address(partyCrowdfundNFTRenderer));
-    console.log('  Globals - successfully set PartyCrowdfundNFTRenderer', address(partyCrowdfundNFTRenderer));
+    console.log('  Globals - successfully set CrowdfundNFTRenderer', address(partyCrowdfundNFTRenderer));
 
 
     // DEPLOY_PARTY_GOVERNANCE_NFT_RENDERER
@@ -283,9 +283,9 @@ contract Deploy is Script {
     addressMapping[3] = AddressMapping('proposalEngineImpl', address(proposalEngineImpl));
     addressMapping[4] = AddressMapping('partyImpl', address(partyImpl));
     addressMapping[5] = AddressMapping('partyFactory', address(partyFactory));
-    addressMapping[6] = AddressMapping('partyBidImpl', address(partyBidImpl));
-    addressMapping[7] = AddressMapping('partyBuyImpl', address(partyBuyImpl));
-    addressMapping[8] = AddressMapping('partyCollectionBuyImpl', address(partyCollectionBuyImpl));
+    addressMapping[6] = AddressMapping('auctionCrowdfundImpl', address(auctionCrowdfundImpl));
+    addressMapping[7] = AddressMapping('buyCrowdfundImpl', address(buyCrowdfundImpl));
+    addressMapping[8] = AddressMapping('collectionBuyCrowdfundImpl', address(collectionBuyCrowdfundImpl));
     addressMapping[9] = AddressMapping('partyCrowdfundFactory', address(partyCrowdfundFactory));
     addressMapping[10] = AddressMapping('partyCrowdfundNFTRenderer', address(partyCrowdfundNFTRenderer));
     addressMapping[11] = AddressMapping('partyGovernanceNFTRenderer', address(partyGovernanceNFTRenderer));

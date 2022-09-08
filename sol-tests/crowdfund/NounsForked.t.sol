@@ -3,11 +3,12 @@ pragma solidity ^0.8;
 
 import "forge-std/Test.sol";
 
-import "../../contracts/crowdfund/PartyBid.sol";
-import "../../contracts/crowdfund/PartyCrowdfund.sol";
+import "../../contracts/crowdfund/AuctionCrowdfund.sol";
+import "../../contracts/crowdfund/Crowdfund.sol";
 import "../../contracts/globals/Globals.sol";
 import "../../contracts/globals/LibGlobals.sol";
 import "../../contracts/utils/Proxy.sol";
+import "../../contracts/vendor/markets/INounsAuctionHouse.sol";
 
 import "./MockPartyFactory.sol";
 import "./MockParty.sol";
@@ -22,10 +23,10 @@ contract NounsForkedTest is TestUtils {
     Globals globals = new Globals(address(this));
     MockPartyFactory partyFactory = new MockPartyFactory();
     MockParty party = partyFactory.mockParty();
-    PartyBid pbImpl = new PartyBid(globals);
-    PartyBid pb;
+    AuctionCrowdfund pbImpl = new AuctionCrowdfund(globals);
+    AuctionCrowdfund pb;
 
-    PartyCrowdfund.FixedGovernanceOpts defaultGovOpts;
+    Crowdfund.FixedGovernanceOpts defaultGovOpts;
 
     // Initialize nouns contracts
     INounsAuctionHouse nounsAuctionHouse = INounsAuctionHouse(
@@ -44,12 +45,12 @@ contract NounsForkedTest is TestUtils {
         nounsToken = nounsAuctionHouse.nouns();
         (tokenId, , , , , ) = nounsAuctionHouse.auction();
 
-        // Create a PartyBid crowdfund
-        pb = PartyBid(payable(address(new Proxy(
+        // Create a AuctionCrowdfund crowdfund
+        pb = AuctionCrowdfund(payable(address(new Proxy(
             pbImpl,
             abi.encodeCall(
-                PartyBid.initialize,
-                PartyBid.PartyBidOptions({
+                AuctionCrowdfund.initialize,
+                AuctionCrowdfund.AuctionCrowdfundOptions({
                     name: "Party",
                     symbol: "PRTY",
                     auctionId: tokenId,
@@ -98,7 +99,7 @@ contract NounsForkedTest is TestUtils {
         assertTrue(nounsMarket.isFinalized(tokenId));
     }
 
-    function testForked_WinningNounsAuction_finalizedBefore() external {
+    function testForked_WinningNounsAuction_finalizedBefore() external onlyForked {
         // Bid on current Noun auction.
         pb.bid();
 
@@ -165,19 +166,4 @@ contract NounsForkedTest is TestUtils {
         assertEq(address(pb.party()), address(0));
         assertTrue(nounsMarket.isFinalized(tokenId));
     }
-}
-
-interface INounsAuctionHouse {
-    function nouns() external view returns (IERC721);
-
-    function auction() external view returns (
-        uint256 nounId,
-        uint256 amount,
-        uint256 startTime,
-        uint256 endTime,
-        address payable bidder,
-        bool settled
-    );
-
-    function createBid(uint256 auctionId) external payable;
 }

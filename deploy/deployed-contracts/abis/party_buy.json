@@ -209,7 +209,7 @@
   {
     "inputs": [
       {
-        "internalType": "enum PartyCrowdfund.CrowdfundLifecycle",
+        "internalType": "enum Crowdfund.CrowdfundLifecycle",
         "name": "lc",
         "type": "uint8"
       }
@@ -511,7 +511,7 @@
             "type": "address"
           }
         ],
-        "internalType": "struct PartyCrowdfund.FixedGovernanceOpts",
+        "internalType": "struct Crowdfund.FixedGovernanceOpts",
         "name": "governanceOpts",
         "type": "tuple"
       }
@@ -692,7 +692,7 @@
     "name": "getCrowdfundLifecycle",
     "outputs": [
       {
-        "internalType": "enum PartyCrowdfund.CrowdfundLifecycle",
+        "internalType": "enum Crowdfund.CrowdfundLifecycle",
         "name": "",
         "type": "uint8"
       }
@@ -810,12 +810,12 @@
                 "type": "address"
               }
             ],
-            "internalType": "struct PartyCrowdfund.FixedGovernanceOpts",
+            "internalType": "struct Crowdfund.FixedGovernanceOpts",
             "name": "governanceOpts",
             "type": "tuple"
           }
         ],
-        "internalType": "struct PartyBuy.PartyBuyOptions",
+        "internalType": "struct BuyCrowdfund.BuyCrowdfundOptions",
         "name": "opts",
         "type": "tuple"
       }
