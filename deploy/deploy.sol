@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 pragma solidity ^0.8;
 
-import 'forge-std/Test.sol';
+import 'forge-std/Script.sol';
 
 import '../contracts/crowdfund/PartyBid.sol';
 import '../contracts/crowdfund/PartyBuy.sol';
@@ -21,7 +21,7 @@ import '../contracts/proposals/ProposalExecutionEngine.sol';
 import '../contracts/utils/PartyHelpers.sol';
 import './LibDeployConstants.sol';
 
-contract Deploy is Test {
+contract Deploy is Script {
   struct AddressMapping {
     string key;
     address value;
@@ -305,7 +305,7 @@ contract Deploy is Test {
     console.log('Ending deploy script.');
   }
 
-  function generateJSONString(AddressMapping[] memory parts) private returns (string memory) {
+  function generateJSONString(AddressMapping[] memory parts) private pure returns (string memory) {
     string memory vals = '';
     for (uint256 i=0; i < parts.length; ++i) {
       string memory newValue = string.concat('"', parts[i].key, '": "', Strings.toHexString(parts[i].value), '"');

@@ -11,27 +11,6 @@ This directory contains the scripts and constants to deploy to mainnet and rinke
 
 In order to ensure deploys work, make sure your JS is built by running `yarn build:ts` before deploying
 
-## ⚠️ Modify forge-std `Vm.sol` locally
-
-At the time of writing this, the file `lib/forget-std/src/Vm.sol` needed to be modified to include the broadcast methods in its interface. Apply the following diff to `lib/forget-std/src/Vm.sol` starting at the end of the file (line 73):
-
-```diff
-    // Set block.coinbase (who)
-    function coinbase(address) external;
-+    // Using the address that calls the test contract, has the next call (at this call depth only) create a transaction that can later be signed and sent onchain
-+    function broadcast() external;
-+    // Has the next call (at this call depth only) create a transaction with the address provided as the sender that can later be signed and sent onchain
-+    function broadcast(address) external;
-+    // Using the address that calls the test contract, has the all subsequent calls (at this call depth only) create transactions that can later be signed and sent onchain
-+    function startBroadcast() external;
-+    // Has the all subsequent calls (at this call depth only) create transactions that can later be signed and sent onchain
-+    function startBroadcast(address) external;
-+    // Stops collecting onchain transactions
-+    function stopBroadcast() external;
-}
-
-```
-
 ## Dry-run test deploys
 
 By default (without including the `--broadcast` flag), forge scripts are executed as a dry-run, and the reporting tells you what would have happened on-chain.
