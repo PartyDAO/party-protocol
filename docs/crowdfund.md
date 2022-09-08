@@ -84,7 +84,7 @@ The `PartyCrowdfundFactory` contract is the canonical contract for creating crow
 
 - Are trying to buy a specific ERC721 contract + token ID listed on an auction market.
 - Directly interact with a Market Wrapper, which is an abstractions/wrapper of an NFT auction protocol.
-  - These Market Wrappers are inherited from [v1](https://github.com/PartyDAO/AuctionCrowdfund) of the protocol and are actually delegatecalled into.
+  - These Market Wrappers are inherited from [v1](https://github.com/PartyDAO/PartyBid) of the protocol and are actually delegatecalled into.
 - While active, users can contribute ETH to the cause.
 - While active, ETH bids can be placed by anyone via the `bid()` function.
 - Succeeds if anyone calls `finalize()`, which attempts to settle the auction, and the crowdfund ends up holding the NFT.

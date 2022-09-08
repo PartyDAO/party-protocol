@@ -1,6 +1,6 @@
-# AuctionCrowdfund Protocol
+# Party Protocol
 
-The AuctionCrowdfund protocol allows people to pool funds together to acquire NFTs then govern those NFTs together.
+The Party Protocol allows people to pool funds together to acquire NFTs then govern those NFTs together.
 
 ## Patterns
 
