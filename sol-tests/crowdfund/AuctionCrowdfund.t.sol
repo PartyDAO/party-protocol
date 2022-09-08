@@ -61,14 +61,14 @@ contract AuctionCrowdfundTest is Test, TestUtils {
     MockPartyFactory partyFactory = new MockPartyFactory();
     MockMarketWrapper market = new MockMarketWrapper();
     DummyERC721 tokenToBuy;
-    AuctionCrowdfund partyBidImpl;
+    AuctionCrowdfund auctionCrowdfundImpl;
     MockParty party;
 
     constructor() {
         globals.setAddress(LibGlobals.GLOBAL_PARTY_FACTORY, address(partyFactory));
         tokenToBuy = market.nftContract();
         party = partyFactory.mockParty();
-        partyBidImpl = new AuctionCrowdfund(globals);
+        auctionCrowdfundImpl = new AuctionCrowdfund(globals);
     }
 
     function _createCrowdfund(
@@ -80,7 +80,7 @@ contract AuctionCrowdfundTest is Test, TestUtils {
         returns (AuctionCrowdfund pb)
     {
         pb = AuctionCrowdfund(payable(address(new Proxy{ value: initialContribution }(
-            partyBidImpl,
+            auctionCrowdfundImpl,
             abi.encodeCall(
                 AuctionCrowdfund.initialize,
                 AuctionCrowdfund.AuctionCrowdfundOptions({
@@ -378,7 +378,7 @@ contract AuctionCrowdfundTest is Test, TestUtils {
         vm.deal(address(this), initialContribution);
         emit Contributed(initialContributor, initialContribution, initialDelegate, 0);
         AuctionCrowdfund(payable(address(new Proxy{ value: initialContribution }(
-            partyBidImpl,
+            auctionCrowdfundImpl,
             abi.encodeCall(
                 AuctionCrowdfund.initialize,
                 AuctionCrowdfund.AuctionCrowdfundOptions({

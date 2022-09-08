@@ -46,7 +46,7 @@ contract PartyCrowdfundFactory {
             createGateCallData
         );
         inst = BuyCrowdfund(payable(new Proxy{ value: msg.value }(
-            _GLOBALS.getImplementation(LibGlobals.GLOBAL_PARTY_BUY_IMPL),
+            _GLOBALS.getImplementation(LibGlobals.GLOBAL_BUY_CF_IMPL),
             abi.encodeCall(BuyCrowdfund.initialize, (opts))
         )));
         emit BuyCrowdfundCreated(inst, opts);
@@ -72,7 +72,7 @@ contract PartyCrowdfundFactory {
             createGateCallData
         );
         inst = AuctionCrowdfund(payable(new Proxy{ value: msg.value }(
-            _GLOBALS.getImplementation(LibGlobals.GLOBAL_PARTY_BID_IMPL),
+            _GLOBALS.getImplementation(LibGlobals.GLOBAL_AUCTION_CF_IMPL),
             abi.encodeCall(AuctionCrowdfund.initialize, (opts))
         )));
         emit AuctionCrowdfundCreated(inst, opts);
@@ -98,7 +98,7 @@ contract PartyCrowdfundFactory {
             createGateCallData
         );
         inst = CollectionBuyCrowdfund(payable(new Proxy{ value: msg.value }(
-            _GLOBALS.getImplementation(LibGlobals.GLOBAL_PARTY_COLLECTION_BUY_IMPL),
+            _GLOBALS.getImplementation(LibGlobals.GLOBAL_COLLECTION_BUY_CF_IMPL),
             abi.encodeCall(CollectionBuyCrowdfund.initialize, (opts))
         )));
         emit CollectionBuyCrowdfundCreated(inst, opts);

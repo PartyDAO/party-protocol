@@ -36,9 +36,9 @@ contract Deploy is Script {
   // temporary variables to store deployed contract addresses
   Globals globals;
   IZoraAuctionHouse zoraAuctionHouse;
-  AuctionCrowdfund partyBidImpl;
-  BuyCrowdfund partyBuyImpl;
-  CollectionBuyCrowdfund partyCollectionBuyImpl;
+  AuctionCrowdfund auctionCrowdfundImpl;
+  BuyCrowdfund buyCrowdfundImpl;
+  CollectionBuyCrowdfund collectionBuyCrowdfundImpl;
   PartyCrowdfundFactory partyCrowdfundFactory;
   Party partyImpl;
   PartyFactory partyFactory;
@@ -179,43 +179,43 @@ contract Deploy is Script {
     console.log('  Globals - successfully set Party Factory address', address(partyFactory));
 
 
-    // DEPLOY_PARTY_BID_IMPLEMENTATION
+    // DEPLOY_AUCTION_CF_IMPLEMENTATION
     console.log('');
     console.log('### AuctionCrowdfund crowdfund implementation');
     console.log('  Deploying - AuctionCrowdfund crowdfund implementation');
-    partyBidImpl = new AuctionCrowdfund(globals);
-    console.log('  Deployed - AuctionCrowdfund crowdfund implementation', address(partyBidImpl));
+    auctionCrowdfundImpl = new AuctionCrowdfund(globals);
+    console.log('  Deployed - AuctionCrowdfund crowdfund implementation', address(auctionCrowdfundImpl));
 
     console.log('');
     console.log('  Globals - setting AuctionCrowdfund crowdfund implementation address');
-    globals.setAddress(LibGlobals.GLOBAL_PARTY_BID_IMPL, address(partyBidImpl));
-    console.log('  Globals - successfully set AuctionCrowdfund crowdfund implementation address', address(partyBidImpl));
+    globals.setAddress(LibGlobals.GLOBAL_AUCTION_CF_IMPL, address(auctionCrowdfundImpl));
+    console.log('  Globals - successfully set AuctionCrowdfund crowdfund implementation address', address(auctionCrowdfundImpl));
 
 
-    // DEPLOY_PARTY_BUY_IMPLEMENTATION
+    // DEPLOY_BUY_CF_IMPLEMENTATION
     console.log('');
     console.log('### BuyCrowdfund crowdfund implementation');
     console.log('  Deploying - BuyCrowdfund crowdfund implementation');
-    partyBuyImpl = new BuyCrowdfund(globals);
-    console.log('  Deployed - BuyCrowdfund crowdfund implementation', address(partyBuyImpl));
+    buyCrowdfundImpl = new BuyCrowdfund(globals);
+    console.log('  Deployed - BuyCrowdfund crowdfund implementation', address(buyCrowdfundImpl));
 
     console.log('');
     console.log('  Globals - setting BuyCrowdfund crowdfund implementation address');
-    globals.setAddress(LibGlobals.GLOBAL_PARTY_BUY_IMPL, address(partyBuyImpl));
-    console.log('  Globals - successfully set BuyCrowdfund crowdfund implementation address', address(partyBuyImpl));
+    globals.setAddress(LibGlobals.GLOBAL_BUY_CF_IMPL, address(buyCrowdfundImpl));
+    console.log('  Globals - successfully set BuyCrowdfund crowdfund implementation address', address(buyCrowdfundImpl));
 
 
-    // DEPLOY_PARTY_COLLECTION_BUY_IMPLEMENTATION
+    // DEPLOY_COLLECTION_BUY_CF_IMPLEMENTATION
     console.log('');
     console.log('### CollectionBuyCrowdfund crowdfund implementation');
     console.log('  Deploying - CollectionBuyCrowdfund crowdfund implementation');
-    partyCollectionBuyImpl = new CollectionBuyCrowdfund(globals);
-    console.log('  Deployed - CollectionBuyCrowdfund crowdfund implementation', address(partyCollectionBuyImpl));
+    collectionBuyCrowdfundImpl = new CollectionBuyCrowdfund(globals);
+    console.log('  Deployed - CollectionBuyCrowdfund crowdfund implementation', address(collectionBuyCrowdfundImpl));
 
     console.log('');
     console.log('  Globals - setting CollectionBuyCrowdfund crowdfund implementation address');
-    globals.setAddress(LibGlobals.GLOBAL_PARTY_COLLECTION_BUY_IMPL, address(partyCollectionBuyImpl));
-    console.log('  Globals - successfully set CollectionBuyCrowdfund crowdfund implementation address', address(partyCollectionBuyImpl));
+    globals.setAddress(LibGlobals.GLOBAL_COLLECTION_BUY_CF_IMPL, address(collectionBuyCrowdfundImpl));
+    console.log('  Globals - successfully set CollectionBuyCrowdfund crowdfund implementation address', address(collectionBuyCrowdfundImpl));
 
 
     // DEPLOY_PARTY_CROWDFUND_FACTORY
@@ -283,9 +283,9 @@ contract Deploy is Script {
     addressMapping[3] = AddressMapping('proposalEngineImpl', address(proposalEngineImpl));
     addressMapping[4] = AddressMapping('partyImpl', address(partyImpl));
     addressMapping[5] = AddressMapping('partyFactory', address(partyFactory));
-    addressMapping[6] = AddressMapping('partyBidImpl', address(partyBidImpl));
-    addressMapping[7] = AddressMapping('partyBuyImpl', address(partyBuyImpl));
-    addressMapping[8] = AddressMapping('partyCollectionBuyImpl', address(partyCollectionBuyImpl));
+    addressMapping[6] = AddressMapping('auctionCrowdfundImpl', address(auctionCrowdfundImpl));
+    addressMapping[7] = AddressMapping('buyCrowdfundImpl', address(buyCrowdfundImpl));
+    addressMapping[8] = AddressMapping('collectionBuyCrowdfundImpl', address(collectionBuyCrowdfundImpl));
     addressMapping[9] = AddressMapping('partyCrowdfundFactory', address(partyCrowdfundFactory));
     addressMapping[10] = AddressMapping('partyCrowdfundNFTRenderer', address(partyCrowdfundNFTRenderer));
     addressMapping[11] = AddressMapping('partyGovernanceNFTRenderer', address(partyGovernanceNFTRenderer));

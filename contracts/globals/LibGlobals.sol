@@ -10,9 +10,9 @@ library LibGlobals {
     uint256 internal constant GLOBAL_CF_NFT_RENDER_IMPL             = 5;
     uint256 internal constant GLOBAL_OS_ZORA_AUCTION_TIMEOUT        = 6;
     uint256 internal constant GLOBAL_OS_ZORA_AUCTION_DURATION       = 7;
-    uint256 internal constant GLOBAL_PARTY_BID_IMPL                 = 8;
-    uint256 internal constant GLOBAL_PARTY_BUY_IMPL                 = 9;
-    uint256 internal constant GLOBAL_PARTY_COLLECTION_BUY_IMPL      = 10;
+    uint256 internal constant GLOBAL_AUCTION_CF_IMPL                = 8;
+    uint256 internal constant GLOBAL_BUY_CF_IMPL                    = 9;
+    uint256 internal constant GLOBAL_COLLECTION_BUY_CF_IMPL         = 10;
     uint256 internal constant GLOBAL_DAO_DISTRIBUTION_SPLIT         = 11;
     uint256 internal constant GLOBAL_DAO_WALLET                     = 12;
     uint256 internal constant GLOBAL_TOKEN_DISTRIBUTOR              = 13;

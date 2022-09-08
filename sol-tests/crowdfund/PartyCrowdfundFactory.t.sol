@@ -19,18 +19,18 @@ contract PartyCrowdfundFactoryTest is Test, TestUtils {
     Globals globals = new Globals(address(this));
     PartyCrowdfundFactory partyCrowdfundFactory = new PartyCrowdfundFactory(globals);
     MockMarketWrapper market = new MockMarketWrapper();
-    AuctionCrowdfund partyBid = new AuctionCrowdfund(globals);
-    BuyCrowdfund partyBuy = new BuyCrowdfund(globals);
-    CollectionBuyCrowdfund partyCollectionBuy = new CollectionBuyCrowdfund(globals);
+    AuctionCrowdfund auctionCrowdfund = new AuctionCrowdfund(globals);
+    BuyCrowdfund buyCrowdfund = new BuyCrowdfund(globals);
+    CollectionBuyCrowdfund collectionBuyCrowdfund = new CollectionBuyCrowdfund(globals);
     AllowListGateKeeper allowListGateKeeper = new AllowListGateKeeper();
     TokenGateKeeper tokenGateKeeper = new TokenGateKeeper();
 
     event Contributed(address contributor, uint256 amount, address delegate, uint256 previousTotalContributions);
 
     constructor() {
-        globals.setAddress(LibGlobals.GLOBAL_PARTY_BID_IMPL, address(partyBid));
-        globals.setAddress(LibGlobals.GLOBAL_PARTY_BUY_IMPL, address(partyBuy));
-        globals.setAddress(LibGlobals.GLOBAL_PARTY_COLLECTION_BUY_IMPL, address(partyCollectionBuy));
+        globals.setAddress(LibGlobals.GLOBAL_AUCTION_CF_IMPL, address(auctionCrowdfund));
+        globals.setAddress(LibGlobals.GLOBAL_BUY_CF_IMPL, address(buyCrowdfund));
+        globals.setAddress(LibGlobals.GLOBAL_COLLECTION_BUY_CF_IMPL, address(collectionBuyCrowdfund));
     }
 
     function _hashFixedGovernanceOpts(PartyCrowdfund.FixedGovernanceOpts memory opts)

@@ -30,9 +30,9 @@ contract PartyCrowdfundHelpers is Test, TestUtils {
     PartyCrowdfund.FixedGovernanceOpts defaultGovernanceOpts;
 
     Globals globals;
-    AuctionCrowdfund partyBidImpl;
-    BuyCrowdfund partyBuyImpl;
-    CollectionBuyCrowdfund partyCollectionBuyImpl;
+    AuctionCrowdfund auctionCrowdfundImpl;
+    BuyCrowdfund buyCrowdfundImpl;
+    CollectionBuyCrowdfund collectionBuyCrowdfundImpl;
     MockMarketWrapper market = new MockMarketWrapper();
     TestERC721Vault erc721Vault = new TestERC721Vault();
 
@@ -41,16 +41,16 @@ contract PartyCrowdfundHelpers is Test, TestUtils {
       globals = new Globals(address(this));
 
       // set partybid crowdfund implementation on globals
-      partyBidImpl = new AuctionCrowdfund(globals);
-      globals.setAddress(LibGlobals.GLOBAL_PARTY_BID_IMPL, address(partyBidImpl));
+      auctionCrowdfundImpl = new AuctionCrowdfund(globals);
+      globals.setAddress(LibGlobals.GLOBAL_AUCTION_CF_IMPL, address(auctionCrowdfundImpl));
 
       // set partybuy crowdfund implementation on globals
-      partyBuyImpl = new BuyCrowdfund(globals);
-      globals.setAddress(LibGlobals.GLOBAL_PARTY_BUY_IMPL, address(partyBuyImpl));
+      buyCrowdfundImpl = new BuyCrowdfund(globals);
+      globals.setAddress(LibGlobals.GLOBAL_BUY_CF_IMPL, address(buyCrowdfundImpl));
 
       // set partycollectionbuy crowdfund implementation on globals
-      partyCollectionBuyImpl = new CollectionBuyCrowdfund(globals);
-      globals.setAddress(LibGlobals.GLOBAL_PARTY_COLLECTION_BUY_IMPL, address(partyCollectionBuyImpl));
+      collectionBuyCrowdfundImpl = new CollectionBuyCrowdfund(globals);
+      globals.setAddress(LibGlobals.GLOBAL_COLLECTION_BUY_CF_IMPL, address(collectionBuyCrowdfundImpl));
     }
 
     function _createAuctionCrowdfundCrowdfund(
@@ -62,7 +62,7 @@ contract PartyCrowdfundHelpers is Test, TestUtils {
         returns (AuctionCrowdfund pb)
     {
         pb = AuctionCrowdfund(payable(address(new Proxy{ value: initialContribution }(
-            partyBidImpl,
+            auctionCrowdfundImpl,
             abi.encodeCall(
                 AuctionCrowdfund.initialize,
                 AuctionCrowdfund.AuctionCrowdfundOptions({
@@ -91,7 +91,7 @@ contract PartyCrowdfundHelpers is Test, TestUtils {
         returns (BuyCrowdfund pb)
     {
         pb = BuyCrowdfund(payable(address(new Proxy{ value: initialContribution }(
-            partyBuyImpl,
+            buyCrowdfundImpl,
             abi.encodeCall(
                 BuyCrowdfund.initialize,
                 BuyCrowdfund.BuyCrowdfundOptions({
@@ -118,7 +118,7 @@ contract PartyCrowdfundHelpers is Test, TestUtils {
         returns (CollectionBuyCrowdfund pb)
     {
         pb = CollectionBuyCrowdfund(payable(address(new Proxy{ value: initialContribution }(
-            partyCollectionBuyImpl,
+            collectionBuyCrowdfundImpl,
             abi.encodeCall(
                 CollectionBuyCrowdfund.initialize,
                 CollectionBuyCrowdfund.CollectionBuyCrowdfundOptions({

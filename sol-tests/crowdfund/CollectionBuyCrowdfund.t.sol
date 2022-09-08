@@ -47,13 +47,13 @@ contract CollectionBuyCrowdfundTest is Test, TestUtils {
     Globals globals = new Globals(address(this));
     MockPartyFactory partyFactory = new MockPartyFactory();
     TestERC721Vault erc721Vault = new TestERC721Vault();
-    CollectionBuyCrowdfund partyCollectionBuyImpl;
+    CollectionBuyCrowdfund collectionBuyCrowdfundImpl;
     MockParty party;
 
     constructor() {
         globals.setAddress(LibGlobals.GLOBAL_PARTY_FACTORY, address(partyFactory));
         party = partyFactory.mockParty();
-        partyCollectionBuyImpl = new CollectionBuyCrowdfund(globals);
+        collectionBuyCrowdfundImpl = new CollectionBuyCrowdfund(globals);
     }
 
     function _createCrowdfund(address[] memory hosts, uint96 initialContribution)
@@ -63,7 +63,7 @@ contract CollectionBuyCrowdfundTest is Test, TestUtils {
         governanceOpts.hosts = hosts;
 
         pb = CollectionBuyCrowdfund(payable(address(new Proxy{ value: initialContribution }(
-            partyCollectionBuyImpl,
+            collectionBuyCrowdfundImpl,
             abi.encodeCall(
                 CollectionBuyCrowdfund.initialize,
                 CollectionBuyCrowdfund.CollectionBuyCrowdfundOptions({
@@ -223,7 +223,7 @@ contract CollectionBuyCrowdfundTest is Test, TestUtils {
         vm.deal(address(this), initialContribution);
         emit Contributed(initialContributor, initialContribution, initialDelegate, 0);
         CollectionBuyCrowdfund(payable(address(new Proxy{ value: initialContribution }(
-            partyCollectionBuyImpl,
+            collectionBuyCrowdfundImpl,
             abi.encodeCall(
                 CollectionBuyCrowdfund.initialize,
                 CollectionBuyCrowdfund.CollectionBuyCrowdfundOptions({
