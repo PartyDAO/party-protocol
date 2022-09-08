@@ -3,7 +3,7 @@ pragma solidity ^0.8;
 
 import "contracts/crowdfund/CrowdfundFactory.sol";
 import "contracts/crowdfund/AuctionCrowdfund.sol";
-import "contracts/crowdfund/IMarketWrapper.sol";
+import "contracts/market-wrapper/IMarketWrapper.sol";
 import "contracts/crowdfund/Crowdfund.sol";
 import "contracts/gatekeepers/AllowListGateKeeper.sol";
 import "contracts/gatekeepers/TokenGateKeeper.sol";

@@ -9,7 +9,7 @@ import "../utils/LibRawResult.sol";
 import "../globals/IGlobals.sol";
 import "../gatekeepers/IGateKeeper.sol";
 
-import "./IMarketWrapper.sol";
+import "../market-wrapper/IMarketWrapper.sol";
 import "./Crowdfund.sol";
 
 /// @notice A crowdfund that can repeatedly bid on an auction for a specific NFT

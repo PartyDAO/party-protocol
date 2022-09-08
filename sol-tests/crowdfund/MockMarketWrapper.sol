@@ -3,7 +3,7 @@ pragma solidity ^0.8;
 
 import "forge-std/Test.sol";
 
-import "../../contracts/crowdfund/IMarketWrapper.sol";
+import "../../contracts/market-wrapper/IMarketWrapper.sol";
 import "../../contracts/tokens/IERC20.sol";
 import "../../contracts/tokens/IERC721.sol";
 import "../../contracts/utils/LibRawResult.sol";

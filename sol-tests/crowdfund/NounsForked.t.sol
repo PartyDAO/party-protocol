@@ -8,6 +8,7 @@ import "../../contracts/crowdfund/Crowdfund.sol";
 import "../../contracts/globals/Globals.sol";
 import "../../contracts/globals/LibGlobals.sol";
 import "../../contracts/utils/Proxy.sol";
+import "../../contracts/vendor/markets/INounsAuctionHouse.sol";
 
 import "./MockPartyFactory.sol";
 import "./MockParty.sol";
@@ -165,19 +166,4 @@ contract NounsForkedTest is TestUtils {
         assertEq(address(pb.party()), address(0));
         assertTrue(nounsMarket.isFinalized(tokenId));
     }
-}
-
-interface INounsAuctionHouse {
-    function nouns() external view returns (IERC721);
-
-    function auction() external view returns (
-        uint256 nounId,
-        uint256 amount,
-        uint256 startTime,
-        uint256 endTime,
-        address payable bidder,
-        bool settled
-    );
-
-    function createBid(uint256 auctionId) external payable;
 }

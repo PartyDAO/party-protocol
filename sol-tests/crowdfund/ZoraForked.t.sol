@@ -8,7 +8,7 @@ import "../../contracts/crowdfund/Crowdfund.sol";
 import "../../contracts/globals/Globals.sol";
 import "../../contracts/globals/LibGlobals.sol";
 import "../../contracts/utils/Proxy.sol";
-import "../../contracts/proposals/vendor/IZoraAuctionHouse.sol";
+import "../../contracts/vendor/markets/IZoraAuctionHouse.sol";
 
 import "./MockPartyFactory.sol";
 import "./MockParty.sol";

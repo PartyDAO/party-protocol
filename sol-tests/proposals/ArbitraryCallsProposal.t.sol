@@ -559,7 +559,7 @@ contract ArbitraryCallsProposalTest is
         testContract.execute(prop);
     }
 
-    function _truncate(bytes memory data, uint256 bytesFromEnd) private {
+    function _truncate(bytes memory data, uint256 bytesFromEnd) private pure {
         require(data.length >= bytesFromEnd, 'data too short');
         assembly {
             mstore(data, sub(mload(data), bytesFromEnd))

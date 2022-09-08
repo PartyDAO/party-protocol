@@ -8,30 +8,13 @@ import "../../contracts/crowdfund/Crowdfund.sol";
 import "../../contracts/globals/Globals.sol";
 import "../../contracts/globals/LibGlobals.sol";
 import "../../contracts/utils/Proxy.sol";
+import "../../contracts/vendor/markets/IFoundationMarket.sol";
 
 import "./MockPartyFactory.sol";
 import "./MockParty.sol";
 import "../DummyERC721.sol";
 
 import "../TestUtils.sol";
-
-interface FNDMiddleware {
-    function getNFTDetails(address nftContract, uint256 tokenId)
-        external
-        view
-        returns (
-            address owner,
-            bool isInEscrow,
-            address auctionBidder,
-            uint256 auctionEndTime,
-            uint256 auctionPrice,
-            uint256 auctionId,
-            uint256 buyPrice,
-            uint256 offerAmount,
-            address offerBuyer,
-            uint256 offerExpiration
-        );
-}
 
 contract FoundationForkedTest is TestUtils {
     event Won(uint256 bid, Party party);
@@ -195,12 +178,20 @@ contract FoundationForkedTest is TestUtils {
     }
 }
 
-interface IFoundationMarket {
-    function createReserveAuction(
-        address nftContract,
-        uint256 tokenId,
-        uint256 reservePrice
-    ) external;
-
-    function placeBid(uint256 auctionId) external payable;
+interface FNDMiddleware {
+    function getNFTDetails(address nftContract, uint256 tokenId)
+        external
+        view
+        returns (
+            address owner,
+            bool isInEscrow,
+            address auctionBidder,
+            uint256 auctionEndTime,
+            uint256 auctionPrice,
+            uint256 auctionId,
+            uint256 buyPrice,
+            uint256 offerAmount,
+            address offerBuyer,
+            uint256 offerExpiration
+        );
 }
