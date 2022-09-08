@@ -163,7 +163,7 @@ contract PartyCrowdfundNFTRenderer is IERC721Renderer {
                     '{"name":"',
                     renderNFTName(),
                     '", "description":"',
-                    "AuctionCrowdfund Crowdfund NFTs represent your spot in a PartyBid party.",
+                    "AuctionCrowdfund Crowdfund NFTs represent your spot in a AuctionCrowdfund party.",
                     '"}'
                     // '", "image": "data:image/svg+xml;base64,',
                     // Base64.encode(bytes(output)),

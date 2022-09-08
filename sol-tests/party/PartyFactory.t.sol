@@ -27,8 +27,8 @@ contract PartyFactoryTest is Test, TestUtils {
 
         eng = new ProposalExecutionEngine(
             globals,
-            ISeaportExchange(_randomAddress()),
-            ISeaportConduitController(_randomAddress()),
+            IOpenseaExchange(_randomAddress()),
+            IOpenseaConduitController(_randomAddress()),
             IZoraAuctionHouse(_randomAddress()),
             IFractionalV1VaultFactory(_randomAddress())
         );

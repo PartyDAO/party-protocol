@@ -4,7 +4,7 @@ pragma solidity ^0.8;
 import "../tokens/IERC721.sol";
 
 // Abstract Zora interaction functions.
-// Used by both `ListOnZoraProposal` and `ListOnSeaportProposal`.
+// Used by both `ListOnZoraProposal` and `ListOnOpenseaProposal`.
 abstract contract ZoraHelpers {
     // ABI-encoded `progressData` passed into execute in the `ListedOnZora` step.
     struct ZoraProgressData {

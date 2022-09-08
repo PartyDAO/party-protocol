@@ -6,7 +6,7 @@ import "../utils/LibRawResult.sol";
 import "../globals/IGlobals.sol";
 
 import "./IProposalExecutionEngine.sol";
-import "./ListOnSeaportProposal.sol";
+import "./ListOnOpenseaProposal.sol";
 import "./ListOnZoraProposal.sol";
 import "./FractionalizeProposal.sol";
 import "./ArbitraryCallsProposal.sol";
@@ -19,7 +19,7 @@ contract ProposalExecutionEngine is
     IProposalExecutionEngine,
     Implementation,
     ProposalStorage,
-    ListOnSeaportProposal,
+    ListOnOpenseaProposal,
     ListOnZoraProposal,
     FractionalizeProposal,
     ArbitraryCallsProposal
@@ -34,7 +34,7 @@ contract ProposalExecutionEngine is
     // WARNING: This should be append-only.
     enum ProposalType {
         Invalid,
-        ListOnSeaport,
+        ListOnOpensea,
         ListOnZora,
         Fractionalize,
         ArbitraryCalls,
@@ -82,12 +82,12 @@ contract ProposalExecutionEngine is
     // Set immutables.
     constructor(
         IGlobals globals,
-        ISeaportExchange seaport,
-        ISeaportConduitController seaportConduitController,
+        IOpenseaExchange seaport,
+        IOpenseaConduitController seaportConduitController,
         IZoraAuctionHouse zoraAuctionHouse,
         IFractionalV1VaultFactory fractionalVaultFactory
     )
-        ListOnSeaportProposal(globals, seaport, seaportConduitController)
+        ListOnOpenseaProposal(globals, seaport, seaportConduitController)
         ListOnZoraProposal(globals, zoraAuctionHouse)
         FractionalizeProposal(fractionalVaultFactory)
     {
@@ -207,8 +207,8 @@ contract ProposalExecutionEngine is
         virtual
         returns (bytes memory nextProgressData)
     {
-        if (pt == ProposalType.ListOnSeaport) {
-            nextProgressData = _executeListOnSeaport(params);
+        if (pt == ProposalType.ListOnOpensea) {
+            nextProgressData = _executeListOnOpensea(params);
         } else if (pt == ProposalType.ListOnZora) {
             nextProgressData = _executeListOnZora(params);
         } else if (pt == ProposalType.Fractionalize) {

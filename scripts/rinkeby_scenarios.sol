@@ -136,7 +136,7 @@ contract RinkebyPartify is Test {
       address payable[] memory feeRecipients = new address payable[](1);
       feeRecipients[0] = OS_FEE_RECIP;
 
-      ListOnSeaportProposal.SeaportProposalData memory opd = ListOnOpenSeaportProposal.OpenSeaportProposalData({
+      ListOnOpenseaProposal.OpenseaProposalData memory opd = ListOnOpenseaProposal.OpenseaProposalData({
         listPrice: LIST_PRICE,
         duration: DURATION,
         token: IERC721(MINTABLE_NFT_ADDRESS),

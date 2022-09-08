@@ -13,9 +13,9 @@ import "./CollectionBuyCrowdfund.sol";
 contract PartyCrowdfundFactory {
     using LibRawResult for bytes;
 
-    event BuyCrowdfundCreated(PartyBuy crowdfund, PartyBuy.PartyBuyOptions opts);
-    event AuctionCrowdfundCreated(PartyBid crowdfund, PartyBid.PartyBidOptions opts);
-    event CollectionBuyCrowdfundCreated(CollectionBuyCrowdfund crowdfund, PartyCollectionBuy.PartyCollectionBuyOptions opts);
+    event BuyCrowdfundCreated(BuyCrowdfund crowdfund, BuyCrowdfund.BuyCrowdfundOptions opts);
+    event AuctionCrowdfundCreated(AuctionCrowdfund crowdfund, AuctionCrowdfund.AuctionCrowdfundOptions opts);
+    event CollectionBuyCrowdfundCreated(CollectionBuyCrowdfund crowdfund, CollectionBuyCrowdfund.CollectionBuyCrowdfundOptions opts);
 
     // The `Globals` contract storing global configuration values. This contract
     // is immutable and it’s address will never change.
@@ -33,7 +33,7 @@ contract PartyCrowdfundFactory {
     /// @param createGateCallData Encoded calldata used by `createGate()` to
     ///                           create the crowdfund if one is specified in `opts`.
     function createBuyCrowdfund(
-        BuyCrowdfund.PartyBuyOptions memory opts,
+        BuyCrowdfund.BuyCrowdfundOptions memory opts,
         bytes memory createGateCallData
     )
         public
@@ -59,7 +59,7 @@ contract PartyCrowdfundFactory {
     /// @param createGateCallData Encoded calldata used by `createGate()` to create
     ///                           the crowdfund if one is specified in `opts`.
     function createAuctionCrowdfund(
-        AuctionCrowdfund.PartyBidOptions memory opts,
+        AuctionCrowdfund.AuctionCrowdfundOptions memory opts,
         bytes memory createGateCallData
     )
         public

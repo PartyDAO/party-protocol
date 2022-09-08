@@ -65,7 +65,7 @@ contract PartyCrowdfundHelpers is Test, TestUtils {
             partyBidImpl,
             abi.encodeCall(
                 AuctionCrowdfund.initialize,
-                AuctionCrowdfund.PartyBidOptions({
+                AuctionCrowdfund.AuctionCrowdfundOptions({
                     name: defaultName,
                     symbol: defaultSymbol,
                     auctionId: auctionId,
@@ -94,7 +94,7 @@ contract PartyCrowdfundHelpers is Test, TestUtils {
             partyBuyImpl,
             abi.encodeCall(
                 BuyCrowdfund.initialize,
-                BuyCrowdfund.PartyBuyOptions({
+                BuyCrowdfund.BuyCrowdfundOptions({
                     name: defaultName,
                     symbol: defaultSymbol,
                     nftContract: erc721Vault.token(),
@@ -143,7 +143,7 @@ contract PartyCrowdfundHelpers is Test, TestUtils {
       (uint256 auctionId, uint256 tokenId) = market.createAuction(1337);
 
       // create partybid crowdfund
-      AuctionCrowdfund pbid = _createPartyBidCrowdfund(auctionId, tokenId, 0);
+      AuctionCrowdfund pbid = _createAuctionCrowdfundCrowdfund(auctionId, tokenId, 0);
 
       // create party helpers
       PartyHelpers ph = new PartyHelpers();
@@ -154,7 +154,7 @@ contract PartyCrowdfundHelpers is Test, TestUtils {
 
     function testGetBuyCrowdfundCrowdfundType() public {
       // create partybuy crowdfund
-      BuyCrowdfund pbuy = _createPartyBuyCrowdfund(0);
+      BuyCrowdfund pbuy = _createBuyCrowdfundCrowdfund(0);
 
       // create party helpers
       PartyHelpers ph = new PartyHelpers();

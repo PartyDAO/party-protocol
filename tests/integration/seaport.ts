@@ -1,6 +1,6 @@
 import { BigNumber } from 'ethers';
 
-export enum SeaportItemType {
+export enum OpenseaItemType {
     NATIVE                    = 0,
     ERC20                     = 1,
     ERC721                    = 2,
@@ -9,7 +9,7 @@ export enum SeaportItemType {
     ERC1155_WITH_CRITERIA     = 5,
 }
 
-export enum SeaportBasicOrderType {
+export enum OpenseaBasicOrderType {
     ETH_TO_ERC721_FULL_OPEN             = 0,
     ETH_TO_ERC721_PARTIAL_OPEN          = 1,
     ETH_TO_ERC721_FULL_RESTRICTED       = 2,
@@ -36,15 +36,15 @@ export enum SeaportBasicOrderType {
     ERC1155_TO_ERC20_PARTIAL_RESTRICTED = 24,
 }
 
-export enum SeaportOrderType {
+export enum OpenseaOrderType {
     FULL_OPEN          = 0,
     PARTIAL_OPEN       = 1,
     FULL_RESTRICTED    = 2,
     PARTIAL_RESTRICTED = 3,
 }
 
-export interface SeaportConsiderationItem {
-    itemType: SeaportItemType;
+export interface OpenseaConsiderationItem {
+    itemType: OpenseaItemType;
     token: string;
     identifierOrCriteria: BigNumber;
     startAmount: BigNumber;
@@ -52,20 +52,20 @@ export interface SeaportConsiderationItem {
     recipient: string;
 }
 
-export interface SeaportOfferItem {
-    itemType: SeaportItemType;
+export interface OpenseaOfferItem {
+    itemType: OpenseaItemType;
     token: string;
     identifierOrCriteria: BigNumber;
     startAmount: BigNumber;
     endAmount: BigNumber;
 }
 
-export interface SeaportOrderParams {
+export interface OpenseaOrderParams {
     offerer: string;
     zone: string;
-    offer: SeaportOfferItem[];
-    consideration: SeaportConsiderationItem[];
-    orderType: SeaportOrderType;
+    offer: OpenseaOfferItem[];
+    consideration: OpenseaConsiderationItem[];
+    orderType: OpenseaOrderType;
     startTime: BigNumber;
     endTime: BigNumber;
     zoneHash: string;
@@ -74,12 +74,12 @@ export interface SeaportOrderParams {
     totalOriginalConsiderationItems: BigNumber;
 }
 
-export interface SeaportAdditionalRecipient {
+export interface OpenseaAdditionalRecipient {
     amount: BigNumber;
     recipient: string;
 }
 
-export interface SeaportBasicOrderParams {
+export interface OpenseaBasicOrderParams {
     considerationToken: string;
     considerationIdentifier: BigNumber;
     considerationAmount: BigNumber;
@@ -88,7 +88,7 @@ export interface SeaportBasicOrderParams {
     offerToken: string;
     offerIdentifier: BigNumber;
     offerAmount: BigNumber;
-    basicOrderType: SeaportBasicOrderType;
+    basicOrderType: OpenseaBasicOrderType;
     startTime: BigNumber;
     endTime: BigNumber;
     zoneHash: string;
@@ -96,6 +96,6 @@ export interface SeaportBasicOrderParams {
     offererConduitKey: string;
     fulfillerConduitKey: string;
     totalOriginalAdditionalRecipients: BigNumber;
-    additionalRecipients: SeaportAdditionalRecipient[];
+    additionalRecipients: OpenseaAdditionalRecipient[];
     signature: string;
 }

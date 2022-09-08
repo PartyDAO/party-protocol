@@ -10,7 +10,7 @@ import PROPOSAL_EXEUCTION_ENGINE_ARTIFACT from '../../out/ProposalExecutionEngin
 import PROXY_ARTIFACT from '../../out/Proxy.sol/Proxy.json';
 import DUMMY_ERC721_ARTIFACT from '../../out/DummyERC721.sol/DummyERC721.json';
 import IERC721_ARTIFACT from '../../out/IERC721.sol/IERC721.json';
-import LIST_ON_OPENSEAPORT_PROPOSAL_ARTIFACT from '../../out/ListOnSeaportProposal.sol/ListOnSeaportProposal.json';
+import LIST_ON_OPENSEAPORT_PROPOSAL_ARTIFACT from '../../out/ListOnOpenseaProposal.sol/ListOnOpenseaProposal.json';
 import IERC20_ARTIFACT from '../../out/IERC20.sol/IERC20.json';
 
 type Event = ethers.utils.LogDescription;

@@ -69,7 +69,7 @@ contract BuyCrowdfundTest is Test, TestUtils {
             partyBuyImpl,
             abi.encodeCall(
                 BuyCrowdfund.initialize,
-                BuyCrowdfund.PartyBuyOptions({
+                BuyCrowdfund.BuyCrowdfundOptions({
                     name: defaultName,
                     symbol: defaultSymbol,
                     nftContract: erc721Vault.token(),
@@ -179,7 +179,7 @@ contract BuyCrowdfundTest is Test, TestUtils {
         uint256 tokenId = erc721Vault.mint();
         BuyCrowdfund pb = _createCrowdfund(tokenId, 0);
         vm.expectRevert(abi.encodeWithSelector(Implementation.OnlyConstructorError.selector));
-        BuyCrowdfund.PartyBuyOptions memory opts;
+        BuyCrowdfund.BuyCrowdfundOptions memory opts;
         pb.initialize(opts);
     }
 
@@ -194,7 +194,7 @@ contract BuyCrowdfundTest is Test, TestUtils {
             partyBuyImpl,
             abi.encodeCall(
                 BuyCrowdfund.initialize,
-                BuyCrowdfund.PartyBuyOptions({
+                BuyCrowdfund.BuyCrowdfundOptions({
                     name: defaultName,
                     symbol: defaultSymbol,
                     nftContract: erc721Vault.token(),

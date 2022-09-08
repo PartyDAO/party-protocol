@@ -41,7 +41,7 @@ contract FoundationForkedTest is TestUtils {
     Globals globals = new Globals(address(this));
     MockPartyFactory partyFactory = new MockPartyFactory();
     MockParty party = partyFactory.mockParty();
-    AuctionCrowdfund pbImpl = new PartyBid(globals);
+    AuctionCrowdfund pbImpl = new AuctionCrowdfund(globals);
     AuctionCrowdfund pb;
 
     PartyCrowdfund.FixedGovernanceOpts defaultGovOpts;
@@ -73,7 +73,7 @@ contract FoundationForkedTest is TestUtils {
             pbImpl,
             abi.encodeCall(
                 AuctionCrowdfund.initialize,
-                AuctionCrowdfund.PartyBidOptions({
+                AuctionCrowdfund.AuctionCrowdfundOptions({
                     name: "Party",
                     symbol: "PRTY",
                     auctionId: auctionId,

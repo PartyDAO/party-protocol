@@ -130,7 +130,7 @@
           }
         ],
         "indexed": false,
-        "internalType": "struct AuctionCrowdfund.PartyBidOptions",
+        "internalType": "struct AuctionCrowdfund.AuctionCrowdfundOptions",
         "name": "opts",
         "type": "tuple"
       }
@@ -248,7 +248,7 @@
           }
         ],
         "indexed": false,
-        "internalType": "struct BuyCrowdfund.PartyBuyOptions",
+        "internalType": "struct BuyCrowdfund.BuyCrowdfundOptions",
         "name": "opts",
         "type": "tuple"
       }
@@ -481,7 +481,7 @@
             "type": "tuple"
           }
         ],
-        "internalType": "struct AuctionCrowdfund.PartyBidOptions",
+        "internalType": "struct AuctionCrowdfund.AuctionCrowdfundOptions",
         "name": "opts",
         "type": "tuple"
       },
@@ -604,7 +604,7 @@
             "type": "tuple"
           }
         ],
-        "internalType": "struct BuyCrowdfund.PartyBuyOptions",
+        "internalType": "struct BuyCrowdfund.BuyCrowdfundOptions",
         "name": "opts",
         "type": "tuple"
       },

@@ -254,7 +254,7 @@ The Party protocol will support 5 proposal types at launch:
 
 - [ArbitraryCalls Proposals](#arbitrarycalls-proposal-type)
 - [ListOnZora Proposals](#listonzora-proposal-type)
-- [ListOnSeaport Proposals](#listonopenseaport-proposal-type)
+- [ListOnOpensea Proposals](#listonopenseaport-proposal-type)
 - [Fractionalize Proposals](#fractionalize-proposal-type)
 - [UpgradeProposalEngineImpl Proposals](#upgradeproposalengineimpl-proposal-type)
 
@@ -352,7 +352,7 @@ This proposal always has two steps:
     - Cancel the auction if the auction was never bid on and `minExpiry` time has passed. This will also return the NFT to the party.
     - Finalize the auction if someone has bid on it and the auction `duration` has passed. This will transfer the top bid amount (in ETH) to the Party. It is also possible someone else finalized the auction for us, in which case the Party already has the ETH and this step becomes a no-op.
 
-### ListOnSeaport Proposal Type
+### ListOnOpensea Proposal Type
 
 This proposal type *ultimately* tries to list an NFT held by the Party on OpenSea (Seaport 1.1). Because OpenSea listings are limit orders, there is no mechanism for on-chain price discovery (unlike a Zora auction). So to mitigate a malicious proposal listing a precious NFT for far below its actual worth, this proposal type will first place the NFT in a Zora auction before creating an OpenSea listing. The durations for this mandatory Zora step are defined by the global values `GLOBAL_OS_ZORA_AUCTION_TIMEOUT` and `GLOBAL_OS_ZORA_AUCTION_DURATION`.
 
@@ -362,8 +362,8 @@ The `proposalData` should be encoded as:
 ```solidity
 abi.encodeWithSelector(
     // Prefix identifying this proposal type.
-    bytes4(ProposalType.ListOnSeaportProposal),
-    SeaportProposalData(
+    bytes4(ProposalType.ListOnOpenseaProposal),
+    OpenseaProposalData(
         // The price (in ETH) to sell the NFT.
         // This is also the reserve bid for the Zora auction.
         /* uint256 */ listPrice,
@@ -391,7 +391,7 @@ This proposal has between 2-3 steps:
         ```solidity
         abi.encode(
             // The current step.
-            ListOnSeaportStep.ListedOnZora,
+            ListOnOpenseaStep.ListedOnZora,
             ZoraProposalData(
                 // The Zora auction ID.
                 /* uint256 */ auctionId,
@@ -409,8 +409,8 @@ This proposal has between 2-3 steps:
         ```solidity
         abi.encode(
             // The current step.
-            ListOnSeaportStep.ListedOnOpenSea,
-            SeaportProgressData(
+            ListOnOpenseaStep.ListedOnOpenSea,
+            OpenseaProgressData(
                 // Hash of the OS order that was listed.
                 /* bytes32 */ orderHash,
                 // Expiration timestamp of the listing.

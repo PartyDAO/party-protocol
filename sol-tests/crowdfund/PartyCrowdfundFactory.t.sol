@@ -19,8 +19,8 @@ contract PartyCrowdfundFactoryTest is Test, TestUtils {
     Globals globals = new Globals(address(this));
     PartyCrowdfundFactory partyCrowdfundFactory = new PartyCrowdfundFactory(globals);
     MockMarketWrapper market = new MockMarketWrapper();
-    AuctionCrowdfund partyBid = new PartyBid(globals);
-    BuyCrowdfund partyBuy = new PartyBuy(globals);
+    AuctionCrowdfund partyBid = new AuctionCrowdfund(globals);
+    BuyCrowdfund partyBuy = new BuyCrowdfund(globals);
     CollectionBuyCrowdfund partyCollectionBuy = new CollectionBuyCrowdfund(globals);
     AllowListGateKeeper allowListGateKeeper = new AllowListGateKeeper();
     TokenGateKeeper tokenGateKeeper = new TokenGateKeeper();
@@ -92,7 +92,7 @@ contract PartyCrowdfundFactoryTest is Test, TestUtils {
             bytes memory createGateCallData
         ) = _randomGateKeeper();
 
-        AuctionCrowdfund.PartyBidOptions memory opts = PartyBid.PartyBidOptions({
+        AuctionCrowdfund.AuctionCrowdfundOptions memory opts = AuctionCrowdfund.AuctionCrowdfundOptions({
             name: randomStr,
             symbol: randomStr,
             auctionId: auctionId,
@@ -119,7 +119,7 @@ contract PartyCrowdfundFactoryTest is Test, TestUtils {
         });
 
         vm.deal(address(this), randomUint40);
-        AuctionCrowdfund inst = partyCrowdfundFactory.createPartyBid{ value: randomUint40 }(opts, createGateCallData);
+        AuctionCrowdfund inst = partyCrowdfundFactory.createAuctionCrowdfund{ value: randomUint40 }(opts, createGateCallData);
 
         // Check that value are initialized to what we expect.
         assertEq(inst.name(), opts.name);
@@ -148,7 +148,7 @@ contract PartyCrowdfundFactoryTest is Test, TestUtils {
         (uint256 auctionId, uint256 tokenId)  = market.createAuction(0);
         IERC721 nftContract = IERC721(market.nftContract());
 
-        AuctionCrowdfund.PartyBidOptions memory opts = PartyBid.PartyBidOptions({
+        AuctionCrowdfund.AuctionCrowdfundOptions memory opts = AuctionCrowdfund.AuctionCrowdfundOptions({
             name: "name",
             symbol: "symbol",
             auctionId: auctionId + 1,
@@ -181,7 +181,7 @@ contract PartyCrowdfundFactoryTest is Test, TestUtils {
         // Create an auction.
         (uint256 auctionId, uint256 tokenId)  = market.createAuction(0);
 
-        AuctionCrowdfund.PartyBidOptions memory opts = PartyBid.PartyBidOptions({
+        AuctionCrowdfund.AuctionCrowdfundOptions memory opts = AuctionCrowdfund.AuctionCrowdfundOptions({
             name: "name",
             symbol: "symbol",
             auctionId: auctionId,
@@ -215,7 +215,7 @@ contract PartyCrowdfundFactoryTest is Test, TestUtils {
         (uint256 auctionId, uint256 tokenId)  = market.createAuction(0);
         IERC721 nftContract = IERC721(market.nftContract());
 
-        AuctionCrowdfund.PartyBidOptions memory opts = PartyBid.PartyBidOptions({
+        AuctionCrowdfund.AuctionCrowdfundOptions memory opts = AuctionCrowdfund.AuctionCrowdfundOptions({
             name: "name",
             symbol: "symbol",
             auctionId: auctionId,
@@ -263,7 +263,7 @@ contract PartyCrowdfundFactoryTest is Test, TestUtils {
             bytes memory createGateCallData
         ) = _randomGateKeeper();
 
-        BuyCrowdfund.PartyBuyOptions memory opts = PartyBuy.PartyBuyOptions({
+        BuyCrowdfund.BuyCrowdfundOptions memory opts = BuyCrowdfund.BuyCrowdfundOptions({
             name: randomStr,
             symbol: randomStr,
             nftContract: nftContract,
@@ -288,7 +288,7 @@ contract PartyCrowdfundFactoryTest is Test, TestUtils {
         });
 
         vm.deal(address(this), randomUint40);
-        BuyCrowdfund inst = partyCrowdfundFactory.createPartyBuy{ value: randomUint40 }(opts, createGateCallData);
+        BuyCrowdfund inst = partyCrowdfundFactory.createBuyCrowdfund{ value: randomUint40 }(opts, createGateCallData);
 
         // Check that value are initialized to what we expect.
         assertEq(inst.name(), opts.name);
@@ -387,7 +387,7 @@ contract PartyCrowdfundFactoryTest is Test, TestUtils {
         (uint256 auctionId, uint256 tokenId)  = market.createAuction(0);
         IERC721 nftContract = IERC721(market.nftContract());
 
-        AuctionCrowdfund.PartyBidOptions memory opts = PartyBid.PartyBidOptions({
+        AuctionCrowdfund.AuctionCrowdfundOptions memory opts = AuctionCrowdfund.AuctionCrowdfundOptions({
             name: "name",
             symbol: "symbol",
             auctionId: auctionId,

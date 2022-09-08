@@ -42,7 +42,7 @@ contract Deploy is Script {
   PartyCrowdfundFactory partyCrowdfundFactory;
   Party partyImpl;
   PartyFactory partyFactory;
-  ISeaportExchange seaport;
+  IOpenseaExchange seaport;
   ProposalExecutionEngine proposalEngineImpl;
   TokenDistributor tokenDistributor;
   PartyCrowdfundNFTRenderer partyCrowdfundNFTRenderer;
@@ -56,7 +56,7 @@ contract Deploy is Script {
     console.log('DEPLOYER_ADDRESS', DEPLOYER_ADDRESS);
     vm.startBroadcast();
 
-    seaport = ISeaportExchange(deployConstants.seaportExchangeAddress);
+    seaport = IOpenseaExchange(deployConstants.seaportExchangeAddress);
 
     // DEPLOY_GLOBALS
     console.log('');
@@ -140,7 +140,7 @@ contract Deploy is Script {
     console.log('### ProposalExecutionEngine');
     console.log('  Deploying - ProposalExecutionEngine');
     zoraAuctionHouse = IZoraAuctionHouse(deployConstants.zoraAuctionHouseAddress);
-    ISeaportConduitController conduitController = ISeaportConduitController(deployConstants.osConduitController);
+    IOpenseaConduitController conduitController = IOpenseaConduitController(deployConstants.osConduitController);
     IFractionalV1VaultFactory fractionalVaultFactory = IFractionalV1VaultFactory(deployConstants.fractionalVaultFactory);
     proposalEngineImpl = new ProposalExecutionEngine(globals, seaport, conduitController, zoraAuctionHouse, fractionalVaultFactory);
     console.log('  Deployed - ProposalExecutionEngine', address(proposalEngineImpl));

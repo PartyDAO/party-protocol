@@ -22,11 +22,11 @@ The main contracts involved in this phase are:
   - Factory contract that deploys a new proxified `PartyCrowdfund` instance.
 - `PartyCrowdfund` ([source](../contracts/crowdfund/PartyCrowdfund.sol))
   - Abstract base class for all crowdfund contracts. Implements most contribution accounting and end-of-life logic for crowdfunds.
-- `BuyCrowdfund` ([source](../contracts/crowdfund/PartyBuy.sol))
+- `BuyCrowdfund` ([source](../contracts/crowdfund/BuyCrowdfund.sol))
   - A crowdfund that purchases a specific NFT (i.e., with a known token ID) listing for a known price.
 - `CollectionBuyCrowdfund` ([source](../contracts/crowdfund/CollectionBuyCrowdfund.sol))
   - A crowdfund that purchases any NFT from a collection (i.e., any token ID) from a collection for a known price. Like `BuyCrowdfund` but allows any token ID in a collection to be bought.
-- `AuctionCrowdfund` ([source](../contracts/crowdfund/PartyBid.sol))
+- `AuctionCrowdfund` ([source](../contracts/crowdfund/AuctionCrowdfund.sol))
   - A crowdfund that can repeatedly bid on an auction for a specific NFT (i.e., with a known token ID) until it wins.
 - `IMarketWrapper` ([source](../contracts/crowdfund/IMarketWrapper.sol))
   - A generic interface consumed by `AuctionCrowdfund` to abstract away interactions with any auction marketplace.
@@ -49,7 +49,7 @@ The `PartyCrowdfundFactory` contract is the canonical contract for creating crow
 
 ### BuyCrowdfund Crowdfunds
 
-`BuyCrowdfund`s are created via the `createPartyBuy()` function. `PartyBuy`s:
+`BuyCrowdfund`s are created via the `createBuyCrowdfund()` function. `BuyCrowdfund`s:
 
 - Are trying to buy a specific ERC721 contract + token ID.
 - While active, users can contribute ETH to the cause.
@@ -65,7 +65,7 @@ The `PartyCrowdfundFactory` contract is the canonical contract for creating crow
 
 ### CollectionBuyCrowdfund Crowdfunds
 
-`CollectionBuyCrowdfund`s are created via the `createCollectionBuyCrowdfund()` function. `PartyCollectionBuy`s:
+`CollectionBuyCrowdfund`s are created via the `createCollectionBuyCrowdfund()` function. `CollectionBuyCrowdfund`s:
 
 - Are trying to buy _any_ token ID on an ERC721 contract.
 - While active, users can contribute ETH to the cause.
@@ -80,7 +80,7 @@ The `PartyCrowdfundFactory` contract is the canonical contract for creating crow
 
 ### AuctionCrowdfund Crowdfunds
 
-`CollectionBuyCrowdfund`s are created via the `createAuctionCrowdfund()` function. `PartyBid`s:
+`CollectionBuyCrowdfund`s are created via the `createAuctionCrowdfund()` function. `AuctionCrowdfund`s:
 
 - Are trying to buy a specific ERC721 contract + token ID listed on an auction market.
 - Directly interact with a Market Wrapper, which is an abstractions/wrapper of an NFT auction protocol.

@@ -85,7 +85,7 @@ contract CollectionBuyCrowdfund is BuyCrowdfundBase {
         payable
         onlyConstructor
     {
-        BuyCrowdfundBase._initialize(PartyBuyBaseOptions({
+        BuyCrowdfundBase._initialize(BuyCrowdfundBaseOptions({
             name: opts.name,
             symbol: opts.symbol,
             duration: opts.duration,

@@ -6,18 +6,18 @@ import "../globals/LibGlobals.sol";
 import "../tokens/IERC721.sol";
 import "../utils/LibSafeCast.sol";
 
-import "./vendor/ISeaportExchange.sol";
-import "./vendor/ISeaportConduitController.sol";
+import "./vendor/IOpenseaExchange.sol";
+import "./vendor/IOpenseaConduitController.sol";
 import "./ZoraHelpers.sol";
 import "./LibProposal.sol";
 import "./IProposalExecutionEngine.sol";
 
 // Implements proposal listing an NFT on OpenSea (Seaport). Inherited by the `ProposalExecutionEngine`.
 // This contract will be delegatecall'ed into by `Party` proxy instances.
-abstract contract ListOnSeaportProposal is ZoraHelpers {
+abstract contract ListOnOpenseaProposal is ZoraHelpers {
     using LibSafeCast for uint256;
 
-    enum ListOnSeaportStep {
+    enum ListOnOpenseaStep {
         // The proposal hasn't been executed yet.
         None,
         // The NFT was placed in a Zora auction.
@@ -29,7 +29,7 @@ abstract contract ListOnSeaportProposal is ZoraHelpers {
     }
 
     // ABI-encoded `proposalData` passed into execute.
-    struct SeaportProposalData {
+    struct OpenseaProposalData {
         // The price (in ETH) to sell the NFT.
         uint256 listPrice;
         // How long the listing is valid for.
@@ -45,14 +45,14 @@ abstract contract ListOnSeaportProposal is ZoraHelpers {
     }
 
     // ABI-encoded `progressData` passed into execute in the `ListedOnOpenSea` step.
-    struct SeaportProgressData {
+    struct OpenseaProgressData {
         // Hash of the OS order that was listed.
         bytes32 orderHash;
         // Expiration timestamp of the listing.
         uint40 expiry;
     }
 
-    error SeaportOrderStillActiveError(
+    error OpenseaOrderStillActiveError(
         bytes32 orderHash,
         IERC721 token,
         uint256 tokenId,
@@ -60,21 +60,21 @@ abstract contract ListOnSeaportProposal is ZoraHelpers {
     );
     error InvalidFeeRecipients();
 
-    event SeaportOrderListed(
-        ISeaportExchange.OrderParameters orderParams,
+    event OpenseaOrderListed(
+        IOpenseaExchange.OrderParameters orderParams,
         bytes32 orderHash,
         IERC721 token,
         uint256 tokenId,
         uint256 listPrice,
         uint256 expiry
     );
-    event SeaportOrderSold(
+    event OpenseaOrderSold(
         bytes32 orderHash,
         IERC721 token,
         uint256 tokenId,
         uint256 listPrice
     );
-    event SeaportOrderExpired(
+    event OpenseaOrderExpired(
         bytes32 orderHash,
         IERC721 token,
         uint256 tokenId,
@@ -85,9 +85,9 @@ abstract contract ListOnSeaportProposal is ZoraHelpers {
         bytes32 orderHash,
         address indexed offerer,
         address indexed zone,
-        ISeaportExchange.OfferItem[] offer,
-        ISeaportExchange.ConsiderationItem[] consideration,
-        ISeaportExchange.OrderType orderType,
+        IOpenseaExchange.OfferItem[] offer,
+        IOpenseaExchange.ConsiderationItem[] consideration,
+        IOpenseaExchange.OrderType orderType,
         uint256 startTime,
         uint256 endTime,
         bytes32 zoneHash,
@@ -97,9 +97,9 @@ abstract contract ListOnSeaportProposal is ZoraHelpers {
     );
 
     /// @notice The Seaport contract.
-    ISeaportExchange public immutable SEAPORT;
+    IOpenseaExchange public immutable SEAPORT;
     /// @notice The Seaport conduit controller.
-    ISeaportConduitController public immutable CONDUIT_CONTROLLER;
+    IOpenseaConduitController public immutable CONDUIT_CONTROLLER;
     // The `Globals` contract storing global configuration values. This contract
     // is immutable and it’s address will never change.
     IGlobals private immutable _GLOBALS;
@@ -107,8 +107,8 @@ abstract contract ListOnSeaportProposal is ZoraHelpers {
     // Set immutables.
     constructor(
         IGlobals globals,
-        ISeaportExchange seaport,
-        ISeaportConduitController conduitController
+        IOpenseaExchange seaport,
+        IOpenseaConduitController conduitController
     )
     {
         SEAPORT = seaport;
@@ -120,22 +120,22 @@ abstract contract ListOnSeaportProposal is ZoraHelpers {
     // Creates a listing on Zora auction house for list price first. When that ends,
     // calling this function again will list on OpenSea. When that ends,
     // calling this function again will cancel the listing.
-    function _executeListOnSeaport(
+    function _executeListOnOpensea(
         IProposalExecutionEngine.ExecuteProposalParams memory params
     )
         internal
         returns (bytes memory nextProgressData)
     {
-        (SeaportProposalData memory data) =
-            abi.decode(params.proposalData, (SeaportProposalData));
+        (OpenseaProposalData memory data) =
+            abi.decode(params.proposalData, (OpenseaProposalData));
         bool isUnanimous = params.flags & LibProposal.PROPOSAL_FLAG_UNANIMOUS
             == LibProposal.PROPOSAL_FLAG_UNANIMOUS;
         // If there is no `progressData` passed in, we're on the first step,
         // otherwise parse the first word of the `progressData` as the current step.
-        ListOnSeaportStep step = params.progressData.length == 0
-            ? ListOnSeaportStep.None
-            : abi.decode(params.progressData, (ListOnSeaportStep));
-        if (step == ListOnSeaportStep.None) {
+        ListOnOpenseaStep step = params.progressData.length == 0
+            ? ListOnOpenseaStep.None
+            : abi.decode(params.progressData, (ListOnOpenseaStep));
+        if (step == ListOnOpenseaStep.None) {
             // First time executing the proposal.
             if (
                 !isUnanimous &&
@@ -161,7 +161,7 @@ abstract contract ListOnSeaportProposal is ZoraHelpers {
                         data.tokenId
                     );
                     // Return the next step and data required to execute that step.
-                    return abi.encode(ListOnSeaportStep.ListedOnZora, ZoraProgressData({
+                    return abi.encode(ListOnOpenseaStep.ListedOnZora, ZoraProgressData({
                         auctionId: auctionId,
                         minExpiry: (block.timestamp + zoraTimeout).safeCastUint256ToUint40()
                     }));
@@ -170,9 +170,9 @@ abstract contract ListOnSeaportProposal is ZoraHelpers {
             // Unanimous vote, not a precious, or no Zora duration.
             // Advance past the Zora auction phase by pretending we already
             // retrieved it from Zora.
-            step = ListOnSeaportStep.RetrievedFromZora;
+            step = ListOnOpenseaStep.RetrievedFromZora;
         }
-        if (step == ListOnSeaportStep.ListedOnZora) {
+        if (step == ListOnOpenseaStep.ListedOnZora) {
             // The last time this proposal was executed, we listed it on Zora.
             // Now retrieve it from Zora.
             (, ZoraProgressData memory zpd) =
@@ -186,9 +186,9 @@ abstract contract ListOnSeaportProposal is ZoraHelpers {
             }
             // The auction simply expired before anyone bid on it. We have the NFT
             // back now so move on to listing it on OpenSea immediately.
-            step = ListOnSeaportStep.RetrievedFromZora;
+            step = ListOnOpenseaStep.RetrievedFromZora;
         }
-        if (step == ListOnSeaportStep.RetrievedFromZora) {
+        if (step == ListOnOpenseaStep.RetrievedFromZora) {
             // This step occurs if either:
             // 1) This is the first time this proposal is being executed and
             //    it is a unanimous vote or the NFT is not precious (guarded)
@@ -208,7 +208,7 @@ abstract contract ListOnSeaportProposal is ZoraHelpers {
                 }
             }
             uint256 expiry = block.timestamp + uint256(data.duration);
-            bytes32 orderHash = _listOnSeaport(
+            bytes32 orderHash = _listOnOpensea(
                 data.token,
                 data.tokenId,
                 data.listPrice,
@@ -216,13 +216,13 @@ abstract contract ListOnSeaportProposal is ZoraHelpers {
                 data.fees,
                 data.feeRecipients
             );
-            return abi.encode(ListOnSeaportStep.ListedOnOpenSea, orderHash, expiry);
+            return abi.encode(ListOnOpenseaStep.ListedOnOpenSea, orderHash, expiry);
         }
-        assert(step == ListOnSeaportStep.ListedOnOpenSea);
+        assert(step == ListOnOpenseaStep.ListedOnOpenSea);
         // The last time this proposal was executed, we listed it on OpenSea.
         // Now try to settle the listing (either it has expired or been filled).
-        (, SeaportProgressData memory opd) =
-            abi.decode(params.progressData, (uint8, SeaportProgressData));
+        (, OpenseaProgressData memory opd) =
+            abi.decode(params.progressData, (uint8, OpenseaProgressData));
         _cleanUpListing(
             opd.orderHash,
             opd.expiry,
@@ -235,7 +235,7 @@ abstract contract ListOnSeaportProposal is ZoraHelpers {
         return "";
     }
 
-    function _listOnSeaport(
+    function _listOnOpensea(
         IERC721 token,
         uint256 tokenId,
         uint256 listPrice,
@@ -256,41 +256,41 @@ abstract contract ListOnSeaportProposal is ZoraHelpers {
         token.approve(conduit, tokenId);
 
         // Create a (basic) Seaport 721 sell order.
-        ISeaportExchange.Order[] memory orders = new ISeaportExchange.Order[](1);
-        ISeaportExchange.Order memory order = orders[0];
-        ISeaportExchange.OrderParameters memory orderParams = order.parameters;
+        IOpenseaExchange.Order[] memory orders = new IOpenseaExchange.Order[](1);
+        IOpenseaExchange.Order memory order = orders[0];
+        IOpenseaExchange.OrderParameters memory orderParams = order.parameters;
         orderParams.offerer = address(this);
         orderParams.startTime = block.timestamp;
         orderParams.endTime = expiry;
         orderParams.zone = _GLOBALS.getAddress(LibGlobals.GLOBAL_OPENSEA_ZONE);
         orderParams.orderType = orderParams.zone == address(0)
-            ? ISeaportExchange.OrderType.FULL_OPEN
-            : ISeaportExchange.OrderType.FULL_RESTRICTED;
+            ? IOpenseaExchange.OrderType.FULL_OPEN
+            : IOpenseaExchange.OrderType.FULL_RESTRICTED;
         orderParams.salt = 0;
         orderParams.conduitKey = conduitKey;
         orderParams.totalOriginalConsiderationItems = 1 + fees.length;
         // What we are selling.
-        orderParams.offer = new ISeaportExchange.OfferItem[](1);
+        orderParams.offer = new IOpenseaExchange.OfferItem[](1);
         {
-            ISeaportExchange.OfferItem memory offer = orderParams.offer[0];
-            offer.itemType = ISeaportExchange.ItemType.ERC721;
+            IOpenseaExchange.OfferItem memory offer = orderParams.offer[0];
+            offer.itemType = IOpenseaExchange.ItemType.ERC721;
             offer.token = address(token);
             offer.identifierOrCriteria = tokenId;
             offer.startAmount = 1;
             offer.endAmount = 1;
         }
         // What we want for it.
-        orderParams.consideration = new ISeaportExchange.ConsiderationItem[](1 + fees.length);
+        orderParams.consideration = new IOpenseaExchange.ConsiderationItem[](1 + fees.length);
         {
-            ISeaportExchange.ConsiderationItem memory cons = orderParams.consideration[0];
-            cons.itemType = ISeaportExchange.ItemType.NATIVE;
+            IOpenseaExchange.ConsiderationItem memory cons = orderParams.consideration[0];
+            cons.itemType = IOpenseaExchange.ItemType.NATIVE;
             cons.token = address(0);
             cons.identifierOrCriteria = 0;
             cons.startAmount = cons.endAmount = listPrice;
             cons.recipient = payable(address(this));
             for (uint256 i = 0; i < fees.length; ++i) {
                 cons = orderParams.consideration[1 + i];
-                cons.itemType = ISeaportExchange.ItemType.NATIVE;
+                cons.itemType = IOpenseaExchange.ItemType.NATIVE;
                 cons.token = address(0);
                 cons.identifierOrCriteria = 0;
                 cons.startAmount = cons.endAmount = fees[i];
@@ -315,7 +315,7 @@ abstract contract ListOnSeaportProposal is ZoraHelpers {
             orderParams.conduitKey,
             0
         );
-        emit SeaportOrderListed(
+        emit OpenseaOrderListed(
             orderParams,
             orderHash,
             token,
@@ -325,7 +325,7 @@ abstract contract ListOnSeaportProposal is ZoraHelpers {
         );
     }
 
-    function _getOrderHash(ISeaportExchange.OrderParameters memory orderParams)
+    function _getOrderHash(IOpenseaExchange.OrderParameters memory orderParams)
         private
         view
         returns (bytes32 orderHash)
@@ -341,7 +341,7 @@ abstract contract ListOnSeaportProposal is ZoraHelpers {
         uint256 origTotalOriginalConsiderationItems =
             orderParams.totalOriginalConsiderationItems;
         orderParams.totalOriginalConsiderationItems = 0;
-        ISeaportExchange.OrderComponents memory orderComps;
+        IOpenseaExchange.OrderComponents memory orderComps;
         assembly { orderComps := orderParams }
         orderHash = SEAPORT.getOrderHash(orderComps);
         orderParams.totalOriginalConsiderationItems = origTotalOriginalConsiderationItems;
@@ -360,15 +360,15 @@ abstract contract ListOnSeaportProposal is ZoraHelpers {
         if (totalFilled != 0) {
             // The order was filled before it expired. We no longer have the NFT
             // and instead we have the ETH it was bought with.
-            emit SeaportOrderSold(orderHash, token, tokenId, listPrice);
+            emit OpenseaOrderSold(orderHash, token, tokenId, listPrice);
         } else if (expiry <= block.timestamp) {
             // The order expired before it was filled. We retain the NFT.
             // Revoke Seaport approval.
             token.approve(address(0), tokenId);
-            emit SeaportOrderExpired(orderHash, token, tokenId, expiry);
+            emit OpenseaOrderExpired(orderHash, token, tokenId, expiry);
         } else {
             // The order hasn't been bought and is still active.
-            revert SeaportOrderStillActiveError(orderHash, token, tokenId, expiry);
+            revert OpenseaOrderStillActiveError(orderHash, token, tokenId, expiry);
         }
     }
 }

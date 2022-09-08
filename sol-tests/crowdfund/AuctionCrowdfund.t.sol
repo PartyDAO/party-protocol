@@ -83,7 +83,7 @@ contract AuctionCrowdfundTest is Test, TestUtils {
             partyBidImpl,
             abi.encodeCall(
                 AuctionCrowdfund.initialize,
-                AuctionCrowdfund.PartyBidOptions({
+                AuctionCrowdfund.AuctionCrowdfundOptions({
                     name: defaultName,
                     symbol: defaultSymbol,
                     auctionId: auctionId,
@@ -171,7 +171,7 @@ contract AuctionCrowdfundTest is Test, TestUtils {
         (uint256 auctionId, uint256 tokenId) = market.createAuction(1337);
         AuctionCrowdfund pb = _createCrowdfund(auctionId, tokenId, 0);
         vm.expectRevert(abi.encodeWithSelector(Implementation.OnlyConstructorError.selector));
-        AuctionCrowdfund.PartyBidOptions memory opts;
+        AuctionCrowdfund.AuctionCrowdfundOptions memory opts;
         pb.initialize(opts);
     }
 
@@ -381,7 +381,7 @@ contract AuctionCrowdfundTest is Test, TestUtils {
             partyBidImpl,
             abi.encodeCall(
                 AuctionCrowdfund.initialize,
-                AuctionCrowdfund.PartyBidOptions({
+                AuctionCrowdfund.AuctionCrowdfundOptions({
                     name: defaultName,
                     symbol: defaultSymbol,
                     auctionId: auctionId,

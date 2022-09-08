@@ -163,7 +163,7 @@ contract PartyGovernanceNFTRenderer is IERC721Renderer {
                     '{"name":"',
                     renderNFTName(),
                     '", "description":"',
-                    "AuctionCrowdfund Governance NFTs give you voting power in a PartyBid party.",
+                    "AuctionCrowdfund Governance NFTs give you voting power in a AuctionCrowdfund party.",
                     '"}'
                     // '", "image": "data:image/svg+xml;base64,',
                     // Base64.encode(bytes(output)),

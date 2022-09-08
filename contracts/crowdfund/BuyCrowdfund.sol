@@ -12,7 +12,7 @@ import "./BuyCrowdfundBase.sol";
 
 /// @notice A crowdfund that purchases a specific NFT (i.e., with a known token
 ///         ID) listing for a known price.
-contract BuyCrowdfund is PartyBuyBase {
+contract BuyCrowdfund is BuyCrowdfundBase {
     using LibSafeERC721 for IERC721;
     using LibSafeCast for uint256;
 
@@ -70,7 +70,7 @@ contract BuyCrowdfund is PartyBuyBase {
         payable
         onlyConstructor
     {
-        BuyCrowdfundBase._initialize(PartyBuyBaseOptions({
+        BuyCrowdfundBase._initialize(BuyCrowdfundBaseOptions({
             name: opts.name,
             symbol: opts.symbol,
             duration: opts.duration,

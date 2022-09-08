@@ -3,7 +3,7 @@ pragma solidity ^0.8;
 
 import "forge-std/Test.sol";
 
-import "../../contracts/proposals/ListOnSeaportProposal.sol";
+import "../../contracts/proposals/ListOnOpenseaProposal.sol";
 import "../../contracts/proposals/ListOnZoraProposal.sol";
 import "../../contracts/tokens/ERC721Receiver.sol";
 

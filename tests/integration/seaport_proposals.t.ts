@@ -4,7 +4,7 @@ import { MockProvider, solidity } from 'ethereum-waffle';
 import { env as ENV } from 'process';
 import * as ethers from 'ethers';
 
-import { abi as SEAPORT_ABI } from '../../out/ISeaportExchange.sol/ISeaportExchange.json';
+import { abi as SEAPORT_ABI } from '../../out/IOpenseaExchange.sol/IOpenseaExchange.json';
 
 import {
     Party,
@@ -14,7 +14,7 @@ import {
     ProposalStatus,
     ListOnOpenSeaStep,
 } from './system';
-import { SeaportOrderParams } from './seaport';
+import { OpenseaOrderParams } from './seaport';
 import {
     ONE_DAY_SECONDS,
     ONE_HOUR_SECONDS,
@@ -188,14 +188,14 @@ describe('Seaport proposals integrations test', () => {
         // Skip past auction tiemout.
         await increaseTime(provider, decodedProgressData.minExpiry);
         // Execute to retrieve from zora and list on opensea..
-        let orderParams: SeaportOrderParams;
+        let orderParams: OpenseaOrderParams;
         progressData = await voters[0].executeAsync(
             proposalId,
             proposal,
             progressData,
             NULL_BYTES,
             events => {
-                orderParams = events.find(e => e.name == 'SeaportOrderListed').args[0];
+                orderParams = events.find(e => e.name == 'OpenseaOrderListed').args[0];
             }
         );
         expect(progressData).to.not.eq(NULL_BYTES);

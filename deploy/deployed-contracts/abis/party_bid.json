@@ -831,7 +831,7 @@
             "type": "tuple"
           }
         ],
-        "internalType": "struct AuctionCrowdfund.PartyBidOptions",
+        "internalType": "struct AuctionCrowdfund.AuctionCrowdfundOptions",
         "name": "opts",
         "type": "tuple"
       }
