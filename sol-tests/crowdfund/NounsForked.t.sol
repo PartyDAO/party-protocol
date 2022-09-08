@@ -98,7 +98,7 @@ contract NounsForkedTest is TestUtils {
         assertTrue(nounsMarket.isFinalized(tokenId));
     }
 
-    function testForked_WinningNounsAuction_finalizedBefore() external {
+    function testForked_WinningNounsAuction_finalizedBefore() external onlyForked {
         // Bid on current Noun auction.
         pb.bid();
 
