@@ -73,6 +73,8 @@ yarn test:ts
 
 ```bash
 yarn test:sol
+# If you want gas reports:
+yarn test:sol --gas-report
 ```
 
 ### Run forked Foundry tests
