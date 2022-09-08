@@ -1,6 +1,6 @@
-# Party Bid V2
+# Party Protocol
 
-The AuctionCrowdfund V1 protocol allowed people to pool funds together to acquire NFTs. AuctionCrowdfund V2 adds new features to allow parties to use and govern those NFTs together as well. The party never ends!
+The PartyBid V1 protocol allowed people to pool funds together to acquire NFTs. V2 (Party Protocol) adds new features to allow parties to use and govern those NFTs together as well. The party never ends!
 
 ## Layout
 
