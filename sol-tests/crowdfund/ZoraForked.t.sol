@@ -3,7 +3,7 @@ pragma solidity ^0.8;
 
 import "forge-std/Test.sol";
 
-import "../../contracts/crowdfund/PartyBid.sol";
+import "../../contracts/crowdfund/AuctionCrowdfund.sol";
 import "../../contracts/crowdfund/PartyCrowdfund.sol";
 import "../../contracts/globals/Globals.sol";
 import "../../contracts/globals/LibGlobals.sol";
@@ -24,8 +24,8 @@ contract ZoraForkedTest is TestUtils, ERC721Receiver {
     Globals globals = new Globals(address(this));
     MockPartyFactory partyFactory = new MockPartyFactory();
     MockParty party = partyFactory.mockParty();
-    PartyBid pbImpl = new PartyBid(globals);
-    PartyBid pb;
+    AuctionCrowdfund pbImpl = new PartyBid(globals);
+    AuctionCrowdfund pb;
 
     PartyCrowdfund.FixedGovernanceOpts defaultGovOpts;
 
@@ -57,15 +57,15 @@ contract ZoraForkedTest is TestUtils, ERC721Receiver {
             IERC20(address(0)) // Indicates ETH sale
         );
 
-        // Create a PartyBid crowdfund
-        pb = PartyBid(
+        // Create a AuctionCrowdfund crowdfund
+        pb = AuctionCrowdfund(
             payable(
                 address(
                     new Proxy(
                         pbImpl,
                         abi.encodeCall(
-                            PartyBid.initialize,
-                            PartyBid.PartyBidOptions({
+                            AuctionCrowdfund.initialize,
+                            AuctionCrowdfund.PartyBidOptions({
                                 name: "Party",
                                 symbol: "PRTY",
                                 auctionId: auctionId,

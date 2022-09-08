@@ -2,7 +2,7 @@
 pragma solidity ^0.8;
 
 import "contracts/crowdfund/PartyCrowdfundFactory.sol";
-import "contracts/crowdfund/PartyBid.sol";
+import "contracts/crowdfund/AuctionCrowdfund.sol";
 import "contracts/crowdfund/IMarketWrapper.sol";
 import "contracts/crowdfund/PartyCrowdfund.sol";
 import "contracts/gatekeepers/AllowListGateKeeper.sol";
@@ -19,9 +19,9 @@ contract PartyCrowdfundFactoryTest is Test, TestUtils {
     Globals globals = new Globals(address(this));
     PartyCrowdfundFactory partyCrowdfundFactory = new PartyCrowdfundFactory(globals);
     MockMarketWrapper market = new MockMarketWrapper();
-    PartyBid partyBid = new PartyBid(globals);
-    PartyBuy partyBuy = new PartyBuy(globals);
-    PartyCollectionBuy partyCollectionBuy = new PartyCollectionBuy(globals);
+    AuctionCrowdfund partyBid = new PartyBid(globals);
+    BuyCrowdfund partyBuy = new PartyBuy(globals);
+    CollectionBuyCrowdfund partyCollectionBuy = new CollectionBuyCrowdfund(globals);
     AllowListGateKeeper allowListGateKeeper = new AllowListGateKeeper();
     TokenGateKeeper tokenGateKeeper = new TokenGateKeeper();
 
@@ -73,7 +73,7 @@ contract PartyCrowdfundFactoryTest is Test, TestUtils {
         }
     }
 
-    function testCreatePartyBid(
+    function testCreateAuctionCrowdfund(
         string memory randomStr,
         uint96 randomUint96,
         uint40 randomUint40,
@@ -92,7 +92,7 @@ contract PartyCrowdfundFactoryTest is Test, TestUtils {
             bytes memory createGateCallData
         ) = _randomGateKeeper();
 
-        PartyBid.PartyBidOptions memory opts = PartyBid.PartyBidOptions({
+        AuctionCrowdfund.PartyBidOptions memory opts = PartyBid.PartyBidOptions({
             name: randomStr,
             symbol: randomStr,
             auctionId: auctionId,
@@ -119,7 +119,7 @@ contract PartyCrowdfundFactoryTest is Test, TestUtils {
         });
 
         vm.deal(address(this), randomUint40);
-        PartyBid inst = partyCrowdfundFactory.createPartyBid{ value: randomUint40 }(opts, createGateCallData);
+        AuctionCrowdfund inst = partyCrowdfundFactory.createPartyBid{ value: randomUint40 }(opts, createGateCallData);
 
         // Check that value are initialized to what we expect.
         assertEq(inst.name(), opts.name);
@@ -143,12 +143,12 @@ contract PartyCrowdfundFactoryTest is Test, TestUtils {
         assertEq(inst.governanceOptsHash(), _hashFixedGovernanceOpts(opts.governanceOpts));
     }
 
-    function testCreatePartyBidWithInvalidAuctionId() external {
+    function testCreateAuctionCrowdfundWithInvalidAuctionId() external {
         // Create an auction.
         (uint256 auctionId, uint256 tokenId)  = market.createAuction(0);
         IERC721 nftContract = IERC721(market.nftContract());
 
-        PartyBid.PartyBidOptions memory opts = PartyBid.PartyBidOptions({
+        AuctionCrowdfund.PartyBidOptions memory opts = PartyBid.PartyBidOptions({
             name: "name",
             symbol: "symbol",
             auctionId: auctionId + 1,
@@ -173,15 +173,15 @@ contract PartyCrowdfundFactoryTest is Test, TestUtils {
             })
         });
 
-        vm.expectRevert(PartyBid.InvalidAuctionIdError.selector);
-        partyCrowdfundFactory.createPartyBid(opts, "");
+        vm.expectRevert(AuctionCrowdfund.InvalidAuctionIdError.selector);
+        partyCrowdfundFactory.createAuctionCrowdfund(opts, "");
     }
 
-    function testCreatePartyBidWithInvalidNftContract() external {
+    function testCreateAuctionCrowdfundWithInvalidNftContract() external {
         // Create an auction.
         (uint256 auctionId, uint256 tokenId)  = market.createAuction(0);
 
-        PartyBid.PartyBidOptions memory opts = PartyBid.PartyBidOptions({
+        AuctionCrowdfund.PartyBidOptions memory opts = PartyBid.PartyBidOptions({
             name: "name",
             symbol: "symbol",
             auctionId: auctionId,
@@ -206,16 +206,16 @@ contract PartyCrowdfundFactoryTest is Test, TestUtils {
             })
         });
 
-        vm.expectRevert(PartyBid.InvalidAuctionIdError.selector);
-        partyCrowdfundFactory.createPartyBid(opts, "");
+        vm.expectRevert(AuctionCrowdfund.InvalidAuctionIdError.selector);
+        partyCrowdfundFactory.createAuctionCrowdfund(opts, "");
     }
 
-    function testCreatePartyBidWithInvalidTokenId() external {
+    function testCreateAuctionCrowdfundWithInvalidTokenId() external {
         // Create an auction.
         (uint256 auctionId, uint256 tokenId)  = market.createAuction(0);
         IERC721 nftContract = IERC721(market.nftContract());
 
-        PartyBid.PartyBidOptions memory opts = PartyBid.PartyBidOptions({
+        AuctionCrowdfund.PartyBidOptions memory opts = PartyBid.PartyBidOptions({
             name: "name",
             symbol: "symbol",
             auctionId: auctionId,
@@ -240,11 +240,11 @@ contract PartyCrowdfundFactoryTest is Test, TestUtils {
             })
         });
 
-        vm.expectRevert(PartyBid.InvalidAuctionIdError.selector);
-        partyCrowdfundFactory.createPartyBid(opts, "");
+        vm.expectRevert(AuctionCrowdfund.InvalidAuctionIdError.selector);
+        partyCrowdfundFactory.createAuctionCrowdfund(opts, "");
     }
 
-    function testCreatePartyBuy(
+    function testCreateBuyCrowdfund(
         string memory randomStr,
         uint96 randomUint96,
         uint40 randomUint40,
@@ -263,7 +263,7 @@ contract PartyCrowdfundFactoryTest is Test, TestUtils {
             bytes memory createGateCallData
         ) = _randomGateKeeper();
 
-        PartyBuy.PartyBuyOptions memory opts = PartyBuy.PartyBuyOptions({
+        BuyCrowdfund.PartyBuyOptions memory opts = PartyBuy.PartyBuyOptions({
             name: randomStr,
             symbol: randomStr,
             nftContract: nftContract,
@@ -288,7 +288,7 @@ contract PartyCrowdfundFactoryTest is Test, TestUtils {
         });
 
         vm.deal(address(this), randomUint40);
-        PartyBuy inst = partyCrowdfundFactory.createPartyBuy{ value: randomUint40 }(opts, createGateCallData);
+        BuyCrowdfund inst = partyCrowdfundFactory.createPartyBuy{ value: randomUint40 }(opts, createGateCallData);
 
         // Check that value are initialized to what we expect.
         assertEq(inst.name(), opts.name);
@@ -310,7 +310,7 @@ contract PartyCrowdfundFactoryTest is Test, TestUtils {
         assertEq(inst.governanceOptsHash(), _hashFixedGovernanceOpts(opts.governanceOpts));
     }
 
-    function testCreatePartyCollectionBuy(
+    function testCreateCollectionBuyCrowdfund(
         string memory randomStr,
         uint96 randomUint96,
         uint40 randomUint40,
@@ -328,8 +328,8 @@ contract PartyCrowdfundFactoryTest is Test, TestUtils {
             bytes memory createGateCallData
         ) = _randomGateKeeper();
 
-        PartyCollectionBuy.PartyCollectionBuyOptions memory opts =
-            PartyCollectionBuy.PartyCollectionBuyOptions({
+        CollectionBuyCrowdfund.CollectionBuyCrowdfundOptions memory opts =
+            CollectionBuyCrowdfund.CollectionBuyCrowdfundOptions({
                 name: randomStr,
                 symbol: randomStr,
                 nftContract: nftContract,
@@ -353,8 +353,8 @@ contract PartyCrowdfundFactoryTest is Test, TestUtils {
             });
 
         vm.deal(address(this), randomUint40);
-        PartyCollectionBuy inst = partyCrowdfundFactory.
-            createPartyCollectionBuy{ value: randomUint40 }(opts, createGateCallData);
+        CollectionBuyCrowdfund inst = partyCrowdfundFactory.
+            createCollectionBuyCrowdfund{ value: randomUint40 }(opts, createGateCallData);
 
         // Check that value are initialized to what we expect.
         assertEq(inst.name(), opts.name);
@@ -387,7 +387,7 @@ contract PartyCrowdfundFactoryTest is Test, TestUtils {
         (uint256 auctionId, uint256 tokenId)  = market.createAuction(0);
         IERC721 nftContract = IERC721(market.nftContract());
 
-        PartyBid.PartyBidOptions memory opts = PartyBid.PartyBidOptions({
+        AuctionCrowdfund.PartyBidOptions memory opts = PartyBid.PartyBidOptions({
             name: "name",
             symbol: "symbol",
             auctionId: auctionId,
@@ -421,6 +421,6 @@ contract PartyCrowdfundFactoryTest is Test, TestUtils {
             invalidBps = splitBps;
         }
         vm.expectRevert(abi.encodeWithSelector(PartyCrowdfund.InvalidBpsError.selector, invalidBps));
-        partyCrowdfundFactory.createPartyBid(opts, "");
+        partyCrowdfundFactory.createAuctionCrowdfund(opts, "");
     }
 }

@@ -6,7 +6,7 @@ import "forge-std/Test.sol";
 import "../../contracts/proposals/vendor/ISeaportExchange.sol";
 import "../../contracts/tokens/IERC721.sol";
 
-contract OpenSeaportTestUtils is Test {
+contract SeaportTestUtils is Test {
 
     ISeaportExchange private immutable SEAPORT;
 
@@ -14,7 +14,7 @@ contract OpenSeaportTestUtils is Test {
         SEAPORT = seaport;
     }
 
-    struct BuyOpenSeaportListingParams {
+    struct BuySeaportListingParams {
         address payable maker;
         address buyer;
         IERC721 token;
@@ -26,7 +26,7 @@ contract OpenSeaportTestUtils is Test {
         bytes32 conduitKey;
     }
 
-    function _buyOpenSeaportListing(BuyOpenSeaportListingParams memory params)
+    function _buySeaportListing(BuySeaportListingParams memory params)
         internal
     {
         vm.deal(params.buyer, address(params.buyer).balance + params.listPrice);
@@ -41,8 +41,8 @@ contract OpenSeaportTestUtils is Test {
         );
     }
 
-    function _buyOpenSeaportListing(
-        BuyOpenSeaportListingParams memory params,
+    function _buySeaportListing(
+        BuySeaportListingParams memory params,
         uint256[] memory fees,
         address payable[] memory feeRecipients
     )
@@ -65,7 +65,7 @@ contract OpenSeaportTestUtils is Test {
     }
 
     function _createFullSeaportOrderParams(
-        BuyOpenSeaportListingParams memory params,
+        BuySeaportListingParams memory params,
         uint256[] memory fees,
         address payable[] memory feeRecipients
     )

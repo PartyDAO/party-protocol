@@ -3,12 +3,12 @@ pragma solidity ^0.8;
 
 import "forge-std/Test.sol";
 
-import "../../contracts/proposals/ListOnOpenSeaportProposal.sol";
+import "../../contracts/proposals/ListOnSeaportProposal.sol";
 import "../../contracts/proposals/ListOnZoraProposal.sol";
 import "../../contracts/tokens/ERC721Receiver.sol";
 
-contract TestableListOnOpenSeaportProposal is
-    ListOnOpenSeaportProposal,
+contract TestableListOnSeaportProposal is
+    ListOnSeaportProposal,
     ListOnZoraProposal,
     ERC721Receiver
 {
@@ -18,18 +18,18 @@ contract TestableListOnOpenSeaportProposal is
         ISeaportConduitController conduitController,
         IZoraAuctionHouse zora
     )
-        ListOnOpenSeaportProposal(globals, seaport, conduitController)
+        ListOnSeaportProposal(globals, seaport, conduitController)
         ListOnZoraProposal(globals, zora)
     {}
 
     receive() external payable {}
 
-    function executeListOnOpenSeaport(
+    function executeListOnSeaport(
         IProposalExecutionEngine.ExecuteProposalParams memory params
     )
         public
         returns (bytes memory nextProgressData)
     {
-        return _executeListOnOpenSeaport(params);
+        return _executeListOnSeaport(params);
     }
 }

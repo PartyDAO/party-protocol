@@ -815,7 +815,7 @@
             "type": "tuple"
           }
         ],
-        "internalType": "struct PartyBuy.PartyBuyOptions",
+        "internalType": "struct BuyCrowdfund.PartyBuyOptions",
         "name": "opts",
         "type": "tuple"
       }

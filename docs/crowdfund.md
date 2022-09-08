@@ -22,14 +22,14 @@ The main contracts involved in this phase are:
   - Factory contract that deploys a new proxified `PartyCrowdfund` instance.
 - `PartyCrowdfund` ([source](../contracts/crowdfund/PartyCrowdfund.sol))
   - Abstract base class for all crowdfund contracts. Implements most contribution accounting and end-of-life logic for crowdfunds.
-- `PartyBuy` ([source](../contracts/crowdfund/PartyBuy.sol))
+- `BuyCrowdfund` ([source](../contracts/crowdfund/PartyBuy.sol))
   - A crowdfund that purchases a specific NFT (i.e., with a known token ID) listing for a known price.
-- `PartyCollectionBuy` ([source](../contracts/crowdfund/PartyCollectionBuy.sol))
-  - A crowdfund that purchases any NFT from a collection (i.e., any token ID) from a collection for a known price. Like `PartyBuy` but allows any token ID in a collection to be bought.
-- `PartyBid` ([source](../contracts/crowdfund/PartyBid.sol))
+- `CollectionBuyCrowdfund` ([source](../contracts/crowdfund/CollectionBuyCrowdfund.sol))
+  - A crowdfund that purchases any NFT from a collection (i.e., any token ID) from a collection for a known price. Like `BuyCrowdfund` but allows any token ID in a collection to be bought.
+- `AuctionCrowdfund` ([source](../contracts/crowdfund/PartyBid.sol))
   - A crowdfund that can repeatedly bid on an auction for a specific NFT (i.e., with a known token ID) until it wins.
 - `IMarketWrapper` ([source](../contracts/crowdfund/IMarketWrapper.sol))
-  - A generic interface consumed by `PartyBid` to abstract away interactions with any auction marketplace.
+  - A generic interface consumed by `AuctionCrowdfund` to abstract away interactions with any auction marketplace.
 - `IGateKeeper` ([source](../contracts/gatekeepers/IGateKeeper.sol))
   - An interface implemented by gatekeeper contracts that restrict who can participate in a crowdfund. There are currently two implementations of this interface:
     - `AllowListGateKeeper` ([source](../contracts/gatekeepers/AllowListGateKeeper.sol))
@@ -47,9 +47,9 @@ The main contracts involved in this phase are:
 
 The `PartyCrowdfundFactory` contract is the canonical contract for creating crowdfund instances. It deploys `Proxy` instances that point to a specific implementation which inherits from `PartyCrowdfund`.
 
-### PartyBuy Crowdfunds
+### BuyCrowdfund Crowdfunds
 
-`PartyBuy`s are created via the `createPartyBuy()` function. `PartyBuy`s:
+`BuyCrowdfund`s are created via the `createPartyBuy()` function. `PartyBuy`s:
 
 - Are trying to buy a specific ERC721 contract + token ID.
 - While active, users can contribute ETH to the cause.
@@ -63,9 +63,9 @@ The `PartyCrowdfundFactory` contract is the canonical contract for creating crow
 - `uint40 duration`: How long this crowdfund has to bid on the NFT, in seconds.
 - `uint96 maximumPrice`: Maximum amount of ETH this crowdfund will pay for the NFT. If zero, no maximum.
 
-### PartyCollectionBuy Crowdfunds
+### CollectionBuyCrowdfund Crowdfunds
 
-`PartyCollectionBuy`s are created via the `createPartyCollectionBuy()` function. `PartyCollectionBuy`s:
+`CollectionBuyCrowdfund`s are created via the `createCollectionBuyCrowdfund()` function. `PartyCollectionBuy`s:
 
 - Are trying to buy _any_ token ID on an ERC721 contract.
 - While active, users can contribute ETH to the cause.
@@ -78,13 +78,13 @@ The `PartyCrowdfundFactory` contract is the canonical contract for creating crow
 - `uint40 duration`: How long this crowdfund has to bid on an NFT, in seconds.
 - `uint96 maximumPrice`: Maximum amount of ETH this crowdfund will pay for an NFT. If zero, no maximum.
 
-### PartyBid Crowdfunds
+### AuctionCrowdfund Crowdfunds
 
-`PartyCollectionBuy`s are created via the `createPartyBid()` function. `PartyBid`s:
+`CollectionBuyCrowdfund`s are created via the `createAuctionCrowdfund()` function. `PartyBid`s:
 
 - Are trying to buy a specific ERC721 contract + token ID listed on an auction market.
 - Directly interact with a Market Wrapper, which is an abstractions/wrapper of an NFT auction protocol.
-  - These Market Wrappers are inherited from [v1](https://github.com/PartyDAO/PartyBid) of the protocol and are actually delegatecalled into.
+  - These Market Wrappers are inherited from [v1](https://github.com/PartyDAO/AuctionCrowdfund) of the protocol and are actually delegatecalled into.
 - While active, users can contribute ETH to the cause.
 - While active, ETH bids can be placed by anyone via the `bid()` function.
 - Succeeds if anyone calls `finalize()`, which attempts to settle the auction, and the crowdfund ends up holding the NFT.
@@ -172,17 +172,17 @@ The `contribute()` function accepts a `gateData` parameter, which will be passed
 
 Each crowdfund type has its own criteria and operations for winning.
 
-### PartyBuy
+### BuyCrowdfund
 
-`PartyBuy` wins if _anyone_ successfully calls `buy()` before the crowdfund expires. The `buy()` function will perform an arbitrary call with value (up to `maximumPrice`) to attempt to acquire the predetermined NFT. The NFT must be held by the party after the arbitrary call successfully returns. It will then proceed with creating a governance Party.
+`BuyCrowdfund` wins if _anyone_ successfully calls `buy()` before the crowdfund expires. The `buy()` function will perform an arbitrary call with value (up to `maximumPrice`) to attempt to acquire the predetermined NFT. The NFT must be held by the party after the arbitrary call successfully returns. It will then proceed with creating a governance Party.
 
-### PartyCollectionBuy
+### CollectionBuyCrowdfund
 
-`PartyCollectionBuy` wins if a _host_ successfully calls `buy()` before the crowdfund expires. The `buy()` function will perform an arbitrary call with value (up to `maximumPrice`) to attempt to acquire _any_ NFT token ID from the predetermined ERC721. The NFT must be held by the party after the arbitrary call successfully returns. It will then proceed with creating a governance Party.
+`CollectionBuyCrowdfund` wins if a _host_ successfully calls `buy()` before the crowdfund expires. The `buy()` function will perform an arbitrary call with value (up to `maximumPrice`) to attempt to acquire _any_ NFT token ID from the predetermined ERC721. The NFT must be held by the party after the arbitrary call successfully returns. It will then proceed with creating a governance Party.
 
-### PartyBid
+### AuctionCrowdfund
 
-`PartyBid` requires more steps and active intervention than the other crowdfunds because it needs to interact with auctions.
+`AuctionCrowdfund` requires more steps and active intervention than the other crowdfunds because it needs to interact with auctions.
 
 While the crowdfund is Active, anyone can, and should, call `bid()` to bid on the auction the crowdfund was started around. The amount to bid will be the minimum winning amount determined by the Market Wrapper being used. Only up to `maximumBid` ETH will ever be used in a bid. The crowdfund contract will `delegatecall` into the Market Wrapper to perform the bid, so it is important that a crowdfund only uses trusted Market Wrappers.
 
@@ -196,7 +196,7 @@ After this point, the crowdfund will be in the `Won` lifecycle and no more contr
 
 ## Losing
 
-Crowdfunds generally lose when they expire before acquiring a target NFT. The one exception is `PartyBid`, which can still be finalized and win after expiration.
+Crowdfunds generally lose when they expire before acquiring a target NFT. The one exception is `AuctionCrowdfund`, which can still be finalized and win after expiration.
 
 When a crowdfund enters the Lost lifecycle, contributors may `burn()` their participation NFT to refund all the ETH they contributed.
 

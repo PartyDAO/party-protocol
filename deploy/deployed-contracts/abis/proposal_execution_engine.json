@@ -116,7 +116,7 @@
         "type": "uint256"
       }
     ],
-    "name": "OpenSeaportOrderStillActiveError",
+    "name": "SeaportOrderStillActiveError",
     "type": "error"
   },
   {
@@ -348,7 +348,7 @@
         "type": "uint256"
       }
     ],
-    "name": "OpenSeaportOrderExpired",
+    "name": "SeaportOrderExpired",
     "type": "event"
   },
   {
@@ -507,7 +507,7 @@
         "type": "uint256"
       }
     ],
-    "name": "OpenSeaportOrderListed",
+    "name": "SeaportOrderListed",
     "type": "event"
   },
   {
@@ -538,7 +538,7 @@
         "type": "uint256"
       }
     ],
-    "name": "OpenSeaportOrderSold",
+    "name": "SeaportOrderSold",
     "type": "event"
   },
   {

@@ -3,9 +3,9 @@ pragma solidity ^0.8;
 
 import 'forge-std/Script.sol';
 
-import '../contracts/crowdfund/PartyBid.sol';
-import '../contracts/crowdfund/PartyBuy.sol';
-import '../contracts/crowdfund/PartyCollectionBuy.sol';
+import '../contracts/crowdfund/AuctionCrowdfund.sol';
+import '../contracts/crowdfund/BuyCrowdfund.sol';
+import '../contracts/crowdfund/CollectionBuyCrowdfund.sol';
 import '../contracts/crowdfund/PartyCrowdfundFactory.sol';
 import '../contracts/distribution/TokenDistributor.sol';
 import '../contracts/gatekeepers/AllowListGateKeeper.sol';
@@ -36,9 +36,9 @@ contract Deploy is Script {
   // temporary variables to store deployed contract addresses
   Globals globals;
   IZoraAuctionHouse zoraAuctionHouse;
-  PartyBid partyBidImpl;
-  PartyBuy partyBuyImpl;
-  PartyCollectionBuy partyCollectionBuyImpl;
+  AuctionCrowdfund partyBidImpl;
+  BuyCrowdfund partyBuyImpl;
+  CollectionBuyCrowdfund partyCollectionBuyImpl;
   PartyCrowdfundFactory partyCrowdfundFactory;
   Party partyImpl;
   PartyFactory partyFactory;
@@ -181,41 +181,41 @@ contract Deploy is Script {
 
     // DEPLOY_PARTY_BID_IMPLEMENTATION
     console.log('');
-    console.log('### PartyBid crowdfund implementation');
-    console.log('  Deploying - PartyBid crowdfund implementation');
-    partyBidImpl = new PartyBid(globals);
-    console.log('  Deployed - PartyBid crowdfund implementation', address(partyBidImpl));
+    console.log('### AuctionCrowdfund crowdfund implementation');
+    console.log('  Deploying - AuctionCrowdfund crowdfund implementation');
+    partyBidImpl = new AuctionCrowdfund(globals);
+    console.log('  Deployed - AuctionCrowdfund crowdfund implementation', address(partyBidImpl));
 
     console.log('');
-    console.log('  Globals - setting PartyBid crowdfund implementation address');
+    console.log('  Globals - setting AuctionCrowdfund crowdfund implementation address');
     globals.setAddress(LibGlobals.GLOBAL_PARTY_BID_IMPL, address(partyBidImpl));
-    console.log('  Globals - successfully set PartyBid crowdfund implementation address', address(partyBidImpl));
+    console.log('  Globals - successfully set AuctionCrowdfund crowdfund implementation address', address(partyBidImpl));
 
 
     // DEPLOY_PARTY_BUY_IMPLEMENTATION
     console.log('');
-    console.log('### PartyBuy crowdfund implementation');
-    console.log('  Deploying - PartyBuy crowdfund implementation');
-    partyBuyImpl = new PartyBuy(globals);
-    console.log('  Deployed - PartyBuy crowdfund implementation', address(partyBuyImpl));
+    console.log('### BuyCrowdfund crowdfund implementation');
+    console.log('  Deploying - BuyCrowdfund crowdfund implementation');
+    partyBuyImpl = new BuyCrowdfund(globals);
+    console.log('  Deployed - BuyCrowdfund crowdfund implementation', address(partyBuyImpl));
 
     console.log('');
-    console.log('  Globals - setting PartyBuy crowdfund implementation address');
+    console.log('  Globals - setting BuyCrowdfund crowdfund implementation address');
     globals.setAddress(LibGlobals.GLOBAL_PARTY_BUY_IMPL, address(partyBuyImpl));
-    console.log('  Globals - successfully set PartyBuy crowdfund implementation address', address(partyBuyImpl));
+    console.log('  Globals - successfully set BuyCrowdfund crowdfund implementation address', address(partyBuyImpl));
 
 
     // DEPLOY_PARTY_COLLECTION_BUY_IMPLEMENTATION
     console.log('');
-    console.log('### PartyCollectionBuy crowdfund implementation');
-    console.log('  Deploying - PartyCollectionBuy crowdfund implementation');
-    partyCollectionBuyImpl = new PartyCollectionBuy(globals);
-    console.log('  Deployed - PartyCollectionBuy crowdfund implementation', address(partyCollectionBuyImpl));
+    console.log('### CollectionBuyCrowdfund crowdfund implementation');
+    console.log('  Deploying - CollectionBuyCrowdfund crowdfund implementation');
+    partyCollectionBuyImpl = new CollectionBuyCrowdfund(globals);
+    console.log('  Deployed - CollectionBuyCrowdfund crowdfund implementation', address(partyCollectionBuyImpl));
 
     console.log('');
-    console.log('  Globals - setting PartyCollectionBuy crowdfund implementation address');
+    console.log('  Globals - setting CollectionBuyCrowdfund crowdfund implementation address');
     globals.setAddress(LibGlobals.GLOBAL_PARTY_COLLECTION_BUY_IMPL, address(partyCollectionBuyImpl));
-    console.log('  Globals - successfully set PartyCollectionBuy crowdfund implementation address', address(partyCollectionBuyImpl));
+    console.log('  Globals - successfully set CollectionBuyCrowdfund crowdfund implementation address', address(partyCollectionBuyImpl));
 
 
     // DEPLOY_PARTY_CROWDFUND_FACTORY

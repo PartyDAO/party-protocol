@@ -144,7 +144,7 @@ contract PartyCrowdfundNFTRenderer is IERC721Renderer {
                 abi.encodePacked(
                     '{"name":"',
                     renderTokenName(tokenId),
-                    '", "description": "PartyBid Crowdfund NFT", "image": "data:image/svg+xml;base64,',
+                    '", "description": "AuctionCrowdfund Crowdfund NFT", "image": "data:image/svg+xml;base64,',
                     Base64.encode(bytes(output)),
                     '"}'
                 )
@@ -163,7 +163,7 @@ contract PartyCrowdfundNFTRenderer is IERC721Renderer {
                     '{"name":"',
                     renderNFTName(),
                     '", "description":"',
-                    "PartyBid Crowdfund NFTs represent your spot in a PartyBid party.",
+                    "AuctionCrowdfund Crowdfund NFTs represent your spot in a PartyBid party.",
                     '"}'
                     // '", "image": "data:image/svg+xml;base64,',
                     // Base64.encode(bytes(output)),

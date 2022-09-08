@@ -15,7 +15,7 @@
     "inputs": [
       {
         "indexed": false,
-        "internalType": "contract PartyBid",
+        "internalType": "contract AuctionCrowdfund",
         "name": "crowdfund",
         "type": "address"
       },
@@ -130,12 +130,12 @@
           }
         ],
         "indexed": false,
-        "internalType": "struct PartyBid.PartyBidOptions",
+        "internalType": "struct AuctionCrowdfund.PartyBidOptions",
         "name": "opts",
         "type": "tuple"
       }
     ],
-    "name": "PartyBidCreated",
+    "name": "AuctionCrowdfundCreated",
     "type": "event"
   },
   {
@@ -143,7 +143,7 @@
     "inputs": [
       {
         "indexed": false,
-        "internalType": "contract PartyBuy",
+        "internalType": "contract BuyCrowdfund",
         "name": "crowdfund",
         "type": "address"
       },
@@ -248,12 +248,12 @@
           }
         ],
         "indexed": false,
-        "internalType": "struct PartyBuy.PartyBuyOptions",
+        "internalType": "struct BuyCrowdfund.PartyBuyOptions",
         "name": "opts",
         "type": "tuple"
       }
     ],
-    "name": "PartyBuyCreated",
+    "name": "BuyCrowdfundCreated",
     "type": "event"
   },
   {
@@ -261,7 +261,7 @@
     "inputs": [
       {
         "indexed": false,
-        "internalType": "contract PartyCollectionBuy",
+        "internalType": "contract CollectionBuyCrowdfund",
         "name": "crowdfund",
         "type": "address"
       },
@@ -361,12 +361,12 @@
           }
         ],
         "indexed": false,
-        "internalType": "struct PartyCollectionBuy.PartyCollectionBuyOptions",
+        "internalType": "struct CollectionBuyCrowdfund.CollectionBuyCrowdfundOptions",
         "name": "opts",
         "type": "tuple"
       }
     ],
-    "name": "PartyCollectionBuyCreated",
+    "name": "CollectionBuyCrowdfundCreated",
     "type": "event"
   },
   {
@@ -481,7 +481,7 @@
             "type": "tuple"
           }
         ],
-        "internalType": "struct PartyBid.PartyBidOptions",
+        "internalType": "struct AuctionCrowdfund.PartyBidOptions",
         "name": "opts",
         "type": "tuple"
       },
@@ -491,10 +491,10 @@
         "type": "bytes"
       }
     ],
-    "name": "createPartyBid",
+    "name": "createAuctionCrowdfund",
     "outputs": [
       {
-        "internalType": "contract PartyBid",
+        "internalType": "contract AuctionCrowdfund",
         "name": "inst",
         "type": "address"
       }
@@ -604,7 +604,7 @@
             "type": "tuple"
           }
         ],
-        "internalType": "struct PartyBuy.PartyBuyOptions",
+        "internalType": "struct BuyCrowdfund.PartyBuyOptions",
         "name": "opts",
         "type": "tuple"
       },
@@ -614,10 +614,10 @@
         "type": "bytes"
       }
     ],
-    "name": "createPartyBuy",
+    "name": "createBuyCrowdfund",
     "outputs": [
       {
-        "internalType": "contract PartyBuy",
+        "internalType": "contract BuyCrowdfund",
         "name": "inst",
         "type": "address"
       }
@@ -722,7 +722,7 @@
             "type": "tuple"
           }
         ],
-        "internalType": "struct PartyCollectionBuy.PartyCollectionBuyOptions",
+        "internalType": "struct CollectionBuyCrowdfund.CollectionBuyCrowdfundOptions",
         "name": "opts",
         "type": "tuple"
       },
@@ -732,10 +732,10 @@
         "type": "bytes"
       }
     ],
-    "name": "createPartyCollectionBuy",
+    "name": "createCollectionBuyCrowdfund",
     "outputs": [
       {
-        "internalType": "contract PartyCollectionBuy",
+        "internalType": "contract CollectionBuyCrowdfund",
         "name": "inst",
         "type": "address"
       }

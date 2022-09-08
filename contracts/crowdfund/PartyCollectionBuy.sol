@@ -8,18 +8,18 @@ import "../utils/LibRawResult.sol";
 import "../globals/IGlobals.sol";
 import "../gatekeepers/IGateKeeper.sol";
 
-import "./PartyBuyBase.sol";
+import "./BuyCrowdfundBase.sol";
 
 /// @notice A crowdfund that purchases any NFT from a collection (i.e., any
-/// token ID) from a collection for a known price. Like `PartyBuy` but allows
+/// token ID) from a collection for a known price. Like `BuyCrowdfund` but allows
 /// any token ID to be bought.
-contract PartyCollectionBuy is PartyBuyBase {
+contract CollectionBuyCrowdfund is BuyCrowdfundBase {
     using LibSafeERC721 for IERC721;
     using LibSafeCast for uint256;
 
     error OnlyPartyHostError();
 
-    struct PartyCollectionBuyOptions {
+    struct CollectionBuyCrowdfundOptions {
         // The name of the crowdfund.
         // This will also carry over to the governance party.
         string name;
@@ -74,18 +74,18 @@ contract PartyCollectionBuy is PartyBuyBase {
     }
 
     // Set the `Globals` contract.
-    constructor(IGlobals globals) PartyBuyBase(globals) {}
+    constructor(IGlobals globals) BuyCrowdfundBase(globals) {}
 
     /// @notice Initializer to be delegatecalled by `Proxy` constructor. Will
     ///         revert if called outside the constructor.
     /// @param opts Options used to initialize the crowdfund. These are fixed
     ///             and cannot be changed later.
-    function initialize(PartyCollectionBuyOptions memory opts)
+    function initialize(CollectionBuyCrowdfundOptions memory opts)
         external
         payable
         onlyConstructor
     {
-        PartyBuyBase._initialize(PartyBuyBaseOptions({
+        BuyCrowdfundBase._initialize(PartyBuyBaseOptions({
             name: opts.name,
             symbol: opts.symbol,
             duration: opts.duration,

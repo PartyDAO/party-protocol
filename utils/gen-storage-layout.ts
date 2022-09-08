@@ -2,7 +2,7 @@ import yargs from 'yargs';
 import fs from 'fs/promises';
 
 yargs.command('$0 <artifactSpec>', 'generate storage layout',
-    () => yargs.positional('artifactSpec', { type: 'string', describe: 'like \'PartyBid.sol/PartyBid\'' }),
+    () => yargs.positional('artifactSpec', { type: 'string', describe: 'like \'AuctionCrowdfund.sol/PartyBid\'' }),
     async argv => {
         const artifact = JSON.parse(await fs.readFile(`out/${argv.artifactSpec}.json`, 'utf-8'));
         console.log(serializeStorageLayout(artifact.storageLayout));

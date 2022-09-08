@@ -3,9 +3,9 @@ import { writeFileSync, readFileSync, existsSync } from "fs";
 const RELEVANT_ABIS = [
   "AllowListGateKeeper",
   "Party",
-  "PartyBid",
-  "PartyBuy",
-  "PartyCollectionBuy",
+  "AuctionCrowdfund",
+  "BuyCrowdfund",
+  "CollectionBuyCrowdfund",
   "PartyCrowdfundFactory",
   "PartyFactory",
   "PartyGovernance",

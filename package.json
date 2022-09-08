@@ -1,7 +1,7 @@
 {
     "name": "partybidV2",
     "version": "1.0.0",
-    "description": "PartyBidV2 Contracts",
+    "description": "AuctionCrowdfundV2 Contracts",
     "main": "index.js",
     "repository": "git@github.com:PartyDAO/partybidV2.git",
     "author": "Lawrence Forman <me@merklejerk.com>",

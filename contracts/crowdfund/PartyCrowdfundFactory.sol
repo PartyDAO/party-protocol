@@ -5,17 +5,17 @@ import "../globals/IGlobals.sol";
 import "../utils/LibRawResult.sol";
 import "../utils/Proxy.sol";
 
-import "./PartyBid.sol";
-import "./PartyBuy.sol";
-import "./PartyCollectionBuy.sol";
+import "./AuctionCrowdfund.sol";
+import "./BuyCrowdfund.sol";
+import "./CollectionBuyCrowdfund.sol";
 
 /// @notice Factory used to deploys new proxified `PartyCrowdfund` instances.
 contract PartyCrowdfundFactory {
     using LibRawResult for bytes;
 
-    event PartyBuyCreated(PartyBuy crowdfund, PartyBuy.PartyBuyOptions opts);
-    event PartyBidCreated(PartyBid crowdfund, PartyBid.PartyBidOptions opts);
-    event PartyCollectionBuyCreated(PartyCollectionBuy crowdfund, PartyCollectionBuy.PartyCollectionBuyOptions opts);
+    event BuyCrowdfundCreated(PartyBuy crowdfund, PartyBuy.PartyBuyOptions opts);
+    event AuctionCrowdfundCreated(PartyBid crowdfund, PartyBid.PartyBidOptions opts);
+    event CollectionBuyCrowdfundCreated(CollectionBuyCrowdfund crowdfund, PartyCollectionBuy.PartyCollectionBuyOptions opts);
 
     // The `Globals` contract storing global configuration values. This contract
     // is immutable and it’s address will never change.
@@ -32,24 +32,24 @@ contract PartyCrowdfundFactory {
     ///             and cannot be changed later.
     /// @param createGateCallData Encoded calldata used by `createGate()` to
     ///                           create the crowdfund if one is specified in `opts`.
-    function createPartyBuy(
-        PartyBuy.PartyBuyOptions memory opts,
+    function createBuyCrowdfund(
+        BuyCrowdfund.PartyBuyOptions memory opts,
         bytes memory createGateCallData
     )
         public
         payable
-        returns (PartyBuy inst)
+        returns (BuyCrowdfund inst)
     {
         opts.gateKeeperId = _prepareGate(
             opts.gateKeeper,
             opts.gateKeeperId,
             createGateCallData
         );
-        inst = PartyBuy(payable(new Proxy{ value: msg.value }(
+        inst = BuyCrowdfund(payable(new Proxy{ value: msg.value }(
             _GLOBALS.getImplementation(LibGlobals.GLOBAL_PARTY_BUY_IMPL),
-            abi.encodeCall(PartyBuy.initialize, (opts))
+            abi.encodeCall(BuyCrowdfund.initialize, (opts))
         )));
-        emit PartyBuyCreated(inst, opts);
+        emit BuyCrowdfundCreated(inst, opts);
     }
 
     /// @notice Create a new crowdfund to bid on an auction for a specific NFT
@@ -58,24 +58,24 @@ contract PartyCrowdfundFactory {
     ///             and cannot be changed later.
     /// @param createGateCallData Encoded calldata used by `createGate()` to create
     ///                           the crowdfund if one is specified in `opts`.
-    function createPartyBid(
-        PartyBid.PartyBidOptions memory opts,
+    function createAuctionCrowdfund(
+        AuctionCrowdfund.PartyBidOptions memory opts,
         bytes memory createGateCallData
     )
         public
         payable
-        returns (PartyBid inst)
+        returns (AuctionCrowdfund inst)
     {
         opts.gateKeeperId = _prepareGate(
             opts.gateKeeper,
             opts.gateKeeperId,
             createGateCallData
         );
-        inst = PartyBid(payable(new Proxy{ value: msg.value }(
+        inst = AuctionCrowdfund(payable(new Proxy{ value: msg.value }(
             _GLOBALS.getImplementation(LibGlobals.GLOBAL_PARTY_BID_IMPL),
-            abi.encodeCall(PartyBid.initialize, (opts))
+            abi.encodeCall(AuctionCrowdfund.initialize, (opts))
         )));
-        emit PartyBidCreated(inst, opts);
+        emit AuctionCrowdfundCreated(inst, opts);
     }
 
     /// @notice Create a new crowdfund to purchases any NFT from a collection
@@ -84,24 +84,24 @@ contract PartyCrowdfundFactory {
     ///             and cannot be changed later.
     /// @param createGateCallData Encoded calldata used by `createGate()` to create
     ///                           the crowdfund if one is specified in `opts`.
-    function createPartyCollectionBuy(
-        PartyCollectionBuy.PartyCollectionBuyOptions memory opts,
+    function createCollectionBuyCrowdfund(
+        CollectionBuyCrowdfund.CollectionBuyCrowdfundOptions memory opts,
         bytes memory createGateCallData
     )
         public
         payable
-        returns (PartyCollectionBuy inst)
+        returns (CollectionBuyCrowdfund inst)
     {
         opts.gateKeeperId = _prepareGate(
             opts.gateKeeper,
             opts.gateKeeperId,
             createGateCallData
         );
-        inst = PartyCollectionBuy(payable(new Proxy{ value: msg.value }(
+        inst = CollectionBuyCrowdfund(payable(new Proxy{ value: msg.value }(
             _GLOBALS.getImplementation(LibGlobals.GLOBAL_PARTY_COLLECTION_BUY_IMPL),
-            abi.encodeCall(PartyCollectionBuy.initialize, (opts))
+            abi.encodeCall(CollectionBuyCrowdfund.initialize, (opts))
         )));
-        emit PartyCollectionBuyCreated(inst, opts);
+        emit CollectionBuyCrowdfundCreated(inst, opts);
     }
 
     function _prepareGate(

@@ -3,7 +3,7 @@ pragma solidity ^0.8;
 
 import "forge-std/Test.sol";
 
-import "../../contracts/crowdfund/PartyBid.sol";
+import "../../contracts/crowdfund/AuctionCrowdfund.sol";
 import "../../contracts/gatekeepers/AllowListGateKeeper.sol";
 import "../../contracts/globals/Globals.sol";
 import "../../contracts/globals/LibGlobals.sol";
@@ -37,7 +37,7 @@ contract PartyCrowdfundTest is Test, TestUtils {
     event Contributed(address contributor, uint256 amount, address delegate, uint256 previousTotalContributions);
     event Burned(address contributor, uint256 ethUsed, uint256 ethOwed, uint256 votingPower);
 
-    string defaultName = 'PartyBid';
+    string defaultName = 'AuctionCrowdfund';
     string defaultSymbol = 'PBID';
     uint40 defaultDuration = 60 * 60;
     uint96 defaultMaxBid = 10e18;

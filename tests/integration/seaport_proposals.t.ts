@@ -195,7 +195,7 @@ describe('Seaport proposals integrations test', () => {
             progressData,
             NULL_BYTES,
             events => {
-                orderParams = events.find(e => e.name == 'OpenSeaportOrderListed').args[0];
+                orderParams = events.find(e => e.name == 'SeaportOrderListed').args[0];
             }
         );
         expect(progressData).to.not.eq(NULL_BYTES);

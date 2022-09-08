@@ -3,7 +3,7 @@ pragma solidity ^0.8;
 
 import "forge-std/Test.sol";
 
-import "../../contracts/crowdfund/PartyBuy.sol";
+import "../../contracts/crowdfund/BuyCrowdfund.sol";
 import "../../contracts/globals/Globals.sol";
 import "../../contracts/globals/LibGlobals.sol";
 import "../../contracts/utils/Proxy.sol";
@@ -14,7 +14,7 @@ import "../TestUtils.sol";
 import "./MockPartyFactory.sol";
 import "./TestERC721Vault.sol";
 
-contract PartyBuyTest is Test, TestUtils {
+contract BuyCrowdfundTest is Test, TestUtils {
     event MockPartyFactoryCreateParty(
         address caller,
         address authority,
@@ -32,7 +32,7 @@ contract PartyBuyTest is Test, TestUtils {
 
     event Contributed(address contributor, uint256 amount, address delegate, uint256 previousTotalContributions);
 
-    string defaultName = 'PartyBuy';
+    string defaultName = 'BuyCrowdfund';
     string defaultSymbol = 'PBID';
     uint40 defaultDuration = 60 * 60;
     uint96 defaultMaxPrice = 10e18;
@@ -46,13 +46,13 @@ contract PartyBuyTest is Test, TestUtils {
     Globals globals = new Globals(address(this));
     MockPartyFactory partyFactory = new MockPartyFactory();
     TestERC721Vault erc721Vault = new TestERC721Vault();
-    PartyBuy partyBuyImpl;
+    BuyCrowdfund partyBuyImpl;
     MockParty party;
 
     constructor() {
         globals.setAddress(LibGlobals.GLOBAL_PARTY_FACTORY, address(partyFactory));
         party = partyFactory.mockParty();
-        partyBuyImpl = new PartyBuy(globals);
+        partyBuyImpl = new BuyCrowdfund(globals);
     }
 
     function setUp() public {
@@ -63,13 +63,13 @@ contract PartyBuyTest is Test, TestUtils {
         uint96 initialContribution
     )
         private
-        returns (PartyBuy pb)
+        returns (BuyCrowdfund pb)
     {
-        pb = PartyBuy(payable(address(new Proxy{ value: initialContribution }(
+        pb = BuyCrowdfund(payable(address(new Proxy{ value: initialContribution }(
             partyBuyImpl,
             abi.encodeCall(
-                PartyBuy.initialize,
-                PartyBuy.PartyBuyOptions({
+                BuyCrowdfund.initialize,
+                BuyCrowdfund.PartyBuyOptions({
                     name: defaultName,
                     symbol: defaultSymbol,
                     nftContract: erc721Vault.token(),
@@ -110,8 +110,8 @@ contract PartyBuyTest is Test, TestUtils {
 
     function testHappyPath() public {
         uint256 tokenId = erc721Vault.mint();
-        // Create a PartyBuy instance.
-        PartyBuy pb = _createCrowdfund(tokenId, 0);
+        // Create a BuyCrowdfund instance.
+        BuyCrowdfund pb = _createCrowdfund(tokenId, 0);
         // Contribute and delegate.
         address payable contributor = _randomAddress();
         address delegate = _randomAddress();
@@ -150,8 +150,8 @@ contract PartyBuyTest is Test, TestUtils {
     // The call to buy() does not transfer the token.
     function testBuyDoesNotTransferToken() public {
         uint256 tokenId = erc721Vault.mint();
-        // Create a PartyBuy instance.
-        PartyBuy pb = _createCrowdfund(tokenId, 0);
+        // Create a BuyCrowdfund instance.
+        BuyCrowdfund pb = _createCrowdfund(tokenId, 0);
         // Contribute and delegate.
         address payable contributor = _randomAddress();
         address delegate = _randomAddress();
@@ -161,7 +161,7 @@ contract PartyBuyTest is Test, TestUtils {
         // Pretend to buy the token.
         vm.expectRevert(
             abi.encodeWithSelector(
-                PartyBuyBase.FailedToBuyNFTError.selector,
+                BuyCrowdfundBase.FailedToBuyNFTError.selector,
                 erc721Vault.token(),
                 tokenId
             )
@@ -177,9 +177,9 @@ contract PartyBuyTest is Test, TestUtils {
 
     function testCannotReinitialize() public {
         uint256 tokenId = erc721Vault.mint();
-        PartyBuy pb = _createCrowdfund(tokenId, 0);
+        BuyCrowdfund pb = _createCrowdfund(tokenId, 0);
         vm.expectRevert(abi.encodeWithSelector(Implementation.OnlyConstructorError.selector));
-        PartyBuy.PartyBuyOptions memory opts;
+        BuyCrowdfund.PartyBuyOptions memory opts;
         pb.initialize(opts);
     }
 
@@ -190,11 +190,11 @@ contract PartyBuyTest is Test, TestUtils {
         address initialDelegate = _randomAddress();
         vm.deal(address(this), initialContribution);
         emit Contributed(initialContributor, initialContribution, initialDelegate, 0);
-        PartyBuy(payable(address(new Proxy{ value: initialContribution }(
+        BuyCrowdfund(payable(address(new Proxy{ value: initialContribution }(
             partyBuyImpl,
             abi.encodeCall(
-                PartyBuy.initialize,
-                PartyBuy.PartyBuyOptions({
+                BuyCrowdfund.initialize,
+                BuyCrowdfund.PartyBuyOptions({
                     name: defaultName,
                     symbol: defaultSymbol,
                     nftContract: erc721Vault.token(),

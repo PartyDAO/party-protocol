@@ -1,6 +1,6 @@
 # Party Bid V2
 
-The PartyBid V1 protocol allowed people to pool funds together to acquire NFTs. PartyBid V2 adds new features to allow parties to use and govern those NFTs together as well. The party never ends!
+The AuctionCrowdfund V1 protocol allowed people to pool funds together to acquire NFTs. PartyBid V2 adds new features to allow parties to use and govern those NFTs together as well. The party never ends!
 
 ## Layout
 
@@ -12,9 +12,9 @@ docs/ # Start here
 contracts/
 │   # Used during the crowdfund phase
 ├── crowdfund/
-│   ├── PartyBid.sol
-│   ├── PartyBuy.sol
-│   ├── PartyCollectionBuy.sol
+│   ├── AuctionCrowdfund.sol
+│   ├── BuyCrowdfund.sol
+│   ├── CollectionBuyCrowdfund.sol
 │   ├── PartyCrowdfundFactory.sol
 │   ├── PartyCrowdfund.sol
 │   └── PartyCrowdfundNFT.sol
@@ -33,7 +33,7 @@ contracts/
 │   ├── ProposalExecutionEngine.sol
 │   ├── ArbitraryCallsProposal.sol
 │   ├── FractionalizeProposal.sol
-│   ├── ListOnOpenSeaportProposal.sol
+│   ├── ListOnSeaportProposal.sol
 │   └── ListOnZoraProposal.sol
 ├── distribution/
 │   └── TokenDistributor.sol

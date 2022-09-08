@@ -9,17 +9,17 @@ import "../../contracts/proposals/vendor/ISeaportExchange.sol";
 
 import "../TestUtils.sol";
 import "../DummyERC721.sol";
-import "./TestableListOnOpenSeaportProposal.sol";
+import "./TestableListOnSeaportProposal.sol";
 import "./ZoraTestUtils.sol";
-import "./OpenSeaportTestUtils.sol";
+import "./SeaportTestUtils.sol";
 
-contract ListOnOpenSeaportProposalForkedTest is
+contract ListOnSeaportProposalForkedTest is
     Test,
     TestUtils,
     ZoraTestUtils,
-    OpenSeaportTestUtils
+    SeaportTestUtils
 {
-    event OpenSeaportOrderListed(
+    event SeaportOrderListed(
         ISeaportExchange.OrderParameters orderParams,
         bytes32 orderHash,
         IERC721 token,
@@ -27,13 +27,13 @@ contract ListOnOpenSeaportProposalForkedTest is
         uint256 listPrice,
         uint256 expiry
     );
-    event OpenSeaportOrderSold(
+    event SeaportOrderSold(
         bytes32 orderHash,
         IERC721 token,
         uint256 tokenId,
         uint256 listPrice
     );
-    event OpenSeaportOrderExpired(
+    event SeaportOrderExpired(
         bytes32 orderHash,
         IERC721 token,
         uint256 tokenId,
@@ -53,7 +53,7 @@ contract ListOnOpenSeaportProposalForkedTest is
     uint256 constant ZORA_AUCTION_DURATION = 0.5 days;
     uint256 constant ZORA_AUCTION_TIMEOUT = 1 days;
     uint256 constant LIST_PRICE = 1e18;
-    TestableListOnOpenSeaportProposal impl;
+    TestableListOnSeaportProposal impl;
     Globals globals;
     ISeaportExchange SEAPORT =
         ISeaportExchange(0x00000000006c3852cbEf3e08E8dF289169EdE581);
@@ -66,7 +66,7 @@ contract ListOnOpenSeaportProposalForkedTest is
     IERC721[] preciousTokens;
     uint256[] preciousTokenIds;
 
-    constructor() ZoraTestUtils(ZORA) OpenSeaportTestUtils(SEAPORT) {}
+    constructor() ZoraTestUtils(ZORA) SeaportTestUtils(SEAPORT) {}
 
     function setUp() public onlyForked {
         globals = new Globals(address(this));
@@ -94,7 +94,7 @@ contract ListOnOpenSeaportProposalForkedTest is
             LibGlobals.GLOBAL_OS_MAX_ORDER_DURATION,
             7 days
         );
-        impl = new TestableListOnOpenSeaportProposal(
+        impl = new TestableListOnSeaportProposal(
             globals,
             SEAPORT,
             CONDUIT_CONTROLLER,
@@ -127,12 +127,12 @@ contract ListOnOpenSeaportProposalForkedTest is
         private
         view
         returns (
-            ListOnOpenSeaportProposal.OpenSeaportProposalData memory proposalData,
+            ListOnSeaportProposal.SeaportProposalData memory proposalData,
             IProposalExecutionEngine.ExecuteProposalParams memory executeParams
         )
     {
         proposalData =
-            ListOnOpenSeaportProposal.OpenSeaportProposalData({
+            ListOnSeaportProposal.SeaportProposalData({
                 listPrice: listPrice,
                 duration: duration,
                 token: token,
@@ -152,7 +152,7 @@ contract ListOnOpenSeaportProposalForkedTest is
             });
     }
 
-    function _generateOrderParams(ListOnOpenSeaportProposal.OpenSeaportProposalData memory data)
+    function _generateOrderParams(ListOnSeaportProposal.SeaportProposalData memory data)
         private
         view
         returns (ISeaportExchange.OrderParameters memory orderParams)
@@ -233,7 +233,7 @@ contract ListOnOpenSeaportProposalForkedTest is
         uint40 listDuration = 7 days;
         (IERC721 token, uint256 tokenId) = _randomPreciousToken();
         (
-            ListOnOpenSeaportProposal.OpenSeaportProposalData memory data,
+            ListOnSeaportProposal.SeaportProposalData memory data,
             IProposalExecutionEngine.ExecuteProposalParams memory params
         ) = _createTestProposal(
             token,
@@ -244,7 +244,7 @@ contract ListOnOpenSeaportProposalForkedTest is
             new address payable[](0)
         );
         // Skip to relevant step
-        params.progressData = abi.encode(ListOnOpenSeaportProposal.ListOnOpenSeaportStep.RetrievedFromZora);
+        params.progressData = abi.encode(ListOnSeaportProposal.ListOnSeaportStep.RetrievedFromZora);
 
         // Test minimum order duration is enforced
         uint40 minDuration = uint40(globals.getUint256(LibGlobals.GLOBAL_OS_MIN_ORDER_DURATION));
@@ -256,7 +256,7 @@ contract ListOnOpenSeaportProposalForkedTest is
         params.proposalData = abi.encode(data);
 
         _expectEmit0();
-        emit OpenSeaportOrderListed(
+        emit SeaportOrderListed(
             orderParams,
             orderHash,
             token,
@@ -264,7 +264,7 @@ contract ListOnOpenSeaportProposalForkedTest is
             listPrice,
             uint40(block.timestamp) + minDuration
         );
-        impl.executeListOnOpenSeaport(params);
+        impl.executeListOnSeaport(params);
 
         // Test maximum order duration is enforced
         uint40 maxDuration = uint40(globals.getUint256(LibGlobals.GLOBAL_OS_MAX_ORDER_DURATION));
@@ -276,7 +276,7 @@ contract ListOnOpenSeaportProposalForkedTest is
         params.proposalData = abi.encode(data);
 
         _expectEmit0();
-        emit OpenSeaportOrderListed(
+        emit SeaportOrderListed(
             orderParams,
             orderHash,
             token,
@@ -284,7 +284,7 @@ contract ListOnOpenSeaportProposalForkedTest is
             listPrice,
             uint40(block.timestamp) + maxDuration
         );
-        impl.executeListOnOpenSeaport(params);
+        impl.executeListOnSeaport(params);
     }
 
     // Test a proposal where the zora listing times out and the
@@ -306,23 +306,23 @@ contract ListOnOpenSeaportProposalForkedTest is
             new address payable[](0)
         );
         // This will list on zora because the proposal was not passed unanimously.
-        executeParams.progressData = impl.executeListOnOpenSeaport(executeParams);
+        executeParams.progressData = impl.executeListOnSeaport(executeParams);
         // Time out the zora listing.
         skip(ZORA_AUCTION_TIMEOUT);
         // Next, retrieve from zora and list on OS.
         uint256 listStartTime = block.timestamp;
-        // TODO: check OpenSeaportOrderListed event gets emitted.
-        executeParams.progressData = impl.executeListOnOpenSeaport(executeParams);
+        // TODO: check SeaportOrderListed event gets emitted.
+        executeParams.progressData = impl.executeListOnSeaport(executeParams);
         bytes32 orderHash;
         {
             (, orderHash,) = abi.decode(executeParams.progressData, (
-                ListOnOpenSeaportProposal.ListOnOpenSeaportStep,
+                ListOnSeaportProposal.ListOnSeaportStep,
                 bytes32,
                 uint256
             ));
         }
         // Buy the OS listing.
-        _buyOpenSeaportListing(BuyOpenSeaportListingParams({
+        _buySeaportListing(BuySeaportListingParams({
             maker: payable(impl),
             buyer: buyer,
             token: token,
@@ -335,8 +335,8 @@ contract ListOnOpenSeaportProposalForkedTest is
         }));
         // Finalize the listing.
         vm.expectEmit(false, false, false, true);
-        emit OpenSeaportOrderSold(orderHash, token, tokenId, listPrice);
-        executeParams.progressData = impl.executeListOnOpenSeaport(executeParams);
+        emit SeaportOrderSold(orderHash, token, tokenId, listPrice);
+        executeParams.progressData = impl.executeListOnSeaport(executeParams);
         assertEq(executeParams.progressData.length, 0);
         // Buyer should own the NFT.
         assertEq(token.ownerOf(tokenId), buyer);
@@ -367,24 +367,24 @@ contract ListOnOpenSeaportProposalForkedTest is
             feeRecipients
         );
         // This will list on zora because the proposal was not passed unanimously.
-        executeParams.progressData = impl.executeListOnOpenSeaport(executeParams);
+        executeParams.progressData = impl.executeListOnSeaport(executeParams);
         // Time out the zora listing.
         skip(ZORA_AUCTION_TIMEOUT);
         // Next, retrieve from zora and list on OS.
         uint256 listStartTime = block.timestamp;
-        // TODO: check OpenSeaportOrderListed event gets emitted.
-        executeParams.progressData = impl.executeListOnOpenSeaport(executeParams);
+        // TODO: check SeaportOrderListed event gets emitted.
+        executeParams.progressData = impl.executeListOnSeaport(executeParams);
         bytes32 orderHash;
         {
             (, orderHash,) = abi.decode(executeParams.progressData, (
-                ListOnOpenSeaportProposal.ListOnOpenSeaportStep,
+                ListOnSeaportProposal.ListOnSeaportStep,
                 bytes32,
                 uint256
             ));
         }
         // Buy the OS listing.
-        _buyOpenSeaportListing(
-            BuyOpenSeaportListingParams({
+        _buySeaportListing(
+            BuySeaportListingParams({
                 maker: payable(impl),
                 buyer: buyer,
                 token: token,
@@ -400,8 +400,8 @@ contract ListOnOpenSeaportProposalForkedTest is
         );
         // Finalize the listing.
         vm.expectEmit(false, false, false, true);
-        emit OpenSeaportOrderSold(orderHash, token, tokenId, listPrice);
-        executeParams.progressData = impl.executeListOnOpenSeaport(executeParams);
+        emit SeaportOrderSold(orderHash, token, tokenId, listPrice);
+        executeParams.progressData = impl.executeListOnSeaport(executeParams);
         assertEq(executeParams.progressData.length, 0);
         // Buyer should own the NFT.
         assertEq(token.ownerOf(tokenId), buyer);
@@ -430,17 +430,17 @@ contract ListOnOpenSeaportProposalForkedTest is
         // This will skip zora and list directly on OS because the proposal was
         // passed unanimously.
         uint256 listStartTime = block.timestamp;
-        executeParams.progressData = impl.executeListOnOpenSeaport(executeParams);
+        executeParams.progressData = impl.executeListOnSeaport(executeParams);
         bytes32 orderHash;
         {
             (, orderHash,) = abi.decode(executeParams.progressData, (
-                ListOnOpenSeaportProposal.ListOnOpenSeaportStep,
+                ListOnSeaportProposal.ListOnSeaportStep,
                 bytes32,
                 uint256
             ));
         }
         // Buy the OS listing.
-        _buyOpenSeaportListing(BuyOpenSeaportListingParams({
+        _buySeaportListing(BuySeaportListingParams({
             maker: payable(impl),
             buyer: buyer,
             token: token,
@@ -453,8 +453,8 @@ contract ListOnOpenSeaportProposalForkedTest is
         }));
         // Finalize the listing.
         vm.expectEmit(false, false, false, true);
-        emit OpenSeaportOrderSold(orderHash, token, tokenId, listPrice);
-        executeParams.progressData = impl.executeListOnOpenSeaport(executeParams);
+        emit SeaportOrderSold(orderHash, token, tokenId, listPrice);
+        executeParams.progressData = impl.executeListOnSeaport(executeParams);
         assertEq(executeParams.progressData.length, 0);
         // Buyer should own the NFT.
         assertEq(token.ownerOf(tokenId), buyer);
@@ -482,17 +482,17 @@ contract ListOnOpenSeaportProposalForkedTest is
         );
         // This will skip zora and list directly on OS because the token is not precious.
         uint256 listStartTime = block.timestamp;
-        executeParams.progressData = impl.executeListOnOpenSeaport(executeParams);
+        executeParams.progressData = impl.executeListOnSeaport(executeParams);
         bytes32 orderHash;
         {
             (, orderHash,) = abi.decode(executeParams.progressData, (
-                ListOnOpenSeaportProposal.ListOnOpenSeaportStep,
+                ListOnSeaportProposal.ListOnSeaportStep,
                 bytes32,
                 uint256
             ));
         }
         // Buy the OS listing.
-        _buyOpenSeaportListing(BuyOpenSeaportListingParams({
+        _buySeaportListing(BuySeaportListingParams({
             maker: payable(impl),
             buyer: buyer,
             token: token,
@@ -505,8 +505,8 @@ contract ListOnOpenSeaportProposalForkedTest is
         }));
         // Finalize the listing.
         vm.expectEmit(false, false, false, true);
-        emit OpenSeaportOrderSold(orderHash, token, tokenId, listPrice);
-        executeParams.progressData = impl.executeListOnOpenSeaport(executeParams);
+        emit SeaportOrderSold(orderHash, token, tokenId, listPrice);
+        executeParams.progressData = impl.executeListOnSeaport(executeParams);
         assertEq(executeParams.progressData.length, 0);
         // Buyer should own the NFT.
         assertEq(token.ownerOf(tokenId), buyer);
@@ -533,19 +533,19 @@ contract ListOnOpenSeaportProposalForkedTest is
             new address payable[](0)
         );
         // This will list on zora because the proposal was not passed unanimously.
-        executeParams.progressData = impl.executeListOnOpenSeaport(executeParams);
+        executeParams.progressData = impl.executeListOnSeaport(executeParams);
         // Timeeout the zora listing.
         skip(ZORA_AUCTION_TIMEOUT);
         // Next, retrieve from zora and list on OS.
         uint256 listStartTime = block.timestamp;
         vm.expectEmit(false, false, false, true);
         emit ZoraAuctionExpired(_getNextZoraAuctionId() - 1, block.timestamp);
-        executeParams.progressData = impl.executeListOnOpenSeaport(executeParams);
+        executeParams.progressData = impl.executeListOnSeaport(executeParams);
         bytes32 orderHash;
         uint256 expiry;
         {
             (, orderHash, expiry) = abi.decode(executeParams.progressData, (
-                ListOnOpenSeaportProposal.ListOnOpenSeaportStep,
+                ListOnSeaportProposal.ListOnSeaportStep,
                 bytes32,
                 uint256
             ));
@@ -554,7 +554,7 @@ contract ListOnOpenSeaportProposalForkedTest is
         skip(listDuration);
         // Attempt to buy the listing (fail).
         vm.expectRevert(ISeaportExchange.InvalidTime.selector);
-        _buyOpenSeaportListing(BuyOpenSeaportListingParams({
+        _buySeaportListing(BuySeaportListingParams({
             maker: payable(impl),
             buyer: buyer,
             token: token,
@@ -567,8 +567,8 @@ contract ListOnOpenSeaportProposalForkedTest is
         }));
         // Finalize the listing.
         vm.expectEmit(false, false, false, true);
-        emit OpenSeaportOrderExpired(orderHash, token, tokenId, expiry);
-        executeParams.progressData = impl.executeListOnOpenSeaport(executeParams);
+        emit SeaportOrderExpired(orderHash, token, tokenId, expiry);
+        executeParams.progressData = impl.executeListOnSeaport(executeParams);
         assertEq(executeParams.progressData.length, 0);
         // We should still own the NFT.
         assertEq(token.ownerOf(tokenId), address(impl));
@@ -604,11 +604,11 @@ contract ListOnOpenSeaportProposalForkedTest is
             uint40(ZORA_AUCTION_DURATION),
             uint40(block.timestamp) + uint40(ZORA_AUCTION_TIMEOUT)
         );
-        executeParams.progressData = impl.executeListOnOpenSeaport(executeParams);
+        executeParams.progressData = impl.executeListOnSeaport(executeParams);
         {
             (, ZoraHelpers.ZoraProgressData memory progressData) =
                 abi.decode(executeParams.progressData, (
-                    ListOnOpenSeaportProposal.ListOnOpenSeaportStep,
+                    ListOnSeaportProposal.ListOnSeaportStep,
                     ZoraHelpers.ZoraProgressData
                 ));
             assertEq(progressData.auctionId, auctionId);
@@ -620,7 +620,7 @@ contract ListOnOpenSeaportProposalForkedTest is
             auctionId,
             block.timestamp + 1
         ));
-        impl.executeListOnOpenSeaport(executeParams);
+        impl.executeListOnSeaport(executeParams);
 
         // Bid on the zora auction.
         _bidOnZoraListing(auctionId, buyer, listPrice);
@@ -629,14 +629,14 @@ contract ListOnOpenSeaportProposalForkedTest is
         // Try to advance the proposal before the zora auction has ended (fail).
         skip(ZORA_AUCTION_DURATION - 1);
         vm.expectRevert("Auction hasn't completed");
-        impl.executeListOnOpenSeaport(executeParams);
+        impl.executeListOnSeaport(executeParams);
 
         // Skip past the end of the auction.
         skip(1);
         // Advance the proposal, finalizing the zora auction.
         vm.expectEmit(false, false, false, true);
         emit ZoraAuctionSold(auctionId);
-        executeParams.progressData = impl.executeListOnOpenSeaport(executeParams);
+        executeParams.progressData = impl.executeListOnSeaport(executeParams);
         assertEq(executeParams.progressData.length, 0);
         // Buyer should own the NFT.
         assertEq(token.ownerOf(tokenId), buyer);
@@ -672,11 +672,11 @@ contract ListOnOpenSeaportProposalForkedTest is
             uint40(ZORA_AUCTION_DURATION),
             uint40(block.timestamp) + uint40(ZORA_AUCTION_TIMEOUT)
         );
-        executeParams.progressData = impl.executeListOnOpenSeaport(executeParams);
+        executeParams.progressData = impl.executeListOnSeaport(executeParams);
         {
             (, ZoraHelpers.ZoraProgressData memory progressData) =
                 abi.decode(executeParams.progressData, (
-                    ListOnOpenSeaportProposal.ListOnOpenSeaportStep,
+                    ListOnSeaportProposal.ListOnSeaportStep,
                     ZoraHelpers.ZoraProgressData
                 ));
             assertEq(progressData.auctionId, auctionId);
@@ -692,7 +692,7 @@ contract ListOnOpenSeaportProposalForkedTest is
         // Advance the proposal, finalizing the zora auction.
         vm.expectEmit(false, false, false, true);
         emit ZoraAuctionSold(auctionId);
-        executeParams.progressData = impl.executeListOnOpenSeaport(executeParams);
+        executeParams.progressData = impl.executeListOnSeaport(executeParams);
         assertEq(executeParams.progressData.length, 0);
         // Buyer should own the NFT.
         assertEq(token.ownerOf(tokenId), buyer);

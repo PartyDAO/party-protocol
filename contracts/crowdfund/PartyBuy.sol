@@ -8,15 +8,15 @@ import "../utils/LibRawResult.sol";
 import "../globals/IGlobals.sol";
 import "../gatekeepers/IGateKeeper.sol";
 
-import "./PartyBuyBase.sol";
+import "./BuyCrowdfundBase.sol";
 
 /// @notice A crowdfund that purchases a specific NFT (i.e., with a known token
 ///         ID) listing for a known price.
-contract PartyBuy is PartyBuyBase {
+contract BuyCrowdfund is PartyBuyBase {
     using LibSafeERC721 for IERC721;
     using LibSafeCast for uint256;
 
-    struct PartyBuyOptions {
+    struct BuyCrowdfundOptions {
         // The name of the crowdfund.
         // This will also carry over to the governance party.
         string name;
@@ -59,18 +59,18 @@ contract PartyBuy is PartyBuyBase {
     IERC721 public nftContract;
 
     // Set the `Globals` contract.
-    constructor(IGlobals globals) PartyBuyBase(globals) {}
+    constructor(IGlobals globals) BuyCrowdfundBase(globals) {}
 
     /// @notice Initializer to be delegatecalled by `Proxy` constructor. Will
     ///         revert if called outside the constructor.
     /// @param opts Options used to initialize the crowdfund. These are fixed
     ///             and cannot be changed later.
-    function initialize(PartyBuyOptions memory opts)
+    function initialize(BuyCrowdfundOptions memory opts)
         external
         payable
         onlyConstructor
     {
-        PartyBuyBase._initialize(PartyBuyBaseOptions({
+        BuyCrowdfundBase._initialize(PartyBuyBaseOptions({
             name: opts.name,
             symbol: opts.symbol,
             duration: opts.duration,

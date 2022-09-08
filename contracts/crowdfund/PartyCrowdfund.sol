@@ -11,7 +11,7 @@ import "../gatekeepers/IGateKeeper.sol";
 
 import "./PartyCrowdfundNFT.sol";
 
-// Base contract for PartyBid/PartyBuy.
+// Base contract for AuctionCrowdfund/BuyCrowdfund.
 // Holds post-win/loss logic. E.g., burning contribution NFTs and creating a
 // party after winning.
 abstract contract PartyCrowdfund is ERC721Receiver, PartyCrowdfundNFT {

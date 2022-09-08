@@ -47,8 +47,8 @@ contract TestableProposalExecutionEngine is ProposalExecutionEngine {
         override
         returns (bytes memory nextProgressData)
     {
-        // Override the ListOnOpenSeaport proposal type to do a two step emit.
-        if (pt == ProposalExecutionEngine.ProposalType.ListOnOpenSeaport) {
+        // Override the ListOnSeaport proposal type to do a two step emit.
+        if (pt == ProposalExecutionEngine.ProposalType.ListOnSeaport) {
             uint256 step = params.progressData.length == 0
                 ? 0
                 : abi.decode(params.progressData, (uint256));

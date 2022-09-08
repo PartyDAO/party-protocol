@@ -6,7 +6,7 @@ import "../utils/LibRawResult.sol";
 import "../globals/IGlobals.sol";
 
 import "./IProposalExecutionEngine.sol";
-import "./ListOnOpenSeaportProposal.sol";
+import "./ListOnSeaportProposal.sol";
 import "./ListOnZoraProposal.sol";
 import "./FractionalizeProposal.sol";
 import "./ArbitraryCallsProposal.sol";
@@ -19,7 +19,7 @@ contract ProposalExecutionEngine is
     IProposalExecutionEngine,
     Implementation,
     ProposalStorage,
-    ListOnOpenSeaportProposal,
+    ListOnSeaportProposal,
     ListOnZoraProposal,
     FractionalizeProposal,
     ArbitraryCallsProposal
@@ -34,7 +34,7 @@ contract ProposalExecutionEngine is
     // WARNING: This should be append-only.
     enum ProposalType {
         Invalid,
-        ListOnOpenSeaport,
+        ListOnSeaport,
         ListOnZora,
         Fractionalize,
         ArbitraryCalls,
@@ -87,7 +87,7 @@ contract ProposalExecutionEngine is
         IZoraAuctionHouse zoraAuctionHouse,
         IFractionalV1VaultFactory fractionalVaultFactory
     )
-        ListOnOpenSeaportProposal(globals, seaport, seaportConduitController)
+        ListOnSeaportProposal(globals, seaport, seaportConduitController)
         ListOnZoraProposal(globals, zoraAuctionHouse)
         FractionalizeProposal(fractionalVaultFactory)
     {
@@ -207,8 +207,8 @@ contract ProposalExecutionEngine is
         virtual
         returns (bytes memory nextProgressData)
     {
-        if (pt == ProposalType.ListOnOpenSeaport) {
-            nextProgressData = _executeListOnOpenSeaport(params);
+        if (pt == ProposalType.ListOnSeaport) {
+            nextProgressData = _executeListOnSeaport(params);
         } else if (pt == ProposalType.ListOnZora) {
             nextProgressData = _executeListOnZora(params);
         } else if (pt == ProposalType.Fractionalize) {

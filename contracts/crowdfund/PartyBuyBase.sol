@@ -11,13 +11,13 @@ import "../gatekeepers/IGateKeeper.sol";
 
 import "./PartyCrowdfund.sol";
 
-// Base for PartyBuy and PartyCollectionBuy
-abstract contract PartyBuyBase is Implementation, PartyCrowdfund {
+// Base for BuyCrowdfund and CollectionBuyCrowdfund
+abstract contract BuyCrowdfundBase is Implementation, PartyCrowdfund {
     using LibSafeERC721 for IERC721;
     using LibSafeCast for uint256;
     using LibRawResult for bytes;
 
-    struct PartyBuyBaseOptions {
+    struct BuyCrowdfundBaseOptions {
         // The name of the crowdfund.
         // This will also carry over to the governance party.
         string name;
@@ -67,7 +67,7 @@ abstract contract PartyBuyBase is Implementation, PartyCrowdfund {
     constructor(IGlobals globals) PartyCrowdfund(globals) {}
 
     // Initialize storage for proxy contracts.
-    function _initialize(PartyBuyBaseOptions memory opts)
+    function _initialize(BuyCrowdfundBaseOptions memory opts)
         internal
     {
         expiry = uint40(opts.duration + block.timestamp);

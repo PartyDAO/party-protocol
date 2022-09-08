@@ -3,7 +3,7 @@ pragma solidity ^0.8;
 
 import "forge-std/Test.sol";
 
-import "../../contracts/crowdfund/PartyBid.sol";
+import "../../contracts/crowdfund/AuctionCrowdfund.sol";
 import "../../contracts/crowdfund/PartyCrowdfund.sol";
 import "../../contracts/globals/Globals.sol";
 import "../../contracts/globals/LibGlobals.sol";
@@ -22,8 +22,8 @@ contract NounsForkedTest is TestUtils {
     Globals globals = new Globals(address(this));
     MockPartyFactory partyFactory = new MockPartyFactory();
     MockParty party = partyFactory.mockParty();
-    PartyBid pbImpl = new PartyBid(globals);
-    PartyBid pb;
+    AuctionCrowdfund pbImpl = new PartyBid(globals);
+    AuctionCrowdfund pb;
 
     PartyCrowdfund.FixedGovernanceOpts defaultGovOpts;
 
@@ -44,12 +44,12 @@ contract NounsForkedTest is TestUtils {
         nounsToken = nounsAuctionHouse.nouns();
         (tokenId, , , , , ) = nounsAuctionHouse.auction();
 
-        // Create a PartyBid crowdfund
-        pb = PartyBid(payable(address(new Proxy(
+        // Create a AuctionCrowdfund crowdfund
+        pb = AuctionCrowdfund(payable(address(new Proxy(
             pbImpl,
             abi.encodeCall(
-                PartyBid.initialize,
-                PartyBid.PartyBidOptions({
+                AuctionCrowdfund.initialize,
+                AuctionCrowdfund.PartyBidOptions({
                     name: "Party",
                     symbol: "PRTY",
                     auctionId: tokenId,
