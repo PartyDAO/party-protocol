@@ -10,7 +10,7 @@ These contracts allow people to create and join a crowdfund, pooling ETH togethe
 - **Crowdfund NFTs**: A _soulbound_ NFT (ERC721) representing contributions made to a crowdfund. Each contributor gets one of these the first time they contribute. At the end of the crowdfund (successful or unsuccessful), these are burned to either redeem unused ETH or mint governance shares.
 - **Party**: The governance contract, which will be created and will custody the NFT after it has been acquired by the crowdfund.
 - **Globals**: A single contract that holds configuration values, referenced by several ecosystem contracts.
-- **Proxies**: All Crowdfund instances are deployed as simple [`Proxy`](../contracts/utils/Proxy.sol) contracts that forward calls to a specific crowdfund implementation that inherits from `PartyCrowdfund`.
+- **Proxies**: All Crowdfund instances are deployed as simple [`Proxy`](../contracts/utils/Proxy.sol) contracts that forward calls to a specific crowdfund implementation that inherits from `Crowdfund`.
 
 ---
 
@@ -18,9 +18,9 @@ These contracts allow people to create and join a crowdfund, pooling ETH togethe
 
 The main contracts involved in this phase are:
 
-- `PartyCrowdfundFactory`([source](../contracts/crowdfund/PartyCrowdfundFactory.sol))
-  - Factory contract that deploys a new proxified `PartyCrowdfund` instance.
-- `PartyCrowdfund` ([source](../contracts/crowdfund/PartyCrowdfund.sol))
+- `CrowdfundFactory`([source](../contracts/crowdfund/CrowdfundFactory.sol))
+  - Factory contract that deploys a new proxified `Crowdfund` instance.
+- `Crowdfund` ([source](../contracts/crowdfund/Crowdfund.sol))
   - Abstract base class for all crowdfund contracts. Implements most contribution accounting and end-of-life logic for crowdfunds.
 - `BuyCrowdfund` ([source](../contracts/crowdfund/BuyCrowdfund.sol))
   - A crowdfund that purchases a specific NFT (i.e., with a known token ID) listing for a known price.
@@ -45,7 +45,7 @@ The main contracts involved in this phase are:
 
 ## Crowdfund Creation
 
-The `PartyCrowdfundFactory` contract is the canonical contract for creating crowdfund instances. It deploys `Proxy` instances that point to a specific implementation which inherits from `PartyCrowdfund`.
+The `CrowdfundFactory` contract is the canonical contract for creating crowdfund instances. It deploys `Proxy` instances that point to a specific implementation which inherits from `Crowdfund`.
 
 ### BuyCrowdfund Crowdfunds
 
@@ -121,11 +121,11 @@ Each of the mentioned creation functions can also take an optional `bytes create
 
 ### Optional Initial Contribution
 
-All creation functions are `payable`. Any ETH attached to the call will be attached to the deployment of the crowdfund's `Proxy`. This will be detected in the `PartyCrowdfund` constructor and treated as an initial contribution to the crowdfund. The party's `initialContributor` option will designate who to credit for this contribution.
+All creation functions are `payable`. Any ETH attached to the call will be attached to the deployment of the crowdfund's `Proxy`. This will be detected in the `Crowdfund` constructor and treated as an initial contribution to the crowdfund. The party's `initialContributor` option will designate who to credit for this contribution.
 
 ## Crowdfund Lifecycle
 
-All crowdfunds share a concept of a lifecycle, wherein only certain actions can be performed. These are defined in `PartyCrowdfund.CrowdfundLifecycle`:
+All crowdfunds share a concept of a lifecycle, wherein only certain actions can be performed. These are defined in `Crowdfund.CrowdfundLifecycle`:
 
 - `Invalid`: The crowdfund does not exist.
 - `Active`: The crowdfund has been created and contributions can be made and acquisition functions may be called.
@@ -160,7 +160,7 @@ To determine whether a contribution was unused after a crowdfund has concluded, 
 
 Unused contributions can be reclaimed after the party has either lost or won. For example, if a crowdfund raised 10 ETH to acquire an NFT that was won at 7 ETH, the 3 ETH leftover will be refunded. If the party lost, all 10 ETH will be refunded.
 
-The accounting logic for all this is handled in the `PartyCrowdfund` contract from which all crowdfund types inherit from.
+The accounting logic for all this is handled in the `Crowdfund` contract from which all crowdfund types inherit from.
 
 ### Extra Parameters
 

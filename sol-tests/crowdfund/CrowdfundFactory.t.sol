@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: Apache-2.0
 pragma solidity ^0.8;
 
-import "contracts/crowdfund/PartyCrowdfundFactory.sol";
+import "contracts/crowdfund/CrowdfundFactory.sol";
 import "contracts/crowdfund/AuctionCrowdfund.sol";
 import "contracts/crowdfund/IMarketWrapper.sol";
-import "contracts/crowdfund/PartyCrowdfund.sol";
+import "contracts/crowdfund/Crowdfund.sol";
 import "contracts/gatekeepers/AllowListGateKeeper.sol";
 import "contracts/gatekeepers/TokenGateKeeper.sol";
 import "contracts/tokens/IERC721.sol";
@@ -15,9 +15,9 @@ import "contracts/globals/LibGlobals.sol";
 import "forge-std/Test.sol";
 import "../TestUtils.sol";
 
-contract PartyCrowdfundFactoryTest is Test, TestUtils {
+contract CrowdfundFactoryTest is Test, TestUtils {
     Globals globals = new Globals(address(this));
-    PartyCrowdfundFactory partyCrowdfundFactory = new PartyCrowdfundFactory(globals);
+    CrowdfundFactory partyCrowdfundFactory = new CrowdfundFactory(globals);
     MockMarketWrapper market = new MockMarketWrapper();
     AuctionCrowdfund auctionCrowdfund = new AuctionCrowdfund(globals);
     BuyCrowdfund buyCrowdfund = new BuyCrowdfund(globals);
@@ -33,7 +33,7 @@ contract PartyCrowdfundFactoryTest is Test, TestUtils {
         globals.setAddress(LibGlobals.GLOBAL_COLLECTION_BUY_CF_IMPL, address(collectionBuyCrowdfund));
     }
 
-    function _hashFixedGovernanceOpts(PartyCrowdfund.FixedGovernanceOpts memory opts)
+    function _hashFixedGovernanceOpts(Crowdfund.FixedGovernanceOpts memory opts)
         internal
         pure
         returns (bytes16 h)
@@ -108,7 +108,7 @@ contract PartyCrowdfundFactoryTest is Test, TestUtils {
             initialDelegate: _randomAddress(),
             gateKeeper: gateKeeper,
             gateKeeperId: gateKeeperId,
-            governanceOpts: PartyCrowdfund.FixedGovernanceOpts({
+            governanceOpts: Crowdfund.FixedGovernanceOpts({
                 hosts: _toAddressArray(_randomAddress()),
                 voteDuration: randomUint40,
                 executionDelay: randomUint40,
@@ -163,7 +163,7 @@ contract PartyCrowdfundFactoryTest is Test, TestUtils {
             initialDelegate: address(0),
             gateKeeper: IGateKeeper(address(0)),
             gateKeeperId: 0,
-            governanceOpts: PartyCrowdfund.FixedGovernanceOpts({
+            governanceOpts: Crowdfund.FixedGovernanceOpts({
                 hosts: _toAddressArray(address(this)),
                 voteDuration: 3 days,
                 executionDelay: 1 days,
@@ -196,7 +196,7 @@ contract PartyCrowdfundFactoryTest is Test, TestUtils {
             initialDelegate: address(0),
             gateKeeper: IGateKeeper(address(0)),
             gateKeeperId: 0,
-            governanceOpts: PartyCrowdfund.FixedGovernanceOpts({
+            governanceOpts: Crowdfund.FixedGovernanceOpts({
                 hosts: _toAddressArray(address(this)),
                 voteDuration: 3 days,
                 executionDelay: 1 days,
@@ -230,7 +230,7 @@ contract PartyCrowdfundFactoryTest is Test, TestUtils {
             initialDelegate: address(0),
             gateKeeper: IGateKeeper(address(0)),
             gateKeeperId: 0,
-            governanceOpts: PartyCrowdfund.FixedGovernanceOpts({
+            governanceOpts: Crowdfund.FixedGovernanceOpts({
                 hosts: _toAddressArray(address(this)),
                 voteDuration: 3 days,
                 executionDelay: 1 days,
@@ -277,7 +277,7 @@ contract PartyCrowdfundFactoryTest is Test, TestUtils {
             initialDelegate: _randomAddress(),
             gateKeeper: gateKeeper,
             gateKeeperId: gateKeeperId,
-            governanceOpts: PartyCrowdfund.FixedGovernanceOpts({
+            governanceOpts: Crowdfund.FixedGovernanceOpts({
                 hosts: _toAddressArray(_randomAddress()),
                 voteDuration: randomUint40,
                 executionDelay: randomUint40,
@@ -342,7 +342,7 @@ contract PartyCrowdfundFactoryTest is Test, TestUtils {
                 initialDelegate: _randomAddress(),
                 gateKeeper: gateKeeper,
                 gateKeeperId: gateKeeperId,
-                governanceOpts: PartyCrowdfund.FixedGovernanceOpts({
+                governanceOpts: Crowdfund.FixedGovernanceOpts({
                     hosts: _toAddressArray(_randomAddress()),
                     voteDuration: randomUint40,
                     executionDelay: randomUint40,
@@ -402,7 +402,7 @@ contract PartyCrowdfundFactoryTest is Test, TestUtils {
             initialDelegate: address(0),
             gateKeeper: IGateKeeper(address(0)),
             gateKeeperId: 0,
-            governanceOpts: PartyCrowdfund.FixedGovernanceOpts({
+            governanceOpts: Crowdfund.FixedGovernanceOpts({
                 hosts: _toAddressArray(address(this)),
                 voteDuration: 3 days,
                 executionDelay: 1 days,
@@ -420,7 +420,7 @@ contract PartyCrowdfundFactoryTest is Test, TestUtils {
         } else {
             invalidBps = splitBps;
         }
-        vm.expectRevert(abi.encodeWithSelector(PartyCrowdfund.InvalidBpsError.selector, invalidBps));
+        vm.expectRevert(abi.encodeWithSelector(Crowdfund.InvalidBpsError.selector, invalidBps));
         partyCrowdfundFactory.createAuctionCrowdfund(opts, "");
     }
 }

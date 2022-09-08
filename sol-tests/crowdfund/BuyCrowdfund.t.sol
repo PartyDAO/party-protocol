@@ -41,7 +41,7 @@ contract BuyCrowdfundTest is Test, TestUtils {
     address defaultInitialDelegate;
     IGateKeeper defaultGateKeeper;
     bytes12 defaultGateKeeperId;
-    PartyCrowdfund.FixedGovernanceOpts defaultGovernanceOpts;
+    Crowdfund.FixedGovernanceOpts defaultGovernanceOpts;
 
     Globals globals = new Globals(address(this));
     MockPartyFactory partyFactory = new MockPartyFactory();
@@ -172,7 +172,7 @@ contract BuyCrowdfundTest is Test, TestUtils {
             "",
             defaultGovernanceOpts
         );
-        assertTrue(pb.getCrowdfundLifecycle() == PartyCrowdfund.CrowdfundLifecycle.Active);
+        assertTrue(pb.getCrowdfundLifecycle() == Crowdfund.CrowdfundLifecycle.Active);
     }
 
     function testCannotReinitialize() public {

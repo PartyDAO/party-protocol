@@ -42,7 +42,7 @@ contract CollectionBuyCrowdfundTest is Test, TestUtils {
     address defaultInitialDelegate;
     IGateKeeper defaultGateKeeper;
     bytes12 defaultGateKeeperId;
-    PartyCrowdfund.FixedGovernanceOpts defaultGovernanceOpts;
+    Crowdfund.FixedGovernanceOpts defaultGovernanceOpts;
 
     Globals globals = new Globals(address(this));
     MockPartyFactory partyFactory = new MockPartyFactory();
@@ -58,7 +58,7 @@ contract CollectionBuyCrowdfundTest is Test, TestUtils {
 
     function _createCrowdfund(address[] memory hosts, uint96 initialContribution)
         private
-        returns (CollectionBuyCrowdfund pb, PartyCrowdfund.FixedGovernanceOpts memory governanceOpts)
+        returns (CollectionBuyCrowdfund pb, Crowdfund.FixedGovernanceOpts memory governanceOpts)
     {
         governanceOpts.hosts = hosts;
 
@@ -110,7 +110,7 @@ contract CollectionBuyCrowdfundTest is Test, TestUtils {
         address host = _randomAddress();
         (
             CollectionBuyCrowdfund pb,
-            PartyCrowdfund.FixedGovernanceOpts memory governanceOpts
+            Crowdfund.FixedGovernanceOpts memory governanceOpts
         ) = _createCrowdfund(_toAddressArray(host), 0);
         // Contribute and delegate.
         address payable contributor = _randomAddress();
@@ -155,7 +155,7 @@ contract CollectionBuyCrowdfundTest is Test, TestUtils {
         address host = _randomAddress();
         (
             CollectionBuyCrowdfund pb,
-            PartyCrowdfund.FixedGovernanceOpts memory governanceOpts
+            Crowdfund.FixedGovernanceOpts memory governanceOpts
         ) = _createCrowdfund(_toAddressArray(host), 0);
         // Contribute and delegate.
         address payable contributor = _randomAddress();
@@ -182,7 +182,7 @@ contract CollectionBuyCrowdfundTest is Test, TestUtils {
         address host = _randomAddress();
         (
             CollectionBuyCrowdfund pb,
-            PartyCrowdfund.FixedGovernanceOpts memory governanceOpts
+            Crowdfund.FixedGovernanceOpts memory governanceOpts
         ) = _createCrowdfund(_toAddressArray(host), 0);
         // Contribute and delegate.
         address payable contributor = _randomAddress();
@@ -206,7 +206,7 @@ contract CollectionBuyCrowdfundTest is Test, TestUtils {
             "",
             governanceOpts
         );
-        assertTrue(pb.getCrowdfundLifecycle() == PartyCrowdfund.CrowdfundLifecycle.Active);
+        assertTrue(pb.getCrowdfundLifecycle() == Crowdfund.CrowdfundLifecycle.Active);
     }
 
     function testCannotReinitialize() public {

@@ -55,7 +55,7 @@ contract AuctionCrowdfundTest is Test, TestUtils {
     address defaultInitialDelegate;
     IGateKeeper defaultGateKeeper;
     bytes12 defaultGateKeeperId;
-    PartyCrowdfund.FixedGovernanceOpts defaultGovernanceOpts;
+    Crowdfund.FixedGovernanceOpts defaultGovernanceOpts;
 
     Globals globals = new Globals(address(this));
     MockPartyFactory partyFactory = new MockPartyFactory();
@@ -231,7 +231,7 @@ contract AuctionCrowdfundTest is Test, TestUtils {
         pb.bid();
         // Expire and finalize the crowdfund.
         skip(defaultDuration);
-        assertEq(uint8(pb.getCrowdfundLifecycle()), uint8(PartyCrowdfund.CrowdfundLifecycle.Expired));
+        assertEq(uint8(pb.getCrowdfundLifecycle()), uint8(Crowdfund.CrowdfundLifecycle.Expired));
         // End the auction.
         market.endAuction(auctionId);
         // Finalize the crowdfund.
@@ -261,8 +261,8 @@ contract AuctionCrowdfundTest is Test, TestUtils {
         assertEq(address(party_), address(party));
         // Try to bid with the crowdfund again.
         vm.expectRevert(abi.encodeWithSelector(
-            PartyCrowdfund.WrongLifecycleError.selector,
-            PartyCrowdfund.CrowdfundLifecycle.Won
+            Crowdfund.WrongLifecycleError.selector,
+            Crowdfund.CrowdfundLifecycle.Won
         ));
         pb.bid();
     }
@@ -284,8 +284,8 @@ contract AuctionCrowdfundTest is Test, TestUtils {
         assertEq(address(party_), address(party));
         // Try to finalize the crowdfund again.
         vm.expectRevert(abi.encodeWithSelector(
-            PartyCrowdfund.WrongLifecycleError.selector,
-            PartyCrowdfund.CrowdfundLifecycle.Won
+            Crowdfund.WrongLifecycleError.selector,
+            Crowdfund.CrowdfundLifecycle.Won
         ));
         pb.finalize(defaultGovernanceOpts);
     }
@@ -306,8 +306,8 @@ contract AuctionCrowdfundTest is Test, TestUtils {
         market.setCallback(address(pb), abi.encodeCall(pb.finalize, defaultGovernanceOpts), 0);
         // Finalize the crowdfund.
         vm.expectRevert(abi.encodeWithSelector(
-            PartyCrowdfund.WrongLifecycleError.selector,
-            PartyCrowdfund.CrowdfundLifecycle.Busy
+            Crowdfund.WrongLifecycleError.selector,
+            Crowdfund.CrowdfundLifecycle.Busy
         ));
         pb.finalize(defaultGovernanceOpts);
     }
@@ -324,8 +324,8 @@ contract AuctionCrowdfundTest is Test, TestUtils {
         market.setCallback(address(pb), abi.encodeCall(pb.bid, ()), 0);
         // Bid on the auction.
         vm.expectRevert(abi.encodeWithSelector(
-            PartyCrowdfund.WrongLifecycleError.selector,
-            PartyCrowdfund.CrowdfundLifecycle.Busy
+            Crowdfund.WrongLifecycleError.selector,
+            Crowdfund.CrowdfundLifecycle.Busy
         ));
         pb.bid();
     }
@@ -342,8 +342,8 @@ contract AuctionCrowdfundTest is Test, TestUtils {
         market.setCallback(address(pb), abi.encodeCall(pb.contribute, (contributor, "")), 1);
         // Bid on the auction.
         vm.expectRevert(abi.encodeWithSelector(
-            PartyCrowdfund.WrongLifecycleError.selector,
-            PartyCrowdfund.CrowdfundLifecycle.Busy
+            Crowdfund.WrongLifecycleError.selector,
+            Crowdfund.CrowdfundLifecycle.Busy
         ));
         pb.bid();
     }
@@ -364,8 +364,8 @@ contract AuctionCrowdfundTest is Test, TestUtils {
         market.setCallback(address(pb), abi.encodeCall(pb.contribute, (contributor, "")), 1);
         // Finalize the crowdfund.
         vm.expectRevert(abi.encodeWithSelector(
-            PartyCrowdfund.WrongLifecycleError.selector,
-            PartyCrowdfund.CrowdfundLifecycle.Busy
+            Crowdfund.WrongLifecycleError.selector,
+            Crowdfund.CrowdfundLifecycle.Busy
         ));
         pb.finalize(defaultGovernanceOpts);
     }

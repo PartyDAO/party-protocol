@@ -28,7 +28,7 @@ contract PartyHelpers {
     }
 
     ////////////////////////////
-    // PartyCrowdfund helpers //
+    // Crowdfund helpers //
     ////////////////////////////
 
     function getCrowdfundType(address globals, address crowdfund)

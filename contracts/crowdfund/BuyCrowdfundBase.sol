@@ -9,10 +9,10 @@ import "../utils/LibRawResult.sol";
 import "../globals/IGlobals.sol";
 import "../gatekeepers/IGateKeeper.sol";
 
-import "./PartyCrowdfund.sol";
+import "./Crowdfund.sol";
 
 // Base for BuyCrowdfund and CollectionBuyCrowdfund
-abstract contract BuyCrowdfundBase is Implementation, PartyCrowdfund {
+abstract contract BuyCrowdfundBase is Implementation, Crowdfund {
     using LibSafeERC721 for IERC721;
     using LibSafeCast for uint256;
     using LibRawResult for bytes;
@@ -64,7 +64,7 @@ abstract contract BuyCrowdfundBase is Implementation, PartyCrowdfund {
     uint96 public settledPrice;
 
     // Set the `Globals` contract.
-    constructor(IGlobals globals) PartyCrowdfund(globals) {}
+    constructor(IGlobals globals) Crowdfund(globals) {}
 
     // Initialize storage for proxy contracts.
     function _initialize(BuyCrowdfundBaseOptions memory opts)
@@ -72,7 +72,7 @@ abstract contract BuyCrowdfundBase is Implementation, PartyCrowdfund {
     {
         expiry = uint40(opts.duration + block.timestamp);
         maximumPrice = opts.maximumPrice;
-        PartyCrowdfund._initialize(PartyCrowdfundOptions({
+        Crowdfund._initialize(CrowdfundOptions({
             name: opts.name,
             symbol: opts.symbol,
             splitRecipient: opts.splitRecipient,
@@ -146,7 +146,7 @@ abstract contract BuyCrowdfundBase is Implementation, PartyCrowdfund {
         );
     }
 
-    /// @inheritdoc PartyCrowdfund
+    /// @inheritdoc Crowdfund
     function getCrowdfundLifecycle() public override view returns (CrowdfundLifecycle) {
         // If there is a settled price then we tried to buy the NFT.
         if (settledPrice != 0) {

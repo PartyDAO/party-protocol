@@ -10,11 +10,11 @@ import "../globals/IGlobals.sol";
 import "../gatekeepers/IGateKeeper.sol";
 
 import "./IMarketWrapper.sol";
-import "./PartyCrowdfund.sol";
+import "./Crowdfund.sol";
 
 /// @notice A crowdfund that can repeatedly bid on an auction for a specific NFT
 ///         (i.e. with a known token ID) until it wins.
-contract AuctionCrowdfund is Implementation, PartyCrowdfund {
+contract AuctionCrowdfund is Implementation, Crowdfund {
     using LibSafeERC721 for IERC721;
     using LibSafeCast for uint256;
     using LibRawResult for bytes;
@@ -100,7 +100,7 @@ contract AuctionCrowdfund is Implementation, PartyCrowdfund {
     AuctionCrowdfundStatus private _bidStatus;
 
     // Set the `Globals` contract.
-    constructor(IGlobals globals) PartyCrowdfund(globals) {}
+    constructor(IGlobals globals) Crowdfund(globals) {}
 
     /// @notice Initializer to be delegatecalled by `Proxy` constructor. Will
     ///         revert if called outside the constructor.
@@ -117,7 +117,7 @@ contract AuctionCrowdfund is Implementation, PartyCrowdfund {
         expiry = uint40(opts.duration + block.timestamp);
         auctionId = opts.auctionId;
         maximumBid = opts.maximumBid;
-        PartyCrowdfund._initialize(PartyCrowdfundOptions({
+        Crowdfund._initialize(CrowdfundOptions({
             name: opts.name,
             symbol: opts.symbol,
             splitRecipient: opts.splitRecipient,
@@ -250,7 +250,7 @@ contract AuctionCrowdfund is Implementation, PartyCrowdfund {
         _bidStatus = AuctionCrowdfundStatus.Finalized;
     }
 
-    /// @inheritdoc PartyCrowdfund
+    /// @inheritdoc Crowdfund
     function getCrowdfundLifecycle() public override view returns (CrowdfundLifecycle) {
         // Do not rely on `market.isFinalized()` in case `auctionId` gets reused.
         AuctionCrowdfundStatus status = _bidStatus;

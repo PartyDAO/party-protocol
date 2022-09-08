@@ -9,12 +9,12 @@ import "../party/Party.sol";
 import "../globals/IGlobals.sol";
 import "../gatekeepers/IGateKeeper.sol";
 
-import "./PartyCrowdfundNFT.sol";
+import "./CrowdfundNFT.sol";
 
 // Base contract for AuctionCrowdfund/BuyCrowdfund.
 // Holds post-win/loss logic. E.g., burning contribution NFTs and creating a
 // party after winning.
-abstract contract PartyCrowdfund is ERC721Receiver, PartyCrowdfundNFT {
+abstract contract Crowdfund is ERC721Receiver, CrowdfundNFT {
     using LibRawResult for bytes;
     using LibSafeCast for uint256;
     using LibAddress for address payable;
@@ -48,7 +48,7 @@ abstract contract PartyCrowdfund is ERC721Receiver, PartyCrowdfundNFT {
     }
 
     // Options to be passed into `_initialize()` when the crowdfund is created.
-    struct PartyCrowdfundOptions {
+    struct CrowdfundOptions {
         string name;
         string symbol;
         address payable splitRecipient;
@@ -63,7 +63,7 @@ abstract contract PartyCrowdfund is ERC721Receiver, PartyCrowdfundNFT {
     // A record of a single contribution made by a user.
     // Stored in `_contributionsByContributor`.
     struct Contribution {
-        // The value of `PartyCrowdfund.totalContributions` when this contribution was made.
+        // The value of `Crowdfund.totalContributions` when this contribution was made.
         uint96 previousTotalContributions;
         // How much was this contribution.
         uint96 amount;
@@ -115,16 +115,16 @@ abstract contract PartyCrowdfund is ERC721Receiver, PartyCrowdfundNFT {
     mapping (address => Contribution[]) private _contributionsByContributor;
 
     // Set the `Globals` contract.
-    constructor(IGlobals globals) PartyCrowdfundNFT(globals) {
+    constructor(IGlobals globals) CrowdfundNFT(globals) {
         _GLOBALS = globals;
     }
 
     // Initialize storage for proxy contracts, credit initial contribution (if
     // any), and setup gatekeeper.
-    function _initialize(PartyCrowdfundOptions memory opts)
+    function _initialize(CrowdfundOptions memory opts)
         internal
     {
-        PartyCrowdfundNFT._initialize(opts.name, opts.symbol);
+        CrowdfundNFT._initialize(opts.name, opts.symbol);
         // Check that BPS values do not exceed the max.
         if (opts.governanceOpts.feeBps > 1e4) {
             revert InvalidBpsError(opts.governanceOpts.feeBps);
@@ -211,12 +211,12 @@ abstract contract PartyCrowdfund is ERC721Receiver, PartyCrowdfundNFT {
     /// @inheritdoc EIP165
     function supportsInterface(bytes4 interfaceId)
         public
-        override(ERC721Receiver, PartyCrowdfundNFT)
+        override(ERC721Receiver, CrowdfundNFT)
         pure
         returns (bool)
     {
         return ERC721Receiver.supportsInterface(interfaceId) ||
-            PartyCrowdfundNFT.supportsInterface(interfaceId);
+            CrowdfundNFT.supportsInterface(interfaceId);
     }
 
     /// @notice Retrieve info about a participant's contributions.
@@ -462,7 +462,7 @@ abstract contract PartyCrowdfund is ERC721Receiver, PartyCrowdfundNFT {
         }
         // Revert if already burned or does not exist.
         if (splitRecipient != contributor || _doesTokenExistFor(contributor)) {
-            PartyCrowdfundNFT._burn(contributor);
+            CrowdfundNFT._burn(contributor);
         }
         // Compute the contributions used and owed to the contributor, along
         // with the voting power they'll have in the governance stage.

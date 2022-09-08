@@ -7,7 +7,7 @@ import "../../contracts/crowdfund/AuctionCrowdfund.sol";
 import "../../contracts/gatekeepers/AllowListGateKeeper.sol";
 import "../../contracts/globals/Globals.sol";
 import "../../contracts/globals/LibGlobals.sol";
-import "../../contracts/renderers/PartyCrowdfundNFTRenderer.sol";
+import "../../contracts/renderers/CrowdfundNFTRenderer.sol";
 import "../../contracts/utils/Proxy.sol";
 import "../../contracts/utils/EIP165.sol";
 
@@ -16,9 +16,9 @@ import "../TestUtils.sol";
 
 import "./MockPartyFactory.sol";
 import "./MockParty.sol";
-import "./TestablePartyCrowdfund.sol";
+import "./TestableCrowdfund.sol";
 
-contract PartyCrowdfundTest is Test, TestUtils {
+contract CrowdfundTest is Test, TestUtils {
     event MockPartyFactoryCreateParty(
         address caller,
         address authority,
@@ -46,7 +46,7 @@ contract PartyCrowdfundTest is Test, TestUtils {
     address defaultInitialDelegate;
     IGateKeeper defaultGateKeeper;
     bytes12 defaultGateKeeperId;
-    PartyCrowdfund.FixedGovernanceOpts defaultGovernanceOpts;
+    Crowdfund.FixedGovernanceOpts defaultGovernanceOpts;
 
     Globals globals = new Globals(address(this));
     MockPartyFactory partyFactory = new MockPartyFactory();
@@ -64,7 +64,7 @@ contract PartyCrowdfundTest is Test, TestUtils {
     }
 
     function setUp() public {
-        PartyCrowdfundNFTRenderer nftRenderer = new PartyCrowdfundNFTRenderer(globals);
+        CrowdfundNFTRenderer nftRenderer = new CrowdfundNFTRenderer(globals);
         globals.setAddress(LibGlobals.GLOBAL_CF_NFT_RENDER_IMPL, address(nftRenderer));
     }
 
@@ -83,11 +83,11 @@ contract PartyCrowdfundTest is Test, TestUtils {
 
     function _createCrowdfund(uint96 initialContribution)
         private
-        returns (TestablePartyCrowdfund cf)
+        returns (TestableCrowdfund cf)
     {
-        cf = new TestablePartyCrowdfund{value: initialContribution }(
+        cf = new TestableCrowdfund{value: initialContribution }(
             globals,
-            PartyCrowdfund.PartyCrowdfundOptions({
+            Crowdfund.CrowdfundOptions({
                 name: defaultName,
                 symbol: defaultSymbol,
                 splitRecipient: defaultSplitRecipient,
@@ -101,12 +101,12 @@ contract PartyCrowdfundTest is Test, TestUtils {
         );
     }
 
-    function _createExpectedPartyOptions(TestablePartyCrowdfund cf, uint256 finalPrice)
+    function _createExpectedPartyOptions(TestableCrowdfund cf, uint256 finalPrice)
         private
         view
         returns (Party.PartyOptions memory opts)
     {
-        PartyCrowdfund.FixedGovernanceOpts memory govOpts = cf.getFixedGovernanceOpts();
+        Crowdfund.FixedGovernanceOpts memory govOpts = cf.getFixedGovernanceOpts();
         return Party.PartyOptions({
             name: defaultName,
             symbol: defaultSymbol,
@@ -146,9 +146,9 @@ contract PartyCrowdfundTest is Test, TestUtils {
         uint256 initialContribution = _randomRange(1, 1 ether);
         vm.deal(address(this), initialContribution);
         emit Contributed(initialContributor, initialContribution, initialDelegate, 0);
-        TestablePartyCrowdfund cf = new TestablePartyCrowdfund{value: initialContribution }(
+        TestableCrowdfund cf = new TestableCrowdfund{value: initialContribution }(
             globals,
-            PartyCrowdfund.PartyCrowdfundOptions({
+            Crowdfund.CrowdfundOptions({
                 name: defaultName,
                 symbol: defaultSymbol,
                 splitRecipient: defaultSplitRecipient,
@@ -176,9 +176,9 @@ contract PartyCrowdfundTest is Test, TestUtils {
 
     function test_creation_initialContribution_noValue() public {
         address initialContributor = _randomAddress();
-        TestablePartyCrowdfund cf = new TestablePartyCrowdfund(
+        TestableCrowdfund cf = new TestableCrowdfund(
             globals,
-            PartyCrowdfund.PartyCrowdfundOptions({
+            Crowdfund.CrowdfundOptions({
                 name: defaultName,
                 symbol: defaultSymbol,
                 splitRecipient: defaultSplitRecipient,
@@ -206,7 +206,7 @@ contract PartyCrowdfundTest is Test, TestUtils {
 
     // One person contributes, their entire contribution is used.
     function testWin_oneContributor() public {
-        TestablePartyCrowdfund cf = _createCrowdfund(0);
+        TestableCrowdfund cf = _createCrowdfund(0);
         address delegate1 = _randomAddress();
         address payable contributor1 = _randomAddress();
         // contributor1 contributes 1 ETH
@@ -247,7 +247,7 @@ contract PartyCrowdfundTest is Test, TestUtils {
 
     // Two contributors, their entire combined contribution is used.
     function testWin_twoContributors() public {
-        TestablePartyCrowdfund cf = _createCrowdfund(0);
+        TestableCrowdfund cf = _createCrowdfund(0);
         address delegate1 = _randomAddress();
         address delegate2 = _randomAddress();
         address payable contributor1 = _randomAddress();
@@ -305,7 +305,7 @@ contract PartyCrowdfundTest is Test, TestUtils {
 
     // two contribute but only part of the second contributor's ETH is used.
     function testWin_twoContributors_partialContributionUsed() public {
-        TestablePartyCrowdfund cf = _createCrowdfund(0);
+        TestableCrowdfund cf = _createCrowdfund(0);
         address delegate1 = _randomAddress();
         address delegate2 = _randomAddress();
         address payable contributor1 = _randomAddress();
@@ -362,7 +362,7 @@ contract PartyCrowdfundTest is Test, TestUtils {
     // two contribute, with contributor1 sandwiching contributor2
     // and only part of the total is used.
     function testWin_twoContributorsSandiwched_partialContributionUsed() public {
-        TestablePartyCrowdfund cf = _createCrowdfund(0);
+        TestableCrowdfund cf = _createCrowdfund(0);
         address delegate1 = _randomAddress();
         address delegate2 = _randomAddress();
         address payable contributor1 = _randomAddress();
@@ -422,7 +422,7 @@ contract PartyCrowdfundTest is Test, TestUtils {
 
     // One person contributes, final price is zero (should never happen IRL)
     function testWin_oneContributor_zeroFinalPrice() public {
-        TestablePartyCrowdfund cf = _createCrowdfund(0);
+        TestableCrowdfund cf = _createCrowdfund(0);
         address delegate1 = _randomAddress();
         address payable contributor1 = _randomAddress();
         // contributor1 contributes 1 ETH
@@ -463,7 +463,7 @@ contract PartyCrowdfundTest is Test, TestUtils {
 
     // Two contributors, CF loses
     function testLoss_twoContributors() public {
-        TestablePartyCrowdfund cf = _createCrowdfund(0);
+        TestableCrowdfund cf = _createCrowdfund(0);
         address delegate1 = _randomAddress();
         address delegate2 = _randomAddress();
         address payable contributor1 = _randomAddress();
@@ -478,7 +478,7 @@ contract PartyCrowdfundTest is Test, TestUtils {
         cf.contribute{ value: contributor2.balance }(delegate2, "");
         assertEq(cf.totalContributions(), 1.5e18);
         // set up a loss
-        cf.testSetLifeCycle(PartyCrowdfund.CrowdfundLifecycle.Lost);
+        cf.testSetLifeCycle(Crowdfund.CrowdfundLifecycle.Lost);
         assertEq(address(cf.party()), address(0));
         // contributor1 burns tokens
         vm.expectEmit(false, false, false, true);
@@ -496,7 +496,7 @@ contract PartyCrowdfundTest is Test, TestUtils {
 
     // One person contributes, their entire contribution is used, they try to burn twice.
     function testWin_oneContributor_cannotBurnTwice() public {
-        TestablePartyCrowdfund cf = _createCrowdfund(0);
+        TestableCrowdfund cf = _createCrowdfund(0);
         address delegate1 = _randomAddress();
         address payable contributor1 = _randomAddress();
         // contributor1 contributes 1 ETH
@@ -516,7 +516,7 @@ contract PartyCrowdfundTest is Test, TestUtils {
         cf.burn(contributor1);
         // They try to burn again.
         vm.expectRevert(abi.encodeWithSelector(
-            PartyCrowdfundNFT.AlreadyBurnedError.selector,
+            CrowdfundNFT.AlreadyBurnedError.selector,
             contributor1,
             uint256(uint160(address(contributor1)))
         ));
@@ -525,7 +525,7 @@ contract PartyCrowdfundTest is Test, TestUtils {
 
     // One person contributes, part of their contribution is used, they try to burn twice.
     function testWin_oneContributor_partialContributionUsed_cannotBurnTwice() public {
-        TestablePartyCrowdfund cf = _createCrowdfund(0);
+        TestableCrowdfund cf = _createCrowdfund(0);
         address delegate1 = _randomAddress();
         address payable contributor1 = _randomAddress();
         // contributor1 contributes 1 ETH
@@ -547,7 +547,7 @@ contract PartyCrowdfundTest is Test, TestUtils {
         assertEq(contributor1.balance, 0.5e18);
         // They try to burn again.
         vm.expectRevert(abi.encodeWithSelector(
-            PartyCrowdfundNFT.AlreadyBurnedError.selector,
+            CrowdfundNFT.AlreadyBurnedError.selector,
             contributor1,
             uint256(uint160(address(contributor1)))
         ));
@@ -556,7 +556,7 @@ contract PartyCrowdfundTest is Test, TestUtils {
 
     // One person contributes, CF loses, they try to burn twice.
     function testLoss_oneContributor_cannotBurnTwice() public {
-        TestablePartyCrowdfund cf = _createCrowdfund(0);
+        TestableCrowdfund cf = _createCrowdfund(0);
         address delegate1 = _randomAddress();
         address payable contributor1 = _randomAddress();
         // contributor1 contributes 1 ETH
@@ -564,7 +564,7 @@ contract PartyCrowdfundTest is Test, TestUtils {
         vm.prank(contributor1);
         cf.contribute{ value: contributor1.balance }(delegate1, "");
         // Set up a loss.
-        cf.testSetLifeCycle(PartyCrowdfund.CrowdfundLifecycle.Lost);
+        cf.testSetLifeCycle(Crowdfund.CrowdfundLifecycle.Lost);
         assertEq(address(cf.party()), address(0));
         // contributor1 burns tokens
         cf.burn(contributor1);
@@ -572,7 +572,7 @@ contract PartyCrowdfundTest is Test, TestUtils {
         assertEq(contributor1.balance, 1e18);
         // They try to burn again.
         vm.expectRevert(abi.encodeWithSelector(
-            PartyCrowdfundNFT.AlreadyBurnedError.selector,
+            CrowdfundNFT.AlreadyBurnedError.selector,
             contributor1,
             uint256(uint160(address(contributor1)))
         ));
@@ -581,7 +581,7 @@ contract PartyCrowdfundTest is Test, TestUtils {
 
     // One person contributes, CF is busy, they try to burn.
     function testBusy_oneContributor_cannotBurn() public {
-        TestablePartyCrowdfund cf = _createCrowdfund(0);
+        TestableCrowdfund cf = _createCrowdfund(0);
         address delegate1 = _randomAddress();
         address payable contributor1 = _randomAddress();
         // contributor1 contributes 1 ETH
@@ -589,18 +589,18 @@ contract PartyCrowdfundTest is Test, TestUtils {
         vm.prank(contributor1);
         cf.contribute{ value: contributor1.balance }(delegate1, "");
         // Set up a loss.
-        cf.testSetLifeCycle(PartyCrowdfund.CrowdfundLifecycle.Busy);
+        cf.testSetLifeCycle(Crowdfund.CrowdfundLifecycle.Busy);
         // They try to burn again.
         vm.expectRevert(abi.encodeWithSelector(
-            PartyCrowdfund.WrongLifecycleError.selector,
-            PartyCrowdfund.CrowdfundLifecycle.Busy
+            Crowdfund.WrongLifecycleError.selector,
+            Crowdfund.CrowdfundLifecycle.Busy
         ));
         cf.burn(contributor1);
     }
 
     // Trying to pass in different governance opts after winning.
     function testWin_cannotChangeGovernanceOpts() public {
-        TestablePartyCrowdfund cf = _createCrowdfund(0);
+        TestableCrowdfund cf = _createCrowdfund(0);
         // set up a win using contributor1's total contribution
         (IERC721[] memory erc721Tokens, uint256[] memory erc721TokenIds) =
             _createTokens(address(cf), 2);
@@ -617,7 +617,7 @@ contract PartyCrowdfundTest is Test, TestUtils {
             }
         }
         vm.expectRevert(abi.encodeWithSelector(
-            PartyCrowdfund.InvalidGovernanceOptionsError.selector,
+            Crowdfund.InvalidGovernanceOptionsError.selector,
             cf.hashFixedGovernanceOpts(defaultGovernanceOpts),
             cf.governanceOptsHash()
         ));
@@ -634,7 +634,7 @@ contract PartyCrowdfundTest is Test, TestUtils {
     function testWin_nonParticipatingSplitRecipient() public {
         address payable splitRecipient = _randomAddress();
         defaultSplitRecipient = splitRecipient;
-        TestablePartyCrowdfund cf = _createCrowdfund(0);
+        TestableCrowdfund cf = _createCrowdfund(0);
 
         address delegate1 = _randomAddress();
         address payable contributor1 = _randomAddress();
@@ -679,7 +679,7 @@ contract PartyCrowdfundTest is Test, TestUtils {
     function testWin_participatingSplitRecipient_splitRecipientContributionPartiallyUsed() public {
         address payable splitRecipient = _randomAddress();
         defaultSplitRecipient = splitRecipient;
-        TestablePartyCrowdfund cf = _createCrowdfund(0);
+        TestableCrowdfund cf = _createCrowdfund(0);
 
         address delegate1 = _randomAddress();
         address delegate2 = _randomAddress();
@@ -729,7 +729,7 @@ contract PartyCrowdfundTest is Test, TestUtils {
     function testWin_participatingSplitRecipient_splitRecipientContributionNotUsed() public {
         address payable splitRecipient = _randomAddress();
         defaultSplitRecipient = splitRecipient;
-        TestablePartyCrowdfund cf = _createCrowdfund(0);
+        TestableCrowdfund cf = _createCrowdfund(0);
 
         address delegate1 = _randomAddress();
         address delegate2 = _randomAddress();
@@ -784,7 +784,7 @@ contract PartyCrowdfundTest is Test, TestUtils {
         bytes12 gateId = gk.createGate(keccak256(abi.encodePacked(contributor1)));
         defaultGateKeeper = gk;
         defaultGateKeeperId = gateId;
-        TestablePartyCrowdfund cf = _createCrowdfund(0);
+        TestableCrowdfund cf = _createCrowdfund(0);
 
         // contributor1 contributes 1 ETH
         vm.deal(contributor1, 1e18);
@@ -795,7 +795,7 @@ contract PartyCrowdfundTest is Test, TestUtils {
         vm.deal(contributor2, 0.5e18);
         vm.prank(contributor2);
         vm.expectRevert(abi.encodeWithSelector(
-            PartyCrowdfund.NotAllowedByGateKeeperError.selector,
+            Crowdfund.NotAllowedByGateKeeperError.selector,
             contributor2,
             defaultGateKeeper,
             gateId,
@@ -806,7 +806,7 @@ contract PartyCrowdfundTest is Test, TestUtils {
 
     // test nft renderer
     function test_nftRenderer() public {
-        TestablePartyCrowdfund cf = _createCrowdfund(0);
+        TestableCrowdfund cf = _createCrowdfund(0);
         address delegate1 = _randomAddress();
         address payable contributor1 = _randomAddress();
         // contributor1 contributes 1 ETH
@@ -818,7 +818,7 @@ contract PartyCrowdfundTest is Test, TestUtils {
     }
 
     function test_contractURI() external {
-        TestablePartyCrowdfund cf = _createCrowdfund(0);
+        TestableCrowdfund cf = _createCrowdfund(0);
 
         string memory contractURI = cf.contractURI();
 
@@ -829,7 +829,7 @@ contract PartyCrowdfundTest is Test, TestUtils {
     }
 
     function test_supportsInterface() external {
-        TestablePartyCrowdfund cf = _createCrowdfund(0);
+        TestableCrowdfund cf = _createCrowdfund(0);
         cf.supportsInterface(0x01ffc9a7); // EIP165
         cf.supportsInterface(0x80ac58cd); // ERC721
         cf.supportsInterface(0x150b7a02); // ERC721Receiver

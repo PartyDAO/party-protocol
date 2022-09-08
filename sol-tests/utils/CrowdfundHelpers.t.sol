@@ -16,7 +16,7 @@ import "../crowdfund/TestERC721Vault.sol";
 import "../DummyERC721.sol";
 import "../TestUtils.sol";
 
-contract PartyCrowdfundHelpers is Test, TestUtils {
+contract CrowdfundHelpers is Test, TestUtils {
     string defaultName = 'AuctionCrowdfund';
     string defaultSymbol = 'PBID';
     uint40 defaultDuration = 60 * 60;
@@ -27,7 +27,7 @@ contract PartyCrowdfundHelpers is Test, TestUtils {
     address defaultInitialDelegate;
     IGateKeeper defaultGateKeeper;
     bytes12 defaultGateKeeperId;
-    PartyCrowdfund.FixedGovernanceOpts defaultGovernanceOpts;
+    Crowdfund.FixedGovernanceOpts defaultGovernanceOpts;
 
     Globals globals;
     AuctionCrowdfund auctionCrowdfundImpl;

@@ -124,7 +124,7 @@
                 "type": "address"
               }
             ],
-            "internalType": "struct PartyCrowdfund.FixedGovernanceOpts",
+            "internalType": "struct Crowdfund.FixedGovernanceOpts",
             "name": "governanceOpts",
             "type": "tuple"
           }
@@ -242,7 +242,7 @@
                 "type": "address"
               }
             ],
-            "internalType": "struct PartyCrowdfund.FixedGovernanceOpts",
+            "internalType": "struct Crowdfund.FixedGovernanceOpts",
             "name": "governanceOpts",
             "type": "tuple"
           }
@@ -355,7 +355,7 @@
                 "type": "address"
               }
             ],
-            "internalType": "struct PartyCrowdfund.FixedGovernanceOpts",
+            "internalType": "struct Crowdfund.FixedGovernanceOpts",
             "name": "governanceOpts",
             "type": "tuple"
           }
@@ -476,7 +476,7 @@
                 "type": "address"
               }
             ],
-            "internalType": "struct PartyCrowdfund.FixedGovernanceOpts",
+            "internalType": "struct Crowdfund.FixedGovernanceOpts",
             "name": "governanceOpts",
             "type": "tuple"
           }
@@ -599,7 +599,7 @@
                 "type": "address"
               }
             ],
-            "internalType": "struct PartyCrowdfund.FixedGovernanceOpts",
+            "internalType": "struct Crowdfund.FixedGovernanceOpts",
             "name": "governanceOpts",
             "type": "tuple"
           }
@@ -717,7 +717,7 @@
                 "type": "address"
               }
             ],
-            "internalType": "struct PartyCrowdfund.FixedGovernanceOpts",
+            "internalType": "struct Crowdfund.FixedGovernanceOpts",
             "name": "governanceOpts",
             "type": "tuple"
           }

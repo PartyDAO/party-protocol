@@ -4,7 +4,7 @@ pragma solidity ^0.8;
 import "forge-std/Test.sol";
 
 import "../../contracts/crowdfund/AuctionCrowdfund.sol";
-import "../../contracts/crowdfund/PartyCrowdfund.sol";
+import "../../contracts/crowdfund/Crowdfund.sol";
 import "../../contracts/globals/Globals.sol";
 import "../../contracts/globals/LibGlobals.sol";
 import "../../contracts/utils/Proxy.sol";
@@ -27,7 +27,7 @@ contract ZoraForkedTest is TestUtils, ERC721Receiver {
     AuctionCrowdfund pbImpl = new AuctionCrowdfund(globals);
     AuctionCrowdfund pb;
 
-    PartyCrowdfund.FixedGovernanceOpts defaultGovOpts;
+    Crowdfund.FixedGovernanceOpts defaultGovOpts;
 
     // Initialize Zora contracts
     IZoraAuctionHouse zora =

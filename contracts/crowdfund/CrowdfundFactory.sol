@@ -9,8 +9,8 @@ import "./AuctionCrowdfund.sol";
 import "./BuyCrowdfund.sol";
 import "./CollectionBuyCrowdfund.sol";
 
-/// @notice Factory used to deploys new proxified `PartyCrowdfund` instances.
-contract PartyCrowdfundFactory {
+/// @notice Factory used to deploys new proxified `Crowdfund` instances.
+contract CrowdfundFactory {
     using LibRawResult for bytes;
 
     event BuyCrowdfundCreated(BuyCrowdfund crowdfund, BuyCrowdfund.BuyCrowdfundOptions opts);

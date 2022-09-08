@@ -7,9 +7,9 @@ import "../utils/vendor/Base64.sol";
 
 import "./IERC721Renderer.sol";
 import "../globals/IGlobals.sol";
-import "../crowdfund/PartyCrowdfund.sol";
+import "../crowdfund/Crowdfund.sol";
 
-contract PartyCrowdfundNFTRenderer is IERC721Renderer {
+contract CrowdfundNFTRenderer is IERC721Renderer {
     using LibSafeCast for uint256;
 
     error InvalidTokenIdError();
@@ -46,12 +46,12 @@ contract PartyCrowdfundNFTRenderer is IERC721Renderer {
     }
 
     function renderNFTName() internal view returns (string memory) {
-        return string.concat(PartyCrowdfund(payable(address(this))).name(), " Crowdfund Party");
+        return string.concat(Crowdfund(payable(address(this))).name(), " Crowdfund Party");
     }
 
     function renderTokenName(uint256 tokenId) internal view returns (string memory) {
         return string(abi.encodePacked(
-            PartyCrowdfund(payable(address(this))).name(),
+            Crowdfund(payable(address(this))).name(),
             " #",
             Strings.toString(tokenId)
         ));
@@ -62,24 +62,24 @@ contract PartyCrowdfundNFTRenderer is IERC721Renderer {
     }
 
     function renderOwnerAddress(uint256 tokenId) internal view returns (string memory) {
-        address owner = PartyCrowdfund(payable(address(this))).ownerOf(tokenId);
+        address owner = Crowdfund(payable(address(this))).ownerOf(tokenId);
 
         return string(abi.encodePacked('Owner: ', Strings.toHexString(owner)));
     }
 
     function renderCrowdfundState() internal view returns (string memory crowdfundState) {
-      PartyCrowdfund.CrowdfundLifecycle cfl = PartyCrowdfund(payable(address(this))).getCrowdfundLifecycle();
-      if (cfl == PartyCrowdfund.CrowdfundLifecycle.Invalid) {
+      Crowdfund.CrowdfundLifecycle cfl = Crowdfund(payable(address(this))).getCrowdfundLifecycle();
+      if (cfl == Crowdfund.CrowdfundLifecycle.Invalid) {
           crowdfundState = "Invalid";
-      } else if (cfl == PartyCrowdfund.CrowdfundLifecycle.Active) {
+      } else if (cfl == Crowdfund.CrowdfundLifecycle.Active) {
           crowdfundState = "Active";
-      } else if (cfl == PartyCrowdfund.CrowdfundLifecycle.Expired) {
+      } else if (cfl == Crowdfund.CrowdfundLifecycle.Expired) {
           crowdfundState = "Expired";
-      } else if (cfl == PartyCrowdfund.CrowdfundLifecycle.Busy) {
+      } else if (cfl == Crowdfund.CrowdfundLifecycle.Busy) {
           crowdfundState = "Busy";
-      } else if (cfl == PartyCrowdfund.CrowdfundLifecycle.Lost) {
+      } else if (cfl == Crowdfund.CrowdfundLifecycle.Lost) {
           crowdfundState = "Lost";
-      } else if (cfl == PartyCrowdfund.CrowdfundLifecycle.Won) {
+      } else if (cfl == Crowdfund.CrowdfundLifecycle.Won) {
           crowdfundState = "Won";
       } else {
           crowdfundState = "Unknown";
@@ -88,24 +88,24 @@ contract PartyCrowdfundNFTRenderer is IERC721Renderer {
 
     function renderEthContributed(address contributor) internal view returns (string memory) {
         (uint256 ethContributed,,,) =
-            PartyCrowdfund(payable(address(this))).getContributorInfo(contributor);
+            Crowdfund(payable(address(this))).getContributorInfo(contributor);
         return string(abi.encodePacked('ETH contributed: ', Strings.toString(ethContributed)));
     }
 
     function renderEthUsed(address contributor) internal view returns (string memory) {
         (,uint256 ethUsed,,) =
-            PartyCrowdfund(payable(address(this))).getContributorInfo(contributor);
+            Crowdfund(payable(address(this))).getContributorInfo(contributor);
         return string(abi.encodePacked('ETH used: ', Strings.toString(ethUsed)));
     }
 
     function renderEthOwed(address contributor) internal view returns (string memory) {
         (,,uint256 ethOwed,) =
-            PartyCrowdfund(payable(address(this))).getContributorInfo(contributor);
+            Crowdfund(payable(address(this))).getContributorInfo(contributor);
         return string(abi.encodePacked('ETH owed: ', Strings.toString(ethOwed)));
     }
 
     function tokenURI(uint256 tokenId) external view returns (string memory) {
-        if (PartyCrowdfund(payable(address(this))).ownerOf(tokenId) == address(0)) {
+        if (Crowdfund(payable(address(this))).ownerOf(tokenId) == address(0)) {
             revert InvalidTokenIdError();
         }
 
@@ -113,17 +113,17 @@ contract PartyCrowdfundNFTRenderer is IERC721Renderer {
 
         svgParts[0] = '<svg xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMinYMin meet" viewBox="0 0 350 350"><style>text { fill: white; font-family: -apple-system, BlinkMacSystemFont, sans-serif; } .base { font-size: 11px; } .detail {font-size: 10px;}</style><rect width="100%" height="100%" fill="black" />';
 
-        svgParts[1] = textLine(PartyCrowdfund(payable(address(this))).name(), 10, 20);
+        svgParts[1] = textLine(Crowdfund(payable(address(this))).name(), 10, 20);
         svgParts[3] = textLine(renderTokenId(tokenId), 10, 40);
 
-        svgParts[2] = textLine(PartyCrowdfund(payable(address(this))).symbol(), 10, 80);
+        svgParts[2] = textLine(Crowdfund(payable(address(this))).symbol(), 10, 80);
 
         svgParts[4] = textLine(renderOwnerAddress(tokenId), 10, 140);
 
         svgParts[5] = textLine(renderCrowdfundState(), 10, 100);
 
         svgParts[6] = textLine(renderEthContributed(address(uint160(tokenId))), 10, 160);
-        if (PartyCrowdfund(payable(address(this))).getCrowdfundLifecycle() == PartyCrowdfund.CrowdfundLifecycle.Won) {
+        if (Crowdfund(payable(address(this))).getCrowdfundLifecycle() == Crowdfund.CrowdfundLifecycle.Won) {
             svgParts[7] = textLine(renderEthUsed(address(uint160(tokenId))), 10, 170);
             // svgParts[8] = textLine(renderEthOwed(address(uint160(tokenId))), 10, 180);
         }

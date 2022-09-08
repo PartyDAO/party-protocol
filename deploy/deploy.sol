@@ -6,7 +6,7 @@ import 'forge-std/Script.sol';
 import '../contracts/crowdfund/AuctionCrowdfund.sol';
 import '../contracts/crowdfund/BuyCrowdfund.sol';
 import '../contracts/crowdfund/CollectionBuyCrowdfund.sol';
-import '../contracts/crowdfund/PartyCrowdfundFactory.sol';
+import '../contracts/crowdfund/CrowdfundFactory.sol';
 import '../contracts/distribution/TokenDistributor.sol';
 import '../contracts/gatekeepers/AllowListGateKeeper.sol';
 import '../contracts/gatekeepers/TokenGateKeeper.sol';
@@ -15,7 +15,7 @@ import '../contracts/globals/Globals.sol';
 import '../contracts/globals/LibGlobals.sol';
 import '../contracts/party/Party.sol';
 import '../contracts/party/PartyFactory.sol';
-import '../contracts/renderers/PartyCrowdfundNFTRenderer.sol';
+import '../contracts/renderers/CrowdfundNFTRenderer.sol';
 import '../contracts/renderers/PartyGovernanceNFTRenderer.sol';
 import '../contracts/proposals/ProposalExecutionEngine.sol';
 import '../contracts/utils/PartyHelpers.sol';
@@ -39,13 +39,13 @@ contract Deploy is Script {
   AuctionCrowdfund auctionCrowdfundImpl;
   BuyCrowdfund buyCrowdfundImpl;
   CollectionBuyCrowdfund collectionBuyCrowdfundImpl;
-  PartyCrowdfundFactory partyCrowdfundFactory;
+  CrowdfundFactory partyCrowdfundFactory;
   Party partyImpl;
   PartyFactory partyFactory;
   IOpenseaExchange seaport;
   ProposalExecutionEngine proposalEngineImpl;
   TokenDistributor tokenDistributor;
-  PartyCrowdfundNFTRenderer partyCrowdfundNFTRenderer;
+  CrowdfundNFTRenderer partyCrowdfundNFTRenderer;
   PartyGovernanceNFTRenderer partyGovernanceNFTRenderer;
   PartyHelpers partyHelpers;
   IGateKeeper allowListGateKeeper;
@@ -220,22 +220,22 @@ contract Deploy is Script {
 
     // DEPLOY_PARTY_CROWDFUND_FACTORY
     console.log('');
-    console.log('### PartyCrowdfundFactory');
-    console.log('  Deploying - PartyCrowdfundFactory');
-    partyCrowdfundFactory = new PartyCrowdfundFactory(globals);
-    console.log('  Deployed - PartyCrowdfundFactory', address(partyCrowdfundFactory));
+    console.log('### CrowdfundFactory');
+    console.log('  Deploying - CrowdfundFactory');
+    partyCrowdfundFactory = new CrowdfundFactory(globals);
+    console.log('  Deployed - CrowdfundFactory', address(partyCrowdfundFactory));
 
     // DEPLOY_PARTY_CROWDFUND_NFT_RENDERER
     console.log('');
-    console.log('### PartyCrowdfundNFTRenderer');
-    console.log('  Deploying - PartyCrowdfundNFTRenderer');
-    partyCrowdfundNFTRenderer = new PartyCrowdfundNFTRenderer(globals);
-    console.log('  Deployed - PartyCrowdfundNFTRenderer', address(partyCrowdfundNFTRenderer));
+    console.log('### CrowdfundNFTRenderer');
+    console.log('  Deploying - CrowdfundNFTRenderer');
+    partyCrowdfundNFTRenderer = new CrowdfundNFTRenderer(globals);
+    console.log('  Deployed - CrowdfundNFTRenderer', address(partyCrowdfundNFTRenderer));
 
     console.log('');
-    console.log('  Globals - setting PartyCrowdfundNFTRenderer address');
+    console.log('  Globals - setting CrowdfundNFTRenderer address');
     globals.setAddress(LibGlobals.GLOBAL_CF_NFT_RENDER_IMPL, address(partyCrowdfundNFTRenderer));
-    console.log('  Globals - successfully set PartyCrowdfundNFTRenderer', address(partyCrowdfundNFTRenderer));
+    console.log('  Globals - successfully set CrowdfundNFTRenderer', address(partyCrowdfundNFTRenderer));
 
 
     // DEPLOY_PARTY_GOVERNANCE_NFT_RENDERER

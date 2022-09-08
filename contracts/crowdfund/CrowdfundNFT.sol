@@ -8,7 +8,7 @@ import "../globals/IGlobals.sol";
 import "../globals/LibGlobals.sol";
 
 /// @notice NFT functionality for crowdfund types. This NFT is soulbound and read-only.
-contract PartyCrowdfundNFT is IERC721, EIP165, ReadOnlyDelegateCall {
+contract CrowdfundNFT is IERC721, EIP165, ReadOnlyDelegateCall {
     error AlreadyBurnedError(address owner, uint256 tokenId);
     error InvalidTokenError(uint256 tokenId);
 

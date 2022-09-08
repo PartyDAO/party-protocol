@@ -6,7 +6,7 @@ const RELEVANT_ABIS = [
   "AuctionCrowdfund",
   "BuyCrowdfund",
   "CollectionBuyCrowdfund",
-  "PartyCrowdfundFactory",
+  "CrowdfundFactory",
   "PartyFactory",
   "PartyGovernance",
   "PartyGovernanceNFT",

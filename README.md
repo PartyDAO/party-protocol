@@ -15,9 +15,9 @@ contracts/
 │   ├── AuctionCrowdfund.sol
 │   ├── BuyCrowdfund.sol
 │   ├── CollectionBuyCrowdfund.sol
-│   ├── PartyCrowdfundFactory.sol
-│   ├── PartyCrowdfund.sol
-│   └── PartyCrowdfundNFT.sol
+│   ├── CrowdfundFactory.sol
+│   ├── Crowdfund.sol
+│   └── CrowdfundNFT.sol
 ├── gatekeepers/
 │   ├── AllowListGateKeeper.sol
 │   └── TokenGateKeeper.sol
@@ -39,7 +39,7 @@ contracts/
 │   └── TokenDistributor.sol
 |   # Used to render crowdfund and governance NFTs
 └── renderers/
-    ├── PartyCrowdfundNFTRenderer.sol
+    ├── CrowdfundNFTRenderer.sol
     └── PartyGovernanceNFTRenderer.sol
 sol-tests/ # Foundry tests
 tests/ # TS tests
