@@ -58,6 +58,17 @@
     "type": "error"
   },
   {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "callDataLength",
+        "type": "uint256"
+      }
+    ],
+    "name": "InvalidApprovalCallLength",
+    "type": "error"
+  },
+  {
     "inputs": [],
     "name": "InvalidFeeRecipients",
     "type": "error"

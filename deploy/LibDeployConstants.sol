@@ -1,8 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 pragma solidity ^0.8;
 
-// TODO: verify these constants
-
 library LibDeployConstants {
   uint256 internal constant PARTY_DAO_DISTRIBUTION_SPLIT_BPS = 250;
 
@@ -24,36 +22,6 @@ library LibDeployConstants {
     address osConduitController;
     address fractionalVaultFactory;
     string networkName;
-  }
-
-  function mainnet() internal pure returns (DeployConstants memory) {
-    DeployConstants memory mainnetDeployConstants = DeployConstants({
-      adminAddresses: [
-        0x0000000000000000000000000000000000000000,
-        0x000000000000000000000000000000000000dEaD,
-        0x0000000000000000000000000000000000001337,
-        0x0000000000000000000000000000000000004a4a,
-        0x000000000000000000000000000000000000aaaa
-      ],
-      seaportExchangeAddress: 0x00000000006c3852cbEf3e08E8dF289169EdE581,
-      osZoraAuctionDuration: 24 hours,
-      osZoraAuctionTimeout: 24 hours,
-      osMinOrderDuration: 24 hours,
-      osMaxOrderDuration: 14 days,
-      zoraMinAuctionDuration: 24 hours,
-      zoraMaxAuctionDuration: 10 days,
-      zoraMaxAuctionTimeout: 7 days,
-      partyDaoMultisig: 0xF7f52Dd34bc21eDA08c0b804C7c1dbc48375820f,
-      partyDaoDistributionSplitBps: PARTY_DAO_DISTRIBUTION_SPLIT_BPS,
-      zoraAuctionHouseAddress: 0xE468cE99444174Bd3bBBEd09209577d25D1ad673,
-      osZone: address(0), // TODO,
-      osConduitKey: 0, // TODO
-      osConduitController: address(0), // TODO
-      fractionalVaultFactory: address(0), // TODO
-      networkName: 'mainnet'
-    });
-
-    return mainnetDeployConstants;
   }
 
   function rinkeby() internal pure returns (DeployConstants memory) {
@@ -110,7 +78,7 @@ library LibDeployConstants {
       osConduitKey: 0x0000007b02230091a7ed01230072f7006a004d60a8d4e71d599b8104250f0000,
       osConduitController: 0x00000000F9490004C11Cef243f5400493c00Ad63,
       networkName: 'goerli',
-      fractionalVaultFactory: address(0) // TODO
+      fractionalVaultFactory: 0x014850E83d9D0D1BB0c8624035F09626b967B81c
     });
 
     return rinkebyDeployConstants;
