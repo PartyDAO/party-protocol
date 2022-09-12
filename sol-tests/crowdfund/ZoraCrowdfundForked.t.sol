@@ -16,7 +16,7 @@ import "../DummyERC721.sol";
 
 import "../TestUtils.sol";
 
-contract ZoraForkedTest is TestUtils, ERC721Receiver {
+contract ZoraCrowdfundForkedTest is TestUtils, ERC721Receiver {
     event Won(uint256 bid, Party party);
     event Lost();
 

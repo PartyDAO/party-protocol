@@ -15,26 +15,37 @@ contract RecurringAuctionCrowdfundTest is TestUtils, ERC721Receiver {
     event Lost();
     event AuctionUpdated(uint256 newNftTokenId, uint256 newAuctionId, uint96 newMaximumBid);
 
+    bool onlyRunIfForked;
+
     Globals globals;
     RecurringAuctionCrowdfund recurringAuctionCrowdfundImpl;
     RecurringAuctionCrowdfund crowdfund;
     MockPartyFactory partyFactory;
-    MockMarketWrapper market;
-    DummyERC721 nftContract;
+    IMarketWrapper market;
+    IERC721 nftContract;
     uint256 tokenId;
     uint256 auctionId;
 
     Crowdfund.FixedGovernanceOpts govOpts;
 
-    constructor() {
+    // This is for other test inheriting from this test; this can be ignored for
+    // this file as it will always be false.
+    modifier onlyForkedIfSet() {
+        if (onlyRunIfForked && block.number < 1e6) {
+            return;
+        }
+        _;
+    }
+
+    function setUp() public virtual onlyForkedIfSet() {
         // Setup state
         globals = new Globals(address(this));
         partyFactory = new MockPartyFactory();
         globals.setAddress(LibGlobals.GLOBAL_PARTY_FACTORY, address(partyFactory));
         recurringAuctionCrowdfundImpl = new RecurringAuctionCrowdfund(globals);
-        market = new MockMarketWrapper();
-        nftContract = market.nftContract();
-        (auctionId, tokenId) = market.createAuction(1 ether);
+        market = IMarketWrapper(new MockMarketWrapper());
+        nftContract = IERC721(address(MockMarketWrapper(address(market)).nftContract()));
+        _createNextAuction();
 
         // Set host
         govOpts.hosts = _toAddressArray(address(this));
@@ -69,18 +80,15 @@ contract RecurringAuctionCrowdfundTest is TestUtils, ERC721Receiver {
         crowdfund.contribute{ value: 100 ether }(address(this), "");
     }
 
-    function test_moveOnToNextAuctionAfterLoss() public {
+    function test_moveOnToNextAuctionAfterLoss() public onlyForkedIfSet {
         // Bid on the auction
         crowdfund.bid();
 
-        // Get outbid
         _outbid();
 
-        // End auction (we lost)
-        market.endAuction(auctionId);
+        _endAuction();
 
-        // Create next auction.
-        (auctionId, tokenId) = market.createAuction(1 ether);
+        _createNextAuction();
 
         // Move on to next auction
         _expectEmit0();
@@ -91,18 +99,17 @@ contract RecurringAuctionCrowdfundTest is TestUtils, ERC721Receiver {
         assertEq(crowdfund.lastBid(), 0);
     }
 
-    function test_moveOnToNextAuctionAfterLoss_multipleTimes() public {
+    function test_moveOnToNextAuctionAfterLoss_multipleTimes() public onlyForkedIfSet {
         for (uint256 i; i < 5; i++) test_moveOnToNextAuctionAfterLoss();
     }
 
-    function test_moveOnToNextAuctionAfterLoss_thenWin() public {
+    function test_moveOnToNextAuctionAfterLoss_thenWin() public onlyForkedIfSet {
         test_moveOnToNextAuctionAfterLoss();
 
         // Bid on the new auction
         crowdfund.bid();
 
-        // End new auction
-        market.endAuction(auctionId);
+        _endAuction();
 
         // Finalize and win new auction
         _expectEmit0();
@@ -112,7 +119,7 @@ contract RecurringAuctionCrowdfundTest is TestUtils, ERC721Receiver {
         assertEq(address(crowdfund.party()), address(partyFactory.mockParty()));
     }
 
-    function test_moveOnToNextAuctionAfterLoss_onlyHost() public {
+    function test_moveOnToNextAuctionAfterLoss_onlyHost() public onlyForkedIfSet {
         vm.expectRevert(RecurringAuctionCrowdfund.OnlyPartyHostError.selector);
         vm.prank(_randomAddress());
         crowdfund.finalize(govOpts, tokenId, auctionId, type(uint96).max);
@@ -120,14 +127,13 @@ contract RecurringAuctionCrowdfundTest is TestUtils, ERC721Receiver {
 
     // Calls the public `finalize()` that can be called by anyone, but expects
     // the auction to have been won otherwise reverts to be called by a host.
-    function test_finalizeWinOnly() external {
-        // Bid on the new auction
+    function test_finalizeWinOnly() public onlyForkedIfSet {
+        // Bid on the auction
         crowdfund.bid();
 
-        // End new auction
-        market.endAuction(auctionId);
+        _endAuction();
 
-        // Finalize and win new auction
+        // Finalize and win auction
         _expectEmit0();
         emit Won(crowdfund.lastBid(), Party(payable(address(partyFactory.mockParty()))));
         Party party = crowdfund.finalize(govOpts);
@@ -135,15 +141,14 @@ contract RecurringAuctionCrowdfundTest is TestUtils, ERC721Receiver {
         assertEq(address(crowdfund.party()), address(partyFactory.mockParty()));
     }
 
-    function test_finalizeWinOnly_revertsIfAuctionLost() external {
+    function test_finalizeWinOnly_revertsIfAuctionLost() public onlyForkedIfSet {
         // Bid on the auction
         crowdfund.bid();
 
         // Get outbid
         _outbid();
 
-        // End auction (we lost)
-        market.endAuction(auctionId);
+        _endAuction();
 
         vm.expectRevert(abi.encodeWithSelector(
             RecurringAuctionCrowdfund.AuctionLostError.selector,
@@ -153,13 +158,10 @@ contract RecurringAuctionCrowdfundTest is TestUtils, ERC721Receiver {
         crowdfund.finalize(govOpts);
     }
 
-    function test_finalize_declareLostIfExpiredWithoutNFT() external {
-        // End auction (we lost)
-        market.endAuction(auctionId);
+    function test_finalize_declareLostIfExpiredWithoutNFT() public onlyForkedIfSet {
+        _endAuction();
 
-        // Skip to `expiry`.
-        skip(1 days);
-        assertEq(uint8(crowdfund.getCrowdfundLifecycle()), uint8(Crowdfund.CrowdfundLifecycle.Expired));
+        _skipToExpiry();
 
         _expectEmit0();
         emit Lost();
@@ -168,16 +170,13 @@ contract RecurringAuctionCrowdfundTest is TestUtils, ERC721Receiver {
         assertEq(address(crowdfund.party()), address(0));
     }
 
-    function test_finalize_declareWinIfExpiredWithNFT() external {
-        // Bid on the new auction
+    function test_finalize_declareWinIfExpiredWithNFT() public onlyForkedIfSet {
+        // Bid on the auction
         crowdfund.bid();
 
-        // End new auction
-        market.endAuction(auctionId);
+        _endAuction();
 
-        // Skip to `expiry`.
-        skip(1 days);
-        assertEq(uint8(crowdfund.getCrowdfundLifecycle()), uint8(Crowdfund.CrowdfundLifecycle.Expired));
+        _skipToExpiry();
 
         _expectEmit0();
         emit Won(crowdfund.lastBid(), Party(payable(address(partyFactory.mockParty()))));
@@ -186,25 +185,39 @@ contract RecurringAuctionCrowdfundTest is TestUtils, ERC721Receiver {
         assertEq(address(crowdfund.party()), address(partyFactory.mockParty()));
     }
 
-    function test_endCrowdfund() public {
+    function test_endCrowdfund() public onlyForkedIfSet {
         _expectEmit0();
         emit Lost();
         crowdfund.end(govOpts);
 
         uint256 balanceBefore = address(this).balance;
         crowdfund.burn(payable(address(this)));
-        assertEq(address(this).balance, balanceBefore + 100 ether);
+        assertEq(address(this).balance, balanceBefore + crowdfund.totalContributions());
     }
 
-    function test_endCrowdfund_onlyHost() public {
+    function test_endCrowdfund_onlyHost() public onlyForkedIfSet {
         vm.expectRevert(RecurringAuctionCrowdfund.OnlyPartyHostError.selector);
         vm.prank(_randomAddress());
         crowdfund.end(govOpts);
     }
 
-    function _outbid() internal {
+    function _createNextAuction() internal virtual {
+        (auctionId, tokenId) = MockMarketWrapper(address(market)).createAuction(1 ether);
+    }
+
+    function _endAuction() internal virtual {
+        MockMarketWrapper(address(market)).endAuction(auctionId);
+    }
+
+    function _skipToExpiry() internal virtual {
+        skip(1 days);
+        assertEq(uint8(crowdfund.getCrowdfundLifecycle()), uint8(Crowdfund.CrowdfundLifecycle.Expired));
+    }
+
+    function _outbid() internal virtual {
         // Outbid the crowdfund.
-        market.bid{ value: crowdfund.lastBid() + 1 }(auctionId, payable(address(this)));
+        vm.deal(address(this), 101 ether);
+        MockMarketWrapper(address(market)).bid{ value: 101 ether }(auctionId, payable(address(this)));
     }
 
     receive() external payable {}

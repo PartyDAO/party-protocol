@@ -16,7 +16,7 @@ import "../DummyERC721.sol";
 
 import "../TestUtils.sol";
 
-contract FoundationForkedTest is TestUtils {
+contract FoundationCrowdfundForkedTest is TestUtils {
     event Won(uint256 bid, Party party);
     event Lost();
 

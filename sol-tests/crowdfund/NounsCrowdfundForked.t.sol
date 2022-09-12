@@ -15,7 +15,7 @@ import "./MockParty.sol";
 
 import "../TestUtils.sol";
 
-contract NounsForkedTest is TestUtils {
+contract NounsCrowdfundForkedTest is TestUtils {
     event Won(uint256 bid, Party party);
     event Lost();
 
