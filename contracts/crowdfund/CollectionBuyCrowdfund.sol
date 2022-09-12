@@ -11,8 +11,8 @@ import "../gatekeepers/IGateKeeper.sol";
 import "./BuyCrowdfundBase.sol";
 
 /// @notice A crowdfund that purchases any NFT from a collection (i.e., any
-/// token ID) from a collection for a known price. Like `BuyCrowdfund` but allows
-/// any token ID to be bought.
+///         token ID) from a collection for a known price. Like `BuyCrowdfund`
+///         but allows any token ID to be bought.
 contract CollectionBuyCrowdfund is BuyCrowdfundBase {
     using LibSafeERC721 for IERC721;
     using LibSafeCast for uint256;

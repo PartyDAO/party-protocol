@@ -12,8 +12,9 @@ import "../gatekeepers/IGateKeeper.sol";
 import "../market-wrapper/IMarketWrapper.sol";
 import "./Crowdfund.sol";
 
-/// @notice A crowdfund that can repeatedly bid on an auction for a specific NFT
-///         (i.e. with a known token ID) until it wins.
+/// @notice A crowdfund that can repeatedly bid on auctions for an NFT from a collection
+///         (i.e. any token ID) and can continue bidding on new auctions for that collection
+//          until it wins.
 contract RecurringAuctionCrowdfund is Implementation, Crowdfund {
     using LibSafeERC721 for IERC721;
     using LibSafeCast for uint256;
@@ -81,6 +82,7 @@ contract RecurringAuctionCrowdfund is Implementation, Crowdfund {
     error AlreadyHighestBidderError();
     error ExceedsMaximumBidError(uint256 bidAmount, uint256 maximumBid);
     error NoContributionsError();
+    error AuctionNotExpiredError();
     error OnlyPartyHostError();
 
     /// @notice The NFT contract to buy.
@@ -104,6 +106,27 @@ contract RecurringAuctionCrowdfund is Implementation, Crowdfund {
 
     // Set the `Globals` contract.
     constructor(IGlobals globals) Crowdfund(globals) {}
+
+    modifier onlyHost(FixedGovernanceOpts memory governanceOpts) {
+        bytes16 governanceOptsHash_ = _hashFixedGovernanceOpts(governanceOpts);
+        if (governanceOptsHash_ != governanceOptsHash) {
+            revert InvalidGovernanceOptionsError(governanceOptsHash_, governanceOptsHash);
+        }
+
+        bool isHost;
+        for (uint256 i; i < governanceOpts.hosts.length; i++) {
+            if (governanceOpts.hosts[i] == msg.sender) {
+                isHost = true;
+                break;
+            }
+        }
+
+        if (!isHost) {
+            revert OnlyPartyHostError();
+        }
+
+        _;
+    }
 
     /// @notice Initializer to be delegatecalled by `Proxy` constructor. Will
     ///         revert if called outside the constructor.
@@ -200,10 +223,16 @@ contract RecurringAuctionCrowdfund is Implementation, Crowdfund {
         onlyDelegateCall
         returns (Party party_)
     {
-        party_ = _finalize(governanceOpts);
+        CrowdfundLifecycle lc;
+        (lc, party_) = _finalize(governanceOpts);
         if (address(party_) != address(0)) {
             // Stop if auction won.
             return party_;
+        }
+        if (lc == CrowdfundLifecycle.Expired) {
+            // Crowdfund expired without NFT; finalize a loss.
+            _delcareLost();
+            return party_; // Empty address; no `Party` created.
         }
         // Auction either lost or not bid on yet; if lost, can only be finalized by a
         // host to move on to the next auction.
@@ -224,32 +253,19 @@ contract RecurringAuctionCrowdfund is Implementation, Crowdfund {
     )
         external
         onlyDelegateCall
+        onlyHost(governanceOpts)
         returns (Party party_)
     {
-        // Only allow host to finalize and change auction if lost.
-        {
-            bytes16 governanceOptsHash_ = _hashFixedGovernanceOpts(governanceOpts);
-            if (governanceOptsHash_ != governanceOptsHash) {
-                revert InvalidGovernanceOptionsError(governanceOptsHash_, governanceOptsHash);
-            }
-
-            bool isHost;
-            for (uint256 i; i < governanceOpts.hosts.length; i++) {
-                if (governanceOpts.hosts[i] == msg.sender) {
-                    isHost = true;
-                    break;
-                }
-            }
-
-            if (!isHost) {
-                revert OnlyPartyHostError();
-            }
-        }
-
-        party_ = _finalize(governanceOpts);
+        CrowdfundLifecycle lc;
+        (lc, party_) = _finalize(governanceOpts);
         if (address(party_) != address(0)) {
             // Stop if auction won.
             return party_;
+        }
+        if (lc == CrowdfundLifecycle.Expired) {
+            // Crowdfund expired without NFT; finalize a loss.
+            _delcareLost();
+            return party_; // Empty address; no `Party` created.
         }
         // Move on to the next auction if this one has been lost.
         // Check that the new auction can be bid on and is valid.
@@ -269,36 +285,12 @@ contract RecurringAuctionCrowdfund is Implementation, Crowdfund {
 
         emit AuctionUpdated(newNftTokenId, newAuctionId, newMaximumBid);
 
+        // Change back the auction status from `Busy` to `Active`.
         _bidStatus = AuctionCrowdfundStatus.Active;
     }
 
-    function end(FixedGovernanceOpts memory governanceOpts) external {
-        // Unless crowdfund has expired, only allow host to end.
-        if (getCrowdfundLifecycle() != CrowdfundLifecycle.Expired) {
-            bytes16 governanceOptsHash_ = _hashFixedGovernanceOpts(governanceOpts);
-            if (governanceOptsHash_ != governanceOptsHash) {
-                revert InvalidGovernanceOptionsError(governanceOptsHash_, governanceOptsHash);
-            }
-
-            bool isHost;
-            for (uint256 i; i < governanceOpts.hosts.length; i++) {
-                if (governanceOpts.hosts[i] == msg.sender) {
-                    isHost = true;
-                    break;
-                }
-            }
-
-            if (!isHost) {
-                revert OnlyPartyHostError();
-            }
-        }
-
-        // Clear `lastBid` so `_getFinalPrice()` is 0 and people can redeem their
-        // full contributions when they burn their participation NFTs.
-        lastBid = 0;
-        emit Lost();
-
-        _bidStatus = AuctionCrowdfundStatus.Finalized;
+    function end(FixedGovernanceOpts memory governanceOpts) external onlyHost(governanceOpts) {
+        _delcareLost();
     }
 
     /// @inheritdoc Crowdfund
@@ -325,34 +317,42 @@ contract RecurringAuctionCrowdfund is Implementation, Crowdfund {
 
     function _finalize(FixedGovernanceOpts memory governanceOpts)
         internal
-        returns (Party party_)
+        returns (CrowdfundLifecycle lc, Party party_)
     {
         // Check that the auction is still active and has not passed the `expiry` time.
-        {
-            CrowdfundLifecycle lc = getCrowdfundLifecycle();
-            if (lc != CrowdfundLifecycle.Active && lc != CrowdfundLifecycle.Expired) {
-                revert WrongLifecycleError(lc);
-            }
+        lc = getCrowdfundLifecycle();
+        if (lc != CrowdfundLifecycle.Active && lc != CrowdfundLifecycle.Expired) {
+            revert WrongLifecycleError(lc);
         }
         // Mark as busy to prevent `burn()`, `bid()`, and `contribute()`
         // getting called because this will result in a `CrowdfundLifecycle.Busy`.
         _bidStatus = AuctionCrowdfundStatus.Busy;
 
+        uint96 lastBid_ = lastBid;
         // Only finalize on the market if we placed a bid and not finalized.
-        if (!market.isFinalized(auctionId)) {
-            // Note that even if this crowdfund has expired but the auction is still
-            // ongoing, this call can fail and block finalization until the auction ends.
-            (bool s, bytes memory r) = address(market).call(abi.encodeCall(
-                IMarketWrapper.finalize,
-                auctionId
-            ));
-            if (!s) {
-                r.rawRevert();
+        if (lastBid_ != 0) {
+            uint256 auctionId_ = auctionId;
+            // Finalize the auction if it isn't finalized.
+            if (!market.isFinalized(auctionId_)) {
+                // Note that even if this crowdfund has expired but the auction is still
+                // ongoing, this call can fail and block finalization until the auction ends.
+                (bool s, bytes memory r) = address(market).call(abi.encodeCall(
+                    IMarketWrapper.finalize,
+                    auctionId_
+                ));
+                if (!s) {
+                    r.rawRevert();
+                }
+            }
+        } else {
+            // If we never placed a bid, the auction must have expired.
+            if (lc != CrowdfundLifecycle.Expired) {
+                revert AuctionNotExpiredError();
             }
         }
         // Are we now in possession of the NFT?
         if (nftContract.safeOwnerOf(nftTokenId) == address(this)) {
-            uint96 lastBid_ = lastBid;
+            lastBid_ = lastBid;
             if (lastBid_ == 0) {
                 // The NFT was gifted to us. Everyone who contributed wins.
                 lastBid_ = totalContributions;
@@ -372,6 +372,15 @@ contract RecurringAuctionCrowdfund is Implementation, Crowdfund {
             // Create a governance party around the NFT.
             emit Won(lastBid_, party_);
         }
+    }
+
+    function _delcareLost() internal {
+        // Clear `lastBid` so `_getFinalPrice()` is 0 and people can redeem their
+        // full contributions when they burn their participation NFTs.
+        lastBid = 0;
+        emit Lost();
+
+        _bidStatus = AuctionCrowdfundStatus.Finalized;
     }
 
     function _getFinalPrice()

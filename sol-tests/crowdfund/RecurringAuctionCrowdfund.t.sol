@@ -153,6 +153,39 @@ contract RecurringAuctionCrowdfundTest is TestUtils, ERC721Receiver {
         crowdfund.finalize(govOpts);
     }
 
+    function test_finalize_declareLostIfExpiredWithoutNFT() external {
+        // End auction (we lost)
+        market.endAuction(auctionId);
+
+        // Skip to `expiry`.
+        skip(1 days);
+        assertEq(uint8(crowdfund.getCrowdfundLifecycle()), uint8(Crowdfund.CrowdfundLifecycle.Expired));
+
+        _expectEmit0();
+        emit Lost();
+        vm.prank(_randomAddress());
+        crowdfund.finalize(govOpts);
+        assertEq(address(crowdfund.party()), address(0));
+    }
+
+    function test_finalize_declareWinIfExpiredWithNFT() external {
+        // Bid on the new auction
+        crowdfund.bid();
+
+        // End new auction
+        market.endAuction(auctionId);
+
+        // Skip to `expiry`.
+        skip(1 days);
+        assertEq(uint8(crowdfund.getCrowdfundLifecycle()), uint8(Crowdfund.CrowdfundLifecycle.Expired));
+
+        _expectEmit0();
+        emit Won(crowdfund.lastBid(), Party(payable(address(partyFactory.mockParty()))));
+        vm.prank(_randomAddress());
+        crowdfund.finalize(govOpts);
+        assertEq(address(crowdfund.party()), address(partyFactory.mockParty()));
+    }
+
     function test_endCrowdfund() public {
         _expectEmit0();
         emit Lost();
@@ -163,16 +196,7 @@ contract RecurringAuctionCrowdfundTest is TestUtils, ERC721Receiver {
         assertEq(address(this).balance, balanceBefore + 100 ether);
     }
 
-    function test_endCrowdfund_expired() public {
-        skip(1 days);
-
-        _expectEmit0();
-        emit Lost();
-        vm.prank(_randomAddress());
-        crowdfund.end(govOpts);
-    }
-
-    function test_endCrowdfund_onlyHostIfNotExpired() public {
+    function test_endCrowdfund_onlyHost() public {
         vm.expectRevert(RecurringAuctionCrowdfund.OnlyPartyHostError.selector);
         vm.prank(_randomAddress());
         crowdfund.end(govOpts);
