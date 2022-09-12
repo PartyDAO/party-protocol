@@ -10,7 +10,8 @@
     "scripts": {
         "clean": "rm -rf out/ js/",
         "build": "yarn build:sol && yarn build:ts",
-        "test": "yarn build && yarn test:sol:run && yarn test:ts:run",
+        "test": "yarn test:sol:run && yarn build:ts && yarn test:ts:run",
+        "test:gas": "yarn test:sol:run --gas-report",
         "build:sol": "forge build --extra-output storageLayout",
         "test:sol": "yarn build:sol && yarn test:sol:run",
         "test:sol:run": "forge test",

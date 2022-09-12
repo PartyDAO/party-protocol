@@ -79,6 +79,7 @@ contract AuctionCrowdfund is Implementation, Crowdfund {
     error AlreadyHighestBidderError();
     error ExceedsMaximumBidError(uint256 bidAmount, uint256 maximumBid);
     error NoContributionsError();
+    error AuctionNotExpiredError();
 
     /// @notice The NFT contract to buy.
     IERC721 public nftContract;
@@ -198,11 +199,9 @@ contract AuctionCrowdfund is Implementation, Crowdfund {
         returns (Party party_)
     {
         // Check that the auction is still active and has not passed the `expiry` time.
-        {
-            CrowdfundLifecycle lc = getCrowdfundLifecycle();
-            if (lc != CrowdfundLifecycle.Active && lc != CrowdfundLifecycle.Expired) {
-                revert WrongLifecycleError(lc);
-            }
+        CrowdfundLifecycle lc = getCrowdfundLifecycle();
+        if (lc != CrowdfundLifecycle.Active && lc != CrowdfundLifecycle.Expired) {
+            revert WrongLifecycleError(lc);
         }
         // Mark as busy to prevent `burn()`, `bid()`, and `contribute()`
         // getting called because this will result in a `CrowdfundLifecycle.Busy`.
@@ -210,15 +209,24 @@ contract AuctionCrowdfund is Implementation, Crowdfund {
 
         uint96 lastBid_ = lastBid;
         // Only finalize on the market if we placed a bid.
-        if (lastBid_ != 0 && !market.isFinalized(auctionId)) {
-            // Note that even if this crowdfund has expired but the auction is still
-            // ongoing, this call can fail and block finalization until the auction ends.
-            (bool s, bytes memory r) = address(market).call(abi.encodeCall(
-                IMarketWrapper.finalize,
-                auctionId
-            ));
-            if (!s) {
-                r.rawRevert();
+        if (lastBid_ != 0) {
+            uint256 auctionId_ = auctionId;
+            // Finalize the auction if it isn't finalized.
+            if (!market.isFinalized(auctionId_)) {
+                // Note that even if this crowdfund has expired but the auction is still
+                // ongoing, this call can fail and block finalization until the auction ends.
+                (bool s, bytes memory r) = address(market).call(abi.encodeCall(
+                    IMarketWrapper.finalize,
+                    auctionId_
+                ));
+                if (!s) {
+                    r.rawRevert();
+                }
+            }
+        } else {
+            // If we never placed a bid, the auction must have expired.
+            if (lc != CrowdfundLifecycle.Expired) {
+                revert AuctionNotExpiredError();
             }
         }
         // Are we now in possession of the NFT?

@@ -3,6 +3,6 @@ src = 'contracts'
 out = 'out'
 test = 'sol-tests'
 libs = ['lib']
-gas_reports = ['Proxy', 'Party', 'PartyGovernance', 'ProposalExecutionEngine']
+gas_reports = ['Proxy', 'Party', 'PartyGovernance', 'ProposalExecutionEngine', 'AuctionCrowdfund', 'BuyCrowdfund', 'CollectionBuyCrowdfund', 'Crowdfund', 'PartyFactory', 'CrowdfundFactory', 'TokenDistributor']
 
 # See more config options https://github.com/foundry-rs/foundry/tree/master/config
