@@ -266,7 +266,9 @@ abstract contract ListOnOpenseaProposal is ZoraHelpers {
         orderParams.orderType = orderParams.zone == address(0)
             ? IOpenseaExchange.OrderType.FULL_OPEN
             : IOpenseaExchange.OrderType.FULL_RESTRICTED;
-        orderParams.salt = 0;
+        // Supplies the first 4 bytes of our domain hash followed by 0's as a salt.
+        // https://opensea.notion.site/opensea/Proposal-for-Seaport-Order-Attributions-via-Arbitrary-Domain-Hash-d0ad30b994ba48278c6e922983175285
+        orderParams.salt = uint256(bytes32(bytes4(keccak256("https://partybid.app"))));
         orderParams.conduitKey = conduitKey;
         orderParams.totalOriginalConsiderationItems = 1 + fees.length;
         // What we are selling.
