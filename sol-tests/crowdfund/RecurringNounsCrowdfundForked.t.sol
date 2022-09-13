@@ -56,7 +56,7 @@ contract RecurringNounsCrowdfundForkedTest is RecurringAuctionCrowdfundTest {
         crowdfund.contribute{ value: 1000 ether }(address(this), "");
     }
 
-    function _createNextAuction() internal override {
+    function _setNextAuction() internal override {
         market.finalize(auctionId);
         (tokenId, , , , , ) = nounsAuctionHouse.auction();
         auctionId = tokenId;

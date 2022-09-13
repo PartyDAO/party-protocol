@@ -45,7 +45,7 @@ contract RecurringAuctionCrowdfundTest is TestUtils, ERC721Receiver {
         recurringAuctionCrowdfundImpl = new RecurringAuctionCrowdfund(globals);
         market = IMarketWrapper(new MockMarketWrapper());
         nftContract = IERC721(address(MockMarketWrapper(address(market)).nftContract()));
-        _createNextAuction();
+        _setNextAuction();
 
         // Set host
         govOpts.hosts = _toAddressArray(address(this));
@@ -88,7 +88,7 @@ contract RecurringAuctionCrowdfundTest is TestUtils, ERC721Receiver {
 
         _endAuction();
 
-        _createNextAuction();
+        _setNextAuction();
 
         // Move on to next auction
         _expectEmit0();
@@ -201,7 +201,22 @@ contract RecurringAuctionCrowdfundTest is TestUtils, ERC721Receiver {
         crowdfund.end(govOpts);
     }
 
-    function _createNextAuction() internal virtual {
+    function test_finalize_revertIfInvalidNextAuction() public onlyForkedIfSet {
+        // Bid on the auction
+        crowdfund.bid();
+
+        _outbid();
+
+        _endAuction();
+
+        // Attempt finalizing and setting next auction to the one that just ended
+        vm.expectRevert(abi.encodeWithSelector(
+            RecurringAuctionCrowdfund.InvalidAuctionIdError.selector
+        ));
+        crowdfund.finalize(govOpts, tokenId, auctionId, type(uint96).max);
+    }
+
+    function _setNextAuction() internal virtual {
         (auctionId, tokenId) = MockMarketWrapper(address(market)).createAuction(1 ether);
     }
 
