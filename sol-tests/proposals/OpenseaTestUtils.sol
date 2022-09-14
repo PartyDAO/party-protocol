@@ -73,7 +73,7 @@ contract OpenseaTestUtils is Test {
         pure
         returns (IOpenseaExchange.Order memory order)
     {
-        order.parameters.salt = uint256(bytes32(bytes4(keccak256("https://partybid.app"))));
+        order.parameters.salt = uint256(bytes32(bytes4(keccak256("partybid"))));
         order.parameters.orderType = params.zone == address(0)
             ? IOpenseaExchange.OrderType.FULL_OPEN
             : IOpenseaExchange.OrderType.FULL_RESTRICTED;

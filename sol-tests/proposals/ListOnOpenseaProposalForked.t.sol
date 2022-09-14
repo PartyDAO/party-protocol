@@ -138,7 +138,8 @@ contract ListOnOpenseaProposalForkedTest is
                 token: token,
                 tokenId: tokenId,
                 fees: fees,
-                feeRecipients: feeRecipients
+                feeRecipients: feeRecipients,
+                domainHashPrefix: bytes4(keccak256("partybid"))
             });
         executeParams =
             IProposalExecutionEngine.ExecuteProposalParams({
@@ -164,7 +165,7 @@ contract ListOnOpenseaProposalForkedTest is
         orderParams.orderType = orderParams.zone == address(0)
             ? IOpenseaExchange.OrderType.FULL_OPEN
             : IOpenseaExchange.OrderType.FULL_RESTRICTED;
-        orderParams.salt = uint256(bytes32(bytes4(keccak256("https://partybid.app"))));
+        orderParams.salt = uint256(bytes32(data.domainHashPrefix));
         orderParams.conduitKey = globals.getBytes32(LibGlobals.GLOBAL_OPENSEA_CONDUIT_KEY);
         orderParams.totalOriginalConsiderationItems = 1 + data.fees.length;
         // What we are selling.

@@ -42,6 +42,9 @@ abstract contract ListOnOpenseaProposal is ZoraHelpers {
         uint256[] fees;
         // Respective recipients for each fee.
         address payable[] feeRecipients;
+        // The first 4 bytes of the hash of a domain to attribute the listing to.
+        // https://opensea.notion.site/opensea/Proposal-for-Seaport-Order-Attributions-via-Arbitrary-Domain-Hash-d0ad30b994ba48278c6e922983175285
+        bytes4 domainHashPrefix;
     }
 
     // ABI-encoded `progressData` passed into execute in the `ListedOnOpenSea` step.
@@ -214,7 +217,8 @@ abstract contract ListOnOpenseaProposal is ZoraHelpers {
                 data.listPrice,
                 expiry,
                 data.fees,
-                data.feeRecipients
+                data.feeRecipients,
+                data.domainHashPrefix
             );
             return abi.encode(ListOnOpenseaStep.ListedOnOpenSea, orderHash, expiry);
         }
@@ -241,7 +245,8 @@ abstract contract ListOnOpenseaProposal is ZoraHelpers {
         uint256 listPrice,
         uint256 expiry,
         uint256[] memory fees,
-        address payable[] memory feeRecipients
+        address payable[] memory feeRecipients,
+        bytes4 domainHashPrefix
     )
         private
         returns (bytes32 orderHash)
@@ -266,9 +271,7 @@ abstract contract ListOnOpenseaProposal is ZoraHelpers {
         orderParams.orderType = orderParams.zone == address(0)
             ? IOpenseaExchange.OrderType.FULL_OPEN
             : IOpenseaExchange.OrderType.FULL_RESTRICTED;
-        // Supplies the first 4 bytes of our domain hash followed by 0's as a salt.
-        // https://opensea.notion.site/opensea/Proposal-for-Seaport-Order-Attributions-via-Arbitrary-Domain-Hash-d0ad30b994ba48278c6e922983175285
-        orderParams.salt = uint256(bytes32(bytes4(keccak256("https://partybid.app"))));
+        orderParams.salt = uint256(bytes32(domainHashPrefix));
         orderParams.conduitKey = conduitKey;
         orderParams.totalOriginalConsiderationItems = 1 + fees.length;
         // What we are selling.
