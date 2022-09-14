@@ -2,6 +2,7 @@ import crypto from 'crypto';
 import { BigNumber, Contract, ContractFactory, Signer } from 'ethers';
 import * as ethers from 'ethers';
 import { MockProvider } from 'ethereum-waffle';
+import { env as ENV } from 'process';
 
 export const NULL_ADDRESS = '0x0000000000000000000000000000000000000000';
 export const NULL_HASH = '0x0000000000000000000000000000000000000000000000000000000000000000';
@@ -41,4 +42,37 @@ export async function deployContract(
         signer,
     );
     return cf.deploy(...args, ...[overrides ? [overrides] : []]);
+}
+
+export function describeFork(name: string, body: (forkProvider: MockProvider) => void) {
+    let it = global.it;
+    if (!ENV.FORK_URL) {
+        console.info('no FORK_URL env var set, skipping forked tests.');
+        it = it.skip as any;
+        (it as any).skip = global.it.skip;
+    } else {
+        global.it = Object.assign(
+            (name: string, ...args: any[]) => {
+                it(`${name} [⑃]`, ...args);
+            },
+            global.it,
+        );
+    }
+    const provider = new MockProvider({
+        ganacheOptions: {
+            fork: ENV.FORK_URL,
+            gasLimit: 100e9,
+            allowUnlimitedContractSize: true,
+        }
+    });
+    describe(name, () => {
+        body(provider);
+        let snapshot: string;
+        beforeEach(async () => {
+            snapshot = await provider.send('evm_snapshot', []);
+        });
+        afterEach(async () => {
+            await provider.send('evm_revert', [ snapshot ]);
+        });
+    });
 }

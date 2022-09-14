@@ -21,40 +21,35 @@ import '../contracts/proposals/ProposalExecutionEngine.sol';
 import '../contracts/utils/PartyHelpers.sol';
 import './LibDeployConstants.sol';
 
-contract Deploy is Script {
+contract Deploy {
   struct AddressMapping {
     string key;
     address value;
   }
 
-  // constants
-  // dry-run deployer address
-  // address constant DEPLOYER_ADDRESS = 0x00a329c0648769A73afAc7F9381E08FB43dBEA72;
-  // real deployer address
-  address constant DEPLOYER_ADDRESS = 0x8fDC86689f5F35F2b4d9f649c7bdc9C64f59e6bD; // TODO: we can set this, or we can use tx.origin
-
   // temporary variables to store deployed contract addresses
-  Globals globals;
-  IZoraAuctionHouse zoraAuctionHouse;
-  AuctionCrowdfund auctionCrowdfundImpl;
-  BuyCrowdfund buyCrowdfundImpl;
-  CollectionBuyCrowdfund collectionBuyCrowdfundImpl;
-  CrowdfundFactory partyCrowdfundFactory;
-  Party partyImpl;
-  PartyFactory partyFactory;
-  IOpenseaExchange seaport;
-  ProposalExecutionEngine proposalEngineImpl;
-  TokenDistributor tokenDistributor;
-  CrowdfundNFTRenderer partyCrowdfundNFTRenderer;
-  PartyGovernanceNFTRenderer partyGovernanceNFTRenderer;
-  PartyHelpers partyHelpers;
-  IGateKeeper allowListGateKeeper;
-  IGateKeeper tokenGateKeeper;
+  Globals public globals;
+  IZoraAuctionHouse public zoraAuctionHouse;
+  AuctionCrowdfund public auctionCrowdfundImpl;
+  BuyCrowdfund public buyCrowdfundImpl;
+  CollectionBuyCrowdfund public collectionBuyCrowdfundImpl;
+  CrowdfundFactory public partyCrowdfundFactory;
+  Party public partyImpl;
+  PartyFactory public partyFactory;
+  IOpenseaExchange public seaport;
+  ProposalExecutionEngine public proposalEngineImpl;
+  TokenDistributor public tokenDistributor;
+  CrowdfundNFTRenderer public partyCrowdfundNFTRenderer;
+  PartyGovernanceNFTRenderer public partyGovernanceNFTRenderer;
+  PartyHelpers public partyHelpers;
+  IGateKeeper public allowListGateKeeper;
+  IGateKeeper public tokenGateKeeper;
 
-  function run(LibDeployConstants.DeployConstants memory deployConstants) public {
+  function deploy(LibDeployConstants.DeployConstants memory deployConstants) public virtual {
+    address deployer = this.getDeployer();
+
     console.log('Starting deploy script.');
-    console.log('DEPLOYER_ADDRESS', DEPLOYER_ADDRESS);
-    vm.startBroadcast();
+    console.log('DEPLOYER_ADDRESS', deployer);
 
     seaport = IOpenseaExchange(deployConstants.seaportExchangeAddress);
 
@@ -62,31 +57,13 @@ contract Deploy is Script {
     console.log('');
     console.log('### Globals');
     console.log('  Deploying - Globals');
-    globals = new Globals(DEPLOYER_ADDRESS);
+    globals = new Globals(deployer);
     console.log('  Deployed - Globals', address(globals));
 
     console.log('');
     console.log('  Globals - setting PartyDao Multi-sig address');
-    // globals.setAddress(LibGlobals.GLOBAL_DAO_WALLET, deployConstants.partyDaoMultisig);
-    // console.log('  Globals - successfully set PartyDao multi-sig address', deployConstants.partyDaoMultisig);
-    // development/testnet deploy
-    globals.setAddress(LibGlobals.GLOBAL_DAO_WALLET, DEPLOYER_ADDRESS);
-    console.log('  Globals - successfully set PartyDao multi-sig address', DEPLOYER_ADDRESS);
-
-    console.log('');
-    console.log('  Globals - setting DAO authority addresses', deployConstants.adminAddresses.length);
-    uint256 i;
-    for (i = 0; i < deployConstants.adminAddresses.length; ++i) {
-      address adminAddress = deployConstants.adminAddresses[i];
-      console.log('  Globals - setting DAO authority address', adminAddress);
-      globals.setIncludesAddress(LibGlobals.GLOBAL_DAO_AUTHORITIES, adminAddress, true);
-      console.log('  Globals - set DAO authority address', adminAddress);
-    }
-    console.log('  Globals - successfully set DAO authority addresses');
-
-    console.log('  Globals - setting PartyDao split basis points');
-    globals.setUint256(LibGlobals.GLOBAL_DAO_DISTRIBUTION_SPLIT, deployConstants.partyDaoDistributionSplitBps);
-    console.log('  Globals - successfully set PartyDao split basis points', deployConstants.partyDaoDistributionSplitBps);
+    globals.setAddress(LibGlobals.GLOBAL_DAO_WALLET, deployConstants.partyDaoMultisig);
+    console.log('  Globals - successfully set PartyDao multi-sig address', deployConstants.partyDaoMultisig);
 
     console.log('  Globals - setting seaport params');
     globals.setBytes32(
@@ -237,7 +214,6 @@ contract Deploy is Script {
     globals.setAddress(LibGlobals.GLOBAL_CF_NFT_RENDER_IMPL, address(partyCrowdfundNFTRenderer));
     console.log('  Globals - successfully set CrowdfundNFTRenderer', address(partyCrowdfundNFTRenderer));
 
-
     // DEPLOY_PARTY_GOVERNANCE_NFT_RENDERER
     console.log('');
     console.log('### PartyGovernanceNFTRenderer');
@@ -251,11 +227,13 @@ contract Deploy is Script {
     console.log('  Globals - successfully set PartyGovernanceNFTRenderer', address(partyGovernanceNFTRenderer));
 
     // DEPLOY_PARTY_HELPERS
-    console.log('');
-    console.log('### PartyHelpers');
-    console.log('  Deploying - PartyHelpers');
-    partyHelpers = new PartyHelpers();
-    console.log('  Deployed - PartyHelpers', address(partyHelpers));
+    if (!isTest()) {
+        console.log('');
+        console.log('### PartyHelpers');
+        console.log('  Deploying - PartyHelpers');
+        partyHelpers = new PartyHelpers();
+        console.log('  Deployed - PartyHelpers', address(partyHelpers));
+    }
 
     // DEPLOY_GATE_KEEPRS
     console.log('');
@@ -268,13 +246,40 @@ contract Deploy is Script {
     tokenGateKeeper = new TokenGateKeeper();
     console.log('  Deployed - TokenGateKeeper', address(tokenGateKeeper));
 
-    // TODO: TRANSFER_OWNERSHIP_TO_PARTYDAO_MULTISIG
-    // console.log('');
-    // console.log('### Transfer MultiSig');
-    // console.log('  Transferring ownership to PartyDAO multi-sig', deployConstants.partyDaoMultisig);
-    // globals.transferMultiSig(deployConstants.partyDaoMultisig);
-    // console.log('  Transferred ownership to', deployConstants.partyDaoMultisig);
+    // TRANSFER_OWNERSHIP_TO_PARTYDAO_MULTISIG
+    if (deployer != deployConstants.partyDaoMultisig) {
+        console.log('');
+        console.log('### Transfer MultiSig');
+        console.log('  Transferring ownership to PartyDAO multi-sig', deployConstants.partyDaoMultisig);
+        globals.transferMultiSig(deployConstants.partyDaoMultisig);
+        console.log('  Transferred ownership to', deployConstants.partyDaoMultisig);
+    }
+  }
 
+  function getDeployer() external view returns (address) {
+      return msg.sender;
+  }
+
+  function isTest() internal view returns (bool) {
+      return address(this) == this.getDeployer();
+  }
+}
+
+contract DeployFork is Deploy {
+  function deployMainnetFork(address multisig) public {
+      LibDeployConstants.DeployConstants memory dc = LibDeployConstants.mainnet();
+      dc.partyDaoMultisig = multisig;
+      deploy(dc);
+  }
+}
+
+contract DeployScript is Script, Deploy {
+  constructor() {
+      vm.startBroadcast();
+  }
+
+  function deploy(LibDeployConstants.DeployConstants memory deployConstants) public override {
+    Deploy.deploy(deployConstants);
 
     AddressMapping[] memory addressMapping = new AddressMapping[](15);
     addressMapping[0] = AddressMapping('globals', address(globals));
@@ -344,5 +349,4 @@ contract Deploy is Script {
     }
     console.log("Successfully wrote to file");
   }
-
 }
