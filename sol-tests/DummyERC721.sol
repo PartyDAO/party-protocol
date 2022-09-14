@@ -11,7 +11,7 @@ contract DummyERC721 is IERC721 {
     mapping (address => mapping (address => bool)) public isApprovedForAll;
     mapping (address => uint256) public balanceOf;
     mapping (uint256 => address) private _ownerOf;
-    uint256 public lastId;
+    uint256 private _lastId;
 
     modifier onlyOwnedBy(uint256 tokenId, address owner) {
         require(_ownerOf[tokenId] == owner, 'DummyERC721/NOT_OWNED');
@@ -46,20 +46,11 @@ contract DummyERC721 is IERC721 {
         return false;
     }
 
-    function mint(address owner) external payable returns (uint256 id) {
-        id = ++lastId;
+    function mint(address owner) external returns (uint256 id) {
+        id = ++_lastId;
         _ownerOf[id] = owner;
         ++balanceOf[owner];
         emit Transfer(address(0), owner, id);
-    }
-
-    function burn(uint256 id) external {
-        address owner = _ownerOf[id];
-        require(owner != address(0), "DummyERC721/NOT_MINTED");
-        balanceOf[owner]--;
-        delete _ownerOf[id];
-        delete getApproved[id];
-        emit Transfer(owner, address(0), id);
     }
 
     function approve(address operator, uint256 tokenId)
