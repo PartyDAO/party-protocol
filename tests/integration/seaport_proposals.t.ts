@@ -1,5 +1,6 @@
 import { expect, use } from 'chai';
 import { Contract } from 'ethers';
+import { keccak256, toUtf8Bytes } from 'ethers/lib/utils';
 import { MockProvider, solidity } from 'ethereum-waffle';
 import { env as ENV } from 'process';
 import * as ethers from 'ethers';
@@ -106,6 +107,7 @@ describe('Seaport proposals integrations test', () => {
                 tokenId: party.preciousTokens[0].tokenId,
                 fees: [OS_FEE],
                 feeRecipients: [OS_FEE_RECIPIENT],
+                domainHashPrefix: keccak256(toUtf8Bytes("partybid")).slice(0, 10)
             },
             now() + ONE_DAY_SECONDS,
             now() + 30 * ONE_DAY_SECONDS,
@@ -167,6 +169,7 @@ describe('Seaport proposals integrations test', () => {
                 tokenId: party.preciousTokens[0].tokenId,
                 fees: [OS_FEE],
                 feeRecipients: [OS_FEE_RECIPIENT],
+                domainHashPrefix: keccak256(toUtf8Bytes("partybid")).slice(0, 10)
             },
             now() + ONE_DAY_SECONDS,
             now() + 30 * ONE_DAY_SECONDS,

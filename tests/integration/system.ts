@@ -103,6 +103,7 @@ interface OpenSeaProposalInfo {
     tokenId: BigNumber,
     fees: BigNumber[];
     feeRecipients: string[];
+    domainHashPrefix: string;
 }
 
 export class System {
@@ -497,7 +498,7 @@ export function createOpenSeaProposal(info: OpenSeaProposalInfo, maxExecutableTi
         proposalData: ethers.utils.hexConcat([
             ethers.utils.hexZeroPad(ethers.utils.hexlify(ProposalType.ListOnOpenSea), 4),
             ethers.utils.defaultAbiCoder.encode(
-                ['tuple(uint256 listPrice,uint40 duration,address token,uint256 tokenId,uint256[] fees,address[] feeRecipients)'],
+                ['tuple(uint256 listPrice,uint40 duration,address token,uint256 tokenId,uint256[] fees,address[] feeRecipients,bytes4 domainHashPrefix)'],
                 [info],
             ),
         ]),
