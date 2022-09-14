@@ -27,6 +27,8 @@ contract Deploy is Script {
         address value;
     }
 
+    // After adding a new contract to deploy, please update `Deploy.t.sol`
+    // to check that it was actually deployed.
     Globals globals;
     IZoraAuctionHouse zoraAuctionHouse;
     AuctionCrowdfund auctionCrowdfundImpl;
@@ -104,28 +106,32 @@ contract Deploy is Script {
                 "  Globals - setting DAO authority addresses",
                 deployConstants.adminAddresses.length
             );
+        }
 
-            for (uint256 i = 0; i < deployConstants.adminAddresses.length; ++i) {
-                address adminAddress = deployConstants.adminAddresses[i];
+        for (uint256 i = 0; i < deployConstants.adminAddresses.length; ++i) {
+            address adminAddress = deployConstants.adminAddresses[i];
+            if (!isFork) {
                 console.log(
                     "  Globals - setting DAO authority address",
                     adminAddress
                 );
-                globals.setIncludesAddress(
-                    LibGlobals.GLOBAL_DAO_AUTHORITIES,
-                    adminAddress,
-                    true
-                );
+            }
+            globals.setIncludesAddress(
+                LibGlobals.GLOBAL_DAO_AUTHORITIES,
+                adminAddress,
+                true
+            );
+            if (!isFork) {
                 console.log(
-                    "  Globals - set DAO authority address",
+                    "  Globals - successfully set DAO authority address",
                     adminAddress
                 );
             }
-
-            console.log("  Globals - successfully set DAO authority addresses");
         }
 
         if (!isFork) {
+            console.log("  Globals - successfully set DAO authority addresses");
+
             console.log("  Globals - setting PartyDao split basis points");
         }
 
@@ -282,6 +288,18 @@ contract Deploy is Script {
             console.log(
                 "  Globals - successfully set Zora max auction timeout",
                 deployConstants.zoraMaxAuctionTimeout
+            );
+        }
+
+        globals.setUint256(
+            LibGlobals.GLOBAL_PROPOSAL_MAX_CANCEL_DURATION,
+            deployConstants.proposalMaxCancelDuration
+        );
+
+        if (!isFork) {
+            console.log(
+                "  Globals - successfully set max cancel duration",
+                deployConstants.proposalMaxCancelDuration
             );
         }
 
@@ -627,9 +645,13 @@ contract Deploy is Script {
                 "  Transferring ownership to PartyDAO multi-sig",
                 deployConstants.partyDaoMultisig
             );
+        }
 
+        if (isMainnet || isFork) {
             globals.transferMultiSig(deployConstants.partyDaoMultisig);
+        }
 
+        if (isMainnet) {
             console.log(
                 "  Transferred ownership to",
                 deployConstants.partyDaoMultisig

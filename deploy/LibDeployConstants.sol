@@ -14,6 +14,7 @@ library LibDeployConstants {
         uint256 zoraMinAuctionDuration;
         uint256 zoraMaxAuctionDuration;
         uint256 zoraMaxAuctionTimeout;
+        uint256 proposalMaxCancelDuration;
         address partyDaoMultisig;
         uint256 partyDaoDistributionSplitBps;
         address zoraAuctionHouseAddress;
@@ -42,6 +43,7 @@ library LibDeployConstants {
             zoraMinAuctionDuration: 2 minutes,
             zoraMaxAuctionDuration: 10 days,
             zoraMaxAuctionTimeout: 7 days,
+            proposalMaxCancelDuration: 30 days,
             partyDaoMultisig: 0xF7f52Dd34bc21eDA08c0b804C7c1dbc48375820f,
             partyDaoDistributionSplitBps: PARTY_DAO_DISTRIBUTION_SPLIT_BPS,
             zoraAuctionHouseAddress: 0xE7dd1252f50B3d845590Da0c5eADd985049a03ce,
@@ -73,6 +75,7 @@ library LibDeployConstants {
             zoraMinAuctionDuration: 2 minutes,
             zoraMaxAuctionDuration: 10 days,
             zoraMaxAuctionTimeout: 7 days,
+            proposalMaxCancelDuration: 30 days,
             partyDaoMultisig: 0xF7f52Dd34bc21eDA08c0b804C7c1dbc48375820f,
             partyDaoDistributionSplitBps: PARTY_DAO_DISTRIBUTION_SPLIT_BPS,
             zoraAuctionHouseAddress: 0x6a6Cdb103f1072E0aFeADAC9BeBD6E14B287Ca57,
@@ -87,8 +90,16 @@ library LibDeployConstants {
     }
 
     function fork() internal pure returns (DeployConstants memory) {
+        // These are placeholders
+        address[] memory adminAddresses = new address[](5);
+        adminAddresses[0] = address(1);
+        adminAddresses[1] = address(2);
+        adminAddresses[2] = address(3);
+        adminAddresses[3] = address(4);
+        adminAddresses[4] = address(5);
+
         DeployConstants memory forkDeployConstants = DeployConstants({
-            adminAddresses: new address[](5),
+            adminAddresses: adminAddresses,
             seaportExchangeAddress: 0x00000000006c3852cbEf3e08E8dF289169EdE581,
             osZoraAuctionDuration: 24 hours,
             osZoraAuctionTimeout: 24 hours,
@@ -97,6 +108,7 @@ library LibDeployConstants {
             zoraMinAuctionDuration: 24 hours,
             zoraMaxAuctionDuration: 10 days,
             zoraMaxAuctionTimeout: 7 days,
+            proposalMaxCancelDuration: 30 days,
             partyDaoMultisig: 0xF7f52Dd34bc21eDA08c0b804C7c1dbc48375820f,
             partyDaoDistributionSplitBps: PARTY_DAO_DISTRIBUTION_SPLIT_BPS,
             zoraAuctionHouseAddress: 0xE468cE99444174Bd3bBBEd09209577d25D1ad673,

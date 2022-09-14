@@ -2,6 +2,8 @@
 pragma solidity ^0.8;
 
 // Valid keys in `IGlobals`. Append-only.
+// After appending a new key, if it should be set on deployment, please update
+// `deploy.sol` to set the key and `Deploy.t.sol` to check that it was actually set.
 library LibGlobals {
     uint256 internal constant GLOBAL_PARTY_IMPL                     = 1;
     uint256 internal constant GLOBAL_PROPOSAL_ENGINE_IMPL           = 2;
