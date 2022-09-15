@@ -5,7 +5,7 @@ import './deploy.sol';
 import './LibDeployConstants.sol';
 
 contract MainnetDeploy is DeployScript {
-  function run() public {
+  function _run() internal override {
     console.log('Starting mainnet deploy script.');
 
     deploy(LibDeployConstants.mainnet());

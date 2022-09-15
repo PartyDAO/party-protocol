@@ -5,7 +5,7 @@ import './deploy.sol';
 import './LibDeployConstants.sol';
 
 contract RinkebyDeploy is DeployScript {
-  function run() public {
+  function _run() internal override {
     console.log('Starting rinkeby deploy script.');
 
     deploy(LibDeployConstants.rinkeby(this.getDeployer()));

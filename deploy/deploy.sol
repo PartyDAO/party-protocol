@@ -33,7 +33,7 @@ contract Deploy {
   AuctionCrowdfund public auctionCrowdfundImpl;
   BuyCrowdfund public buyCrowdfundImpl;
   CollectionBuyCrowdfund public collectionBuyCrowdfundImpl;
-  CrowdfundFactory public partyCrowdfundFactory;
+  CrowdfundFactory public crowdfundFactory;
   Party public partyImpl;
   PartyFactory public partyFactory;
   IOpenseaExchange public seaport;
@@ -199,8 +199,8 @@ contract Deploy {
     console.log('');
     console.log('### CrowdfundFactory');
     console.log('  Deploying - CrowdfundFactory');
-    partyCrowdfundFactory = new CrowdfundFactory(globals);
-    console.log('  Deployed - CrowdfundFactory', address(partyCrowdfundFactory));
+    crowdfundFactory = new CrowdfundFactory(globals);
+    console.log('  Deployed - CrowdfundFactory', address(crowdfundFactory));
 
     // DEPLOY_PARTY_CROWDFUND_NFT_RENDERER
     console.log('');
@@ -274,9 +274,13 @@ contract DeployFork is Deploy {
 }
 
 contract DeployScript is Script, Deploy {
-  constructor() {
+
+  function run() external {
       vm.startBroadcast();
+      _run();
   }
+
+  function _run() internal virtual {}
 
   function deploy(LibDeployConstants.DeployConstants memory deployConstants) public override {
     Deploy.deploy(deployConstants);
@@ -291,7 +295,7 @@ contract DeployScript is Script, Deploy {
     addressMapping[6] = AddressMapping('auctionCrowdfundImpl', address(auctionCrowdfundImpl));
     addressMapping[7] = AddressMapping('buyCrowdfundImpl', address(buyCrowdfundImpl));
     addressMapping[8] = AddressMapping('collectionBuyCrowdfundImpl', address(collectionBuyCrowdfundImpl));
-    addressMapping[9] = AddressMapping('partyCrowdfundFactory', address(partyCrowdfundFactory));
+    addressMapping[9] = AddressMapping('partyCrowdfundFactory', address(crowdfundFactory));
     addressMapping[10] = AddressMapping('partyCrowdfundNFTRenderer', address(partyCrowdfundNFTRenderer));
     addressMapping[11] = AddressMapping('partyGovernanceNFTRenderer', address(partyGovernanceNFTRenderer));
     addressMapping[12] = AddressMapping('partyHelpers', address(partyHelpers));

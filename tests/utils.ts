@@ -63,10 +63,14 @@ export function describeFork(name: string, body: (forkProvider: MockProvider) =>
             fork: ENV.FORK_URL,
             gasLimit: 100e9,
             allowUnlimitedContractSize: true,
-        }
+            total_accounts: 256,
+        },
     });
+    describeSnapshot(name, provider, () => body(provider));
+}
+
+export function describeSnapshot(name: string, provider: MockProvider, body: () => void) {
     describe(name, () => {
-        body(provider);
         let snapshot: string;
         beforeEach(async () => {
             snapshot = await provider.send('evm_snapshot', []);
@@ -74,5 +78,6 @@ export function describeFork(name: string, body: (forkProvider: MockProvider) =>
         afterEach(async () => {
             await provider.send('evm_revert', [ snapshot ]);
         });
+        body();
     });
 }

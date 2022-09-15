@@ -5,7 +5,7 @@ import './deploy.sol';
 import './LibDeployConstants.sol';
 
 contract GoerliDeploy is DeployScript {
-  function run() public {
+  function _run() internal override {
     console.log('Starting goerli deploy script.');
 
     deploy(LibDeployConstants.goerli(this.getDeployer()));
