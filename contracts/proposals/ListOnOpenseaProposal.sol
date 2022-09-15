@@ -81,21 +81,6 @@ abstract contract ListOnOpenseaProposal is ZoraHelpers {
         uint256 tokenId,
         uint256 expiry
     );
-    // Coordinated event w/OS team to track on-chain orders.
-    event OrderValidated(
-        bytes32 orderHash,
-        address indexed offerer,
-        address indexed zone,
-        IOpenseaExchange.OfferItem[] offer,
-        IOpenseaExchange.ConsiderationItem[] consideration,
-        IOpenseaExchange.OrderType orderType,
-        uint256 startTime,
-        uint256 endTime,
-        bytes32 zoneHash,
-        uint256 salt,
-        bytes32 conduitKey,
-        uint256 counter
-    );
 
     /// @notice The Seaport contract.
     IOpenseaExchange public immutable SEAPORT;
@@ -301,21 +286,6 @@ abstract contract ListOnOpenseaProposal is ZoraHelpers {
         orderHash = _getOrderHash(orderParams);
         // Validate the order on-chain so no signature is required to fill it.
         assert(SEAPORT.validate(orders));
-        // Emit the the coordinated OS event so their backend can detect this order.
-        emit OrderValidated(
-            orderHash,
-            orderParams.offerer,
-            orderParams.zone,
-            orderParams.offer,
-            orderParams.consideration,
-            orderParams.orderType,
-            orderParams.startTime,
-            orderParams.endTime,
-            orderParams.zoneHash,
-            orderParams.salt,
-            orderParams.conduitKey,
-            0
-        );
         emit OpenseaOrderListed(
             orderParams,
             orderHash,
