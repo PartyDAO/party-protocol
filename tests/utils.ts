@@ -48,16 +48,14 @@ export function describeFork(name: string, body: (forkProvider: MockProvider) =>
     let it = global.it;
     if (!ENV.FORK_URL) {
         console.info('no FORK_URL env var set, skipping forked tests.');
-        it = it.skip as any;
-        (it as any).skip = global.it.skip;
-    } else {
-        global.it = Object.assign(
-            (name: string, ...args: any[]) => {
-                it(`${name} [⑃]`, ...args);
-            },
-            global.it,
-        );
+        return;
     }
+    global.it = Object.assign(
+        (name: string, ...args: any[]) => {
+            it(`${name} [⑃]`, ...args);
+        },
+        global.it,
+    );
     const provider = new MockProvider({
         ganacheOptions: {
             fork: { url: ENV.FORK_URL },
@@ -73,7 +71,7 @@ export function describeFork(name: string, body: (forkProvider: MockProvider) =>
             }
         },
     });
-    describeSnapshot(name, provider, () => body(provider));
+    describeSnapshot(`${name} [⑃]`, provider, () => body(provider));
 }
 
 export function describeSnapshot(name: string, provider: MockProvider, body: () => void) {

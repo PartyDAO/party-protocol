@@ -81,7 +81,12 @@ export enum ListOnOpenSeaStep {
     None                = 0,
     ListedOnZora        = 1,
     RetrievedFromZora   = 2,
-    ListedOnOpenSea     = 3
+    ListedOnOpenSea     = 3,
+}
+
+export enum TokenType {
+    Native = 0,
+    Erc20  = 1,
 }
 
 export interface Proposal {

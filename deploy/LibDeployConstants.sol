@@ -67,7 +67,6 @@ library LibDeployConstants {
   }
 
   function mainnet() internal pure returns (DeployConstants memory) {
-    // TODO: chec these values
     DeployConstants memory deployConstants = DeployConstants({
       seaportExchangeAddress: 0x00000000006c3852cbEf3e08E8dF289169EdE581,
       osZoraAuctionDuration: 2 minutes,
