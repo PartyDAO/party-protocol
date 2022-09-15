@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8;
 
-import "./RecurringAuctionCrowdfund.t.sol";
+import "./RollingAuctionCrowdfund.t.sol";
 import "contracts/vendor/markets/INounsAuctionHouse.sol";
 
-contract RecurringNounsCrowdfundForkedTest is RecurringAuctionCrowdfundTest {
+contract RollingNounsCrowdfundForkedTest is RollingAuctionCrowdfundTest {
     INounsAuctionHouse nounsAuctionHouse;
 
     constructor() {
@@ -16,7 +16,7 @@ contract RecurringNounsCrowdfundForkedTest is RecurringAuctionCrowdfundTest {
         globals = new Globals(address(this));
         partyFactory = new MockPartyFactory();
         globals.setAddress(LibGlobals.GLOBAL_PARTY_FACTORY, address(partyFactory));
-        recurringAuctionCrowdfundImpl = new RecurringAuctionCrowdfund(globals);
+        rollingAuctionCrowdfundImpl = new RollingAuctionCrowdfund(globals);
         market = IMarketWrapper(0x9319DAd8736D752C5c72DB229f8e1b280DC80ab1);
         nounsAuctionHouse = INounsAuctionHouse(0x830BD73E4184ceF73443C15111a1DF14e495C706);
         nftContract = nounsAuctionHouse.nouns();
@@ -27,11 +27,11 @@ contract RecurringNounsCrowdfundForkedTest is RecurringAuctionCrowdfundTest {
         govOpts.hosts = _toAddressArray(address(this));
 
         // Create crowdfund
-        crowdfund = RecurringAuctionCrowdfund(payable(address(new Proxy(
-            recurringAuctionCrowdfundImpl,
+        crowdfund = RollingAuctionCrowdfund(payable(address(new Proxy(
+            rollingAuctionCrowdfundImpl,
             abi.encodeCall(
-                RecurringAuctionCrowdfund.initialize,
-                RecurringAuctionCrowdfund.RecurringAuctionCrowdfundOptions({
+                RollingAuctionCrowdfund.initialize,
+                RollingAuctionCrowdfund.RollingAuctionCrowdfundOptions({
                     name: "Crowfund",
                     symbol: "CF",
                     auctionId: auctionId,
@@ -60,6 +60,7 @@ contract RecurringNounsCrowdfundForkedTest is RecurringAuctionCrowdfundTest {
         market.finalize(auctionId);
         (tokenId, , , , , ) = nounsAuctionHouse.auction();
         auctionId = tokenId;
+        crowdfund.queueNextAuction(govOpts, tokenId, auctionId);
     }
 
     function _endAuction() internal override {

@@ -12,15 +12,15 @@ import "../gatekeepers/IGateKeeper.sol";
 import "../market-wrapper/IMarketWrapper.sol";
 import "./Crowdfund.sol";
 
-/// @notice A crowdfund that can repeatedly bid on auctions for an NFT from a collection
-///         (i.e. any token ID) and can continue bidding on new auctions for that collection
-//          until it wins.
-contract RecurringAuctionCrowdfund is Implementation, Crowdfund {
+/// @notice A crowdfund that can repeatedly bid on auctions for an NFT from a
+///         specific collection on a specific market (eg. Nouns) and can
+///         continue bidding on new auctions until it wins.
+contract RollingAuctionCrowdfund is Implementation, Crowdfund {
     using LibSafeERC721 for IERC721;
     using LibSafeCast for uint256;
     using LibRawResult for bytes;
 
-    enum AuctionCrowdfundStatus {
+    enum RollingAuctionCrowdfundStatus {
         // The crowdfund has been created and contributions can be made and
         // acquisition functions may be called.
         Active,
@@ -31,7 +31,7 @@ contract RecurringAuctionCrowdfund is Implementation, Crowdfund {
         Finalized
     }
 
-    struct RecurringAuctionCrowdfundOptions {
+    struct RollingAuctionCrowdfundOptions {
         // The name of the crowdfund.
         // This will also carry over to the governance party.
         string name;
@@ -73,17 +73,17 @@ contract RecurringAuctionCrowdfund is Implementation, Crowdfund {
 
     event Bid(uint256 bidAmount);
     event Won(uint256 bid, Party party);
-    event AuctionUpdated(uint256 newNftTokenId, uint256 newAuctionId, uint96 newMaximumBid);
+    event AuctionUpdated(uint256 nextNftTokenId, uint256 nextAuctionId);
     event Lost();
 
     error InvalidAuctionIdError();
-    error AuctionLostError(uint256 auctionId);
     error AuctionFinalizedError(uint256 auctionId);
     error AlreadyHighestBidderError();
     error ExceedsMaximumBidError(uint256 bidAmount, uint256 maximumBid);
     error NoContributionsError();
     error AuctionNotExpiredError();
     error OnlyPartyHostError();
+    error BadNextAuctionError();
 
     /// @notice The NFT contract to buy.
     IERC721 public nftContract;
@@ -102,7 +102,10 @@ contract RecurringAuctionCrowdfund is Implementation, Crowdfund {
     ///         by this time, participants can withdraw their contributions.
     uint40 public expiry;
     // Track extra status of the crowdfund specific to bids.
-    AuctionCrowdfundStatus private _bidStatus;
+    RollingAuctionCrowdfundStatus private _bidStatus;
+    /// @notice Hash of the next `auctionId` and `tokenId` to roll over to if the
+    ///         current auction is lost.
+    bytes32 public nextAuctionHash;
 
     // Set the `Globals` contract.
     constructor(IGlobals globals) Crowdfund(globals) {}
@@ -132,7 +135,7 @@ contract RecurringAuctionCrowdfund is Implementation, Crowdfund {
     ///         revert if called outside the constructor.
     /// @param opts Options used to initialize the crowdfund. These are fixed
     ///             and cannot be changed later.
-    function initialize(RecurringAuctionCrowdfundOptions memory opts)
+    function initialize(RollingAuctionCrowdfundOptions memory opts)
         external
         payable
         onlyConstructor
@@ -181,7 +184,7 @@ contract RecurringAuctionCrowdfund is Implementation, Crowdfund {
         }
         // Mark as busy to prevent `burn()`, `bid()`, and `contribute()`
         // getting called because this will result in a `CrowdfundLifecycle.Busy`.
-        _bidStatus = AuctionCrowdfundStatus.Busy;
+        _bidStatus = RollingAuctionCrowdfundStatus.Busy;
         // Make sure the auction is not finalized.
         uint256 auctionId_ = auctionId;
         if (market.isFinalized(auctionId_)) {
@@ -209,34 +212,26 @@ contract RecurringAuctionCrowdfund is Implementation, Crowdfund {
         }
         emit Bid(bidAmount);
 
-        _bidStatus = AuctionCrowdfundStatus.Active;
+        _bidStatus = RollingAuctionCrowdfundStatus.Active;
     }
 
-    /// @notice Calls `finalize()` on the market adapter, which will claim the NFT
-    ///         (if necessary) if we won. Will revert if lost and expect it to be called
-    ///         by a host to specify the next auction to move on to.
-    /// @param governanceOpts The options used to initialize governance in the
-    ///                       `Party` instance created if the crowdfund wins.
-    /// @return party_ Address of the `Party` instance created if successful.
-    function finalize(FixedGovernanceOpts memory governanceOpts)
+    /// @notice Queue up the next auction to bid on if the current auction is
+    ///         lost. Only callable by a host.
+    /// @param governanceOpts Used to check if the caller is a host.
+    /// @param nextNftTokenId The `tokenId` of the next NFT to bid on in the next
+    ///                       auction. Only used if the crowdfund loses.
+    /// @param nextAuctionId The `auctionId` of the the next auction. Only
+    ///                      used if the crowdfund loses.
+    function queueNextAuction(
+        FixedGovernanceOpts memory governanceOpts,
+        uint256 nextNftTokenId,
+        uint256 nextAuctionId
+    )
         external
         onlyDelegateCall
-        returns (Party party_)
+        onlyHost(governanceOpts)
     {
-        CrowdfundLifecycle lc;
-        (lc, party_) = _finalize(governanceOpts);
-        if (address(party_) != address(0)) {
-            // Stop if auction won.
-            return party_;
-        }
-        if (lc == CrowdfundLifecycle.Expired) {
-            // Crowdfund expired without NFT; finalize a loss.
-            _delcareLost();
-            return party_; // Empty address; no `Party` created.
-        }
-        // Auction either lost or not bid on yet; if lost, can only be finalized by a
-        // host to move on to the next auction.
-        revert AuctionLostError(auctionId);
+        nextAuctionHash = keccak256(abi.encode(nextNftTokenId, nextAuctionId));
     }
 
     /// @notice Calls `finalize()` on the market adapter, which will claim the NFT
@@ -244,89 +239,28 @@ contract RecurringAuctionCrowdfund is Implementation, Crowdfund {
     ///         move on to the next auction.
     /// @param governanceOpts The options used to initialize governance in the
     ///                       `Party` instance created if the crowdfund wins.
+    /// @param nextNftTokenId The `tokenId` of the next NFT to bid on in the next
+    ///                       auction. Only used if the crowdfund loses.
+    /// @param nextAuctionId The `auctionId` of the the next auction. Only
+    ///                      used if the crowdfund loses.
     /// @return party_ Address of the `Party` instance created if successful.
     function finalize(
         FixedGovernanceOpts memory governanceOpts,
-        uint256 newNftTokenId,
-        uint256 newAuctionId,
-        uint96 newMaximumBid
+        uint256 nextNftTokenId,
+        uint256 nextAuctionId
     )
         external
         onlyDelegateCall
-        onlyHost(governanceOpts)
         returns (Party party_)
     {
-        CrowdfundLifecycle lc;
-        (lc, party_) = _finalize(governanceOpts);
-        if (address(party_) != address(0)) {
-            // Stop if auction won.
-            return party_;
-        }
-        if (lc == CrowdfundLifecycle.Expired) {
-            // Crowdfund expired without NFT; finalize a loss.
-            _delcareLost();
-            return party_; // Empty address; no `Party` created.
-        }
-        // Move on to the next auction if this one has been lost.
-        // Check that the new auction can be bid on and is valid.
-        if (!market.auctionIdMatchesToken(
-            newAuctionId,
-            address(nftContract),
-            newNftTokenId))
-        {
-            revert InvalidAuctionIdError();
-        }
-
-        // Update state for next auction.
-        nftTokenId = newNftTokenId;
-        auctionId = newAuctionId;
-        maximumBid = newMaximumBid;
-        lastBid = 0;
-
-        emit AuctionUpdated(newNftTokenId, newAuctionId, newMaximumBid);
-
-        // Change back the auction status from `Busy` to `Active`.
-        _bidStatus = AuctionCrowdfundStatus.Active;
-    }
-
-    function end(FixedGovernanceOpts memory governanceOpts) external onlyHost(governanceOpts) {
-        _delcareLost();
-    }
-
-    /// @inheritdoc Crowdfund
-    function getCrowdfundLifecycle() public override view returns (CrowdfundLifecycle) {
-        // Do not rely on `market.isFinalized()` in case `auctionId` gets reused.
-        AuctionCrowdfundStatus status = _bidStatus;
-        if (status == AuctionCrowdfundStatus.Busy) {
-            // In the midst of finalizing/bidding (trying to reenter).
-            return CrowdfundLifecycle.Busy;
-        }
-        if (status == AuctionCrowdfundStatus.Finalized) {
-            return address(party) != address(0)
-                // If we're fully finalized and we have a party instance then we won.
-                ? CrowdfundLifecycle.Won
-                // Otherwise we lost.
-                : CrowdfundLifecycle.Lost;
-        }
-        if (block.timestamp >= expiry) {
-            // Expired. `finalize()` needs to be called.
-            return CrowdfundLifecycle.Expired;
-        }
-        return CrowdfundLifecycle.Active;
-    }
-
-    function _finalize(FixedGovernanceOpts memory governanceOpts)
-        internal
-        returns (CrowdfundLifecycle lc, Party party_)
-    {
         // Check that the auction is still active and has not passed the `expiry` time.
-        lc = getCrowdfundLifecycle();
+        CrowdfundLifecycle lc = getCrowdfundLifecycle();
         if (lc != CrowdfundLifecycle.Active && lc != CrowdfundLifecycle.Expired) {
             revert WrongLifecycleError(lc);
         }
         // Mark as busy to prevent `burn()`, `bid()`, and `contribute()`
         // getting called because this will result in a `CrowdfundLifecycle.Busy`.
-        _bidStatus = AuctionCrowdfundStatus.Busy;
+        _bidStatus = RollingAuctionCrowdfundStatus.Busy;
 
         uint96 lastBid_ = lastBid;
         // Only finalize on the market if we placed a bid and not finalized.
@@ -368,19 +302,66 @@ contract RecurringAuctionCrowdfund is Implementation, Crowdfund {
                 nftContract,
                 nftTokenId
             );
-            _bidStatus = AuctionCrowdfundStatus.Finalized;
+            _bidStatus = RollingAuctionCrowdfundStatus.Finalized;
             // Create a governance party around the NFT.
             emit Won(lastBid_, party_);
+        } else if (lc == CrowdfundLifecycle.Expired) {
+            // Crowdfund expired without NFT; finalize a loss.
+
+            // Clear `lastBid` so `_getFinalPrice()` is 0 and people can redeem their
+            // full contributions when they burn their participation NFTs.
+            lastBid = 0;
+            emit Lost();
+
+            _bidStatus = RollingAuctionCrowdfundStatus.Finalized;
+        } else {
+            // Check that hash of `auctionId` and `tokenId` matches stored hash.
+            if (keccak256(abi.encode(nextNftTokenId, nextAuctionId)) != nextAuctionHash) {
+                revert BadNextAuctionError();
+            }
+
+            // Move on to the next auction if this one has been lost.
+            // Check that the new auction can be bid on and is valid.
+            if (!market.auctionIdMatchesToken(
+                nextAuctionId,
+                address(nftContract),
+                nextNftTokenId))
+            {
+                revert InvalidAuctionIdError();
+            }
+
+            // Update state for next auction.
+            nftTokenId = nextNftTokenId;
+            auctionId = nextAuctionId;
+            lastBid = 0;
+
+            emit AuctionUpdated(nextNftTokenId, nextAuctionId);
+
+            // Change back the auction status from `Busy` to `Active`.
+            _bidStatus = RollingAuctionCrowdfundStatus.Active;
         }
     }
 
-    function _delcareLost() internal {
-        // Clear `lastBid` so `_getFinalPrice()` is 0 and people can redeem their
-        // full contributions when they burn their participation NFTs.
-        lastBid = 0;
-        emit Lost();
-
-        _bidStatus = AuctionCrowdfundStatus.Finalized;
+    /// @inheritdoc Crowdfund
+    function getCrowdfundLifecycle() public override view returns (CrowdfundLifecycle) {
+        // Do not rely on `market.isFinalized()` in case `auctionId` gets reused.
+        RollingAuctionCrowdfundStatus status = _bidStatus;
+        if (status == RollingAuctionCrowdfundStatus.Busy) {
+            // In the midst of finalizing/bidding (trying to reenter).
+            return CrowdfundLifecycle.Busy;
+        }
+        if (status == RollingAuctionCrowdfundStatus.Finalized) {
+            return address(party) != address(0)
+                // If we're fully finalized and we have a party instance then we won.
+                ? CrowdfundLifecycle.Won
+                // Otherwise we lost.
+                : CrowdfundLifecycle.Lost;
+        }
+        if (block.timestamp >= expiry) {
+            // Expired. `finalize()` needs to be called.
+            return CrowdfundLifecycle.Expired;
+        }
+        return CrowdfundLifecycle.Active;
     }
 
     function _getFinalPrice()
