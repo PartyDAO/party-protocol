@@ -22,6 +22,9 @@ library LibDeployConstants {
     address osConduitController;
     address fractionalVaultFactory;
     string networkName;
+    address foundationMarket;
+    address nounsAuctionHouse;
+    address zoraAuctionHouse;
   }
 
   function rinkeby() internal pure returns (DeployConstants memory) {
@@ -48,6 +51,9 @@ library LibDeployConstants {
       osConduitKey: 0x0000007b02230091a7ed01230072f7006a004d60a8d4e71d599b8104250f0000,
       osConduitController: 0x00000000F9490004C11Cef243f5400493c00Ad63,
       fractionalVaultFactory: 0x09EB641BA93CfA6340E944a22bDd2F1C8c745A9f,
+      foundationMarket: 0x21b700d637551f15078E11871a3c0dcCf283D1e7,
+      zoraAuctionHouse: 0xE7dd1252f50B3d845590Da0c5eADd985049a03ce,
+      nounsAuctionHouse: 0x7cb0384b923280269b3BD85f0a7fEaB776588382,
       networkName: 'rinkeby'
     });
 
@@ -78,7 +84,10 @@ library LibDeployConstants {
       osConduitKey: 0x0000007b02230091a7ed01230072f7006a004d60a8d4e71d599b8104250f0000,
       osConduitController: 0x00000000F9490004C11Cef243f5400493c00Ad63,
       networkName: 'goerli',
-      fractionalVaultFactory: 0x014850E83d9D0D1BB0c8624035F09626b967B81c
+      fractionalVaultFactory: 0x014850E83d9D0D1BB0c8624035F09626b967B81c,
+      zoraAuctionHouse: 0x6a6Cdb103f1072E0aFeADAC9BeBD6E14B287Ca57,
+      nounsAuctionHouse: 0x0000000000000000000000000000000000000000, // TODO
+      foundationMarket: 0x0000000000000000000000000000000000000000 // TODO
     });
 
     return rinkebyDeployConstants;

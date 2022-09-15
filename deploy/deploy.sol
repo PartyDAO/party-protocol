@@ -20,6 +20,11 @@ import '../contracts/renderers/PartyGovernanceNFTRenderer.sol';
 import '../contracts/proposals/ProposalExecutionEngine.sol';
 import '../contracts/utils/PartyHelpers.sol';
 import './LibDeployConstants.sol';
+import '../contracts/market-wrapper/FoundationMarketWrapper.sol';
+import '../contracts/market-wrapper/NounsMarketWrapper.sol';
+import '../contracts/market-wrapper/ZoraMarketWrapper.sol';
+
+
 
 contract Deploy is Script {
   struct AddressMapping {
@@ -50,6 +55,9 @@ contract Deploy is Script {
   PartyHelpers partyHelpers;
   IGateKeeper allowListGateKeeper;
   IGateKeeper tokenGateKeeper;
+  FoundationMarketWrapper foundationMarketWrapper;
+  NounsMarketWrapper nounsMarketWrapper;
+  ZoraMarketWrapper zoraMarketWrapper;
 
   function run(LibDeployConstants.DeployConstants memory deployConstants) public {
     console.log('Starting deploy script.');
@@ -264,6 +272,20 @@ contract Deploy is Script {
     allowListGateKeeper = new AllowListGateKeeper();
     console.log('  Deployed - AllowListGateKeeper', address(allowListGateKeeper));
 
+    // DEPLOY_MARKET_WRAPPERS
+    console.log('');
+    console.log('### MarketWrappers');
+    console.log('  Deploying - FoundationMarketWrapper');
+    foundationMarketWrapper = new FoundationMarketWrapper(deployConstants.foundationMarket);
+    console.log('  Deployed - FoundationMarketWrapper', address(foundationMarketWrapper));
+    console.log('  Deploying - NounsMarketWrapper');
+    nounsMarketWrapper = new NounsMarketWrapper(deployConstants.nounsAuctionHouse);
+    console.log('  Deployed - NounsMarketWrapper', address(nounsMarketWrapper));
+    console.log('  Deploying - ZoraMarketWrapper');
+    zoraMarketWrapper = new ZoraMarketWrapper(deployConstants.zoraAuctionHouse);
+    console.log('  Deployed - ZoraMarketWrapper', address(zoraMarketWrapper));
+
+
     console.log('  Deploying - TokenGateKeeper');
     tokenGateKeeper = new TokenGateKeeper();
     console.log('  Deployed - TokenGateKeeper', address(tokenGateKeeper));
@@ -276,7 +298,7 @@ contract Deploy is Script {
     // console.log('  Transferred ownership to', deployConstants.partyDaoMultisig);
 
 
-    AddressMapping[] memory addressMapping = new AddressMapping[](15);
+    AddressMapping[] memory addressMapping = new AddressMapping[](18);
     addressMapping[0] = AddressMapping('globals', address(globals));
     addressMapping[1] = AddressMapping('tokenDistributor', address(tokenDistributor));
     addressMapping[2] = AddressMapping('seaportExchange', address(seaport));
@@ -292,6 +314,10 @@ contract Deploy is Script {
     addressMapping[12] = AddressMapping('partyHelpers', address(partyHelpers));
     addressMapping[13] = AddressMapping('allowListGateKeeper', address(allowListGateKeeper));
     addressMapping[14] = AddressMapping('tokenGateKeeper', address(tokenGateKeeper));
+    addressMapping[15] = AddressMapping('foundationMarketWrapper', address(foundationMarketWrapper));
+    addressMapping[16] = AddressMapping('nounsMarketWrapper', address(nounsMarketWrapper));
+    addressMapping[17] = AddressMapping('zoraMarketWrapper', address(zoraMarketWrapper));
+
 
     console.log('');
     console.log('### Deployed addresses');
