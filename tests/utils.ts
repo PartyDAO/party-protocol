@@ -60,10 +60,17 @@ export function describeFork(name: string, body: (forkProvider: MockProvider) =>
     }
     const provider = new MockProvider({
         ganacheOptions: {
-            fork: ENV.FORK_URL,
-            gasLimit: 100e9,
-            allowUnlimitedContractSize: true,
-            total_accounts: 256,
+            fork: { url: ENV.FORK_URL },
+            chain: {
+                allowUnlimitedContractSize: true,
+            },
+            miner: {
+                blockGasLimit: 100e9,
+            },
+            wallet: {
+                totalAccounts: 256,
+                defaultBalance: 100e18,
+            }
         },
     });
     describeSnapshot(name, provider, () => body(provider));
@@ -80,4 +87,11 @@ export function describeSnapshot(name: string, provider: MockProvider, body: () 
         });
         body();
     });
+}
+
+export async function runInSnapshot(provider: MockProvider, body: () => Promise<void>) {
+    let snapshot: string;
+    snapshot = await provider.send('evm_snapshot', []);
+    await body();
+    await provider.send('evm_revert', [ snapshot ]);
 }
