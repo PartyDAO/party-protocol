@@ -86,8 +86,8 @@ library LibDeployConstants {
       networkName: 'goerli',
       fractionalVaultFactory: 0x014850E83d9D0D1BB0c8624035F09626b967B81c,
       zoraAuctionHouse: 0x6a6Cdb103f1072E0aFeADAC9BeBD6E14B287Ca57,
-      nounsAuctionHouse: 0x0000000000000000000000000000000000000000, // TODO
-      foundationMarket: 0x0000000000000000000000000000000000000000 // TODO
+      nounsAuctionHouse: 0x7295e70f2B26986Ba108bD1Bf9E349a181F4a6Ea,
+      foundationMarket: 0xeB1bD095061bbDb1aD065524628812cae63e4222
     });
 
     return rinkebyDeployConstants;
