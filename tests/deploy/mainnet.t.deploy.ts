@@ -30,7 +30,6 @@ import {
 } from '../integration/seaport';
 import {
     ONE_DAY_SECONDS,
-    ONE_HOUR_SECONDS,
     ONE_ETHER,
     NULL_ADDRESS,
     NULL_HASH,

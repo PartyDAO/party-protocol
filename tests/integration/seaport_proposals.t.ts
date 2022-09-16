@@ -1,7 +1,6 @@
 import { expect, use } from 'chai';
 import { Contract } from 'ethers';
-import { MockProvider, solidity } from 'ethereum-waffle';
-import { env as ENV } from 'process';
+import { solidity } from 'ethereum-waffle';
 import * as ethers from 'ethers';
 
 import { abi as SEAPORT_ABI } from '../../out/IOpenseaExchange.sol/IOpenseaExchange.json';
