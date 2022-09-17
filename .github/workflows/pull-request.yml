@@ -17,7 +17,7 @@ jobs:
         with:
           version: nightly
       - uses: actions/setup-node@v3
-      - run: npm install --dev
+      - run: yarn -D
       - run: forge test -vvv --fork-url ${{ secrets.FORK_URL }} --etherscan-api-key ${{ secrets.ETHERSCAN_API_KEY }}
-      - run: npm run test:ts
+      - run: FORK_URL=${{ secrets.FORK_URL }} yarn test:ts
       # - run: forge snapshot

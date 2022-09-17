@@ -30,8 +30,6 @@ describe('Arbitrary proposals integrations test', () => {
         sys = await System.createAsync({
             worker,
             daoMultisig: multisig,
-            admins: [admin],
-            daoSplit: 0.015,
             forcedZoraAuctionTimeout: ONE_DAY_SECONDS,
             forcedZoraAuctionDuration: ONE_DAY_SECONDS / 2,
         });

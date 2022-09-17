@@ -45,14 +45,16 @@ export enum GlobalKeys {
     AuctionCrowdfundImpl        = 8,
     BuyCrowdfundImpl            = 9,
     CollectionBuyCrowdfundImpl  = 10,
-    DaoDistributionSplitBps     = 11,
-    DaoMultisig                 = 12,
-    TokenDistributor            = 13,
-    DaoAuthorities              = 14,
-    OpenSeaConduitKey           = 15,
-    OpenSeaZone                 = 16,
-    ProposalMaxCancelDuration   = 17,
-    ZoraMinAuctionDuration      = 18
+    DaoMultisig                 = 11,
+    TokenDistributor            = 12,
+    OpenSeaConduitKey           = 13,
+    OpenSeaZone                 = 14,
+    ProposalMaxCancelDuration   = 15,
+    ZoraMinAuctionDuration      = 16,
+    ZoraMaxAuctionDuration      = 17,
+    ZoraMaxAuctionTimeout       = 18,
+    OpenSeaMinOrderDuration     = 19,
+    OpenSeaMaxOrderDuration     = 20,
 }
 
 export enum ProposalType {
@@ -79,7 +81,12 @@ export enum ListOnOpenSeaStep {
     None                = 0,
     ListedOnZora        = 1,
     RetrievedFromZora   = 2,
-    ListedOnOpenSea     = 3
+    ListedOnOpenSea     = 3,
+}
+
+export enum TokenType {
+    Native = 0,
+    Erc20  = 1,
 }
 
 export interface Proposal {
@@ -112,7 +119,6 @@ export class System {
     static async createAsync(createOpts: {
         worker: Wallet;
         daoMultisig: Wallet;
-        admins: Wallet[];
         seaportAddress?: string;
         seaportConduitController?: string;
         seaportZoneAddress?: string;
@@ -123,7 +129,6 @@ export class System {
         proposalMaxCancelDuration?: number;
         zoraMinAuctionDuration?: number;
         fractionalVaultFactory?: string;
-        daoSplit: number;
     }): Promise<System> {
         const worker = createOpts.worker;
 
@@ -135,17 +140,6 @@ export class System {
         await (await globals.setAddress(
             GlobalKeys.DaoMultisig,
             createOpts.daoMultisig.address,
-        )).wait();
-        for (const admin of createOpts.admins) {
-            await (await globals.setIncludesAddress(
-                GlobalKeys.DaoAuthorities,
-                admin.address,
-                true
-            )).wait();
-        }
-        await (await globals.setUint256(
-            GlobalKeys.DaoDistributionSplitBps,
-            Math.floor(createOpts.daoSplit * 1e4),
         )).wait();
         await (await globals.setUint256(
             GlobalKeys.OpenSeaZoraAuctionTimeout,
