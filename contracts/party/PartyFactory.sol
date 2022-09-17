@@ -50,6 +50,6 @@ contract PartyFactory is IPartyFactory {
                 abi.encodeCall(Party.initialize, (initData))
             )
         ));
-        emit PartyCreated(party, msg.sender);
+        emit PartyCreated(party, opts, msg.sender);
     }
 }
