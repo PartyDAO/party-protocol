@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Beta Software
 // http://ipfs.io/ipfs/QmbGX2MFCaMAsMNMugRFND6DtYygRkwkvrqEyTKhTdBLo5
-pragma solidity ^0.8;
+pragma solidity 0.8.17;
 
 import "../utils/ReadOnlyDelegateCall.sol";
 import "../utils/LibSafeCast.sol";
