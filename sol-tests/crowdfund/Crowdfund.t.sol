@@ -804,6 +804,25 @@ contract CrowdfundTest is Test, TestUtils {
         cf.contribute{ value: contributor2.balance }(delegate2, abi.encode(new bytes32[](0)));
     }
 
+    function test_revertIfNullContributor() public {
+        // Attempt creating a crowdfund and setting a null address as the initial contributor
+        vm.expectRevert(CrowdfundNFT.InvalidAddressError.selector);
+        new TestableCrowdfund{value: 1 ether }(
+            globals,
+            Crowdfund.CrowdfundOptions({
+                name: defaultName,
+                symbol: defaultSymbol,
+                splitRecipient: defaultSplitRecipient,
+                splitBps: defaultSplitBps,
+                initialContributor: address(0),
+                initialDelegate: address(this),
+                gateKeeper: defaultGateKeeper,
+                gateKeeperId: defaultGateKeeperId,
+                governanceOpts: defaultGovernanceOpts
+            })
+        );
+    }
+
     // test nft renderer
     function test_nftRenderer() public {
         TestableCrowdfund cf = _createCrowdfund(0);
