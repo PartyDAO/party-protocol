@@ -4,6 +4,7 @@ pragma solidity ^0.8;
 
 import "../tokens/IERC721.sol";
 import "../tokens/IERC721Receiver.sol";
+import "../tokens/ERC1155Receiver.sol";
 import "../utils/LibSafeERC721.sol";
 
 import "./LibProposal.sol";
@@ -191,8 +192,12 @@ contract ArbitraryCallsProposal {
                     }
                 }
             }
-            // Can never call `onERC721Received()` on any target.
-            if (selector == IERC721Receiver.onERC721Received.selector) {
+            // Can never call receive hooks on any target.
+            if (
+                selector == IERC721Receiver.onERC721Received.selector ||
+                selector == ERC1155TokenReceiverBase.onERC1155Received.selector ||
+                selector == ERC1155TokenReceiverBase.onERC1155BatchReceived.selector
+            ) {
                return false;
            }
         }

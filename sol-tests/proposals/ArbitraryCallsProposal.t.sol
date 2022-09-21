@@ -521,6 +521,44 @@ contract ArbitraryCallsProposalTest is
         testContract.execute(prop);
     }
 
+    function test_cannotCallOnERC1155Received() external {
+        (
+            ArbitraryCallsProposal.ArbitraryCall[] memory calls,
+        ) = _createSimpleCalls(1, false);
+        calls[0].target = _randomAddress();
+        calls[0].data = abi.encodeCall(
+            ERC1155TokenReceiverBase.onERC1155Received,
+            (_randomAddress(), _randomAddress(), _randomUint256(), _randomUint256(), bytes(''))
+        );
+        IProposalExecutionEngine.ExecuteProposalParams memory prop =
+            _createTestProposal(calls);
+        vm.expectRevert(abi.encodeWithSelector(
+            ArbitraryCallsProposal.CallProhibitedError.selector,
+            calls[0].target,
+            calls[0].data
+        ));
+        testContract.execute(prop);
+    }
+
+    function test_cannotCallOnERC1155BatchReceived() external {
+        (
+            ArbitraryCallsProposal.ArbitraryCall[] memory calls,
+        ) = _createSimpleCalls(1, false);
+        calls[0].target = _randomAddress();
+        calls[0].data = abi.encodeCall(
+            ERC1155TokenReceiverBase.onERC1155BatchReceived,
+            (_randomAddress(), _randomAddress(), _toUint256Array(0), _toUint256Array(0), bytes(''))
+        );
+        IProposalExecutionEngine.ExecuteProposalParams memory prop =
+            _createTestProposal(calls);
+        vm.expectRevert(abi.encodeWithSelector(
+            ArbitraryCallsProposal.CallProhibitedError.selector,
+            calls[0].target,
+            calls[0].data
+        ));
+        testContract.execute(prop);
+    }
+
     function test_cannotExecuteShortApproveCallData() external {
         (
             ArbitraryCallsProposal.ArbitraryCall[] memory calls,
