@@ -273,7 +273,7 @@ abstract contract Crowdfund is ERC721Receiver, CrowdfundNFT {
             revert PartyAlreadyExistsError(party);
         }
         {
-            bytes16 governanceOptsHash_ = _hashFixedGovernanceOpts(governanceOpts);
+            bytes32 governanceOptsHash_ = _hashFixedGovernanceOpts(governanceOpts);
             if (governanceOptsHash_ != governanceOptsHash) {
                 revert InvalidGovernanceOptionsError(governanceOptsHash_, governanceOptsHash);
             }
@@ -323,7 +323,7 @@ abstract contract Crowdfund is ERC721Receiver, CrowdfundNFT {
     function _hashFixedGovernanceOpts(FixedGovernanceOpts memory opts)
         internal
         pure
-        returns (bytes16 h)
+        returns (bytes32 h)
     {
         // Hash in place.
         assembly {
