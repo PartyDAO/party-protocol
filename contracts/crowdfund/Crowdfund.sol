@@ -15,7 +15,7 @@ import "./CrowdfundNFT.sol";
 // Base contract for AuctionCrowdfund/BuyCrowdfund.
 // Holds post-win/loss logic. E.g., burning contribution NFTs and creating a
 // party after winning.
-abstract contract Crowdfund is ERC721Receiver, CrowdfundNFT {
+abstract contract Crowdfund is Implementation, ERC721Receiver, CrowdfundNFT {
     using LibRawResult for bytes;
     using LibSafeCast for uint256;
     using LibAddress for address payable;
@@ -192,6 +192,7 @@ abstract contract Crowdfund is ERC721Receiver, CrowdfundNFT {
     function contribute(address delegate, bytes memory gateData)
         public
         payable
+        onlyDelegateCall
     {
         _contribute(
             msg.sender,

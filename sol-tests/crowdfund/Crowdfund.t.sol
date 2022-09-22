@@ -81,24 +81,37 @@ contract CrowdfundTest is Test, TestUtils {
         }
     }
 
-    function _createCrowdfund(uint96 initialContribution)
+    function _createCrowdfund(
+        uint256 initialContribution,
+        address initialContributor,
+        address initialDelegate
+    )
         private
         returns (TestableCrowdfund cf)
     {
-        cf = new TestableCrowdfund{value: initialContribution }(
-            globals,
-            Crowdfund.CrowdfundOptions({
-                name: defaultName,
-                symbol: defaultSymbol,
-                splitRecipient: defaultSplitRecipient,
-                splitBps: defaultSplitBps,
-                initialContributor: address(this),
-                initialDelegate: defaultInitialDelegate,
-                gateKeeper: defaultGateKeeper,
-                gateKeeperId: defaultGateKeeperId,
-                governanceOpts: defaultGovernanceOpts
-            })
-        );
+        cf = TestableCrowdfund(payable(new Proxy{ value: initialContribution }(
+            Implementation(new TestableCrowdfund(globals)),
+            abi.encodeCall(TestableCrowdfund.initialize, (
+                Crowdfund.CrowdfundOptions({
+                    name: defaultName,
+                    symbol: defaultSymbol,
+                    splitRecipient: defaultSplitRecipient,
+                    splitBps: defaultSplitBps,
+                    initialContributor: initialContributor,
+                    initialDelegate: initialDelegate,
+                    gateKeeper: defaultGateKeeper,
+                    gateKeeperId: defaultGateKeeperId,
+                    governanceOpts: defaultGovernanceOpts
+                })
+            ))
+        )));
+    }
+
+    function _createCrowdfund(uint256 initialContribution)
+        private
+        returns (TestableCrowdfund cf)
+    {
+        return _createCrowdfund(initialContribution, address(this), defaultInitialDelegate);
     }
 
     function _createExpectedPartyOptions(TestableCrowdfund cf, uint256 finalPrice)
@@ -146,19 +159,10 @@ contract CrowdfundTest is Test, TestUtils {
         uint256 initialContribution = _randomRange(1, 1 ether);
         vm.deal(address(this), initialContribution);
         emit Contributed(initialContributor, initialContribution, initialDelegate, 0);
-        TestableCrowdfund cf = new TestableCrowdfund{value: initialContribution }(
-            globals,
-            Crowdfund.CrowdfundOptions({
-                name: defaultName,
-                symbol: defaultSymbol,
-                splitRecipient: defaultSplitRecipient,
-                splitBps: defaultSplitBps,
-                initialContributor: initialContributor,
-                initialDelegate: initialDelegate,
-                gateKeeper: defaultGateKeeper,
-                gateKeeperId: defaultGateKeeperId,
-                governanceOpts: defaultGovernanceOpts
-            })
+        TestableCrowdfund cf = _createCrowdfund(
+            initialContribution,
+            initialContributor,
+            initialDelegate
         );
         (
             uint256 ethContributed,
@@ -176,20 +180,7 @@ contract CrowdfundTest is Test, TestUtils {
 
     function test_creation_initialContribution_noValue() public {
         address initialContributor = _randomAddress();
-        TestableCrowdfund cf = new TestableCrowdfund(
-            globals,
-            Crowdfund.CrowdfundOptions({
-                name: defaultName,
-                symbol: defaultSymbol,
-                splitRecipient: defaultSplitRecipient,
-                splitBps: defaultSplitBps,
-                initialContributor: initialContributor,
-                initialDelegate: initialContributor,
-                gateKeeper: defaultGateKeeper,
-                gateKeeperId: defaultGateKeeperId,
-                governanceOpts: defaultGovernanceOpts
-            })
-        );
+        TestableCrowdfund cf = _createCrowdfund(0, initialContributor, initialContributor);
         (
             uint256 ethContributed,
             uint256 ethUsed,
