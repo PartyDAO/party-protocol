@@ -224,7 +224,9 @@ abstract contract PartyGovernance is
 
     // Caller must own a governance NFT at the current time.
     modifier onlyActiveMember() {
-        {
+        // Ignore if the party is calling functions on itself, like with
+        // `FractionalizeProposal` calling `distribute()`.
+        if (msg.sender != address(this)) {
             VotingPowerSnapshot memory snap =
                 _getLastVotingPowerSnapshotForVoter(msg.sender);
             // Must have either delegated voting power or intrinsic voting power.

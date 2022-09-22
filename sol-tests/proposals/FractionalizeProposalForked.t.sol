@@ -7,9 +7,24 @@ import "../TestUtils.sol";
 import "../DummyERC721.sol";
 
 contract TestableFractionalizeProposal is FractionalizeProposal {
+    event MockCreateDistribution(
+        address caller,
+        ITokenDistributor.TokenType tokenType,
+        address token,
+        uint256 tokenId
+    );
+
     PartyGovernance.GovernanceValues _governanceValues;
     string public constant name = 'Test party';
     string public constant symbol = 'TST';
+
+    // A shallow version of the `onlyActiveMember` modifier.
+    modifier onlyActiveMember() {
+        if (msg.sender != address(this)) {
+            revert("FAIL");
+        }
+        _;
+    }
 
     constructor(IFractionalV1VaultFactory vaultFactory)
         FractionalizeProposal(vaultFactory)
@@ -31,12 +46,34 @@ contract TestableFractionalizeProposal is FractionalizeProposal {
     function setTotalVotingPower(uint96 totalVotingPower) external {
         _governanceValues.totalVotingPower = totalVotingPower;
     }
+
+    // This is here because during the proposal, the party will call
+    // `distribute()` on itself.
+    function distribute(
+        ITokenDistributor.TokenType tokenType,
+        address token,
+        uint256 tokenId
+    )
+        external
+        onlyActiveMember
+        returns (ITokenDistributor.DistributionInfo memory distInfo)
+    {
+        emit MockCreateDistribution(msg.sender, tokenType, token, tokenId);
+        return distInfo;
+    }
 }
 
 contract EmptyContract {}
 
 contract FractionalizeProposalForkedTest is TestUtils {
     using LibRawResult for bytes;
+
+    event MockCreateDistribution(
+        address caller,
+        ITokenDistributor.TokenType tokenType,
+        address token,
+        uint256 tokenId
+    );
 
     event FractionalV1VaultCreated(
         IERC721 indexed token,
@@ -62,6 +99,8 @@ contract FractionalizeProposalForkedTest is TestUtils {
         IFractionalV1Vault expectedVault = _getNextVault();
         _expectEmit2();
         emit FractionalV1VaultCreated(erc721, tokenId, expectedVaultId, expectedVault, listPrice);
+        _expectEmit0();
+        emit MockCreateDistribution(address(impl), ITokenDistributor.TokenType.Erc20, address(expectedVault), expectedVaultId);
         bytes memory nextProgressData =
             impl.executeFractionalize(IProposalExecutionEngine.ExecuteProposalParams({
                 proposalId: _randomUint256(),
