@@ -72,7 +72,7 @@ contract TestableCrowdfund is Crowdfund {
     function hashFixedGovernanceOpts(FixedGovernanceOpts memory opts)
         public
         pure
-        returns (bytes16 h)
+        returns (bytes32 h)
     {
         return _hashFixedGovernanceOpts(opts);
     }
