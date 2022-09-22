@@ -232,14 +232,14 @@ contract AuctionCrowdfund is Implementation, Crowdfund {
         }
         // Are we now in possession of the NFT?
         if (nftContract.safeOwnerOf(nftTokenId) == address(this)) {
-            if (lastBid_ == 0) {
+            uint96 totalContributions_ = totalContributions;
+            if (address(this).balance >= totalContributions_) {
                 // The NFT was gifted to us. Everyone who contributed wins.
-                lastBid_ = totalContributions;
-                if (lastBid_ == 0) {
+                if (totalContributions_ == 0) {
                     // Nobody ever contributed. The NFT is effectively burned.
                     revert NoContributionsError();
                 }
-                lastBid = lastBid_;
+                lastBid = lastBid_ = totalContributions_;
             }
             // Create a governance party around the NFT.
             party_ = _createParty(

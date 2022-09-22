@@ -112,20 +112,11 @@ abstract contract BuyCrowdfundBase is Implementation, Crowdfund {
             revert WrongLifecycleError(lc);
         }
         // Used to store the price the NFT was bought for.
-        uint96 settledPrice_;
         {
             uint96 maximumPrice_ = maximumPrice;
             if (maximumPrice_ != 0 && callValue > maximumPrice_) {
                 revert MaximumPriceError(callValue, maximumPrice);
             }
-            // If the purchase would be free, set the settled price to
-            // `totalContributions` so everybody who contributed wins.
-            settledPrice_ = callValue == 0 ? totalContributions : callValue;
-            if (settledPrice_ == 0) {
-                // Still zero, which means no contributions.
-                revert NoContributionsError();
-            }
-            settledPrice = settledPrice_;
         }
         {
             // Execute the call to buy the NFT.
@@ -135,9 +126,23 @@ abstract contract BuyCrowdfundBase is Implementation, Crowdfund {
             }
         }
         // Make sure we acquired the NFT we want.
-        if (token.safeOwnerOf(tokenId) != address(this)) {
+        uint96 settledPrice_;
+        if (token.safeOwnerOf(tokenId) == address(this)) {
+            uint96 totalContributions_ = totalContributions;
+            if (address(this).balance >= totalContributions_) {
+                // If the purchase would be free, set the settled price to
+                // `totalContributions` so everybody who contributed wins.
+                if (totalContributions_ == 0) {
+                    revert NoContributionsError();
+                }
+                settledPrice_ = totalContributions_;
+            } else {
+                settledPrice_ = callValue;
+            }
+        } else {
             revert FailedToBuyNFTError(token, tokenId);
         }
+        settledPrice = settledPrice_;
         emit Won(
             // Create a party around the newly bought NFT.
             party_ = _createParty(partyFactory, governanceOpts, token, tokenId),
