@@ -15,6 +15,12 @@ abstract contract ZoraHelpers {
         uint40 minExpiry;
     }
 
+    enum ZoraAuctionStatus {
+        Sold,
+        Expired,
+        Cancelled
+    }
+
     // Transfer and create a Zora auction for the token + tokenId.
     function _createZoraAuction(
         // The minimum bid.
@@ -39,5 +45,5 @@ abstract contract ZoraHelpers {
     )
         internal
         virtual
-        returns (bool sold);
+        returns (ZoraAuctionStatus statusCode);
 }
