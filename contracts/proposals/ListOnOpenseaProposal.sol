@@ -175,7 +175,8 @@ abstract contract ListOnOpenseaProposal is ZoraHelpers {
                 statusCode == ZoraAuctionStatus.Sold ||
                 statusCode == ZoraAuctionStatus.Cancelled
             ) {
-                // Auction sold or was cancelled. Nothing left to do. Return
+                // Auction sold or was cancelled. If it sold, there is nothing left to do.
+                // If it was cancelled, we cannot safely proceed with the listing. Return
                 // empty progress data to indicate there are no more steps to
                 // execute.
                 return "";
