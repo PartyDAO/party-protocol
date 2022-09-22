@@ -15,7 +15,7 @@ import "./CrowdfundNFT.sol";
 // Base contract for AuctionCrowdfund/BuyCrowdfund.
 // Holds post-win/loss logic. E.g., burning contribution NFTs and creating a
 // party after winning.
-abstract contract Crowdfund is ERC721Receiver, CrowdfundNFT {
+abstract contract Crowdfund is Implementation, ERC721Receiver, CrowdfundNFT {
     using LibRawResult for bytes;
     using LibSafeCast for uint256;
     using LibAddress for address payable;
@@ -223,6 +223,7 @@ abstract contract Crowdfund is ERC721Receiver, CrowdfundNFT {
     function contribute(address delegate, bytes memory gateData)
         public
         payable
+        onlyDelegateCall
     {
         _contribute(
             msg.sender,
@@ -304,7 +305,7 @@ abstract contract Crowdfund is ERC721Receiver, CrowdfundNFT {
             revert PartyAlreadyExistsError(party);
         }
         {
-            bytes16 governanceOptsHash_ = _hashFixedGovernanceOpts(governanceOpts);
+            bytes32 governanceOptsHash_ = _hashFixedGovernanceOpts(governanceOpts);
             if (governanceOptsHash_ != governanceOptsHash) {
                 revert InvalidGovernanceOptionsError(governanceOptsHash_, governanceOptsHash);
             }
@@ -354,7 +355,7 @@ abstract contract Crowdfund is ERC721Receiver, CrowdfundNFT {
     function _hashFixedGovernanceOpts(FixedGovernanceOpts memory opts)
         internal
         pure
-        returns (bytes16 h)
+        returns (bytes32 h)
     {
         // Hash in place.
         assembly {

@@ -36,7 +36,7 @@ contract CrowdfundFactoryTest is Test, TestUtils {
     function _hashFixedGovernanceOpts(Crowdfund.FixedGovernanceOpts memory opts)
         internal
         pure
-        returns (bytes16 h)
+        returns (bytes32 h)
     {
         // Hash in place.
         assembly {
@@ -44,7 +44,7 @@ contract CrowdfundFactoryTest is Test, TestUtils {
             let oldHostsFieldValue := mload(opts)
             mstore(opts, keccak256(add(mload(opts), 0x20), mul(mload(mload(opts)), 32)))
             // Hash the entire struct.
-            h := and(keccak256(opts, 0xC0), 0xffffffffffffffffffffffffffffffff00000000000000000000000000000000)
+            h := keccak256(opts, 0xC0)
             // Restore old hosts field value.
             mstore(opts, oldHostsFieldValue)
         }

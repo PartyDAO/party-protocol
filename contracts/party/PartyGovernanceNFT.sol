@@ -130,6 +130,13 @@ contract PartyGovernanceNFT is
     {
         tokenId = ++tokenCount;
         votingPowerByTokenId[tokenId] = votingPower;
+
+        // Use delegate from party over the one set during crowdfund.
+        address delegate_ = delegationsByVoter[owner];
+        if (delegate_ != address(0)) {
+            delegate = delegate_;
+        }
+
         _adjustVotingPower(owner, votingPower.safeCastUint256ToInt192(), delegate);
         _safeMint(owner, tokenId);
     }

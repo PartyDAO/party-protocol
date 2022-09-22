@@ -165,9 +165,20 @@ abstract contract ListOnOpenseaProposal is ZoraHelpers {
                 abi.decode(params.progressData, (uint8, ZoraProgressData));
             // Try to settle the Zora auction. This will revert if the auction
             // is still ongoing.
-            if (_settleZoraAuction(zpd.auctionId, zpd.minExpiry, data.token, data.tokenId)) {
-                // Auction sold. Nothing left to do. Return empty progress data
-                // to indicate there are no more steps to execute.
+            ZoraAuctionStatus statusCode = _settleZoraAuction(
+                zpd.auctionId,
+                zpd.minExpiry,
+                data.token,
+                data.tokenId
+            );
+            if (
+                statusCode == ZoraAuctionStatus.Sold ||
+                statusCode == ZoraAuctionStatus.Cancelled
+            ) {
+                // Auction sold or was cancelled. If it sold, there is nothing left to do.
+                // If it was cancelled, we cannot safely proceed with the listing. Return
+                // empty progress data to indicate there are no more steps to
+                // execute.
                 return "";
             }
             // The auction simply expired before anyone bid on it. We have the NFT
