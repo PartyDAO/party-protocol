@@ -2,6 +2,8 @@
 // http://ipfs.io/ipfs/QmbGX2MFCaMAsMNMugRFND6DtYygRkwkvrqEyTKhTdBLo5
 pragma solidity ^0.8;
 
+import "../globals/IGlobals.sol";
+import "../globals/LibGlobals.sol";
 import "../tokens/IERC20.sol";
 import "../utils/LibAddress.sol";
 import "../utils/LibERC20Compat.sol";
@@ -39,10 +41,13 @@ contract TokenDistributor is ITokenDistributor {
         uint16 feeBps;
     }
 
+    error OnlyPartyDaoError(address notDao, address partyDao);
+    error OnlyPartyDaoAuthorityError(address notDaoAuthority);
     error InvalidDistributionInfoError(DistributionInfo info);
     error DistributionAlreadyClaimedByPartyTokenError(uint256 distributionId, uint256 partyTokenId);
     error DistributionFeeAlreadyClaimedError(uint256 distributionId);
     error MustOwnTokenError(address sender, address expectedOwner, uint256 partyTokenId);
+    error EmergencyActionsNotAllowedError();
     error InvalidDistributionSupplyError(uint128 supply);
     error OnlyFeeRecipientError(address caller, address feeRecipient);
     error InvalidFeeBpsError(uint16 feeBps);
@@ -50,6 +55,12 @@ contract TokenDistributor is ITokenDistributor {
     // Token address used to indicate a native distribution (i.e. distribution of ETH).
     address private constant NATIVE_TOKEN_ADDRESS = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
 
+    /// @notice The `Globals` contract storing global configuration values. This contract
+    ///         is immutable and it’s address will never change.
+    IGlobals public immutable GLOBALS;
+
+    /// @notice Whether the DAO is no longer allowed to call emergency functions.
+    bool public emergencyActionsDisabled;
     /// @notice Last distribution ID for a party.
     mapping(ITokenDistributorParty => uint256) public lastDistributionIdPerParty;
     /// Last known balance of a token, identified by an ID derived from the token.
@@ -59,6 +70,30 @@ contract TokenDistributor is ITokenDistributor {
     mapping(bytes32 => uint256) private _storedBalances;
     // tokenDistributorParty => distributionId => DistributionState
     mapping(ITokenDistributorParty => mapping(uint256 => DistributionState)) private _distributionStates;
+
+    // msg.sender == DAO
+    modifier onlyPartyDao() {
+        {
+            address partyDao = GLOBALS.getAddress(LibGlobals.GLOBAL_DAO_WALLET);
+            if (msg.sender != partyDao) {
+                revert OnlyPartyDaoError(msg.sender, partyDao);
+            }
+        }
+        _;
+    }
+
+    // emergencyActionsDisabled == false
+    modifier onlyIfEmergencyActionsAllowed() {
+        if (emergencyActionsDisabled) {
+            revert EmergencyActionsNotAllowedError();
+        }
+        _;
+    }
+
+    // Set the `Globals` contract.
+    constructor(IGlobals globals) {
+        GLOBALS = globals;
+    }
 
     /// @inheritdoc ITokenDistributor
     function createNativeDistribution(
@@ -261,6 +296,37 @@ contract TokenDistributor is ITokenDistributor {
         returns (uint128)
     {
         return _distributionStates[party][distributionId].remainingMemberSupply;
+    }
+
+    /// @notice DAO-only function to clear a distribution in case something goes wrong.
+    function emergencyRemoveDistribution(
+        ITokenDistributorParty party,
+        uint256 distributionId
+    )
+        onlyPartyDao
+        onlyIfEmergencyActionsAllowed
+        external
+    {
+        delete _distributionStates[party][distributionId];
+    }
+
+    /// @notice DAO-only function to withdraw tokens in case something goes wrong.
+    function emergencyWithdraw(
+        TokenType tokenType,
+        address token,
+        address payable recipient,
+        uint256 amount
+    )
+        onlyPartyDao
+        onlyIfEmergencyActionsAllowed
+        external
+    {
+        _transfer(tokenType, token, recipient, amount);
+    }
+
+    /// @notice DAO-only function to disable emergency functions forever.
+    function disableEmergencyActions() onlyPartyDao external {
+        emergencyActionsDisabled = true;
     }
 
     function _createDistribution(CreateDistributionArgs memory args)

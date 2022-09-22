@@ -147,6 +147,10 @@ Our `TokenDistributor` contract was designed to work with parties, but a `Distri
 
 When creating a distribution, implementing contracts are expected to transfer the tokens prior to calling the accompanying `create{Erc20Distribution,createNativeDistribution}` method in the same transaction.
 
+### Emergency Actions
+
+`TokenDistributor` contains two emergency withdrawal functions controlled by the PartyDAO Multisig: `emergencyWithdraw()` and `emergencyRemoveDistribution()`.  PartyDAO can call `disableEmergencyActions` to permanently disable these functions.
+
 ---
 
 ## Governance Lifecycle

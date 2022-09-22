@@ -88,7 +88,7 @@ contract Deploy {
         console.log("");
         console.log("### TokenDistributor");
         console.log("  Deploying - TokenDistributor");
-        tokenDistributor = new TokenDistributor();
+        tokenDistributor = new TokenDistributor(globals);
         console.log("  Deployed - TokenDistributor", address(tokenDistributor));
 
         console.log("");
