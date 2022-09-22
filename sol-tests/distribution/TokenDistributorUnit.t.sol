@@ -41,7 +41,7 @@ contract TestParty is ITokenDistributorParty {
     }
 }
 
-contract TestTokenDistributorHash is TokenDistributor(IGlobals(address(0))) {
+contract TestTokenDistributorHash is TokenDistributor {
     function getDistributionHash(DistributionInfo memory info)
         external
         pure
@@ -85,7 +85,7 @@ contract TokenDistributorUnitTest is Test, TestUtils {
 
     constructor() {
         globals = new Globals(address(this));
-        distributor = new TokenDistributor(globals);
+        distributor = new TokenDistributor();
         party = new TestParty();
     }
 
