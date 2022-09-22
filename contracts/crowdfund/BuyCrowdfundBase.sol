@@ -56,6 +56,7 @@ abstract contract BuyCrowdfundBase is Implementation, Crowdfund {
     error NoContributionsError();
     error FailedToBuyNFTError(IERC721 token, uint256 tokenId);
     error InvalidCallTargetError(address callTarget);
+    error PriceExceedsTotalContributionsError(uint96 price, uint96 totalContributions);
 
     /// @notice When this crowdfund expires.
     uint40 public expiry;
@@ -111,7 +112,10 @@ abstract contract BuyCrowdfundBase is Implementation, Crowdfund {
         if (lc != CrowdfundLifecycle.Active) {
             revert WrongLifecycleError(lc);
         }
-        // Used to store the price the NFT was bought for.
+        uint96 totalContributions_ = totalContributions;
+        if (callValue > totalContributions_) {
+            revert PriceExceedsTotalContributionsError(callValue, totalContributions_);
+        }
         {
             uint96 maximumPrice_ = maximumPrice;
             if (maximumPrice_ != 0 && callValue > maximumPrice_) {
@@ -128,7 +132,6 @@ abstract contract BuyCrowdfundBase is Implementation, Crowdfund {
         // Make sure we acquired the NFT we want.
         uint96 settledPrice_;
         if (token.safeOwnerOf(tokenId) == address(this)) {
-            uint96 totalContributions_ = totalContributions;
             if (address(this).balance >= totalContributions_) {
                 // If the purchase would be free, set the settled price to
                 // `totalContributions` so everybody who contributed wins.

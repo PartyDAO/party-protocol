@@ -175,6 +175,31 @@ contract BuyCrowdfundTest is Test, TestUtils {
         assertTrue(pb.getCrowdfundLifecycle() == Crowdfund.CrowdfundLifecycle.Active);
     }
 
+    function testBuyCannotExceedTotalContributions() public {
+        uint256 tokenId = erc721Vault.mint();
+        // Create a BuyCrowdfund instance.
+        BuyCrowdfund pb = _createCrowdfund(tokenId, 0);
+        // Contribute and delegate.
+        address payable contributor = _randomAddress();
+        address delegate = _randomAddress();
+        vm.deal(contributor, 1e18);
+        vm.prank(contributor);
+        pb.contribute{ value: contributor.balance }(delegate, "");
+
+        uint96 totalContributions = pb.totalContributions();
+        vm.expectRevert(abi.encodeWithSelector(
+            BuyCrowdfundBase.PriceExceedsTotalContributionsError.selector,
+            totalContributions + 1,
+            totalContributions
+        ));
+        Party party_ = pb.buy(
+            payable(address(erc721Vault)),
+            totalContributions + 1,
+            abi.encodeCall(erc721Vault.claim, (tokenId)),
+            defaultGovernanceOpts
+        );
+    }
+
     function testCannotReinitialize() public {
         uint256 tokenId = erc721Vault.mint();
         BuyCrowdfund pb = _createCrowdfund(tokenId, 0);
