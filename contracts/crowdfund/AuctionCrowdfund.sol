@@ -15,7 +15,7 @@ import "./Crowdfund.sol";
 
 /// @notice A crowdfund that can repeatedly bid on an auction for a specific NFT
 ///         (i.e. with a known token ID) until it wins.
-contract AuctionCrowdfund is Implementation, Crowdfund {
+contract AuctionCrowdfund is Crowdfund {
     using LibSafeERC721 for IERC721;
     using LibSafeCast for uint256;
     using LibRawResult for bytes;

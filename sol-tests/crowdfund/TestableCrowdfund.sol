@@ -7,15 +7,15 @@ import "../../contracts/crowdfund/Crowdfund.sol";
 contract TestableCrowdfund is Crowdfund {
 
     uint256 public finalPrice;
-    CrowdfundLifecycle public lifeCycle = CrowdfundLifecycle.Active;
+    CrowdfundLifecycle public lifeCycle;
     FixedGovernanceOpts public govOpts;
 
-    constructor(IGlobals globals, CrowdfundOptions memory opts)
-        payable
-        Crowdfund(globals)
-    {
-        _initialize(opts);
+    constructor(IGlobals globals) Crowdfund(globals) {}
+
+    function initialize(CrowdfundOptions memory opts) external payable {
+        lifeCycle = CrowdfundLifecycle.Active;
         govOpts = opts.governanceOpts;
+        _initialize(opts);
     }
 
     function testSetFinalPrice(uint256 finalPrice_) external {
