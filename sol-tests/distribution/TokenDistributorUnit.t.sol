@@ -60,7 +60,12 @@ contract ReenteringToken is ERC20("ReenteringToken", "RET", 18) {
     }
 
     function transfer(address to, uint256 amount) public virtual override returns (bool) {
-        // Reenter into distributor to create another ERC20 distribution.
+        // Reenter into distributor to create another ERC20 distribution. Mimics
+        // how ERC777 tokens will call a `tokensToSend` hook on transfer which
+        // can implement arbitrary logic. Here, we use it to create a new
+        // distribution before the state update triggered by another claiming
+        // from distribution (which this is attempting to steal from) has been
+        // updated.
         distributor.createErc20Distribution(
             IERC20(address(this)),
             ITokenDistributorParty(address(0)),

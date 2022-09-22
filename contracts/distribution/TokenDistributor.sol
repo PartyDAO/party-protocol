@@ -380,7 +380,15 @@ contract TokenDistributor is ITokenDistributor {
         bytes32 balanceId = _getBalanceId(tokenType, token);
         // Reduce stored token balance.
         uint256 storedBalance = _storedBalances[balanceId] - amount;
-        // Temporarily set to max as a reentrancy guard.
+        // Temporarily set to max as a reentrancy guard. An interesing attack
+        // could occur if we didn't do this where an attacker could `claim()` and
+        // reenter upon transfer (eg. in the `tokensToSend` hook of an ERC777) to
+        // `createERC20Distribution()`. Since the `balanceOf(address(this))`
+        // would not of been updated yet, the supply would be miscalculated and
+        // the attacker would create a distribution that essentially steals from
+        // the last distribution they were claiming from. Here, we prevent that
+        // by causing an arithmetic underflow with the supply calculation if
+        // this were to be attempted.
         _storedBalances[balanceId] = type(uint256).max;
         if (tokenType == TokenType.Native) {
             recipient.transferEth(amount);
