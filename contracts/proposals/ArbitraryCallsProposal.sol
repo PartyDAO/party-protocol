@@ -5,6 +5,7 @@ pragma solidity ^0.8;
 import "../tokens/IERC721.sol";
 import "../tokens/IERC721Receiver.sol";
 import "../utils/LibSafeERC721.sol";
+import "../utils/LibAddress.sol";
 
 import "./LibProposal.sol";
 import "./IProposalExecutionEngine.sol";
@@ -13,6 +14,7 @@ import "./IProposalExecutionEngine.sol";
 // This contract will be delegatecall'ed into by `Party` proxy instances.
 contract ArbitraryCallsProposal {
     using LibSafeERC721 for IERC721;
+    using LibAddress for address payable;
 
     struct ArbitraryCall {
         // The call target.
@@ -86,6 +88,10 @@ contract ArbitraryCallsProposal {
                     }
                 }
             }
+        }
+        // Refund leftover ETH.
+        if (ethAvailable > 0) {
+            payable(msg.sender).transferEth(ethAvailable);
         }
         // No next step, so no progressData.
         return '';
