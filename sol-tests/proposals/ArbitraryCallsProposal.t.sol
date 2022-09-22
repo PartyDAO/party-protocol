@@ -249,6 +249,27 @@ contract ArbitraryCallsProposalTest is
         testContract.execute{ value: 1.5e18 }(prop);
     }
 
+    function test_canExecuteCallWithEth_refundsLeftover() external {
+        (
+            ArbitraryCallsProposal.ArbitraryCall[] memory calls,
+            bytes32[] memory callArgs
+        ) = _createSimpleCalls(1, false);
+        calls[0].value = 1e18;
+        IProposalExecutionEngine.ExecuteProposalParams memory prop =
+            _createTestProposal(calls);
+        for (uint256 i = 0; i < calls.length; ++i) {
+            _expectNonIndexedEmit();
+            emit ArbitraryCallTargetSuccessCalled(address(testContract), calls[i].value, callArgs[i]);
+            _expectNonIndexedEmit();
+            emit ArbitraryCallExecuted(prop.proposalId, i, calls.length);
+        }
+        uint256 balanceBefore = address(this).balance;
+        testContract.execute{ value: 2e18 }(prop);
+        uint256 balanceAfter = address(this).balance;
+        // Spent 2 ETH, refunded 1 ETH
+        assertEq(balanceBefore - balanceAfter, 1e18);
+    }
+
     function test_cannotConsumeMoreEthThanAttachedWithSingleCall() external {
         (
             ArbitraryCallsProposal.ArbitraryCall[] memory calls,
@@ -565,4 +586,7 @@ contract ArbitraryCallsProposalTest is
             mstore(data, sub(mload(data), bytesFromEnd))
         }
     }
+
+    // To receive ETH refunds
+    receive() external payable {}
 }
