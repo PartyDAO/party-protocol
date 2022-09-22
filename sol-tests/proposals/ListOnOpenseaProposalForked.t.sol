@@ -647,7 +647,7 @@ contract ListOnOpenseaProposalForkedTest is
 
     // Test a proposal where the zora listing is cancelled.
     function testForked_Execution_BoughtOnZora_Cancelled() public onlyForked {
-        // We will cancel the auction because the buyer cannot receive the NFT.
+        // Zroa will cancel the auction during settlement because the buyer cannot receive the NFT.
         address buyer = address(this);
         uint256 listPrice = 1e18;
         uint40 listDuration = 7 days;
