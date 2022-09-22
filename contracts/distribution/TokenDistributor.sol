@@ -379,13 +379,16 @@ contract TokenDistributor is ITokenDistributor {
     {
         bytes32 balanceId = _getBalanceId(tokenType, token);
         // Reduce stored token balance.
-        _storedBalances[balanceId] -= amount;
+        uint256 storedBalance = _storedBalances[balanceId] - amount;
+        // Temporarily set to max as a reentrancy guard.
+        _storedBalances[balanceId] = type(uint256).max;
         if (tokenType == TokenType.Native) {
             recipient.transferEth(amount);
         } else {
             assert(tokenType == TokenType.Erc20);
             IERC20(token).compatTransfer(recipient, amount);
         }
+        _storedBalances[balanceId] = storedBalance;
     }
 
     function _getDistributionHash(DistributionInfo memory info)
