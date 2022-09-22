@@ -159,6 +159,10 @@ contract PartyParticipant is ERC721Holder, Test  {
     party.delegateVotingPower(newDelegate);
   }
 
+  function transferVotingCard(Party party, PartyParticipant to, uint256 tokenId) public {
+    party.transferFrom(address(this), address(to), tokenId);
+  }
+
   function executeProposal(
     Party party,
     ExecutionOptions memory eo

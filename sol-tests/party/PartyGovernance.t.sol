@@ -521,6 +521,47 @@ function testEmergencyWithdrawal() public {
     assertEq(toadz.ownerOf(1), address(globalDaoWalletAddress));
   }
 
+  function testVotingOnProposalWithTransferredVotingCard() public {
+    // Create party
+    (Party party, IERC721[] memory preciousTokens, uint256[] memory preciousTokenIds) = partyAdmin.createParty(
+      PartyAdmin.PartyCreationMinimalOptions({
+        host1: address(this),
+        host2: address(0),
+        passThresholdBps: 5100,
+        totalVotingPower: 100,
+        preciousTokenAddress: address(toadz),
+        preciousTokenId: 1,
+        feeBps: 0,
+        feeRecipient: payable(0)
+      })
+    );
+    DummySimpleProposalEngineImpl engInstance = DummySimpleProposalEngineImpl(address(party));
+
+    // Mint first governance NFT
+    partyAdmin.mintGovNft(party, address(john), 30, address(john));
+
+    // Generate proposal
+    uint256 proposalId = 1;
+    PartyGovernance.Proposal memory proposal = PartyGovernance.Proposal({
+      maxExecutableTime: 9999999999,
+      proposalData: abi.encodePacked([0]),
+      cancelDelay: uint40(1 days)
+    });
+    john.makeProposal(party, proposal, 2);
+    _assertProposalStatus(party, proposalId, PartyGovernance.ProposalStatus.Voting, 30);
+
+    // Transfer voting power to another wallet
+    uint256 tokenId = 1;
+    PartyParticipant anotherWallet = new PartyParticipant();
+    john.transferVotingCard(party, anotherWallet, tokenId);
+
+    // Vote to pass proposal from other wallet
+    anotherWallet.vote(party, proposalId, 0);
+
+    // Assert that this does not increase votes because voting power is queried from the past
+    _assertProposalStatus(party, proposalId, PartyGovernance.ProposalStatus.Voting, 30);
+  }
+
   function _assertProposalStatus(
     Party party,
     uint256 proposalId,

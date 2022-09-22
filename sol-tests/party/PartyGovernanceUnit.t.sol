@@ -1465,28 +1465,6 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
         );
     }
 
-    function testAccept_usesPastVotingPower() external {
-        (IERC721[] memory preciousTokens, uint256[] memory preciousTokenIds) =
-            _createPreciousTokens(2);
-        TestablePartyGovernance gov =
-            _createGovernance(100e18, preciousTokens, preciousTokenIds);
-        address undelegatedVoter1 = _randomAddress();
-        // undelegatedVoter1 has 50 intrinsic VP (delegated to no one/self)
-        gov.rawAdjustVotingPower(undelegatedVoter1, 50e18, address(0));
-
-        // Create a one-step proposal.
-        PartyGovernance.Proposal memory proposal = _createProposal(1);
-        uint256 proposalId = gov.getNextProposalId();
-
-        // Undelegated voter 1 submits proposal.
-        _expectProposedEvent(proposalId, undelegatedVoter1, proposal);
-        // Should of cast no votes because voter gained them at the same time
-        // proposal as created.
-        _expectProposalAcceptedEvent(proposalId, undelegatedVoter1, 0);
-        vm.prank(undelegatedVoter1);
-        assertEq(gov.propose(proposal, 0), proposalId);
-    }
-
     // One undelegated voter with 25/100 intrinsic VP.
     // One delegated voter with 25/100 intrinsic VP
     // One delegate with 25/100 intrinsic + 25 delegated VP.
