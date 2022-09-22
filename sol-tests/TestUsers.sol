@@ -146,6 +146,8 @@ contract PartyParticipant is ERC721Holder, Test  {
     public
     returns (uint256)
   {
+    // Skip because `accept()` will query voting power at `proposedTime - 1`
+    skip(1);
     return party.propose(proposal, lastestSnapIndex);
   }
 

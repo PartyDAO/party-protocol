@@ -74,6 +74,8 @@ describe('Arbitrary proposals integrations test', () => {
             now() +  7 * ONE_DAY_SECONDS,
             now() +  30 * ONE_DAY_SECONDS
         );
+        // Skip because `accept()` will query voting power at `proposedTime - 1`
+        await increaseTime(provider, 1);
         // Propose.
         const proposalId = await voters[0].proposeAsync(proposal);
         expect(await party.getProposalStatusAsync(proposalId)).to.eq(ProposalStatus.Voting);
