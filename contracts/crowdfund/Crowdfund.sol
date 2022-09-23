@@ -122,7 +122,7 @@ abstract contract Crowdfund is Implementation, ERC721Receiver, CrowdfundNFT {
     mapping(address => address) public delegationsByContributor;
     // Array of contributions by a contributor.
     // One is created for every nonzero contribution made.
-    mapping(address => Contribution[]) private _contributionsByContributor;
+    mapping(address => Contribution[]) internal _contributionsByContributor;
     /// @notice Stores the amount of ETH owed back to a contributor and governance NFT
     ///         that should be minted to them if it could not be transferred to
     ///         them with `burn()`.

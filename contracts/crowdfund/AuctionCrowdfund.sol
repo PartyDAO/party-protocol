@@ -62,13 +62,16 @@ contract AuctionCrowdfund is Crowdfund {
         // voting power to when the crowdfund transitions to governance.
         address initialDelegate;
         // The gatekeeper contract to use (if non-null) to restrict who can
-        // contribute to this crowdfund.
+        // contribute to this crowdfund. If used, only contributors or hosts can
+        // call `bid()`.
         IGateKeeper gateKeeper;
         // The gate ID within the gateKeeper contract to use.
         bytes12 gateKeeperId;
         // Fixed governance options (i.e. cannot be changed) that the governance
         // `Party` will be created with if the crowdfund succeeds.
         FixedGovernanceOpts governanceOpts;
+        // Whether the party is only allowing host to call `bid()`.
+        bool onlyHost;
     }
 
     event Bid(uint256 bidAmount);
@@ -81,6 +84,7 @@ contract AuctionCrowdfund is Crowdfund {
     error ExceedsMaximumBidError(uint256 bidAmount, uint256 maximumBid);
     error NoContributionsError();
     error AuctionNotExpiredError();
+    error OnlyPartyHostOrContributorError();
 
     /// @notice The NFT contract to buy.
     IERC721 public nftContract;
@@ -98,8 +102,36 @@ contract AuctionCrowdfund is Crowdfund {
     /// @notice When this crowdfund expires. If the NFT has not been bought
     ///         by this time, participants can withdraw their contributions.
     uint40 public expiry;
+    /// @notice Whether the party is only allowing host to call `bid()`.
+    bool public onlyHost;
     // Track extra status of the crowdfund specific to bids.
     AuctionCrowdfundStatus private _bidStatus;
+
+    modifier checkIfOnlyHostOrContributor(address[] memory hosts) {
+        if (
+            // Check if only allowing host to call.
+            onlyHost ||
+            // Otherwise, check if the gatekeeper is used. If so, only allow either
+            // contributors or host to call.
+            address(gateKeeper) != address(0) &&
+            _contributionsByContributor[msg.sender].length == 0
+        ) {
+            bool isHost;
+            for (uint256 i; i < hosts.length; i++) {
+                if (hosts[i] == msg.sender) {
+                    isHost = true;
+                    break;
+                }
+            }
+
+            if (!isHost) {
+                // Neither host or contributor.
+                revert OnlyPartyHostOrContributorError();
+            }
+        }
+
+        _;
+    }
 
     // Set the `Globals` contract.
     constructor(IGlobals globals) Crowdfund(globals) {}
@@ -119,6 +151,7 @@ contract AuctionCrowdfund is Crowdfund {
         expiry = uint40(opts.duration + block.timestamp);
         auctionId = opts.auctionId;
         maximumBid = opts.maximumBid;
+        onlyHost = opts.onlyHost;
         Crowdfund._initialize(CrowdfundOptions({
             name: opts.name,
             symbol: opts.symbol,
@@ -147,7 +180,11 @@ contract AuctionCrowdfund is Crowdfund {
     /// @notice Place a bid on the NFT using the funds in this crowdfund,
     ///         placing the minimum possible bid to be the highest bidder, up to
     ///         `maximumBid`.
-    function bid() external onlyDelegateCall {
+    function bid(FixedGovernanceOpts memory governanceOpts)
+        external
+        onlyDelegateCall
+        checkIfOnlyHostOrContributor(governanceOpts.hosts)
+    {
         // Check that the auction is still active.
         {
             CrowdfundLifecycle lc = getCrowdfundLifecycle();

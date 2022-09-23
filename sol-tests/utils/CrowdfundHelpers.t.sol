@@ -59,9 +59,9 @@ contract CrowdfundHelpers is Test, TestUtils {
         uint96 initialContribution
     )
         private
-        returns (AuctionCrowdfund pb)
+        returns (AuctionCrowdfund cf)
     {
-        pb = AuctionCrowdfund(payable(address(new Proxy{ value: initialContribution }(
+        cf = AuctionCrowdfund(payable(address(new Proxy{ value: initialContribution }(
             auctionCrowdfundImpl,
             abi.encodeCall(
                 AuctionCrowdfund.initialize,
@@ -80,7 +80,8 @@ contract CrowdfundHelpers is Test, TestUtils {
                     initialDelegate: defaultInitialDelegate,
                     gateKeeper: defaultGateKeeper,
                     gateKeeperId: defaultGateKeeperId,
-                    governanceOpts: defaultGovernanceOpts
+                    governanceOpts: defaultGovernanceOpts,
+                    onlyHost: false
                 })
             )
         ))));
@@ -88,9 +89,9 @@ contract CrowdfundHelpers is Test, TestUtils {
 
     function _createBuyCrowdfundCrowdfund(uint96 initialContribution)
         private
-        returns (BuyCrowdfund pb)
+        returns (BuyCrowdfund cf)
     {
-        pb = BuyCrowdfund(payable(address(new Proxy{ value: initialContribution }(
+        cf = BuyCrowdfund(payable(address(new Proxy{ value: initialContribution }(
             buyCrowdfundImpl,
             abi.encodeCall(
                 BuyCrowdfund.initialize,
@@ -107,7 +108,8 @@ contract CrowdfundHelpers is Test, TestUtils {
                     initialDelegate: defaultInitialDelegate,
                     gateKeeper: defaultGateKeeper,
                     gateKeeperId: defaultGateKeeperId,
-                    governanceOpts: defaultGovernanceOpts
+                    governanceOpts: defaultGovernanceOpts,
+                    onlyHost: false
                 })
             )
         ))));
@@ -115,9 +117,9 @@ contract CrowdfundHelpers is Test, TestUtils {
 
     function _createCollectionBuyCrowdfundCrowdfund(uint96 initialContribution)
         private
-        returns (CollectionBuyCrowdfund pb)
+        returns (CollectionBuyCrowdfund cf)
     {
-        pb = CollectionBuyCrowdfund(payable(address(new Proxy{ value: initialContribution }(
+        cf = CollectionBuyCrowdfund(payable(address(new Proxy{ value: initialContribution }(
             collectionBuyCrowdfundImpl,
             abi.encodeCall(
                 CollectionBuyCrowdfund.initialize,

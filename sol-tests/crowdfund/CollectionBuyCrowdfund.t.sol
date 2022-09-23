@@ -58,11 +58,11 @@ contract CollectionBuyCrowdfundTest is Test, TestUtils {
 
     function _createCrowdfund(address[] memory hosts, uint96 initialContribution)
         private
-        returns (CollectionBuyCrowdfund pb, Crowdfund.FixedGovernanceOpts memory governanceOpts)
+        returns (CollectionBuyCrowdfund cf, Crowdfund.FixedGovernanceOpts memory governanceOpts)
     {
         governanceOpts.hosts = hosts;
 
-        pb = CollectionBuyCrowdfund(payable(address(new Proxy{ value: initialContribution }(
+        cf = CollectionBuyCrowdfund(payable(address(new Proxy{ value: initialContribution }(
             collectionBuyCrowdfundImpl,
             abi.encodeCall(
                 CollectionBuyCrowdfund.initialize,
@@ -109,7 +109,7 @@ contract CollectionBuyCrowdfundTest is Test, TestUtils {
         // Create a CollectionBuyCrowdfund instance.
         address host = _randomAddress();
         (
-            CollectionBuyCrowdfund pb,
+            CollectionBuyCrowdfund cf,
             Crowdfund.FixedGovernanceOpts memory governanceOpts
         ) = _createCrowdfund(_toAddressArray(host), 0);
         // Contribute and delegate.
@@ -117,18 +117,18 @@ contract CollectionBuyCrowdfundTest is Test, TestUtils {
         address delegate = _randomAddress();
         vm.deal(contributor, 1e18);
         vm.prank(contributor);
-        pb.contribute{ value: contributor.balance }(delegate, "");
+        cf.contribute{ value: contributor.balance }(delegate, "");
         // Buy the token.
         vm.expectEmit(false, false, false, true);
         emit MockPartyFactoryCreateParty(
-            address(pb),
-            address(pb),
+            address(cf),
+            address(cf),
             _createExpectedPartyOptions(_toAddressArray(host), 0.5e18),
             _toERC721Array(erc721Vault.token()),
             _toUint256Array(tokenId)
         );
         vm.prank(host);
-        Party party_ = pb.buy(
+        Party party_ = cf.buy(
             tokenId,
             payable(address(erc721Vault)),
             0.5e18,
@@ -140,12 +140,12 @@ contract CollectionBuyCrowdfundTest is Test, TestUtils {
         // unused contribution.
         vm.expectEmit(false, false, false, true);
         emit MockMint(
-            address(pb),
+            address(cf),
             contributor,
             0.5e18,
             delegate
         );
-        pb.burn(contributor);
+        cf.burn(contributor);
         assertEq(contributor.balance, 0.5e18);
     }
 
@@ -154,7 +154,7 @@ contract CollectionBuyCrowdfundTest is Test, TestUtils {
         // Create a CollectionBuyCrowdfund instance.
         address host = _randomAddress();
         (
-            CollectionBuyCrowdfund pb,
+            CollectionBuyCrowdfund cf,
             Crowdfund.FixedGovernanceOpts memory governanceOpts
         ) = _createCrowdfund(_toAddressArray(host), 0);
         // Contribute and delegate.
@@ -162,11 +162,11 @@ contract CollectionBuyCrowdfundTest is Test, TestUtils {
         address delegate = _randomAddress();
         vm.deal(contributor, 1e18);
         vm.prank(contributor);
-        pb.contribute{ value: contributor.balance }(delegate, "");
+        cf.contribute{ value: contributor.balance }(delegate, "");
         // Buy the token as a non-host contributor and expect revert.
         vm.expectRevert(CollectionBuyCrowdfund.OnlyPartyHostError.selector);
         vm.prank(contributor);
-        pb.buy(
+        cf.buy(
             tokenId,
             payable(address(erc721Vault)),
             0.5e18,
@@ -181,7 +181,7 @@ contract CollectionBuyCrowdfundTest is Test, TestUtils {
         // Create a CollectionBuyCrowdfund instance.
         address host = _randomAddress();
         (
-            CollectionBuyCrowdfund pb,
+            CollectionBuyCrowdfund cf,
             Crowdfund.FixedGovernanceOpts memory governanceOpts
         ) = _createCrowdfund(_toAddressArray(host), 0);
         // Contribute and delegate.
@@ -189,7 +189,7 @@ contract CollectionBuyCrowdfundTest is Test, TestUtils {
         address delegate = _randomAddress();
         vm.deal(contributor, 1e18);
         vm.prank(contributor);
-        pb.contribute{ value: contributor.balance }(delegate, "");
+        cf.contribute{ value: contributor.balance }(delegate, "");
         // Pretend to buy the token.
         vm.expectRevert(
             abi.encodeWithSelector(
@@ -199,21 +199,21 @@ contract CollectionBuyCrowdfundTest is Test, TestUtils {
             )
         );
         vm.prank(host);
-        pb.buy(
+        cf.buy(
             tokenId,
             _randomAddress(), // Call random EOA, which will succeed but do nothing
             0.5e18,
             "",
             governanceOpts
         );
-        assertTrue(pb.getCrowdfundLifecycle() == Crowdfund.CrowdfundLifecycle.Active);
+        assertTrue(cf.getCrowdfundLifecycle() == Crowdfund.CrowdfundLifecycle.Active);
     }
 
     function testCannotReinitialize() public {
-        ( CollectionBuyCrowdfund pb,) = _createCrowdfund(new address[](0), 0);
+        ( CollectionBuyCrowdfund cf,) = _createCrowdfund(new address[](0), 0);
         vm.expectRevert(abi.encodeWithSelector(Implementation.OnlyConstructorError.selector));
         CollectionBuyCrowdfund.CollectionBuyCrowdfundOptions memory opts;
-        pb.initialize(opts);
+        cf.initialize(opts);
     }
 
     function test_creation_initialContribution() public {

@@ -24,7 +24,7 @@ contract NounsForkedTest is TestUtils {
     MockPartyFactory partyFactory = new MockPartyFactory();
     MockParty party = partyFactory.mockParty();
     AuctionCrowdfund pbImpl = new AuctionCrowdfund(globals);
-    AuctionCrowdfund pb;
+    AuctionCrowdfund cf;
 
     Crowdfund.FixedGovernanceOpts defaultGovOpts;
 
@@ -46,7 +46,7 @@ contract NounsForkedTest is TestUtils {
         (tokenId, , , , , ) = nounsAuctionHouse.auction();
 
         // Create a AuctionCrowdfund crowdfund
-        pb = AuctionCrowdfund(payable(address(new Proxy(
+        cf = AuctionCrowdfund(payable(address(new Proxy(
             pbImpl,
             abi.encodeCall(
                 AuctionCrowdfund.initialize,
@@ -65,27 +65,28 @@ contract NounsForkedTest is TestUtils {
                     initialDelegate: address(0),
                     gateKeeper: IGateKeeper(address(0)),
                     gateKeeperId: 0,
-                    governanceOpts: defaultGovOpts
+                    governanceOpts: defaultGovOpts,
+                    onlyHost: false
                 })
             )
         ))));
 
         // Contribute ETH used to bid.
         vm.deal(address(this), 1000 ether);
-        pb.contribute{ value: 1000 ether }(address(this), "");
+        cf.contribute{ value: 1000 ether }(address(this), "");
     }
 
     // Test creating a crowdfund party around a Noun + winning the auction
     function testForked_WinningNounAuction() external onlyForked {
         // Bid on current Noun auction.
-        pb.bid();
+        cf.bid(defaultGovOpts);
 
         // Check that we are highest bidder.
-        uint256 lastBid = pb.lastBid();
+        uint256 lastBid = cf.lastBid();
         (, uint256 highestBid, , , address payable highestBidder, )
             = nounsAuctionHouse.auction();
         assertEq(lastBid, highestBid);
-        assertEq(address(pb), highestBidder);
+        assertEq(address(cf), highestBidder);
 
         // Wait for the auction to end and check that we won.
         skip(1 days);
@@ -93,22 +94,22 @@ contract NounsForkedTest is TestUtils {
         // Finalize the crowdfund.
         _expectEmit0();
         emit Won(lastBid, Party(payable(address(party))));
-        pb.finalize(defaultGovOpts);
+        cf.finalize(defaultGovOpts);
         assertEq(nounsToken.ownerOf(tokenId), address(party));
-        assertEq(address(pb.party()), address(party));
+        assertEq(address(cf.party()), address(party));
         assertTrue(nounsMarket.isFinalized(tokenId));
     }
 
     function testForked_WinningNounsAuction_finalizedBefore() external onlyForked {
         // Bid on current Noun auction.
-        pb.bid();
+        cf.bid(defaultGovOpts);
 
         // Check that we are highest bidder.
-        uint256 lastBid = pb.lastBid();
+        uint256 lastBid = cf.lastBid();
         (, uint256 highestBid, , , address payable highestBidder, )
             = nounsAuctionHouse.auction();
         assertEq(lastBid, highestBid);
-        assertEq(address(pb), highestBidder);
+        assertEq(address(cf), highestBidder);
 
         // Wait for the auction to end and check that we won.
         skip(1 days);
@@ -119,16 +120,16 @@ contract NounsForkedTest is TestUtils {
         // Finalize the crowdfund.
         _expectEmit0();
         emit Won(lastBid, Party(payable(address(party))));
-        pb.finalize(defaultGovOpts);
+        cf.finalize(defaultGovOpts);
         assertEq(nounsToken.ownerOf(tokenId), address(party));
-        assertEq(address(pb.party()), address(party));
+        assertEq(address(cf.party()), address(party));
         assertTrue(nounsMarket.isFinalized(tokenId));
     }
 
     // Test creating a crowdfund party around a Noun + losing the auction
     function testForked_LosingNounAuction() external onlyForked {
         // Bid on current Noun auction.
-        pb.bid();
+        cf.bid(defaultGovOpts);
 
         // We outbid our own party (sneaky!)
         vm.deal(address(this), 1001 ether);
@@ -140,14 +141,14 @@ contract NounsForkedTest is TestUtils {
         // Finalize the crowdfund.
         _expectEmit0();
         emit Lost();
-        pb.finalize(defaultGovOpts);
-        assertEq(address(pb.party()), address(0));
+        cf.finalize(defaultGovOpts);
+        assertEq(address(cf.party()), address(0));
         assertTrue(nounsMarket.isFinalized(tokenId));
     }
 
     function testForked_LosingNounAuction_finalizeBefore() external onlyForked {
         // Bid on current Noun auction.
-        pb.bid();
+        cf.bid(defaultGovOpts);
 
         // We outbid our own party (sneaky!)
         vm.deal(address(this), 1001 ether);
@@ -162,8 +163,8 @@ contract NounsForkedTest is TestUtils {
         // Finalize the crowdfund.
         _expectEmit0();
         emit Lost();
-        pb.finalize(defaultGovOpts);
-        assertEq(address(pb.party()), address(0));
+        cf.finalize(defaultGovOpts);
+        assertEq(address(cf.party()), address(0));
         assertTrue(nounsMarket.isFinalized(tokenId));
     }
 }

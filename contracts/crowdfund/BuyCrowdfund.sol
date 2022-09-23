@@ -45,19 +45,52 @@ contract BuyCrowdfund is BuyCrowdfundBase {
         // voting power to when the crowdfund transitions to governance.
         address initialDelegate;
         // The gatekeeper contract to use (if non-null) to restrict who can
-        // contribute to this crowdfund.
+        // contribute to this crowdfund. If used, only contributors or hosts can
+        // call `buy()`.
         IGateKeeper gateKeeper;
         // The gate ID within the gateKeeper contract to use.
         bytes12 gateKeeperId;
         // Fixed governance options (i.e. cannot be changed) that the governance
         // `Party` will be created with if the crowdfund succeeds.
         FixedGovernanceOpts governanceOpts;
+        // Whether the party is only allowing host to call `buy()`.
+        bool onlyHost;
     }
+
+    error OnlyPartyHostOrContributorError();
 
     /// @notice The NFT token ID to buy.
     uint256 public nftTokenId;
     /// @notice The NFT contract to buy.
     IERC721 public nftContract;
+    /// @notice Whether the party is only allowing host to call `buy()`.
+    bool public onlyHost;
+
+    modifier checkIfOnlyHostOrContributor(address[] memory hosts) {
+        if (
+            // Check if only allowing host to call.
+            onlyHost ||
+            // Otherwise, check if the gatekeeper is used. If so, only allow either
+            // contributors or host to call.
+            address(gateKeeper) != address(0) &&
+            _contributionsByContributor[msg.sender].length == 0
+        ) {
+            bool isHost;
+            for (uint256 i; i < hosts.length; i++) {
+                if (hosts[i] == msg.sender) {
+                    isHost = true;
+                    break;
+                }
+            }
+
+            if (!isHost) {
+                // Neither host or contributor.
+                revert OnlyPartyHostOrContributorError();
+            }
+        }
+
+        _;
+    }
 
     // Set the `Globals` contract.
     constructor(IGlobals globals) BuyCrowdfundBase(globals) {}
@@ -86,6 +119,7 @@ contract BuyCrowdfund is BuyCrowdfundBase {
         }));
         nftTokenId = opts.nftTokenId;
         nftContract = opts.nftContract;
+        onlyHost = opts.onlyHost;
     }
 
     /// @notice Execute arbitrary calldata to perform a buy, creating a party
@@ -103,6 +137,7 @@ contract BuyCrowdfund is BuyCrowdfundBase {
         FixedGovernanceOpts memory governanceOpts
     )
         external
+        checkIfOnlyHostOrContributor(governanceOpts.hosts)
         returns (Party party_)
     {
         return _buy(
