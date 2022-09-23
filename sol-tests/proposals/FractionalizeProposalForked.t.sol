@@ -18,8 +18,8 @@ contract TestableFractionalizeProposal is FractionalizeProposal {
     string public constant name = 'Test party';
     string public constant symbol = 'TST';
 
-    // A shallow version of the `onlyActiveMember` modifier.
-    modifier onlyActiveMember() {
+    // A shallow version of the `onlyActiveMemberOrSelf` modifier in `PartyGovernance`.
+    modifier onlyActiveMemberOrSelf() {
         if (msg.sender != address(this)) {
             revert("FAIL");
         }
@@ -55,7 +55,7 @@ contract TestableFractionalizeProposal is FractionalizeProposal {
         uint256 tokenId
     )
         external
-        onlyActiveMember
+        onlyActiveMemberOrSelf
         returns (ITokenDistributor.DistributionInfo memory distInfo)
     {
         emit MockCreateDistribution(msg.sender, tokenType, token, tokenId);

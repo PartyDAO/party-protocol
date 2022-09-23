@@ -224,6 +224,19 @@ abstract contract PartyGovernance is
 
     // Caller must own a governance NFT at the current time.
     modifier onlyActiveMember() {
+        {
+            VotingPowerSnapshot memory snap =
+                _getLastVotingPowerSnapshotForVoter(msg.sender);
+            // Must have either delegated voting power or intrinsic voting power.
+            if (snap.intrinsicVotingPower == 0 && snap.delegatedVotingPower == 0) {
+                revert OnlyActiveMemberError();
+            }
+        }
+        _;
+    }
+
+    // Caller must own a governance NFT at the current time or be the `Party` instance.
+    modifier onlyActiveMemberOrSelf() {
         // Ignore if the party is calling functions on itself, like with
         // `FractionalizeProposal` calling `distribute()`.
         if (msg.sender != address(this)) {
@@ -235,6 +248,7 @@ abstract contract PartyGovernance is
             }
         }
         _;
+
     }
 
     // Only the party DAO multisig can call.
@@ -478,6 +492,7 @@ abstract contract PartyGovernance is
     ///      propagated to the distribution. Party members are entitled to a
     ///      share of the distribution's tokens proportionate to their relative
     ///      voting power in this party (less the fee).
+    /// @dev Allow this to be called by the party itself for `FractionalizeProposal`.
     /// @param tokenType The type of token to distribute.
     /// @param token The address of the token to distribute.
     /// @param tokenId The ID of the token to distribute. Currently unused but
@@ -489,7 +504,7 @@ abstract contract PartyGovernance is
         uint256 tokenId
     )
         external
-        onlyActiveMember
+        onlyActiveMemberOrSelf
         onlyDelegateCall
         returns (ITokenDistributor.DistributionInfo memory distInfo)
     {
