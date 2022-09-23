@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: Apache-2.0
-pragma solidity ^0.8;
+pragma solidity 0.8.17;
 
 import "../tokens/IERC721.sol";
 import "./LibRawResult.sol";
