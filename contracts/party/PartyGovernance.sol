@@ -182,6 +182,7 @@ abstract contract PartyGovernance is
     error OnlyPartyDaoError(address notDao, address partyDao);
     error OnlyPartyDaoOrHostError(address notDao, address partyDao);
     error OnlyWhenEmergencyActionsAllowedError();
+    error OnlyWhenEnabledError();
     error AlreadyVotedError(address voter);
     error InvalidNewHostError();
     error ProposalCannotBeCancelledYetError(uint40 currentTime, uint40 cancelTime);
@@ -259,6 +260,13 @@ abstract contract PartyGovernance is
     modifier onlyWhenEmergencyExecuteAllowed() {
         if (emergencyExecuteDisabled) {
             revert OnlyWhenEmergencyActionsAllowedError();
+        }
+        _;
+    }
+
+    modifier onlyWhenEnabled() {
+        if (_GLOBALS.getBool(LibGlobals.GLOBAL_DISABLE_PARTY_ACTIONS)) {
+            revert OnlyWhenEnabledError();
         }
         _;
     }
@@ -488,6 +496,7 @@ abstract contract PartyGovernance is
     )
         external
         onlyActiveMember
+        onlyWhenEnabled
         onlyDelegateCall
         returns (ITokenDistributor.DistributionInfo memory distInfo)
     {
@@ -662,6 +671,7 @@ abstract contract PartyGovernance is
         external
         payable
         onlyActiveMember
+        onlyWhenEnabled
         onlyDelegateCall
     {
         // Get information about the proposal.

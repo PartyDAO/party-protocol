@@ -37,6 +37,10 @@ contract Globals is IGlobals {
         return uint256(_wordValues[key]);
     }
 
+    function getBool(uint256 key) external view returns (bool) {
+        return _wordValues[key] != bytes32(0);
+    }
+
     function getAddress(uint256 key) external view returns (address) {
         return address(uint160(uint256(_wordValues[key])));
     }
@@ -63,6 +67,10 @@ contract Globals is IGlobals {
 
     function setUint256(uint256 key, uint256 value) external onlyMultisig {
         _wordValues[key] = bytes32(value);
+    }
+
+    function setBool(uint256 key, bool value) external onlyMultisig {
+        _wordValues[key] = value ? bytes32(uint256(1)) : bytes32(0);
     }
 
     function setAddress(uint256 key, address value) external onlyMultisig {

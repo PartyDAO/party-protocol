@@ -2248,6 +2248,35 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
         gov.distribute(ITokenDistributor.TokenType.Native, ETH_ADDRESS, 0);
     }
 
+    function test_onlyWhenNotDisabled() external {
+        (IERC721[] memory preciousTokens, uint256[] memory preciousTokenIds) =
+            _createPreciousTokens(2);
+        TestablePartyGovernance gov =
+            _createGovernance(100e18, preciousTokens, preciousTokenIds);
+        address member = _randomAddress();
+        gov.rawAdjustVotingPower(member, 1, address(0));
+
+        // Disable party actions.
+        globals.setBool(LibGlobals.GLOBAL_DISABLE_PARTY_ACTIONS, true);
+
+        // Try executing a proposal.
+        vm.prank(member);
+        vm.expectRevert(PartyGovernance.OnlyWhenEnabledError.selector);
+        gov.execute(
+            0,
+            _createProposal(1),
+            preciousTokens,
+            preciousTokenIds,
+            "",
+            bytes("foo")
+        );
+
+        // Try creating a distribution.
+        vm.prank(member);
+        vm.expectRevert(PartyGovernance.OnlyWhenEnabledError.selector);
+        gov.distribute(ITokenDistributor.TokenType.Native, ETH_ADDRESS, 0);
+    }
+
     function test_canReceive1155Token() external {
         (IERC721[] memory preciousTokens, uint256[] memory preciousTokenIds) =
             _createPreciousTokens(2);
