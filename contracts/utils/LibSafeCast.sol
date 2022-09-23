@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: Apache-2.0
-pragma solidity ^0.8;
+pragma solidity 0.8.17;
 
 library LibSafeCast {
     error Uint256ToUint96CastOutOfRange(uint256 v);

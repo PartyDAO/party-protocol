@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Beta Software
 // http://ipfs.io/ipfs/QmbGX2MFCaMAsMNMugRFND6DtYygRkwkvrqEyTKhTdBLo5
-pragma solidity ^0.8;
+pragma solidity 0.8.17;
 
 import "../tokens/IERC721.sol";
 import "../party/Party.sol";
@@ -13,7 +13,7 @@ import "../gatekeepers/IGateKeeper.sol";
 import "./Crowdfund.sol";
 
 // Base for BuyCrowdfund and CollectionBuyCrowdfund
-abstract contract BuyCrowdfundBase is Implementation, Crowdfund {
+abstract contract BuyCrowdfundBase is Crowdfund {
     using LibSafeERC721 for IERC721;
     using LibSafeCast for uint256;
     using LibRawResult for bytes;

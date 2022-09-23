@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8;
+pragma solidity 0.8.17;
 
 // ============ External Imports ============
 import {IFoundationMarket} from "../vendor/markets/IFoundationMarket.sol";
