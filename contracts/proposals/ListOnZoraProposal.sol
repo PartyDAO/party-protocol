@@ -1,5 +1,6 @@
-// SPDX-License-Identifier: Apache-2.0
-pragma solidity ^0.8;
+// SPDX-License-Identifier: Beta Software
+// http://ipfs.io/ipfs/QmbGX2MFCaMAsMNMugRFND6DtYygRkwkvrqEyTKhTdBLo5
+pragma solidity 0.8.17;
 
 import "../globals/IGlobals.sol";
 import "../globals/LibGlobals.sol";
@@ -169,7 +170,7 @@ contract ListOnZoraProposal is ZoraHelpers {
     )
         internal
         override
-        returns (bool sold)
+        returns (ZoraAuctionStatus statusCode)
     {
         // Getting the state of an auction is super expensive so it seems
         // cheaper to just let `endAuction()` fail and react to the error.
@@ -178,7 +179,7 @@ contract ListOnZoraProposal is ZoraHelpers {
             // settlement by seeing if we now possess the NFT.
             if (token.safeOwnerOf(tokenId) == address(this)) {
                 emit ZoraAuctionFailed(auctionId);
-                return false;
+                return ZoraAuctionStatus.Cancelled;
             }
         } catch (bytes memory errData) {
             bytes32 errHash = keccak256(errData);
@@ -190,7 +191,7 @@ contract ListOnZoraProposal is ZoraHelpers {
                 }
                 ZORA.cancelAuction(auctionId);
                 emit ZoraAuctionExpired(auctionId, minExpiry);
-                return false;
+                return ZoraAuctionStatus.Expired;
             } else if (errHash != AUCTION_DOESNT_EXIST_ERROR_HASH) {
                 // Otherwise, we should get an auction doesn't exist error,
                 // because someone else must have called `endAuction()`.
@@ -200,6 +201,6 @@ contract ListOnZoraProposal is ZoraHelpers {
             // Already ended by someone else. Nothing to do.
         }
         emit ZoraAuctionSold(auctionId);
-        return true;
+        return ZoraAuctionStatus.Sold;
     }
 }

@@ -1,8 +1,7 @@
 import { expect, use } from 'chai';
 import { Contract } from 'ethers';
 import { keccak256, toUtf8Bytes } from 'ethers/lib/utils';
-import { MockProvider, solidity } from 'ethereum-waffle';
-import { env as ENV } from 'process';
+import { solidity } from 'ethereum-waffle';
 import * as ethers from 'ethers';
 
 import { abi as SEAPORT_ABI } from '../../out/IOpenseaExchange.sol/IOpenseaExchange.json';
@@ -24,19 +23,14 @@ import {
     NULL_HASH,
     ZERO,
     NULL_BYTES,
+    describeFork,
     now,
     increaseTime,
 } from '../utils';
 
 use(solidity);
 
-describe('Seaport proposals integrations test', () => {
-    let it = global.it;
-    if (!ENV.FORK_URL) {
-        console.info('no FORK_URL env var set, skipping forked tests.');
-        it = it.skip as any;
-        (it as any).skip = global.it.skip;
-    }
+describeFork('Seaport proposals integrations test', (provider) => {
     const SEAPORT_ADDRESS = '0x00000000006c3852cbEf3e08E8dF289169EdE581';
     const SEAPORT_CONDUIT_CONTROLLER_ADDRESS = '0x00000000F9490004C11Cef243f5400493c00Ad63';
     const SEAPORT_CONDUIT_KEY = '0x0000007b02230091a7ed01230072f7006a004d60a8d4e71d599b8104250f0000';
@@ -47,8 +41,7 @@ describe('Seaport proposals integrations test', () => {
     const OS_FEE = LIST_PRICE.mul(OS_FEE_RATE_BPS).div(1e4 - OS_FEE_RATE_BPS);
     const OS_FEE_RECIPIENT = '0x8De9C5A032463C561423387a9648c5C7BCC5BC90';
     const ZORA2_ADDRESS = '0xE468cE99444174Bd3bBBEd09209577d25D1ad673';
-    const provider = new MockProvider({ ganacheOptions: { fork: ENV.FORK_URL } });
-    const [worker, partyHost, minter, admin, multisig, buyer, ...availableVoters] = provider.getWallets();
+    const [worker, partyHost, minter, multisig, buyer, ...availableVoters] = provider.getWallets();
     let seaport: Contract;
     let sys: System;
 
@@ -57,8 +50,6 @@ describe('Seaport proposals integrations test', () => {
         sys = await System.createAsync({
             worker,
             daoMultisig: multisig,
-            admins: [admin],
-            daoSplit: 0.015,
             seaportAddress: SEAPORT_ADDRESS,
             seaportConduitController: SEAPORT_CONDUIT_CONTROLLER_ADDRESS,
             seaportConduitKey: SEAPORT_CONDUIT_KEY,
@@ -68,16 +59,6 @@ describe('Seaport proposals integrations test', () => {
             forcedZoraAuctionDuration: ONE_DAY_SECONDS / 2,
         });
     });
-
-    {
-        let snapshot: string;
-        beforeEach(async () => {
-            snapshot = await provider.send('evm_snapshot', []);
-        });
-        afterEach(async () => {
-            await provider.send('evm_revert', [ snapshot ]);
-        });
-    }
 
     it('works with full expiration', async () => {
         const party = await Party.createAsync({

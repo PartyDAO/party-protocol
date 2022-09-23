@@ -1,5 +1,6 @@
-// SPDX-License-Identifier: Apache-2.0
-pragma solidity ^0.8;
+// SPDX-License-Identifier: Beta Software
+// http://ipfs.io/ipfs/QmbGX2MFCaMAsMNMugRFND6DtYygRkwkvrqEyTKhTdBLo5
+pragma solidity 0.8.17;
 
 import "../globals/IGlobals.sol";
 import "../globals/LibGlobals.sol";
@@ -82,21 +83,6 @@ abstract contract ListOnOpenseaProposal is ZoraHelpers {
         IERC721 token,
         uint256 tokenId,
         uint256 expiry
-    );
-    // Coordinated event w/OS team to track on-chain orders.
-    event OrderValidated(
-        bytes32 orderHash,
-        address indexed offerer,
-        address indexed zone,
-        IOpenseaExchange.OfferItem[] offer,
-        IOpenseaExchange.ConsiderationItem[] consideration,
-        IOpenseaExchange.OrderType orderType,
-        uint256 startTime,
-        uint256 endTime,
-        bytes32 zoneHash,
-        uint256 salt,
-        bytes32 conduitKey,
-        uint256 counter
     );
 
     /// @notice The Seaport contract.
@@ -182,9 +168,20 @@ abstract contract ListOnOpenseaProposal is ZoraHelpers {
                 abi.decode(params.progressData, (uint8, ZoraProgressData));
             // Try to settle the Zora auction. This will revert if the auction
             // is still ongoing.
-            if (_settleZoraAuction(zpd.auctionId, zpd.minExpiry, data.token, data.tokenId)) {
-                // Auction sold. Nothing left to do. Return empty progress data
-                // to indicate there are no more steps to execute.
+            ZoraAuctionStatus statusCode = _settleZoraAuction(
+                zpd.auctionId,
+                zpd.minExpiry,
+                data.token,
+                data.tokenId
+            );
+            if (
+                statusCode == ZoraAuctionStatus.Sold ||
+                statusCode == ZoraAuctionStatus.Cancelled
+            ) {
+                // Auction sold or was cancelled. If it sold, there is nothing left to do.
+                // If it was cancelled, we cannot safely proceed with the listing. Return
+                // empty progress data to indicate there are no more steps to
+                // execute.
                 return "";
             }
             // The auction simply expired before anyone bid on it. We have the NFT
@@ -305,21 +302,6 @@ abstract contract ListOnOpenseaProposal is ZoraHelpers {
         orderHash = _getOrderHash(orderParams);
         // Validate the order on-chain so no signature is required to fill it.
         assert(SEAPORT.validate(orders));
-        // Emit the the coordinated OS event so their backend can detect this order.
-        emit OrderValidated(
-            orderHash,
-            orderParams.offerer,
-            orderParams.zone,
-            orderParams.offer,
-            orderParams.consideration,
-            orderParams.orderType,
-            orderParams.startTime,
-            orderParams.endTime,
-            orderParams.zoneHash,
-            orderParams.salt,
-            orderParams.conduitKey,
-            0
-        );
         emit OpenseaOrderListed(
             orderParams,
             orderHash,

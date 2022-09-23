@@ -288,7 +288,6 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
     event ProposalExecuted(uint256 indexed proposalId, address executor, bytes nextProgressData);
     event DistributionCreated(uint256 distributionId, IERC20 token);
     event VotingPowerDelegated(address indexed owner, address delegate);
-    event PreciousListSet(IERC721[] tokens, uint256[] tokenIds);
     event HostStatusTransferred(address oldHost, address newHost);
     event DummyProposalExecutionEngine_executeCalled(
         address context,

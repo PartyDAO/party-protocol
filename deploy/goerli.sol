@@ -4,11 +4,11 @@ pragma solidity ^0.8;
 import './deploy.sol';
 import './LibDeployConstants.sol';
 
-contract GoerliDeploy is Deploy {
-  function run() public {
+contract GoerliDeploy is DeployScript {
+  function _run() internal override {
     console.log('Starting goerli deploy script.');
 
-    run(LibDeployConstants.goerli());
+    deploy(LibDeployConstants.goerli(this.getDeployer()));
 
     console.log('Ending goerli deploy script.');
   }

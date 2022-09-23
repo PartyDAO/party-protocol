@@ -2,6 +2,7 @@
 src = 'contracts'
 out = 'out'
 test = 'sol-tests'
+script = 'deploy'
 libs = ['lib']
 gas_reports = ['Proxy', 'Party', 'PartyGovernance', 'ProposalExecutionEngine', 'AuctionCrowdfund', 'BuyCrowdfund', 'CollectionBuyCrowdfund', 'Crowdfund', 'PartyFactory', 'CrowdfundFactory', 'TokenDistributor']
 

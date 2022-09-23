@@ -1,5 +1,6 @@
-// SPDX-License-Identifier: Apache-2.0
-pragma solidity ^0.8;
+// SPDX-License-Identifier: Beta Software
+// http://ipfs.io/ipfs/QmbGX2MFCaMAsMNMugRFND6DtYygRkwkvrqEyTKhTdBLo5
+pragma solidity 0.8.17;
 
 import "../utils/ReadOnlyDelegateCall.sol";
 import "../utils/LibSafeCast.sol";
@@ -125,11 +126,19 @@ contract PartyGovernanceNFT is
         external
         onlyMinter
         onlyDelegateCall
+        returns (uint256 tokenId)
     {
-        uint256 tokenId = ++tokenCount;
+        tokenId = ++tokenCount;
         votingPowerByTokenId[tokenId] = votingPower;
+
+        // Use delegate from party over the one set during crowdfund.
+        address delegate_ = delegationsByVoter[owner];
+        if (delegate_ != address(0)) {
+            delegate = delegate_;
+        }
+
         _adjustVotingPower(owner, votingPower.safeCastUint256ToInt192(), delegate);
-        _mint(owner, tokenId);
+        _safeMint(owner, tokenId);
     }
 
     /// @inheritdoc ERC721
