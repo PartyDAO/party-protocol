@@ -4,7 +4,9 @@ pragma solidity ^0.8;
 import "forge-std/Test.sol";
 
 import "../../contracts/proposals/ArbitraryCallsProposal.sol";
+import "../../contracts/proposals/vendor/IOpenseaExchange.sol";
 
+import "../proposals/OpenseaTestUtils.sol";
 import "../TestUtils.sol";
 import "../DummyERC721.sol";
 
@@ -66,7 +68,8 @@ contract ArbitraryCallTarget {
 
 contract ArbitraryCallsProposalTest is
     Test,
-    TestUtils
+    TestUtils,
+    OpenseaTestUtils(IOpenseaExchange(address(0)))
 {
     event ArbitraryCallTargetSuccessCalled(
         address caller,
@@ -569,6 +572,38 @@ contract ArbitraryCallsProposalTest is
         calls[0].data = abi.encodeCall(
             ERC1155TokenReceiverBase.onERC1155BatchReceived,
             (_randomAddress(), _randomAddress(), _toUint256Array(0), _toUint256Array(0), bytes(''))
+        );
+        IProposalExecutionEngine.ExecuteProposalParams memory prop =
+            _createTestProposal(calls);
+        vm.expectRevert(abi.encodeWithSelector(
+            ArbitraryCallsProposal.CallProhibitedError.selector,
+            calls[0].target,
+            calls[0].data
+        ));
+        testContract.execute(prop);
+    }
+
+    function test_cannotCallValidateOnOpensea() external {
+        IOpenseaExchange.Order[] memory orders = new IOpenseaExchange.Order[](1);
+        orders[0] = _createFullOpenseaOrderParams(BuyOpenseaListingParams({
+            // The data doesn't matter, it should be reverted.
+            maker: payable(address(0)),
+            buyer: address(0),
+            token: IERC721(address(0)),
+            tokenId: 0,
+            listPrice: 0,
+            startTime: 0,
+            duration: 0,
+            zone: address(0),
+            conduitKey: bytes32(0)
+        }));
+        (
+            ArbitraryCallsProposal.ArbitraryCall[] memory calls,
+        ) = _createSimpleCalls(1, false);
+        calls[0].target = _randomAddress();
+        calls[0].data = abi.encodeCall(
+            IOpenseaExchange.validate,
+            (orders)
         );
         IProposalExecutionEngine.ExecuteProposalParams memory prop =
             _createTestProposal(calls);

@@ -7,6 +7,7 @@ import "../tokens/IERC721Receiver.sol";
 import "../tokens/ERC1155Receiver.sol";
 import "../utils/LibSafeERC721.sol";
 import "../utils/LibAddress.sol";
+import "./vendor/IOpenseaExchange.sol";
 
 import "./LibProposal.sol";
 import "./IProposalExecutionEngine.sol";
@@ -205,7 +206,11 @@ contract ArbitraryCallsProposal {
                 selector == ERC1155TokenReceiverBase.onERC1155BatchReceived.selector
             ) {
                return false;
-           }
+            }
+            // Disallow calling `validate()` on Seaport.
+            if (selector == IOpenseaExchange.validate.selector) {
+                return false;
+            }
         }
         // All other calls are allowed.
         return true;
