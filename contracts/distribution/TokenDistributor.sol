@@ -59,8 +59,8 @@ contract TokenDistributor is ITokenDistributor {
     ///         is immutable and it’s address will never change.
     IGlobals public immutable GLOBALS;
 
-    /// @notice Whether the DAO is no longer allowed to call emergency functions.
-    bool public emergencyActionsDisabled;
+    /// @notice Timestamp when the DAO is no longer allowed to call emergency functions.
+    uint40 public emergencyExecuteDisabledTimestamp;
     /// @notice Last distribution ID for a party.
     mapping(ITokenDistributorParty => uint256) public lastDistributionIdPerParty;
     /// Last known balance of a token, identified by an ID derived from the token.
@@ -82,17 +82,17 @@ contract TokenDistributor is ITokenDistributor {
         _;
     }
 
-    // emergencyActionsDisabled == false
     modifier onlyIfEmergencyActionsAllowed() {
-        if (emergencyActionsDisabled) {
+        if (block.timestamp > emergencyExecuteDisabledTimestamp) {
             revert EmergencyActionsNotAllowedError();
         }
         _;
     }
 
     // Set the `Globals` contract.
-    constructor(IGlobals globals) {
+    constructor(IGlobals globals, uint40 _emergencyExecuteDisabledTimestamp) {
         GLOBALS = globals;
+        emergencyExecuteDisabledTimestamp = _emergencyExecuteDisabledTimestamp;
     }
 
     /// @inheritdoc ITokenDistributor
@@ -298,35 +298,24 @@ contract TokenDistributor is ITokenDistributor {
         return _distributionStates[party][distributionId].remainingMemberSupply;
     }
 
-    /// @notice DAO-only function to clear a distribution in case something goes wrong.
-    function emergencyRemoveDistribution(
-        ITokenDistributorParty party,
-        uint256 distributionId
+    /// @notice As the DAO, execute an arbitrary function call from this contract.
+    /// @dev Emergency actions must not be revoked for this to work.
+    /// @param targetAddress The contract to call.
+    /// @param targetCallData The data to pass to the contract.
+    function emergencyExecute(
+        address targetAddress,
+        bytes calldata targetCallData,
+        uint256 amountEth
     )
+        external
+        payable
         onlyPartyDao
         onlyIfEmergencyActionsAllowed
-        external
     {
-        delete _distributionStates[party][distributionId];
-    }
-
-    /// @notice DAO-only function to withdraw tokens in case something goes wrong.
-    function emergencyWithdraw(
-        TokenType tokenType,
-        address token,
-        address payable recipient,
-        uint256 amount
-    )
-        onlyPartyDao
-        onlyIfEmergencyActionsAllowed
-        external
-    {
-        _transfer(tokenType, token, recipient, amount);
-    }
-
-    /// @notice DAO-only function to disable emergency functions forever.
-    function disableEmergencyActions() onlyPartyDao external {
-        emergencyActionsDisabled = true;
+        (bool success, bytes memory res) = targetAddress.call{value: amountEth}(targetCallData);
+        if (!success) {
+            res.rawRevert();
+        }
     }
 
     function _createDistribution(CreateDistributionArgs memory args)

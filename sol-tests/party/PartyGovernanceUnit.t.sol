@@ -165,24 +165,6 @@ contract DummyTokenDistributor is ITokenDistributor {
         external
         view
         returns (uint128) {}
-
-    function emergencyRemoveDistribution(
-        ITokenDistributorParty,
-        uint256
-    )
-        external {}
-
-    /// @notice DAO-only function to withdraw tokens in case something goes wrong.
-    function emergencyWithdraw(
-        TokenType,
-        address,
-        uint256,
-        address payable,
-        uint256
-    )
-        external {}
-
-    function disableEmergencyActions() external {}
 }
 
 contract TestablePartyGovernance is PartyGovernance {

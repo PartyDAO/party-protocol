@@ -199,7 +199,7 @@ export class System {
         const tokenDistributor = await deployContract(
             worker,
             artifacts.TokenDistributor as any,
-            [globals.address],
+            [globals.address, 0]
         );
         await (await globals.setAddress(
             GlobalKeys.TokenDistributor,

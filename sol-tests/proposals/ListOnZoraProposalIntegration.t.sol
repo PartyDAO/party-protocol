@@ -44,7 +44,7 @@ contract ListOnZoraProposalIntegrationTest is
       address globalDaoWalletAddress = address(420);
       globalsAdmin.setGlobalDaoWallet(globalDaoWalletAddress);
 
-      tokenDistributor = new TokenDistributor(globals);
+      tokenDistributor = new TokenDistributor(globals, 0);
       globalsAdmin.setTokenDistributor(address(tokenDistributor));
 
       ProposalExecutionEngine pe = new ProposalExecutionEngine(

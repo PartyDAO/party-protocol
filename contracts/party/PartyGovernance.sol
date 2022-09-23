@@ -780,7 +780,6 @@ abstract contract PartyGovernance is
     /// @param targetAddress The contract to call.
     /// @param targetCallData The data to pass to the contract.
     /// @param amountEth The amount of ETH to send to the contract.
-    /// @param success Whether the call succeeded.
     function emergencyExecute(
         address targetAddress,
         bytes calldata targetCallData,
@@ -791,9 +790,11 @@ abstract contract PartyGovernance is
         onlyPartyDao
         onlyWhenEmergencyExecuteAllowed
         onlyDelegateCall
-        returns (bool success)
     {
-        (success, ) = targetAddress.call{value: amountEth}(targetCallData);
+        (bool success, bytes memory res) = targetAddress.call{value: amountEth}(targetCallData);
+        if (!success) {
+            res.rawRevert();
+        }
     }
 
     /// @notice Revoke the DAO's ability to call emergencyExecute().
