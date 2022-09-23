@@ -592,7 +592,7 @@ abstract contract PartyGovernance is
         info.hasVoted[msg.sender] = true;
 
         // Increase the total votes that have been cast on this proposal.
-        uint96 votingPower = getVotingPowerAt(msg.sender, values.proposedTime, snapIndex);
+        uint96 votingPower = getVotingPowerAt(msg.sender, values.proposedTime - 1, snapIndex);
         values.votes += votingPower;
         info.values = values;
         emit ProposalAccepted(proposalId, msg.sender, votingPower);
