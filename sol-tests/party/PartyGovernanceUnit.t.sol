@@ -1803,6 +1803,43 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
         gov.accept(proposalId, 0);
     }
 
+    function testVoting_cannotVoteAgainByTransferringVotingCard() external {
+        (IERC721[] memory preciousTokens, uint256[] memory preciousTokenIds) =
+            _createPreciousTokens(2);
+        TestablePartyGovernance gov =
+            _createGovernance(100e18, preciousTokens, preciousTokenIds);
+        // Give voter 30 intrinsic VP.
+        address voter = _randomAddress();
+        gov.rawAdjustVotingPower(voter, 30e18, address(0));
+
+        // Create a one-step proposal.
+        PartyGovernance.Proposal memory proposal = _createProposal(1);
+        uint256 proposalId = gov.getNextProposalId();
+        // Skip because `accept()` will query voting power at `proposedTime - 1`
+        skip(1);
+        _expectProposalAcceptedEvent(
+            proposalId,
+            voter,
+            30e18
+        );
+        vm.prank(voter);
+        gov.propose(proposal, 0);
+
+        // Transfer VP to another wallet.
+        address anotherWallet = _randomAddress();
+        gov.transferVotingPower(voter, anotherWallet, 30e18);
+
+        // Assert that this does not increase votes (proposal was accepted with 0 VP)
+        // because voting power queried from the past
+        _expectProposalAcceptedEvent(
+            proposalId,
+            anotherWallet,
+            0
+        );
+        vm.prank(anotherWallet);
+        gov.accept(proposalId, 0);
+    }
+
     // Circular delegation.
     function testVoting_circularDelegation() external {
         (IERC721[] memory preciousTokens, uint256[] memory preciousTokenIds) =
