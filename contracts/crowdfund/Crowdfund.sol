@@ -70,6 +70,13 @@ abstract contract Crowdfund is Implementation, ERC721Receiver, CrowdfundNFT {
         uint96 amount;
     }
 
+    // A record of the refund and governance NFT owed to a contributor if it
+    // could not be received by them from `burn()`.
+    struct Claim {
+        uint256 refund;
+        uint256 governanceTokenId;
+    }
+
     error PartyAlreadyExistsError(Party party);
     error WrongLifecycleError(CrowdfundLifecycle lc);
     error InvalidGovernanceOptionsError(bytes32 actualHash, bytes32 expectedHash);
@@ -79,6 +86,7 @@ abstract contract Crowdfund is Implementation, ERC721Receiver, CrowdfundNFT {
     error NotAllowedByGateKeeperError(address contributor, IGateKeeper gateKeeper, bytes12 gateKeeperId, bytes gateData);
     error SplitRecipientAlreadyBurnedError();
     error InvalidBpsError(uint16 bps);
+    error NothingToClaimError();
 
     event Burned(address contributor, uint256 ethUsed, uint256 ethOwed, uint256 votingPower);
     event Contributed(address contributor, uint256 amount, address delegate, uint256 previousTotalContributions);
@@ -113,7 +121,11 @@ abstract contract Crowdfund is Implementation, ERC721Receiver, CrowdfundNFT {
     mapping(address => address) public delegationsByContributor;
     // Array of contributions by a contributor.
     // One is created for every nonzero contribution made.
-    mapping (address => Contribution[]) private _contributionsByContributor;
+    mapping(address => Contribution[]) private _contributionsByContributor;
+    /// @notice Stores the amount of ETH owed back to a contributor and governance NFT
+    ///         that should be minted to them if it could not be transferred to
+    ///         them with `burn()`.
+    mapping(address => Claim) public claims;
 
     // Set the `Globals` contract.
     constructor(IGlobals globals) CrowdfundNFT(globals) {
@@ -165,21 +177,40 @@ abstract contract Crowdfund is Implementation, ERC721Receiver, CrowdfundNFT {
     ///      If the party has lost, this will only refund unused ETH (all of it) for
     ///      the given `contributor`.
     /// @param contributor The contributor whose NFT to burn for.
-    function burn(address payable contributor)
-        public
-    {
+    function burn(address payable contributor) external {
         return _burn(contributor, getCrowdfundLifecycle(), party);
     }
 
     /// @notice `burn()` in batch form.
     /// @param contributors The contributors whose NFT to burn for.
-    function batchBurn(address payable[] calldata contributors)
-        external
-    {
+    function batchBurn(address payable[] calldata contributors) external {
         Party party_ = party;
         CrowdfundLifecycle lc = getCrowdfundLifecycle();
         for (uint256 i = 0; i < contributors.length; ++i) {
             _burn(contributors[i], lc, party_);
+        }
+    }
+
+    /// @notice Claim a governance NFT or refund that is owed back but could not be
+    ///         given due to error in `_burn()` (eg. a contract that does not
+    ///         implement `onERC721Received()` or cannot receive ETH). Only call
+    ///         this if refund and governance NFT minting could not be returned
+    ///         with `burn()`.
+    /// @param receiver The address to receive the NFT or refund.
+    function claim(address payable receiver) external {
+        Claim memory claimInfo = claims[msg.sender];
+        delete claims[msg.sender];
+
+        if (claimInfo.refund == 0 && claimInfo.governanceTokenId == 0) {
+            revert NothingToClaimError();
+        }
+
+        if (claimInfo.refund != 0) {
+            receiver.transferEth(claimInfo.refund);
+        }
+
+        if (claimInfo.governanceTokenId != 0) {
+            party.safeTransferFrom(address(this), receiver, claimInfo.governanceTokenId);
         }
     }
 
@@ -443,9 +474,7 @@ abstract contract Crowdfund is Implementation, ERC721Receiver, CrowdfundNFT {
         }
     }
 
-    function _burn(address payable contributor, CrowdfundLifecycle lc, Party party_)
-        private
-    {
+    function _burn(address payable contributor, CrowdfundLifecycle lc, Party party_) private {
         // If the CF has won, a party must have been created prior.
         if (lc == CrowdfundLifecycle.Won) {
             if (party_ == Party(payable(0))) {
@@ -479,14 +508,22 @@ abstract contract Crowdfund is Implementation, ERC721Receiver, CrowdfundNFT {
                 delegate = contributor;
             }
             // Mint governance NFT for the contributor.
-            party_.mint(
-                contributor,
-                votingPower,
-                delegate
-            );
+            try party_.mint(contributor, votingPower, delegate) returns (uint256) {
+                // OK
+            } catch {
+                // Mint to the crowdfund itself to escrow for contributor to
+                // come claim later on.
+                uint256 tokenId = party_.mint(address(this), votingPower, delegate);
+                claims[contributor].governanceTokenId = tokenId;
+            }
         }
         // Refund any ETH owed back to the contributor.
-        contributor.transferEth(ethOwed);
+        (bool s, ) = contributor.call{value: ethOwed}("");
+        if (!s) {
+            // If the transfer fails, the contributor can still come claim it
+            // from the crowdfund.
+            claims[contributor].refund = ethOwed;
+        }
         emit Burned(contributor, ethUsed, ethOwed, votingPower);
     }
 

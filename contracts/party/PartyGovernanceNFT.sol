@@ -126,8 +126,9 @@ contract PartyGovernanceNFT is
         external
         onlyMinter
         onlyDelegateCall
+        returns (uint256 tokenId)
     {
-        uint256 tokenId = ++tokenCount;
+        tokenId = ++tokenCount;
         votingPowerByTokenId[tokenId] = votingPower;
 
         // Use delegate from party over the one set during crowdfund.
@@ -137,7 +138,7 @@ contract PartyGovernanceNFT is
         }
 
         _adjustVotingPower(owner, votingPower.safeCastUint256ToInt192(), delegate);
-        _mint(owner, tokenId);
+        _safeMint(owner, tokenId);
     }
 
     /// @inheritdoc ERC721

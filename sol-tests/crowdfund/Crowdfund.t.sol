@@ -18,6 +18,17 @@ import "./MockPartyFactory.sol";
 import "./MockParty.sol";
 import "./TestableCrowdfund.sol";
 
+contract BadETHReceiver is ERC721Receiver {
+    // Does not implement `receive()`.
+    // But can still receive NFT.
+}
+
+contract BadERC721Receiver {
+    // Does not implement `onERC721Received()`.
+    // But can still receive ETH.
+    receive() external payable {}
+}
+
 contract CrowdfundTest is Test, TestUtils {
     event MockPartyFactoryCreateParty(
         address caller,
@@ -795,23 +806,151 @@ contract CrowdfundTest is Test, TestUtils {
         cf.contribute{ value: contributor2.balance }(delegate2, abi.encode(new bytes32[](0)));
     }
 
-    function test_revertIfNullContributor() public {
-        // Attempt creating a crowdfund and setting a null address as the initial contributor
-        vm.expectRevert(CrowdfundNFT.InvalidAddressError.selector);
-        new TestableCrowdfund{value: 1 ether }(
-            globals,
-            Crowdfund.CrowdfundOptions({
-                name: defaultName,
-                symbol: defaultSymbol,
-                splitRecipient: defaultSplitRecipient,
-                splitBps: defaultSplitBps,
-                initialContributor: address(0),
-                initialDelegate: address(this),
-                gateKeeper: defaultGateKeeper,
-                gateKeeperId: defaultGateKeeperId,
-                governanceOpts: defaultGovernanceOpts
-            })
+    function testBurn_failMintingGovNFT() public {
+        TestableCrowdfund cf = _createCrowdfund(0);
+        address delegate1 = _randomAddress();
+        address payable badERC721Receiver = payable(new BadERC721Receiver());
+        // badERC721Receiver contributes 1 ETH
+        vm.deal(badERC721Receiver, 1e18);
+        vm.prank(badERC721Receiver);
+        cf.contribute{ value: badERC721Receiver.balance }(delegate1, "");
+        assertEq(cf.totalContributions(), 1e18);
+        // set up a win using badERC721Receiver's total contribution
+        (IERC721[] memory erc721Tokens, uint256[] memory erc721TokenIds) =
+            _createTokens(address(cf), 2);
+        vm.expectEmit(false, false, false, true);
+        emit MockPartyFactoryCreateParty(
+            address(cf),
+            address(cf),
+            _createExpectedPartyOptions(cf, 1e18),
+            erc721Tokens,
+            erc721TokenIds
         );
+        Party party_ = cf.testSetWon(
+            1e18,
+            defaultGovernanceOpts,
+            erc721Tokens,
+            erc721TokenIds
+        );
+        assertEq(address(party_), address(party));
+        // badERC721Receiver burns tokens
+        vm.expectEmit(false, false, false, true);
+        emit MockMint(
+            address(cf),
+            address(cf), // Gov NFT was minted to crowdfund to escrow
+            1e18,
+            delegate1
+        );
+        cf.burn(badERC721Receiver);
+        assertEq(party.balanceOf(badERC721Receiver), 0);
+        assertEq(party.balanceOf(address(cf)), 1);
+
+        // Expect revert if claiming to bad receiver
+        vm.prank(badERC721Receiver);
+        vm.expectRevert();
+        cf.claim(badERC721Receiver);
+
+        address payable receiver = payable(_randomAddress());
+        vm.prank(badERC721Receiver);
+        cf.claim(receiver);
+        assertEq(party.balanceOf(receiver), 1);
+        assertEq(party.balanceOf(address(cf)), 0);
+
+        // Check that claim is now cleared
+        (uint256 refund, uint256 governanceTokenId) = cf.claims(badERC721Receiver);
+        assertEq(refund, 0);
+        assertEq(governanceTokenId, 0);
+    }
+
+    function testBurn_failRefundingETH() public {
+        TestableCrowdfund cf = _createCrowdfund(0);
+        address delegate1 = _randomAddress();
+        address payable badETHReceiver = payable(address(new BadETHReceiver()));
+        // badETHReceiver contributes 2 ETH
+        vm.deal(badETHReceiver, 2e18);
+        vm.prank(badETHReceiver);
+        cf.contribute{ value: badETHReceiver.balance }(delegate1, "");
+        assertEq(cf.totalContributions(), 2e18);
+        // set up a win using badETHReceiver's total contribution
+        (IERC721[] memory erc721Tokens, uint256[] memory erc721TokenIds) =
+            _createTokens(address(cf), 2);
+        vm.expectEmit(false, false, false, true);
+        emit MockPartyFactoryCreateParty(
+            address(cf),
+            address(cf),
+            _createExpectedPartyOptions(cf, 1e18),
+            erc721Tokens,
+            erc721TokenIds
+        );
+        Party party_ = cf.testSetWon(
+            1e18,
+            defaultGovernanceOpts,
+            erc721Tokens,
+            erc721TokenIds
+        );
+        assertEq(address(party_), address(party));
+        // badETHReceiver burns tokens
+        vm.expectEmit(false, false, false, true);
+        emit MockMint(
+            address(cf),
+            badETHReceiver,
+            1e18,
+            delegate1
+        );
+        cf.burn(badETHReceiver);
+        assertEq(badETHReceiver.balance, 0);
+
+        // Expect revert if claiming to bad receiver
+        vm.prank(badETHReceiver);
+        vm.expectRevert(abi.encodeWithSelector(
+            LibAddress.EthTransferFailed.selector,
+            badETHReceiver,
+            ""
+        ));
+        cf.claim(badETHReceiver);
+
+        address payable receiver = payable(_randomAddress());
+        vm.prank(badETHReceiver);
+        cf.claim(receiver);
+        assertEq(receiver.balance, 1e18);
+        assertEq(badETHReceiver.balance, 0);
+
+        // Check that claim is now cleared
+        (uint256 refund, uint256 governanceTokenId) = cf.claims(badETHReceiver);
+        assertEq(refund, 0);
+        assertEq(governanceTokenId, 0);
+    }
+
+    function testClaim_nothingToClaim() public {
+        TestableCrowdfund cf = _createCrowdfund(0);
+        vm.expectRevert(abi.encodeWithSelector(
+            Crowdfund.NothingToClaimError.selector
+        ));
+        cf.claim(_randomAddress());
+    }
+
+    function test_revertIfNullContributor() public {
+        Implementation impl = Implementation(new TestableCrowdfund(globals));
+        // Attempt creating a crowdfund and setting a null address as the
+        // initial contributor. Should revert when it attempts to mint a
+        // contributor NFT to `address(0)`.
+        vm.expectRevert(CrowdfundNFT.InvalidAddressError.selector);
+        TestableCrowdfund(payable(new Proxy{ value: 1 ether }(
+            impl,
+            abi.encodeCall(TestableCrowdfund.initialize, (
+                Crowdfund.CrowdfundOptions({
+                    name: defaultName,
+                    symbol: defaultSymbol,
+                    splitRecipient: defaultSplitRecipient,
+                    splitBps: defaultSplitBps,
+                    initialContributor: address(0),
+                    initialDelegate: address(this),
+                    gateKeeper: defaultGateKeeper,
+                    gateKeeperId: defaultGateKeeperId,
+                    governanceOpts: defaultGovernanceOpts
+                })
+            ))
+        )));
     }
 
     // test nft renderer
