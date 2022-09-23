@@ -21,10 +21,10 @@ contract TokenDistributor is ITokenDistributor {
     using LibSafeCast for uint256;
 
     struct DistributionState {
+        // The hash of the `DistributionInfo`.
+        bytes32 distributionHash;
         // The remaining member supply.
         uint128 remainingMemberSupply;
-        // The 15-byte hash of the `DistributionInfo`.
-        bytes15 distributionHash15;
         // Whether the distribution's feeRecipient has claimed its fee.
         bool wasFeeClaimed;
         // Whether a governance token has claimed its distribution share.
@@ -149,7 +149,7 @@ contract TokenDistributor is ITokenDistributor {
         }
         // DistributionInfo must be correct for this distribution ID.
         DistributionState storage state = _distributionStates[info.party][info.distributionId];
-        if (state.distributionHash15 != _getDistributionHash(info)) {
+        if (state.distributionHash != _getDistributionHash(info)) {
             revert InvalidDistributionInfoError(info);
         }
         // The partyTokenId must not have claimed its distribution yet.
@@ -193,7 +193,7 @@ contract TokenDistributor is ITokenDistributor {
     {
         // DistributionInfo must be correct for this distribution ID.
         DistributionState storage state = _distributionStates[info.party][info.distributionId];
-        if (state.distributionHash15 != _getDistributionHash(info)) {
+        if (state.distributionHash != _getDistributionHash(info)) {
             revert InvalidDistributionInfoError(info);
         }
         // Caller must be the fee recipient.
@@ -363,7 +363,7 @@ contract TokenDistributor is ITokenDistributor {
             fee: fee
         });
         (
-            _distributionStates[args.party][info.distributionId].distributionHash15,
+            _distributionStates[args.party][info.distributionId].distributionHash,
             _distributionStates[args.party][info.distributionId].remainingMemberSupply
         ) = (_getDistributionHash(info), memberSupply);
         emit DistributionCreated(args.party, info);
@@ -402,13 +402,10 @@ contract TokenDistributor is ITokenDistributor {
     function _getDistributionHash(DistributionInfo memory info)
         internal
         pure
-        returns (bytes15 hash)
+        returns (bytes32 hash)
     {
         assembly {
-            hash := and(
-                keccak256(info, 0xe0),
-                0xffffffffffffffffffffffffffffff0000000000000000000000000000000000
-            )
+            hash := keccak256(info, 0xe0)
         }
     }
 
