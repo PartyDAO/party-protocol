@@ -9,7 +9,13 @@ import "./Party.sol";
 
 // Creates generic Party instances.
 interface IPartyFactory {
-    event PartyCreated(Party party, Party.PartyOptions opts, address creator);
+    event PartyCreated(
+        Party party,
+        Party.PartyOptions opts,
+        IERC721[] preciousTokens,
+        uint256[] preciousTokenIds,
+        address creator
+    );
 
     /// @notice Deploy a new party instance. Afterwards, governance NFTs can be minted
     ///         for party members using the `mint()` function from the newly
