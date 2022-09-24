@@ -248,7 +248,6 @@ abstract contract PartyGovernance is
             }
         }
         _;
-
     }
 
     // Only the party DAO multisig can call.
