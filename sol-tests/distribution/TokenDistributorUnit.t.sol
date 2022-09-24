@@ -45,7 +45,7 @@ contract TestTokenDistributorHash is TokenDistributor(IGlobals(address(0)), 0) {
     function getDistributionHash(DistributionInfo memory info)
         external
         pure
-        returns (bytes15 hash)
+        returns (bytes32 hash)
     {
         return _getDistributionHash(info);
     }
@@ -633,8 +633,8 @@ contract TokenDistributorUnitTest is Test, TestUtils {
             memberSupply: uint128(_randomUint256()),
             fee: uint128(_randomUint256())
         });
-        bytes15 expectedHash = bytes15(keccak256(abi.encode(di)));
-        bytes15 actualHash = new TestTokenDistributorHash().getDistributionHash(di);
+        bytes32 expectedHash = keccak256(abi.encode(di));
+        bytes32 actualHash = new TestTokenDistributorHash().getDistributionHash(di);
         assertEq(actualHash, expectedHash);
     }
 

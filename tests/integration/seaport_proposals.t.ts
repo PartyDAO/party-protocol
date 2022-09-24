@@ -1,5 +1,6 @@
 import { expect, use } from 'chai';
 import { Contract } from 'ethers';
+import { keccak256, toUtf8Bytes } from 'ethers/lib/utils';
 import { solidity } from 'ethereum-waffle';
 import * as ethers from 'ethers';
 
@@ -87,11 +88,14 @@ describeFork('Seaport proposals integrations test', (provider) => {
                 tokenId: party.preciousTokens[0].tokenId,
                 fees: [OS_FEE],
                 feeRecipients: [OS_FEE_RECIPIENT],
+                domainHashPrefix: keccak256(toUtf8Bytes("partybid")).slice(0, 10)
             },
             now() + ONE_DAY_SECONDS,
             now() + 30 * ONE_DAY_SECONDS,
         );
         // Propose.
+        // Skip because `accept()` will query voting power at `proposedTime - 1`
+        await increaseTime(provider, 1);
         const proposalId = await voters[0].proposeAsync(proposal);
         expect(await party.getProposalStatusAsync(proposalId)).to.eq(ProposalStatus.Voting);
         // Vote.
@@ -148,11 +152,14 @@ describeFork('Seaport proposals integrations test', (provider) => {
                 tokenId: party.preciousTokens[0].tokenId,
                 fees: [OS_FEE],
                 feeRecipients: [OS_FEE_RECIPIENT],
+                domainHashPrefix: keccak256(toUtf8Bytes("partybid")).slice(0, 10)
             },
             now() + ONE_DAY_SECONDS,
             now() + 30 * ONE_DAY_SECONDS,
         );
         // Propose.
+        // Skip because `accept()` will query voting power at `proposedTime - 1`
+        await increaseTime(provider, 1);
         const proposalId = await voters[0].proposeAsync(proposal);
         expect(await party.getProposalStatusAsync(proposalId)).to.eq(ProposalStatus.Voting);
         // Vote.
