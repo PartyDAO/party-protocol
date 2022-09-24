@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Beta Software
 // http://ipfs.io/ipfs/QmbGX2MFCaMAsMNMugRFND6DtYygRkwkvrqEyTKhTdBLo5
-pragma solidity ^0.8;
+pragma solidity 0.8.17;
 
 // Interface the caller of `ITokenDistributor.createDistribution()` must implement.
 interface ITokenDistributorParty {

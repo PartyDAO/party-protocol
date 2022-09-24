@@ -4,7 +4,9 @@ pragma solidity ^0.8;
 import "forge-std/Test.sol";
 
 import "../../contracts/proposals/ArbitraryCallsProposal.sol";
+import "../../contracts/proposals/vendor/IOpenseaExchange.sol";
 
+import "../proposals/OpenseaTestUtils.sol";
 import "../TestUtils.sol";
 import "../DummyERC721.sol";
 
@@ -66,7 +68,8 @@ contract ArbitraryCallTarget {
 
 contract ArbitraryCallsProposalTest is
     Test,
-    TestUtils
+    TestUtils,
+    OpenseaTestUtils(IOpenseaExchange(address(0)))
 {
     event ArbitraryCallTargetSuccessCalled(
         address caller,
@@ -247,6 +250,27 @@ contract ArbitraryCallsProposalTest is
             emit ArbitraryCallExecuted(prop.proposalId, i, calls.length);
         }
         testContract.execute{ value: 1.5e18 }(prop);
+    }
+
+    function test_canExecuteCallWithEth_refundsLeftover() external {
+        (
+            ArbitraryCallsProposal.ArbitraryCall[] memory calls,
+            bytes32[] memory callArgs
+        ) = _createSimpleCalls(1, false);
+        calls[0].value = 1e18;
+        IProposalExecutionEngine.ExecuteProposalParams memory prop =
+            _createTestProposal(calls);
+        for (uint256 i = 0; i < calls.length; ++i) {
+            _expectNonIndexedEmit();
+            emit ArbitraryCallTargetSuccessCalled(address(testContract), calls[i].value, callArgs[i]);
+            _expectNonIndexedEmit();
+            emit ArbitraryCallExecuted(prop.proposalId, i, calls.length);
+        }
+        uint256 balanceBefore = address(this).balance;
+        testContract.execute{ value: 2e18 }(prop);
+        uint256 balanceAfter = address(this).balance;
+        // Spent 2 ETH, refunded 1 ETH
+        assertEq(balanceBefore - balanceAfter, 1e18);
     }
 
     function test_cannotConsumeMoreEthThanAttachedWithSingleCall() external {
@@ -521,6 +545,76 @@ contract ArbitraryCallsProposalTest is
         testContract.execute(prop);
     }
 
+    function test_cannotCallOnERC1155Received() external {
+        (
+            ArbitraryCallsProposal.ArbitraryCall[] memory calls,
+        ) = _createSimpleCalls(1, false);
+        calls[0].target = _randomAddress();
+        calls[0].data = abi.encodeCall(
+            ERC1155TokenReceiverBase.onERC1155Received,
+            (_randomAddress(), _randomAddress(), _randomUint256(), _randomUint256(), bytes(''))
+        );
+        IProposalExecutionEngine.ExecuteProposalParams memory prop =
+            _createTestProposal(calls);
+        vm.expectRevert(abi.encodeWithSelector(
+            ArbitraryCallsProposal.CallProhibitedError.selector,
+            calls[0].target,
+            calls[0].data
+        ));
+        testContract.execute(prop);
+    }
+
+    function test_cannotCallOnERC1155BatchReceived() external {
+        (
+            ArbitraryCallsProposal.ArbitraryCall[] memory calls,
+        ) = _createSimpleCalls(1, false);
+        calls[0].target = _randomAddress();
+        calls[0].data = abi.encodeCall(
+            ERC1155TokenReceiverBase.onERC1155BatchReceived,
+            (_randomAddress(), _randomAddress(), _toUint256Array(0), _toUint256Array(0), bytes(''))
+        );
+        IProposalExecutionEngine.ExecuteProposalParams memory prop =
+            _createTestProposal(calls);
+        vm.expectRevert(abi.encodeWithSelector(
+            ArbitraryCallsProposal.CallProhibitedError.selector,
+            calls[0].target,
+            calls[0].data
+        ));
+        testContract.execute(prop);
+    }
+
+    function test_cannotCallValidateOnOpensea() external {
+        IOpenseaExchange.Order[] memory orders = new IOpenseaExchange.Order[](1);
+        orders[0] = _createFullOpenseaOrderParams(BuyOpenseaListingParams({
+            // The data doesn't matter, it should be reverted.
+            maker: payable(address(0)),
+            buyer: address(0),
+            token: IERC721(address(0)),
+            tokenId: 0,
+            listPrice: 0,
+            startTime: 0,
+            duration: 0,
+            zone: address(0),
+            conduitKey: bytes32(0)
+        }));
+        (
+            ArbitraryCallsProposal.ArbitraryCall[] memory calls,
+        ) = _createSimpleCalls(1, false);
+        calls[0].target = _randomAddress();
+        calls[0].data = abi.encodeCall(
+            IOpenseaExchange.validate,
+            (orders)
+        );
+        IProposalExecutionEngine.ExecuteProposalParams memory prop =
+            _createTestProposal(calls);
+        vm.expectRevert(abi.encodeWithSelector(
+            ArbitraryCallsProposal.CallProhibitedError.selector,
+            calls[0].target,
+            calls[0].data
+        ));
+        testContract.execute(prop);
+    }
+
     function test_cannotExecuteShortApproveCallData() external {
         (
             ArbitraryCallsProposal.ArbitraryCall[] memory calls,
@@ -565,4 +659,7 @@ contract ArbitraryCallsProposalTest is
             mstore(data, sub(mload(data), bytesFromEnd))
         }
     }
+
+    // To receive ETH refunds
+    receive() external payable {}
 }

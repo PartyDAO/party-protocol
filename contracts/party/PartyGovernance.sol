@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Beta Software
 // http://ipfs.io/ipfs/QmbGX2MFCaMAsMNMugRFND6DtYygRkwkvrqEyTKhTdBLo5
-pragma solidity ^0.8;
+pragma solidity 0.8.17;
 
 import "../distribution/ITokenDistributorParty.sol";
 import "../distribution/ITokenDistributor.sol";
@@ -592,7 +592,7 @@ abstract contract PartyGovernance is
         info.hasVoted[msg.sender] = true;
 
         // Increase the total votes that have been cast on this proposal.
-        uint96 votingPower = getVotingPowerAt(msg.sender, values.proposedTime, snapIndex);
+        uint96 votingPower = getVotingPowerAt(msg.sender, values.proposedTime - 1, snapIndex);
         values.votes += votingPower;
         info.values = values;
         emit ProposalAccepted(proposalId, msg.sender, votingPower);

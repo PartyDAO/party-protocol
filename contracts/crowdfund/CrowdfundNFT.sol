@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Beta Software
 // http://ipfs.io/ipfs/QmbGX2MFCaMAsMNMugRFND6DtYygRkwkvrqEyTKhTdBLo5
-pragma solidity ^0.8;
+pragma solidity 0.8.17;
 
 import "../tokens/IERC721.sol";
 import "../utils/ReadOnlyDelegateCall.sol";
@@ -12,6 +12,7 @@ import "../globals/LibGlobals.sol";
 contract CrowdfundNFT is IERC721, EIP165, ReadOnlyDelegateCall {
     error AlreadyBurnedError(address owner, uint256 tokenId);
     error InvalidTokenError(uint256 tokenId);
+    error InvalidAddressError();
 
     // The `Globals` contract storing global configuration values. This contract
     // is immutable and it’s address will never change.
@@ -139,8 +140,8 @@ contract CrowdfundNFT is IERC721, EIP165, ReadOnlyDelegateCall {
         return _owners[uint256(uint160(owner))] != address(0);
     }
 
-    function _mint(address owner) internal returns (uint256 tokenId)
-    {
+    function _mint(address owner) internal returns (uint256 tokenId) {
+        if (owner == address(0)) revert InvalidAddressError();
         tokenId = uint256(uint160(owner));
         if (_owners[tokenId] != owner) {
             _owners[tokenId] = owner;
