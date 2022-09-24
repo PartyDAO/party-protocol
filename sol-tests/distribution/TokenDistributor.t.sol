@@ -154,17 +154,15 @@ contract TokenDistributorTest is Test, TestUtils {
   }
 
   function testEmergencyExecute() public {
-    vm.deal(address(distributor), 2 ether);
     address target = _randomAddress();
 
     vm.prank(DAO_ADDRESS);
-    distributor.emergencyExecute(payable(target), "", 1 ether);
-    assertEq(address(target).balance, 1 ether);
+    distributor.emergencyExecute(payable(target), "");
 
     skip(365 days + 1);
     vm.prank(DAO_ADDRESS);
     vm.expectRevert(TokenDistributor.EmergencyActionsNotAllowedError.selector);
-    distributor.emergencyExecute(payable(target), "", 1 ether);
+    distributor.emergencyExecute(payable(target), "");
   }
 
   function testZeroSupplyDistributionCreation() public {

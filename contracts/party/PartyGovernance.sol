@@ -264,7 +264,7 @@ abstract contract PartyGovernance is
         _;
     }
 
-    modifier onlyWhenEnabled() {
+    modifier onlyWhenNotGloballyDisabled() {
         if (_GLOBALS.getBool(LibGlobals.GLOBAL_DISABLE_PARTY_ACTIONS)) {
             revert OnlyWhenEnabledError();
         }
@@ -496,7 +496,7 @@ abstract contract PartyGovernance is
     )
         external
         onlyActiveMember
-        onlyWhenEnabled
+        onlyWhenNotGloballyDisabled
         onlyDelegateCall
         returns (ITokenDistributor.DistributionInfo memory distInfo)
     {
@@ -671,7 +671,7 @@ abstract contract PartyGovernance is
         external
         payable
         onlyActiveMember
-        onlyWhenEnabled
+        onlyWhenNotGloballyDisabled
         onlyDelegateCall
     {
         // Get information about the proposal.

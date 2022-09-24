@@ -13,6 +13,7 @@ contract Globals is IGlobals {
     mapping(uint256 => mapping(bytes32 => bool)) private _includedWordValues;
 
     error OnlyMultiSigError();
+    error InvalidBooleanValueError(uint256 key, uint256 value);
 
     modifier onlyMultisig() {
         if (msg.sender != multiSig) {
@@ -38,7 +39,11 @@ contract Globals is IGlobals {
     }
 
     function getBool(uint256 key) external view returns (bool) {
-        return _wordValues[key] != bytes32(0);
+        uint256 value = uint256(_wordValues[key]);
+        if (value > 1) {
+            revert InvalidBooleanValueError(key, value);
+        }
+        return value != 0;
     }
 
     function getAddress(uint256 key) external view returns (address) {

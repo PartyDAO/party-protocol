@@ -58,9 +58,9 @@ contract TokenDistributor is ITokenDistributor {
     /// @notice The `Globals` contract storing global configuration values. This contract
     ///         is immutable and it’s address will never change.
     IGlobals public immutable GLOBALS;
-
     /// @notice Timestamp when the DAO is no longer allowed to call emergency functions.
-    uint40 public emergencyExecuteDisabledTimestamp;
+    uint40 public immutable EMERGENCY_DISABLED_TIMESTAMP;
+
     /// @notice Last distribution ID for a party.
     mapping(ITokenDistributorParty => uint256) public lastDistributionIdPerParty;
     /// Last known balance of a token, identified by an ID derived from the token.
@@ -82,17 +82,18 @@ contract TokenDistributor is ITokenDistributor {
         _;
     }
 
+    // emergencyActionsDisabled == false
     modifier onlyIfEmergencyActionsAllowed() {
-        if (block.timestamp > emergencyExecuteDisabledTimestamp) {
+        if (block.timestamp > EMERGENCY_DISABLED_TIMESTAMP) {
             revert EmergencyActionsNotAllowedError();
         }
         _;
     }
 
     // Set the `Globals` contract.
-    constructor(IGlobals globals, uint40 _emergencyExecuteDisabledTimestamp) {
+    constructor(IGlobals globals, uint40 emergencyDisabledTimestamp) {
         GLOBALS = globals;
-        emergencyExecuteDisabledTimestamp = _emergencyExecuteDisabledTimestamp;
+        EMERGENCY_DISABLED_TIMESTAMP = emergencyDisabledTimestamp;
     }
 
     /// @inheritdoc ITokenDistributor
@@ -298,21 +299,19 @@ contract TokenDistributor is ITokenDistributor {
         return _distributionStates[party][distributionId].remainingMemberSupply;
     }
 
-    /// @notice As the DAO, execute an arbitrary function call from this contract.
+    /// @notice As the DAO, execute an arbitrary delegatecall from this contract.
     /// @dev Emergency actions must not be revoked for this to work.
-    /// @param targetAddress The contract to call.
-    /// @param targetCallData The data to pass to the contract.
+    /// @param targetAddress The contract to delegatecall into.
+    /// @param targetCallData The data to pass to the call.
     function emergencyExecute(
         address targetAddress,
-        bytes calldata targetCallData,
-        uint256 amountEth
+        bytes calldata targetCallData
     )
         external
-        payable
         onlyPartyDao
         onlyIfEmergencyActionsAllowed
     {
-        (bool success, bytes memory res) = targetAddress.call{value: amountEth}(targetCallData);
+        (bool success, bytes memory res) = targetAddress.delegatecall(targetCallData);
         if (!success) {
             res.rawRevert();
         }

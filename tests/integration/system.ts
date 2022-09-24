@@ -55,6 +55,7 @@ export enum GlobalKeys {
     ZoraMaxAuctionTimeout       = 18,
     OpenSeaMinOrderDuration     = 19,
     OpenSeaMaxOrderDuration     = 20,
+    DisablePartyActions         = 21,
 }
 
 export enum ProposalType {

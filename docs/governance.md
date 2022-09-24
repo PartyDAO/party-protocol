@@ -149,7 +149,7 @@ When creating a distribution, implementing contracts are expected to transfer th
 
 ### Emergency Actions
 
-`TokenDistributor` contains an `emergencyExecute` function that can execute arbitrary bytecode. It is controlled by the PartyDAO Multisig. The ability to call this function will be disabled after `emergencyExecuteDisabledTimestamp`.
+`TokenDistributor` contains an `emergencyExecute` function that can perform an arbitrary delegatecall. This will only be called in a catastrophic scenario where the `TokenDistributor` must be decommissioned. It is restricted to the PartyDAO Multisig. The ability to call this function will be disabled after `emergencyExecuteDisabledTimestamp` has passed.
 
 ---
 
@@ -480,4 +480,4 @@ This proposal is always atomic and completes in a single step/execute.
 
 ## Emergency Execution
 
-By default when a party is created, there is an `emergencyExecute` function that can be used by the PartyDAO multisig in the case of an emergency. This function can execute arbitrary bytecode and withdraw ETH. This emergency withdrawal power can be revoked by any party host, or by the PartyDAO multisig itself.
+By default when a party is created, there is an `emergencyExecute` function that can be used by the PartyDAO multisig in the case of an emergency. This function can execute arbitrary bytecode and withdraw ETH. This emergency power can be revoked by any party host, or by the PartyDAO multisig itself.
