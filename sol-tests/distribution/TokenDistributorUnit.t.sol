@@ -45,9 +45,34 @@ contract TestTokenDistributorHash is TokenDistributor(IGlobals(address(0))) {
     function getDistributionHash(DistributionInfo memory info)
         external
         pure
-        returns (bytes15 hash)
+        returns (bytes32 hash)
     {
         return _getDistributionHash(info);
+    }
+}
+
+// A ERC777-like token that is itself also the malicious actor.
+contract ReenteringToken is ERC20("ReenteringToken", "RET", 18) {
+    TokenDistributor distributor;
+
+    constructor(TokenDistributor _distributor) {
+        distributor = _distributor;
+    }
+
+    function transfer(address to, uint256 amount) public virtual override returns (bool) {
+        // Reenter into distributor to create another ERC20 distribution. Mimics
+        // how ERC777 tokens will call a `tokensToSend` hook on transfer which
+        // can implement arbitrary logic. Here, we use it to create a new
+        // distribution before the state update triggered by another claiming
+        // from distribution (which this is attempting to steal from) has been
+        // updated.
+        distributor.createErc20Distribution(
+            IERC20(address(this)),
+            ITokenDistributorParty(address(0)),
+            payable(address(0)),
+            0
+        );
+        return super.transfer(to, amount);
     }
 }
 
@@ -608,9 +633,34 @@ contract TokenDistributorUnitTest is Test, TestUtils {
             memberSupply: uint128(_randomUint256()),
             fee: uint128(_randomUint256())
         });
-        bytes15 expectedHash = bytes15(keccak256(abi.encode(di)));
-        bytes15 actualHash = new TestTokenDistributorHash().getDistributionHash(di);
+        bytes32 expectedHash = keccak256(abi.encode(di));
+        bytes32 actualHash = new TestTokenDistributorHash().getDistributionHash(di);
         assertEq(actualHash, expectedHash);
+    }
+
+    function test_reentrancy() external {
+        IERC20 reenteringToken = new ReenteringToken(distributor);
+        (address member, uint256 memberTokenId,) =
+            party.mintShare(_randomAddress(), _randomUint256(), 100e18);
+        uint256 supply = _randomUint256() % 1e18;
+        deal(address(reenteringToken), address(distributor), supply);
+        vm.prank(address(party));
+        (ITokenDistributor.DistributionInfo memory di) =
+            distributor.createErc20Distribution(
+                reenteringToken,
+                party,
+                payable(address(0)),
+                0
+            );
+        // Attempt reentrancy.
+        vm.expectRevert(abi.encodeWithSelector(
+            LibERC20Compat.TokenTransferFailedError.selector,
+            reenteringToken,
+            address(member),
+            supply
+        ));
+        vm.prank(member);
+        distributor.claim(di, memberTokenId);
     }
 
     function _computeMemberShare(uint256 total, uint256 share)

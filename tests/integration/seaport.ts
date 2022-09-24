@@ -66,12 +66,12 @@ export interface OpenseaOrderParams {
     offer: OpenseaOfferItem[];
     consideration: OpenseaConsiderationItem[];
     orderType: OpenseaOrderType;
-    startTime: BigNumber;
-    endTime: BigNumber;
+    startTime: number;
+    endTime: number;
     zoneHash: string;
     salt: BigNumber;
     conduitKey: string;
-    totalOriginalConsiderationItems: BigNumber;
+    totalOriginalConsiderationItems: number;
 }
 
 export interface OpenseaAdditionalRecipient {

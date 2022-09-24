@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Beta Software
 // http://ipfs.io/ipfs/QmbGX2MFCaMAsMNMugRFND6DtYygRkwkvrqEyTKhTdBLo5
-pragma solidity ^0.8;
+pragma solidity 0.8.17;
 
 import "../globals/IGlobals.sol";
 import "../globals/LibGlobals.sol";
@@ -43,6 +43,9 @@ abstract contract ListOnOpenseaProposal is ZoraHelpers {
         uint256[] fees;
         // Respective recipients for each fee.
         address payable[] feeRecipients;
+        // The first 4 bytes of the hash of a domain to attribute the listing to.
+        // https://opensea.notion.site/opensea/Proposal-for-Seaport-Order-Attributions-via-Arbitrary-Domain-Hash-d0ad30b994ba48278c6e922983175285
+        bytes4 domainHashPrefix;
     }
 
     // ABI-encoded `progressData` passed into execute in the `ListedOnOpenSea` step.
@@ -80,21 +83,6 @@ abstract contract ListOnOpenseaProposal is ZoraHelpers {
         IERC721 token,
         uint256 tokenId,
         uint256 expiry
-    );
-    // Coordinated event w/OS team to track on-chain orders.
-    event OrderValidated(
-        bytes32 orderHash,
-        address indexed offerer,
-        address indexed zone,
-        IOpenseaExchange.OfferItem[] offer,
-        IOpenseaExchange.ConsiderationItem[] consideration,
-        IOpenseaExchange.OrderType orderType,
-        uint256 startTime,
-        uint256 endTime,
-        bytes32 zoneHash,
-        uint256 salt,
-        bytes32 conduitKey,
-        uint256 counter
     );
 
     /// @notice The Seaport contract.
@@ -180,9 +168,20 @@ abstract contract ListOnOpenseaProposal is ZoraHelpers {
                 abi.decode(params.progressData, (uint8, ZoraProgressData));
             // Try to settle the Zora auction. This will revert if the auction
             // is still ongoing.
-            if (_settleZoraAuction(zpd.auctionId, zpd.minExpiry, data.token, data.tokenId)) {
-                // Auction sold. Nothing left to do. Return empty progress data
-                // to indicate there are no more steps to execute.
+            ZoraAuctionStatus statusCode = _settleZoraAuction(
+                zpd.auctionId,
+                zpd.minExpiry,
+                data.token,
+                data.tokenId
+            );
+            if (
+                statusCode == ZoraAuctionStatus.Sold ||
+                statusCode == ZoraAuctionStatus.Cancelled
+            ) {
+                // Auction sold or was cancelled. If it sold, there is nothing left to do.
+                // If it was cancelled, we cannot safely proceed with the listing. Return
+                // empty progress data to indicate there are no more steps to
+                // execute.
                 return "";
             }
             // The auction simply expired before anyone bid on it. We have the NFT
@@ -215,7 +214,8 @@ abstract contract ListOnOpenseaProposal is ZoraHelpers {
                 data.listPrice,
                 expiry,
                 data.fees,
-                data.feeRecipients
+                data.feeRecipients,
+                data.domainHashPrefix
             );
             return abi.encode(ListOnOpenseaStep.ListedOnOpenSea, orderHash, expiry);
         }
@@ -242,7 +242,8 @@ abstract contract ListOnOpenseaProposal is ZoraHelpers {
         uint256 listPrice,
         uint256 expiry,
         uint256[] memory fees,
-        address payable[] memory feeRecipients
+        address payable[] memory feeRecipients,
+        bytes4 domainHashPrefix
     )
         private
         returns (bytes32 orderHash)
@@ -267,7 +268,7 @@ abstract contract ListOnOpenseaProposal is ZoraHelpers {
         orderParams.orderType = orderParams.zone == address(0)
             ? IOpenseaExchange.OrderType.FULL_OPEN
             : IOpenseaExchange.OrderType.FULL_RESTRICTED;
-        orderParams.salt = 0;
+        orderParams.salt = uint256(bytes32(domainHashPrefix));
         orderParams.conduitKey = conduitKey;
         orderParams.totalOriginalConsiderationItems = 1 + fees.length;
         // What we are selling.
@@ -301,21 +302,6 @@ abstract contract ListOnOpenseaProposal is ZoraHelpers {
         orderHash = _getOrderHash(orderParams);
         // Validate the order on-chain so no signature is required to fill it.
         assert(SEAPORT.validate(orders));
-        // Emit the the coordinated OS event so their backend can detect this order.
-        emit OrderValidated(
-            orderHash,
-            orderParams.offerer,
-            orderParams.zone,
-            orderParams.offer,
-            orderParams.consideration,
-            orderParams.orderType,
-            orderParams.startTime,
-            orderParams.endTime,
-            orderParams.zoneHash,
-            orderParams.salt,
-            orderParams.conduitKey,
-            0
-        );
         emit OpenseaOrderListed(
             orderParams,
             orderHash,
