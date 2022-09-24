@@ -94,7 +94,10 @@ contract Deploy {
         console.log("");
         console.log("### TokenDistributor");
         console.log("  Deploying - TokenDistributor");
-        tokenDistributor = new TokenDistributor(globals);
+        tokenDistributor = new TokenDistributor(
+            globals,
+            uint40(block.timestamp) + deployConstants.distributorEmergencyActionAllowedDuration
+        );
         console.log("  Deployed - TokenDistributor", address(tokenDistributor));
 
         console.log("");

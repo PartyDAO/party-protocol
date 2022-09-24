@@ -26,7 +26,7 @@ contract TokenDistributorTest is Test, TestUtils {
     globals = new Globals(DAO_ADDRESS);
     vm.prank(DAO_ADDRESS);
     globals.setAddress(LibGlobals.GLOBAL_DAO_WALLET, DAO_ADDRESS);
-    distributor = new TokenDistributor(globals);
+    distributor = new TokenDistributor(globals, uint40(block.timestamp) + 365 days);
 
     // Reset addresses used in tests (can be non-zero when running forked tests)
     for (uint160 i; i < 10; i++) {
@@ -153,108 +153,16 @@ contract TokenDistributorTest is Test, TestUtils {
 
   }
 
-  function testEmergencyDistributionFunctions() public {
-    // ETH
-    distributor.createNativeDistribution{value: 50 ether}(dummyParty1, ADMIN_ADDRESS, 0.05e4);
+  function testEmergencyExecute() public {
+    address target = _randomAddress();
 
-    // ERC 20
-    dummyToken1.deal(address(distributor), 19 ether);
-    vm.prank(address(dummyParty1));
-    distributor.createErc20Distribution(
-        IERC20(address(dummyToken1)),
-        dummyParty1,
-        ADMIN_ADDRESS,
-        0.05e4
-    );
-
-    // cant withdraw as non-admin
-    vm.expectRevert(abi.encodeWithSelector(
-          TokenDistributor.OnlyPartyDaoError.selector,
-          address(3),
-          DAO_ADDRESS
-    ));
-    vm.prank(address(3));
-    distributor.emergencyWithdraw(
-      ITokenDistributor.TokenType.Native,
-      ETH_ADDRESS,
-      payable(address(1)),
-      10 ether
-    );
-
-
-    // emergency withdraw
-    vm.startPrank(DAO_ADDRESS);
-    // withdraw ETH
-    assertEq(address(5).balance, 0);
-    distributor.emergencyWithdraw(
-        ITokenDistributor.TokenType.Native,
-        ETH_ADDRESS,
-        payable(address(5)),
-        10 ether
-    );
-    assertEq(address(5).balance, 10 ether);
-    // withdraw ERC20
-    assertEq(dummyToken1.balanceOf(address(4)), 0);
-    distributor.emergencyWithdraw(
-        ITokenDistributor.TokenType.Erc20,
-        address(dummyToken1),
-        payable(address(4)),
-        19 ether
-    );
-    assertEq(dummyToken1.balanceOf(address(4)), 19 ether);
-    vm.stopPrank();
-
-    // emergency remove distribution
-    assertEq(distributor.getRemainingMemberSupply(dummyParty1, 1), 47.5 ether);
-    // non admin can't delete
-    vm.prank(address(7));
-    vm.expectRevert(abi.encodeWithSelector(
-          TokenDistributor.OnlyPartyDaoError.selector,
-          address(7),
-          DAO_ADDRESS
-    ));
-    distributor.emergencyRemoveDistribution(
-      dummyParty1, 1
-    );
-    // admin can remove distribution
     vm.prank(DAO_ADDRESS);
-    distributor.emergencyRemoveDistribution(
-      dummyParty1, 1
-    );
-    assertEq(distributor.getRemainingMemberSupply(dummyParty1, 1), 0 ether);
+    distributor.emergencyExecute(payable(target), "");
 
-
-    // non-admin can't disable
-    vm.expectRevert(abi.encodeWithSelector(
-          TokenDistributor.OnlyPartyDaoError.selector,
-          address(3),
-          DAO_ADDRESS
-    ));
-
-    // disable emergency acitons
-    vm.prank(address(3));
-    distributor.disableEmergencyActions();
-
-    // cant withdraw when emergency actions disabled
-    vm.startPrank(DAO_ADDRESS);
-    distributor.disableEmergencyActions();
-    vm.expectRevert(abi.encodeWithSelector(
-        TokenDistributor.EmergencyActionsNotAllowedError.selector
-    ));
-    distributor.emergencyWithdraw(
-        ITokenDistributor.TokenType.Native,
-        ETH_ADDRESS,
-        payable(address(5)),
-        1 ether
-    );
-
-    // cant remove when emergency actions disabled
-    vm.expectRevert(abi.encodeWithSelector(
-        TokenDistributor.EmergencyActionsNotAllowedError.selector
-    ));
-    distributor.emergencyRemoveDistribution(
-      dummyParty1, 1
-    );
+    skip(365 days + 1);
+    vm.prank(DAO_ADDRESS);
+    vm.expectRevert(TokenDistributor.EmergencyActionsNotAllowedError.selector);
+    distributor.emergencyExecute(payable(target), "");
   }
 
   function testZeroSupplyDistributionCreation() public {
@@ -358,4 +266,6 @@ contract TokenDistributorTest is Test, TestUtils {
     uint256 ethGained = newBalance - (initialEth + gasUsed);
     return ethGained;
   }
+
+  receive() external payable {}
 }

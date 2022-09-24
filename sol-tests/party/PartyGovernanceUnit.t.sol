@@ -165,24 +165,6 @@ contract DummyTokenDistributor is ITokenDistributor {
         external
         view
         returns (uint128) {}
-
-    function emergencyRemoveDistribution(
-        ITokenDistributorParty,
-        uint256
-    )
-        external {}
-
-    /// @notice DAO-only function to withdraw tokens in case something goes wrong.
-    function emergencyWithdraw(
-        TokenType,
-        address,
-        uint256,
-        address payable,
-        uint256
-    )
-        external {}
-
-    function disableEmergencyActions() external {}
 }
 
 contract TestablePartyGovernance is PartyGovernance {
@@ -2360,6 +2342,35 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
             PartyGovernance.OnlyActiveMemberError.selector
         ));
         vm.prank(member);
+        gov.distribute(ITokenDistributor.TokenType.Native, ETH_ADDRESS, 0);
+    }
+
+    function test_onlyWhenNotDisabled() external {
+        (IERC721[] memory preciousTokens, uint256[] memory preciousTokenIds) =
+            _createPreciousTokens(2);
+        TestablePartyGovernance gov =
+            _createGovernance(100e18, preciousTokens, preciousTokenIds);
+        address member = _randomAddress();
+        gov.rawAdjustVotingPower(member, 1, address(0));
+
+        // Disable party actions.
+        globals.setBool(LibGlobals.GLOBAL_DISABLE_PARTY_ACTIONS, true);
+
+        // Try executing a proposal.
+        vm.prank(member);
+        vm.expectRevert(PartyGovernance.OnlyWhenEnabledError.selector);
+        gov.execute(
+            0,
+            _createProposal(1),
+            preciousTokens,
+            preciousTokenIds,
+            "",
+            bytes("foo")
+        );
+
+        // Try creating a distribution.
+        vm.prank(member);
+        vm.expectRevert(PartyGovernance.OnlyWhenEnabledError.selector);
         gov.distribute(ITokenDistributor.TokenType.Native, ETH_ADDRESS, 0);
     }
 

@@ -24,4 +24,5 @@ library LibGlobals {
     uint256 internal constant GLOBAL_ZORA_MAX_AUCTION_TIMEOUT       = 18;
     uint256 internal constant GLOBAL_OS_MIN_ORDER_DURATION          = 19;
     uint256 internal constant GLOBAL_OS_MAX_ORDER_DURATION          = 20;
+    uint256 internal constant GLOBAL_DISABLE_PARTY_ACTIONS          = 21;
 }

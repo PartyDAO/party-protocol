@@ -182,6 +182,7 @@ abstract contract PartyGovernance is
     error OnlyPartyDaoError(address notDao, address partyDao);
     error OnlyPartyDaoOrHostError(address notDao, address partyDao);
     error OnlyWhenEmergencyActionsAllowedError();
+    error OnlyWhenEnabledError();
     error AlreadyVotedError(address voter);
     error InvalidNewHostError();
     error ProposalCannotBeCancelledYetError(uint40 currentTime, uint40 cancelTime);
@@ -274,6 +275,13 @@ abstract contract PartyGovernance is
     modifier onlyWhenEmergencyExecuteAllowed() {
         if (emergencyExecuteDisabled) {
             revert OnlyWhenEmergencyActionsAllowedError();
+        }
+        _;
+    }
+
+    modifier onlyWhenNotGloballyDisabled() {
+        if (_GLOBALS.getBool(LibGlobals.GLOBAL_DISABLE_PARTY_ACTIONS)) {
+            revert OnlyWhenEnabledError();
         }
         _;
     }
@@ -504,6 +512,7 @@ abstract contract PartyGovernance is
     )
         external
         onlyActiveMemberOrSelf
+        onlyWhenNotGloballyDisabled
         onlyDelegateCall
         returns (ITokenDistributor.DistributionInfo memory distInfo)
     {
@@ -678,6 +687,7 @@ abstract contract PartyGovernance is
         external
         payable
         onlyActiveMember
+        onlyWhenNotGloballyDisabled
         onlyDelegateCall
     {
         // Get information about the proposal.
@@ -796,7 +806,6 @@ abstract contract PartyGovernance is
     /// @param targetAddress The contract to call.
     /// @param targetCallData The data to pass to the contract.
     /// @param amountEth The amount of ETH to send to the contract.
-    /// @param success Whether the call succeeded.
     function emergencyExecute(
         address targetAddress,
         bytes calldata targetCallData,
@@ -807,9 +816,11 @@ abstract contract PartyGovernance is
         onlyPartyDao
         onlyWhenEmergencyExecuteAllowed
         onlyDelegateCall
-        returns (bool success)
     {
-        (success, ) = targetAddress.call{value: amountEth}(targetCallData);
+        (bool success, bytes memory res) = targetAddress.call{value: amountEth}(targetCallData);
+        if (!success) {
+            res.rawRevert();
+        }
     }
 
     /// @notice Revoke the DAO's ability to call emergencyExecute().
