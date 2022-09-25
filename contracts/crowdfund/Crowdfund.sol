@@ -79,6 +79,7 @@ abstract contract Crowdfund is ERC721Receiver, CrowdfundNFT {
     error NotAllowedByGateKeeperError(address contributor, IGateKeeper gateKeeper, bytes12 gateKeeperId, bytes gateData);
     error SplitRecipientAlreadyBurnedError();
     error InvalidBpsError(uint16 bps);
+    error ExceedsTotalContributionsError(uint96 value, uint96 totalContributions);
 
     event Burned(address contributor, uint256 ethUsed, uint256 ethOwed, uint256 votingPower);
     event Contributed(address contributor, uint256 amount, address delegate, uint256 previousTotalContributions);

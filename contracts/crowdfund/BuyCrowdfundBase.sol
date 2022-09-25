@@ -51,12 +51,12 @@ abstract contract BuyCrowdfundBase is Implementation, Crowdfund {
     }
 
     event Won(Party party, IERC721 token, uint256 tokenId, uint256 settledPrice);
+    event Lost();
 
     error MaximumPriceError(uint96 callValue, uint96 maximumPrice);
     error NoContributionsError();
     error FailedToBuyNFTError(IERC721 token, uint256 tokenId);
     error InvalidCallTargetError(address callTarget);
-    error PriceExceedsTotalContributionsError(uint96 price, uint96 totalContributions);
 
     /// @notice When this crowdfund expires.
     uint40 public expiry;
@@ -113,8 +113,10 @@ abstract contract BuyCrowdfundBase is Implementation, Crowdfund {
             revert WrongLifecycleError(lc);
         }
         uint96 totalContributions_ = totalContributions;
+        // Prevent unaccounted ETH from being used to inflate the price and
+        // create "ghost shares" in voting power.
         if (callValue > totalContributions_) {
-            revert PriceExceedsTotalContributionsError(callValue, totalContributions_);
+            revert ExceedsTotalContributionsError(callValue, totalContributions_);
         }
         {
             uint96 maximumPrice_ = maximumPrice;
@@ -122,6 +124,8 @@ abstract contract BuyCrowdfundBase is Implementation, Crowdfund {
                 revert MaximumPriceError(callValue, maximumPrice);
             }
         }
+        // Temporarily set to non-zero as a reentrancy guard.
+        settledPrice = type(uint96).max;
         {
             // Execute the call to buy the NFT.
             (bool s, bytes memory r) = callTarget.call{ value: callValue }(callData);
@@ -130,29 +134,26 @@ abstract contract BuyCrowdfundBase is Implementation, Crowdfund {
             }
         }
         // Make sure we acquired the NFT we want.
-        uint96 settledPrice_;
         if (token.safeOwnerOf(tokenId) == address(this)) {
             if (address(this).balance >= totalContributions_) {
-                // If the purchase would be free, set the settled price to
-                // `totalContributions` so everybody who contributed wins.
-                if (totalContributions_ == 0) {
-                    revert NoContributionsError();
-                }
-                settledPrice_ = totalContributions_;
+                // If the purchase was free or the NFT was "gifted" to us,
+                // refund all contributors by declaring we lost.
+                settledPrice = 0;
+                expiry = 0;
+                emit Lost();
             } else {
-                settledPrice_ = callValue;
+                settledPrice = callValue;
+                emit Won(
+                    // Create a party around the newly bought NFT.
+                    party_ = _createParty(partyFactory, governanceOpts, token, tokenId),
+                    token,
+                    tokenId,
+                    callValue
+                );
             }
         } else {
             revert FailedToBuyNFTError(token, tokenId);
         }
-        settledPrice = settledPrice_;
-        emit Won(
-            // Create a party around the newly bought NFT.
-            party_ = _createParty(partyFactory, governanceOpts, token, tokenId),
-            token,
-            tokenId,
-            settledPrice_
-        );
     }
 
     /// @inheritdoc Crowdfund
@@ -162,11 +163,12 @@ abstract contract BuyCrowdfundBase is Implementation, Crowdfund {
             return address(party) != address(0)
                 // If we have a party, then we succeeded buying the NFT.
                 ? CrowdfundLifecycle.Won
-                // Otherwise we're in the middle of the buy().
+                // Otherwise we're in the middle of the `buy()`.
                 : CrowdfundLifecycle.Busy;
         }
         if (block.timestamp >= expiry) {
-            // Expired but nothing to do so skip straight to lost.
+            // Expired, but nothing to do so skip straight to lost, or NFT was
+            // acquired for free so refund contributors and trigger lost.
             return CrowdfundLifecycle.Lost;
         }
         return CrowdfundLifecycle.Active;

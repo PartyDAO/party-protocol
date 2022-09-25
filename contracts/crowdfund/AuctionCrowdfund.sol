@@ -169,6 +169,12 @@ contract AuctionCrowdfund is Implementation, Crowdfund {
         }
         // Get the minimum necessary bid to be the highest bidder.
         uint96 bidAmount = market.getMinimumBid(auctionId_).safeCastUint256ToUint96();
+        // Prevent unaccounted ETH from being used to inflate the bid and
+        // create "ghost shares" in voting power.
+        uint96 totalContributions_ = totalContributions;
+        if (bidAmount > totalContributions_) {
+            revert ExceedsTotalContributionsError(bidAmount, totalContributions_);
+        }
         // Make sure the bid is less than the maximum bid.
         if (bidAmount > maximumBid) {
             revert ExceedsMaximumBidError(bidAmount, maximumBid);
@@ -230,17 +236,12 @@ contract AuctionCrowdfund is Implementation, Crowdfund {
                 revert AuctionNotExpiredError();
             }
         }
-        // Are we now in possession of the NFT?
-        if (nftContract.safeOwnerOf(nftTokenId) == address(this)) {
-            uint96 totalContributions_ = totalContributions;
-            if (address(this).balance >= totalContributions_) {
-                // The NFT was gifted to us. Everyone who contributed wins.
-                if (totalContributions_ == 0) {
-                    // Nobody ever contributed. The NFT is effectively burned.
-                    revert NoContributionsError();
-                }
-                lastBid = lastBid_ = totalContributions_;
-            }
+        if (
+            // Are we now in possession of the NFT?
+            nftContract.safeOwnerOf(nftTokenId) == address(this) &&
+            // And it wasn't acquired for free or "gifted" to us?
+            address(this).balance < totalContributions
+        ) {
             // Create a governance party around the NFT.
             party_ = _createParty(
                 _getPartyFactory(),
@@ -250,6 +251,9 @@ contract AuctionCrowdfund is Implementation, Crowdfund {
             );
             emit Won(lastBid_, party_);
         } else {
+            // Either the party failed to win the auction, or the NFT was
+            // acquired for free. Refund contributors by declaring we lost.
+
             // Clear `lastBid` so `_getFinalPrice()` is 0 and people can redeem their
             // full contributions when they burn their participation NFTs.
             lastBid = 0;
