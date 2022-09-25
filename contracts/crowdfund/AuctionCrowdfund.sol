@@ -67,11 +67,11 @@ contract AuctionCrowdfund is Crowdfund {
         IGateKeeper gateKeeper;
         // The gate ID within the gateKeeper contract to use.
         bytes12 gateKeeperId;
+        // Whether the party is only allowing host to call `bid()`.
+        bool onlyHostCanAct;
         // Fixed governance options (i.e. cannot be changed) that the governance
         // `Party` will be created with if the crowdfund succeeds.
         FixedGovernanceOpts governanceOpts;
-        // Whether the party is only allowing host to call `bid()`.
-        bool onlyHost;
     }
 
     event Bid(uint256 bidAmount);
@@ -84,7 +84,6 @@ contract AuctionCrowdfund is Crowdfund {
     error ExceedsMaximumBidError(uint256 bidAmount, uint256 maximumBid);
     error NoContributionsError();
     error AuctionNotExpiredError();
-    error OnlyPartyHostOrContributorError();
 
     /// @notice The NFT contract to buy.
     IERC721 public nftContract;
@@ -102,36 +101,8 @@ contract AuctionCrowdfund is Crowdfund {
     /// @notice When this crowdfund expires. If the NFT has not been bought
     ///         by this time, participants can withdraw their contributions.
     uint40 public expiry;
-    /// @notice Whether the party is only allowing host to call `bid()`.
-    bool public onlyHost;
     // Track extra status of the crowdfund specific to bids.
     AuctionCrowdfundStatus private _bidStatus;
-
-    modifier checkIfOnlyHostOrContributor(address[] memory hosts) {
-        if (
-            // Check if only allowing host to call.
-            onlyHost ||
-            // Otherwise, check if the gatekeeper is used. If so, only allow either
-            // contributors or host to call.
-            address(gateKeeper) != address(0) &&
-            _contributionsByContributor[msg.sender].length == 0
-        ) {
-            bool isHost;
-            for (uint256 i; i < hosts.length; i++) {
-                if (hosts[i] == msg.sender) {
-                    isHost = true;
-                    break;
-                }
-            }
-
-            if (!isHost) {
-                // Neither host or contributor.
-                revert OnlyPartyHostOrContributorError();
-            }
-        }
-
-        _;
-    }
 
     // Set the `Globals` contract.
     constructor(IGlobals globals) Crowdfund(globals) {}
@@ -151,7 +122,6 @@ contract AuctionCrowdfund is Crowdfund {
         expiry = uint40(opts.duration + block.timestamp);
         auctionId = opts.auctionId;
         maximumBid = opts.maximumBid;
-        onlyHost = opts.onlyHost;
         Crowdfund._initialize(CrowdfundOptions({
             name: opts.name,
             symbol: opts.symbol,
@@ -161,6 +131,7 @@ contract AuctionCrowdfund is Crowdfund {
             initialDelegate: opts.initialDelegate,
             gateKeeper: opts.gateKeeper,
             gateKeeperId: opts.gateKeeperId,
+            onlyHostCanAct: opts.onlyHostCanAct,
             governanceOpts: opts.governanceOpts
         }));
 
@@ -190,6 +161,14 @@ contract AuctionCrowdfund is Crowdfund {
             CrowdfundLifecycle lc = getCrowdfundLifecycle();
             if (lc != CrowdfundLifecycle.Active) {
                 revert WrongLifecycleError(lc);
+            }
+        }
+        // If applicable, check that the governance options (used to check
+        // whether caller is a host) are correct.
+        if (onlyHostCanAct || address(gateKeeper) != address(0)) {
+            bytes32 governanceOptsHash_ = _hashFixedGovernanceOpts(governanceOpts);
+            if (governanceOptsHash_ != governanceOptsHash) {
+                revert InvalidGovernanceOptionsError(governanceOptsHash_, governanceOptsHash);
             }
         }
         // Mark as busy to prevent `burn()`, `bid()`, and `contribute()`

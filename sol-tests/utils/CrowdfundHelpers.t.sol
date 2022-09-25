@@ -80,8 +80,8 @@ contract CrowdfundHelpers is Test, TestUtils {
                     initialDelegate: defaultInitialDelegate,
                     gateKeeper: defaultGateKeeper,
                     gateKeeperId: defaultGateKeeperId,
-                    governanceOpts: defaultGovernanceOpts,
-                    onlyHost: false
+                    onlyHostCanAct: false,
+                    governanceOpts: defaultGovernanceOpts
                 })
             )
         ))));
@@ -108,8 +108,8 @@ contract CrowdfundHelpers is Test, TestUtils {
                     initialDelegate: defaultInitialDelegate,
                     gateKeeper: defaultGateKeeper,
                     gateKeeperId: defaultGateKeeperId,
-                    governanceOpts: defaultGovernanceOpts,
-                    onlyHost: false
+                    onlyHostCanAct: false,
+                    governanceOpts: defaultGovernanceOpts
                 })
             )
         ))));

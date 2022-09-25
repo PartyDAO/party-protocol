@@ -108,6 +108,7 @@ contract CrowdfundFactoryTest is Test, TestUtils {
             initialDelegate: _randomAddress(),
             gateKeeper: gateKeeper,
             gateKeeperId: gateKeeperId,
+            onlyHostCanAct: false,
             governanceOpts: Crowdfund.FixedGovernanceOpts({
                 hosts: _toAddressArray(_randomAddress()),
                 voteDuration: randomUint40,
@@ -115,8 +116,7 @@ contract CrowdfundFactoryTest is Test, TestUtils {
                 passThresholdBps: randomBps,
                 feeBps: randomBps,
                 feeRecipient: payable(_randomAddress())
-            }),
-            onlyHost: false
+            })
         });
 
         vm.deal(address(this), randomUint40);
@@ -164,6 +164,7 @@ contract CrowdfundFactoryTest is Test, TestUtils {
             initialDelegate: address(0),
             gateKeeper: IGateKeeper(address(0)),
             gateKeeperId: 0,
+            onlyHostCanAct: false,
             governanceOpts: Crowdfund.FixedGovernanceOpts({
                 hosts: _toAddressArray(address(this)),
                 voteDuration: 3 days,
@@ -171,8 +172,7 @@ contract CrowdfundFactoryTest is Test, TestUtils {
                 passThresholdBps: 51e2,
                 feeBps: 0,
                 feeRecipient: payable(address(0))
-            }),
-            onlyHost: false
+            })
         });
 
         vm.expectRevert(AuctionCrowdfund.InvalidAuctionIdError.selector);
@@ -198,6 +198,7 @@ contract CrowdfundFactoryTest is Test, TestUtils {
             initialDelegate: address(0),
             gateKeeper: IGateKeeper(address(0)),
             gateKeeperId: 0,
+            onlyHostCanAct: false,
             governanceOpts: Crowdfund.FixedGovernanceOpts({
                 hosts: _toAddressArray(address(this)),
                 voteDuration: 3 days,
@@ -205,8 +206,7 @@ contract CrowdfundFactoryTest is Test, TestUtils {
                 passThresholdBps: 51e2,
                 feeBps: 0,
                 feeRecipient: payable(address(0))
-            }),
-            onlyHost: false
+            })
         });
 
         vm.expectRevert(AuctionCrowdfund.InvalidAuctionIdError.selector);
@@ -233,6 +233,7 @@ contract CrowdfundFactoryTest is Test, TestUtils {
             initialDelegate: address(0),
             gateKeeper: IGateKeeper(address(0)),
             gateKeeperId: 0,
+            onlyHostCanAct: false,
             governanceOpts: Crowdfund.FixedGovernanceOpts({
                 hosts: _toAddressArray(address(this)),
                 voteDuration: 3 days,
@@ -240,8 +241,7 @@ contract CrowdfundFactoryTest is Test, TestUtils {
                 passThresholdBps: 51e2,
                 feeBps: 0,
                 feeRecipient: payable(address(0))
-            }),
-            onlyHost: false
+            })
         });
 
         vm.expectRevert(AuctionCrowdfund.InvalidAuctionIdError.selector);
@@ -281,6 +281,7 @@ contract CrowdfundFactoryTest is Test, TestUtils {
             initialDelegate: _randomAddress(),
             gateKeeper: gateKeeper,
             gateKeeperId: gateKeeperId,
+            onlyHostCanAct: false,
             governanceOpts: Crowdfund.FixedGovernanceOpts({
                 hosts: _toAddressArray(_randomAddress()),
                 voteDuration: randomUint40,
@@ -288,8 +289,7 @@ contract CrowdfundFactoryTest is Test, TestUtils {
                 passThresholdBps: randomBps,
                 feeBps: randomBps,
                 feeRecipient: payable(_randomAddress())
-            }),
-            onlyHost: false
+            })
         });
 
         vm.deal(address(this), randomUint40);
@@ -407,6 +407,7 @@ contract CrowdfundFactoryTest is Test, TestUtils {
             initialDelegate: address(0),
             gateKeeper: IGateKeeper(address(0)),
             gateKeeperId: 0,
+            onlyHostCanAct: false,
             governanceOpts: Crowdfund.FixedGovernanceOpts({
                 hosts: _toAddressArray(address(this)),
                 voteDuration: 3 days,
@@ -414,8 +415,7 @@ contract CrowdfundFactoryTest is Test, TestUtils {
                 passThresholdBps: passThresholdBps,
                 feeBps: feeBps,
                 feeRecipient: payable(address(0))
-            }),
-            onlyHost: false
+            })
         });
 
         uint16 invalidBps;

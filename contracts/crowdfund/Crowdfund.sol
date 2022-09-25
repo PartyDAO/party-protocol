@@ -58,6 +58,7 @@ abstract contract Crowdfund is Implementation, ERC721Receiver, CrowdfundNFT {
         address initialDelegate;
         IGateKeeper gateKeeper;
         bytes12 gateKeeperId;
+        bool onlyHostCanAct;
         FixedGovernanceOpts governanceOpts;
     }
 
@@ -88,6 +89,8 @@ abstract contract Crowdfund is Implementation, ERC721Receiver, CrowdfundNFT {
     error InvalidBpsError(uint16 bps);
     error ExceedsTotalContributionsError(uint96 value, uint96 totalContributions);
     error NothingToClaimError();
+    error OnlyPartyHostError();
+    error OnlyPartyHostOrContributorError();
 
     event Burned(address contributor, uint256 ethUsed, uint256 ethOwed, uint256 votingPower);
     event Contributed(address contributor, uint256 amount, address delegate, uint256 previousTotalContributions);
@@ -114,6 +117,8 @@ abstract contract Crowdfund is Implementation, ERC721Receiver, CrowdfundNFT {
     uint16 public splitBps;
     // Whether the share for split recipient has been claimed through `burn()`.
     bool private _splitRecipientHasBurned;
+    /// @notice Whether the party is only allowing host to call `bid()`/`buy()`.
+    bool public onlyHostCanAct;
     /// @notice Hash of party governance options passed into `initialize()`.
     ///         Used to check whether the `GovernanceOpts` passed into
     ///         `_createParty()` matches.
@@ -122,11 +127,64 @@ abstract contract Crowdfund is Implementation, ERC721Receiver, CrowdfundNFT {
     mapping(address => address) public delegationsByContributor;
     // Array of contributions by a contributor.
     // One is created for every nonzero contribution made.
-    mapping(address => Contribution[]) internal _contributionsByContributor;
+    mapping(address => Contribution[]) private _contributionsByContributor;
     /// @notice Stores the amount of ETH owed back to a contributor and governance NFT
     ///         that should be minted to them if it could not be transferred to
     ///         them with `burn()`.
     mapping(address => Claim) public claims;
+
+    modifier onlyHost(address[] memory hosts) {
+        bool isHost;
+        for (uint256 i; i < hosts.length; i++) {
+            if (hosts[i] == msg.sender) {
+                isHost = true;
+                break;
+            }
+        }
+
+        if (!isHost) {
+            revert OnlyPartyHostError();
+        }
+
+        _;
+    }
+
+    // Checks whether a function is allowed to be called by caller based on
+    // whether `onlyHostCanAct` or crowdfund is using a gatekeeper. If the
+    // crowdfund is using `onlyHostCanAct`, then only hosts can call the
+    // function. If the crowdfund is using a gatekeeper, then only contributors
+    // or hosts can call the function. Otherwise, anyone can call the function.
+    modifier checkIfOnlyHostOrContributor(address[] memory hosts) {
+        bool onlyHostCanAct_ = onlyHostCanAct;
+        if (
+            // Check if only allowing host to call.
+            onlyHostCanAct_ ||
+            // Otherwise, check if the gatekeeper is used. If so, only allow either
+            // contributors or host to call.
+            (address(gateKeeper) != address(0) &&
+            _contributionsByContributor[msg.sender].length == 0)
+        ) {
+            bool isHost;
+            for (uint256 i; i < hosts.length; i++) {
+                if (hosts[i] == msg.sender) {
+                    isHost = true;
+                    break;
+                }
+            }
+
+            if (!isHost) {
+                if (onlyHostCanAct_) {
+                    // Not a host.
+                    revert OnlyPartyHostError();
+                } else {
+                    // Neither host or contributor.
+                    revert OnlyPartyHostOrContributorError();
+                }
+            }
+        }
+
+        _;
+    }
 
     // Set the `Globals` contract.
     constructor(IGlobals globals) CrowdfundNFT(globals) {
@@ -152,6 +210,7 @@ abstract contract Crowdfund is Implementation, ERC721Receiver, CrowdfundNFT {
         governanceOptsHash = _hashFixedGovernanceOpts(opts.governanceOpts);
         splitRecipient = opts.splitRecipient;
         splitBps = opts.splitBps;
+        onlyHostCanAct = opts.onlyHostCanAct;
         // If the deployer passed in some ETH during deployment, credit them
         // for the initial contribution.
         uint96 initialBalance = address(this).balance.safeCastUint256ToUint96();

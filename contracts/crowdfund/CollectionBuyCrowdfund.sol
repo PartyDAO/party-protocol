@@ -18,8 +18,6 @@ contract CollectionBuyCrowdfund is BuyCrowdfundBase {
     using LibSafeERC721 for IERC721;
     using LibSafeCast for uint256;
 
-    error OnlyPartyHostError();
-
     struct CollectionBuyCrowdfundOptions {
         // The name of the crowdfund.
         // This will also carry over to the governance party.
@@ -58,22 +56,6 @@ contract CollectionBuyCrowdfund is BuyCrowdfundBase {
     /// @notice The NFT contract to buy.
     IERC721 public nftContract;
 
-    modifier onlyHost(address[] memory hosts) {
-        bool isHost;
-        for (uint256 i; i < hosts.length; i++) {
-            if (hosts[i] == msg.sender) {
-                isHost = true;
-                break;
-            }
-        }
-
-        if (!isHost) {
-            revert OnlyPartyHostError();
-        }
-
-        _;
-    }
-
     // Set the `Globals` contract.
     constructor(IGlobals globals) BuyCrowdfundBase(globals) {}
 
@@ -97,6 +79,7 @@ contract CollectionBuyCrowdfund is BuyCrowdfundBase {
             initialDelegate: opts.initialDelegate,
             gateKeeper: opts.gateKeeper,
             gateKeeperId: opts.gateKeeperId,
+            onlyHostCanAct: false, // Does not matter for this crowdfund type.
             governanceOpts: opts.governanceOpts
         }));
         nftContract = opts.nftContract;

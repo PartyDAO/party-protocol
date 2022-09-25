@@ -63,7 +63,7 @@ contract BuyCrowdfundTest is Test, TestUtils {
     function _createCrowdfund(
         uint256 tokenId,
         uint96 initialContribution,
-        bool onlyHost,
+        bool onlyHostCanAct,
         IGateKeeper gateKeeper,
         bytes12 gateKeeperId,
         address[] memory hosts
@@ -89,8 +89,8 @@ contract BuyCrowdfundTest is Test, TestUtils {
                     initialDelegate: defaultInitialDelegate,
                     gateKeeper: gateKeeper,
                     gateKeeperId: gateKeeperId,
-                    governanceOpts: defaultGovernanceOpts,
-                    onlyHost: onlyHost
+                    onlyHostCanAct: onlyHostCanAct,
+                    governanceOpts: defaultGovernanceOpts
                 })
             )
         ))));
@@ -203,16 +203,18 @@ contract BuyCrowdfundTest is Test, TestUtils {
     function testOnlyHost() public {
         // Create a BuyCrowdfund instance with `onlyHost` enabled.
         BuyCrowdfund cf = _createCrowdfund(
-                0,
-                0,
-                true,
-                defaultGateKeeper,
-                defaultGateKeeperId,
-                defaultGovernanceOpts.hosts
-            );
+            0,
+            0,
+            true,
+            defaultGateKeeper,
+            defaultGateKeeperId,
+            defaultGovernanceOpts.hosts
+        );
+
+        assertEq(cf.onlyHostCanAct(), true);
 
         // Buy the token and expect revert because we are not a host.
-        vm.expectRevert(BuyCrowdfund.OnlyPartyHostOrContributorError.selector);
+        vm.expectRevert(Crowdfund.OnlyPartyHostError.selector);
         cf.buy(payable(address(0)), 0, "", defaultGovernanceOpts);
     }
 
@@ -239,7 +241,7 @@ contract BuyCrowdfundTest is Test, TestUtils {
         cf.contribute{ value: contributor.balance }(contributor, abi.encode(new bytes32[](0)));
 
         // Buy the token, expect revert because we are not a contributor or host.
-        vm.expectRevert(BuyCrowdfund.OnlyPartyHostOrContributorError.selector);
+        vm.expectRevert(Crowdfund.OnlyPartyHostOrContributorError.selector);
         cf.buy(payable(address(0)), 0, "", defaultGovernanceOpts);
 
         // Buy as host, expect to get past `onlyHostOrContributor` modifier and
@@ -376,8 +378,8 @@ contract BuyCrowdfundTest is Test, TestUtils {
                     initialDelegate: initialDelegate,
                     gateKeeper: defaultGateKeeper,
                     gateKeeperId: defaultGateKeeperId,
-                    governanceOpts: defaultGovernanceOpts,
-                    onlyHost: false
+                    onlyHostCanAct: false,
+                    governanceOpts: defaultGovernanceOpts
                 })
             )
         ))));

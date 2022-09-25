@@ -71,8 +71,8 @@ contract FoundationForkedTest is TestUtils {
                     initialDelegate: address(0),
                     gateKeeper: IGateKeeper(address(0)),
                     gateKeeperId: 0,
-                    governanceOpts: defaultGovOpts,
-                    onlyHost: false
+                    onlyHostCanAct: false,
+                    governanceOpts: defaultGovOpts
                 })
             )
         ))));

@@ -78,7 +78,7 @@ contract AuctionCrowdfundTest is Test, TestUtils {
         uint256 auctionId,
         uint256 tokenId,
         uint96 initialContribution,
-        bool onlyHost,
+        bool onlyHostCanAct,
         IGateKeeper gateKeeper,
         bytes12 gateKeeperId,
         address[] memory hosts
@@ -106,8 +106,8 @@ contract AuctionCrowdfundTest is Test, TestUtils {
                     initialDelegate: defaultInitialDelegate,
                     gateKeeper: gateKeeper,
                     gateKeeperId: gateKeeperId,
-                    governanceOpts: defaultGovernanceOpts,
-                    onlyHost: onlyHost
+                    onlyHostCanAct: onlyHostCanAct,
+                    governanceOpts: defaultGovernanceOpts
                 })
             )
         ))));
@@ -538,7 +538,7 @@ contract AuctionCrowdfundTest is Test, TestUtils {
         );
 
         // Buy the token and expect revert because we are not a host.
-        vm.expectRevert(AuctionCrowdfund.OnlyPartyHostOrContributorError.selector);
+        vm.expectRevert(Crowdfund.OnlyPartyHostError.selector);
         cf.bid(defaultGovernanceOpts);
     }
 
@@ -566,7 +566,7 @@ contract AuctionCrowdfundTest is Test, TestUtils {
         cf.contribute{ value: contributor.balance }(contributor, abi.encode(new bytes32[](0)));
 
         // Bid, expect revert because we are not a contributor or host.
-        vm.expectRevert(AuctionCrowdfund.OnlyPartyHostOrContributorError.selector);
+        vm.expectRevert(Crowdfund.OnlyPartyHostOrContributorError.selector);
         cf.bid(defaultGovernanceOpts);
 
         // Bid as host, expect to get past `onlyHostOrContributor` modifier and
@@ -640,8 +640,8 @@ contract AuctionCrowdfundTest is Test, TestUtils {
                     initialDelegate: initialDelegate,
                     gateKeeper: defaultGateKeeper,
                     gateKeeperId: defaultGateKeeperId,
-                    governanceOpts: defaultGovernanceOpts,
-                    onlyHost: false
+                    onlyHostCanAct: false,
+                    governanceOpts: defaultGovernanceOpts
                 })
             )
         ))));

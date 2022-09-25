@@ -164,7 +164,7 @@ contract CollectionBuyCrowdfundTest is Test, TestUtils {
         vm.prank(contributor);
         cf.contribute{ value: contributor.balance }(delegate, "");
         // Buy the token as a non-host contributor and expect revert.
-        vm.expectRevert(CollectionBuyCrowdfund.OnlyPartyHostError.selector);
+        vm.expectRevert(Crowdfund.OnlyPartyHostError.selector);
         vm.prank(contributor);
         cf.buy(
             tokenId,

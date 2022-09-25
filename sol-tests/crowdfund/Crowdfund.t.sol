@@ -112,6 +112,7 @@ contract CrowdfundTest is Test, TestUtils {
                     initialDelegate: initialDelegate,
                     gateKeeper: defaultGateKeeper,
                     gateKeeperId: defaultGateKeeperId,
+                    onlyHostCanAct: false,
                     governanceOpts: defaultGovernanceOpts
                 })
             ))
@@ -947,6 +948,7 @@ contract CrowdfundTest is Test, TestUtils {
                     initialDelegate: address(this),
                     gateKeeper: defaultGateKeeper,
                     gateKeeperId: defaultGateKeeperId,
+                    onlyHostCanAct: false,
                     governanceOpts: defaultGovernanceOpts
                 })
             ))
