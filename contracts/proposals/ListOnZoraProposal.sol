@@ -156,7 +156,7 @@ contract ListOnZoraProposal is ZoraHelpers {
             token,
             tokenId,
             listPrice,
-            uint40(duration),
+            duration,
             uint40(block.timestamp + timeout)
         );
     }

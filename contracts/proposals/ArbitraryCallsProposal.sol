@@ -54,7 +54,7 @@ contract ArbitraryCallsProposal {
         // so we can check that we still have them later.
         bool[] memory hadPreciouses = new bool[](params.preciousTokenIds.length);
         if (!isUnanimous) {
-            for (uint256 i = 0; i < hadPreciouses.length; ++i) {
+            for (uint256 i; i < hadPreciouses.length; ++i) {
                 hadPreciouses[i] = _getHasPrecious(
                     params.preciousTokens[i],
                     params.preciousTokenIds[i]
@@ -63,7 +63,7 @@ contract ArbitraryCallsProposal {
         }
         // Can only forward ETH attached to the call.
         uint256 ethAvailable = msg.value;
-        for (uint256 i = 0; i < calls.length; ++i) {
+        for (uint256 i; i < calls.length; ++i) {
             // Execute an arbitrary call.
             _executeSingleArbitraryCall(
                 i,
@@ -80,7 +80,7 @@ contract ArbitraryCallsProposal {
         // If not a unanimous vote and we had a precious beforehand,
         // ensure that we still have it now.
         if (!isUnanimous) {
-            for (uint256 i = 0; i < hadPreciouses.length; ++i) {
+            for (uint256 i; i < hadPreciouses.length; ++i) {
                 if (hadPreciouses[i]) {
                     if (!_getHasPrecious(params.preciousTokens[i], params.preciousTokenIds[i])) {
                         revert PreciousLostError(

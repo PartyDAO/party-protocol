@@ -159,6 +159,7 @@ abstract contract PartyGovernance is
         address voter,
         uint256 weight
     );
+    event EmergencyExecute(address target, bytes data, uint256 amountEth);
 
     event ProposalPassed(uint256 indexed proposalId);
     event ProposalVetoed(uint256 indexed proposalId, address host);
@@ -167,12 +168,11 @@ abstract contract PartyGovernance is
     event DistributionCreated(ITokenDistributor.TokenType tokenType, address token, uint256 tokenId);
     event VotingPowerDelegated(address indexed owner, address indexed delegate);
     event HostStatusTransferred(address oldHost, address newHost);
+    event EmergencyExecuteDisabled();
 
     error MismatchedPreciousListLengths();
     error BadProposalStatusError(ProposalStatus status);
-    error ProposalExistsError(uint256 proposalId);
     error BadProposalHashError(bytes32 proposalHash, bytes32 actualHash);
-    error ProposalHasNoVotesError(uint256 proposalId);
     error ExecutionTimeExceededError(uint40 maxExecutableTime, uint40 timestamp);
     error OnlyPartyHostError();
     error OnlyActiveMemberError();
@@ -188,7 +188,7 @@ abstract contract PartyGovernance is
     error InvalidBpsError(uint16 bps);
 
     uint256 constant private UINT40_HIGH_BIT = 1 << 39;
-    uint96 constant private VETO_VALUE = uint96(int96(-1));
+    uint96 constant private VETO_VALUE = type(uint96).max;
 
     // The `Globals` contract storing global configuration values. This contract
     // is immutable and it’s address will never change.
@@ -446,7 +446,7 @@ abstract contract PartyGovernance is
         view
         returns (uint256 index)
     {
-        VotingPowerSnapshot[] storage snaps = _votingPowerSnapshotsByVoter[voter];
+        VotingPowerSnapshot[] memory snaps = _votingPowerSnapshotsByVoter[voter];
 
         // Derived from Open Zeppelin binary search
         // ref: https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/utils/Checkpoints.sol#L39
@@ -520,9 +520,11 @@ abstract contract PartyGovernance is
         );
         emit DistributionCreated(tokenType, token, tokenId);
         // Create a native token distribution.
+        address payable feeRecipient_ = feeRecipient;
+        uint16 feeBps_ = feeBps;
         if (tokenType == ITokenDistributor.TokenType.Native) {
             return distributor.createNativeDistribution
-                { value: address(this).balance }(this, feeRecipient, feeBps);
+                { value: address(this).balance }(this, feeRecipient_, feeBps_);
         }
         // Otherwise must be an ERC20 token distribution.
         assert(tokenType == ITokenDistributor.TokenType.Erc20);
@@ -533,8 +535,8 @@ abstract contract PartyGovernance is
         return distributor.createErc20Distribution(
             IERC20(token),
             this,
-            feeRecipient,
-            feeBps
+            feeRecipient_,
+            feeBps_
         );
     }
 
@@ -735,13 +737,12 @@ abstract contract PartyGovernance is
     }
 
     /// @notice Cancel a (probably stuck) InProgress proposal.
-    /// @dev proposal.cancelDelay seconds must have passed since it was first
-    ///       executed for this to be valid.
-    ///       The currently active proposal will simply be yeeted out of existence
-    ///       so another proposal can execute.
-    ///       This is intended to be a last resort and can leave the party
-    ///       in a broken state. Whenever possible, active proposals should be
-    ///       allowed to complete their lifecycle.
+    /// @dev `proposal.cancelDelay` seconds must have passed since it was first
+    ///      executed for this to be valid. The currently active proposal will
+    ///      simply be yeeted out of existence so another proposal can execute.
+    ///      This is intended to be a last resort and can leave the party in a
+    ///      broken state. Whenever possible, active proposals should be
+    ///      allowed to complete their lifecycle.
     /// @param proposalId The ID of the proposal to cancel.
     /// @param proposal The details of the proposal to cancel.
     function cancel(uint256 proposalId, Proposal calldata proposal)
@@ -819,12 +820,14 @@ abstract contract PartyGovernance is
         if (!success) {
             res.rawRevert();
         }
+        emit EmergencyExecute(targetAddress, targetCallData, amountEth);
     }
 
     /// @notice Revoke the DAO's ability to call emergencyExecute().
     /// @dev Either the DAO or the party host can call this.
     function disableEmergencyExecute() external onlyPartyDaoOrHost onlyDelegateCall {
         emergencyExecuteDisabled = true;
+        emit EmergencyExecuteDisabled();
     }
 
     function _executeProposal(
@@ -919,8 +922,8 @@ abstract contract PartyGovernance is
         VotingPowerSnapshot memory oldSnap =
             _getLastVotingPowerSnapshotForVoter(voter);
         address oldDelegate = delegationsByVoter[voter];
-        // If `oldDelegate` is zero, `voter` never delegated, set the it to
-        // themself.
+        // If `oldDelegate` is zero and `voter` never delegated, then have
+        // `voter` delegate to themself.
         oldDelegate = oldDelegate == address(0) ? voter : oldDelegate;
         // If the new `delegate` is zero, use the current (old) delegate.
         delegate = delegate == address(0) ? oldDelegate : delegate;
@@ -1056,7 +1059,7 @@ abstract contract PartyGovernance is
             return ProposalStatus.Complete;
         }
         // Vetoed.
-        if (pv.votes == uint96(int96(-1))) {
+        if (pv.votes == type(uint96).max) {
             return ProposalStatus.Defeated;
         }
         uint40 t = uint40(block.timestamp);

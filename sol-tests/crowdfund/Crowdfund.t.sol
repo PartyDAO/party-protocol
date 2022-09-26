@@ -105,7 +105,7 @@ contract CrowdfundTest is Test, TestUtils {
     {
         tokens = new IERC721[](count);
         tokenIds = new uint256[](count);
-        for (uint256 i = 0; i < count; ++i) {
+        for (uint256 i; i < count; ++i) {
             DummyERC721 t = new DummyERC721();
             tokens[i] = IERC721(t);
             tokenIds[i] = t.mint(owner);

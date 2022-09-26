@@ -319,7 +319,7 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
     {
         tokens = new IERC721[](count);
         tokenIds = new uint256[](count);
-        for (uint256 i = 0; i < count; ++i) {
+        for (uint256 i; i < count; ++i) {
             // Doesn't actually have to be real tokens for these tests.
             tokens[i] = IERC721(_randomAddress());
             tokenIds[i] = _randomUint256();

@@ -110,7 +110,7 @@ contract ListOnOpenseaProposalForkedTest is
     {
         tokens = new IERC721[](count);
         tokenIds = new uint256[](count);
-        for (uint256 i = 0; i < count; ++i) {
+        for (uint256 i; i < count; ++i) {
             DummyERC721 t = new DummyERC721();
             tokens[i] = t;
             tokenIds[i] = t.mint(owner);
@@ -188,7 +188,7 @@ contract ListOnOpenseaProposalForkedTest is
             cons.identifierOrCriteria = 0;
             cons.startAmount = cons.endAmount = data.listPrice;
             cons.recipient = payable(address(impl));
-            for (uint256 i = 0; i < data.fees.length; ++i) {
+            for (uint256 i; i < data.fees.length; ++i) {
                 cons = orderParams.consideration[1 + i];
                 cons.itemType = IOpenseaExchange.ItemType.NATIVE;
                 cons.token = address(0);

@@ -28,7 +28,7 @@ contract CrowdfundFactory {
         _GLOBALS = globals;
     }
 
-    /// @notice Create a new crowdfund to purchases a specific NFT (i.e., with a
+    /// @notice Create a new crowdfund to purchase a specific NFT (i.e., with a
     ///         known token ID) listing for a known price.
     /// @param opts Options used to initialize the crowdfund. These are fixed
     ///             and cannot be changed later.
@@ -80,7 +80,7 @@ contract CrowdfundFactory {
         emit AuctionCrowdfundCreated(inst, opts);
     }
 
-    /// @notice Create a new crowdfund to purchases any NFT from a collection
+    /// @notice Create a new crowdfund to purchase any NFT from a collection
     ///         (i.e. any token ID) from a collection for a known price.
     /// @param opts Options used to initialize the crowdfund. These are fixed
     ///             and cannot be changed later.

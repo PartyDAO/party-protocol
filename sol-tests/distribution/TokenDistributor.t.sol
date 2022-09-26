@@ -29,7 +29,7 @@ contract TokenDistributorTest is Test, TestUtils {
     distributor = new TokenDistributor(globals, uint40(block.timestamp) + 365 days);
 
     // Reset addresses used in tests (can be non-zero when running forked tests)
-    for (uint160 i; i < 10; i++) {
+    for (uint160 i; i < 10; ++i) {
       vm.deal(address(i), 0);
     }
   }

@@ -11,6 +11,7 @@ import "../renderers/RendererStorage.sol";
 
 /// @notice NFT functionality for crowdfund types. This NFT is soulbound and read-only.
 contract CrowdfundNFT is IERC721, EIP165, ReadOnlyDelegateCall {
+    error AlreadyMintedError(address owner, uint256 tokenId);
     error AlreadyBurnedError(address owner, uint256 tokenId);
     error InvalidTokenError(uint256 tokenId);
     error InvalidAddressError();
@@ -59,6 +60,7 @@ contract CrowdfundNFT is IERC721, EIP165, ReadOnlyDelegateCall {
     ///         Attempting to call this function will always fail.
     function transferFrom(address, address, uint256)
         external
+        pure
         alwaysRevert
     {}
 
@@ -66,6 +68,7 @@ contract CrowdfundNFT is IERC721, EIP165, ReadOnlyDelegateCall {
     ///         Attempting to call this function will always fail.
     function safeTransferFrom(address, address, uint256)
         external
+        pure
         alwaysRevert
     {}
 
@@ -73,6 +76,7 @@ contract CrowdfundNFT is IERC721, EIP165, ReadOnlyDelegateCall {
     ///         Attempting to call this function will always fail.
     function safeTransferFrom(address, address, uint256, bytes calldata)
         external
+        pure
         alwaysRevert
     {}
 
@@ -80,6 +84,7 @@ contract CrowdfundNFT is IERC721, EIP165, ReadOnlyDelegateCall {
     ///         Attempting to call this function will always fail.
     function approve(address, uint256)
         external
+        pure
         alwaysRevert
     {}
 
@@ -87,6 +92,7 @@ contract CrowdfundNFT is IERC721, EIP165, ReadOnlyDelegateCall {
     ///         Attempting to call this function will always fail.
     function setApprovalForAll(address, bool)
         external
+        pure
         alwaysRevert
     {}
 
@@ -155,6 +161,8 @@ contract CrowdfundNFT is IERC721, EIP165, ReadOnlyDelegateCall {
         if (_owners[tokenId] != owner) {
             _owners[tokenId] = owner;
             emit Transfer(address(0), owner, tokenId);
+        } else {
+            revert AlreadyMintedError(owner, tokenId);
         }
     }
 

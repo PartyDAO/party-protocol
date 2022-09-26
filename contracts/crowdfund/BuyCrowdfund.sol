@@ -5,13 +5,12 @@ pragma solidity 0.8.17;
 import "../tokens/IERC721.sol";
 import "../party/Party.sol";
 import "../utils/LibSafeERC721.sol";
-import "../utils/LibRawResult.sol";
 import "../globals/IGlobals.sol";
 import "../gatekeepers/IGateKeeper.sol";
 
 import "./BuyCrowdfundBase.sol";
 
-/// @notice A crowdfund that purchases a specific NFT (i.e., with a known token
+/// @notice A crowdfund that purchase a specific NFT (i.e., with a known token
 ///         ID) listing for a known price.
 contract BuyCrowdfund is BuyCrowdfundBase {
     using LibSafeERC721 for IERC721;

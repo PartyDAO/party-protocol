@@ -11,7 +11,7 @@ import "../renderers/RendererStorage.sol";
 import "./Party.sol";
 import "./IPartyFactory.sol";
 
-/// @notice Factory used to deploys new proxified `Party` instances.
+/// @notice Factory used to deploy new proxified `Party` instances.
 contract PartyFactory is IPartyFactory {
     error InvalidAuthorityError(address authority);
 
@@ -26,9 +26,9 @@ contract PartyFactory is IPartyFactory {
     /// @inheritdoc IPartyFactory
     function createParty(
         address authority,
-        Party.PartyOptions memory opts,
-        IERC721[] memory preciousTokens,
-        uint256[] memory preciousTokenIds
+        Party.PartyOptions calldata opts,
+        IERC721[] calldata preciousTokens,
+        uint256[] calldata preciousTokenIds
     )
         external
         returns (Party party)

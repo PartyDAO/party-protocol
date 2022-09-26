@@ -442,7 +442,7 @@ contract BuyCrowdfundTest is Test, TestUtils {
         assertTrue(cf.getCrowdfundLifecycle() == Crowdfund.CrowdfundLifecycle.Active);
     }
 
-    function testGettingNFTForFreeTriggersLostToRefund() public {
+    function testgettingNFTForFreeTriggersLossToRefund() public {
         DummyERC721 token = erc721Vault.token();
         uint256 tokenId = 1;
         // Create a BuyCrowdfund instance.

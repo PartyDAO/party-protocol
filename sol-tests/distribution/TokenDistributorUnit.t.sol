@@ -395,7 +395,7 @@ contract TokenDistributorUnitTest is Test, TestUtils {
         // Deal more ETH to the distributor to attempt to steal.
         vm.deal(address(distributor), address(distributor).balance + supply);
         uint256 balanceBeforeClaim = address(distributor).balance;
-        for (uint256 i = 0; i < members.length; ++i) {
+        for (uint256 i; i < members.length; ++i) {
             vm.prank(members[i]);
             distributor.claim(di, memberTokenIds[i]);
         }
@@ -414,7 +414,7 @@ contract TokenDistributorUnitTest is Test, TestUtils {
             distributor.createNativeDistribution(party, payable(0), 0);
         assertEq(di.memberSupply, supply);
         // Claim.
-        for (uint256 i = 0; i < members.length; ++i) {
+        for (uint256 i; i < members.length; ++i) {
             vm.prank(members[i]);
             distributor.claim(di, memberTokenIds[i]);
         }
@@ -476,7 +476,7 @@ contract TokenDistributorUnitTest is Test, TestUtils {
 
         assertEq(abi.encode(di).length / 32, 7);
         // Try replacing each field and claiming.
-        for (uint256 i = 0; i < 8; ++i) {
+        for (uint256 i; i < 8; ++i) {
             ITokenDistributor.DistributionInfo memory di_ = di;
             if (i == 0) {
                 di_.tokenType = ITokenDistributor.TokenType.Erc20;
@@ -710,13 +710,13 @@ contract TokenDistributorUnitTest is Test, TestUtils {
         tokenIds = new uint256[](count);
         shares = new uint256[](count);
         uint256 sharesSum = 0;
-        for (uint256 i = 0; i < count; ++i) {
+        for (uint256 i; i < count; ++i) {
             sharesSum += shares[i] = _randomUint256() % 1e18;
         }
-        for (uint256 i = 0; i < count; ++i) {
+        for (uint256 i; i < count; ++i) {
             shares[i] = shares[i] * total / sharesSum;
         }
-        for (uint256 i = 0; i < count; ++i) {
+        for (uint256 i; i < count; ++i) {
             owners[i] = _randomAddress();
             tokenIds[i] = _randomUint256();
             party.mintShare(owners[i], tokenIds[i], shares[i]);

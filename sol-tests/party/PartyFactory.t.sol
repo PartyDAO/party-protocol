@@ -44,7 +44,7 @@ contract PartyFactoryTest is Test, TestUtils {
     {
         preciousTokens = new IERC721[](count);
         preciousTokenIds = new uint256[](count);
-        for (uint256 i = 0; i < count; ++i) {
+        for (uint256 i; i < count; ++i) {
             preciousTokens[i] = IERC721(_randomAddress());
             preciousTokenIds[i] = _randomUint256();
         }

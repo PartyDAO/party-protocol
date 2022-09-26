@@ -7,7 +7,6 @@ import "../../contracts/proposals/vendor/IOpenseaExchange.sol";
 import "../../contracts/tokens/IERC721.sol";
 
 contract OpenseaTestUtils is Test {
-
     IOpenseaExchange private immutable SEAPORT;
 
     constructor(IOpenseaExchange seaport) {
@@ -49,7 +48,7 @@ contract OpenseaTestUtils is Test {
         internal
     {
         uint256 totalValue = params.listPrice;
-        for (uint256 i = 0; i < fees.length; ++i) {
+        for (uint256 i; i < fees.length; ++i) {
             totalValue += fees[i];
         }
         vm.deal(params.buyer, address(params.buyer).balance + totalValue);
@@ -92,7 +91,7 @@ contract OpenseaTestUtils is Test {
         considerations[0].identifierOrCriteria = 0;
         considerations[0].startAmount = considerations[0].endAmount = params.listPrice;
         considerations[0].recipient = params.maker;
-        for (uint256 i = 0; i < fees.length; ++i) {
+        for (uint256 i; i < fees.length; ++i) {
             considerations[1 + i].itemType = IOpenseaExchange.ItemType.NATIVE;
             considerations[1 + i].token = address(0);
             considerations[1 + i].identifierOrCriteria = 0;

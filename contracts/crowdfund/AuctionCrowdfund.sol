@@ -84,6 +84,7 @@ contract AuctionCrowdfund is Crowdfund {
     error AuctionFinalizedError(uint256 auctionId);
     error AlreadyHighestBidderError();
     error ExceedsMaximumBidError(uint256 bidAmount, uint256 maximumBid);
+    error MinimumBidExceedsMaximumBidError(uint256 bidAmount, uint256 maximumBid);
     error NoContributionsError();
     error AuctionNotExpiredError();
 
@@ -151,6 +152,12 @@ contract AuctionCrowdfund is Crowdfund {
         {
             revert InvalidAuctionIdError();
         }
+
+        // Check that the minimum bid is less than the maximum bid.
+        uint256 minimumBid = market.getMinimumBid(opts.auctionId);
+        if (minimumBid > opts.maximumBid) {
+            revert MinimumBidExceedsMaximumBidError(minimumBid, opts.maximumBid);
+        }
     }
 
     /// @notice Accept naked ETH, e.g., if an auction needs to return ETH to us.
@@ -196,18 +203,19 @@ contract AuctionCrowdfund is Crowdfund {
         _bidStatus = AuctionCrowdfundStatus.Busy;
 
         // Make sure the auction is not finalized.
+        IMarketWrapper market_ = market;
         uint256 auctionId_ = auctionId;
-        if (market.isFinalized(auctionId_)) {
+        if (market_.isFinalized(auctionId_)) {
             revert AuctionFinalizedError(auctionId_);
         }
 
         // Only bid if we are not already the highest bidder.
-        if (market.getCurrentHighestBidder(auctionId_) == address(this)) {
+        if (market_.getCurrentHighestBidder(auctionId_) == address(this)) {
             revert AlreadyHighestBidderError();
         }
 
         // Get the minimum necessary bid to be the highest bidder.
-        uint96 bidAmount = market.getMinimumBid(auctionId_).safeCastUint256ToUint96();
+        uint96 bidAmount = market_.getMinimumBid(auctionId_).safeCastUint256ToUint96();
         // Prevent unaccounted ETH from being used to inflate the bid and
         // create "ghost shares" in voting power.
         uint96 totalContributions_ = totalContributions;
@@ -215,8 +223,9 @@ contract AuctionCrowdfund is Crowdfund {
             revert ExceedsTotalContributionsError(bidAmount, totalContributions_);
         }
         // Make sure the bid is less than the maximum bid.
-        if (bidAmount > maximumBid) {
-            revert ExceedsMaximumBidError(bidAmount, maximumBid);
+        uint96 maximumBid_ = maximumBid;
+        if (bidAmount > maximumBid_) {
+            revert ExceedsMaximumBidError(bidAmount, maximumBid_);
         }
         lastBid = bidAmount;
 
@@ -253,23 +262,27 @@ contract AuctionCrowdfund is Crowdfund {
         // Mark as busy to prevent burn(), bid(), and contribute()
         // getting called because this will result in a `CrowdfundLifecycle.Busy`.
         _bidStatus = AuctionCrowdfundStatus.Busy;
-
-        uint256 auctionId_ = auctionId;
-        // Finalize the auction if it isn't finalized.
-        if (!market.isFinalized(auctionId_)) {
-            // Note that even if this crowdfund has expired but the auction is still
-            // ongoing, this call can fail and block finalization until the auction ends.
-            (bool s, bytes memory r) = address(market).call(abi.encodeCall(
-                IMarketWrapper.finalize,
-                auctionId_
-            ));
-            if (!s) {
-                r.rawRevert();
+        {
+            uint256 auctionId_ = auctionId;
+            IMarketWrapper market_ = market;
+            // Finalize the auction if it isn't finalized.
+            if (!market_.isFinalized(auctionId_)) {
+                // Note that even if this crowdfund has expired but the auction is still
+                // ongoing, this call can fail and block finalization until the auction ends.
+                (bool s, bytes memory r) = address(market_).call(abi.encodeCall(
+                    IMarketWrapper.finalize,
+                    auctionId_
+                ));
+                if (!s) {
+                    r.rawRevert();
+                }
             }
         }
+        IERC721 nftContract_ = nftContract;
+        uint256 nftTokenId_ = nftTokenId;
         if (
             // Are we now in possession of the NFT?
-            nftContract.safeOwnerOf(nftTokenId) == address(this) &&
+            nftContract_.safeOwnerOf(nftTokenId_) == address(this) &&
             // And it wasn't acquired for free or "gifted" to us?
             address(this).balance < totalContributions
         ) {

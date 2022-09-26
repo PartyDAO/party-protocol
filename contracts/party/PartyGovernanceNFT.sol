@@ -35,8 +35,9 @@ contract PartyGovernanceNFT is
     mapping (uint256 => uint256) public votingPowerByTokenId;
 
     modifier onlyMinter() {
-        if (msg.sender != mintAuthority) {
-            revert OnlyMintAuthorityError(msg.sender, mintAuthority);
+        address minter = mintAuthority;
+        if (msg.sender != minter) {
+            revert OnlyMintAuthorityError(msg.sender, minter);
         }
         _;
     }

@@ -85,7 +85,7 @@ contract ArbitraryCallsProposalTest is
     uint256[] preciousTokenIds;
 
     constructor() {
-        for (uint256 i = 0; i < 2; ++i) {
+        for (uint256 i; i < 2; ++i) {
             DummyERC721 t = new DummyERC721();
             preciousTokens.push(t);
             preciousTokenIds.push(t.mint(address(testContract)));
@@ -135,7 +135,7 @@ contract ArbitraryCallsProposalTest is
             new ArbitraryCallsProposal.ArbitraryCall[](count);
         callArgs = new bytes32[](count);
         bytes[] memory callResults = new bytes[](count);
-        for (uint256 i = 0; i < count; ++i) {
+        for (uint256 i; i < count; ++i) {
             callArgs[i] = _randomBytes32();
             callResults[i] = shouldCallsReturnData
                 ? abi.encode(_randomBytes32()) : bytes('');
@@ -159,7 +159,7 @@ contract ArbitraryCallsProposalTest is
         ) = _createSimpleCalls(1, false);
         IProposalExecutionEngine.ExecuteProposalParams memory prop =
             _createTestProposal(calls);
-        for (uint256 i = 0; i < calls.length; ++i) {
+        for (uint256 i; i < calls.length; ++i) {
             _expectNonIndexedEmit();
             emit ArbitraryCallTargetSuccessCalled(address(testContract), 0, callArgs[i]);
             _expectNonIndexedEmit();
@@ -175,7 +175,7 @@ contract ArbitraryCallsProposalTest is
         ) = _createSimpleCalls(2, false);
         IProposalExecutionEngine.ExecuteProposalParams memory prop =
             _createTestProposal(calls);
-        for (uint256 i = 0; i < calls.length; ++i) {
+        for (uint256 i; i < calls.length; ++i) {
             _expectNonIndexedEmit();
             emit ArbitraryCallTargetSuccessCalled(address(testContract), 0, callArgs[i]);
             _expectNonIndexedEmit();
@@ -191,7 +191,7 @@ contract ArbitraryCallsProposalTest is
         ) = _createSimpleCalls(1, true);
         IProposalExecutionEngine.ExecuteProposalParams memory prop =
             _createTestProposal(calls);
-        for (uint256 i = 0; i < calls.length; ++i) {
+        for (uint256 i; i < calls.length; ++i) {
             _expectNonIndexedEmit();
             emit ArbitraryCallTargetSuccessCalled(address(testContract), 0, callArgs[i]);
             _expectNonIndexedEmit();
@@ -225,7 +225,7 @@ contract ArbitraryCallsProposalTest is
         calls[0].value = 1e18;
         IProposalExecutionEngine.ExecuteProposalParams memory prop =
             _createTestProposal(calls);
-        for (uint256 i = 0; i < calls.length; ++i) {
+        for (uint256 i; i < calls.length; ++i) {
             _expectNonIndexedEmit();
             emit ArbitraryCallTargetSuccessCalled(address(testContract), calls[i].value, callArgs[i]);
             _expectNonIndexedEmit();
@@ -243,7 +243,7 @@ contract ArbitraryCallsProposalTest is
         calls[1].value = 0.5e18;
         IProposalExecutionEngine.ExecuteProposalParams memory prop =
             _createTestProposal(calls);
-        for (uint256 i = 0; i < calls.length; ++i) {
+        for (uint256 i; i < calls.length; ++i) {
             _expectNonIndexedEmit();
             emit ArbitraryCallTargetSuccessCalled(address(testContract), calls[i].value, callArgs[i]);
             _expectNonIndexedEmit();
@@ -260,7 +260,7 @@ contract ArbitraryCallsProposalTest is
         calls[0].value = 1e18;
         IProposalExecutionEngine.ExecuteProposalParams memory prop =
             _createTestProposal(calls);
-        for (uint256 i = 0; i < calls.length; ++i) {
+        for (uint256 i; i < calls.length; ++i) {
             _expectNonIndexedEmit();
             emit ArbitraryCallTargetSuccessCalled(address(testContract), calls[i].value, callArgs[i]);
             _expectNonIndexedEmit();

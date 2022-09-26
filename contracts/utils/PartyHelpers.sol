@@ -62,7 +62,7 @@ contract PartyHelpers {
     {
         Party p = Party(payable(party));
         membersAndDelegates = new MemberAndDelegate[](members.length);
-        for (uint256 i = 0; i < members.length; i++) {
+        for (uint256 i; i < members.length; ++i) {
             membersAndDelegates[i] = MemberAndDelegate({
                 member: members[i],
                 delegate: p.delegationsByVoter(members[i])
@@ -83,7 +83,7 @@ contract PartyHelpers {
     {
         Party p = Party(payable(party));
         memberAndVotingPower = new MemberAndVotingPower[](voters.length);
-        for (uint256 i = 0; i < voters.length; i++) {
+        for (uint256 i; i < voters.length; ++i) {
             memberAndVotingPower[i] = MemberAndVotingPower({
                 member: voters[i],
                 votingPower: p.getVotingPowerAt(voters[i], timestamp, indexes[i])
@@ -113,7 +113,7 @@ contract PartyHelpers {
 
         nftInfos = new NftInfo[](count);
 
-        for (uint256 i = 0; i < count; i++) {
+        for (uint256 i; i < count; ++i) {
             uint256 currIndex = startTokenId + i;
             address owner = p.ownerOf(currIndex);
             uint256 intrinsicVotingPower = p.votingPowerByTokenId(currIndex);
