@@ -136,6 +136,7 @@ contract BuyCrowdfund is BuyCrowdfundBase {
             // Only a contributor can call this function.
             _assertIsContributor(msg.sender);
         }
+
         return _buy(
             nftContract,
             nftTokenId,

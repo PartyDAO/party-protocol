@@ -362,7 +362,7 @@ abstract contract Crowdfund is Implementation, ERC721Receiver, CrowdfundNFT {
         if (party != Party(payable(0))) {
             revert PartyAlreadyExistsError(party);
         }
-        // If the governance opts haven't already been validated, make sure the
+        // If the governance opts haven't already been validated, make sure that
         // it hasn't been tampered with.
         if (!governanceOptsAlreadyValidated) {
             _assertValidGovernanceOpts(governanceOpts);
