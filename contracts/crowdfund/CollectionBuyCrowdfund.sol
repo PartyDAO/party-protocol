@@ -68,6 +68,9 @@ contract CollectionBuyCrowdfund is BuyCrowdfundBase {
         payable
         onlyConstructor
     {
+        if (opts.governanceOpts.hosts.length == 0) {
+            revert MissingHostsError();
+        }
         BuyCrowdfundBase._initialize(BuyCrowdfundBaseOptions({
             name: opts.name,
             symbol: opts.symbol,
@@ -79,39 +82,44 @@ contract CollectionBuyCrowdfund is BuyCrowdfundBase {
             initialDelegate: opts.initialDelegate,
             gateKeeper: opts.gateKeeper,
             gateKeeperId: opts.gateKeeperId,
-            onlyHostCanAct: false, // Does not matter for this crowdfund type.
             governanceOpts: opts.governanceOpts
         }));
         nftContract = opts.nftContract;
     }
 
     /// @notice Execute arbitrary calldata to perform a buy, creating a party
-    ///         if it successfully buys the NFT.
+    ///         if it successfully buys the NFT. Only a host may call this.
     /// @param tokenId The token ID of the NFT in the collection to buy.
     /// @param callTarget The target contract to call to buy the NFT.
     /// @param callValue The amount of ETH to send with the call.
     /// @param callData The calldata to execute.
     /// @param governanceOpts The options used to initialize governance in the
     ///                       `Party` instance created if the buy was successful.
+    /// @param hostIndex If the caller is a host, this is the index of the caller in the
+    ///                  `governanceOpts.hosts` array.
     /// @return party_ Address of the `Party` instance created after its bought.
     function buy(
         uint256 tokenId,
         address payable callTarget,
         uint96 callValue,
         bytes calldata callData,
-        FixedGovernanceOpts memory governanceOpts
+        FixedGovernanceOpts memory governanceOpts,
+        uint256 hostIndex
     )
         external
-        onlyHost(governanceOpts.hosts)
         returns (Party party_)
     {
+        // This function is always restricted to hosts.
+        bool isValidatedGovernanceOpts =
+                _assertIsHost(msg.sender, governanceOpts, hostIndex);
         return _buy(
             nftContract,
             tokenId,
             callTarget,
             callValue,
             callData,
-            governanceOpts
+            governanceOpts,
+            isValidatedGovernanceOpts
         );
     }
 }

@@ -80,7 +80,7 @@ contract CrowdfundHelpers is Test, TestUtils {
                     initialDelegate: defaultInitialDelegate,
                     gateKeeper: defaultGateKeeper,
                     gateKeeperId: defaultGateKeeperId,
-                    onlyHostCanAct: false,
+                    onlyHostCanBid: false,
                     governanceOpts: defaultGovernanceOpts
                 })
             )
@@ -108,7 +108,7 @@ contract CrowdfundHelpers is Test, TestUtils {
                     initialDelegate: defaultInitialDelegate,
                     gateKeeper: defaultGateKeeper,
                     gateKeeperId: defaultGateKeeperId,
-                    onlyHostCanAct: false,
+                    onlyHostCanBuy: false,
                     governanceOpts: defaultGovernanceOpts
                 })
             )
@@ -119,6 +119,7 @@ contract CrowdfundHelpers is Test, TestUtils {
         private
         returns (CollectionBuyCrowdfund cf)
     {
+        defaultGovernanceOpts.hosts = _toAddressArray(_randomAddress());
         cf = CollectionBuyCrowdfund(payable(address(new Proxy{ value: initialContribution }(
             collectionBuyCrowdfundImpl,
             abi.encodeCall(

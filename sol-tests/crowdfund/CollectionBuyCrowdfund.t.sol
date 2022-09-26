@@ -133,7 +133,8 @@ contract CollectionBuyCrowdfundTest is Test, TestUtils {
             payable(address(erc721Vault)),
             0.5e18,
             abi.encodeCall(erc721Vault.claim, (tokenId)),
-            governanceOpts
+            governanceOpts,
+            0
         );
         assertEq(address(party), address(party_));
         // Burn contributor's NFT, mock minting governance tokens and returning
@@ -171,7 +172,8 @@ contract CollectionBuyCrowdfundTest is Test, TestUtils {
             payable(address(erc721Vault)),
             0.5e18,
             abi.encodeCall(erc721Vault.claim, (tokenId)),
-            governanceOpts
+            governanceOpts,
+            0
         );
     }
 
@@ -204,13 +206,14 @@ contract CollectionBuyCrowdfundTest is Test, TestUtils {
             _randomAddress(), // Call random EOA, which will succeed but do nothing
             0.5e18,
             "",
-            governanceOpts
+            governanceOpts,
+            0
         );
         assertTrue(cf.getCrowdfundLifecycle() == Crowdfund.CrowdfundLifecycle.Active);
     }
 
     function testCannotReinitialize() public {
-        ( CollectionBuyCrowdfund cf,) = _createCrowdfund(new address[](0), 0);
+        ( CollectionBuyCrowdfund cf,) = _createCrowdfund(_toAddressArray(_randomAddress()), 0);
         vm.expectRevert(abi.encodeWithSelector(Implementation.OnlyConstructorError.selector));
         CollectionBuyCrowdfund.CollectionBuyCrowdfundOptions memory opts;
         cf.initialize(opts);
@@ -220,7 +223,9 @@ contract CollectionBuyCrowdfundTest is Test, TestUtils {
         uint256 initialContribution = _randomRange(1, 1 ether);
         address initialContributor = _randomAddress();
         address initialDelegate = _randomAddress();
+        defaultGovernanceOpts.hosts = _toAddressArray(_randomAddress());
         vm.deal(address(this), initialContribution);
+        _expectEmit0();
         emit Contributed(initialContributor, initialContribution, initialDelegate, 0);
         CollectionBuyCrowdfund(payable(address(new Proxy{ value: initialContribution }(
             collectionBuyCrowdfundImpl,

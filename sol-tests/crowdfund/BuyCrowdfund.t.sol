@@ -63,7 +63,7 @@ contract BuyCrowdfundTest is Test, TestUtils {
     function _createCrowdfund(
         uint256 tokenId,
         uint96 initialContribution,
-        bool onlyHostCanAct,
+        bool onlyHostCanBuy,
         IGateKeeper gateKeeper,
         bytes12 gateKeeperId,
         address[] memory hosts
@@ -89,7 +89,7 @@ contract BuyCrowdfundTest is Test, TestUtils {
                     initialDelegate: defaultInitialDelegate,
                     gateKeeper: gateKeeper,
                     gateKeeperId: gateKeeperId,
-                    onlyHostCanAct: onlyHostCanAct,
+                    onlyHostCanBuy: onlyHostCanBuy,
                     governanceOpts: defaultGovernanceOpts
                 })
             )
@@ -156,7 +156,8 @@ contract BuyCrowdfundTest is Test, TestUtils {
             payable(address(erc721Vault)),
             0.5e18,
             abi.encodeCall(erc721Vault.claim, (tokenId)),
-            defaultGovernanceOpts
+            defaultGovernanceOpts,
+            0
         );
         assertEq(address(party), address(party_));
         // Burn contributor's NFT, mock minting governance tokens and returning
@@ -195,34 +196,78 @@ contract BuyCrowdfundTest is Test, TestUtils {
             _randomAddress(), // Call random EOA, which will succeed but do nothing
             0.5e18,
             "",
-            defaultGovernanceOpts
+            defaultGovernanceOpts,
+            0
         );
         assertTrue(cf.getCrowdfundLifecycle() == Crowdfund.CrowdfundLifecycle.Active);
     }
 
-    function testOnlyHost() public {
+    function testOnlyHostCanBuy() public {
         // Create a BuyCrowdfund instance with `onlyHost` enabled.
+        address host = _randomAddress();
+        address contributor = _randomAddress();
+
         BuyCrowdfund cf = _createCrowdfund(
             0,
             0,
             true,
-            defaultGateKeeper,
-            defaultGateKeeperId,
-            defaultGovernanceOpts.hosts
+            IGateKeeper(address(0)),
+            0,
+            _toAddressArray(host)
         );
 
-        assertEq(cf.onlyHostCanAct(), true);
+        assertEq(cf.onlyHostCanBuy(), true);
+
+        // Contributor contributes.
+        vm.deal(contributor, 1e18);
+        vm.prank(contributor);
+        cf.contribute{ value: contributor.balance }(contributor, abi.encode(new bytes32[](0)));
 
         // Buy the token and expect revert because we are not a host.
         vm.expectRevert(Crowdfund.OnlyPartyHostError.selector);
-        cf.buy(payable(address(0)), 0, "", defaultGovernanceOpts);
+        cf.buy(payable(address(0)), 0, "", defaultGovernanceOpts, 0);
+
+        // Now as the host, but this will fail with another error because
+        // we are trying to call the CF itself in buy().
+        vm.prank(host);
+        vm.expectRevert(abi.encodeWithSelector(
+            BuyCrowdfundBase.InvalidCallTargetError.selector,
+            address(cf)
+        ));
+        cf.buy(payable(address(cf)), 0, "", defaultGovernanceOpts, 0);
+
+        // Buy as a contributor, but this will fail because only the host can
+        // call buy().
+        vm.prank(contributor);
+        vm.expectRevert(Crowdfund.OnlyPartyHostError.selector);
+        cf.buy(payable(address(cf)), 0, "", defaultGovernanceOpts, 0);
     }
 
-    function testOnlyHostOrContributor() public {
+    function testOnlyHostCanBuy_CannotFakeGovernanceOpts() public {
+        // Create a BuyCrowdfund instance with `onlyHost` enabled.
+        address host = _randomAddress();
+
+        BuyCrowdfund cf = _createCrowdfund(
+            0,
+            0,
+            true,
+            IGateKeeper(address(0)),
+            0,
+            _toAddressArray(host)
+        );
+
+        // Buy as the host, but pass in wrong governanceOpts.
+        vm.prank(host);
+        vm.expectRevert(Crowdfund.InvalidGovernanceOptionsError.selector);
+        defaultGovernanceOpts.voteDuration += 1;
+        cf.buy(payable(address(cf)), 0, "", defaultGovernanceOpts, 0);
+    }
+
+    function testOnlyContributorCanBuy() public {
         address host = _randomAddress();
         address contributor = _randomAddress();
 
-        // Create a BuyCrowdfund instance with gatekeeper enabled.
+        // Create a BuyCrowdfund instance with a gatekeeper enabled.
         AllowListGateKeeper gateKeeper = new AllowListGateKeeper();
         bytes32 contributorHash = keccak256(abi.encodePacked(contributor));
         bytes12 gateKeeperId = gateKeeper.createGate(contributorHash);
@@ -230,7 +275,48 @@ contract BuyCrowdfundTest is Test, TestUtils {
             0,
             0,
             false,
-            IGateKeeper(address(gateKeeper)),
+            gateKeeper,
+            gateKeeperId,
+            _toAddressArray(host)
+        );
+
+        // Contributor contributes.
+        vm.deal(contributor, 1e18);
+        vm.prank(contributor);
+        cf.contribute{ value: contributor.balance }(contributor, abi.encode(new bytes32[](0)));
+
+        // Buy the token, expect revert because we are not a contributor or host.
+        vm.expectRevert(Crowdfund.OnlyContributorError.selector);
+        cf.buy(payable(address(0)), 0, "", defaultGovernanceOpts, 0);
+
+        // Now as the host, but this will fail because the host is not a contributor.
+        vm.prank(host);
+        vm.expectRevert(Crowdfund.OnlyContributorError.selector);
+        cf.buy(payable(address(cf)), 0, "", defaultGovernanceOpts, 0);
+
+        // Buy as a contributor, but this will fail with another error because
+        // we are trying to call the CF itself in buy().
+        vm.prank(contributor);
+        vm.expectRevert(abi.encodeWithSelector(
+            BuyCrowdfundBase.InvalidCallTargetError.selector,
+            address(cf)
+        ));
+        cf.buy(payable(address(cf)), 0, "", defaultGovernanceOpts, 0);
+    }
+
+    function testOnlyHostOrContributorCanBuy() public {
+        address host = _randomAddress();
+        address contributor = _randomAddress();
+
+        // Create a BuyCrowdfund instance with onlyHostCanBuy and a gatekeeper enabled.
+        AllowListGateKeeper gateKeeper = new AllowListGateKeeper();
+        bytes32 contributorHash = keccak256(abi.encodePacked(contributor));
+        bytes12 gateKeeperId = gateKeeper.createGate(contributorHash);
+        BuyCrowdfund cf = _createCrowdfund(
+            0,
+            0,
+            true,
+            gateKeeper,
             gateKeeperId,
             _toAddressArray(host)
         );
@@ -242,27 +328,49 @@ contract BuyCrowdfundTest is Test, TestUtils {
 
         // Buy the token, expect revert because we are not a contributor or host.
         vm.expectRevert(Crowdfund.OnlyPartyHostOrContributorError.selector);
-        cf.buy(payable(address(0)), 0, "", defaultGovernanceOpts);
+        cf.buy(payable(address(0)), 0, "", defaultGovernanceOpts, 0);
 
-        // Buy as host, expect to get past `onlyHostOrContributor` modifier and
-        // hit another error (`FailedToBuyNFTError`).
-        vm.expectRevert(abi.encodeWithSelector(
-            BuyCrowdfundBase.FailedToBuyNFTError.selector,
-            erc721Vault.token(),
-            0
-        ));
-        vm.prank(contributor);
-        cf.buy(payable(address(0)), 0, "", defaultGovernanceOpts);
-
-        // Buy as host, expect to get past `onlyHostOrContributor` modifier and
-        // hit another error (`FailedToBuyNFTError`).
-        vm.expectRevert(abi.encodeWithSelector(
-            BuyCrowdfundBase.FailedToBuyNFTError.selector,
-            erc721Vault.token(),
-            0
-        ));
+        // Now as the host, but this will fail with another error because
+        // we are trying to call the CF itself in buy().
         vm.prank(host);
-        cf.buy(payable(address(0)), 0, "", defaultGovernanceOpts);
+        vm.expectRevert(abi.encodeWithSelector(
+            BuyCrowdfundBase.InvalidCallTargetError.selector,
+            address(cf)
+        ));
+        cf.buy(payable(address(cf)), 0, "", defaultGovernanceOpts, 0);
+
+        // Buy as a contributor, but this will fail with another error because
+        // we are trying to call the CF itself in buy().
+        vm.prank(contributor);
+        vm.expectRevert(abi.encodeWithSelector(
+            BuyCrowdfundBase.InvalidCallTargetError.selector,
+            address(cf)
+        ));
+        cf.buy(payable(address(cf)), 0, "", defaultGovernanceOpts, 0);
+    }
+
+
+    function testOnlyHostOrContributorCanBuy_CannotFakeGovernanceOpts() public {
+        // Create a BuyCrowdfund instance with `onlyHost` enabled.
+        address host = _randomAddress();
+
+        // Create a BuyCrowdfund instance with onlyHostCanBuy and a gatekeeper enabled.
+        AllowListGateKeeper gateKeeper = new AllowListGateKeeper();
+        bytes12 gateKeeperId = gateKeeper.createGate(0);
+        BuyCrowdfund cf = _createCrowdfund(
+            0,
+            0,
+            true,
+            gateKeeper,
+            gateKeeperId,
+            _toAddressArray(host)
+        );
+
+        // Buy as the host, but pass in wrong governanceOpts.
+        vm.prank(host);
+        vm.expectRevert(Crowdfund.InvalidGovernanceOptionsError.selector);
+        defaultGovernanceOpts.voteDuration += 1;
+        cf.buy(payable(address(cf)), 0, "", defaultGovernanceOpts, 0);
     }
 
     function testBuyCannotExceedTotalContributions() public {
@@ -378,7 +486,7 @@ contract BuyCrowdfundTest is Test, TestUtils {
                     initialDelegate: initialDelegate,
                     gateKeeper: defaultGateKeeper,
                     gateKeeperId: defaultGateKeeperId,
-                    onlyHostCanAct: false,
+                    onlyHostCanBuy: false,
                     governanceOpts: defaultGovernanceOpts
                 })
             )

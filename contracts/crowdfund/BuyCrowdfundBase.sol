@@ -46,10 +46,6 @@ abstract contract BuyCrowdfundBase is Crowdfund {
         IGateKeeper gateKeeper;
         // The gatekeeper contract to use (if non-null).
         bytes12 gateKeeperId;
-        // Whether the party is only allowing host to call `buy()`. For a
-        // `CollectionBuyCrowdfund` this is ignored since `buy()` is always
-        // `onlyHost`.
-        bool onlyHostCanAct;
         // Governance options.
         FixedGovernanceOpts governanceOpts;
     }
@@ -87,7 +83,6 @@ abstract contract BuyCrowdfundBase is Crowdfund {
             initialDelegate: opts.initialDelegate,
             gateKeeper: opts.gateKeeper,
             gateKeeperId: opts.gateKeeperId,
-            onlyHostCanAct: opts.onlyHostCanAct,
             governanceOpts: opts.governanceOpts
         }));
     }
@@ -100,16 +95,15 @@ abstract contract BuyCrowdfundBase is Crowdfund {
         address payable callTarget,
         uint96 callValue,
         bytes calldata callData,
-        FixedGovernanceOpts memory governanceOpts
+        FixedGovernanceOpts memory governanceOpts,
+        bool isValidatedGovernanceOpts
     )
         internal
         onlyDelegateCall
         returns (Party party_)
     {
-        // Ensure the call target isn't trying to reenter or trying to do
-        // anything weird with `PartyFactory`.
-        IPartyFactory partyFactory = _getPartyFactory();
-        if (callTarget == address(partyFactory) || callTarget == address(this)) {
+        // Ensure the call target isn't trying to reenter
+        if (callTarget == address(this)) {
             revert InvalidCallTargetError(callTarget);
         }
         // Check that the crowdfund is still active.

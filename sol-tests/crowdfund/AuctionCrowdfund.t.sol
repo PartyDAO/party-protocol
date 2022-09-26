@@ -78,7 +78,7 @@ contract AuctionCrowdfundTest is Test, TestUtils {
         uint256 auctionId,
         uint256 tokenId,
         uint96 initialContribution,
-        bool onlyHostCanAct,
+        bool onlyHostCanBid,
         IGateKeeper gateKeeper,
         bytes12 gateKeeperId,
         address[] memory hosts
@@ -106,7 +106,7 @@ contract AuctionCrowdfundTest is Test, TestUtils {
                     initialDelegate: defaultInitialDelegate,
                     gateKeeper: gateKeeper,
                     gateKeeperId: gateKeeperId,
-                    onlyHostCanAct: onlyHostCanAct,
+                    onlyHostCanBid: onlyHostCanBid,
                     governanceOpts: defaultGovernanceOpts
                 })
             )
@@ -164,7 +164,7 @@ contract AuctionCrowdfundTest is Test, TestUtils {
         // Bid on the auction.
         _expectEmit0();
         emit MockMarketWrapperBid(address(cf), auctionId, 1337);
-        cf.bid(defaultGovernanceOpts);
+        cf.bid(defaultGovernanceOpts, 0);
         // End the auction.
         _expectEmit0();
         emit MockMarketWrapperFinalize(address(cf), address(cf), 1337);
@@ -231,7 +231,7 @@ contract AuctionCrowdfundTest is Test, TestUtils {
         address payable contributor = _randomAddress();
         _contribute(cf, contributor, 1e18);
         // Bid on the auction.
-        cf.bid(defaultGovernanceOpts);
+        cf.bid(defaultGovernanceOpts, 0);
         // Outbid externally so we're losing.
         _outbidExternally(auctionId);
         // End the auction.
@@ -256,7 +256,7 @@ contract AuctionCrowdfundTest is Test, TestUtils {
         address payable contributor = _randomAddress();
         _contribute(cf, contributor, 1e18);
         // Bid on the auction.
-        cf.bid(defaultGovernanceOpts);
+        cf.bid(defaultGovernanceOpts, 0);
         // Outbid externally so we're losing.
         _outbidExternally(auctionId);
         // End the auction and finalize it.
@@ -282,7 +282,7 @@ contract AuctionCrowdfundTest is Test, TestUtils {
         address payable contributor = _randomAddress();
         _contribute(cf, contributor, 1e18);
         // Bid on the auction.
-        cf.bid(defaultGovernanceOpts);
+        cf.bid(defaultGovernanceOpts, 0);
         // Expire and finalize the crowdfund.
         skip(defaultDuration);
         assertEq(uint8(cf.getCrowdfundLifecycle()), uint8(Crowdfund.CrowdfundLifecycle.Expired));
@@ -307,7 +307,7 @@ contract AuctionCrowdfundTest is Test, TestUtils {
         address payable contributor = _randomAddress();
         _contribute(cf, contributor, 1e18);
         // Bid on the auction.
-        cf.bid(defaultGovernanceOpts);
+        cf.bid(defaultGovernanceOpts, 0);
         // End the auction.
         market.endAuction(auctionId);
         // Finalize the crowdfund.
@@ -318,7 +318,7 @@ contract AuctionCrowdfundTest is Test, TestUtils {
             Crowdfund.WrongLifecycleError.selector,
             Crowdfund.CrowdfundLifecycle.Won
         ));
-        cf.bid(defaultGovernanceOpts);
+        cf.bid(defaultGovernanceOpts, 0);
     }
 
     function test_cannotFinalizeTwice() external {
@@ -330,7 +330,7 @@ contract AuctionCrowdfundTest is Test, TestUtils {
         address payable contributor = _randomAddress();
         _contribute(cf, contributor, 1e18);
         // Bid on the auction.
-        cf.bid(defaultGovernanceOpts);
+        cf.bid(defaultGovernanceOpts, 0);
         // End the auction.
         market.endAuction(auctionId);
         // Finalize the crowdfund.
@@ -416,7 +416,7 @@ contract AuctionCrowdfundTest is Test, TestUtils {
         address payable contributor = _randomAddress();
         _contribute(cf, contributor, 1e18);
         // Place a bid.
-        cf.bid(defaultGovernanceOpts);
+        cf.bid(defaultGovernanceOpts, 0);
         // Expire the CF.
         skip(defaultDuration);
         vm.expectRevert('AUCTION_NOT_ENDED');
@@ -435,7 +435,7 @@ contract AuctionCrowdfundTest is Test, TestUtils {
         _contribute(cf, contributor, 1e18);
         uint256 bid = market.getMinimumBid(auctionId);
         // Place a bid.
-        cf.bid(defaultGovernanceOpts);
+        cf.bid(defaultGovernanceOpts, 0);
         // Expire the CF.
         skip(defaultDuration);
         // End the auction.
@@ -454,7 +454,7 @@ contract AuctionCrowdfundTest is Test, TestUtils {
         address payable contributor = _randomAddress();
         _contribute(cf, contributor, 1e18);
         // Bid on the auction.
-        cf.bid(defaultGovernanceOpts);
+        cf.bid(defaultGovernanceOpts, 0);
         // End the auction.
         market.endAuction(auctionId);
         // Set up a callback to reenter finalize().
@@ -476,13 +476,13 @@ contract AuctionCrowdfundTest is Test, TestUtils {
         address payable contributor = _randomAddress();
         _contribute(cf, contributor, 1e18);
         // Set up a callback to reenter bid().
-        market.setCallback(address(cf), abi.encodeCall(cf.bid, (defaultGovernanceOpts)), 0);
+        market.setCallback(address(cf), abi.encodeCall(cf.bid, (defaultGovernanceOpts, 0)), 0);
         // Bid on the auction.
         vm.expectRevert(abi.encodeWithSelector(
             Crowdfund.WrongLifecycleError.selector,
             Crowdfund.CrowdfundLifecycle.Busy
         ));
-        cf.bid(defaultGovernanceOpts);
+        cf.bid(defaultGovernanceOpts, 0);
     }
 
     function test_cannotReenterContributeThroughBid() external {
@@ -500,7 +500,7 @@ contract AuctionCrowdfundTest is Test, TestUtils {
             Crowdfund.WrongLifecycleError.selector,
             Crowdfund.CrowdfundLifecycle.Busy
         ));
-        cf.bid(defaultGovernanceOpts);
+        cf.bid(defaultGovernanceOpts, 0);
     }
 
     function test_cannotReenterContributeThroughFinalize() external {
@@ -512,7 +512,7 @@ contract AuctionCrowdfundTest is Test, TestUtils {
         address payable contributor = _randomAddress();
         _contribute(cf, contributor, 1e18);
         // Bid on the auction.
-        cf.bid(defaultGovernanceOpts);
+        cf.bid(defaultGovernanceOpts, 0);
         // End the auction.
         market.endAuction(auctionId);
         // Set up a callback to reenter contribute().
@@ -525,28 +525,52 @@ contract AuctionCrowdfundTest is Test, TestUtils {
         cf.finalize(defaultGovernanceOpts);
     }
 
-    function test_onlyHost() public {
+    function test_onlyHostCanBid() public {
+        address host = _randomAddress();
+        address contributor = _randomAddress();
+
         // Create a AuctionCrowdfund instance with `onlyHost` enabled.
         AuctionCrowdfund cf = _createCrowdfund(
             0,
             0,
             0,
             true,
-            defaultGateKeeper,
+            IGateKeeper(address(0)),
             "",
-            defaultGovernanceOpts.hosts
+            _toAddressArray(host)
         );
 
-        // Buy the token and expect revert because we are not a host.
+        // Contributor contributes.
+        vm.deal(contributor, 1e18);
+        vm.prank(contributor);
+        cf.contribute{ value: contributor.balance }(contributor, abi.encode(new bytes32[](0)));
+
+        // Skip past exipry.
+        vm.warp(cf.expiry());
+
+        // Bid, expect revert because we are not a host.
         vm.expectRevert(Crowdfund.OnlyPartyHostError.selector);
-        cf.bid(defaultGovernanceOpts);
+        cf.bid(defaultGovernanceOpts, 0);
+
+        // Bid as a contributor, but expect a revert because they are not a host.
+        vm.expectRevert(Crowdfund.OnlyPartyHostError.selector);
+        vm.prank(contributor);
+        cf.bid(defaultGovernanceOpts, 0);
+
+        // Bid as the host, but expect a revert because the CF is expired.
+        vm.expectRevert(abi.encodeWithSelector(
+            Crowdfund.WrongLifecycleError.selector,
+            Crowdfund.CrowdfundLifecycle.Expired
+        ));
+        vm.prank(host);
+        cf.bid(defaultGovernanceOpts, 0);
     }
 
-    function test_onlyHostOrContributor() public {
+    function test_onlyHostOrContributorCanBid() public {
         address host = _randomAddress();
         address contributor = _randomAddress();
 
-        // Create a AuctionCrowdfund instance with gatekeeper enabled.
+        // Create a AuctionCrowdfund instance with onlyHostCanBid and gatekeeper enabled.
         AllowListGateKeeper gateKeeper = new AllowListGateKeeper();
         bytes32 contributorHash = keccak256(abi.encodePacked(contributor));
         bytes12 gateKeeperId = gateKeeper.createGate(contributorHash);
@@ -554,8 +578,8 @@ contract AuctionCrowdfundTest is Test, TestUtils {
             0,
             0,
             0,
-            false,
-            IGateKeeper(address(gateKeeper)),
+            true,
+            gateKeeper,
             gateKeeperId,
             _toAddressArray(host)
         );
@@ -565,27 +589,72 @@ contract AuctionCrowdfundTest is Test, TestUtils {
         vm.prank(contributor);
         cf.contribute{ value: contributor.balance }(contributor, abi.encode(new bytes32[](0)));
 
-        // Bid, expect revert because we are not a contributor or host.
-        vm.expectRevert(Crowdfund.OnlyPartyHostOrContributorError.selector);
-        cf.bid(defaultGovernanceOpts);
+        // Skip past exipry.
+        vm.warp(cf.expiry());
 
-        // Bid as host, expect to get past `onlyHostOrContributor` modifier and
-        // hit another error (`AuctionFinalizedError`).
+        // Bid, expect revert because we are not a host or contributor.
+        vm.expectRevert(Crowdfund.OnlyPartyHostOrContributorError.selector);
+        cf.bid(defaultGovernanceOpts, 0);
+
+        // Bid as a contributor, but expect a revert because the CF is expired.
         vm.expectRevert(abi.encodeWithSelector(
-            AuctionCrowdfund.AuctionFinalizedError.selector,
-            0
+            Crowdfund.WrongLifecycleError.selector,
+            Crowdfund.CrowdfundLifecycle.Expired
         ));
         vm.prank(contributor);
-        cf.bid(defaultGovernanceOpts);
+        cf.bid(defaultGovernanceOpts, 0);
 
-        // Bid as host, expect to get past `onlyHostOrContributor` modifier and
-        // hit another error (`AuctionFinalizedError`).
+        // Bid as the host, but expect a revert because the CF is expired.
         vm.expectRevert(abi.encodeWithSelector(
-            AuctionCrowdfund.AuctionFinalizedError.selector,
-            0
+            Crowdfund.WrongLifecycleError.selector,
+            Crowdfund.CrowdfundLifecycle.Expired
         ));
         vm.prank(host);
-        cf.bid(defaultGovernanceOpts);
+        cf.bid(defaultGovernanceOpts, 0);
+    }
+
+    function test_onlyContributorCanBid() public {
+        address host = _randomAddress();
+        address contributor = _randomAddress();
+
+        // Create a AuctionCrowdfund instance with a gatekeeper enabled.
+        AllowListGateKeeper gateKeeper = new AllowListGateKeeper();
+        bytes32 contributorHash = keccak256(abi.encodePacked(contributor));
+        bytes12 gateKeeperId = gateKeeper.createGate(contributorHash);
+        AuctionCrowdfund cf = _createCrowdfund(
+            0,
+            0,
+            0,
+            false,
+            gateKeeper,
+            gateKeeperId,
+            _toAddressArray(host)
+        );
+
+        // Contributor contributes.
+        vm.deal(contributor, 1e18);
+        vm.prank(contributor);
+        cf.contribute{ value: contributor.balance }(contributor, abi.encode(new bytes32[](0)));
+
+        // Skip past exipry.
+        vm.warp(cf.expiry());
+
+        // Bid, expect revert because we are not a contributor.
+        vm.expectRevert(Crowdfund.OnlyContributorError.selector);
+        cf.bid(defaultGovernanceOpts, 0);
+
+        // Bid as a contributor, but expect a revert because the CF is expired.
+        vm.expectRevert(abi.encodeWithSelector(
+            Crowdfund.WrongLifecycleError.selector,
+            Crowdfund.CrowdfundLifecycle.Expired
+        ));
+        vm.prank(contributor);
+        cf.bid(defaultGovernanceOpts, 0);
+
+        // Bid as the host, but expect a revert because the host is not a contributor.
+        vm.expectRevert(Crowdfund.OnlyContributorError.selector);
+        vm.prank(host);
+        cf.bid(defaultGovernanceOpts, 0);
     }
 
     function test_gettingNFTForFreeTriggersLostToRefund() public {
@@ -640,7 +709,7 @@ contract AuctionCrowdfundTest is Test, TestUtils {
                     initialDelegate: initialDelegate,
                     gateKeeper: defaultGateKeeper,
                     gateKeeperId: defaultGateKeeperId,
-                    onlyHostCanAct: false,
+                    onlyHostCanBid: false,
                     governanceOpts: defaultGovernanceOpts
                 })
             )

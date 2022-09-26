@@ -58,7 +58,6 @@ abstract contract Crowdfund is Implementation, ERC721Receiver, CrowdfundNFT {
         address initialDelegate;
         IGateKeeper gateKeeper;
         bytes12 gateKeeperId;
-        bool onlyHostCanAct;
         FixedGovernanceOpts governanceOpts;
     }
 
@@ -80,10 +79,9 @@ abstract contract Crowdfund is Implementation, ERC721Receiver, CrowdfundNFT {
 
     error PartyAlreadyExistsError(Party party);
     error WrongLifecycleError(CrowdfundLifecycle lc);
-    error InvalidGovernanceOptionsError(bytes32 actualHash, bytes32 expectedHash);
+    error InvalidGovernanceOptionsError();
     error InvalidDelegateError();
     error NoPartyError();
-    error OnlyContributorAllowedError();
     error NotAllowedByGateKeeperError(address contributor, IGateKeeper gateKeeper, bytes12 gateKeeperId, bytes gateData);
     error SplitRecipientAlreadyBurnedError();
     error InvalidBpsError(uint16 bps);
@@ -91,6 +89,8 @@ abstract contract Crowdfund is Implementation, ERC721Receiver, CrowdfundNFT {
     error NothingToClaimError();
     error OnlyPartyHostError();
     error OnlyPartyHostOrContributorError();
+    error OnlyContributorError();
+    error MissingHostsError();
 
     event Burned(address contributor, uint256 ethUsed, uint256 ethOwed, uint256 votingPower);
     event Contributed(address contributor, uint256 amount, address delegate, uint256 previousTotalContributions);
@@ -117,8 +117,6 @@ abstract contract Crowdfund is Implementation, ERC721Receiver, CrowdfundNFT {
     uint16 public splitBps;
     // Whether the share for split recipient has been claimed through `burn()`.
     bool private _splitRecipientHasBurned;
-    /// @notice Whether the party is only allowing host to call `bid()`/`buy()`.
-    bool public onlyHostCanAct;
     /// @notice Hash of party governance options passed into `initialize()`.
     ///         Used to check whether the `GovernanceOpts` passed into
     ///         `_createParty()` matches.
@@ -132,59 +130,6 @@ abstract contract Crowdfund is Implementation, ERC721Receiver, CrowdfundNFT {
     ///         that should be minted to them if it could not be transferred to
     ///         them with `burn()`.
     mapping(address => Claim) public claims;
-
-    modifier onlyHost(address[] memory hosts) {
-        bool isHost;
-        for (uint256 i; i < hosts.length; i++) {
-            if (hosts[i] == msg.sender) {
-                isHost = true;
-                break;
-            }
-        }
-
-        if (!isHost) {
-            revert OnlyPartyHostError();
-        }
-
-        _;
-    }
-
-    // Checks whether a function is allowed to be called by caller based on
-    // whether `onlyHostCanAct` or crowdfund is using a gatekeeper. If the
-    // crowdfund is using `onlyHostCanAct`, then only hosts can call the
-    // function. If the crowdfund is using a gatekeeper, then only contributors
-    // or hosts can call the function. Otherwise, anyone can call the function.
-    modifier checkIfOnlyHostOrContributor(address[] memory hosts) {
-        bool onlyHostCanAct_ = onlyHostCanAct;
-        if (
-            // Check if only allowing host to call.
-            onlyHostCanAct_ ||
-            // Otherwise, check if the gatekeeper is used. If so, only allow either
-            // contributors or host to call.
-            (address(gateKeeper) != address(0) &&
-            _contributionsByContributor[msg.sender].length == 0)
-        ) {
-            bool isHost;
-            for (uint256 i; i < hosts.length; i++) {
-                if (hosts[i] == msg.sender) {
-                    isHost = true;
-                    break;
-                }
-            }
-
-            if (!isHost) {
-                if (onlyHostCanAct_) {
-                    // Not a host.
-                    revert OnlyPartyHostError();
-                } else {
-                    // Neither host or contributor.
-                    revert OnlyPartyHostOrContributorError();
-                }
-            }
-        }
-
-        _;
-    }
 
     // Set the `Globals` contract.
     constructor(IGlobals globals) CrowdfundNFT(globals) {
@@ -210,7 +155,6 @@ abstract contract Crowdfund is Implementation, ERC721Receiver, CrowdfundNFT {
         governanceOptsHash = _hashFixedGovernanceOpts(opts.governanceOpts);
         splitRecipient = opts.splitRecipient;
         splitBps = opts.splitBps;
-        onlyHostCanAct = opts.onlyHostCanAct;
         // If the deployer passed in some ETH during deployment, credit them
         // for the initial contribution.
         uint96 initialBalance = address(this).balance.safeCastUint256ToUint96();
@@ -347,14 +291,68 @@ abstract contract Crowdfund is Implementation, ERC721Receiver, CrowdfundNFT {
     // voting power of the governance party.
     function _getFinalPrice() internal virtual view returns (uint256);
 
+    // Assert either that:
+    // 1. `who` is a host at `governanceOpts.hosts[hostIndex]` and,
+    //     if so, assert that the governance opts is the same as the crowdfund
+    //     was created with.
+    // 2. `who` is a contributor to the crowdfund.
+    // Return true if `governanceOpts` was validated in the process.
+    function _assertIsHostOrContributor(
+        address who,
+        FixedGovernanceOpts memory governanceOpts,
+        uint256 hostIndex
+    )
+        internal
+        view
+        returns (bool isValidatedGovernanceOpts)
+    {
+        if (who == governanceOpts.hosts[hostIndex]) {
+            _assertValidGovernanceOpts(governanceOpts);
+            return true;
+        }
+        if (_contributionsByContributor[who].length == 0) {
+            revert OnlyPartyHostOrContributorError();
+        }
+    }
+
+    // Assert that `who` is a host at `governanceOpts.hosts[hostIndex]` and,
+    // if so, assert that the governance opts is the same as the crowdfund
+    // was created with.
+    // Return true if `governanceOpts` was validated in the process.
+    function _assertIsHost(
+        address who,
+        FixedGovernanceOpts memory governanceOpts,
+        uint256 hostIndex
+    )
+        internal
+        view
+        returns (bool isValidatedGovernanceOpts)
+    {
+        if (who == governanceOpts.hosts[hostIndex]) {
+            _assertValidGovernanceOpts(governanceOpts);
+            return true;
+        }
+        revert OnlyPartyHostError();
+    }
+
+    // Assert that `who` is a contributor to the crowdfund.
+    function _assertIsContributor(address who)
+        internal
+        view
+    {
+        if (_contributionsByContributor[who].length == 0) {
+            revert OnlyContributorError();
+        }
+    }
+
     // Can be called after a party has won.
     // Deploys and initializes a a `Party` instance via the `PartyFactory`
     // and transfers the bought NFT to it.
     // After calling this, anyone can burn CF tokens on a contributor's behalf
     // with the `burn()` function.
     function _createParty(
-        IPartyFactory partyFactory,
         FixedGovernanceOpts memory governanceOpts,
+        bool governanceOptsAlreadyValidated,
         IERC721[] memory preciousTokens,
         uint256[] memory preciousTokenIds
     )
@@ -364,13 +362,13 @@ abstract contract Crowdfund is Implementation, ERC721Receiver, CrowdfundNFT {
         if (party != Party(payable(0))) {
             revert PartyAlreadyExistsError(party);
         }
-        {
-            bytes32 governanceOptsHash_ = _hashFixedGovernanceOpts(governanceOpts);
-            if (governanceOptsHash_ != governanceOptsHash) {
-                revert InvalidGovernanceOptionsError(governanceOptsHash_, governanceOptsHash);
-            }
+        // If the governance opts haven't already been validated, make sure the
+        // it hasn't been tampered with.
+        if (!governanceOptsAlreadyValidated) {
+            _assertValidGovernanceOpts(governanceOpts);
         }
-        party = party_ = partyFactory
+        // Create a party.
+        party = party_ = _getPartyFactory()
             .createParty(
                 address(this),
                 Party.PartyOptions({
@@ -397,8 +395,8 @@ abstract contract Crowdfund is Implementation, ERC721Receiver, CrowdfundNFT {
 
     // Overloaded single token wrapper for _createParty()
     function _createParty(
-        IPartyFactory partyFactory,
         FixedGovernanceOpts memory governanceOpts,
+        bool governanceOptsAlreadyValidated,
         IERC721 preciousToken,
         uint256 preciousTokenId
     )
@@ -409,7 +407,18 @@ abstract contract Crowdfund is Implementation, ERC721Receiver, CrowdfundNFT {
         tokens[0] = preciousToken;
         uint256[] memory tokenIds = new uint256[](1);
         tokenIds[0] = preciousTokenId;
-        return _createParty(partyFactory, governanceOpts, tokens, tokenIds);
+        return _createParty(governanceOpts, governanceOptsAlreadyValidated, tokens, tokenIds);
+    }
+
+    // Assert that the hash of `opts` matches the hash this crowdfund was initialized with.
+    function _assertValidGovernanceOpts(FixedGovernanceOpts memory governanceOpts)
+        private
+        view
+    {
+        bytes32 governanceOptsHash_ = _hashFixedGovernanceOpts(governanceOpts);
+        if (governanceOptsHash_ != governanceOptsHash) {
+            revert InvalidGovernanceOptionsError();
+        }
     }
 
     function _hashFixedGovernanceOpts(FixedGovernanceOpts memory opts)

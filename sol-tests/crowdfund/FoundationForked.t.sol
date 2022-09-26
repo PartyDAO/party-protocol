@@ -71,7 +71,7 @@ contract FoundationForkedTest is TestUtils {
                     initialDelegate: address(0),
                     gateKeeper: IGateKeeper(address(0)),
                     gateKeeperId: 0,
-                    onlyHostCanAct: false,
+                    onlyHostCanBid: false,
                     governanceOpts: defaultGovOpts
                 })
             )
@@ -85,7 +85,7 @@ contract FoundationForkedTest is TestUtils {
     // Test creating a crowdfund party around a Foundation auction + winning the auction
     function testForked_WinningFoundationAuction() external onlyForked {
         // Bid on current Foundation auction.
-        cf.bid(defaultGovOpts);
+        cf.bid(defaultGovOpts, 0);
 
         // Check that we are highest bidder.
         uint256 lastBid = cf.lastBid();
@@ -108,7 +108,7 @@ contract FoundationForkedTest is TestUtils {
 
     function testForked_WinningFoundationAuction_finalizedBefore() external onlyForked {
         // Bid on current Foundation auction.
-        cf.bid(defaultGovOpts);
+        cf.bid(defaultGovOpts, 0);
 
         // Check that we are highest bidder.
         uint256 lastBid = cf.lastBid();
@@ -135,7 +135,7 @@ contract FoundationForkedTest is TestUtils {
     // Test creating a crowdfund party around a Foundation auction + losing the auction
     function testForked_LosingFoundationAuction() external onlyForked {
         // Bid on current Foundation auction.
-        cf.bid(defaultGovOpts);
+        cf.bid(defaultGovOpts, 0);
 
         // We outbid our own party (sneaky!)
         vm.deal(address(this), 1001 ether);
@@ -156,7 +156,7 @@ contract FoundationForkedTest is TestUtils {
 
     function testForked_LosingFoundationAuction_finalizedBefore() external onlyForked {
         // Bid on current Foundation auction.
-        cf.bid(defaultGovOpts);
+        cf.bid(defaultGovOpts, 0);
 
         // We outbid our own party (sneaky!)
         vm.deal(address(this), 1001 ether);

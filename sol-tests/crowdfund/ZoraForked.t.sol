@@ -80,7 +80,7 @@ contract ZoraForkedTest is TestUtils, ERC721Receiver {
                                 initialDelegate: address(0),
                                 gateKeeper: IGateKeeper(address(0)),
                                 gateKeeperId: 0,
-                                onlyHostCanAct: false,
+                                onlyHostCanBid: false,
                                 governanceOpts: defaultGovOpts
                             })
                         )
@@ -97,7 +97,7 @@ contract ZoraForkedTest is TestUtils, ERC721Receiver {
     // Test creating a crowdfund party around a Zora auction + winning the auction
     function testForked_WinningZoraAuction() external onlyForked {
         // Bid on current Zora auction.
-        cf.bid(defaultGovOpts);
+        cf.bid(defaultGovOpts, 0);
 
         // Check that we are highest bidder.
         uint256 lastBid = cf.lastBid();
@@ -119,7 +119,7 @@ contract ZoraForkedTest is TestUtils, ERC721Receiver {
 
     function testForked_WinningZoraAuction_finalizeBefore() external onlyForked {
         // Bid on current Zora auction.
-        cf.bid(defaultGovOpts);
+        cf.bid(defaultGovOpts, 0);
 
         // Check that we are highest bidder.
         uint256 lastBid = cf.lastBid();
@@ -145,7 +145,7 @@ contract ZoraForkedTest is TestUtils, ERC721Receiver {
     // Test creating a crowdfund party around a Zora auction + losing the auction
     function testForked_LosingZoraAuction() external onlyForked {
         // Bid on current Zora auction.
-        cf.bid(defaultGovOpts);
+        cf.bid(defaultGovOpts, 0);
 
         // We outbid our own party (sneaky!)
         vm.deal(address(this), 1001 ether);
@@ -173,7 +173,7 @@ contract ZoraForkedTest is TestUtils, ERC721Receiver {
 
     function testForked_LosingZoraAuction_finalizeBefore() external onlyForked {
         // Bid on current Zora auction.
-        cf.bid(defaultGovOpts);
+        cf.bid(defaultGovOpts, 0);
 
         // We outbid our own party (sneaky!)
         vm.deal(address(this), 1001 ether);

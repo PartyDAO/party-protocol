@@ -38,7 +38,7 @@ contract TestableCrowdfund is Crowdfund {
         external
         returns (Party party)
     {
-        return _createParty(_getPartyFactory(), govOpts_, preciousTokens, preciousTokenIds);
+        return _createParty(govOpts_, false, preciousTokens, preciousTokenIds);
     }
 
     function testSetWon(
@@ -52,7 +52,7 @@ contract TestableCrowdfund is Crowdfund {
     {
         finalPrice = finalPrice_;
         lifeCycle = CrowdfundLifecycle.Won;
-        return _createParty(_getPartyFactory(), govOpts_, preciousTokens, preciousTokenIds);
+        return _createParty(govOpts_, false, preciousTokens, preciousTokenIds);
     }
 
     function getCrowdfundLifecycle()

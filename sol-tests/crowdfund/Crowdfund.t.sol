@@ -112,7 +112,6 @@ contract CrowdfundTest is Test, TestUtils {
                     initialDelegate: initialDelegate,
                     gateKeeper: defaultGateKeeper,
                     gateKeeperId: defaultGateKeeperId,
-                    onlyHostCanAct: false,
                     governanceOpts: defaultGovernanceOpts
                 })
             ))
@@ -619,11 +618,7 @@ contract CrowdfundTest is Test, TestUtils {
                 defaultGovernanceOpts.passThresholdBps += 1;
             }
         }
-        vm.expectRevert(abi.encodeWithSelector(
-            Crowdfund.InvalidGovernanceOptionsError.selector,
-            cf.hashFixedGovernanceOpts(defaultGovernanceOpts),
-            cf.governanceOptsHash()
-        ));
+        vm.expectRevert(Crowdfund.InvalidGovernanceOptionsError.selector);
         cf.testSetWon(
             1e18,
             defaultGovernanceOpts,
@@ -948,7 +943,6 @@ contract CrowdfundTest is Test, TestUtils {
                     initialDelegate: address(this),
                     gateKeeper: defaultGateKeeper,
                     gateKeeperId: defaultGateKeeperId,
-                    onlyHostCanAct: false,
                     governanceOpts: defaultGovernanceOpts
                 })
             ))

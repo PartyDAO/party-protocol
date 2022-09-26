@@ -108,7 +108,7 @@ contract CrowdfundFactoryTest is Test, TestUtils {
             initialDelegate: _randomAddress(),
             gateKeeper: gateKeeper,
             gateKeeperId: gateKeeperId,
-            onlyHostCanAct: false,
+            onlyHostCanBid: false,
             governanceOpts: Crowdfund.FixedGovernanceOpts({
                 hosts: _toAddressArray(_randomAddress()),
                 voteDuration: randomUint40,
@@ -164,7 +164,7 @@ contract CrowdfundFactoryTest is Test, TestUtils {
             initialDelegate: address(0),
             gateKeeper: IGateKeeper(address(0)),
             gateKeeperId: 0,
-            onlyHostCanAct: false,
+            onlyHostCanBid: false,
             governanceOpts: Crowdfund.FixedGovernanceOpts({
                 hosts: _toAddressArray(address(this)),
                 voteDuration: 3 days,
@@ -198,7 +198,7 @@ contract CrowdfundFactoryTest is Test, TestUtils {
             initialDelegate: address(0),
             gateKeeper: IGateKeeper(address(0)),
             gateKeeperId: 0,
-            onlyHostCanAct: false,
+            onlyHostCanBid: false,
             governanceOpts: Crowdfund.FixedGovernanceOpts({
                 hosts: _toAddressArray(address(this)),
                 voteDuration: 3 days,
@@ -233,7 +233,7 @@ contract CrowdfundFactoryTest is Test, TestUtils {
             initialDelegate: address(0),
             gateKeeper: IGateKeeper(address(0)),
             gateKeeperId: 0,
-            onlyHostCanAct: false,
+            onlyHostCanBid: false,
             governanceOpts: Crowdfund.FixedGovernanceOpts({
                 hosts: _toAddressArray(address(this)),
                 voteDuration: 3 days,
@@ -281,7 +281,7 @@ contract CrowdfundFactoryTest is Test, TestUtils {
             initialDelegate: _randomAddress(),
             gateKeeper: gateKeeper,
             gateKeeperId: gateKeeperId,
-            onlyHostCanAct: false,
+            onlyHostCanBuy: false,
             governanceOpts: Crowdfund.FixedGovernanceOpts({
                 hosts: _toAddressArray(_randomAddress()),
                 voteDuration: randomUint40,
@@ -407,7 +407,7 @@ contract CrowdfundFactoryTest is Test, TestUtils {
             initialDelegate: address(0),
             gateKeeper: IGateKeeper(address(0)),
             gateKeeperId: 0,
-            onlyHostCanAct: false,
+            onlyHostCanBid: false,
             governanceOpts: Crowdfund.FixedGovernanceOpts({
                 hosts: _toAddressArray(address(this)),
                 voteDuration: 3 days,

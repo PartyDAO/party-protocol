@@ -65,7 +65,7 @@ contract NounsForkedTest is TestUtils {
                     initialDelegate: address(0),
                     gateKeeper: IGateKeeper(address(0)),
                     gateKeeperId: 0,
-                    onlyHostCanAct: false,
+                    onlyHostCanBid: false,
                     governanceOpts: defaultGovOpts
                 })
             )
@@ -79,7 +79,7 @@ contract NounsForkedTest is TestUtils {
     // Test creating a crowdfund party around a Noun + winning the auction
     function testForked_WinningNounAuction() external onlyForked {
         // Bid on current Noun auction.
-        cf.bid(defaultGovOpts);
+        cf.bid(defaultGovOpts, 0);
 
         // Check that we are highest bidder.
         uint256 lastBid = cf.lastBid();
@@ -102,7 +102,7 @@ contract NounsForkedTest is TestUtils {
 
     function testForked_WinningNounsAuction_finalizedBefore() external onlyForked {
         // Bid on current Noun auction.
-        cf.bid(defaultGovOpts);
+        cf.bid(defaultGovOpts, 0);
 
         // Check that we are highest bidder.
         uint256 lastBid = cf.lastBid();
@@ -129,7 +129,7 @@ contract NounsForkedTest is TestUtils {
     // Test creating a crowdfund party around a Noun + losing the auction
     function testForked_LosingNounAuction() external onlyForked {
         // Bid on current Noun auction.
-        cf.bid(defaultGovOpts);
+        cf.bid(defaultGovOpts, 0);
 
         // We outbid our own party (sneaky!)
         vm.deal(address(this), 1001 ether);
@@ -148,7 +148,7 @@ contract NounsForkedTest is TestUtils {
 
     function testForked_LosingNounAuction_finalizeBefore() external onlyForked {
         // Bid on current Noun auction.
-        cf.bid(defaultGovOpts);
+        cf.bid(defaultGovOpts, 0);
 
         // We outbid our own party (sneaky!)
         vm.deal(address(this), 1001 ether);
