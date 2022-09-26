@@ -51,6 +51,7 @@ abstract contract BuyCrowdfundBase is Crowdfund {
     }
 
     event Won(Party party, IERC721 token, uint256 tokenId, uint256 settledPrice);
+    event Lost();
 
     error MaximumPriceError(uint96 callValue, uint96 maximumPrice);
     error NoContributionsError();
@@ -111,22 +112,20 @@ abstract contract BuyCrowdfundBase is Crowdfund {
         if (lc != CrowdfundLifecycle.Active) {
             revert WrongLifecycleError(lc);
         }
-        // Used to store the price the NFT was bought for.
-        uint96 settledPrice_;
+        uint96 totalContributions_ = totalContributions;
+        // Prevent unaccounted ETH from being used to inflate the price and
+        // create "ghost shares" in voting power.
+        if (callValue > totalContributions_) {
+            revert ExceedsTotalContributionsError(callValue, totalContributions_);
+        }
         {
             uint96 maximumPrice_ = maximumPrice;
             if (maximumPrice_ != 0 && callValue > maximumPrice_) {
                 revert MaximumPriceError(callValue, maximumPrice);
             }
-            // If the purchase would be free, set the settled price to
-            // `totalContributions` so everybody who contributed wins.
-            settledPrice_ = callValue == 0 ? totalContributions : callValue;
-            if (settledPrice_ == 0) {
-                // Still zero, which means no contributions.
-                revert NoContributionsError();
-            }
-            settledPrice = settledPrice_;
         }
+        // Temporarily set to non-zero as a reentrancy guard.
+        settledPrice = type(uint96).max;
         {
             // Execute the call to buy the NFT.
             (bool s, bytes memory r) = callTarget.call{ value: callValue }(callData);
@@ -135,16 +134,26 @@ abstract contract BuyCrowdfundBase is Crowdfund {
             }
         }
         // Make sure we acquired the NFT we want.
-        if (token.safeOwnerOf(tokenId) != address(this)) {
+        if (token.safeOwnerOf(tokenId) == address(this)) {
+            if (address(this).balance >= totalContributions_) {
+                // If the purchase was free or the NFT was "gifted" to us,
+                // refund all contributors by declaring we lost.
+                settledPrice = 0;
+                expiry = 0;
+                emit Lost();
+            } else {
+                settledPrice = callValue;
+                emit Won(
+                    // Create a party around the newly bought NFT.
+                    party_ = _createParty(partyFactory, governanceOpts, token, tokenId),
+                    token,
+                    tokenId,
+                    callValue
+                );
+            }
+        } else {
             revert FailedToBuyNFTError(token, tokenId);
         }
-        emit Won(
-            // Create a party around the newly bought NFT.
-            party_ = _createParty(partyFactory, governanceOpts, token, tokenId),
-            token,
-            tokenId,
-            settledPrice_
-        );
     }
 
     /// @inheritdoc Crowdfund
@@ -154,11 +163,12 @@ abstract contract BuyCrowdfundBase is Crowdfund {
             return address(party) != address(0)
                 // If we have a party, then we succeeded buying the NFT.
                 ? CrowdfundLifecycle.Won
-                // Otherwise we're in the middle of the buy().
+                // Otherwise we're in the middle of the `buy()`.
                 : CrowdfundLifecycle.Busy;
         }
         if (block.timestamp >= expiry) {
-            // Expired but nothing to do so skip straight to lost.
+            // Expired, but nothing to do so skip straight to lost, or NFT was
+            // acquired for free so refund contributors and trigger lost.
             return CrowdfundLifecycle.Lost;
         }
         return CrowdfundLifecycle.Active;

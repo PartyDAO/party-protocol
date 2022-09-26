@@ -499,6 +499,32 @@ contract AuctionCrowdfundTest is Test, TestUtils {
         pb.finalize(defaultGovernanceOpts);
     }
 
+    function test_gettingNFTForFreeTriggersLostToRefund() public {
+        // Create a token and auction with min bid of 1337 wei.
+        (uint256 auctionId, uint256 tokenId) = market.createAuction(1337);
+        // Create a AuctionCrowdfund instance.
+        AuctionCrowdfund cf = _createCrowdfund(auctionId, tokenId, 0);
+        // Contribute and delegate.
+        address payable contributor = _randomAddress();
+        _contribute(cf, contributor, 1e18);
+        // Bid on the auction.
+        cf.bid();
+        // Outbid externally so we're losing.
+        _outbidExternally(auctionId);
+        market.endAuction(auctionId);
+        market.finalize(auctionId);
+        // Gift the NFT to the crowdfund.
+        IERC721 token = IERC721(market.nftContract());
+        address winner = token.ownerOf(tokenId);
+        vm.prank(winner);
+        token.transferFrom(winner, address(cf), tokenId);
+        assertEq(token.ownerOf(tokenId), address(cf));
+        // Finalize the crowdfund.
+        _expectEmit0();
+        emit Lost();
+        cf.finalize(defaultGovernanceOpts);
+    }
+
     function test_creation_initialContribution() external {
         (uint256 auctionId, uint256 tokenId) = market.createAuction(1337);
         uint256 initialContribution = _randomRange(1, 1 ether);

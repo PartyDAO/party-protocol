@@ -31,6 +31,7 @@ contract BuyCrowdfundTest is Test, TestUtils {
     );
 
     event Contributed(address contributor, uint256 amount, address delegate, uint256 previousTotalContributions);
+    event Lost();
 
     string defaultName = 'BuyCrowdfund';
     string defaultSymbol = 'PBID';
@@ -175,6 +176,87 @@ contract BuyCrowdfundTest is Test, TestUtils {
         assertTrue(pb.getCrowdfundLifecycle() == Crowdfund.CrowdfundLifecycle.Active);
     }
 
+    function testBuyCannotExceedTotalContributions() public {
+        uint256 tokenId = erc721Vault.mint();
+        // Create a BuyCrowdfund instance.
+        BuyCrowdfund pb = _createCrowdfund(tokenId, 0);
+        // Contribute and delegate.
+        address payable contributor = _randomAddress();
+        address delegate = _randomAddress();
+        vm.deal(contributor, 1e18);
+        vm.prank(contributor);
+        pb.contribute{ value: contributor.balance }(delegate, "");
+
+        uint96 totalContributions = pb.totalContributions();
+        vm.expectRevert(abi.encodeWithSelector(
+            Crowdfund.ExceedsTotalContributionsError.selector,
+            totalContributions + 1,
+            totalContributions
+        ));
+        pb.buy(
+            payable(address(erc721Vault)),
+            totalContributions + 1,
+            abi.encodeCall(erc721Vault.claim, (tokenId)),
+            defaultGovernanceOpts
+        );
+    }
+
+    function testBuyCannotReenter() public {
+        uint256 tokenId = erc721Vault.mint();
+        // Create a BuyCrowdfund instance.
+        BuyCrowdfund cf = _createCrowdfund(tokenId, 0);
+        // Contribute.
+        address payable contributor = _randomAddress();
+        vm.deal(contributor, 1e18);
+        vm.prank(contributor);
+        cf.contribute{ value: contributor.balance }(contributor, "");
+        // Attempt reentering back into the crowdfund directly.
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                BuyCrowdfundBase.InvalidCallTargetError.selector,
+                address(cf)
+            )
+        );
+        cf.buy(
+            payable(address(cf)),
+            1e18,
+            abi.encodeCall(cf.contribute, (contributor, "")),
+            defaultGovernanceOpts
+        );
+        ReenteringContract reenteringContract = new ReenteringContract();
+        // Attempt reentering back into the crowdfund via a proxy.
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                Crowdfund.WrongLifecycleError.selector,
+                uint8(Crowdfund.CrowdfundLifecycle.Busy)
+            )
+        );
+        cf.buy(
+            payable(address(reenteringContract)),
+            1e18,
+            abi.encodeCall(reenteringContract.reenter, (cf)),
+            defaultGovernanceOpts
+        );
+        assertTrue(cf.getCrowdfundLifecycle() == Crowdfund.CrowdfundLifecycle.Active);
+    }
+
+    function testGettingNFTForFreeTriggersLostToRefund() public {
+        DummyERC721 token = erc721Vault.token();
+        uint256 tokenId = 1;
+        // Create a BuyCrowdfund instance.
+        BuyCrowdfund cf = _createCrowdfund(tokenId, 0);
+        // Acquire NFT for free.
+        _expectEmit0();
+        emit Lost();
+        cf.buy(
+            payable(address(token)),
+            0,
+            abi.encodeCall(token.mint, (address(cf))),
+            defaultGovernanceOpts
+        );
+        assertTrue(cf.getCrowdfundLifecycle() == Crowdfund.CrowdfundLifecycle.Lost);
+    }
+
     function testCannotReinitialize() public {
         uint256 tokenId = erc721Vault.mint();
         BuyCrowdfund pb = _createCrowdfund(tokenId, 0);
@@ -211,5 +293,11 @@ contract BuyCrowdfundTest is Test, TestUtils {
                 })
             )
         ))));
+    }
+}
+
+contract ReenteringContract is Test {
+    function reenter(BuyCrowdfund cf) external payable {
+        cf.contribute{ value: msg.value }(address(this), "");
     }
 }
