@@ -61,7 +61,7 @@ contract BuyCrowdfund is BuyCrowdfundBase {
     uint256 public nftTokenId;
     /// @notice The NFT contract to buy.
     IERC721 public nftContract;
-    /// @notice Whether the party is only allowing host to call `buy()`.
+    /// @notice Whether the party is only allowing a host to call `buy()`.
     bool public onlyHostCanBuy;
 
     // Set the `Globals` contract.

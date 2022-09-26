@@ -67,7 +67,7 @@ contract AuctionCrowdfund is Crowdfund {
         IGateKeeper gateKeeper;
         // The gate ID within the gateKeeper contract to use.
         bytes12 gateKeeperId;
-        // Whether the party is only allowing host to call `bid()`.
+        // Whether the party is only allowing a host to call `bid()`.
         bool onlyHostCanBid;
         // Fixed governance options (i.e. cannot be changed) that the governance
         // `Party` will be created with if the crowdfund succeeds.
