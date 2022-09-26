@@ -7,6 +7,7 @@ import "../../contracts/crowdfund/AuctionCrowdfund.sol";
 import "../../contracts/globals/Globals.sol";
 import "../../contracts/globals/LibGlobals.sol";
 import "../../contracts/utils/Proxy.sol";
+import "../../contracts/gatekeepers/AllowListGateKeeper.sol";
 
 import "../DummyERC721.sol";
 import "../TestUtils.sol";
@@ -76,12 +77,17 @@ contract AuctionCrowdfundTest is Test, TestUtils {
     function _createCrowdfund(
         uint256 auctionId,
         uint256 tokenId,
-        uint96 initialContribution
+        uint96 initialContribution,
+        bool onlyHostCanBid,
+        IGateKeeper gateKeeper,
+        bytes12 gateKeeperId,
+        address[] memory hosts
     )
         private
-        returns (AuctionCrowdfund pb)
+        returns (AuctionCrowdfund cf)
     {
-        pb = AuctionCrowdfund(payable(address(new Proxy{ value: initialContribution }(
+        defaultGovernanceOpts.hosts = hosts;
+        cf = AuctionCrowdfund(payable(address(new Proxy{ value: initialContribution }(
             auctionCrowdfundImpl,
             abi.encodeCall(
                 AuctionCrowdfund.initialize,
@@ -98,12 +104,32 @@ contract AuctionCrowdfundTest is Test, TestUtils {
                     splitBps: defaultSplitBps,
                     initialContributor: address(this),
                     initialDelegate: defaultInitialDelegate,
-                    gateKeeper: defaultGateKeeper,
-                    gateKeeperId: defaultGateKeeperId,
+                    gateKeeper: gateKeeper,
+                    gateKeeperId: gateKeeperId,
+                    onlyHostCanBid: onlyHostCanBid,
                     governanceOpts: defaultGovernanceOpts
                 })
             )
         ))));
+    }
+
+    function _createCrowdfund(
+        uint256 auctionId,
+        uint256 tokenId,
+        uint96 initialContribution
+    )
+        private
+        returns (AuctionCrowdfund cf)
+    {
+        return _createCrowdfund(
+            auctionId,
+            tokenId,
+            initialContribution,
+            false,
+            defaultGateKeeper,
+            defaultGateKeeperId,
+            defaultGovernanceOpts.hosts
+        );
     }
 
     function _createExpectedPartyOptions(uint256 finalPrice)
@@ -130,69 +156,69 @@ contract AuctionCrowdfundTest is Test, TestUtils {
         // Create a token and auction with min bid of 1337 wei.
         (uint256 auctionId, uint256 tokenId) = market.createAuction(1337);
         // Create a AuctionCrowdfund instance.
-        AuctionCrowdfund pb = _createCrowdfund(auctionId, tokenId, 0);
+        AuctionCrowdfund cf = _createCrowdfund(auctionId, tokenId, 0);
         // Contribute and delegate.
         address payable contributor = _randomAddress();
         address delegate = _randomAddress();
-        _contribute(pb, contributor, delegate, 1e18);
+        _contribute(cf, contributor, delegate, 1e18);
         // Bid on the auction.
         _expectEmit0();
-        emit MockMarketWrapperBid(address(pb), auctionId, 1337);
-        pb.bid();
+        emit MockMarketWrapperBid(address(cf), auctionId, 1337);
+        cf.bid(defaultGovernanceOpts, 0);
         // End the auction.
         _expectEmit0();
-        emit MockMarketWrapperFinalize(address(pb), address(pb), 1337);
+        emit MockMarketWrapperFinalize(address(cf), address(cf), 1337);
         market.endAuction(auctionId);
         // Finalize the crowdfund.
         _expectEmit0();
         emit MockPartyFactoryCreateParty(
-            address(pb),
-            address(pb),
+            address(cf),
+            address(cf),
             _createExpectedPartyOptions(1337),
             _toERC721Array(tokenToBuy),
             _toUint256Array(tokenId)
         );
-        Party party_ = pb.finalize(defaultGovernanceOpts);
+        Party party_ = cf.finalize(defaultGovernanceOpts);
         assertEq(address(party_), address(party));
         // Burn contributor's NFT, mock minting governance tokens and returning
         // unused contribution.
         _expectEmit0();
         emit MockMint(
-            address(pb),
+            address(cf),
             contributor,
             1337,
             delegate
         );
         _expectEmit0();
         emit Burned(contributor, 1337, 1e18 - 1337, 1337);
-        pb.burn(contributor);
+        cf.burn(contributor);
         assertEq(contributor.balance, 1e18 - 1337);
     }
 
     function test_cannotReinitialize() external {
         (uint256 auctionId, uint256 tokenId) = market.createAuction(1337);
-        AuctionCrowdfund pb = _createCrowdfund(auctionId, tokenId, 0);
+        AuctionCrowdfund cf = _createCrowdfund(auctionId, tokenId, 0);
         vm.expectRevert(abi.encodeWithSelector(Implementation.OnlyConstructorError.selector));
         AuctionCrowdfund.AuctionCrowdfundOptions memory opts;
-        pb.initialize(opts);
+        cf.initialize(opts);
     }
 
     function test_canRefundIfCrowdfundLosesAndNoBidsMade() external {
         // Create a token and auction with min bid of 1337 wei.
         (uint256 auctionId, uint256 tokenId) = market.createAuction(1337);
         // Create a AuctionCrowdfund instance.
-        AuctionCrowdfund pb = _createCrowdfund(auctionId, tokenId, 0);
+        AuctionCrowdfund cf = _createCrowdfund(auctionId, tokenId, 0);
         // Contribute and delegate.
         address payable contributor = _randomAddress();
-        _contribute(pb, contributor, 1e18);
+        _contribute(cf, contributor, 1e18);
         // Expire and finalize the crowdfund.
         skip(defaultDuration);
-        Party party_ = pb.finalize(defaultGovernanceOpts);
+        Party party_ = cf.finalize(defaultGovernanceOpts);
         assertEq(address(party_), address(0));
         // Burn contributor's NFT, which should refund all contributed ETH.
         _expectEmit0();
         emit Burned(contributor, 0, 1e18, 0);
-        pb.burn(contributor);
+        cf.burn(contributor);
         assertEq(contributor.balance, 1e18);
     }
 
@@ -200,24 +226,24 @@ contract AuctionCrowdfundTest is Test, TestUtils {
         // Create a token and auction with min bid of 1337 wei.
         (uint256 auctionId, uint256 tokenId) = market.createAuction(1337);
         // Create a AuctionCrowdfund instance.
-        AuctionCrowdfund pb = _createCrowdfund(auctionId, tokenId, 0);
+        AuctionCrowdfund cf = _createCrowdfund(auctionId, tokenId, 0);
         // Contribute and delegate.
         address payable contributor = _randomAddress();
-        _contribute(pb, contributor, 1e18);
+        _contribute(cf, contributor, 1e18);
         // Bid on the auction.
-        pb.bid();
+        cf.bid(defaultGovernanceOpts, 0);
         // Outbid externally so we're losing.
         _outbidExternally(auctionId);
         // End the auction.
         market.endAuction(auctionId);
         // Expire and finalize the crowdfund.
         skip(defaultDuration);
-        Party party_ = pb.finalize(defaultGovernanceOpts);
+        Party party_ = cf.finalize(defaultGovernanceOpts);
         assertEq(address(party_), address(0));
         // Burn contributor's NFT, which should refund all contributed ETH.
         _expectEmit0();
         emit Burned(contributor, 0, 1e18, 0);
-        pb.burn(contributor);
+        cf.burn(contributor);
         assertEq(contributor.balance, 1e18);
     }
 
@@ -225,12 +251,12 @@ contract AuctionCrowdfundTest is Test, TestUtils {
         // Create a token and auction with min bid of 1337 wei.
         (uint256 auctionId, uint256 tokenId) = market.createAuction(1337);
         // Create a AuctionCrowdfund instance.
-        AuctionCrowdfund pb = _createCrowdfund(auctionId, tokenId, 0);
+        AuctionCrowdfund cf = _createCrowdfund(auctionId, tokenId, 0);
         // Contribute and delegate.
         address payable contributor = _randomAddress();
-        _contribute(pb, contributor, 1e18);
+        _contribute(cf, contributor, 1e18);
         // Bid on the auction.
-        pb.bid();
+        cf.bid(defaultGovernanceOpts, 0);
         // Outbid externally so we're losing.
         _outbidExternally(auctionId);
         // End the auction and finalize it.
@@ -238,12 +264,12 @@ contract AuctionCrowdfundTest is Test, TestUtils {
         market.finalize(auctionId);
         // Expire and finalize the crowdfund.
         skip(defaultDuration);
-        Party party_ = pb.finalize(defaultGovernanceOpts);
+        Party party_ = cf.finalize(defaultGovernanceOpts);
         assertEq(address(party_), address(0));
         // Burn contributor's NFT, which should refund all contributed ETH.
         _expectEmit0();
         emit Burned(contributor, 0, 1e18, 0);
-        pb.burn(contributor);
+        cf.burn(contributor);
         assertEq(contributor.balance, 1e18);
     }
 
@@ -251,24 +277,24 @@ contract AuctionCrowdfundTest is Test, TestUtils {
         // Create a token and auction with min bid of 1337 wei.
         (uint256 auctionId, uint256 tokenId) = market.createAuction(1337);
         // Create a AuctionCrowdfund instance.
-        AuctionCrowdfund pb = _createCrowdfund(auctionId, tokenId, 0);
+        AuctionCrowdfund cf = _createCrowdfund(auctionId, tokenId, 0);
         // Contribute and delegate.
         address payable contributor = _randomAddress();
-        _contribute(pb, contributor, 1e18);
+        _contribute(cf, contributor, 1e18);
         // Bid on the auction.
-        pb.bid();
+        cf.bid(defaultGovernanceOpts, 0);
         // Expire and finalize the crowdfund.
         skip(defaultDuration);
-        assertEq(uint8(pb.getCrowdfundLifecycle()), uint8(Crowdfund.CrowdfundLifecycle.Expired));
+        assertEq(uint8(cf.getCrowdfundLifecycle()), uint8(Crowdfund.CrowdfundLifecycle.Expired));
         // End the auction.
         market.endAuction(auctionId);
         // Finalize the crowdfund.
-        Party party_ = pb.finalize(defaultGovernanceOpts);
+        Party party_ = cf.finalize(defaultGovernanceOpts);
         assertEq(address(party_), address(party));
         // Burn contributor's NFT, which should refund unused ETH and mint voting power.
         _expectEmit0();
         emit Burned(contributor, 1337, 1e18 - 1337, 1337);
-        pb.burn(contributor);
+        cf.burn(contributor);
         assertEq(contributor.balance, 1e18 - 1337);
     }
 
@@ -276,227 +302,359 @@ contract AuctionCrowdfundTest is Test, TestUtils {
         // Create a token and auction with min bid of 1337 wei.
         (uint256 auctionId, uint256 tokenId) = market.createAuction(1337);
         // Create a AuctionCrowdfund instance.
-        AuctionCrowdfund pb = _createCrowdfund(auctionId, tokenId, 0);
+        AuctionCrowdfund cf = _createCrowdfund(auctionId, tokenId, 0);
         // Contribute and delegate.
         address payable contributor = _randomAddress();
-        _contribute(pb, contributor, 1e18);
+        _contribute(cf, contributor, 1e18);
         // Bid on the auction.
-        pb.bid();
+        cf.bid(defaultGovernanceOpts, 0);
         // End the auction.
         market.endAuction(auctionId);
         // Finalize the crowdfund.
-        Party party_ = pb.finalize(defaultGovernanceOpts);
+        Party party_ = cf.finalize(defaultGovernanceOpts);
         assertEq(address(party_), address(party));
         // Try to bid with the crowdfund again.
         vm.expectRevert(abi.encodeWithSelector(
             Crowdfund.WrongLifecycleError.selector,
             Crowdfund.CrowdfundLifecycle.Won
         ));
-        pb.bid();
+        cf.bid(defaultGovernanceOpts, 0);
     }
 
     function test_cannotFinalizeTwice() external {
         // Create a token and auction with min bid of 1337 wei.
         (uint256 auctionId, uint256 tokenId) = market.createAuction(1337);
         // Create a AuctionCrowdfund instance.
-        AuctionCrowdfund pb = _createCrowdfund(auctionId, tokenId, 0);
+        AuctionCrowdfund cf = _createCrowdfund(auctionId, tokenId, 0);
         // Contribute and delegate.
         address payable contributor = _randomAddress();
-        _contribute(pb, contributor, 1e18);
+        _contribute(cf, contributor, 1e18);
         // Bid on the auction.
-        pb.bid();
+        cf.bid(defaultGovernanceOpts, 0);
         // End the auction.
         market.endAuction(auctionId);
         // Finalize the crowdfund.
-        Party party_ = pb.finalize(defaultGovernanceOpts);
+        Party party_ = cf.finalize(defaultGovernanceOpts);
         assertEq(address(party_), address(party));
         // Try to finalize the crowdfund again.
         vm.expectRevert(abi.encodeWithSelector(
             Crowdfund.WrongLifecycleError.selector,
             Crowdfund.CrowdfundLifecycle.Won
         ));
-        pb.finalize(defaultGovernanceOpts);
+        cf.finalize(defaultGovernanceOpts);
     }
 
     function test_cannotFinalizeTooEarlyWithNoBids() external {
         // Create a token and auction with min bid of 1337 wei.
         (uint256 auctionId, uint256 tokenId) = market.createAuction(1337);
         // Create a AuctionCrowdfund instance.
-        AuctionCrowdfund pb = _createCrowdfund(auctionId, tokenId, 0);
+        AuctionCrowdfund cf = _createCrowdfund(auctionId, tokenId, 0);
         // Contribute and delegate.
         address payable contributor = _randomAddress();
-        _contribute(pb, contributor, 1e18);
+        _contribute(cf, contributor, 1e18);
         // Finalize the crowdfund early.
         vm.expectRevert(abi.encodeWithSelector(
             AuctionCrowdfund.AuctionNotExpiredError.selector
         ));
-        pb.finalize(defaultGovernanceOpts);
+        cf.finalize(defaultGovernanceOpts);
     }
 
     function test_canFinalizeIfExpiredBeforeAuctionEnds_noBids() external {
         // Create a token and auction with min bid of 1337 wei.
         (uint256 auctionId, uint256 tokenId) = market.createAuction(1337);
         // Create a AuctionCrowdfund instance.
-        AuctionCrowdfund pb = _createCrowdfund(auctionId, tokenId, 0);
+        AuctionCrowdfund cf = _createCrowdfund(auctionId, tokenId, 0);
         // Contribute and delegate.
         address payable contributor = _randomAddress();
-        _contribute(pb, contributor, 1e18);
+        _contribute(cf, contributor, 1e18);
         skip(defaultDuration);
         _expectEmit0();
         emit Lost();
         // Finalize the crowdfund.
-        pb.finalize(defaultGovernanceOpts);
+        cf.finalize(defaultGovernanceOpts);
     }
 
     function test_canFinalizeIfExpiredAfterAuctionEnds_noBids() external {
         // Create a token and auction with min bid of 1337 wei.
         (uint256 auctionId, uint256 tokenId) = market.createAuction(1337);
         // Create a AuctionCrowdfund instance.
-        AuctionCrowdfund pb = _createCrowdfund(auctionId, tokenId, 0);
+        AuctionCrowdfund cf = _createCrowdfund(auctionId, tokenId, 0);
         // Contribute and delegate.
         address payable contributor = _randomAddress();
-        _contribute(pb, contributor, 1e18);
+        _contribute(cf, contributor, 1e18);
         skip(defaultDuration);
         market.endAuction(auctionId);
         _expectEmit0();
         emit Lost();
         // Finalize the crowdfund.
-        pb.finalize(defaultGovernanceOpts);
+        cf.finalize(defaultGovernanceOpts);
     }
 
     function test_canFinalizeIfExpiredAndAuctionFinalized_noBids() external {
         // Create a token and auction with min bid of 1337 wei.
         (uint256 auctionId, uint256 tokenId) = market.createAuction(1337);
         // Create a AuctionCrowdfund instance.
-        AuctionCrowdfund pb = _createCrowdfund(auctionId, tokenId, 0);
+        AuctionCrowdfund cf = _createCrowdfund(auctionId, tokenId, 0);
         // Contribute and delegate.
         address payable contributor = _randomAddress();
-        _contribute(pb, contributor, 1e18);
+        _contribute(cf, contributor, 1e18);
         skip(defaultDuration);
         market.endAuction(auctionId);
         market.finalize(auctionId);
         _expectEmit0();
         emit Lost();
         // Finalize the crowdfund.
-        pb.finalize(defaultGovernanceOpts);
+        cf.finalize(defaultGovernanceOpts);
     }
 
     function test_cannotFinalizeIfExpiredBeforeAuctionEnds_withBid() external {
         // Create a token and auction with min bid of 1337 wei.
         (uint256 auctionId, uint256 tokenId) = market.createAuction(1337);
         // Create a AuctionCrowdfund instance.
-        AuctionCrowdfund pb = _createCrowdfund(auctionId, tokenId, 0);
+        AuctionCrowdfund cf = _createCrowdfund(auctionId, tokenId, 0);
         // Contribute and delegate.
         address payable contributor = _randomAddress();
-        _contribute(pb, contributor, 1e18);
+        _contribute(cf, contributor, 1e18);
         // Place a bid.
-        pb.bid();
+        cf.bid(defaultGovernanceOpts, 0);
         // Expire the CF.
         skip(defaultDuration);
         vm.expectRevert('AUCTION_NOT_ENDED');
         // Try to finalize the crowdfund. This will fail because even though the
         // CF is expired, the auction cannot be finalized.
-        pb.finalize(defaultGovernanceOpts);
+        cf.finalize(defaultGovernanceOpts);
     }
 
     function test_canFinalizeIfExpiredAfterAuctionEnds_withBids() external {
         // Create a token and auction with min bid of 1337 wei.
         (uint256 auctionId, uint256 tokenId) = market.createAuction(1337);
         // Create a AuctionCrowdfund instance.
-        AuctionCrowdfund pb = _createCrowdfund(auctionId, tokenId, 0);
+        AuctionCrowdfund cf = _createCrowdfund(auctionId, tokenId, 0);
         // Contribute and delegate.
         address payable contributor = _randomAddress();
-        _contribute(pb, contributor, 1e18);
+        _contribute(cf, contributor, 1e18);
         uint256 bid = market.getMinimumBid(auctionId);
         // Place a bid.
-        pb.bid();
+        cf.bid(defaultGovernanceOpts, 0);
         // Expire the CF.
         skip(defaultDuration);
         // End the auction.
         market.endAuction(auctionId);
         _expectEmit0();
         emit Won(bid, Party(payable(address(party))));
-        pb.finalize(defaultGovernanceOpts);
+        cf.finalize(defaultGovernanceOpts);
     }
 
     function test_cannotReenterFinalize() external {
         // Create a token and auction with min bid of 1337 wei.
         (uint256 auctionId, uint256 tokenId) = market.createAuction(1337);
         // Create a AuctionCrowdfund instance.
-        AuctionCrowdfund pb = _createCrowdfund(auctionId, tokenId, 0);
+        AuctionCrowdfund cf = _createCrowdfund(auctionId, tokenId, 0);
         // Contribute and delegate.
         address payable contributor = _randomAddress();
-        _contribute(pb, contributor, 1e18);
+        _contribute(cf, contributor, 1e18);
         // Bid on the auction.
-        pb.bid();
+        cf.bid(defaultGovernanceOpts, 0);
         // End the auction.
         market.endAuction(auctionId);
         // Set up a callback to reenter finalize().
-        market.setCallback(address(pb), abi.encodeCall(pb.finalize, defaultGovernanceOpts), 0);
+        market.setCallback(address(cf), abi.encodeCall(cf.finalize, defaultGovernanceOpts), 0);
         // Finalize the crowdfund.
         vm.expectRevert(abi.encodeWithSelector(
             Crowdfund.WrongLifecycleError.selector,
             Crowdfund.CrowdfundLifecycle.Busy
         ));
-        pb.finalize(defaultGovernanceOpts);
+        cf.finalize(defaultGovernanceOpts);
     }
 
     function test_cannotReenterBid() external {
         // Create a token and auction with min bid of 1337 wei.
         (uint256 auctionId, uint256 tokenId) = market.createAuction(1337);
         // Create a AuctionCrowdfund instance.
-        AuctionCrowdfund pb = _createCrowdfund(auctionId, tokenId, 0);
+        AuctionCrowdfund cf = _createCrowdfund(auctionId, tokenId, 0);
         // Contribute and delegate.
         address payable contributor = _randomAddress();
-        _contribute(pb, contributor, 1e18);
+        _contribute(cf, contributor, 1e18);
         // Set up a callback to reenter bid().
-        market.setCallback(address(pb), abi.encodeCall(pb.bid, ()), 0);
+        market.setCallback(address(cf), abi.encodeCall(cf.bid, (defaultGovernanceOpts, 0)), 0);
         // Bid on the auction.
         vm.expectRevert(abi.encodeWithSelector(
             Crowdfund.WrongLifecycleError.selector,
             Crowdfund.CrowdfundLifecycle.Busy
         ));
-        pb.bid();
+        cf.bid(defaultGovernanceOpts, 0);
     }
 
     function test_cannotReenterContributeThroughBid() external {
         // Create a token and auction with min bid of 1337 wei.
         (uint256 auctionId, uint256 tokenId) = market.createAuction(1337);
         // Create a AuctionCrowdfund instance.
-        AuctionCrowdfund pb = _createCrowdfund(auctionId, tokenId, 0);
+        AuctionCrowdfund cf = _createCrowdfund(auctionId, tokenId, 0);
         // Contribute and delegate.
         address payable contributor = _randomAddress();
-        _contribute(pb, contributor, 1e18);
+        _contribute(cf, contributor, 1e18);
         // Set up a callback to reenter bid().
-        market.setCallback(address(pb), abi.encodeCall(pb.contribute, (contributor, "")), 1);
+        market.setCallback(address(cf), abi.encodeCall(cf.contribute, (contributor, "")), 1);
         // Bid on the auction.
         vm.expectRevert(abi.encodeWithSelector(
             Crowdfund.WrongLifecycleError.selector,
             Crowdfund.CrowdfundLifecycle.Busy
         ));
-        pb.bid();
+        cf.bid(defaultGovernanceOpts, 0);
     }
 
     function test_cannotReenterContributeThroughFinalize() external {
         // Create a token and auction with min bid of 1337 wei.
         (uint256 auctionId, uint256 tokenId) = market.createAuction(1337);
         // Create a AuctionCrowdfund instance.
-        AuctionCrowdfund pb = _createCrowdfund(auctionId, tokenId, 0);
+        AuctionCrowdfund cf = _createCrowdfund(auctionId, tokenId, 0);
         // Contribute and delegate.
         address payable contributor = _randomAddress();
-        _contribute(pb, contributor, 1e18);
+        _contribute(cf, contributor, 1e18);
         // Bid on the auction.
-        pb.bid();
+        cf.bid(defaultGovernanceOpts, 0);
         // End the auction.
         market.endAuction(auctionId);
         // Set up a callback to reenter contribute().
-        market.setCallback(address(pb), abi.encodeCall(pb.contribute, (contributor, "")), 1);
+        market.setCallback(address(cf), abi.encodeCall(cf.contribute, (contributor, "")), 1);
         // Finalize the crowdfund.
         vm.expectRevert(abi.encodeWithSelector(
             Crowdfund.WrongLifecycleError.selector,
             Crowdfund.CrowdfundLifecycle.Busy
         ));
-        pb.finalize(defaultGovernanceOpts);
+        cf.finalize(defaultGovernanceOpts);
+    }
+
+    function test_onlyHostCanBid() public {
+        address host = _randomAddress();
+        address contributor = _randomAddress();
+
+        // Create a AuctionCrowdfund instance with `onlyHost` enabled.
+        AuctionCrowdfund cf = _createCrowdfund(
+            0,
+            0,
+            0,
+            true,
+            IGateKeeper(address(0)),
+            "",
+            _toAddressArray(host)
+        );
+
+        // Contributor contributes.
+        vm.deal(contributor, 1e18);
+        vm.prank(contributor);
+        cf.contribute{ value: contributor.balance }(contributor, abi.encode(new bytes32[](0)));
+
+        // Skip past exipry.
+        vm.warp(cf.expiry());
+
+        // Bid, expect revert because we are not a host.
+        vm.expectRevert(Crowdfund.OnlyPartyHostError.selector);
+        cf.bid(defaultGovernanceOpts, 0);
+
+        // Bid as a contributor, but expect a revert because they are not a host.
+        vm.expectRevert(Crowdfund.OnlyPartyHostError.selector);
+        vm.prank(contributor);
+        cf.bid(defaultGovernanceOpts, 0);
+
+        // Bid as the host, but expect a revert because the CF is expired.
+        vm.expectRevert(abi.encodeWithSelector(
+            Crowdfund.WrongLifecycleError.selector,
+            Crowdfund.CrowdfundLifecycle.Expired
+        ));
+        vm.prank(host);
+        cf.bid(defaultGovernanceOpts, 0);
+    }
+
+    function test_onlyHostOrContributorCanBid() public {
+        address host = _randomAddress();
+        address contributor = _randomAddress();
+
+        // Create a AuctionCrowdfund instance with onlyHostCanBid and gatekeeper enabled.
+        AllowListGateKeeper gateKeeper = new AllowListGateKeeper();
+        bytes32 contributorHash = keccak256(abi.encodePacked(contributor));
+        bytes12 gateKeeperId = gateKeeper.createGate(contributorHash);
+        AuctionCrowdfund cf = _createCrowdfund(
+            0,
+            0,
+            0,
+            true,
+            gateKeeper,
+            gateKeeperId,
+            _toAddressArray(host)
+        );
+
+        // Contributor contributes.
+        vm.deal(contributor, 1e18);
+        vm.prank(contributor);
+        cf.contribute{ value: contributor.balance }(contributor, abi.encode(new bytes32[](0)));
+
+        // Skip past exipry.
+        vm.warp(cf.expiry());
+
+        // Bid, expect revert because we are not a host or contributor.
+        vm.expectRevert(Crowdfund.OnlyPartyHostOrContributorError.selector);
+        cf.bid(defaultGovernanceOpts, 0);
+
+        // Bid as a contributor, but expect a revert because the CF is expired.
+        vm.expectRevert(abi.encodeWithSelector(
+            Crowdfund.WrongLifecycleError.selector,
+            Crowdfund.CrowdfundLifecycle.Expired
+        ));
+        vm.prank(contributor);
+        cf.bid(defaultGovernanceOpts, 0);
+
+        // Bid as the host, but expect a revert because the CF is expired.
+        vm.expectRevert(abi.encodeWithSelector(
+            Crowdfund.WrongLifecycleError.selector,
+            Crowdfund.CrowdfundLifecycle.Expired
+        ));
+        vm.prank(host);
+        cf.bid(defaultGovernanceOpts, 0);
+    }
+
+    function test_onlyContributorCanBid() public {
+        address host = _randomAddress();
+        address contributor = _randomAddress();
+
+        // Create a AuctionCrowdfund instance with a gatekeeper enabled.
+        AllowListGateKeeper gateKeeper = new AllowListGateKeeper();
+        bytes32 contributorHash = keccak256(abi.encodePacked(contributor));
+        bytes12 gateKeeperId = gateKeeper.createGate(contributorHash);
+        AuctionCrowdfund cf = _createCrowdfund(
+            0,
+            0,
+            0,
+            false,
+            gateKeeper,
+            gateKeeperId,
+            _toAddressArray(host)
+        );
+
+        // Contributor contributes.
+        vm.deal(contributor, 1e18);
+        vm.prank(contributor);
+        cf.contribute{ value: contributor.balance }(contributor, abi.encode(new bytes32[](0)));
+
+        // Skip past exipry.
+        vm.warp(cf.expiry());
+
+        // Bid, expect revert because we are not a contributor.
+        vm.expectRevert(Crowdfund.OnlyContributorError.selector);
+        cf.bid(defaultGovernanceOpts, 0);
+
+        // Bid as a contributor, but expect a revert because the CF is expired.
+        vm.expectRevert(abi.encodeWithSelector(
+            Crowdfund.WrongLifecycleError.selector,
+            Crowdfund.CrowdfundLifecycle.Expired
+        ));
+        vm.prank(contributor);
+        cf.bid(defaultGovernanceOpts, 0);
+
+        // Bid as the host, but expect a revert because the host is not a contributor.
+        vm.expectRevert(Crowdfund.OnlyContributorError.selector);
+        vm.prank(host);
+        cf.bid(defaultGovernanceOpts, 0);
     }
 
     function test_gettingNFTForFreeTriggersLostToRefund() public {
@@ -508,7 +666,7 @@ contract AuctionCrowdfundTest is Test, TestUtils {
         address payable contributor = _randomAddress();
         _contribute(cf, contributor, 1e18);
         // Bid on the auction.
-        cf.bid();
+        cf.bid(defaultGovernanceOpts, 0);
         // Outbid externally so we're losing.
         _outbidExternally(auctionId);
         market.endAuction(auctionId);
@@ -551,25 +709,26 @@ contract AuctionCrowdfundTest is Test, TestUtils {
                     initialDelegate: initialDelegate,
                     gateKeeper: defaultGateKeeper,
                     gateKeeperId: defaultGateKeeperId,
+                    onlyHostCanBid: false,
                     governanceOpts: defaultGovernanceOpts
                 })
             )
         ))));
     }
 
-    function _contribute(AuctionCrowdfund pb, address contributor, uint256 amount) private {
+    function _contribute(AuctionCrowdfund cf, address contributor, uint256 amount) private {
         vm.deal(contributor, amount);
         vm.prank(contributor);
-        pb.contribute{ value: amount }(contributor, "");
+        cf.contribute{ value: amount }(contributor, "");
     }
 
-    function _contribute(AuctionCrowdfund pb, address contributor, address delegate, uint256 amount) private {
-        uint256 previousTotalContributions = pb.totalContributions();
+    function _contribute(AuctionCrowdfund cf, address contributor, address delegate, uint256 amount) private {
+        uint256 previousTotalContributions = cf.totalContributions();
         vm.deal(contributor, amount);
         vm.prank(contributor);
         _expectEmit0();
         emit Contributed(contributor, amount, delegate, previousTotalContributions);
-        pb.contribute{ value: amount }(delegate, "");
+        cf.contribute{ value: amount }(delegate, "");
     }
 
     function _outbidExternally(uint256 auctionId) private {

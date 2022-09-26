@@ -45,10 +45,13 @@ contract BuyCrowdfund is BuyCrowdfundBase {
         // voting power to when the crowdfund transitions to governance.
         address initialDelegate;
         // The gatekeeper contract to use (if non-null) to restrict who can
-        // contribute to this crowdfund.
+        // contribute to this crowdfund. If used, only contributors or hosts can
+        // call `buy()`.
         IGateKeeper gateKeeper;
         // The gate ID within the gateKeeper contract to use.
         bytes12 gateKeeperId;
+        // Whether the party is only allowing a host to call `buy()`.
+        bool onlyHostCanBuy;
         // Fixed governance options (i.e. cannot be changed) that the governance
         // `Party` will be created with if the crowdfund succeeds.
         FixedGovernanceOpts governanceOpts;
@@ -58,6 +61,8 @@ contract BuyCrowdfund is BuyCrowdfundBase {
     uint256 public nftTokenId;
     /// @notice The NFT contract to buy.
     IERC721 public nftContract;
+    /// @notice Whether the party is only allowing a host to call `buy()`.
+    bool public onlyHostCanBuy;
 
     // Set the `Globals` contract.
     constructor(IGlobals globals) BuyCrowdfundBase(globals) {}
@@ -71,6 +76,9 @@ contract BuyCrowdfund is BuyCrowdfundBase {
         payable
         onlyConstructor
     {
+        if (opts.onlyHostCanBuy && opts.governanceOpts.hosts.length == 0) {
+            revert MissingHostsError();
+        }
         BuyCrowdfundBase._initialize(BuyCrowdfundBaseOptions({
             name: opts.name,
             symbol: opts.symbol,
@@ -84,6 +92,7 @@ contract BuyCrowdfund is BuyCrowdfundBase {
             gateKeeperId: opts.gateKeeperId,
             governanceOpts: opts.governanceOpts
         }));
+        onlyHostCanBuy = opts.onlyHostCanBuy;
         nftTokenId = opts.nftTokenId;
         nftContract = opts.nftContract;
     }
@@ -95,23 +104,46 @@ contract BuyCrowdfund is BuyCrowdfundBase {
     /// @param callData The calldata to execute.
     /// @param governanceOpts The options used to initialize governance in the
     ///                       `Party` instance created if the buy was successful.
+    /// @param hostIndex If the caller is a host, this is the index of the caller in the
+    ///                  `governanceOpts.hosts` array.
     /// @return party_ Address of the `Party` instance created after its bought.
     function buy(
         address payable callTarget,
         uint96 callValue,
         bytes calldata callData,
-        FixedGovernanceOpts memory governanceOpts
+        FixedGovernanceOpts memory governanceOpts,
+        uint256 hostIndex
     )
         external
         returns (Party party_)
     {
+        // This function can be optionally restricted in different ways.
+        bool isValidatedGovernanceOpts;
+        if (onlyHostCanBuy) {
+            if (address(gateKeeper) != address(0)) {
+                // `onlyHostCanBuy` is true and we are using a gatekeeper. Either
+                // the host or a contributor can call this function.
+                isValidatedGovernanceOpts =
+                    _assertIsHostOrContributor(msg.sender, governanceOpts, hostIndex);
+            } else {
+                // `onlyHostCanBuy` is true and we are NOT using a gatekeeper.
+                // Only a host can call this function.
+                isValidatedGovernanceOpts =
+                    _assertIsHost(msg.sender, governanceOpts, hostIndex);
+            }
+        } else if (address(gateKeeper) != address(0)) {
+            // `onlyHostCanBuy` is false and we are using a gatekeeper.
+            // Only a contributor can call this function.
+            _assertIsContributor(msg.sender);
+        }
         return _buy(
             nftContract,
             nftTokenId,
             callTarget,
             callValue,
             callData,
-            governanceOpts
+            governanceOpts,
+            isValidatedGovernanceOpts
         );
     }
 }

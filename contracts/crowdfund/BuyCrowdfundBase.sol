@@ -95,16 +95,15 @@ abstract contract BuyCrowdfundBase is Crowdfund {
         address payable callTarget,
         uint96 callValue,
         bytes calldata callData,
-        FixedGovernanceOpts memory governanceOpts
+        FixedGovernanceOpts memory governanceOpts,
+        bool isValidatedGovernanceOpts
     )
         internal
         onlyDelegateCall
         returns (Party party_)
     {
-        // Ensure the call target isn't trying to reenter or trying to do
-        // anything weird with `PartyFactory`.
-        IPartyFactory partyFactory = _getPartyFactory();
-        if (callTarget == address(partyFactory) || callTarget == address(this)) {
+        // Ensure the call target isn't trying to reenter
+        if (callTarget == address(this)) {
             revert InvalidCallTargetError(callTarget);
         }
         // Check that the crowdfund is still active.
@@ -145,7 +144,12 @@ abstract contract BuyCrowdfundBase is Crowdfund {
                 settledPrice = callValue;
                 emit Won(
                     // Create a party around the newly bought NFT.
-                    party_ = _createParty(partyFactory, governanceOpts, token, tokenId),
+                    party_ = _createParty(
+                        governanceOpts,
+                        isValidatedGovernanceOpts,
+                        token,
+                        tokenId
+                    ),
                     token,
                     tokenId,
                     callValue

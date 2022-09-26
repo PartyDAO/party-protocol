@@ -62,6 +62,7 @@ The `CrowdfundFactory` contract is the canonical contract for creating crowdfund
 - `uint256 nftTokenId`: ID of the NFT being bought.
 - `uint40 duration`: How long this crowdfund has to bid on the NFT, in seconds.
 - `uint96 maximumPrice`: Maximum amount of ETH this crowdfund will pay for the NFT. If zero, no maximum.
+- `bool onlyHostCanBuy`: If this is `true`, only a host can call `buy()`.
 
 ### CollectionBuyCrowdfund Crowdfunds
 
@@ -98,6 +99,7 @@ The `CrowdfundFactory` contract is the canonical contract for creating crowdfund
 - `uint256 nftTokenId`: ID of the NFT being bought.
 - `uint40 duration`: How long this crowdfund has to bid on the NFT, in seconds.
 - `uint96 maximumBid`: Maximum amount of ETH this crowdfund will bid on the NFT.
+- `bool onlyHostCanBid`: If this is `true`, only a host can call `bid()`.
 
 ### Common Creation Options
 
@@ -109,7 +111,7 @@ In addition to the creation options described for each crowdfund type, there are
 - `uint16 splitBps`: What percentage (in basis points) of the final total voting power `splitRecipient` receives.
 - `address initialContributor`: If ETH is attached during deployment, it will be interpreted as a contribution. This is who gets credit for that contribution.
 - `address initialDelegate`: If there is an initial contribution, this is who they will initially delegate their voting power to when the crowdfund transitions to governance.
-- `IGateKeeper gateKeeper`: The gatekeeper contract to use (if non-null) to restrict who can contribute to this crowdfund.
+- `IGateKeeper gateKeeper`: The gatekeeper contract to use (if non-null) to restrict who can contribute to (and sometimes buy/bid in) this crowdfund.
 - `bytes12 gateKeeperId`: The gate ID within the gateKeeper contract to use.
 - `FixedGovernanceOpts governanceOpts`: Fixed [governance options](https://github.com/PartyDAO/partybidV2/blob/main/docs/governance.md#governance-options) that the governance Party will be created with if the crowdfund succeeds. Aside from the party `hosts`, only the hash of this field is stored on-chain at creation. It must be provided in full again in order for the party to win.
 
