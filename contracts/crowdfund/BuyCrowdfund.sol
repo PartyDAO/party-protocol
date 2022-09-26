@@ -10,7 +10,7 @@ import "../gatekeepers/IGateKeeper.sol";
 
 import "./BuyCrowdfundBase.sol";
 
-/// @notice A crowdfund that purchase a specific NFT (i.e., with a known token
+/// @notice A crowdfund that purchases a specific NFT (i.e., with a known token
 ///         ID) listing for a known price.
 contract BuyCrowdfund is BuyCrowdfundBase {
     using LibSafeERC721 for IERC721;

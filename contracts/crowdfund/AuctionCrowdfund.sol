@@ -231,7 +231,7 @@ contract AuctionCrowdfund is Crowdfund {
 
         // No need to check that we have `bidAmount` since this will attempt to
         // transfer `bidAmount` ETH to the auction platform.
-        (bool s, bytes memory r) = address(market).delegatecall(abi.encodeCall(
+        (bool s, bytes memory r) = address(market_).delegatecall(abi.encodeCall(
             IMarketWrapper.bid,
             (auctionId_, bidAmount)
         ));

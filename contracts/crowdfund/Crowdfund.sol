@@ -562,16 +562,18 @@ abstract contract Crowdfund is Implementation, ERC721Receiver, CrowdfundNFT {
             revert WrongLifecycleError(lc);
         }
         // Split recipient can burn even if they don't have a token.
-        address splitRecipient_ = splitRecipient;
-        if (contributor == splitRecipient_) {
-            if (_splitRecipientHasBurned) {
-                revert SplitRecipientAlreadyBurnedError();
+        {
+            address splitRecipient_ = splitRecipient;
+            if (contributor == splitRecipient_) {
+                if (_splitRecipientHasBurned) {
+                    revert SplitRecipientAlreadyBurnedError();
+                }
+                _splitRecipientHasBurned = true;
             }
-            _splitRecipientHasBurned = true;
-        }
-        // Revert if already burned or does not exist.
-        if (splitRecipient_ != contributor || _doesTokenExistFor(contributor)) {
-            CrowdfundNFT._burn(contributor);
+            // Revert if already burned or does not exist.
+            if (splitRecipient_ != contributor || _doesTokenExistFor(contributor)) {
+                CrowdfundNFT._burn(contributor);
+            }
         }
         // Compute the contributions used and owed to the contributor, along
         // with the voting power they'll have in the governance stage.

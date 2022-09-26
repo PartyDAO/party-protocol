@@ -446,7 +446,7 @@ abstract contract PartyGovernance is
         view
         returns (uint256 index)
     {
-        VotingPowerSnapshot[] memory snaps = _votingPowerSnapshotsByVoter[voter];
+        VotingPowerSnapshot[] storage snaps = _votingPowerSnapshotsByVoter[voter];
 
         // Derived from Open Zeppelin binary search
         // ref: https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/utils/Checkpoints.sol#L39
