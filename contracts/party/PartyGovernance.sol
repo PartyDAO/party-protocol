@@ -160,7 +160,6 @@ abstract contract PartyGovernance is
         uint256 weight
     );
 
-    event PartyInitialized(GovernanceOpts opts, IERC721[] preciousTokens, uint256[] preciousTokenIds);
     event ProposalPassed(uint256 indexed proposalId);
     event ProposalVetoed(uint256 indexed proposalId, address host);
     event ProposalExecuted(uint256 indexed proposalId, address executor, bytes nextProgressData);
@@ -330,7 +329,6 @@ abstract contract PartyGovernance is
         for (uint256 i=0; i < opts.hosts.length; ++i) {
             isHost[opts.hosts[i]] = true;
         }
-        emit PartyInitialized(opts, preciousTokens, preciousTokenIds);
     }
 
     /// @dev Forward all unknown read-only calls to the proposal execution engine.
