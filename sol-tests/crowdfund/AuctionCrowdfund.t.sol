@@ -666,7 +666,7 @@ contract AuctionCrowdfundTest is Test, TestUtils {
         address payable contributor = _randomAddress();
         _contribute(cf, contributor, 1e18);
         // Bid on the auction.
-        cf.bid();
+        cf.bid(defaultGovernanceOpts, 0);
         // Outbid externally so we're losing.
         _outbidExternally(auctionId);
         market.endAuction(auctionId);

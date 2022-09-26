@@ -144,7 +144,12 @@ abstract contract BuyCrowdfundBase is Crowdfund {
                 settledPrice = callValue;
                 emit Won(
                     // Create a party around the newly bought NFT.
-                    party_ = _createParty(partyFactory, governanceOpts, token, tokenId),
+                    party_ = _createParty(
+                        governanceOpts,
+                        isValidatedGovernanceOpts,
+                        token,
+                        tokenId
+                    ),
                     token,
                     tokenId,
                     callValue

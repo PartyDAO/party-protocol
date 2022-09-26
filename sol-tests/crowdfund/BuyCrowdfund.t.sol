@@ -376,25 +376,26 @@ contract BuyCrowdfundTest is Test, TestUtils {
     function testBuyCannotExceedTotalContributions() public {
         uint256 tokenId = erc721Vault.mint();
         // Create a BuyCrowdfund instance.
-        BuyCrowdfund pb = _createCrowdfund(tokenId, 0);
+        BuyCrowdfund cf = _createCrowdfund(tokenId, 0);
         // Contribute and delegate.
         address payable contributor = _randomAddress();
         address delegate = _randomAddress();
         vm.deal(contributor, 1e18);
         vm.prank(contributor);
-        pb.contribute{ value: contributor.balance }(delegate, "");
+        cf.contribute{ value: contributor.balance }(delegate, "");
 
-        uint96 totalContributions = pb.totalContributions();
+        uint96 totalContributions = cf.totalContributions();
         vm.expectRevert(abi.encodeWithSelector(
             Crowdfund.ExceedsTotalContributionsError.selector,
             totalContributions + 1,
             totalContributions
         ));
-        pb.buy(
+        cf.buy(
             payable(address(erc721Vault)),
             totalContributions + 1,
             abi.encodeCall(erc721Vault.claim, (tokenId)),
-            defaultGovernanceOpts
+            defaultGovernanceOpts,
+            0
         );
     }
 
@@ -418,7 +419,8 @@ contract BuyCrowdfundTest is Test, TestUtils {
             payable(address(cf)),
             1e18,
             abi.encodeCall(cf.contribute, (contributor, "")),
-            defaultGovernanceOpts
+            defaultGovernanceOpts,
+            0
         );
         ReenteringContract reenteringContract = new ReenteringContract();
         // Attempt reentering back into the crowdfund via a proxy.
@@ -432,7 +434,8 @@ contract BuyCrowdfundTest is Test, TestUtils {
             payable(address(reenteringContract)),
             1e18,
             abi.encodeCall(reenteringContract.reenter, (cf)),
-            defaultGovernanceOpts
+            defaultGovernanceOpts,
+            0
         );
         assertTrue(cf.getCrowdfundLifecycle() == Crowdfund.CrowdfundLifecycle.Active);
     }
@@ -449,7 +452,8 @@ contract BuyCrowdfundTest is Test, TestUtils {
             payable(address(token)),
             0,
             abi.encodeCall(token.mint, (address(cf))),
-            defaultGovernanceOpts
+            defaultGovernanceOpts,
+            0
         );
         assertTrue(cf.getCrowdfundLifecycle() == Crowdfund.CrowdfundLifecycle.Lost);
     }
