@@ -165,24 +165,6 @@ contract DummyTokenDistributor is ITokenDistributor {
         external
         view
         returns (uint128) {}
-
-    function emergencyRemoveDistribution(
-        ITokenDistributorParty,
-        uint256
-    )
-        external {}
-
-    /// @notice DAO-only function to withdraw tokens in case something goes wrong.
-    function emergencyWithdraw(
-        TokenType,
-        address,
-        uint256,
-        address payable,
-        uint256
-    )
-        external {}
-
-    function disableEmergencyActions() external {}
 }
 
 contract TestablePartyGovernance is PartyGovernance {
@@ -368,7 +350,7 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
     {
         return PartyGovernance.Proposal({
             // Expires right after execution delay.
-            maxExecutableTime: uint40(block.timestamp) + defaultGovernanceOpts.executionDelay,
+            maxExecutableTime: uint40(block.timestamp) + defaultGovernanceOpts.executionDelay + 1,
             cancelDelay: uint40(1 days),
             proposalData: abi.encode(numSteps)
         });
@@ -456,6 +438,8 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
 
         _assertProposalStatusEq(gov, proposalId, PartyGovernance.ProposalStatus.Invalid);
 
+        // Skip because `accept()` will query voting power at `proposedTime - 1`
+        skip(1);
         // Undelegated voter submits proposal.
         _expectProposedEvent(proposalId, undelegatedVoter, proposal);
         // Votes are automatically cast by proposer.
@@ -515,6 +499,8 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
         PartyGovernance.Proposal memory proposal = _createProposal(2);
         uint256 proposalId = gov.getNextProposalId();
 
+        // Skip because `accept()` will query voting power at `proposedTime - 1`
+        skip(1);
         // Undelegated voter submits proposal.
         _expectProposedEvent(proposalId, undelegatedVoter, proposal);
         // Votes are automatically cast by proposer.
@@ -598,6 +584,8 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
         PartyGovernance.Proposal memory proposal = _createProposal(1);
         uint256 proposalId = gov.getNextProposalId();
 
+        // Skip because `accept()` will query voting power at `proposedTime - 1`
+        skip(1);
         // Undelegated voter submits proposal.
         _expectProposedEvent(proposalId, undelegatedVoter, proposal);
         // Votes are automatically cast by proposer.
@@ -656,6 +644,8 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
         PartyGovernance.Proposal memory proposal = _createProposal(1);
         uint256 proposalId = gov.getNextProposalId();
 
+        // Skip because `accept()` will query voting power at `proposedTime - 1`
+        skip(1);
         // Undelegated voter 1 submits proposal.
         _expectProposedEvent(proposalId, undelegatedVoter1, proposal);
         // Votes are automatically cast by proposer.
@@ -715,6 +705,8 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
         PartyGovernance.Proposal memory proposal = _createProposal(1);
         uint256 proposalId = gov.getNextProposalId();
 
+        // Skip because `accept()` will query voting power at `proposedTime - 1`
+        skip(1);
         // Undelegated voter submits proposal.
         _expectProposedEvent(proposalId, undelegatedVoter, proposal);
         // Votes are automatically cast by proposer.
@@ -768,6 +760,8 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
         PartyGovernance.Proposal memory proposal = _createProposal(1);
         uint256 proposalId = gov.getNextProposalId();
 
+        // Skip because `accept()` will query voting power at `proposedTime - 1`
+        skip(1);
         // Undelegated voter submits proposal.
         vm.prank(undelegatedVoter);
         assertEq(gov.propose(proposal, 0), proposalId);
@@ -819,6 +813,8 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
         PartyGovernance.Proposal memory proposal = _createProposal(1);
         uint256 proposalId = gov.getNextProposalId();
 
+        // Skip because `accept()` will query voting power at `proposedTime - 1`
+        skip(1);
         // Undelegated voter submits proposal.
         // Voter has majority VP so it also passes immediately.
         _expectProposalPassedEvent(proposalId);
@@ -855,6 +851,8 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
         PartyGovernance.Proposal memory proposal = _createProposal(1);
         uint256 proposalId = gov.getNextProposalId();
 
+        // Skip because `accept()` will query voting power at `proposedTime - 1`
+        skip(1);
         // Undelegated voter submits proposal.
         // Voter has majority VP so it also passes immediately.
         _expectProposalPassedEvent(proposalId);
@@ -895,6 +893,8 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
         PartyGovernance.Proposal memory proposal = _createProposal(1);
         uint256 proposalId = gov.getNextProposalId();
 
+        // Skip because `accept()` will query voting power at `proposedTime - 1`
+        skip(1);
         // Undelegated voter submits proposal.
         // Voter has majority VP so it also passes immediately.
         _expectProposalPassedEvent(proposalId);
@@ -947,6 +947,8 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
         PartyGovernance.Proposal memory proposal = _createProposal(1);
         uint256 proposalId = gov.getNextProposalId();
 
+        // Skip because `accept()` will query voting power at `proposedTime - 1`
+        skip(1);
         // Undelegated voter submits proposal.
         // Voter has majority VP so it also passes immediately.
         _expectProposalPassedEvent(proposalId);
@@ -984,6 +986,8 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
         // voter has 100% intrinsic VP (delegated to no one/self)
         gov.rawAdjustVotingPower(voter, 100e18, address(0));
 
+        // Skip because `accept()` will query voting power at `proposedTime - 1`
+        skip(1);
         // Create a two-step proposal.
         PartyGovernance.Proposal memory proposal = _createProposal(2);
         uint256 proposalId = gov.getNextProposalId();
@@ -1025,6 +1029,8 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
         // voter has 100% intrinsic VP (delegated to no one/self)
         gov.rawAdjustVotingPower(voter, 100e18, address(0));
 
+        // Skip because `accept()` will query voting power at `proposedTime - 1`
+        skip(1);
         // Create a two-step proposal.
         PartyGovernance.Proposal memory proposal = _createProposal(2);
         uint256 proposalId = gov.getNextProposalId();
@@ -1066,6 +1072,8 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
         // voter has 100% intrinsic VP (delegated to no one/self)
         gov.rawAdjustVotingPower(voter, 100e18, address(0));
 
+        // Skip because `accept()` will query voting power at `proposedTime - 1`
+        skip(1);
         // Create a two-step proposal.
         PartyGovernance.Proposal memory proposal = _createProposal(2);
         uint256 proposalId = gov.getNextProposalId();
@@ -1118,6 +1126,8 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
         PartyGovernance.Proposal memory proposal = _createProposal(1);
         uint256 proposalId = gov.getNextProposalId();
 
+        // Skip because `accept()` will query voting power at `proposedTime - 1`
+        skip(1);
         // Undelegated voter submits proposal and votes, but does not have enough
         // to pass on their own.
         vm.prank(undelegatedVoter);
@@ -1165,6 +1175,8 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
         PartyGovernance.Proposal memory proposal = _createProposal(1);
         uint256 proposalId = gov.getNextProposalId();
 
+        // Skip because `accept()` will query voting power at `proposedTime - 1`
+        skip(1);
         // Undelegated voter submits proposal and votes, but does not have enough
         // to pass on their own.
         vm.prank(undelegatedVoter);
@@ -1212,6 +1224,8 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
         PartyGovernance.Proposal memory proposal = _createProposal(1);
         uint256 proposalId = gov.getNextProposalId();
 
+        // Skip because `accept()` will query voting power at `proposedTime - 1`
+        skip(1);
         // Undelegated voter submits proposal.
         // Voter has majority VP so it also passes immediately.
         _expectProposalPassedEvent(proposalId);
@@ -1260,6 +1274,8 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
         PartyGovernance.Proposal memory proposal = _createProposal(2);
         uint256 proposalId = gov.getNextProposalId();
 
+        // Skip because `accept()` will query voting power at `proposedTime - 1`
+        skip(1);
         // Undelegated voter submits proposal.
         // Voter has majority VP so it also passes immediately.
         _expectProposalPassedEvent(proposalId);
@@ -1303,6 +1319,8 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
         PartyGovernance.Proposal memory proposal = _createProposal(1);
         uint256 proposalId = gov.getNextProposalId();
 
+        // Skip because `accept()` will query voting power at `proposedTime - 1`
+        skip(1);
         // Undelegated voter submits proposal.
         // Voter has majority VP so it also passes immediately.
         _expectProposalPassedEvent(proposalId);
@@ -1347,6 +1365,8 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
         PartyGovernance.Proposal memory proposal = _createProposal(2);
         uint256 proposalId = gov.getNextProposalId();
 
+        // Skip because `accept()` will query voting power at `proposedTime - 1`
+        skip(1);
         // Undelegated voter submits proposal.
         // Voter has majority VP so it also passes immediately.
         _expectProposalPassedEvent(proposalId);
@@ -1400,6 +1420,8 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
         PartyGovernance.Proposal memory proposal = _createProposal(1);
         uint256 proposalId = gov.getNextProposalId();
 
+        // Skip because `accept()` will query voting power at `proposedTime - 1`
+        skip(1);
         // Undelegated voter submits proposal.
         vm.prank(undelegatedVoter);
         assertEq(gov.propose(proposal, 0), proposalId);
@@ -1447,6 +1469,8 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
         PartyGovernance.Proposal memory proposal = _createProposal(1);
         uint256 proposalId = gov.getNextProposalId();
 
+        // Skip because `accept()` will query voting power at `proposedTime - 1`
+        skip(1);
         // Delegated voter submits proposal.
         // No intrinsic or delegated votes so no vote cast during proposal.
         _expectProposalAcceptedEvent(proposalId, delegatedVoter, 0);
@@ -1493,6 +1517,8 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
         PartyGovernance.Proposal memory proposal = _createProposal(1);
         uint256 proposalId = gov.getNextProposalId();
 
+        // Skip because `accept()` will query voting power at `proposedTime - 1`
+        skip(1);
         // Delegated voter submits proposal.
         // No intrinsic or delegated votes so no vote cast during proposal.
         emit ProposalAccepted(proposalId, delegatedVoter, 0);
@@ -1530,6 +1556,8 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
         PartyGovernance.Proposal memory proposal = _createProposal(1);
         uint256 proposalId = gov.getNextProposalId();
 
+        // Skip because `accept()` will query voting power at `proposedTime - 1`
+        skip(1);
         // Undelegated voter 1 submits proposal (and votes).
         vm.prank(undelegatedVoter1);
         assertEq(gov.propose(proposal, 0), proposalId);
@@ -1564,6 +1592,8 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
         PartyGovernance.Proposal memory proposal = _createProposal(1);
         uint256 proposalId = gov.getNextProposalId();
 
+        // Skip because `accept()` will query voting power at `proposedTime - 1`
+        skip(1);
         // Undelegated voter submits proposal (and votes).
         vm.prank(undelegatedVoter);
         assertEq(gov.propose(proposal, 0), proposalId);
@@ -1592,6 +1622,8 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
         PartyGovernance.Proposal memory proposal = _createProposal(1);
         uint256 proposalId = gov.getNextProposalId();
 
+        // Skip because `accept()` will query voting power at `proposedTime - 1`
+        skip(1);
         // Delegate submits proposal (and votes).
         vm.prank(delegate);
         assertEq(gov.propose(proposal, 0), proposalId);
@@ -1620,6 +1652,8 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
         PartyGovernance.Proposal memory proposal = _createProposal(1);
         uint256 proposalId = gov.getNextProposalId();
 
+        // Skip because `accept()` will query voting power at `proposedTime - 1`
+        skip(1);
         // Delegated voter submits proposal (and votes).
         vm.prank(delegatedVoter);
         assertEq(gov.propose(proposal, 0), proposalId);
@@ -1650,6 +1684,8 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
         PartyGovernance.Proposal memory proposal = _createProposal(1);
         uint256 proposalId = gov.getNextProposalId();
 
+        // Skip because `accept()` will query voting power at `proposedTime - 1`
+        skip(1);
         // Undelegated voter 1 submits proposal (and votes).
         vm.prank(undelegatedVoter1);
         assertEq(gov.propose(proposal, 0), proposalId);
@@ -1698,6 +1734,8 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
         PartyGovernance.Proposal memory proposal = _createProposal(1);
         uint256 proposalId = gov.getNextProposalId();
 
+        // Skip because `accept()` will query voting power at `proposedTime - 1`
+        skip(1);
         // Propose it from proposer, locking in the proposal time
         // and not casting any votes because proposer has delegated to
         // someone else.
@@ -1747,6 +1785,43 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
         gov.accept(proposalId, 0);
     }
 
+    function testVoting_cannotVoteAgainByTransferringVotingCard() external {
+        (IERC721[] memory preciousTokens, uint256[] memory preciousTokenIds) =
+            _createPreciousTokens(2);
+        TestablePartyGovernance gov =
+            _createGovernance(100e18, preciousTokens, preciousTokenIds);
+        // Give voter 30 intrinsic VP.
+        address voter = _randomAddress();
+        gov.rawAdjustVotingPower(voter, 30e18, address(0));
+
+        // Create a one-step proposal.
+        PartyGovernance.Proposal memory proposal = _createProposal(1);
+        uint256 proposalId = gov.getNextProposalId();
+        // Skip because `accept()` will query voting power at `proposedTime - 1`
+        skip(1);
+        _expectProposalAcceptedEvent(
+            proposalId,
+            voter,
+            30e18
+        );
+        vm.prank(voter);
+        gov.propose(proposal, 0);
+
+        // Transfer VP to another wallet.
+        address anotherWallet = _randomAddress();
+        gov.transferVotingPower(voter, anotherWallet, 30e18);
+
+        // Assert that this does not increase votes (proposal was accepted with 0 VP)
+        // because voting power queried from the past
+        _expectProposalAcceptedEvent(
+            proposalId,
+            anotherWallet,
+            0
+        );
+        vm.prank(anotherWallet);
+        gov.accept(proposalId, 0);
+    }
+
     // Circular delegation.
     function testVoting_circularDelegation() external {
         (IERC721[] memory preciousTokens, uint256[] memory preciousTokenIds) =
@@ -1765,6 +1840,8 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
         PartyGovernance.Proposal memory proposal = _createProposal(1);
         uint256 proposalId = gov.getNextProposalId();
 
+        // Skip because `accept()` will query voting power at `proposedTime - 1`
+        skip(1);
         // delegate2 proposes and votes with their 1 effective VP.
         _expectProposalAcceptedEvent(
             proposalId,
@@ -2173,6 +2250,8 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
         PartyGovernance.Proposal memory proposal = _createProposal(1);
         uint256 proposalId = gov.getNextProposalId();
 
+        // Skip because `accept()` will query voting power at `proposedTime - 1`
+        skip(1);
         // voter1 proposes and votes.
         vm.prank(voter1);
         gov.propose(proposal, 0);
@@ -2263,6 +2342,35 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
             PartyGovernance.OnlyActiveMemberError.selector
         ));
         vm.prank(member);
+        gov.distribute(ITokenDistributor.TokenType.Native, ETH_ADDRESS, 0);
+    }
+
+    function test_onlyWhenNotDisabled() external {
+        (IERC721[] memory preciousTokens, uint256[] memory preciousTokenIds) =
+            _createPreciousTokens(2);
+        TestablePartyGovernance gov =
+            _createGovernance(100e18, preciousTokens, preciousTokenIds);
+        address member = _randomAddress();
+        gov.rawAdjustVotingPower(member, 1, address(0));
+
+        // Disable party actions.
+        globals.setBool(LibGlobals.GLOBAL_DISABLE_PARTY_ACTIONS, true);
+
+        // Try executing a proposal.
+        vm.prank(member);
+        vm.expectRevert(PartyGovernance.OnlyWhenEnabledError.selector);
+        gov.execute(
+            0,
+            _createProposal(1),
+            preciousTokens,
+            preciousTokenIds,
+            "",
+            bytes("foo")
+        );
+
+        // Try creating a distribution.
+        vm.prank(member);
+        vm.expectRevert(PartyGovernance.OnlyWhenEnabledError.selector);
         gov.distribute(ITokenDistributor.TokenType.Native, ETH_ADDRESS, 0);
     }
 

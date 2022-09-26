@@ -19,6 +19,9 @@ import "../contracts/renderers/CrowdfundNFTRenderer.sol";
 import "../contracts/renderers/PartyGovernanceNFTRenderer.sol";
 import "../contracts/proposals/ProposalExecutionEngine.sol";
 import "../contracts/utils/PartyHelpers.sol";
+import "../contracts/market-wrapper/FoundationMarketWrapper.sol";
+import "../contracts/market-wrapper/NounsMarketWrapper.sol";
+import "../contracts/market-wrapper/ZoraMarketWrapper.sol";
 import "./LibDeployConstants.sol";
 
 contract Deploy {
@@ -44,6 +47,9 @@ contract Deploy {
     PartyHelpers public partyHelpers;
     IGateKeeper public allowListGateKeeper;
     IGateKeeper public tokenGateKeeper;
+    FoundationMarketWrapper public foundationMarketWrapper;
+    NounsMarketWrapper public nounsMarketWrapper;
+    ZoraMarketWrapper public zoraMarketWrapper;
 
     function deploy(LibDeployConstants.DeployConstants memory deployConstants) public virtual {
         address deployer = this.getDeployer();
@@ -88,7 +94,10 @@ contract Deploy {
         console.log("");
         console.log("### TokenDistributor");
         console.log("  Deploying - TokenDistributor");
-        tokenDistributor = new TokenDistributor(globals);
+        tokenDistributor = new TokenDistributor(
+            globals,
+            uint40(block.timestamp) + deployConstants.distributorEmergencyActionAllowedDuration
+        );
         console.log("  Deployed - TokenDistributor", address(tokenDistributor));
 
         console.log("");
@@ -168,7 +177,7 @@ contract Deploy {
         console.log("### ProposalExecutionEngine");
         console.log("  Deploying - ProposalExecutionEngine");
         zoraAuctionHouse = IZoraAuctionHouse(
-            deployConstants.zoraAuctionHouseAddress
+            deployConstants.zoraAuctionHouse
         );
         IOpenseaConduitController conduitController = IOpenseaConduitController(
             deployConstants.osConduitController
@@ -375,6 +384,22 @@ contract Deploy {
             address(allowListGateKeeper)
         );
 
+        // DEPLOY_MARKET_WRAPPERS
+        console.log("");
+        console.log("### MarketWrappers");
+        console.log("  Deploying - FoundationMarketWrapper");
+        foundationMarketWrapper = new FoundationMarketWrapper(deployConstants.foundationMarket);
+        console.log("  Deployed - FoundationMarketWrapper", address(foundationMarketWrapper));
+        console.log("  Deploying - NounsMarketWrapper");
+        nounsMarketWrapper = new NounsMarketWrapper(deployConstants.nounsAuctionHouse);
+        console.log("  Deployed - NounsMarketWrapper", address(nounsMarketWrapper));
+        console.log("  Deploying - ZoraMarketWrapper");
+        zoraMarketWrapper = new ZoraMarketWrapper(deployConstants.zoraAuctionHouse);
+        console.log("  Deployed - ZoraMarketWrapper", address(zoraMarketWrapper));
+
+        console.log("Starting deploy script.");
+        console.log("DEPLOYER_ADDRESS", deployer);
+
         console.log("  Deploying - TokenGateKeeper");
         tokenGateKeeper = new TokenGateKeeper();
         console.log("  Deployed - TokenGateKeeper", address(tokenGateKeeper));
@@ -428,7 +453,7 @@ contract DeployScript is Script, Deploy {
         Deploy.deploy(deployConstants);
         vm.stopBroadcast();
 
-        AddressMapping[] memory addressMapping = new AddressMapping[](15);
+        AddressMapping[] memory addressMapping = new AddressMapping[](18);
         addressMapping[0] = AddressMapping("globals", address(globals));
         addressMapping[1] = AddressMapping("tokenDistributor", address(tokenDistributor));
         addressMapping[2] = AddressMapping("seaportExchange", address(seaport));
@@ -444,6 +469,9 @@ contract DeployScript is Script, Deploy {
         addressMapping[12] = AddressMapping("partyHelpers", address(partyHelpers));
         addressMapping[13] = AddressMapping("allowListGateKeeper", address(allowListGateKeeper));
         addressMapping[14] = AddressMapping("tokenGateKeeper", address(tokenGateKeeper));
+        addressMapping[15] = AddressMapping("foundationMarketWrapper", address(foundationMarketWrapper));
+        addressMapping[16] = AddressMapping("nounsMarketWrapper", address(nounsMarketWrapper));
+        addressMapping[17] = AddressMapping("zoraMarketWrapper", address(zoraMarketWrapper));
 
         console.log("");
         console.log("### Deployed addresses");

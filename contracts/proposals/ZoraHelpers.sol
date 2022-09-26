@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Beta Software
 // http://ipfs.io/ipfs/QmbGX2MFCaMAsMNMugRFND6DtYygRkwkvrqEyTKhTdBLo5
-pragma solidity ^0.8;
+pragma solidity 0.8.17;
 
 import "../tokens/IERC721.sol";
 
@@ -13,6 +13,12 @@ abstract contract ZoraHelpers {
         uint256 auctionId;
         // The minimum timestamp when we can cancel the auction if no one bids.
         uint40 minExpiry;
+    }
+
+    enum ZoraAuctionStatus {
+        Sold,
+        Expired,
+        Cancelled
     }
 
     // Transfer and create a Zora auction for the token + tokenId.
@@ -39,5 +45,5 @@ abstract contract ZoraHelpers {
     )
         internal
         virtual
-        returns (bool sold);
+        returns (ZoraAuctionStatus statusCode);
 }

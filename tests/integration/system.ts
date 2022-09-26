@@ -55,6 +55,7 @@ export enum GlobalKeys {
     ZoraMaxAuctionTimeout       = 18,
     OpenSeaMinOrderDuration     = 19,
     OpenSeaMaxOrderDuration     = 20,
+    DisablePartyActions         = 21,
 }
 
 export enum ProposalType {
@@ -110,6 +111,7 @@ interface OpenSeaProposalInfo {
     tokenId: BigNumber,
     fees: BigNumber[];
     feeRecipients: string[];
+    domainHashPrefix: string;
 }
 
 export class System {
@@ -199,7 +201,7 @@ export class System {
         const tokenDistributor = await deployContract(
             worker,
             artifacts.TokenDistributor as any,
-            [globals.address],
+            [globals.address, 0]
         );
         await (await globals.setAddress(
             GlobalKeys.TokenDistributor,
@@ -491,7 +493,7 @@ export function createOpenSeaProposal(info: OpenSeaProposalInfo, maxExecutableTi
         proposalData: ethers.utils.hexConcat([
             ethers.utils.hexZeroPad(ethers.utils.hexlify(ProposalType.ListOnOpenSea), 4),
             ethers.utils.defaultAbiCoder.encode(
-                ['tuple(uint256 listPrice,uint40 duration,address token,uint256 tokenId,uint256[] fees,address[] feeRecipients)'],
+                ['tuple(uint256 listPrice,uint40 duration,address token,uint256 tokenId,uint256[] fees,address[] feeRecipients,bytes4 domainHashPrefix)'],
                 [info],
             ),
         ]),

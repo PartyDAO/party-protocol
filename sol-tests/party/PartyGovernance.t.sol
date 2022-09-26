@@ -506,7 +506,7 @@ function testEmergencyWithdrawal() public {
 
     // partydao admin try emergency withdrawal, ensure it works to transfer toad out
     vm.prank(globalDaoWalletAddress);
-    bool emergResp = party.emergencyExecute(
+    party.emergencyExecute(
       address(toadz),
       abi.encodeWithSignature(
           "safeTransferFrom(address,address,uint256,bytes)",
@@ -517,7 +517,6 @@ function testEmergencyWithdrawal() public {
       ),
       0
     );
-    assert(emergResp);
     assertEq(toadz.ownerOf(1), address(globalDaoWalletAddress));
   }
 

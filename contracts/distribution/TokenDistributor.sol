@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Beta Software
 // http://ipfs.io/ipfs/QmbGX2MFCaMAsMNMugRFND6DtYygRkwkvrqEyTKhTdBLo5
-pragma solidity ^0.8;
+pragma solidity 0.8.17;
 
 import "../globals/IGlobals.sol";
 import "../globals/LibGlobals.sol";
@@ -21,10 +21,10 @@ contract TokenDistributor is ITokenDistributor {
     using LibSafeCast for uint256;
 
     struct DistributionState {
+        // The hash of the `DistributionInfo`.
+        bytes32 distributionHash;
         // The remaining member supply.
         uint128 remainingMemberSupply;
-        // The 15-byte hash of the `DistributionInfo`.
-        bytes15 distributionHash15;
         // Whether the distribution's feeRecipient has claimed its fee.
         bool wasFeeClaimed;
         // Whether a governance token has claimed its distribution share.
@@ -58,9 +58,9 @@ contract TokenDistributor is ITokenDistributor {
     /// @notice The `Globals` contract storing global configuration values. This contract
     ///         is immutable and it’s address will never change.
     IGlobals public immutable GLOBALS;
+    /// @notice Timestamp when the DAO is no longer allowed to call emergency functions.
+    uint40 public immutable EMERGENCY_DISABLED_TIMESTAMP;
 
-    /// @notice Whether the DAO is no longer allowed to call emergency functions.
-    bool public emergencyActionsDisabled;
     /// @notice Last distribution ID for a party.
     mapping(ITokenDistributorParty => uint256) public lastDistributionIdPerParty;
     /// Last known balance of a token, identified by an ID derived from the token.
@@ -84,15 +84,16 @@ contract TokenDistributor is ITokenDistributor {
 
     // emergencyActionsDisabled == false
     modifier onlyIfEmergencyActionsAllowed() {
-        if (emergencyActionsDisabled) {
+        if (block.timestamp > EMERGENCY_DISABLED_TIMESTAMP) {
             revert EmergencyActionsNotAllowedError();
         }
         _;
     }
 
     // Set the `Globals` contract.
-    constructor(IGlobals globals) {
+    constructor(IGlobals globals, uint40 emergencyDisabledTimestamp) {
         GLOBALS = globals;
+        EMERGENCY_DISABLED_TIMESTAMP = emergencyDisabledTimestamp;
     }
 
     /// @inheritdoc ITokenDistributor
@@ -149,7 +150,7 @@ contract TokenDistributor is ITokenDistributor {
         }
         // DistributionInfo must be correct for this distribution ID.
         DistributionState storage state = _distributionStates[info.party][info.distributionId];
-        if (state.distributionHash15 != _getDistributionHash(info)) {
+        if (state.distributionHash != _getDistributionHash(info)) {
             revert InvalidDistributionInfoError(info);
         }
         // The partyTokenId must not have claimed its distribution yet.
@@ -193,7 +194,7 @@ contract TokenDistributor is ITokenDistributor {
     {
         // DistributionInfo must be correct for this distribution ID.
         DistributionState storage state = _distributionStates[info.party][info.distributionId];
-        if (state.distributionHash15 != _getDistributionHash(info)) {
+        if (state.distributionHash != _getDistributionHash(info)) {
             revert InvalidDistributionInfoError(info);
         }
         // Caller must be the fee recipient.
@@ -298,35 +299,22 @@ contract TokenDistributor is ITokenDistributor {
         return _distributionStates[party][distributionId].remainingMemberSupply;
     }
 
-    /// @notice DAO-only function to clear a distribution in case something goes wrong.
-    function emergencyRemoveDistribution(
-        ITokenDistributorParty party,
-        uint256 distributionId
+    /// @notice As the DAO, execute an arbitrary delegatecall from this contract.
+    /// @dev Emergency actions must not be revoked for this to work.
+    /// @param targetAddress The contract to delegatecall into.
+    /// @param targetCallData The data to pass to the call.
+    function emergencyExecute(
+        address targetAddress,
+        bytes calldata targetCallData
     )
+        external
         onlyPartyDao
         onlyIfEmergencyActionsAllowed
-        external
     {
-        delete _distributionStates[party][distributionId];
-    }
-
-    /// @notice DAO-only function to withdraw tokens in case something goes wrong.
-    function emergencyWithdraw(
-        TokenType tokenType,
-        address token,
-        address payable recipient,
-        uint256 amount
-    )
-        onlyPartyDao
-        onlyIfEmergencyActionsAllowed
-        external
-    {
-        _transfer(tokenType, token, recipient, amount);
-    }
-
-    /// @notice DAO-only function to disable emergency functions forever.
-    function disableEmergencyActions() onlyPartyDao external {
-        emergencyActionsDisabled = true;
+        (bool success, bytes memory res) = targetAddress.delegatecall(targetCallData);
+        if (!success) {
+            res.rawRevert();
+        }
     }
 
     function _createDistribution(CreateDistributionArgs memory args)
@@ -363,7 +351,7 @@ contract TokenDistributor is ITokenDistributor {
             fee: fee
         });
         (
-            _distributionStates[args.party][info.distributionId].distributionHash15,
+            _distributionStates[args.party][info.distributionId].distributionHash,
             _distributionStates[args.party][info.distributionId].remainingMemberSupply
         ) = (_getDistributionHash(info), memberSupply);
         emit DistributionCreated(args.party, info);
@@ -379,25 +367,33 @@ contract TokenDistributor is ITokenDistributor {
     {
         bytes32 balanceId = _getBalanceId(tokenType, token);
         // Reduce stored token balance.
-        _storedBalances[balanceId] -= amount;
+        uint256 storedBalance = _storedBalances[balanceId] - amount;
+        // Temporarily set to max as a reentrancy guard. An interesing attack
+        // could occur if we didn't do this where an attacker could `claim()` and
+        // reenter upon transfer (eg. in the `tokensToSend` hook of an ERC777) to
+        // `createERC20Distribution()`. Since the `balanceOf(address(this))`
+        // would not of been updated yet, the supply would be miscalculated and
+        // the attacker would create a distribution that essentially steals from
+        // the last distribution they were claiming from. Here, we prevent that
+        // by causing an arithmetic underflow with the supply calculation if
+        // this were to be attempted.
+        _storedBalances[balanceId] = type(uint256).max;
         if (tokenType == TokenType.Native) {
             recipient.transferEth(amount);
         } else {
             assert(tokenType == TokenType.Erc20);
             IERC20(token).compatTransfer(recipient, amount);
         }
+        _storedBalances[balanceId] = storedBalance;
     }
 
     function _getDistributionHash(DistributionInfo memory info)
         internal
         pure
-        returns (bytes15 hash)
+        returns (bytes32 hash)
     {
         assembly {
-            hash := and(
-                keccak256(info, 0xe0),
-                0xffffffffffffffffffffffffffffff0000000000000000000000000000000000
-            )
+            hash := keccak256(info, 0xe0)
         }
     }
 
