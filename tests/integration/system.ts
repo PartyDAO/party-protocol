@@ -56,6 +56,7 @@ export enum GlobalKeys {
     OpenSeaMinOrderDuration     = 19,
     OpenSeaMaxOrderDuration     = 20,
     DisablePartyActions         = 21,
+    RollingAuctionCrowdfundImpl = 22,
 }
 
 export enum ProposalType {

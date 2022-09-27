@@ -46,6 +46,8 @@ contract RollingNounsCrowdfundForkedTest is RollingAuctionCrowdfundTest {
                     initialDelegate: address(this),
                     gateKeeper: IGateKeeper(address(0)),
                     gateKeeperId: 0,
+                    onlyHostCanBid: false,
+                    allowedAuctionsMerkleRoot: bytes32(0),
                     governanceOpts: govOpts
                 })
             )
@@ -60,7 +62,7 @@ contract RollingNounsCrowdfundForkedTest is RollingAuctionCrowdfundTest {
         market.finalize(auctionId);
         (tokenId, , , , , ) = nounsAuctionHouse.auction();
         auctionId = tokenId;
-        crowdfund.queueNextAuction(govOpts, tokenId, auctionId);
+        crowdfund.setAllowedAuctions(govOpts, keccak256(abi.encodePacked(auctionId, tokenId)), 0);
     }
 
     function _endAuction() internal override {

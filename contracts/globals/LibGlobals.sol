@@ -25,4 +25,5 @@ library LibGlobals {
     uint256 internal constant GLOBAL_OS_MIN_ORDER_DURATION          = 19;
     uint256 internal constant GLOBAL_OS_MAX_ORDER_DURATION          = 20;
     uint256 internal constant GLOBAL_DISABLE_PARTY_ACTIONS          = 21;
+    uint256 internal constant GLOBAL_ROLLING_AUCTION_CF_IMPL        = 22;
 }

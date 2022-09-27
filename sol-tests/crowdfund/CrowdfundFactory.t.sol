@@ -20,6 +20,7 @@ contract CrowdfundFactoryTest is Test, TestUtils {
     CrowdfundFactory partyCrowdfundFactory = new CrowdfundFactory(globals);
     MockMarketWrapper market = new MockMarketWrapper();
     AuctionCrowdfund auctionCrowdfund = new AuctionCrowdfund(globals);
+    RollingAuctionCrowdfund rollingAuctionCrowdfund = new RollingAuctionCrowdfund(globals);
     BuyCrowdfund buyCrowdfund = new BuyCrowdfund(globals);
     CollectionBuyCrowdfund collectionBuyCrowdfund = new CollectionBuyCrowdfund(globals);
     AllowListGateKeeper allowListGateKeeper = new AllowListGateKeeper();
@@ -31,6 +32,7 @@ contract CrowdfundFactoryTest is Test, TestUtils {
         globals.setAddress(LibGlobals.GLOBAL_AUCTION_CF_IMPL, address(auctionCrowdfund));
         globals.setAddress(LibGlobals.GLOBAL_BUY_CF_IMPL, address(buyCrowdfund));
         globals.setAddress(LibGlobals.GLOBAL_COLLECTION_BUY_CF_IMPL, address(collectionBuyCrowdfund));
+        globals.setAddress(LibGlobals.GLOBAL_ROLLING_AUCTION_CF_IMPL, address(rollingAuctionCrowdfund));
     }
 
     function _hashFixedGovernanceOpts(Crowdfund.FixedGovernanceOpts memory opts)
@@ -180,6 +182,8 @@ contract CrowdfundFactoryTest is Test, TestUtils {
                 initialDelegate: _randomAddress(),
                 gateKeeper: gateKeeper,
                 gateKeeperId: gateKeeperId,
+                onlyHostCanBid: false,
+                allowedAuctionsMerkleRoot: _randomBytes32(),
                 governanceOpts: Crowdfund.FixedGovernanceOpts({
                     hosts: _toAddressArray(_randomAddress()),
                     voteDuration: randomUint40,
@@ -191,7 +195,7 @@ contract CrowdfundFactoryTest is Test, TestUtils {
             });
 
         vm.deal(address(this), randomUint40);
-        RollingAuctionCrowdfund inst =partyCrowdfundFactory
+        RollingAuctionCrowdfund inst = partyCrowdfundFactory
             .createRollingAuctionCrowdfund{ value: randomUint40 }(opts, createGateCallData);
 
         // Check that value are initialized to what we expect.

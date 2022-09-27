@@ -70,6 +70,8 @@ contract RollingAuctionCrowdfundTest is TestUtils, ERC721Receiver {
                     initialDelegate: address(this),
                     gateKeeper: IGateKeeper(address(0)),
                     gateKeeperId: 0,
+                    onlyHostCanBid: false,
+                    allowedAuctionsMerkleRoot: bytes32(0),
                     governanceOpts: govOpts
                 })
             )
@@ -80,9 +82,9 @@ contract RollingAuctionCrowdfundTest is TestUtils, ERC721Receiver {
         crowdfund.contribute{ value: 100 ether }(address(this), "");
     }
 
-    function test_finalizeLoss_moveOnToNextAuction() public onlyForkedIfSet {
+    function test_finalizeLoss_rollOverToNextAuction() public onlyForkedIfSet {
         // Bid on the auction
-        crowdfund.bid();
+        crowdfund.bid(govOpts, 0);
 
         _outbid();
 
@@ -93,53 +95,53 @@ contract RollingAuctionCrowdfundTest is TestUtils, ERC721Receiver {
         // Move on to next auction
         _expectEmit0();
         emit AuctionUpdated(tokenId, auctionId);
-        crowdfund.finalize(govOpts, tokenId, auctionId);
+        crowdfund.finalizeOrRollOver(govOpts, tokenId, auctionId, new bytes32[](0));
         assertEq(crowdfund.auctionId(), auctionId);
         assertEq(crowdfund.nftTokenId(), tokenId);
         assertEq(crowdfund.lastBid(), 0);
     }
 
-    function test_finalizeLoss_moveOnToNextAuction_multipleTimes() public onlyForkedIfSet {
-        for (uint256 i; i < 5; i++) test_finalizeLoss_moveOnToNextAuction();
+    function test_finalizeLoss_rollOverToNextAuction_multipleTimes() public onlyForkedIfSet {
+        for (uint256 i; i < 5; i++) test_finalizeLoss_rollOverToNextAuction();
     }
 
-    function test_finalizeLoss_moveOnToNextAuction_thenWin() public onlyForkedIfSet {
-        test_finalizeLoss_moveOnToNextAuction();
+    function test_finalizeLoss_rollOverToNextAuction_thenWin() public onlyForkedIfSet {
+        test_finalizeLoss_rollOverToNextAuction();
 
         // Bid on the new auction
-        crowdfund.bid();
+        crowdfund.bid(govOpts, 0);
 
         _endAuction();
 
         // Finalize and win new auction
         _expectEmit0();
         emit Won(crowdfund.lastBid(), Party(payable(address(partyFactory.mockParty()))));
-        Party party = crowdfund.finalize(govOpts, tokenId, auctionId);
+        Party party = crowdfund.finalizeOrRollOver(govOpts, tokenId, auctionId, new bytes32[](0));
         assertEq(address(nftContract.ownerOf(tokenId)), address(party));
         assertEq(address(crowdfund.party()), address(partyFactory.mockParty()));
     }
 
     function test_finalizeLoss_revertIfInvalidNextAuction() public onlyForkedIfSet {
         // Bid on the auction
-        crowdfund.bid();
+        crowdfund.bid(govOpts, 0);
 
         _outbid();
 
         _endAuction();
 
-        // Queue next auction to current auction.
-        crowdfund.queueNextAuction(govOpts, tokenId, auctionId);
+        // Set allowed next auction to current auction (should revert because invalid).
+        crowdfund.setAllowedAuctions(govOpts, keccak256(abi.encodePacked(auctionId, tokenId)), 0);
 
         // Attempt finalizing and setting next auction to the one that just ended
         vm.expectRevert(abi.encodeWithSelector(
             RollingAuctionCrowdfund.InvalidAuctionIdError.selector
         ));
-        crowdfund.finalize(govOpts, tokenId, auctionId);
+        crowdfund.finalizeOrRollOver(govOpts, tokenId, auctionId, new bytes32[](0));
     }
 
     function test_finalizeLoss_revertIfBadNextAuctionError() public onlyForkedIfSet {
         // Bid on the auction
-        crowdfund.bid();
+        crowdfund.bid(govOpts, 0);
 
         _outbid();
 
@@ -149,7 +151,7 @@ contract RollingAuctionCrowdfundTest is TestUtils, ERC721Receiver {
         vm.expectRevert(abi.encodeWithSelector(
             RollingAuctionCrowdfund.BadNextAuctionError.selector
         ));
-        crowdfund.finalize(govOpts, _randomUint256(), _randomUint256());
+        crowdfund.finalizeOrRollOver(govOpts, _randomUint256(), _randomUint256(), new bytes32[](0));
     }
 
     function test_finalizeLoss_expiredWithoutNFT() public onlyForkedIfSet {
@@ -160,27 +162,28 @@ contract RollingAuctionCrowdfundTest is TestUtils, ERC721Receiver {
         _expectEmit0();
         emit Lost();
         vm.prank(_randomAddress());
-        crowdfund.finalize(govOpts, tokenId, auctionId);
+        crowdfund.finalizeOrRollOver(govOpts, tokenId, auctionId, new bytes32[](0));
         assertEq(address(crowdfund.party()), address(0));
     }
 
     function test_finalizeWin_ignoresAuctionIdAndTokenId() public onlyForkedIfSet {
         // Bid on the auction
-        crowdfund.bid();
+        crowdfund.bid(govOpts, 0);
 
         _endAuction();
 
         // Finalize and win auction (with bad `auctionId` and `tokenId`)
         _expectEmit0();
         emit Won(crowdfund.lastBid(), Party(payable(address(partyFactory.mockParty()))));
-        Party party = crowdfund.finalize(govOpts, _randomUint256(), _randomUint256());
+        Party party =
+            crowdfund.finalizeOrRollOver(govOpts, _randomUint256(), _randomUint256(), new bytes32[](0));
         assertEq(address(nftContract.ownerOf(tokenId)), address(party));
         assertEq(address(crowdfund.party()), address(partyFactory.mockParty()));
     }
 
     function test_finalizeWin_expiredWithNFT() public onlyForkedIfSet {
         // Bid on the auction
-        crowdfund.bid();
+        crowdfund.bid(govOpts, 0);
 
         _endAuction();
 
@@ -189,19 +192,19 @@ contract RollingAuctionCrowdfundTest is TestUtils, ERC721Receiver {
         _expectEmit0();
         emit Won(crowdfund.lastBid(), Party(payable(address(partyFactory.mockParty()))));
         vm.prank(_randomAddress());
-        crowdfund.finalize(govOpts, tokenId, auctionId);
+        crowdfund.finalizeOrRollOver(govOpts, tokenId, auctionId, new bytes32[](0));
         assertEq(address(crowdfund.party()), address(partyFactory.mockParty()));
     }
 
-    function test_queueNextAuction_onlyHost() public onlyForkedIfSet {
+    function test_setAllowedAuctions_onlyHost() public onlyForkedIfSet {
         vm.prank(_randomAddress());
-        vm.expectRevert(RollingAuctionCrowdfund.OnlyPartyHostError.selector);
-        crowdfund.queueNextAuction(govOpts, auctionId, tokenId);
+        vm.expectRevert(Crowdfund.OnlyPartyHostError.selector);
+        crowdfund.setAllowedAuctions(govOpts, keccak256(abi.encodePacked(auctionId, tokenId)), 0);
     }
 
     function _setNextAuction() internal virtual {
         (auctionId, tokenId) = MockMarketWrapper(address(market)).createAuction(1 ether);
-        crowdfund.queueNextAuction(govOpts, tokenId, auctionId);
+        crowdfund.setAllowedAuctions(govOpts, keccak256(abi.encodePacked(auctionId, tokenId)), 0);
     }
 
     function _endAuction() internal virtual {

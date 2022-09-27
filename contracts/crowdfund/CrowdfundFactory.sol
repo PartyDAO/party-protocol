@@ -101,7 +101,7 @@ contract CrowdfundFactory {
             createGateCallData
         );
         inst = RollingAuctionCrowdfund(payable(new Proxy{ value: msg.value }(
-            _GLOBALS.getImplementation(LibGlobals.GLOBAL_AUCTION_CF_IMPL),
+            _GLOBALS.getImplementation(LibGlobals.GLOBAL_ROLLING_AUCTION_CF_IMPL),
             abi.encodeCall(RollingAuctionCrowdfund.initialize, (opts))
         )));
         emit RollingAuctionCrowdfundCreated(inst, opts);

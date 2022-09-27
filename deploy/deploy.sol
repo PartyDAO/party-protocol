@@ -34,6 +34,7 @@ contract Deploy {
     Globals public globals;
     IZoraAuctionHouse public zoraAuctionHouse;
     AuctionCrowdfund public auctionCrowdfundImpl;
+    RollingAuctionCrowdfund public rollingAuctionCrowdfundImpl;
     BuyCrowdfund public buyCrowdfundImpl;
     CollectionBuyCrowdfund public collectionBuyCrowdfundImpl;
     CrowdfundFactory public crowdfundFactory;
@@ -316,6 +317,29 @@ contract Deploy {
             address(collectionBuyCrowdfundImpl)
         );
 
+        // DEPLOY_ROLLING_AUCTION_CF_IMPLEMENTATION
+        console.log("");
+        console.log("### RollingAuctionCrowdfund crowdfund implementation");
+        console.log("  Deploying - RollingAuctionCrowdfund crowdfund implementation");
+        rollingAuctionCrowdfundImpl = new RollingAuctionCrowdfund(globals);
+        console.log(
+            "  Deployed - RollingAuctionCrowdfund crowdfund implementation",
+            address(rollingAuctionCrowdfundImpl)
+        );
+
+        console.log("");
+        console.log(
+            "  Globals - setting RollingAuctionCrowdfund crowdfund implementation address"
+        );
+        globals.setAddress(
+            LibGlobals.GLOBAL_ROLLING_AUCTION_CF_IMPL,
+            address(rollingAuctionCrowdfundImpl)
+        );
+        console.log(
+            "  Globals - successfully set RollingAuctionCrowdfund crowdfund implementation address",
+            address(rollingAuctionCrowdfundImpl)
+        );
+
         // DEPLOY_PARTY_CROWDFUND_FACTORY
         console.log("");
         console.log("### CrowdfundFactory");
@@ -453,7 +477,7 @@ contract DeployScript is Script, Deploy {
         Deploy.deploy(deployConstants);
         vm.stopBroadcast();
 
-        AddressMapping[] memory addressMapping = new AddressMapping[](18);
+        AddressMapping[] memory addressMapping = new AddressMapping[](19);
         addressMapping[0] = AddressMapping("globals", address(globals));
         addressMapping[1] = AddressMapping("tokenDistributor", address(tokenDistributor));
         addressMapping[2] = AddressMapping("seaportExchange", address(seaport));
@@ -461,17 +485,18 @@ contract DeployScript is Script, Deploy {
         addressMapping[4] = AddressMapping("partyImpl", address(partyImpl));
         addressMapping[5] = AddressMapping("partyFactory", address(partyFactory));
         addressMapping[6] = AddressMapping("auctionCrowdfundImpl", address(auctionCrowdfundImpl));
-        addressMapping[7] = AddressMapping("buyCrowdfundImpl", address(buyCrowdfundImpl));
-        addressMapping[8] = AddressMapping("collectionBuyCrowdfundImpl", address(collectionBuyCrowdfundImpl));
-        addressMapping[9] = AddressMapping("partyCrowdfundFactory", address(crowdfundFactory));
-        addressMapping[10] = AddressMapping("partyCrowdfundNFTRenderer", address(partyCrowdfundNFTRenderer));
-        addressMapping[11] = AddressMapping("partyGovernanceNFTRenderer", address(partyGovernanceNFTRenderer));
-        addressMapping[12] = AddressMapping("partyHelpers", address(partyHelpers));
-        addressMapping[13] = AddressMapping("allowListGateKeeper", address(allowListGateKeeper));
-        addressMapping[14] = AddressMapping("tokenGateKeeper", address(tokenGateKeeper));
-        addressMapping[15] = AddressMapping("foundationMarketWrapper", address(foundationMarketWrapper));
-        addressMapping[16] = AddressMapping("nounsMarketWrapper", address(nounsMarketWrapper));
-        addressMapping[17] = AddressMapping("zoraMarketWrapper", address(zoraMarketWrapper));
+        addressMapping[7] = AddressMapping("rollingAuctionCrowdfundImpl", address(rollingAuctionCrowdfundImpl));
+        addressMapping[8] = AddressMapping("buyCrowdfundImpl", address(buyCrowdfundImpl));
+        addressMapping[9] = AddressMapping("collectionBuyCrowdfundImpl", address(collectionBuyCrowdfundImpl));
+        addressMapping[10] = AddressMapping("partyCrowdfundFactory", address(crowdfundFactory));
+        addressMapping[11] = AddressMapping("partyCrowdfundNFTRenderer", address(partyCrowdfundNFTRenderer));
+        addressMapping[12] = AddressMapping("partyGovernanceNFTRenderer", address(partyGovernanceNFTRenderer));
+        addressMapping[13] = AddressMapping("partyHelpers", address(partyHelpers));
+        addressMapping[14] = AddressMapping("allowListGateKeeper", address(allowListGateKeeper));
+        addressMapping[15] = AddressMapping("tokenGateKeeper", address(tokenGateKeeper));
+        addressMapping[16] = AddressMapping("foundationMarketWrapper", address(foundationMarketWrapper));
+        addressMapping[17] = AddressMapping("nounsMarketWrapper", address(nounsMarketWrapper));
+        addressMapping[18] = AddressMapping("zoraMarketWrapper", address(zoraMarketWrapper));
 
         console.log("");
         console.log("### Deployed addresses");
