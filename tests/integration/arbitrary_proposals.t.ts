@@ -30,8 +30,6 @@ describe('Arbitrary proposals integrations test', () => {
         sys = await System.createAsync({
             worker,
             daoMultisig: multisig,
-            admins: [admin],
-            daoSplit: 0.015,
             forcedZoraAuctionTimeout: ONE_DAY_SECONDS,
             forcedZoraAuctionDuration: ONE_DAY_SECONDS / 2,
         });
@@ -76,6 +74,8 @@ describe('Arbitrary proposals integrations test', () => {
             now() +  7 * ONE_DAY_SECONDS,
             now() +  30 * ONE_DAY_SECONDS
         );
+        // Skip because `accept()` will query voting power at `proposedTime - 1`
+        await increaseTime(provider, 1);
         // Propose.
         const proposalId = await voters[0].proposeAsync(proposal);
         expect(await party.getProposalStatusAsync(proposalId)).to.eq(ProposalStatus.Voting);

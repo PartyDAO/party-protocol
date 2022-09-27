@@ -25,7 +25,7 @@ contract ZoraCrowdfundForkedTest is TestUtils, ERC721Receiver {
     MockPartyFactory partyFactory = new MockPartyFactory();
     MockParty party = partyFactory.mockParty();
     AuctionCrowdfund pbImpl = new AuctionCrowdfund(globals);
-    AuctionCrowdfund pb;
+    AuctionCrowdfund cf;
 
     Crowdfund.FixedGovernanceOpts defaultGovOpts;
 
@@ -58,7 +58,7 @@ contract ZoraCrowdfundForkedTest is TestUtils, ERC721Receiver {
         );
 
         // Create a AuctionCrowdfund crowdfund
-        pb = AuctionCrowdfund(
+        cf = AuctionCrowdfund(
             payable(
                 address(
                     new Proxy(
@@ -80,6 +80,7 @@ contract ZoraCrowdfundForkedTest is TestUtils, ERC721Receiver {
                                 initialDelegate: address(0),
                                 gateKeeper: IGateKeeper(address(0)),
                                 gateKeeperId: 0,
+                                onlyHostCanBid: false,
                                 governanceOpts: defaultGovOpts
                             })
                         )
@@ -90,19 +91,19 @@ contract ZoraCrowdfundForkedTest is TestUtils, ERC721Receiver {
 
         // Contribute ETH used to bid.
         vm.deal(address(this), 1000 ether);
-        pb.contribute{value: 1000 ether}(address(this), "");
+        cf.contribute{value: 1000 ether}(address(this), "");
     }
 
     // Test creating a crowdfund party around a Zora auction + winning the auction
     function testForked_WinningZoraAuction() external onlyForked {
         // Bid on current Zora auction.
-        pb.bid();
+        cf.bid(defaultGovOpts, 0);
 
         // Check that we are highest bidder.
-        uint256 lastBid = pb.lastBid();
+        uint256 lastBid = cf.lastBid();
         IZoraAuctionHouse.Auction memory auction = zora.auctions(auctionId);
         assertEq(lastBid, auction.amount);
-        assertEq(address(payable(pb)), auction.bidder);
+        assertEq(address(payable(cf)), auction.bidder);
 
         // Wait for the auction to end and check that we won.
         skip(1 days);
@@ -110,21 +111,21 @@ contract ZoraCrowdfundForkedTest is TestUtils, ERC721Receiver {
         // Finalize the crowdfund.
         _expectEmit0();
         emit Won(lastBid, Party(payable(address(party))));
-        pb.finalize(defaultGovOpts);
+        cf.finalize(defaultGovOpts);
         assertEq(nftContract.ownerOf(tokenId), address(party));
-        assertEq(address(pb.party()), address(party));
+        assertEq(address(cf.party()), address(party));
         assertTrue(zoraMarket.isFinalized(tokenId));
     }
 
     function testForked_WinningZoraAuction_finalizeBefore() external onlyForked {
         // Bid on current Zora auction.
-        pb.bid();
+        cf.bid(defaultGovOpts, 0);
 
         // Check that we are highest bidder.
-        uint256 lastBid = pb.lastBid();
+        uint256 lastBid = cf.lastBid();
         IZoraAuctionHouse.Auction memory auction = zora.auctions(auctionId);
         assertEq(lastBid, auction.amount);
-        assertEq(address(payable(pb)), auction.bidder);
+        assertEq(address(payable(cf)), auction.bidder);
 
         // Wait for the auction to end and check that we won.
         skip(1 days);
@@ -135,16 +136,16 @@ contract ZoraCrowdfundForkedTest is TestUtils, ERC721Receiver {
         // Finalize the crowdfund.
         _expectEmit0();
         emit Won(lastBid, Party(payable(address(party))));
-        pb.finalize(defaultGovOpts);
+        cf.finalize(defaultGovOpts);
         assertEq(nftContract.ownerOf(tokenId), address(party));
-        assertEq(address(pb.party()), address(party));
+        assertEq(address(cf.party()), address(party));
         assertTrue(zoraMarket.isFinalized(tokenId));
     }
 
     // Test creating a crowdfund party around a Zora auction + losing the auction
     function testForked_LosingZoraAuction() external onlyForked {
         // Bid on current Zora auction.
-        pb.bid();
+        cf.bid(defaultGovOpts, 0);
 
         // We outbid our own party (sneaky!)
         vm.deal(address(this), 1001 ether);
@@ -165,14 +166,14 @@ contract ZoraCrowdfundForkedTest is TestUtils, ERC721Receiver {
         // Finalize the crowdfund.
         _expectEmit0();
         emit Lost();
-        pb.finalize(defaultGovOpts);
-        assertEq(address(pb.party()), address(0));
+        cf.finalize(defaultGovOpts);
+        assertEq(address(cf.party()), address(0));
         assertTrue(zoraMarket.isFinalized(tokenId));
     }
 
     function testForked_LosingZoraAuction_finalizeBefore() external onlyForked {
         // Bid on current Zora auction.
-        pb.bid();
+        cf.bid(defaultGovOpts, 0);
 
         // We outbid our own party (sneaky!)
         vm.deal(address(this), 1001 ether);
@@ -196,8 +197,8 @@ contract ZoraCrowdfundForkedTest is TestUtils, ERC721Receiver {
         // Finalize the crowdfund.
         _expectEmit0();
         emit Lost();
-        pb.finalize(defaultGovOpts);
-        assertEq(address(pb.party()), address(0));
+        cf.finalize(defaultGovOpts);
+        assertEq(address(cf.party()), address(0));
         assertTrue(zoraMarket.isFinalized(tokenId));
     }
 }

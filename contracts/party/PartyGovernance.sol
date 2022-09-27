@@ -1,5 +1,6 @@
-// SPDX-License-Identifier: Apache-2.0
-pragma solidity ^0.8;
+// SPDX-License-Identifier: Beta Software
+// http://ipfs.io/ipfs/QmbGX2MFCaMAsMNMugRFND6DtYygRkwkvrqEyTKhTdBLo5
+pragma solidity 0.8.17;
 
 import "../distribution/ITokenDistributorParty.sol";
 import "../distribution/ITokenDistributor.sol";
@@ -159,7 +160,6 @@ abstract contract PartyGovernance is
         uint256 weight
     );
 
-    event PartyInitialized(GovernanceOpts opts, IERC721[] preciousTokens, uint256[] preciousTokenIds);
     event ProposalPassed(uint256 indexed proposalId);
     event ProposalVetoed(uint256 indexed proposalId, address host);
     event ProposalExecuted(uint256 indexed proposalId, address executor, bytes nextProgressData);
@@ -181,6 +181,7 @@ abstract contract PartyGovernance is
     error OnlyPartyDaoError(address notDao, address partyDao);
     error OnlyPartyDaoOrHostError(address notDao, address partyDao);
     error OnlyWhenEmergencyActionsAllowedError();
+    error OnlyWhenEnabledError();
     error AlreadyVotedError(address voter);
     error InvalidNewHostError();
     error ProposalCannotBeCancelledYetError(uint40 currentTime, uint40 cancelTime);
@@ -234,6 +235,21 @@ abstract contract PartyGovernance is
         _;
     }
 
+    // Caller must own a governance NFT at the current time or be the `Party` instance.
+    modifier onlyActiveMemberOrSelf() {
+        // Ignore if the party is calling functions on itself, like with
+        // `FractionalizeProposal` calling `distribute()`.
+        if (msg.sender != address(this)) {
+            VotingPowerSnapshot memory snap =
+                _getLastVotingPowerSnapshotForVoter(msg.sender);
+            // Must have either delegated voting power or intrinsic voting power.
+            if (snap.intrinsicVotingPower == 0 && snap.delegatedVotingPower == 0) {
+                revert OnlyActiveMemberError();
+            }
+        }
+        _;
+    }
+
     // Only the party DAO multisig can call.
     modifier onlyPartyDao() {
         {
@@ -258,6 +274,13 @@ abstract contract PartyGovernance is
     modifier onlyWhenEmergencyExecuteAllowed() {
         if (emergencyExecuteDisabled) {
             revert OnlyWhenEmergencyActionsAllowedError();
+        }
+        _;
+    }
+
+    modifier onlyWhenNotGloballyDisabled() {
+        if (_GLOBALS.getBool(LibGlobals.GLOBAL_DISABLE_PARTY_ACTIONS)) {
+            revert OnlyWhenEnabledError();
         }
         _;
     }
@@ -306,7 +329,6 @@ abstract contract PartyGovernance is
         for (uint256 i=0; i < opts.hosts.length; ++i) {
             isHost[opts.hosts[i]] = true;
         }
-        emit PartyInitialized(opts, preciousTokens, preciousTokenIds);
     }
 
     /// @dev Forward all unknown read-only calls to the proposal execution engine.
@@ -475,6 +497,7 @@ abstract contract PartyGovernance is
     ///      propagated to the distribution. Party members are entitled to a
     ///      share of the distribution's tokens proportionate to their relative
     ///      voting power in this party (less the fee).
+    /// @dev Allow this to be called by the party itself for `FractionalizeProposal`.
     /// @param tokenType The type of token to distribute.
     /// @param token The address of the token to distribute.
     /// @param tokenId The ID of the token to distribute. Currently unused but
@@ -486,7 +509,8 @@ abstract contract PartyGovernance is
         uint256 tokenId
     )
         external
-        onlyActiveMember
+        onlyActiveMemberOrSelf
+        onlyWhenNotGloballyDisabled
         onlyDelegateCall
         returns (ITokenDistributor.DistributionInfo memory distInfo)
     {
@@ -591,7 +615,7 @@ abstract contract PartyGovernance is
         info.hasVoted[msg.sender] = true;
 
         // Increase the total votes that have been cast on this proposal.
-        uint96 votingPower = getVotingPowerAt(msg.sender, values.proposedTime, snapIndex);
+        uint96 votingPower = getVotingPowerAt(msg.sender, values.proposedTime - 1, snapIndex);
         values.votes += votingPower;
         info.values = values;
         emit ProposalAccepted(proposalId, msg.sender, votingPower);
@@ -661,6 +685,7 @@ abstract contract PartyGovernance is
         external
         payable
         onlyActiveMember
+        onlyWhenNotGloballyDisabled
         onlyDelegateCall
     {
         // Get information about the proposal.
@@ -779,7 +804,6 @@ abstract contract PartyGovernance is
     /// @param targetAddress The contract to call.
     /// @param targetCallData The data to pass to the contract.
     /// @param amountEth The amount of ETH to send to the contract.
-    /// @param success Whether the call succeeded.
     function emergencyExecute(
         address targetAddress,
         bytes calldata targetCallData,
@@ -790,9 +814,11 @@ abstract contract PartyGovernance is
         onlyPartyDao
         onlyWhenEmergencyExecuteAllowed
         onlyDelegateCall
-        returns (bool success)
     {
-        (success, ) = targetAddress.call{value: amountEth}(targetCallData);
+        (bool success, bytes memory res) = targetAddress.call{value: amountEth}(targetCallData);
+        if (!success) {
+            res.rawRevert();
+        }
     }
 
     /// @notice Revoke the DAO's ability to call emergencyExecute().

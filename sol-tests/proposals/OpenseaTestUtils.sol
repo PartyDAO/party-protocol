@@ -69,10 +69,11 @@ contract OpenseaTestUtils is Test {
         uint256[] memory fees,
         address payable[] memory feeRecipients
     )
-        private
+        internal
         pure
         returns (IOpenseaExchange.Order memory order)
     {
+        order.parameters.salt = uint256(bytes32(bytes4(keccak256("partybid"))));
         order.parameters.orderType = params.zone == address(0)
             ? IOpenseaExchange.OrderType.FULL_OPEN
             : IOpenseaExchange.OrderType.FULL_RESTRICTED;
@@ -104,5 +105,17 @@ contract OpenseaTestUtils is Test {
         order.parameters.totalOriginalConsiderationItems = 1 + fees.length;
         order.parameters.conduitKey = params.conduitKey;
         order.parameters.zone = params.zone;
+    }
+
+    function _createFullOpenseaOrderParams(BuyOpenseaListingParams memory params)
+        internal
+        pure
+        returns (IOpenseaExchange.Order memory order)
+    {
+        return _createFullOpenseaOrderParams(
+            params,
+            new uint256[](0),
+            new address payable[](0)
+        );
     }
 }

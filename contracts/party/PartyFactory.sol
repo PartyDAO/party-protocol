@@ -1,5 +1,6 @@
-// SPDX-License-Identifier: Apache-2.0
-pragma solidity ^0.8;
+// SPDX-License-Identifier: Beta Software
+// http://ipfs.io/ipfs/QmbGX2MFCaMAsMNMugRFND6DtYygRkwkvrqEyTKhTdBLo5
+pragma solidity 0.8.17;
 
 import "../globals/IGlobals.sol";
 import "../globals/LibGlobals.sol";
@@ -49,6 +50,6 @@ contract PartyFactory is IPartyFactory {
                 abi.encodeCall(Party.initialize, (initData))
             )
         ));
-        emit PartyCreated(party, msg.sender);
+        emit PartyCreated(party, opts, preciousTokens, preciousTokenIds, msg.sender);
     }
 }

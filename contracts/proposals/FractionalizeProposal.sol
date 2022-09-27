@@ -1,5 +1,6 @@
-// SPDX-License-Identifier: Apache-2.0
-pragma solidity ^0.8;
+// SPDX-License-Identifier: Beta Software
+// http://ipfs.io/ipfs/QmbGX2MFCaMAsMNMugRFND6DtYygRkwkvrqEyTKhTdBLo5
+pragma solidity 0.8.17;
 
 import "../tokens/IERC721.sol";
 import "../party/PartyGovernance.sol";
@@ -73,6 +74,12 @@ contract FractionalizeProposal {
             vaultId,
             vault,
             data.listPrice
+        );
+        // Create distribution for fractional tokens for party.
+        PartyGovernance(address(this)).distribute(
+            ITokenDistributor.TokenType.Erc20,
+            address(vault),
+            vaultId
         );
         // Nothing left to do.
         return "";

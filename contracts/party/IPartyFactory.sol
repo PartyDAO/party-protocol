@@ -1,5 +1,6 @@
-// SPDX-License-Identifier: Apache-2.0
-pragma solidity ^0.8;
+// SPDX-License-Identifier: Beta Software
+// http://ipfs.io/ipfs/QmbGX2MFCaMAsMNMugRFND6DtYygRkwkvrqEyTKhTdBLo5
+pragma solidity 0.8.17;
 
 import "../globals/IGlobals.sol";
 import "../tokens/IERC721.sol";
@@ -8,7 +9,13 @@ import "./Party.sol";
 
 // Creates generic Party instances.
 interface IPartyFactory {
-    event PartyCreated(Party party, address creator);
+    event PartyCreated(
+        Party party,
+        Party.PartyOptions opts,
+        IERC721[] preciousTokens,
+        uint256[] preciousTokenIds,
+        address creator
+    );
 
     /// @notice Deploy a new party instance. Afterwards, governance NFTs can be minted
     ///         for party members using the `mint()` function from the newly

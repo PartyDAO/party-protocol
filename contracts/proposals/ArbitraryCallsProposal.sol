@@ -1,9 +1,13 @@
-// SPDX-License-Identifier: Apache-2.0
-pragma solidity ^0.8;
+// SPDX-License-Identifier: Beta Software
+// http://ipfs.io/ipfs/QmbGX2MFCaMAsMNMugRFND6DtYygRkwkvrqEyTKhTdBLo5
+pragma solidity 0.8.17;
 
 import "../tokens/IERC721.sol";
 import "../tokens/IERC721Receiver.sol";
+import "../tokens/ERC1155Receiver.sol";
 import "../utils/LibSafeERC721.sol";
+import "../utils/LibAddress.sol";
+import "./vendor/IOpenseaExchange.sol";
 
 import "./LibProposal.sol";
 import "./IProposalExecutionEngine.sol";
@@ -12,6 +16,7 @@ import "./IProposalExecutionEngine.sol";
 // This contract will be delegatecall'ed into by `Party` proxy instances.
 contract ArbitraryCallsProposal {
     using LibSafeERC721 for IERC721;
+    using LibAddress for address payable;
 
     struct ArbitraryCall {
         // The call target.
@@ -85,6 +90,10 @@ contract ArbitraryCallsProposal {
                     }
                 }
             }
+        }
+        // Refund leftover ETH.
+        if (ethAvailable > 0) {
+            payable(msg.sender).transferEth(ethAvailable);
         }
         // No next step, so no progressData.
         return '';
@@ -190,10 +199,18 @@ contract ArbitraryCallsProposal {
                     }
                 }
             }
-            // Can never call `onERC721Received()` on any target.
-            if (selector == IERC721Receiver.onERC721Received.selector) {
+            // Can never call receive hooks on any target.
+            if (
+                selector == IERC721Receiver.onERC721Received.selector ||
+                selector == ERC1155TokenReceiverBase.onERC1155Received.selector ||
+                selector == ERC1155TokenReceiverBase.onERC1155BatchReceived.selector
+            ) {
                return false;
-           }
+            }
+            // Disallow calling `validate()` on Seaport.
+            if (selector == IOpenseaExchange.validate.selector) {
+                return false;
+            }
         }
         // All other calls are allowed.
         return true;

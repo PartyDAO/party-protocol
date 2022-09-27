@@ -7,6 +7,7 @@ import "../../contracts/crowdfund/BuyCrowdfund.sol";
 import "../../contracts/globals/Globals.sol";
 import "../../contracts/globals/LibGlobals.sol";
 import "../../contracts/utils/Proxy.sol";
+import "../../contracts/gatekeepers/AllowListGateKeeper.sol";
 
 import "../DummyERC721.sol";
 import "../TestUtils.sol";
@@ -31,6 +32,7 @@ contract BuyCrowdfundTest is Test, TestUtils {
     );
 
     event Contributed(address contributor, uint256 amount, address delegate, uint256 previousTotalContributions);
+    event Lost();
 
     string defaultName = 'BuyCrowdfund';
     string defaultSymbol = 'PBID';
@@ -60,12 +62,17 @@ contract BuyCrowdfundTest is Test, TestUtils {
 
     function _createCrowdfund(
         uint256 tokenId,
-        uint96 initialContribution
+        uint96 initialContribution,
+        bool onlyHostCanBuy,
+        IGateKeeper gateKeeper,
+        bytes12 gateKeeperId,
+        address[] memory hosts
     )
         private
-        returns (BuyCrowdfund pb)
+        returns (BuyCrowdfund cf)
     {
-        pb = BuyCrowdfund(payable(address(new Proxy{ value: initialContribution }(
+        defaultGovernanceOpts.hosts = hosts;
+        cf = BuyCrowdfund(payable(address(new Proxy{ value: initialContribution }(
             buyCrowdfundImpl,
             abi.encodeCall(
                 BuyCrowdfund.initialize,
@@ -80,12 +87,30 @@ contract BuyCrowdfundTest is Test, TestUtils {
                     splitBps: defaultSplitBps,
                     initialContributor: address(this),
                     initialDelegate: defaultInitialDelegate,
-                    gateKeeper: defaultGateKeeper,
-                    gateKeeperId: defaultGateKeeperId,
+                    gateKeeper: gateKeeper,
+                    gateKeeperId: gateKeeperId,
+                    onlyHostCanBuy: onlyHostCanBuy,
                     governanceOpts: defaultGovernanceOpts
                 })
             )
         ))));
+    }
+
+    function _createCrowdfund(
+        uint256 tokenId,
+        uint96 initialContribution
+    )
+        private
+        returns (BuyCrowdfund cf)
+    {
+        return _createCrowdfund(
+            tokenId,
+            initialContribution,
+            false,
+            defaultGateKeeper,
+            defaultGateKeeperId,
+            defaultGovernanceOpts.hosts
+        );
     }
 
     function _createExpectedPartyOptions(uint256 finalPrice)
@@ -111,39 +136,40 @@ contract BuyCrowdfundTest is Test, TestUtils {
     function testHappyPath() public {
         uint256 tokenId = erc721Vault.mint();
         // Create a BuyCrowdfund instance.
-        BuyCrowdfund pb = _createCrowdfund(tokenId, 0);
+        BuyCrowdfund cf = _createCrowdfund(tokenId, 0);
         // Contribute and delegate.
         address payable contributor = _randomAddress();
         address delegate = _randomAddress();
         vm.deal(contributor, 1e18);
         vm.prank(contributor);
-        pb.contribute{ value: contributor.balance }(delegate, "");
+        cf.contribute{ value: contributor.balance }(delegate, "");
         // Buy the token.
         vm.expectEmit(false, false, false, true);
         emit MockPartyFactoryCreateParty(
-            address(pb),
-            address(pb),
+            address(cf),
+            address(cf),
             _createExpectedPartyOptions(0.5e18),
             _toERC721Array(erc721Vault.token()),
             _toUint256Array(tokenId)
         );
-        Party party_ = pb.buy(
+        Party party_ = cf.buy(
             payable(address(erc721Vault)),
             0.5e18,
             abi.encodeCall(erc721Vault.claim, (tokenId)),
-            defaultGovernanceOpts
+            defaultGovernanceOpts,
+            0
         );
         assertEq(address(party), address(party_));
         // Burn contributor's NFT, mock minting governance tokens and returning
         // unused contribution.
         vm.expectEmit(false, false, false, true);
         emit MockMint(
-            address(pb),
+            address(cf),
             contributor,
             0.5e18,
             delegate
         );
-        pb.burn(contributor);
+        cf.burn(contributor);
         assertEq(contributor.balance, 0.5e18);
     }
 
@@ -151,13 +177,13 @@ contract BuyCrowdfundTest is Test, TestUtils {
     function testBuyDoesNotTransferToken() public {
         uint256 tokenId = erc721Vault.mint();
         // Create a BuyCrowdfund instance.
-        BuyCrowdfund pb = _createCrowdfund(tokenId, 0);
+        BuyCrowdfund cf = _createCrowdfund(tokenId, 0);
         // Contribute and delegate.
         address payable contributor = _randomAddress();
         address delegate = _randomAddress();
         vm.deal(contributor, 1e18);
         vm.prank(contributor);
-        pb.contribute{ value: contributor.balance }(delegate, "");
+        cf.contribute{ value: contributor.balance }(delegate, "");
         // Pretend to buy the token.
         vm.expectRevert(
             abi.encodeWithSelector(
@@ -166,21 +192,278 @@ contract BuyCrowdfundTest is Test, TestUtils {
                 tokenId
             )
         );
-        pb.buy(
+        cf.buy(
             _randomAddress(), // Call random EOA, which will succeed but do nothing
             0.5e18,
             "",
-            defaultGovernanceOpts
+            defaultGovernanceOpts,
+            0
         );
-        assertTrue(pb.getCrowdfundLifecycle() == Crowdfund.CrowdfundLifecycle.Active);
+        assertTrue(cf.getCrowdfundLifecycle() == Crowdfund.CrowdfundLifecycle.Active);
+    }
+
+    function testOnlyHostCanBuy() public {
+        // Create a BuyCrowdfund instance with `onlyHost` enabled.
+        address host = _randomAddress();
+        address contributor = _randomAddress();
+
+        BuyCrowdfund cf = _createCrowdfund(
+            0,
+            0,
+            true,
+            IGateKeeper(address(0)),
+            0,
+            _toAddressArray(host)
+        );
+
+        assertEq(cf.onlyHostCanBuy(), true);
+
+        // Contributor contributes.
+        vm.deal(contributor, 1e18);
+        vm.prank(contributor);
+        cf.contribute{ value: contributor.balance }(contributor, abi.encode(new bytes32[](0)));
+
+        // Buy the token and expect revert because we are not a host.
+        vm.expectRevert(Crowdfund.OnlyPartyHostError.selector);
+        cf.buy(payable(address(0)), 0, "", defaultGovernanceOpts, 0);
+
+        // Now as the host, but this will fail with another error because
+        // we are trying to call the CF itself in buy().
+        vm.prank(host);
+        vm.expectRevert(abi.encodeWithSelector(
+            BuyCrowdfundBase.InvalidCallTargetError.selector,
+            address(cf)
+        ));
+        cf.buy(payable(address(cf)), 0, "", defaultGovernanceOpts, 0);
+
+        // Buy as a contributor, but this will fail because only the host can
+        // call buy().
+        vm.prank(contributor);
+        vm.expectRevert(Crowdfund.OnlyPartyHostError.selector);
+        cf.buy(payable(address(cf)), 0, "", defaultGovernanceOpts, 0);
+    }
+
+    function testOnlyHostCanBuy_CannotFakeGovernanceOpts() public {
+        // Create a BuyCrowdfund instance with `onlyHost` enabled.
+        address host = _randomAddress();
+
+        BuyCrowdfund cf = _createCrowdfund(
+            0,
+            0,
+            true,
+            IGateKeeper(address(0)),
+            0,
+            _toAddressArray(host)
+        );
+
+        // Buy as the host, but pass in wrong governanceOpts.
+        vm.prank(host);
+        vm.expectRevert(Crowdfund.InvalidGovernanceOptionsError.selector);
+        defaultGovernanceOpts.voteDuration += 1;
+        cf.buy(payable(address(cf)), 0, "", defaultGovernanceOpts, 0);
+    }
+
+    function testOnlyContributorCanBuy() public {
+        address host = _randomAddress();
+        address contributor = _randomAddress();
+
+        // Create a BuyCrowdfund instance with a gatekeeper enabled.
+        AllowListGateKeeper gateKeeper = new AllowListGateKeeper();
+        bytes32 contributorHash = keccak256(abi.encodePacked(contributor));
+        bytes12 gateKeeperId = gateKeeper.createGate(contributorHash);
+        BuyCrowdfund cf = _createCrowdfund(
+            0,
+            0,
+            false,
+            gateKeeper,
+            gateKeeperId,
+            _toAddressArray(host)
+        );
+
+        // Contributor contributes.
+        vm.deal(contributor, 1e18);
+        vm.prank(contributor);
+        cf.contribute{ value: contributor.balance }(contributor, abi.encode(new bytes32[](0)));
+
+        // Buy the token, expect revert because we are not a contributor or host.
+        vm.expectRevert(Crowdfund.OnlyContributorError.selector);
+        cf.buy(payable(address(0)), 0, "", defaultGovernanceOpts, 0);
+
+        // Now as the host, but this will fail because the host is not a contributor.
+        vm.prank(host);
+        vm.expectRevert(Crowdfund.OnlyContributorError.selector);
+        cf.buy(payable(address(cf)), 0, "", defaultGovernanceOpts, 0);
+
+        // Buy as a contributor, but this will fail with another error because
+        // we are trying to call the CF itself in buy().
+        vm.prank(contributor);
+        vm.expectRevert(abi.encodeWithSelector(
+            BuyCrowdfundBase.InvalidCallTargetError.selector,
+            address(cf)
+        ));
+        cf.buy(payable(address(cf)), 0, "", defaultGovernanceOpts, 0);
+    }
+
+    function testOnlyHostOrContributorCanBuy() public {
+        address host = _randomAddress();
+        address contributor = _randomAddress();
+
+        // Create a BuyCrowdfund instance with onlyHostCanBuy and a gatekeeper enabled.
+        AllowListGateKeeper gateKeeper = new AllowListGateKeeper();
+        bytes32 contributorHash = keccak256(abi.encodePacked(contributor));
+        bytes12 gateKeeperId = gateKeeper.createGate(contributorHash);
+        BuyCrowdfund cf = _createCrowdfund(
+            0,
+            0,
+            true,
+            gateKeeper,
+            gateKeeperId,
+            _toAddressArray(host)
+        );
+
+        // Contributor contributes.
+        vm.deal(contributor, 1e18);
+        vm.prank(contributor);
+        cf.contribute{ value: contributor.balance }(contributor, abi.encode(new bytes32[](0)));
+
+        // Buy the token, expect revert because we are not a contributor or host.
+        vm.expectRevert(Crowdfund.OnlyPartyHostOrContributorError.selector);
+        cf.buy(payable(address(0)), 0, "", defaultGovernanceOpts, 0);
+
+        // Now as the host, but this will fail with another error because
+        // we are trying to call the CF itself in buy().
+        vm.prank(host);
+        vm.expectRevert(abi.encodeWithSelector(
+            BuyCrowdfundBase.InvalidCallTargetError.selector,
+            address(cf)
+        ));
+        cf.buy(payable(address(cf)), 0, "", defaultGovernanceOpts, 0);
+
+        // Buy as a contributor, but this will fail with another error because
+        // we are trying to call the CF itself in buy().
+        vm.prank(contributor);
+        vm.expectRevert(abi.encodeWithSelector(
+            BuyCrowdfundBase.InvalidCallTargetError.selector,
+            address(cf)
+        ));
+        cf.buy(payable(address(cf)), 0, "", defaultGovernanceOpts, 0);
+    }
+
+
+    function testOnlyHostOrContributorCanBuy_CannotFakeGovernanceOpts() public {
+        // Create a BuyCrowdfund instance with `onlyHost` enabled.
+        address host = _randomAddress();
+
+        // Create a BuyCrowdfund instance with onlyHostCanBuy and a gatekeeper enabled.
+        AllowListGateKeeper gateKeeper = new AllowListGateKeeper();
+        bytes12 gateKeeperId = gateKeeper.createGate(0);
+        BuyCrowdfund cf = _createCrowdfund(
+            0,
+            0,
+            true,
+            gateKeeper,
+            gateKeeperId,
+            _toAddressArray(host)
+        );
+
+        // Buy as the host, but pass in wrong governanceOpts.
+        vm.prank(host);
+        vm.expectRevert(Crowdfund.InvalidGovernanceOptionsError.selector);
+        defaultGovernanceOpts.voteDuration += 1;
+        cf.buy(payable(address(cf)), 0, "", defaultGovernanceOpts, 0);
+    }
+
+    function testBuyCannotExceedTotalContributions() public {
+        uint256 tokenId = erc721Vault.mint();
+        // Create a BuyCrowdfund instance.
+        BuyCrowdfund cf = _createCrowdfund(tokenId, 0);
+        // Contribute and delegate.
+        address payable contributor = _randomAddress();
+        address delegate = _randomAddress();
+        vm.deal(contributor, 1e18);
+        vm.prank(contributor);
+        cf.contribute{ value: contributor.balance }(delegate, "");
+
+        uint96 totalContributions = cf.totalContributions();
+        vm.expectRevert(abi.encodeWithSelector(
+            Crowdfund.ExceedsTotalContributionsError.selector,
+            totalContributions + 1,
+            totalContributions
+        ));
+        cf.buy(
+            payable(address(erc721Vault)),
+            totalContributions + 1,
+            abi.encodeCall(erc721Vault.claim, (tokenId)),
+            defaultGovernanceOpts,
+            0
+        );
+    }
+
+    function testBuyCannotReenter() public {
+        uint256 tokenId = erc721Vault.mint();
+        // Create a BuyCrowdfund instance.
+        BuyCrowdfund cf = _createCrowdfund(tokenId, 0);
+        // Contribute.
+        address payable contributor = _randomAddress();
+        vm.deal(contributor, 1e18);
+        vm.prank(contributor);
+        cf.contribute{ value: contributor.balance }(contributor, "");
+        // Attempt reentering back into the crowdfund directly.
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                BuyCrowdfundBase.InvalidCallTargetError.selector,
+                address(cf)
+            )
+        );
+        cf.buy(
+            payable(address(cf)),
+            1e18,
+            abi.encodeCall(cf.contribute, (contributor, "")),
+            defaultGovernanceOpts,
+            0
+        );
+        ReenteringContract reenteringContract = new ReenteringContract();
+        // Attempt reentering back into the crowdfund via a proxy.
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                Crowdfund.WrongLifecycleError.selector,
+                uint8(Crowdfund.CrowdfundLifecycle.Busy)
+            )
+        );
+        cf.buy(
+            payable(address(reenteringContract)),
+            1e18,
+            abi.encodeCall(reenteringContract.reenter, (cf)),
+            defaultGovernanceOpts,
+            0
+        );
+        assertTrue(cf.getCrowdfundLifecycle() == Crowdfund.CrowdfundLifecycle.Active);
+    }
+
+    function testGettingNFTForFreeTriggersLostToRefund() public {
+        DummyERC721 token = erc721Vault.token();
+        uint256 tokenId = 1;
+        // Create a BuyCrowdfund instance.
+        BuyCrowdfund cf = _createCrowdfund(tokenId, 0);
+        // Acquire NFT for free.
+        _expectEmit0();
+        emit Lost();
+        cf.buy(
+            payable(address(token)),
+            0,
+            abi.encodeCall(token.mint, (address(cf))),
+            defaultGovernanceOpts,
+            0
+        );
+        assertTrue(cf.getCrowdfundLifecycle() == Crowdfund.CrowdfundLifecycle.Lost);
     }
 
     function testCannotReinitialize() public {
         uint256 tokenId = erc721Vault.mint();
-        BuyCrowdfund pb = _createCrowdfund(tokenId, 0);
+        BuyCrowdfund cf = _createCrowdfund(tokenId, 0);
         vm.expectRevert(abi.encodeWithSelector(Implementation.OnlyConstructorError.selector));
         BuyCrowdfund.BuyCrowdfundOptions memory opts;
-        pb.initialize(opts);
+        cf.initialize(opts);
     }
 
     function test_creation_initialContribution() public {
@@ -207,9 +490,16 @@ contract BuyCrowdfundTest is Test, TestUtils {
                     initialDelegate: initialDelegate,
                     gateKeeper: defaultGateKeeper,
                     gateKeeperId: defaultGateKeeperId,
+                    onlyHostCanBuy: false,
                     governanceOpts: defaultGovernanceOpts
                 })
             )
         ))));
+    }
+}
+
+contract ReenteringContract is Test {
+    function reenter(BuyCrowdfund cf) external payable {
+        cf.contribute{ value: msg.value }(address(this), "");
     }
 }

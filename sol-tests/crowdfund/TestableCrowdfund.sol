@@ -7,15 +7,15 @@ import "../../contracts/crowdfund/Crowdfund.sol";
 contract TestableCrowdfund is Crowdfund {
 
     uint256 public finalPrice;
-    CrowdfundLifecycle public lifeCycle = CrowdfundLifecycle.Active;
+    CrowdfundLifecycle public lifeCycle;
     FixedGovernanceOpts public govOpts;
 
-    constructor(IGlobals globals, CrowdfundOptions memory opts)
-        payable
-        Crowdfund(globals)
-    {
-        _initialize(opts);
+    constructor(IGlobals globals) Crowdfund(globals) {}
+
+    function initialize(CrowdfundOptions memory opts) external payable {
+        lifeCycle = CrowdfundLifecycle.Active;
         govOpts = opts.governanceOpts;
+        _initialize(opts);
     }
 
     function testSetFinalPrice(uint256 finalPrice_) external {
@@ -38,7 +38,7 @@ contract TestableCrowdfund is Crowdfund {
         external
         returns (Party party)
     {
-        return _createParty(_getPartyFactory(), govOpts_, preciousTokens, preciousTokenIds);
+        return _createParty(govOpts_, false, preciousTokens, preciousTokenIds);
     }
 
     function testSetWon(
@@ -52,7 +52,7 @@ contract TestableCrowdfund is Crowdfund {
     {
         finalPrice = finalPrice_;
         lifeCycle = CrowdfundLifecycle.Won;
-        return _createParty(_getPartyFactory(), govOpts_, preciousTokens, preciousTokenIds);
+        return _createParty(govOpts_, false, preciousTokens, preciousTokenIds);
     }
 
     function getCrowdfundLifecycle()
@@ -72,7 +72,7 @@ contract TestableCrowdfund is Crowdfund {
     function hashFixedGovernanceOpts(FixedGovernanceOpts memory opts)
         public
         pure
-        returns (bytes16 h)
+        returns (bytes32 h)
     {
         return _hashFixedGovernanceOpts(opts);
     }
