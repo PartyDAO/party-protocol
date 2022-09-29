@@ -211,6 +211,7 @@ contract AuctionCrowdfundTest is Test, TestUtils {
         // Contribute and delegate.
         address payable contributor = _randomAddress();
         _contribute(cf, contributor, 1e18);
+        market.endAuction(auctionId);
         // Expire and finalize the crowdfund.
         skip(defaultDuration);
         Party party_ = cf.finalize(defaultGovernanceOpts);
@@ -353,9 +354,7 @@ contract AuctionCrowdfundTest is Test, TestUtils {
         address payable contributor = _randomAddress();
         _contribute(cf, contributor, 1e18);
         // Finalize the crowdfund early.
-        vm.expectRevert(abi.encodeWithSelector(
-            AuctionCrowdfund.AuctionNotExpiredError.selector
-        ));
+        vm.expectRevert("AUCTION_NOT_ENDED");
         cf.finalize(defaultGovernanceOpts);
     }
 
@@ -367,10 +366,10 @@ contract AuctionCrowdfundTest is Test, TestUtils {
         // Contribute and delegate.
         address payable contributor = _randomAddress();
         _contribute(cf, contributor, 1e18);
-        skip(defaultDuration);
+        market.endAuction(auctionId);
+        // Finalize the crowdfund.
         _expectEmit0();
         emit Lost();
-        // Finalize the crowdfund.
         cf.finalize(defaultGovernanceOpts);
     }
 
