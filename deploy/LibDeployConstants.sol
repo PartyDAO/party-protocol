@@ -22,6 +22,7 @@ library LibDeployConstants {
     address foundationMarket;
     address nounsAuctionHouse;
     address zoraAuctionHouse;
+    address pixeldroidConsoleFont;
     string networkName;
   }
 
@@ -44,6 +45,7 @@ library LibDeployConstants {
       foundationMarket: 0x21b700d637551f15078E11871a3c0dcCf283D1e7,
       nounsAuctionHouse: 0x7cb0384b923280269b3BD85f0a7fEaB776588382,
       zoraAuctionHouse: 0xE7dd1252f50B3d845590Da0c5eADd985049a03ce,
+      pixeldroidConsoleFont: address(0), // TODO: Set this after deploying font
       networkName: 'rinkeby'
     });
 
@@ -69,6 +71,7 @@ library LibDeployConstants {
       foundationMarket: 0xeB1bD095061bbDb1aD065524628812cae63e4222,
       nounsAuctionHouse: 0x7295e70f2B26986Ba108bD1Bf9E349a181F4a6Ea,
       zoraAuctionHouse: 0x6a6Cdb103f1072E0aFeADAC9BeBD6E14B287Ca57,
+      pixeldroidConsoleFont: address(0), // TODO: Set this after deploying font
       networkName: 'goerli'
     });
 
@@ -94,6 +97,7 @@ library LibDeployConstants {
       foundationMarket: 0xcDA72070E455bb31C7690a170224Ce43623d0B6f,
       nounsAuctionHouse: 0x830BD73E4184ceF73443C15111a1DF14e495C706,
       zoraAuctionHouse: 0xE468cE99444174Bd3bBBEd09209577d25D1ad673,
+      pixeldroidConsoleFont: address(0), // TODO: Set this after deploying font
       networkName: 'mainnet'
     });
 

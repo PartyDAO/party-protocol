@@ -16,7 +16,7 @@ import "../contracts/globals/LibGlobals.sol";
 import "../contracts/party/Party.sol";
 import "../contracts/party/PartyFactory.sol";
 import "../contracts/renderers/CrowdfundNFTRenderer.sol";
-import "../contracts/renderers/PartyGovernanceNFTRenderer.sol";
+import "../contracts/renderers/PartyNFTRenderer.sol";
 import "../contracts/proposals/ProposalExecutionEngine.sol";
 import "../contracts/utils/PartyHelpers.sol";
 import "../contracts/market-wrapper/FoundationMarketWrapper.sol";
@@ -43,7 +43,7 @@ contract Deploy {
     ProposalExecutionEngine public proposalEngineImpl;
     TokenDistributor public tokenDistributor;
     CrowdfundNFTRenderer public partyCrowdfundNFTRenderer;
-    PartyGovernanceNFTRenderer public partyGovernanceNFTRenderer;
+    PartyNFTRenderer public partyGovernanceNFTRenderer;
     PartyHelpers public partyHelpers;
     IGateKeeper public allowListGateKeeper;
     IGateKeeper public tokenGateKeeper;
@@ -327,7 +327,9 @@ contract Deploy {
         console.log("");
         console.log("### CrowdfundNFTRenderer");
         console.log("  Deploying - CrowdfundNFTRenderer");
-        partyCrowdfundNFTRenderer = new CrowdfundNFTRenderer(globals);
+        // TODO: Update deployment to deploy font and renderer w/ storage
+        // partyCrowdfundNFTRenderer = new CrowdfundNFTRenderer(globals);
+        partyCrowdfundNFTRenderer;
         console.log(
             "  Deployed - CrowdfundNFTRenderer",
             address(partyCrowdfundNFTRenderer)
@@ -346,22 +348,24 @@ contract Deploy {
 
         // DEPLOY_PARTY_GOVERNANCE_NFT_RENDERER
         console.log("");
-        console.log("### PartyGovernanceNFTRenderer");
-        console.log("  Deploying - PartyGovernanceNFTRenderer");
-        partyGovernanceNFTRenderer = new PartyGovernanceNFTRenderer(globals);
+        console.log("### PartyNFTRenderer");
+        console.log("  Deploying - PartyNFTRenderer");
+        // TODO: Update deployment to deploy font and renderer w/ storage
+        // partyGovernanceNFTRenderer = new PartyNFTRenderer(globals);
+        partyGovernanceNFTRenderer;
         console.log(
-            "  Deployed - PartyGovernanceNFTRenderer",
+            "  Deployed - PartyNFTRenderer",
             address(partyGovernanceNFTRenderer)
         );
 
         console.log("");
-        console.log("  Globals - setting PartyGovernanceNFTRenderer address");
+        console.log("  Globals - setting PartyNFTRenderer address");
         globals.setAddress(
             LibGlobals.GLOBAL_GOVERNANCE_NFT_RENDER_IMPL,
             address(partyGovernanceNFTRenderer)
         );
         console.log(
-            "  Globals - successfully set PartyGovernanceNFTRenderer",
+            "  Globals - successfully set PartyNFTRenderer",
             address(partyGovernanceNFTRenderer)
         );
 
