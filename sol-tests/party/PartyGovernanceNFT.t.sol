@@ -192,6 +192,7 @@ contract PartyGovernanceNFTTest is Test, TestUtils {
 
         // Uncomment for testing rendering:
         // console.log(tokenURI);
+
         assertTrue(bytes(tokenURI).length > 0);
     }
 

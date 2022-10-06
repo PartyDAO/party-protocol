@@ -193,11 +193,11 @@ contract CrowdfundNFTRenderer is IERC721Renderer {
     }
 
     function calcAnimationDuration() private view returns (uint256) {
-        return 0.28571428571429e18 * bytes(name).length + 13.1428571428577e18;
+        return 0.26272e18 * bytes(name).length + 11.97633e18;
     }
 
     function calcTranslateX() private view returns (uint256) {
-        return 6.1904761904762e18 * bytes(name).length + 101.42857142857e18;
+        return 7.42012e18 * bytes(name).length + 88.52071e18;
     }
 
     // Convert 18 decimals number to stringified 2 decimal number
