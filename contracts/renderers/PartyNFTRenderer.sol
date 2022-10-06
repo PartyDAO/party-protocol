@@ -58,6 +58,7 @@ contract PartyNFTRenderer is IERC721Renderer {
     uint256 tokenCount;
     mapping(uint256 => uint256) votingPowerByTokenId;
 
+    // TODO: Implement contract URI
     function contractURI() external view returns (string memory) {
         string memory json = Base64.encode(bytes(
             string(
@@ -66,7 +67,6 @@ contract PartyNFTRenderer is IERC721Renderer {
                     name,
                     '", "description":"',
                     "AuctionCrowdfund Governance NFTs give you voting power in a AuctionCrowdfund party.",
-                    // TODO:
                     // '", "image": "data:image/svg+xml;base64,',
                     // Base64.encode(bytes(output)),
                     '"}'
@@ -146,7 +146,7 @@ contract PartyNFTRenderer is IERC721Renderer {
             '%)}}@font-face{font-family:&quot;Console&quot;;src:url(',
             _font.getFont(),
             ');}</style>',
-            _storage.readFile(2)
+            _storage.readFile(RendererFileKey.PARTY_CARD_DATA_1)
         );
     }
 
@@ -159,7 +159,7 @@ contract PartyNFTRenderer is IERC721Renderer {
             tokenId.toString(),
             '</tspan></text><path d="M331 181H31c-8.284 0-15 6.716-15 15v315c0 8.284 6.716 15 15 15h300c8.284 0 15-6.716 15-15V196c0-8.284-6.716-15-15-15z" class="G"/><path d="M331 181a15.01 15.01 0 0 1 15 15v315a15.01 15.01 0 0 1-15 15H31a15.01 15.01 0 0 1-15-15V196a15.01 15.01 0 0 1 15-15h300zm0-1H31c-8.82 0-16 7.18-16 16v315c0 8.82 7.18 16 16 16h300c8.82 0 16-7.18 16-16V196c0-8.82-7.18-16-16-16z" fill="url(#J)"/><path d="M321 469C324.86 469 328 472.14 328 476V501C328 504.86 324.86 508 321 508H198.5C194.64 508 191.5 504.86 191.5 501V476C191.5 472.14 194.64 469 198.5 469H321ZM321 466H198.5C192.98 466 188.5 470.48 188.5 476V501C188.5 506.52 192.98 511 198.5 511H321C326.52 511 331 506.52 331 501V476C331 470.48 326.52 466 321 466Z" fill="#50586D"/><path d="M31 476L31 501C31 506.523 35.4772 511 41 511H163.5C169.023 511 173.5 506.523 173.5 501V476C173.5 470.477 169.023 466 163.5 466H41C35.4772 466 31 470.477 31 476Z" fill="',
             hasUnclaimed ? '#50586D' : '#91A6C3',
-            _storage.readFile(3),
+            _storage.readFile(RendererFileKey.PARTY_CARD_DATA_2),
             partyName,
             '</tspan></text><text class="A D E F I"><tspan x="329" y="241.984">',
             partyName,
@@ -189,8 +189,8 @@ contract PartyNFTRenderer is IERC721Renderer {
 
     function generateSVG4() private view returns (string memory) {
         return string.concat(
-            _storage.readFile(4),
-            _storage.readFile(5)
+            _storage.readFile(RendererFileKey.PARTY_CARD_DATA_3),
+            _storage.readFile(RendererFileKey.PARTY_CARD_DATA_4)
         );
     }
 
