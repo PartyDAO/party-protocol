@@ -72,7 +72,7 @@ contract CrowdfundNFTRenderer is IERC721Renderer {
     }
 
     function tokenURI(uint256 tokenId) external view returns (string memory) {
-        address owner = address(uint160(tokenId));
+        address owner = _owners[tokenId];
         if (owner == address(0)) {
             revert InvalidTokenIdError();
         }
