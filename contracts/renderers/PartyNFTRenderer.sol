@@ -255,6 +255,7 @@ contract PartyNFTRenderer is IERC721Renderer {
     function calcTranslateX() private view returns (uint256) {
         return 6.1904761904762e18 * bytes(name).length + 101.42857142857e18;
     }
+
     // Convert 18 decimals number to stringified 2 decimal number
     function toDecimalString(uint256 value) private pure returns (string memory) {
         if (value < 0.01e18) {
