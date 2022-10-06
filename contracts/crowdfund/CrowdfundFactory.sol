@@ -5,6 +5,7 @@ pragma solidity 0.8.17;
 import "../globals/IGlobals.sol";
 import "../utils/LibRawResult.sol";
 import "../utils/Proxy.sol";
+import "../renderers/RendererStorage.sol";
 
 import "./AuctionCrowdfund.sol";
 import "./BuyCrowdfund.sol";
@@ -33,9 +34,13 @@ contract CrowdfundFactory {
     ///             and cannot be changed later.
     /// @param createGateCallData Encoded calldata used by `createGate()` to
     ///                           create the crowdfund if one is specified in `opts`.
+    /// @param isCardDarkMode Whether to render the party card in dark mode.
+    /// @param cardColor The color of the party card.
     function createBuyCrowdfund(
         BuyCrowdfund.BuyCrowdfundOptions memory opts,
-        bytes memory createGateCallData
+        bytes memory createGateCallData,
+        bool isCardDarkMode,
+        RendererStorage.Color cardColor
     )
         public
         payable
@@ -50,6 +55,8 @@ contract CrowdfundFactory {
             _GLOBALS.getImplementation(LibGlobals.GLOBAL_BUY_CF_IMPL),
             abi.encodeCall(BuyCrowdfund.initialize, (opts))
         )));
+        RendererStorage(_GLOBALS.getAddress(LibGlobals.GLOBAL_RENDERER_STORAGE))
+            .customizeCard(address(inst), isCardDarkMode, cardColor);
         emit BuyCrowdfundCreated(inst, opts);
     }
 
@@ -59,9 +66,13 @@ contract CrowdfundFactory {
     ///             and cannot be changed later.
     /// @param createGateCallData Encoded calldata used by `createGate()` to create
     ///                           the crowdfund if one is specified in `opts`.
+    /// @param isCardDarkMode Whether to render the party card in dark mode.
+    /// @param cardColor The color of the party card.
     function createAuctionCrowdfund(
         AuctionCrowdfund.AuctionCrowdfundOptions memory opts,
-        bytes memory createGateCallData
+        bytes memory createGateCallData,
+        bool isCardDarkMode,
+        RendererStorage.Color cardColor
     )
         public
         payable
@@ -76,6 +87,8 @@ contract CrowdfundFactory {
             _GLOBALS.getImplementation(LibGlobals.GLOBAL_AUCTION_CF_IMPL),
             abi.encodeCall(AuctionCrowdfund.initialize, (opts))
         )));
+        RendererStorage(_GLOBALS.getAddress(LibGlobals.GLOBAL_RENDERER_STORAGE))
+            .customizeCard(address(inst), isCardDarkMode, cardColor);
         emit AuctionCrowdfundCreated(inst, opts);
     }
 
@@ -85,9 +98,13 @@ contract CrowdfundFactory {
     ///             and cannot be changed later.
     /// @param createGateCallData Encoded calldata used by `createGate()` to create
     ///                           the crowdfund if one is specified in `opts`.
+    /// @param isCardDarkMode Whether to render the party card in dark mode.
+    /// @param cardColor The color of the party card.
     function createCollectionBuyCrowdfund(
         CollectionBuyCrowdfund.CollectionBuyCrowdfundOptions memory opts,
-        bytes memory createGateCallData
+        bytes memory createGateCallData,
+        bool isCardDarkMode,
+        RendererStorage.Color cardColor
     )
         public
         payable
@@ -102,6 +119,8 @@ contract CrowdfundFactory {
             _GLOBALS.getImplementation(LibGlobals.GLOBAL_COLLECTION_BUY_CF_IMPL),
             abi.encodeCall(CollectionBuyCrowdfund.initialize, (opts))
         )));
+        RendererStorage(_GLOBALS.getAddress(LibGlobals.GLOBAL_RENDERER_STORAGE))
+            .customizeCard(address(inst), isCardDarkMode, cardColor);
         emit CollectionBuyCrowdfundCreated(inst, opts);
     }
 

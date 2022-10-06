@@ -9,6 +9,7 @@ import "../tokens/ERC721Receiver.sol";
 import "../party/Party.sol";
 import "../globals/IGlobals.sol";
 import "../gatekeepers/IGateKeeper.sol";
+import "../renderers/RendererStorage.sol";
 
 import "./CrowdfundNFT.sol";
 
@@ -367,6 +368,10 @@ abstract contract Crowdfund is Implementation, ERC721Receiver, CrowdfundNFT {
         if (!governanceOptsAlreadyValidated) {
             _assertValidGovernanceOpts(governanceOpts);
         }
+        // Get renderer customization options.
+        (, bool isCardDarkMode, RendererStorage.Color cardColor) =
+            RendererStorage(_GLOBALS.getAddress(LibGlobals.GLOBAL_RENDERER_STORAGE))
+                .customizations(address(this));
         // Create a party.
         party = party_ = _getPartyFactory()
             .createParty(
@@ -385,7 +390,9 @@ abstract contract Crowdfund is Implementation, ERC721Receiver, CrowdfundNFT {
                     })
                 }),
                 preciousTokens,
-                preciousTokenIds
+                preciousTokenIds,
+                isCardDarkMode,
+                cardColor
             );
         // Transfer the acquired NFTs to the new party.
         for (uint256 i = 0; i < preciousTokens.length; ++i) {

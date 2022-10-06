@@ -6,13 +6,13 @@ import "../globals/IGlobals.sol";
 import "../globals/LibGlobals.sol";
 import "../tokens/IERC721.sol";
 import "../utils/Proxy.sol";
+import "../renderers/RendererStorage.sol";
 
 import "./Party.sol";
 import "./IPartyFactory.sol";
 
 /// @notice Factory used to deploys new proxified `Party` instances.
 contract PartyFactory is IPartyFactory {
-
     error InvalidAuthorityError(address authority);
 
     /// @inheritdoc IPartyFactory
@@ -28,7 +28,9 @@ contract PartyFactory is IPartyFactory {
         address authority,
         Party.PartyOptions memory opts,
         IERC721[] memory preciousTokens,
-        uint256[] memory preciousTokenIds
+        uint256[] memory preciousTokenIds,
+        bool isCardDarkMode,
+        RendererStorage.Color cardColor
     )
         external
         returns (Party party)
@@ -50,6 +52,8 @@ contract PartyFactory is IPartyFactory {
                 abi.encodeCall(Party.initialize, (initData))
             )
         ));
+        RendererStorage(GLOBALS.getAddress(LibGlobals.GLOBAL_RENDERER_STORAGE))
+            .customizeCard(address(party), isCardDarkMode, cardColor);
         emit PartyCreated(party, opts, preciousTokens, preciousTokenIds, msg.sender);
     }
 }

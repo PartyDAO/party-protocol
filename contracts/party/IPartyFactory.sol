@@ -4,6 +4,7 @@ pragma solidity 0.8.17;
 
 import "../globals/IGlobals.sol";
 import "../tokens/IERC721.sol";
+import "../renderers/RendererStorage.sol";
 
 import "./Party.sol";
 
@@ -28,12 +29,16 @@ interface IPartyFactory {
     ///                       to extra restrictions in proposals vs other
     ///                       assets.
     /// @param preciousTokenIds The IDs associated with each token in `preciousTokens`.
+    /// @param isCardDarkMode Whether to render the party card in dark mode.
+    /// @param cardColor The color of the party card.
     /// @return party The newly created `Party` instance.
     function createParty(
         address authority,
         Party.PartyOptions calldata opts,
         IERC721[] memory preciousTokens,
-        uint256[] memory preciousTokenIds
+        uint256[] memory preciousTokenIds,
+        bool isCardDarkMode,
+        RendererStorage.Color cardColor
     )
         external
         returns (Party party);
