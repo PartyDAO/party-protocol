@@ -79,6 +79,7 @@ contract CrowdfundNFTRenderer is IERC721Renderer {
         }
 
         string memory partyName = name;
+        string memory externalURL = generateExternalURL();
         string memory contribution = getContribution(owner);
         CrowdfundStatus status = getCrowdfundStatus();
 
@@ -88,7 +89,9 @@ contract CrowdfundNFTRenderer is IERC721Renderer {
                 '{"name":"',
                 generateName(contribution),
                 '", "description":"',
-                generateDescription(partyName, status, contribution),
+                generateDescription(partyName, externalURL, status, contribution),
+                '", "external_url":"',
+                externalURL,
                 '", "image": "data:image/svg+xml;base64,',
                 Base64.encode(abi.encodePacked(
                     // Split to avoid stack too deep errors
@@ -105,23 +108,28 @@ contract CrowdfundNFTRenderer is IERC721Renderer {
         return string.concat('Contribution - ', contribution, ' ETH');
     }
 
+    function generateExternalURL() private view returns (string memory) {
+        return string.concat('https://partybid.app/join/', address(this).toHexString());
+    }
+
     function generateDescription(
         string memory partyName,
+        string memory externalURL,
         CrowdfundStatus status,
         string memory contribution
-    ) private view returns (string memory) {
+    ) private pure returns (string memory) {
         if (status == CrowdfundStatus.WON) {
             return string.concat(
                 partyName,
-                ' has won! You can use this item to activate your membership in the party. Head to partybid.app/join/',
-                address(this).toHexString(),
+                ' has won! You can use this item to activate your membership in the party. Head to ',
+                externalURL,
                 ' to activate.'
             );
         } else if (status == CrowdfundStatus.LOST) {
             return string.concat(
                 partyName,
-                ' has lost. You can use this item to claim your ETH back from the party. Head to partybid.app/join/',
-                address(this).toHexString(),
+                ' has lost. You can use this item to claim your ETH back from the party. Head to ',
+                externalURL,
                 ' to claim.'
             );
         } else {
@@ -130,8 +138,8 @@ contract CrowdfundNFTRenderer is IERC721Renderer {
                 contribution,
                 ' ETH to the ',
                 partyName,
-                ' crowdfund. When the crowdfund concludes, you can use this card to claim your ETH or membership in the party. Head to partybid.app/join/',
-                address(this).toHexString(),
+                ' crowdfund. When the crowdfund concludes, you can use this card to claim your ETH or membership in the party. Head to ',
+                externalURL,
                 ' to see more.'
             );
         }

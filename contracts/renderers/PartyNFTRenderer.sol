@@ -92,6 +92,7 @@ contract PartyNFTRenderer is IERC721Renderer {
         }
 
         string memory partyName = name;
+        string memory externalURL = generateExternalURL();
         string memory votingPower = generateVotingPowerPercentage(tokenId);
         string[4] memory latestProposalStatuses = getLatestProposalStatuses();
         bool hasUnclaimed = hasUnclaimedDistribution(tokenId);
@@ -103,8 +104,12 @@ contract PartyNFTRenderer is IERC721Renderer {
                 '{"name":"',
                 generateName(partyName, tokenId),
                 '", "description":"',
-                generateDescription(partyName, tokenId),
-                '", "image": "data:image/svg+xml;base64,',
+                generateDescription(partyName, votingPower, externalURL, tokenId),
+                '", "external_url":"',
+                externalURL,
+                '", "attributes": [',
+                generateAttributes(votingPower),
+                '], "image": "data:image/svg+xml;base64,',
                 Base64.encode(abi.encodePacked(
                     // Split to avoid stack too deep errors
                     generateSVG1(animationDuration),
@@ -121,17 +126,34 @@ contract PartyNFTRenderer is IERC721Renderer {
         return string.concat(partyName, ' Card #', tokenId.toString());
     }
 
-    function generateDescription(string memory partyName, uint256 tokenId) private view returns (string memory) {
+    function generateExternalURL() private view returns (string memory) {
+        return string.concat('https://partybid.app/party/', address(this).toHexString());
+    }
+
+    function generateDescription(
+        string memory partyName,
+        string memory votingPower,
+        string memory externalURL,
+        uint256 tokenId
+    ) private pure returns (string memory) {
         return string.concat(
             'Card #',
             tokenId.toString(),
             ' in ',
             partyName,
             ". This item represents ",
-            generateVotingPowerPercentage(tokenId),
-            '% membership in the party. Head to partybid.app/party/',
-            address(this).toHexString(),
+            votingPower,
+            '% membership in the party. Head to ',
+            externalURL,
             " to view the party's latest activity."
+        );
+    }
+
+    function generateAttributes(string memory votingPower) private pure returns (string memory) {
+        return string.concat(
+            '{"trait_type":"Voting Power", "value":',
+            votingPower,
+            ', "max_value":100}'
         );
     }
 
