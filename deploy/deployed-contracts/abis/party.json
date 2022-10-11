@@ -191,6 +191,11 @@
     "type": "error"
   },
   {
+    "inputs": [],
+    "name": "OnlyWhenEnabledError",
+    "type": "error"
+  },
+  {
     "inputs": [
       {
         "internalType": "uint40",
@@ -352,68 +357,6 @@
       }
     ],
     "name": "HostStatusTransferred",
-    "type": "event"
-  },
-  {
-    "anonymous": false,
-    "inputs": [
-      {
-        "components": [
-          {
-            "internalType": "address[]",
-            "name": "hosts",
-            "type": "address[]"
-          },
-          {
-            "internalType": "uint40",
-            "name": "voteDuration",
-            "type": "uint40"
-          },
-          {
-            "internalType": "uint40",
-            "name": "executionDelay",
-            "type": "uint40"
-          },
-          {
-            "internalType": "uint16",
-            "name": "passThresholdBps",
-            "type": "uint16"
-          },
-          {
-            "internalType": "uint96",
-            "name": "totalVotingPower",
-            "type": "uint96"
-          },
-          {
-            "internalType": "uint16",
-            "name": "feeBps",
-            "type": "uint16"
-          },
-          {
-            "internalType": "address payable",
-            "name": "feeRecipient",
-            "type": "address"
-          }
-        ],
-        "indexed": false,
-        "internalType": "struct PartyGovernance.GovernanceOpts",
-        "name": "opts",
-        "type": "tuple"
-      },
-      {
-        "indexed": false,
-        "internalType": "contract IERC721[]",
-        "name": "preciousTokens",
-        "type": "address[]"
-      },
-      {
-        "indexed": false,
-        "internalType": "uint256[]",
-        "name": "preciousTokenIds",
-        "type": "uint256[]"
-      }
-    ],
-    "name": "PartyInitialized",
     "type": "event"
   },
   {
@@ -885,13 +828,7 @@
       }
     ],
     "name": "emergencyExecute",
-    "outputs": [
-      {
-        "internalType": "bool",
-        "name": "success",
-        "type": "bool"
-      }
-    ],
+    "outputs": [],
     "stateMutability": "payable",
     "type": "function"
   },
@@ -1403,7 +1340,13 @@
       }
     ],
     "name": "mint",
-    "outputs": [],
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "tokenId",
+        "type": "uint256"
+      }
+    ],
     "stateMutability": "nonpayable",
     "type": "function"
   },

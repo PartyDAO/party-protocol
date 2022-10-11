@@ -60,6 +60,22 @@
   {
     "inputs": [
       {
+        "internalType": "address",
+        "name": "receiver",
+        "type": "address"
+      },
+      {
+        "internalType": "bytes",
+        "name": "errData",
+        "type": "bytes"
+      }
+    ],
+    "name": "EthTransferFailed",
+    "type": "error"
+  },
+  {
+    "inputs": [
+      {
         "internalType": "uint256",
         "name": "callDataLength",
         "type": "uint256"
@@ -550,144 +566,6 @@
       }
     ],
     "name": "OpenseaOrderSold",
-    "type": "event"
-  },
-  {
-    "anonymous": false,
-    "inputs": [
-      {
-        "indexed": false,
-        "internalType": "bytes32",
-        "name": "orderHash",
-        "type": "bytes32"
-      },
-      {
-        "indexed": true,
-        "internalType": "address",
-        "name": "offerer",
-        "type": "address"
-      },
-      {
-        "indexed": true,
-        "internalType": "address",
-        "name": "zone",
-        "type": "address"
-      },
-      {
-        "components": [
-          {
-            "internalType": "enum IOpenseaExchange.ItemType",
-            "name": "itemType",
-            "type": "uint8"
-          },
-          {
-            "internalType": "address",
-            "name": "token",
-            "type": "address"
-          },
-          {
-            "internalType": "uint256",
-            "name": "identifierOrCriteria",
-            "type": "uint256"
-          },
-          {
-            "internalType": "uint256",
-            "name": "startAmount",
-            "type": "uint256"
-          },
-          {
-            "internalType": "uint256",
-            "name": "endAmount",
-            "type": "uint256"
-          }
-        ],
-        "indexed": false,
-        "internalType": "struct IOpenseaExchange.OfferItem[]",
-        "name": "offer",
-        "type": "tuple[]"
-      },
-      {
-        "components": [
-          {
-            "internalType": "enum IOpenseaExchange.ItemType",
-            "name": "itemType",
-            "type": "uint8"
-          },
-          {
-            "internalType": "address",
-            "name": "token",
-            "type": "address"
-          },
-          {
-            "internalType": "uint256",
-            "name": "identifierOrCriteria",
-            "type": "uint256"
-          },
-          {
-            "internalType": "uint256",
-            "name": "startAmount",
-            "type": "uint256"
-          },
-          {
-            "internalType": "uint256",
-            "name": "endAmount",
-            "type": "uint256"
-          },
-          {
-            "internalType": "address payable",
-            "name": "recipient",
-            "type": "address"
-          }
-        ],
-        "indexed": false,
-        "internalType": "struct IOpenseaExchange.ConsiderationItem[]",
-        "name": "consideration",
-        "type": "tuple[]"
-      },
-      {
-        "indexed": false,
-        "internalType": "enum IOpenseaExchange.OrderType",
-        "name": "orderType",
-        "type": "uint8"
-      },
-      {
-        "indexed": false,
-        "internalType": "uint256",
-        "name": "startTime",
-        "type": "uint256"
-      },
-      {
-        "indexed": false,
-        "internalType": "uint256",
-        "name": "endTime",
-        "type": "uint256"
-      },
-      {
-        "indexed": false,
-        "internalType": "bytes32",
-        "name": "zoneHash",
-        "type": "bytes32"
-      },
-      {
-        "indexed": false,
-        "internalType": "uint256",
-        "name": "salt",
-        "type": "uint256"
-      },
-      {
-        "indexed": false,
-        "internalType": "bytes32",
-        "name": "conduitKey",
-        "type": "bytes32"
-      },
-      {
-        "indexed": false,
-        "internalType": "uint256",
-        "name": "counter",
-        "type": "uint256"
-      }
-    ],
-    "name": "OrderValidated",
     "type": "event"
   },
   {
