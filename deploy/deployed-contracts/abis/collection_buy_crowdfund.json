@@ -45,6 +45,22 @@
   {
     "inputs": [
       {
+        "internalType": "uint96",
+        "name": "value",
+        "type": "uint96"
+      },
+      {
+        "internalType": "uint96",
+        "name": "totalContributions",
+        "type": "uint96"
+      }
+    ],
+    "name": "ExceedsTotalContributionsError",
+    "type": "error"
+  },
+  {
+    "inputs": [
+      {
         "internalType": "contract IERC721",
         "name": "token",
         "type": "address"
@@ -56,6 +72,11 @@
       }
     ],
     "name": "FailedToBuyNFTError",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "InvalidAddressError",
     "type": "error"
   },
   {
@@ -86,18 +107,7 @@
     "type": "error"
   },
   {
-    "inputs": [
-      {
-        "internalType": "bytes32",
-        "name": "actualHash",
-        "type": "bytes32"
-      },
-      {
-        "internalType": "bytes32",
-        "name": "expectedHash",
-        "type": "bytes32"
-      }
-    ],
+    "inputs": [],
     "name": "InvalidGovernanceOptionsError",
     "type": "error"
   },
@@ -126,6 +136,11 @@
       }
     ],
     "name": "MaximumPriceError",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "MissingHostsError",
     "type": "error"
   },
   {
@@ -166,12 +181,17 @@
   },
   {
     "inputs": [],
+    "name": "NothingToClaimError",
+    "type": "error"
+  },
+  {
+    "inputs": [],
     "name": "OnlyConstructorError",
     "type": "error"
   },
   {
     "inputs": [],
-    "name": "OnlyContributorAllowedError",
+    "name": "OnlyContributorError",
     "type": "error"
   },
   {
@@ -182,6 +202,11 @@
   {
     "inputs": [],
     "name": "OnlyPartyHostError",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "OnlyPartyHostOrContributorError",
     "type": "error"
   },
   {
@@ -332,6 +357,12 @@
       }
     ],
     "name": "Contributed",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [],
+    "name": "Lost",
     "type": "event"
   },
   {
@@ -524,6 +555,11 @@
         "internalType": "struct Crowdfund.FixedGovernanceOpts",
         "name": "governanceOpts",
         "type": "tuple"
+      },
+      {
+        "internalType": "uint256",
+        "name": "hostIndex",
+        "type": "uint256"
       }
     ],
     "name": "buy",
@@ -535,6 +571,43 @@
       }
     ],
     "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address payable",
+        "name": "receiver",
+        "type": "address"
+      }
+    ],
+    "name": "claim",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "name": "claims",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "refund",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "governanceTokenId",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
     "type": "function"
   },
   {
