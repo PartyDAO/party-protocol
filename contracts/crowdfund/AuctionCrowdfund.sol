@@ -284,7 +284,7 @@ contract AuctionCrowdfund is Crowdfund {
             // Are we now in possession of the NFT?
             nftContract_.safeOwnerOf(nftTokenId_) == address(this) &&
             // And it wasn't acquired for free or "gifted" to us?
-            address(this).balance < totalContributions
+            (address(this).balance < totalContributions || lastBid_ != 0)
         ) {
             // Create a governance party around the NFT.
             party_ = _createParty(
