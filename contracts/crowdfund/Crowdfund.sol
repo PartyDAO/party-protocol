@@ -369,7 +369,7 @@ abstract contract Crowdfund is Implementation, ERC721Receiver, CrowdfundNFT {
             _assertValidGovernanceOpts(governanceOpts);
         }
         // Get renderer customization options.
-        (, bool isCardDarkMode, RendererStorage.Color cardColor) =
+        (, bytes memory customizationData) =
             RendererStorage(_GLOBALS.getAddress(LibGlobals.GLOBAL_RENDERER_STORAGE))
                 .customizations(address(this));
         // Create a party.
@@ -391,8 +391,7 @@ abstract contract Crowdfund is Implementation, ERC721Receiver, CrowdfundNFT {
                 }),
                 preciousTokens,
                 preciousTokenIds,
-                isCardDarkMode,
-                cardColor
+                customizationData
             );
         // Transfer the acquired NFTs to the new party.
         for (uint256 i = 0; i < preciousTokens.length; ++i) {

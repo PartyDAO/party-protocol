@@ -14,28 +14,28 @@ enum RendererFileKey {
     PARTY_CARD_DATA_4
 }
 
+enum Color {
+    DEFAULT,
+    GREEN,
+    CYAN,
+    BLUE,
+    PURPLE,
+    PINK,
+    ORANGE,
+    RED
+}
+
 contract RendererStorage {
     error AlreadySet();
 
-    enum Color {
-        DEFAULT,
-        GREEN,
-        CYAN,
-        BLUE,
-        PURPLE,
-        PINK,
-        ORANGE,
-        RED
-    }
-
-    struct CardCustomization {
+    struct CustomizationData {
         bool hasBeenSet;
-        bool isDarkMode;
-        Color color;
+        // `abi.encoded(Color color, bool isDarkMode)`
+        bytes customizationData;
     }
 
     /// @notice Customization options for rendering cards by crowdfund/party address.
-    mapping(address => CardCustomization) public customizations;
+    mapping(address => CustomizationData) public customizations;
     /// @notice Addresses where URI data chunks are stored.
     mapping(RendererFileKey => address) public files;
 
@@ -69,13 +69,12 @@ contract RendererStorage {
         return string(SSTORE2.read(files[key]));
     }
 
-    function customizeCard(address instance, bool isDarkMode, Color color) external {
-        CardCustomization storage card = customizations[instance];
+    function customizeCard(address instance, bytes memory customizationData) external {
+        CustomizationData storage data = customizations[instance];
 
-        if (card.hasBeenSet) revert AlreadySet();
+        if (data.hasBeenSet) revert AlreadySet();
 
-        card.hasBeenSet = true;
-        card.isDarkMode = isDarkMode;
-        card.color = color;
+        data.hasBeenSet = true;
+        data.customizationData = customizationData;
     }
 }

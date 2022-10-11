@@ -29,8 +29,7 @@ contract PartyFactory is IPartyFactory {
         Party.PartyOptions memory opts,
         IERC721[] memory preciousTokens,
         uint256[] memory preciousTokenIds,
-        bool isCardDarkMode,
-        RendererStorage.Color cardColor
+        bytes memory customizationData
     )
         external
         returns (Party party)
@@ -52,8 +51,10 @@ contract PartyFactory is IPartyFactory {
                 abi.encodeCall(Party.initialize, (initData))
             )
         ));
-        RendererStorage(GLOBALS.getAddress(LibGlobals.GLOBAL_RENDERER_STORAGE))
-            .customizeCard(address(party), isCardDarkMode, cardColor);
+        if (customizationData.length > 0) {
+            RendererStorage(GLOBALS.getAddress(LibGlobals.GLOBAL_RENDERER_STORAGE))
+                .customizeCard(address(party), customizationData);
+        }
         emit PartyCreated(party, opts, preciousTokens, preciousTokenIds, msg.sender);
     }
 }
