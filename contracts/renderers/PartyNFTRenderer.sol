@@ -96,7 +96,6 @@ contract PartyNFTRenderer is IERC721Renderer {
         string memory votingPower = generateVotingPowerPercentage(tokenId);
         string[4] memory latestProposalStatuses = getLatestProposalStatuses();
         bool hasUnclaimed = hasUnclaimedDistribution(tokenId);
-        uint256 animationDuration = calcAnimationDuration();
 
         return string.concat(
             'data:application/json;base64,',
@@ -112,7 +111,7 @@ contract PartyNFTRenderer is IERC721Renderer {
                 '], "image": "data:image/svg+xml;base64,',
                 Base64.encode(abi.encodePacked(
                     // Split to avoid stack too deep errors
-                    generateSVG1(animationDuration),
+                    generateSVG1(partyName),
                     generateSVG2(tokenId, partyName, hasUnclaimed),
                     generateSVG3(latestProposalStatuses, votingPower),
                     generateSVG4()
@@ -157,15 +156,18 @@ contract PartyNFTRenderer is IERC721Renderer {
         );
     }
 
-    function generateSVG1(uint256 animationDuration) private view returns (string memory) {
+    function generateSVG1(string memory partyName) private view returns (string memory) {
+        (uint256 duration, uint256 steps, uint256 delay, uint256 translateX) = calcAnimationVariables(partyName);
         return string.concat(
             '<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="362" height="542" fill="none"><style>.A{animation:move ',
-            toDecimalString(animationDuration),
-            's linear infinite;animation-timing-function:steps(120,end)}.C{fill:#91a6c3}.D{fill:#50586d}.E{font-family:Console}.F{font-size:48px}.G{fill:#a7b8cf}.H{stroke-miterlimit:10}.I{animation-delay:',
-            toDecimalString(animationDuration / 2),
+            duration.toString(),
+            's steps(',
+            steps.toString(),
+            ') infinite;}.C{fill:#91a6c3}.D{fill:#50586d}.E{font-family:Console}.F{font-size:48px}.G{fill:#a7b8cf}.H{stroke-miterlimit:10}.I{animation-delay:',
+            delay.toString(),
             's}@keyframes move{to{transform:translateX(-',
-            toDecimalString(calcTranslateX()),
-            '%)}}@font-face{font-family:&quot;Console&quot;;src:url(',
+            translateX.toString(),
+            'px)}}@font-face{font-family:&quot;Console&quot;;src:url(',
             _font.getFont(),
             ');}</style>',
             _storage.readFile(RendererFileKey.PARTY_CARD_DATA_1)
@@ -182,8 +184,9 @@ contract PartyNFTRenderer is IERC721Renderer {
             '</tspan></text><path d="M331 181H31c-8.284 0-15 6.716-15 15v315c0 8.284 6.716 15 15 15h300c8.284 0 15-6.716 15-15V196c0-8.284-6.716-15-15-15z" class="G"/><path d="M331 181a15.01 15.01 0 0 1 15 15v315a15.01 15.01 0 0 1-15 15H31a15.01 15.01 0 0 1-15-15V196a15.01 15.01 0 0 1 15-15h300zm0-1H31c-8.82 0-16 7.18-16 16v315c0 8.82 7.18 16 16 16h300c8.82 0 16-7.18 16-16V196c0-8.82-7.18-16-16-16z" fill="url(#J)"/><path d="M321 469C324.86 469 328 472.14 328 476V501C328 504.86 324.86 508 321 508H198.5C194.64 508 191.5 504.86 191.5 501V476C191.5 472.14 194.64 469 198.5 469H321ZM321 466H198.5C192.98 466 188.5 470.48 188.5 476V501C188.5 506.52 192.98 511 198.5 511H321C326.52 511 331 506.52 331 501V476C331 470.48 326.52 466 321 466Z" fill="#50586D"/><path d="M31 476L31 501C31 506.523 35.4772 511 41 511H163.5C169.023 511 173.5 506.523 173.5 501V476C173.5 470.477 169.023 466 163.5 466H41C35.4772 466 31 470.477 31 476Z" fill="',
             hasUnclaimed ? '#50586D' : '#91A6C3',
             _storage.readFile(RendererFileKey.PARTY_CARD_DATA_2),
+            '<text class="A D E F"><tspan x="328" y="241.984">',
             partyName,
-            '</tspan></text><text class="A D E F I"><tspan x="329" y="241.984">',
+            '</tspan></text><text class="A D E F I"><tspan x="328" y="241.984">',
             partyName,
             '</tspan></text></g>'
         );
@@ -269,12 +272,25 @@ contract PartyNFTRenderer is IERC721Renderer {
         return false;
     }
 
-    function calcAnimationDuration() private view returns (uint256) {
-        return 0.26272e18 * bytes(name).length + 11.97633e18;
-    }
-
-    function calcTranslateX() private view returns (uint256) {
-        return 7.42012e18 * bytes(name).length + 88.52071e18;
+    function calcAnimationVariables(string memory partyName)
+        private
+        pure
+        returns (
+            uint256 duration,
+            uint256 steps,
+            uint256 delay,
+            uint256 translateX
+        )
+    {
+        translateX = bytes(partyName).length * 30 + 300;
+        duration = translateX / 56;
+        if (duration % 2 != 0) {
+            // Make duration even so that the animation delay is always exactly
+            // half of the duration
+            duration += 1;
+        }
+        delay = duration / 2;
+        steps = translateX / 6;
     }
 
     // Convert 18 decimals number to stringified 2 decimal number
