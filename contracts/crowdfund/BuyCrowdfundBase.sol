@@ -117,10 +117,11 @@ abstract contract BuyCrowdfundBase is Crowdfund {
         if (callValue > totalContributions_) {
             revert ExceedsTotalContributionsError(callValue, totalContributions_);
         }
+        // Check that the call value is under the maximum price.
         {
             uint96 maximumPrice_ = maximumPrice;
-            if (maximumPrice_ != 0 && callValue > maximumPrice_) {
-                revert MaximumPriceError(callValue, maximumPrice);
+            if (callValue > maximumPrice_) {
+                revert MaximumPriceError(callValue, maximumPrice_);
             }
         }
         // Temporarily set to non-zero as a reentrancy guard.
