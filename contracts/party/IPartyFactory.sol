@@ -29,14 +29,14 @@ interface IPartyFactory {
     ///                       to extra restrictions in proposals vs other
     ///                       assets.
     /// @param preciousTokenIds The IDs associated with each token in `preciousTokens`.
-    /// @param customizationData Encoded data used to render the party card (eg. color).
+    /// @param customizationPresetId Customization preset chosen to render the party's card.
     /// @return party The newly created `Party` instance.
     function createParty(
         address authority,
         Party.PartyOptions calldata opts,
         IERC721[] memory preciousTokens,
         uint256[] memory preciousTokenIds,
-        bytes memory customizationData
+        uint256 customizationPresetId
     )
         external
         returns (Party party);

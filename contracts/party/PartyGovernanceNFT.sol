@@ -9,6 +9,7 @@ import "../globals/IGlobals.sol";
 import "../tokens/IERC721.sol";
 import "../vendor/solmate/ERC721.sol";
 import "./PartyGovernance.sol";
+import "../renderers/RendererStorage.sol";
 
 /// @notice ERC721 functionality built on top of `PartyGovernance`.
 contract PartyGovernanceNFT is
@@ -53,7 +54,8 @@ contract PartyGovernanceNFT is
         PartyGovernance.GovernanceOpts memory governanceOpts,
         IERC721[] memory preciousTokens,
         uint256[] memory preciousTokenIds,
-        address mintAuthority_
+        address mintAuthority_,
+        uint256 customizationPresetId
     )
         internal
     {
@@ -61,6 +63,10 @@ contract PartyGovernanceNFT is
         name = name_;
         symbol = symbol_;
         mintAuthority = mintAuthority_;
+        if (customizationPresetId != 0) {
+            RendererStorage(_GLOBALS.getAddress(LibGlobals.GLOBAL_RENDERER_STORAGE))
+                .useCustomizationPreset(customizationPresetId);
+        }
     }
 
     /// @inheritdoc ERC721

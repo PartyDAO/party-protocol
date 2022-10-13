@@ -25,6 +25,9 @@ contract CrowdfundNFTRenderer is IERC721Renderer {
         LOST
     }
 
+    uint256 constant CROWDFUND_CARD_DATA_1 = 0;
+    uint256 constant CROWDFUND_CARD_DATA_2 = 1;
+
     IGlobals immutable _GLOBALS;
     RendererStorage immutable _storage;
     IFont immutable _font;
@@ -153,9 +156,9 @@ contract CrowdfundNFTRenderer is IERC721Renderer {
 
     function generateSVG2(CrowdfundStatus status) private view returns (string memory) {
         return string.concat(
-            _storage.readFile(RendererFileKey.CROWDFUND_CARD_DATA_1),
+            _storage.readFile(CROWDFUND_CARD_DATA_1),
             status == CrowdfundStatus.LIVE ? '#50586D' : '#91A6C3',
-            _storage.readFile(RendererFileKey.CROWDFUND_CARD_DATA_2),
+            _storage.readFile(CROWDFUND_CARD_DATA_2),
             status == CrowdfundStatus.WON ? '#50586D' : '#91A6C3',
             '"/><g fill="#a7b8cf"><path d="M159.65 490.49h2.41l1.62 7.09a11.48 11.48 0 0 1 .27 1.53l.09 1.53h.18l.07-1.53c.05-.36.14-.83.31-1.53l1.55-7.09h2.7l1.57 7.09.29 1.53c.05.45.07.77.07 1.53h.2l.07-1.53a12.07 12.07 0 0 1 .27-1.53l1.64-7.09h2.39l-3.01 12.01h-2.9l-1.55-6.95a10.83 10.83 0 0 1-.23-1.55l-.07-1.22h-.18c-.04 1.15-.11 1.98-.29 2.77l-1.55 6.95h-2.9l-3.02-12.01z"/><use xlink:href="#I"/><path d="M190.32 502.5v-12.01h3.33l3.35 6.82c.36.72.61 1.4.79 2.07.09.32.14.52.23 1.03h.16c-.23-1.21-.32-2.2-.32-3.17v-6.75h2.3v12.01h-2.88l-3.73-7.54c-.32-.67-.56-1.21-.68-1.64-.09-.31-.14-.54-.22-1.08h-.16l.11 1.12c.04.43.04.9.04 1.76v7.38h-2.32z"/></g><path d="M241 486v20a5 5 0 0 0 5 5h80a5 5 0 0 0 5-5v-20a5 5 0 0 0-5-5h-80a5 5 0 0 0-5 5z" fill="',
             status == CrowdfundStatus.LOST ? '#50586D' : '#91A6C3',

@@ -24,6 +24,8 @@ abstract contract BuyCrowdfundBase is Crowdfund {
         string name;
         // The token symbol for both the crowdfund and the governance NFTs.
         string symbol;
+        // Customization preset ID to use for the crowdfund and governance NFTs.
+        uint256 customizationPresetId;
         // How long this crowdfund has to bid on the NFT, in seconds.
         uint40 duration;
         // Maximum amount this crowdfund will pay for the NFT.
@@ -77,6 +79,7 @@ abstract contract BuyCrowdfundBase is Crowdfund {
         Crowdfund._initialize(CrowdfundOptions({
             name: opts.name,
             symbol: opts.symbol,
+            customizationPresetId: opts.customizationPresetId,
             splitRecipient: opts.splitRecipient,
             splitBps: opts.splitBps,
             initialContributor: opts.initialContributor,

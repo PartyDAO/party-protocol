@@ -34,11 +34,9 @@ contract CrowdfundFactory {
     ///             and cannot be changed later.
     /// @param createGateCallData Encoded calldata used by `createGate()` to
     ///                           create the crowdfund if one is specified in `opts`.
-    /// @param customizationData Encoded data used to render the crowdfund card (eg. color).
     function createBuyCrowdfund(
         BuyCrowdfund.BuyCrowdfundOptions memory opts,
-        bytes memory createGateCallData,
-        bytes memory customizationData
+        bytes memory createGateCallData
     )
         public
         payable
@@ -53,10 +51,6 @@ contract CrowdfundFactory {
             _GLOBALS.getImplementation(LibGlobals.GLOBAL_BUY_CF_IMPL),
             abi.encodeCall(BuyCrowdfund.initialize, (opts))
         )));
-        if (customizationData.length > 0) {
-            RendererStorage(_GLOBALS.getAddress(LibGlobals.GLOBAL_RENDERER_STORAGE))
-                .customizeCard(address(inst), customizationData);
-        }
         emit BuyCrowdfundCreated(inst, opts);
     }
 
@@ -66,11 +60,9 @@ contract CrowdfundFactory {
     ///             and cannot be changed later.
     /// @param createGateCallData Encoded calldata used by `createGate()` to create
     ///                           the crowdfund if one is specified in `opts`.
-    /// @param customizationData Encoded data used to render the crowdfund card (eg. color).
     function createAuctionCrowdfund(
         AuctionCrowdfund.AuctionCrowdfundOptions memory opts,
-        bytes memory createGateCallData,
-        bytes memory customizationData
+        bytes memory createGateCallData
     )
         public
         payable
@@ -85,10 +77,6 @@ contract CrowdfundFactory {
             _GLOBALS.getImplementation(LibGlobals.GLOBAL_AUCTION_CF_IMPL),
             abi.encodeCall(AuctionCrowdfund.initialize, (opts))
         )));
-        if (customizationData.length > 0) {
-            RendererStorage(_GLOBALS.getAddress(LibGlobals.GLOBAL_RENDERER_STORAGE))
-                .customizeCard(address(inst), customizationData);
-        }
         emit AuctionCrowdfundCreated(inst, opts);
     }
 
@@ -98,11 +86,9 @@ contract CrowdfundFactory {
     ///             and cannot be changed later.
     /// @param createGateCallData Encoded calldata used by `createGate()` to create
     ///                           the crowdfund if one is specified in `opts`.
-    /// @param customizationData Encoded data used to render the crowdfund card (eg. color).
     function createCollectionBuyCrowdfund(
         CollectionBuyCrowdfund.CollectionBuyCrowdfundOptions memory opts,
-        bytes memory createGateCallData,
-        bytes memory customizationData
+        bytes memory createGateCallData
     )
         public
         payable
@@ -117,10 +103,6 @@ contract CrowdfundFactory {
             _GLOBALS.getImplementation(LibGlobals.GLOBAL_COLLECTION_BUY_CF_IMPL),
             abi.encodeCall(CollectionBuyCrowdfund.initialize, (opts))
         )));
-        if (customizationData.length > 0) {
-            RendererStorage(_GLOBALS.getAddress(LibGlobals.GLOBAL_RENDERER_STORAGE))
-                .customizeCard(address(inst), customizationData);
-        }
         emit CollectionBuyCrowdfundCreated(inst, opts);
     }
 

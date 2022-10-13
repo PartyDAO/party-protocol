@@ -23,6 +23,7 @@ contract Party is PartyGovernanceNFT {
         IERC721[] preciousTokens;
         uint256[] preciousTokenIds;
         address mintAuthority;
+        uint256 customizationPresetId;
     }
 
     // Set the `Globals` contract.
@@ -41,7 +42,8 @@ contract Party is PartyGovernanceNFT {
             initData.options.governance,
             initData.preciousTokens,
             initData.preciousTokenIds,
-            initData.mintAuthority
+            initData.mintAuthority,
+            initData.customizationPresetId
         );
     }
 
