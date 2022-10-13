@@ -51,11 +51,11 @@ contract PartyGovernanceNFT is
     function _initialize(
         string memory name_,
         string memory symbol_,
+        uint256 customizationPresetId,
         PartyGovernance.GovernanceOpts memory governanceOpts,
         IERC721[] memory preciousTokens,
         uint256[] memory preciousTokenIds,
-        address mintAuthority_,
-        uint256 customizationPresetId
+        address mintAuthority_
     )
         internal
     {

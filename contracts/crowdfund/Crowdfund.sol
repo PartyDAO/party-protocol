@@ -376,6 +376,8 @@ abstract contract Crowdfund is Implementation, ERC721Receiver, CrowdfundNFT {
                 Party.PartyOptions({
                     name: name,
                     symbol: symbol,
+                    // Indicates to the party to use the same customization preset as the crowdfund.
+                    customizationPresetId: 0,
                     governance: PartyGovernance.GovernanceOpts({
                         hosts: governanceOpts.hosts,
                         voteDuration: governanceOpts.voteDuration,
@@ -387,9 +389,7 @@ abstract contract Crowdfund is Implementation, ERC721Receiver, CrowdfundNFT {
                     })
                 }),
                 preciousTokens,
-                preciousTokenIds,
-                // Indicates to the party to use the same customization preset as the crowdfund.
-                0
+                preciousTokenIds
             );
         // Transfer the acquired NFTs to the new party.
         for (uint256 i = 0; i < preciousTokens.length; ++i) {

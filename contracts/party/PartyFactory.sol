@@ -28,8 +28,7 @@ contract PartyFactory is IPartyFactory {
         address authority,
         Party.PartyOptions memory opts,
         IERC721[] memory preciousTokens,
-        uint256[] memory preciousTokenIds,
-        uint256 customizationPresetId
+        uint256[] memory preciousTokenIds
     )
         external
         returns (Party party)
@@ -43,8 +42,7 @@ contract PartyFactory is IPartyFactory {
             options: opts,
             preciousTokens: preciousTokens,
             preciousTokenIds: preciousTokenIds,
-            mintAuthority: authority,
-            customizationPresetId: customizationPresetId
+            mintAuthority: authority
         });
         party = Party(payable(
             new Proxy(
