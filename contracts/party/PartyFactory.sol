@@ -28,8 +28,7 @@ contract PartyFactory is IPartyFactory {
         address authority,
         Party.PartyOptions memory opts,
         IERC721[] memory preciousTokens,
-        uint256[] memory preciousTokenIds,
-        bytes memory customizationData
+        uint256[] memory preciousTokenIds
     )
         external
         returns (Party party)
@@ -51,10 +50,6 @@ contract PartyFactory is IPartyFactory {
                 abi.encodeCall(Party.initialize, (initData))
             )
         ));
-        if (customizationData.length > 0) {
-            RendererStorage(GLOBALS.getAddress(LibGlobals.GLOBAL_RENDERER_STORAGE))
-                .customizeCard(address(party), customizationData);
-        }
         emit PartyCreated(party, opts, preciousTokens, preciousTokenIds, msg.sender);
     }
 }

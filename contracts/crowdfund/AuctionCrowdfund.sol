@@ -37,6 +37,8 @@ contract AuctionCrowdfund is Crowdfund {
         string name;
         // The token symbol for both the crowdfund and the governance NFTs.
         string symbol;
+        // Customization preset ID to use for the crowdfund and governance NFTs.
+        uint256 customizationPresetId;
         // The auction ID (specific to the IMarketWrapper).
         uint256 auctionId;
         // IMarketWrapper contract that handles interactions with auction markets.
@@ -131,6 +133,7 @@ contract AuctionCrowdfund is Crowdfund {
         Crowdfund._initialize(CrowdfundOptions({
             name: opts.name,
             symbol: opts.symbol,
+            customizationPresetId: opts.customizationPresetId,
             splitRecipient: opts.splitRecipient,
             splitBps: opts.splitBps,
             initialContributor: opts.initialContributor,

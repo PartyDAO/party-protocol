@@ -15,6 +15,7 @@ contract Party is PartyGovernanceNFT {
         PartyGovernance.GovernanceOpts governance;
         string name;
         string symbol;
+        uint256 customizationPresetId;
     }
 
     // Arguments used to initialize the `PartyGovernanceNFT`.
@@ -38,6 +39,7 @@ contract Party is PartyGovernanceNFT {
         PartyGovernanceNFT._initialize(
             initData.options.name,
             initData.options.symbol,
+            initData.options.customizationPresetId,
             initData.options.governance,
             initData.preciousTokens,
             initData.preciousTokenIds,
