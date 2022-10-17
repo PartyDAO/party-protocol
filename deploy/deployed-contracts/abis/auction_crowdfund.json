@@ -80,6 +80,27 @@
     "type": "error"
   },
   {
+    "inputs": [
+      {
+        "internalType": "uint96",
+        "name": "value",
+        "type": "uint96"
+      },
+      {
+        "internalType": "uint96",
+        "name": "totalContributions",
+        "type": "uint96"
+      }
+    ],
+    "name": "ExceedsTotalContributionsError",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "InvalidAddressError",
+    "type": "error"
+  },
+  {
     "inputs": [],
     "name": "InvalidAuctionIdError",
     "type": "error"
@@ -101,18 +122,7 @@
     "type": "error"
   },
   {
-    "inputs": [
-      {
-        "internalType": "bytes32",
-        "name": "actualHash",
-        "type": "bytes32"
-      },
-      {
-        "internalType": "bytes32",
-        "name": "expectedHash",
-        "type": "bytes32"
-      }
-    ],
+    "inputs": [],
     "name": "InvalidGovernanceOptionsError",
     "type": "error"
   },
@@ -125,6 +135,11 @@
       }
     ],
     "name": "InvalidTokenError",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "MissingHostsError",
     "type": "error"
   },
   {
@@ -165,17 +180,32 @@
   },
   {
     "inputs": [],
+    "name": "NothingToClaimError",
+    "type": "error"
+  },
+  {
+    "inputs": [],
     "name": "OnlyConstructorError",
     "type": "error"
   },
   {
     "inputs": [],
-    "name": "OnlyContributorAllowedError",
+    "name": "OnlyContributorError",
     "type": "error"
   },
   {
     "inputs": [],
     "name": "OnlyDelegateCallError",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "OnlyPartyHostError",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "OnlyPartyHostOrContributorError",
     "type": "error"
   },
   {
@@ -468,7 +498,50 @@
     "type": "function"
   },
   {
-    "inputs": [],
+    "inputs": [
+      {
+        "components": [
+          {
+            "internalType": "address[]",
+            "name": "hosts",
+            "type": "address[]"
+          },
+          {
+            "internalType": "uint40",
+            "name": "voteDuration",
+            "type": "uint40"
+          },
+          {
+            "internalType": "uint40",
+            "name": "executionDelay",
+            "type": "uint40"
+          },
+          {
+            "internalType": "uint16",
+            "name": "passThresholdBps",
+            "type": "uint16"
+          },
+          {
+            "internalType": "uint16",
+            "name": "feeBps",
+            "type": "uint16"
+          },
+          {
+            "internalType": "address payable",
+            "name": "feeRecipient",
+            "type": "address"
+          }
+        ],
+        "internalType": "struct Crowdfund.FixedGovernanceOpts",
+        "name": "governanceOpts",
+        "type": "tuple"
+      },
+      {
+        "internalType": "uint256",
+        "name": "hostIndex",
+        "type": "uint256"
+      }
+    ],
     "name": "bid",
     "outputs": [],
     "stateMutability": "nonpayable",
@@ -485,6 +558,43 @@
     "name": "burn",
     "outputs": [],
     "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address payable",
+        "name": "receiver",
+        "type": "address"
+      }
+    ],
+    "name": "claim",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "name": "claims",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "refund",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "governanceTokenId",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
     "type": "function"
   },
   {
@@ -799,6 +909,11 @@
             "type": "bytes12"
           },
           {
+            "internalType": "bool",
+            "name": "onlyHostCanBid",
+            "type": "bool"
+          },
+          {
             "components": [
               {
                 "internalType": "address[]",
@@ -980,6 +1095,19 @@
       }
     ],
     "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "onlyHostCanBid",
+    "outputs": [
+      {
+        "internalType": "bool",
+        "name": "",
+        "type": "bool"
+      }
+    ],
+    "stateMutability": "view",
     "type": "function"
   },
   {
