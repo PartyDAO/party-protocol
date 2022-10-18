@@ -23,6 +23,8 @@ contract BuyCrowdfund is BuyCrowdfundBase {
         string name;
         // The token symbol for both the crowdfund and the governance NFTs.
         string symbol;
+        // Customization preset ID to use for the crowdfund and governance NFTs.
+        uint256 customizationPresetId;
         // The ERC721 contract of the NFT being bought.
         IERC721 nftContract;
         // ID of the NFT being bought.
@@ -82,6 +84,7 @@ contract BuyCrowdfund is BuyCrowdfundBase {
         BuyCrowdfundBase._initialize(BuyCrowdfundBaseOptions({
             name: opts.name,
             symbol: opts.symbol,
+            customizationPresetId: opts.customizationPresetId,
             duration: opts.duration,
             maximumPrice: opts.maximumPrice,
             splitRecipient: opts.splitRecipient,

@@ -4,6 +4,7 @@ pragma solidity 0.8.17;
 
 import "../globals/IGlobals.sol";
 import "../tokens/IERC721.sol";
+import "../renderers/RendererStorage.sol";
 
 import "./Party.sol";
 

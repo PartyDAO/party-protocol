@@ -7,6 +7,7 @@ import "../utils/ReadOnlyDelegateCall.sol";
 import "../utils/EIP165.sol";
 import "../globals/IGlobals.sol";
 import "../globals/LibGlobals.sol";
+import "../renderers/RendererStorage.sol";
 
 /// @notice NFT functionality for crowdfund types. This NFT is soulbound and read-only.
 contract CrowdfundNFT is IERC721, EIP165, ReadOnlyDelegateCall {
@@ -38,12 +39,20 @@ contract CrowdfundNFT is IERC721, EIP165, ReadOnlyDelegateCall {
     }
 
     // Initialize name and symbol for crowdfund.
-    function _initialize(string memory name_, string memory symbol_)
+    function _initialize(
+        string memory name_,
+        string memory symbol_,
+        uint256 customizationPresetId
+    )
         internal
         virtual
     {
         name = name_;
         symbol = symbol_;
+        if (customizationPresetId != 0) {
+            RendererStorage(_GLOBALS.getAddress(LibGlobals.GLOBAL_RENDERER_STORAGE))
+                .useCustomizationPreset(customizationPresetId);
+        }
     }
 
     /// @notice DO NOT CALL. This is a soulbound NFT and cannot be transferred.
