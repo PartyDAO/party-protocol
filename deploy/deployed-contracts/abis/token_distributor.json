@@ -5,6 +5,11 @@
         "internalType": "contract IGlobals",
         "name": "globals",
         "type": "address"
+      },
+      {
+        "internalType": "uint40",
+        "name": "emergencyDisabledTimestamp",
+        "type": "uint40"
       }
     ],
     "stateMutability": "nonpayable",
@@ -370,6 +375,19 @@
     ],
     "name": "DistributionFeeClaimed",
     "type": "event"
+  },
+  {
+    "inputs": [],
+    "name": "EMERGENCY_DISABLED_TIMESTAMP",
+    "outputs": [
+      {
+        "internalType": "uint40",
+        "name": "",
+        "type": "uint40"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
   },
   {
     "inputs": [],
@@ -754,67 +772,19 @@
     "type": "function"
   },
   {
-    "inputs": [],
-    "name": "disableEmergencyActions",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [],
-    "name": "emergencyActionsDisabled",
-    "outputs": [
-      {
-        "internalType": "bool",
-        "name": "",
-        "type": "bool"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
     "inputs": [
-      {
-        "internalType": "contract ITokenDistributorParty",
-        "name": "party",
-        "type": "address"
-      },
-      {
-        "internalType": "uint256",
-        "name": "distributionId",
-        "type": "uint256"
-      }
-    ],
-    "name": "emergencyRemoveDistribution",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "enum ITokenDistributor.TokenType",
-        "name": "tokenType",
-        "type": "uint8"
-      },
       {
         "internalType": "address",
-        "name": "token",
+        "name": "targetAddress",
         "type": "address"
       },
       {
-        "internalType": "address payable",
-        "name": "recipient",
-        "type": "address"
-      },
-      {
-        "internalType": "uint256",
-        "name": "amount",
-        "type": "uint256"
+        "internalType": "bytes",
+        "name": "targetCallData",
+        "type": "bytes"
       }
     ],
-    "name": "emergencyWithdraw",
+    "name": "emergencyExecute",
     "outputs": [],
     "stateMutability": "nonpayable",
     "type": "function"

@@ -92,6 +92,11 @@
             "type": "bytes12"
           },
           {
+            "internalType": "bool",
+            "name": "onlyHostCanBid",
+            "type": "bool"
+          },
+          {
             "components": [
               {
                 "internalType": "address[]",
@@ -208,6 +213,11 @@
             "internalType": "bytes12",
             "name": "gateKeeperId",
             "type": "bytes12"
+          },
+          {
+            "internalType": "bool",
+            "name": "onlyHostCanBuy",
+            "type": "bool"
           },
           {
             "components": [
@@ -444,6 +454,11 @@
             "type": "bytes12"
           },
           {
+            "internalType": "bool",
+            "name": "onlyHostCanBid",
+            "type": "bool"
+          },
+          {
             "components": [
               {
                 "internalType": "address[]",
@@ -565,6 +580,11 @@
             "internalType": "bytes12",
             "name": "gateKeeperId",
             "type": "bytes12"
+          },
+          {
+            "internalType": "bool",
+            "name": "onlyHostCanBuy",
+            "type": "bool"
           },
           {
             "components": [

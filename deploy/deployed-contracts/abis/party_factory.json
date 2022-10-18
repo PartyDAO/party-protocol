@@ -31,6 +31,78 @@
         "type": "address"
       },
       {
+        "components": [
+          {
+            "components": [
+              {
+                "internalType": "address[]",
+                "name": "hosts",
+                "type": "address[]"
+              },
+              {
+                "internalType": "uint40",
+                "name": "voteDuration",
+                "type": "uint40"
+              },
+              {
+                "internalType": "uint40",
+                "name": "executionDelay",
+                "type": "uint40"
+              },
+              {
+                "internalType": "uint16",
+                "name": "passThresholdBps",
+                "type": "uint16"
+              },
+              {
+                "internalType": "uint96",
+                "name": "totalVotingPower",
+                "type": "uint96"
+              },
+              {
+                "internalType": "uint16",
+                "name": "feeBps",
+                "type": "uint16"
+              },
+              {
+                "internalType": "address payable",
+                "name": "feeRecipient",
+                "type": "address"
+              }
+            ],
+            "internalType": "struct PartyGovernance.GovernanceOpts",
+            "name": "governance",
+            "type": "tuple"
+          },
+          {
+            "internalType": "string",
+            "name": "name",
+            "type": "string"
+          },
+          {
+            "internalType": "string",
+            "name": "symbol",
+            "type": "string"
+          }
+        ],
+        "indexed": false,
+        "internalType": "struct Party.PartyOptions",
+        "name": "opts",
+        "type": "tuple"
+      },
+      {
+        "indexed": false,
+        "internalType": "contract IERC721[]",
+        "name": "preciousTokens",
+        "type": "address[]"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256[]",
+        "name": "preciousTokenIds",
+        "type": "uint256[]"
+      },
+      {
         "indexed": false,
         "internalType": "address",
         "name": "creator",
