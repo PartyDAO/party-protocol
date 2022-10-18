@@ -49,9 +49,24 @@ contract PartyGovernanceNFTTest is Test, TestUtils {
 
         // Upload font on-chain
         PixeldroidConsoleFont font = new PixeldroidConsoleFont();
-        nftRendererStorage = new RendererStorage();
+        nftRendererStorage = new RendererStorage(address(this));
         nftRenderer = new PartyNFTRenderer(globals, nftRendererStorage, font);
         globalsAdmin.setGovernanceNftRendererAddress(address(nftRenderer));
+
+        // Generate customization options.
+        uint256 versionId = 1;
+        uint256 numOfColors = uint8(type(RendererCustomization.Color).max) + 1;
+        for (uint256 i; i < numOfColors - 1; ++i) {
+            // Generate customization options for all colors w/ each mode (light and dark).
+            nftRendererStorage.createCustomizationPreset(
+                i,
+                abi.encode(versionId, false, RendererCustomization.Color(i))
+            );
+            nftRendererStorage.createCustomizationPreset(
+                i + numOfColors,
+                abi.encode(versionId, true, RendererCustomization.Color(i))
+            );
+        }
 
         // Mint dummy NFT
         address nftHolderAddress = address(1);
@@ -146,19 +161,17 @@ contract PartyGovernanceNFTTest is Test, TestUtils {
         DummyParty party = new DummyParty(address(globals), "Party of the Living Dead");
 
         // Create proposals
-        uint256 n = _randomRange(0, 6);
-        for (uint256 i; i < n; ++i) {
-            _createMockProposal(party);
-        }
-
-        bool hasClaimed = n > 3;
-        uint256 tokenId = _randomUint256() % 1000;
+        party.createMockProposal(PartyGovernance.ProposalStatus.Complete);
+        party.createMockProposal(PartyGovernance.ProposalStatus.Voting);
+        party.createMockProposal(PartyGovernance.ProposalStatus.Ready);
+        party.createMockProposal(PartyGovernance.ProposalStatus.InProgress);
 
         // Mint governance NFT
+        uint256 tokenId = 396;
         party.mint(tokenId);
 
         // Set claimed/unclaimed state
-        tokenDistributor.setHasClaimed(address(party), hasClaimed);
+        tokenDistributor.setHasClaimed(address(party), false);
 
         // Get token URI
         string memory tokenURI = party.tokenURI(tokenId);
@@ -274,7 +287,7 @@ contract DummyParty is ReadOnlyDelegateCall {
     }
 
     function getDistributionShareOf(uint256) external pure returns (uint256) {
-        return 69.42e18;
+        return 10.32e18;
     }
 
     function _delegateToRenderer() private view {

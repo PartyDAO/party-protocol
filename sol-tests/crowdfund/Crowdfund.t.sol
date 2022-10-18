@@ -74,11 +74,27 @@ contract CrowdfundTest is Test, TestUtils {
         defaultGovernanceOpts.executionDelay = 0.5 days;
         defaultGovernanceOpts.passThresholdBps = 0.51e4;
 
+
         // Upload font on-chain
         PixeldroidConsoleFont font = new PixeldroidConsoleFont();
-        RendererStorage nftRendererStorage = new RendererStorage();
+        RendererStorage nftRendererStorage = new RendererStorage(address(this));
         CrowdfundNFTRenderer nftRenderer = new CrowdfundNFTRenderer(globals, nftRendererStorage, font);
         globals.setAddress(LibGlobals.GLOBAL_CF_NFT_RENDER_IMPL, address(nftRenderer));
+
+        // Generate customization options.
+        uint256 versionId = 1;
+        uint256 numOfColors = uint8(type(RendererCustomization.Color).max) + 1;
+        for (uint256 i; i < numOfColors - 1; ++i) {
+            // Generate customization options for all colors w/ each mode (light and dark).
+            nftRendererStorage.createCustomizationPreset(
+                i,
+                abi.encode(versionId, false, RendererCustomization.Color(i))
+            );
+            nftRendererStorage.createCustomizationPreset(
+                i + numOfColors,
+                abi.encode(versionId, true, RendererCustomization.Color(i))
+            );
+        }
     }
 
     function _createTokens(address owner, uint256 count)
@@ -108,6 +124,7 @@ contract CrowdfundTest is Test, TestUtils {
                 Crowdfund.CrowdfundOptions({
                     name: defaultName,
                     symbol: defaultSymbol,
+                    customizationPresetId: 0,
                     splitRecipient: defaultSplitRecipient,
                     splitBps: defaultSplitBps,
                     initialContributor: initialContributor,
@@ -136,6 +153,7 @@ contract CrowdfundTest is Test, TestUtils {
         return Party.PartyOptions({
             name: defaultName,
             symbol: defaultSymbol,
+            customizationPresetId: 0,
             governance: PartyGovernance.GovernanceOpts({
                 hosts: govOpts.hosts,
                 voteDuration: govOpts.voteDuration,
@@ -939,6 +957,7 @@ contract CrowdfundTest is Test, TestUtils {
                 Crowdfund.CrowdfundOptions({
                     name: defaultName,
                     symbol: defaultSymbol,
+                    customizationPresetId: 0,
                     splitRecipient: defaultSplitRecipient,
                     splitBps: defaultSplitBps,
                     initialContributor: address(0),

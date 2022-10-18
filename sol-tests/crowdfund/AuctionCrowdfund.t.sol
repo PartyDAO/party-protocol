@@ -94,6 +94,7 @@ contract AuctionCrowdfundTest is Test, TestUtils {
                 AuctionCrowdfund.AuctionCrowdfundOptions({
                     name: defaultName,
                     symbol: defaultSymbol,
+                    customizationPresetId: 0,
                     auctionId: auctionId,
                     market: market,
                     nftContract: tokenToBuy,
@@ -140,6 +141,7 @@ contract AuctionCrowdfundTest is Test, TestUtils {
         return Party.PartyOptions({
             name: defaultName,
             symbol: defaultSymbol,
+            customizationPresetId: 0,
             governance: PartyGovernance.GovernanceOpts({
                 hosts: defaultGovernanceOpts.hosts,
                 voteDuration: defaultGovernanceOpts.voteDuration,
@@ -696,6 +698,7 @@ contract AuctionCrowdfundTest is Test, TestUtils {
                 AuctionCrowdfund.AuctionCrowdfundOptions({
                     name: defaultName,
                     symbol: defaultSymbol,
+                    customizationPresetId: 0,
                     auctionId: auctionId,
                     market: market,
                     nftContract: tokenToBuy,

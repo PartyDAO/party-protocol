@@ -167,6 +167,7 @@ describeFork('Mainnet deployment fork smoke tests', (provider) => {
                 {
                     name: PARTY_NAME,
                     symbol: PARTY_SYMBOL,
+                    customizationPresetId: 0,
                     nftContract: dummyERC721Contract.address,
                     nftTokenId: buyTokenId,
                     duration: CF_DURATION,

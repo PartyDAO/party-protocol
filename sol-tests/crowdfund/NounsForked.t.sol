@@ -53,6 +53,7 @@ contract NounsForkedTest is TestUtils {
                 AuctionCrowdfund.AuctionCrowdfundOptions({
                     name: "Party",
                     symbol: "PRTY",
+                    customizationPresetId: 0,
                     auctionId: tokenId,
                     market: nounsMarket,
                     nftContract: nounsToken,

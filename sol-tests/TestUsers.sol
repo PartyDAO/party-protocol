@@ -90,7 +90,8 @@ contract PartyAdmin is Test {
     Party.PartyOptions memory po = Party.PartyOptions({
       governance: govOpts,
       name: 'Dope party',
-      symbol: 'DOPE'
+      symbol: 'DOPE',
+      customizationPresetId: 0
     });
     IERC721[] memory preciousTokens = new IERC721[](1);
     preciousTokens[0] = IERC721(opts.preciousTokenAddress);

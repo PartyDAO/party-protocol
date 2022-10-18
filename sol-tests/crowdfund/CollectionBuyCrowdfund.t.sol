@@ -69,6 +69,7 @@ contract CollectionBuyCrowdfundTest is Test, TestUtils {
                 CollectionBuyCrowdfund.CollectionBuyCrowdfundOptions({
                     name: defaultName,
                     symbol: defaultSymbol,
+                    customizationPresetId: 0,
                     nftContract: erc721Vault.token(),
                     duration: defaultDuration,
                     maximumPrice: defaultMaxPrice,
@@ -92,6 +93,7 @@ contract CollectionBuyCrowdfundTest is Test, TestUtils {
         return Party.PartyOptions({
             name: defaultName,
             symbol: defaultSymbol,
+            customizationPresetId: 0,
             governance: PartyGovernance.GovernanceOpts({
                 hosts: hosts,
                 voteDuration: defaultGovernanceOpts.voteDuration,
@@ -234,6 +236,7 @@ contract CollectionBuyCrowdfundTest is Test, TestUtils {
                 CollectionBuyCrowdfund.CollectionBuyCrowdfundOptions({
                     name: defaultName,
                     symbol: defaultSymbol,
+                    customizationPresetId: 0,
                     nftContract: erc721Vault.token(),
                     duration: defaultDuration,
                     maximumPrice: defaultMaxPrice,
