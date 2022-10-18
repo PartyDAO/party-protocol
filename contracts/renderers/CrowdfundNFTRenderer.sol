@@ -32,7 +32,9 @@ contract CrowdfundNFTRenderer is IERC721Renderer, RendererCustomization {
     RendererStorage immutable _storage;
     IFont immutable _font;
 
-    constructor(IGlobals globals, RendererStorage rendererStorage, IFont font) {
+    constructor(IGlobals globals, RendererStorage rendererStorage, IFont font)
+        RendererCustomization(rendererStorage)
+    {
         _GLOBALS = globals;
         _storage = rendererStorage;
         _font = font;
@@ -81,9 +83,8 @@ contract CrowdfundNFTRenderer is IERC721Renderer, RendererCustomization {
             revert InvalidTokenIdError();
         }
 
-        // TODO: Decode customization options to get this.
-        bool isDarkMode;
-        Color color;
+        // Get the customization data for this crowdfund.
+        (bool isDarkMode, Color color) = getCustomizationChoices();
 
         // Construct metadata.
         return string.concat(

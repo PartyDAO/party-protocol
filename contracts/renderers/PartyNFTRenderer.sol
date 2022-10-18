@@ -29,11 +29,13 @@ contract PartyNFTRenderer is IERC721Renderer, RendererCustomization {
 
     uint256 constant PARTY_CARD_DATA = 1;
 
-    IGlobals immutable _GLOBALS;
-    RendererStorage immutable _storage;
-    IFont immutable _font;
+    IGlobals private immutable _GLOBALS;
+    RendererStorage private immutable _storage;
+    IFont private immutable _font;
 
-    constructor(IGlobals globals, RendererStorage rendererStorage, IFont font) {
+    constructor(IGlobals globals, RendererStorage rendererStorage, IFont font)
+        RendererCustomization(rendererStorage)
+    {
         _GLOBALS = globals;
         _storage = rendererStorage;
         _font = font;
@@ -94,9 +96,8 @@ contract PartyNFTRenderer is IERC721Renderer, RendererCustomization {
             revert InvalidTokenIdError();
         }
 
-        // TODO: Decode customization options to get this.
-        bool isDarkMode;
-        Color color;
+        // Get the customization data for this crowdfund.
+        (bool isDarkMode, Color color) = getCustomizationChoices();
 
         // Construct metadata.
         return string.concat(

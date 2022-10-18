@@ -52,11 +52,12 @@ contract PartyGovernanceNFTTest is Test, TestUtils {
         nftRendererStorage = new RendererStorage(address(this));
         nftRenderer = new PartyNFTRenderer(globals, nftRendererStorage, font);
         globalsAdmin.setGovernanceNftRendererAddress(address(nftRenderer));
+        globalsAdmin.setRendererStorage(address(nftRendererStorage));
 
         // Generate customization options.
         uint256 versionId = 1;
         uint256 numOfColors = uint8(type(RendererCustomization.Color).max) + 1;
-        for (uint256 i; i < numOfColors - 1; ++i) {
+        for (uint256 i; i < numOfColors; ++i) {
             // Generate customization options for all colors w/ each mode (light and dark).
             nftRendererStorage.createCustomizationPreset(
                 i,
@@ -160,6 +161,9 @@ contract PartyGovernanceNFTTest is Test, TestUtils {
         // Create party
         DummyParty party = new DummyParty(address(globals), "Party of the Living Dead");
 
+        // Set customization option
+        party.useCustomizationPreset(15); // Should make card red w/ dark mode.
+
         // Create proposals
         party.createMockProposal(PartyGovernance.ProposalStatus.Complete);
         party.createMockProposal(PartyGovernance.ProposalStatus.Voting);
@@ -262,6 +266,13 @@ contract DummyParty is ReadOnlyDelegateCall {
     mapping(uint256 => uint256) public votingPowerByTokenId;
 
     mapping(uint256 => PartyGovernance.ProposalStatus) _proposalStatuses;
+
+    function useCustomizationPreset(uint256 customizationPresetId) external {
+        if (customizationPresetId != 0) {
+            RendererStorage(GLOBALS.getAddress(LibGlobals.GLOBAL_RENDERER_STORAGE))
+                .useCustomizationPreset(customizationPresetId);
+        }
+    }
 
     function tokenURI(uint256) public view returns (string memory) {
         _delegateToRenderer();

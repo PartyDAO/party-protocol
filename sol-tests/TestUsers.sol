@@ -46,6 +46,10 @@ contract GlobalsAdmin is Test {
   function setGovernanceNftRendererAddress(address rendererAddress) public {
     globals.setAddress(LibGlobals.GLOBAL_GOVERNANCE_NFT_RENDER_IMPL, rendererAddress);
   }
+
+  function setRendererStorage(address rendererStorage) public {
+    globals.setAddress(LibGlobals.GLOBAL_RENDERER_STORAGE, rendererStorage);
+  }
 }
 
 contract PartyAdmin is Test {

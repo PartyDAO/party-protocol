@@ -80,11 +80,12 @@ contract CrowdfundTest is Test, TestUtils {
         RendererStorage nftRendererStorage = new RendererStorage(address(this));
         CrowdfundNFTRenderer nftRenderer = new CrowdfundNFTRenderer(globals, nftRendererStorage, font);
         globals.setAddress(LibGlobals.GLOBAL_CF_NFT_RENDER_IMPL, address(nftRenderer));
+        globals.setAddress(LibGlobals.GLOBAL_RENDERER_STORAGE, address(nftRendererStorage));
 
         // Generate customization options.
         uint256 versionId = 1;
         uint256 numOfColors = uint8(type(RendererCustomization.Color).max) + 1;
-        for (uint256 i; i < numOfColors - 1; ++i) {
+        for (uint256 i; i < numOfColors; ++i) {
             // Generate customization options for all colors w/ each mode (light and dark).
             nftRendererStorage.createCustomizationPreset(
                 i,
@@ -113,7 +114,8 @@ contract CrowdfundTest is Test, TestUtils {
     function _createCrowdfund(
         uint256 initialContribution,
         address initialContributor,
-        address initialDelegate
+        address initialDelegate,
+        uint256 customizationPresetId
     )
         private
         returns (TestableCrowdfund cf)
@@ -124,7 +126,7 @@ contract CrowdfundTest is Test, TestUtils {
                 Crowdfund.CrowdfundOptions({
                     name: defaultName,
                     symbol: defaultSymbol,
-                    customizationPresetId: 0,
+                    customizationPresetId: customizationPresetId,
                     splitRecipient: defaultSplitRecipient,
                     splitBps: defaultSplitBps,
                     initialContributor: initialContributor,
@@ -137,11 +139,23 @@ contract CrowdfundTest is Test, TestUtils {
         )));
     }
 
+    function _createCrowdfund(uint256 initialContribution, uint256 customizationPresetId)
+        private
+        returns (TestableCrowdfund cf)
+    {
+        return _createCrowdfund(
+            initialContribution,
+            address(this),
+            defaultInitialDelegate,
+            customizationPresetId
+        );
+    }
+
     function _createCrowdfund(uint256 initialContribution)
         private
         returns (TestableCrowdfund cf)
     {
-        return _createCrowdfund(initialContribution, address(this), defaultInitialDelegate);
+        return _createCrowdfund(initialContribution, address(this), defaultInitialDelegate, 0);
     }
 
     function _createExpectedPartyOptions(TestableCrowdfund cf, uint256 finalPrice)
@@ -193,7 +207,8 @@ contract CrowdfundTest is Test, TestUtils {
         TestableCrowdfund cf = _createCrowdfund(
             initialContribution,
             initialContributor,
-            initialDelegate
+            initialDelegate,
+            0
         );
         (
             uint256 ethContributed,
@@ -211,7 +226,7 @@ contract CrowdfundTest is Test, TestUtils {
 
     function test_creation_initialContribution_noValue() public {
         address initialContributor = _randomAddress();
-        TestableCrowdfund cf = _createCrowdfund(0, initialContributor, initialContributor);
+        TestableCrowdfund cf = _createCrowdfund(0, initialContributor, initialContributor, 0);
         (
             uint256 ethContributed,
             uint256 ethUsed,
@@ -972,7 +987,9 @@ contract CrowdfundTest is Test, TestUtils {
 
     // test nft renderer
     function test_nftRenderer() public {
-        TestableCrowdfund cf = _createCrowdfund(0);
+        // should render a red cf card, dark mode
+        uint256 presetId = 15;
+        TestableCrowdfund cf = _createCrowdfund(0, presetId);
 
         address delegate1 = _randomAddress();
         address payable contributor1 = _randomAddress();

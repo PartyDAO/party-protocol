@@ -2,6 +2,8 @@
 // http://ipfs.io/ipfs/QmbGX2MFCaMAsMNMugRFND6DtYygRkwkvrqEyTKhTdBLo5
 pragma solidity 0.8.17;
 
+import "./RendererStorage.sol";
+
 contract RendererCustomization {
     enum Color {
         DEFAULT,
@@ -19,6 +21,22 @@ contract RendererCustomization {
         SECONDARY,
         LIGHT,
         DARK
+    }
+
+    RendererStorage private immutable _storage;
+
+    constructor(RendererStorage rendererStorage) {
+        _storage = rendererStorage;
+    }
+
+    function getCustomizationChoices() internal view returns (bool isDarkMode, Color color) {
+        uint256 presetId = _storage.getPresetFor(address(this));
+        bytes memory customizationData = _storage.customizationPresets(presetId);
+
+        // Check version number. Uses default if different version.
+        if (abi.decode(customizationData, (uint8)) == 1) {
+            (, isDarkMode, color) = abi.decode(customizationData, (uint8, bool, Color));
+        }
     }
 
     function generateColorHex(Color color, ColorType colorType) internal pure returns (string memory colorHex) {
