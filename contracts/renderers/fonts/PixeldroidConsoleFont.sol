@@ -10,7 +10,6 @@ enum FontFileKeys {
     TTF_FILE_PARTITION_2
 }
 
-// TODO: Move font to its own private repo
 contract PixeldroidConsoleFont is IFont {
     /// @inheritdoc IFont
     address public constant fontUploader = address(0);
