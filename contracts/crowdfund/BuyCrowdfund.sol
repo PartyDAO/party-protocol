@@ -112,7 +112,7 @@ contract BuyCrowdfund is BuyCrowdfundBase {
     function buy(
         address payable callTarget,
         uint96 callValue,
-        bytes calldata callData,
+        bytes memory callData,
         FixedGovernanceOpts memory governanceOpts,
         uint256 hostIndex
     )

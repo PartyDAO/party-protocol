@@ -105,7 +105,7 @@ contract CollectionBuyCrowdfund is BuyCrowdfundBase {
         uint256 tokenId,
         address payable callTarget,
         uint96 callValue,
-        bytes calldata callData,
+        bytes memory callData,
         FixedGovernanceOpts memory governanceOpts,
         uint256 hostIndex
     )
