@@ -353,11 +353,13 @@ contract Deploy {
         for (uint256 i; i < numOfColors; ++i) {
             // Create customization options for all colors w/ both modes (light and dark).
             rendererStorage.createCustomizationPreset(
-                i,
+                // Preset ID 0 is reserved. It is used to indicates to party instances
+                // to use the same customization preset as the crowdfund.
+                i + 1,
                 abi.encode(versionId, false, RendererCustomization.Color(i))
             );
             rendererStorage.createCustomizationPreset(
-                i + numOfColors,
+                i + 1 + numOfColors,
                 abi.encode(versionId, true, RendererCustomization.Color(i))
             );
         }

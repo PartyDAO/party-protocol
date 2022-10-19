@@ -88,11 +88,13 @@ contract CrowdfundTest is Test, TestUtils {
         for (uint256 i; i < numOfColors; ++i) {
             // Generate customization options for all colors w/ each mode (light and dark).
             nftRendererStorage.createCustomizationPreset(
-                i,
+                // Preset ID 0 is reserved. It is used to indicates to party instances
+                // to use the same customization preset as the crowdfund.
+                i + 1,
                 abi.encode(versionId, false, RendererCustomization.Color(i))
             );
             nftRendererStorage.createCustomizationPreset(
-                i + numOfColors,
+                i + 1 + numOfColors,
                 abi.encode(versionId, true, RendererCustomization.Color(i))
             );
         }
@@ -986,9 +988,50 @@ contract CrowdfundTest is Test, TestUtils {
     }
 
     // test nft renderer
-    function test_nftRenderer() public {
+    function test_nftRenderer_works() public {
         // should render a red cf card, dark mode
         uint256 presetId = 15;
+        TestableCrowdfund cf = _createCrowdfund(0, presetId);
+
+        address delegate1 = _randomAddress();
+        address payable contributor1 = _randomAddress();
+        // contributor1 contributes
+        vm.deal(contributor1, 123.45e18);
+        vm.prank(contributor1);
+        cf.contribute{ value: contributor1.balance }(delegate1, "");
+        string memory tokenURI = cf.tokenURI(uint256(uint160(address(contributor1))));
+
+        // Uncomment for testing rendering:
+        // console.log(tokenURI);
+
+        assertTrue(bytes(tokenURI).length > 0);
+    }
+
+    // Test rendering using a preset ID 0, which is reserved and should not be
+    // used. If it is though, expect the `tokenURI()` to fallback to rendering
+    // the default card.
+    function test_nftRenderer_usingReservedPresetId() public {
+        // should fallback to rendering a default cf card
+        uint256 presetId = 0;
+        TestableCrowdfund cf = _createCrowdfund(0, presetId);
+
+        address delegate1 = _randomAddress();
+        address payable contributor1 = _randomAddress();
+        // contributor1 contributes
+        vm.deal(contributor1, 123.45e18);
+        vm.prank(contributor1);
+        cf.contribute{ value: contributor1.balance }(delegate1, "");
+        string memory tokenURI = cf.tokenURI(uint256(uint160(address(contributor1))));
+
+        // Uncomment for testing rendering:
+        // console.log(tokenURI);
+
+        assertTrue(bytes(tokenURI).length > 0);
+    }
+
+    function test_nftRenderer_nonexistentPresetId() public {
+        // should fallback to rendering a default cf card
+        uint256 presetId = 999;
         TestableCrowdfund cf = _createCrowdfund(0, presetId);
 
         address delegate1 = _randomAddress();

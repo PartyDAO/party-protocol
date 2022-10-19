@@ -60,11 +60,13 @@ contract PartyGovernanceNFTTest is Test, TestUtils {
         for (uint256 i; i < numOfColors; ++i) {
             // Generate customization options for all colors w/ each mode (light and dark).
             nftRendererStorage.createCustomizationPreset(
-                i,
+                // Preset ID 0 is reserved. It is used to indicates to party instances
+                // to use the same customization preset as the crowdfund.
+                i + 1,
                 abi.encode(versionId, false, RendererCustomization.Color(i))
             );
             nftRendererStorage.createCustomizationPreset(
-                i + numOfColors,
+                i + 1 + numOfColors,
                 abi.encode(versionId, true, RendererCustomization.Color(i))
             );
         }
@@ -157,12 +159,78 @@ contract PartyGovernanceNFTTest is Test, TestUtils {
         party.abdicate();
     }
 
-    function testTokenURI() public {
+    function testTokenURI_works() public {
         // Create party
         DummyParty party = new DummyParty(address(globals), "Party of the Living Dead");
 
         // Set customization option
         party.useCustomizationPreset(15); // Should make card red w/ dark mode.
+
+        // Create proposals
+        party.createMockProposal(PartyGovernance.ProposalStatus.Complete);
+        party.createMockProposal(PartyGovernance.ProposalStatus.Voting);
+        party.createMockProposal(PartyGovernance.ProposalStatus.Ready);
+        party.createMockProposal(PartyGovernance.ProposalStatus.InProgress);
+
+        // Mint governance NFT
+        uint256 tokenId = 396;
+        party.mint(tokenId);
+
+        // Set claimed/unclaimed state
+        tokenDistributor.setHasClaimed(address(party), false);
+
+        // Get token URI
+        string memory tokenURI = party.tokenURI(tokenId);
+
+        // Uncomment for testing rendering:
+        // console.log(tokenURI);
+
+        assertTrue(bytes(tokenURI).length > 0);
+    }
+
+    // Test rendering using a preset ID 0, which is reserved to indicate to
+    // parties to use the same preset as the crowdfund that created it (or of
+    // whatever `mintAuthority()` chose if created outside the conventional flow).
+    function testTokenURI_usingReservedPresetId() public {
+        // Create party
+        DummyParty party = new DummyParty(address(globals), "Party of the Living Dead");
+
+        // Set customization option.
+        nftRendererStorage.useCustomizationPreset(5); // Should make card purple w/ light mode.
+
+        // Setting to preset ID 0 should cause `tokenURI()` to use the
+        // customization option of the `mintAuthority()` (which for this test is
+        // the caller).
+        party.useCustomizationPreset(0);
+
+        // Create proposals
+        party.createMockProposal(PartyGovernance.ProposalStatus.Complete);
+        party.createMockProposal(PartyGovernance.ProposalStatus.Voting);
+        party.createMockProposal(PartyGovernance.ProposalStatus.Ready);
+        party.createMockProposal(PartyGovernance.ProposalStatus.InProgress);
+
+        // Mint governance NFT
+        uint256 tokenId = 396;
+        party.mint(tokenId);
+
+        // Set claimed/unclaimed state
+        tokenDistributor.setHasClaimed(address(party), false);
+
+        // Get token URI
+        string memory tokenURI = party.tokenURI(tokenId);
+
+        // Uncomment for testing rendering:
+        // console.log(tokenURI);
+
+        assertTrue(bytes(tokenURI).length > 0);
+    }
+
+    function testTokenURI_nonexistentPresetId() public {
+        // Create party
+        DummyParty party = new DummyParty(address(globals), "Party of the Living Dead");
+
+        // Set customization option
+        party.useCustomizationPreset(999); // Should fallback to default card since doesn't exist.
 
         // Create proposals
         party.createMockProposal(PartyGovernance.ProposalStatus.Complete);
@@ -271,6 +339,8 @@ contract DummyParty is ReadOnlyDelegateCall {
         if (customizationPresetId != 0) {
             RendererStorage(GLOBALS.getAddress(LibGlobals.GLOBAL_RENDERER_STORAGE))
                 .useCustomizationPreset(customizationPresetId);
+        } else {
+            mintAuthority = msg.sender;
         }
     }
 
