@@ -74,7 +74,7 @@ contract CrowdfundTest is Test, TestUtils {
         defaultGovernanceOpts.passThresholdBps = 0.51e4;
     }
 
-    function setUp() public {
+    function setUp() external {
         CrowdfundNFTRenderer nftRenderer = new CrowdfundNFTRenderer(globals);
         globals.setAddress(LibGlobals.GLOBAL_CF_NFT_RENDER_IMPL, address(nftRenderer));
     }
@@ -163,7 +163,7 @@ contract CrowdfundTest is Test, TestUtils {
             (uint256(defaultSplitBps) * totalContributions + (1e4 - 1)) / 1e4;
     }
 
-    function test_creation_initialContribution_withDelegate() public {
+    function test_creation_initialContribution_withDelegate() external {
         _expectEmit0();
         address initialContributor = _randomAddress();
         address initialDelegate = _randomAddress();
@@ -189,7 +189,7 @@ contract CrowdfundTest is Test, TestUtils {
         assertEq(cf.delegationsByContributor(initialContributor), initialDelegate);
     }
 
-    function test_creation_initialContribution_noValue() public {
+    function test_creation_initialContribution_noValue() external {
         address initialContributor = _randomAddress();
         TestableCrowdfund cf = _createCrowdfund(0, initialContributor, initialContributor);
         (
@@ -207,7 +207,7 @@ contract CrowdfundTest is Test, TestUtils {
     }
 
     // One person contributes, their entire contribution is used.
-    function testWin_oneContributor() public {
+    function testWin_oneContributor() external {
         TestableCrowdfund cf = _createCrowdfund(0);
         address delegate1 = _randomAddress();
         address payable contributor1 = _randomAddress();
@@ -248,7 +248,7 @@ contract CrowdfundTest is Test, TestUtils {
     }
 
     // Two contributors, their entire combined contribution is used.
-    function testWin_twoContributors() public {
+    function testWin_twoContributors() external {
         TestableCrowdfund cf = _createCrowdfund(0);
         address delegate1 = _randomAddress();
         address delegate2 = _randomAddress();
@@ -306,7 +306,7 @@ contract CrowdfundTest is Test, TestUtils {
     }
 
     // two contribute but only part of the second contributor's ETH is used.
-    function testWin_twoContributors_partialContributionUsed() public {
+    function testWin_twoContributors_partialContributionUsed() external {
         TestableCrowdfund cf = _createCrowdfund(0);
         address delegate1 = _randomAddress();
         address delegate2 = _randomAddress();
@@ -363,7 +363,7 @@ contract CrowdfundTest is Test, TestUtils {
 
     // two contribute, with contributor1 sandwiching contributor2
     // and only part of the total is used.
-    function testWin_twoContributorsSandiwched_partialContributionUsed() public {
+    function testWin_twoContributorsSandiwched_partialContributionUsed() external {
         TestableCrowdfund cf = _createCrowdfund(0);
         address delegate1 = _randomAddress();
         address delegate2 = _randomAddress();
@@ -423,7 +423,7 @@ contract CrowdfundTest is Test, TestUtils {
     }
 
     // One person contributes, final price is zero (should never happen IRL)
-    function testWin_oneContributor_zeroFinalPrice() public {
+    function testWin_oneContributor_zeroFinalPrice() external {
         TestableCrowdfund cf = _createCrowdfund(0);
         address delegate1 = _randomAddress();
         address payable contributor1 = _randomAddress();
@@ -464,7 +464,7 @@ contract CrowdfundTest is Test, TestUtils {
     }
 
     // Two contributors, CF loses
-    function testLoss_twoContributors() public {
+    function testLoss_twoContributors() external {
         TestableCrowdfund cf = _createCrowdfund(0);
         address delegate1 = _randomAddress();
         address delegate2 = _randomAddress();
@@ -497,7 +497,7 @@ contract CrowdfundTest is Test, TestUtils {
     }
 
     // One person contributes, their entire contribution is used, they try to burn twice.
-    function testWin_oneContributor_cannotBurnTwice() public {
+    function testWin_oneContributor_cannotBurnTwice() external {
         TestableCrowdfund cf = _createCrowdfund(0);
         address delegate1 = _randomAddress();
         address payable contributor1 = _randomAddress();
@@ -526,7 +526,7 @@ contract CrowdfundTest is Test, TestUtils {
     }
 
     // One person contributes, part of their contribution is used, they try to burn twice.
-    function testWin_oneContributor_partialContributionUsed_cannotBurnTwice() public {
+    function testWin_oneContributor_partialContributionUsed_cannotBurnTwice() external {
         TestableCrowdfund cf = _createCrowdfund(0);
         address delegate1 = _randomAddress();
         address payable contributor1 = _randomAddress();
@@ -557,7 +557,7 @@ contract CrowdfundTest is Test, TestUtils {
     }
 
     // One person contributes, CF loses, they try to burn twice.
-    function testLoss_oneContributor_cannotBurnTwice() public {
+    function testLoss_oneContributor_cannotBurnTwice() external {
         TestableCrowdfund cf = _createCrowdfund(0);
         address delegate1 = _randomAddress();
         address payable contributor1 = _randomAddress();
@@ -582,7 +582,7 @@ contract CrowdfundTest is Test, TestUtils {
     }
 
     // One person contributes, CF is busy, they try to burn.
-    function testBusy_oneContributor_cannotBurn() public {
+    function testBusy_oneContributor_cannotBurn() external {
         TestableCrowdfund cf = _createCrowdfund(0);
         address delegate1 = _randomAddress();
         address payable contributor1 = _randomAddress();
@@ -601,7 +601,7 @@ contract CrowdfundTest is Test, TestUtils {
     }
 
     // Trying to pass in different governance opts after winning.
-    function testWin_cannotChangeGovernanceOpts() public {
+    function testWin_cannotChangeGovernanceOpts() external {
         TestableCrowdfund cf = _createCrowdfund(0);
         // set up a win using contributor1's total contribution
         (IERC721[] memory erc721Tokens, uint256[] memory erc721TokenIds) =
@@ -629,7 +629,7 @@ contract CrowdfundTest is Test, TestUtils {
 
     // Split recipient set but does not contribute.
     // Half of contributor's contribution used.
-    function testWin_nonParticipatingSplitRecipient() public {
+    function testWin_nonParticipatingSplitRecipient() external {
         address payable splitRecipient = _randomAddress();
         defaultSplitRecipient = splitRecipient;
         TestableCrowdfund cf = _createCrowdfund(0);
@@ -674,7 +674,7 @@ contract CrowdfundTest is Test, TestUtils {
     // Split recipient set and contributes.
     // All of contributor1's contrubtion used.
     // Part of split recipient's contribution used.
-    function testWin_participatingSplitRecipient_splitRecipientContributionPartiallyUsed() public {
+    function testWin_participatingSplitRecipient_splitRecipientContributionPartiallyUsed() external {
         address payable splitRecipient = _randomAddress();
         defaultSplitRecipient = splitRecipient;
         TestableCrowdfund cf = _createCrowdfund(0);
@@ -724,7 +724,7 @@ contract CrowdfundTest is Test, TestUtils {
     // Split recipient set and contributes.
     // All of contributor1's contrubtion used.
     // NONE of split recipient's contribution used.
-    function testWin_participatingSplitRecipient_splitRecipientContributionNotUsed() public {
+    function testWin_participatingSplitRecipient_splitRecipientContributionNotUsed() external {
         address payable splitRecipient = _randomAddress();
         defaultSplitRecipient = splitRecipient;
         TestableCrowdfund cf = _createCrowdfund(0);
@@ -772,7 +772,7 @@ contract CrowdfundTest is Test, TestUtils {
     }
 
     // Two contributors, one is blocked
-    function test_twoContributors_oneBlockedByGateKeeper() public {
+    function test_twoContributors_oneBlockedByGateKeeper() external {
         address delegate1 = _randomAddress();
         address delegate2 = _randomAddress();
         address payable contributor1 = _randomAddress();
@@ -802,7 +802,7 @@ contract CrowdfundTest is Test, TestUtils {
         cf.contribute{ value: contributor2.balance }(delegate2, abi.encode(new bytes32[](0)));
     }
 
-    function testBurn_failMintingGovNFT() public {
+    function testBurn_failMintingGovNFT() external {
         TestableCrowdfund cf = _createCrowdfund(0);
         address delegate1 = _randomAddress();
         address payable badERC721Receiver = payable(new BadERC721Receiver());
@@ -858,7 +858,7 @@ contract CrowdfundTest is Test, TestUtils {
         assertEq(governanceTokenId, 0);
     }
 
-    function testBurn_failRefundingETH() public {
+    function testBurn_failRefundingETH() external {
         TestableCrowdfund cf = _createCrowdfund(0);
         address delegate1 = _randomAddress();
         address payable badETHReceiver = payable(address(new BadETHReceiver()));
@@ -917,7 +917,7 @@ contract CrowdfundTest is Test, TestUtils {
         assertEq(governanceTokenId, 0);
     }
 
-    function testClaim_nothingToClaim() public {
+    function testClaim_nothingToClaim() external {
         TestableCrowdfund cf = _createCrowdfund(0);
         vm.expectRevert(abi.encodeWithSelector(
             Crowdfund.NothingToClaimError.selector
@@ -925,7 +925,7 @@ contract CrowdfundTest is Test, TestUtils {
         cf.claim(_randomAddress());
     }
 
-    function test_revertIfNullContributor() public {
+    function test_revertIfNullContributor() external {
         Implementation impl = Implementation(new TestableCrowdfund(globals));
         // Attempt creating a crowdfund and setting a null address as the
         // initial contributor. Should revert when it attempts to mint a
@@ -949,8 +949,46 @@ contract CrowdfundTest is Test, TestUtils {
         )));
     }
 
+    function test_canReuseContributionEntry() external {
+        TestableCrowdfund cf = _createCrowdfund(0);
+        address contributor = _randomAddress();
+        address payable badERC721Receiver = payable(new BadERC721Receiver());
+        // Contributor contributes twice back-to-back.
+        vm.deal(contributor, 3);
+        vm.prank(contributor);
+        cf.contribute{ value: 2 }(contributor, "");
+        assertEq(cf.totalContributions(), 2);
+        assertEq(cf.getContributionEntriesByContributorCount(contributor), 1);
+        vm.prank(contributor);
+        cf.contribute{ value: 1 }(contributor, "");
+        assertEq(cf.totalContributions(), 3);
+        assertEq(cf.getContributionEntriesByContributorCount(contributor), 1);
+    }
+
+    function test_canNotReuseContributionEntry() external {
+        TestableCrowdfund cf = _createCrowdfund(0);
+        address contributor1 = _randomAddress();
+        address contributor2 = _randomAddress();
+        address payable badERC721Receiver = payable(new BadERC721Receiver());
+        // contributor1 sandwiches contributor2.
+        vm.deal(contributor1, 3);
+        vm.deal(contributor2, 10);
+        vm.prank(contributor1);
+        cf.contribute{ value: 1 }(contributor1, "");
+        assertEq(cf.totalContributions(), 1);
+        assertEq(cf.getContributionEntriesByContributorCount(contributor1), 1);
+        vm.prank(contributor2);
+        cf.contribute{ value: 10 }(contributor2, "");
+        assertEq(cf.totalContributions(), 11);
+        assertEq(cf.getContributionEntriesByContributorCount(contributor2), 1);
+        vm.prank(contributor1);
+        cf.contribute{ value: 2 }(contributor1, "");
+        assertEq(cf.totalContributions(), 13);
+        assertEq(cf.getContributionEntriesByContributorCount(contributor1), 2);
+    }
+
     // test nft renderer
-    function test_nftRenderer() public {
+    function test_nftRenderer() external {
         TestableCrowdfund cf = _createCrowdfund(0);
         address delegate1 = _randomAddress();
         address payable contributor1 = _randomAddress();
