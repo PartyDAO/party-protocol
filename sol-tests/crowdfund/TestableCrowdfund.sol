@@ -18,6 +18,10 @@ contract TestableCrowdfund is Crowdfund {
         _initialize(opts);
     }
 
+    function getContributionEntriesByContributorCount(address contributor) external view returns (uint256) {
+        return _contributionsByContributor[contributor].length;
+    }
+
     function testSetFinalPrice(uint256 finalPrice_) external {
         finalPrice = finalPrice_;
     }

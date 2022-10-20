@@ -127,7 +127,8 @@ abstract contract Crowdfund is Implementation, ERC721Receiver, CrowdfundNFT {
     mapping(address => address) public delegationsByContributor;
     // Array of contributions by a contributor.
     // One is created for every nonzero contribution made.
-    mapping(address => Contribution[]) private _contributionsByContributor;
+    // `internal` for testing purposes only.
+    mapping(address => Contribution[]) internal _contributionsByContributor;
     /// @notice Stores the amount of ETH owed back to a contributor and governance NFT
     ///         that should be minted to them if it could not be transferred to
     ///         them with `burn()`.
@@ -488,7 +489,7 @@ abstract contract Crowdfund is Implementation, ERC721Receiver, CrowdfundNFT {
         uint96 previousTotalContributions,
         bytes memory gateData
     )
-        internal
+        private
     {
         // Require a non-null delegate.
         if (delegate == address(0)) {
@@ -528,8 +529,11 @@ abstract contract Crowdfund is Implementation, ERC721Receiver, CrowdfundNFT {
             uint256 numContributions = contributions.length;
             if (numContributions >= 1) {
                 Contribution memory lastContribution = contributions[numContributions - 1];
-                if (lastContribution.previousTotalContributions == previousTotalContributions) {
-                    // No one else has contributed since so just reuse the last entry.
+                // If no one else (other than this contributor) has contributed since,
+                // we can just reuse this contributor's last entry.
+                uint256 totalContributionsAmountForReuse =
+                    lastContribution.previousTotalContributions + lastContribution.amount;
+                if (totalContributionsAmountForReuse == previousTotalContributions) {
                     lastContribution.amount += amount;
                     contributions[numContributions - 1] = lastContribution;
                     return;
