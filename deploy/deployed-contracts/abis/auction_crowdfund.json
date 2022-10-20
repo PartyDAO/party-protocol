@@ -850,6 +850,11 @@
           },
           {
             "internalType": "uint256",
+            "name": "customizationPresetId",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
             "name": "auctionId",
             "type": "uint256"
           },

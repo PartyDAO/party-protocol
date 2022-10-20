@@ -811,6 +811,11 @@
             "type": "string"
           },
           {
+            "internalType": "uint256",
+            "name": "customizationPresetId",
+            "type": "uint256"
+          },
+          {
             "internalType": "contract IERC721",
             "name": "nftContract",
             "type": "address"
