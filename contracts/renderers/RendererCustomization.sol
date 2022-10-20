@@ -5,7 +5,7 @@ pragma solidity 0.8.17;
 import "contracts/party/Party.sol";
 import "./RendererStorage.sol";
 
-contract RendererCustomization {
+abstract contract RendererCustomization {
     enum Color {
         DEFAULT,
         GREEN,
