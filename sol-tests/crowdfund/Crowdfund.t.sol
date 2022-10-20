@@ -990,15 +990,18 @@ contract CrowdfundTest is Test, TestUtils {
     // test nft renderer
     function test_nftRenderer_works() public {
         // should render a red cf card, dark mode
-        uint256 presetId = 15;
+        uint256 presetId = 16;
         TestableCrowdfund cf = _createCrowdfund(0, presetId);
 
         address delegate1 = _randomAddress();
         address payable contributor1 = _randomAddress();
         // contributor1 contributes
-        vm.deal(contributor1, 123.45e18);
+        vm.deal(contributor1, 123.456e18);
         vm.prank(contributor1);
         cf.contribute{ value: contributor1.balance }(delegate1, "");
+        // set crowdfund state
+        cf.testSetLifeCycle(Crowdfund.CrowdfundLifecycle.Active);
+
         string memory tokenURI = cf.tokenURI(uint256(uint160(address(contributor1))));
 
         // Uncomment for testing rendering:
