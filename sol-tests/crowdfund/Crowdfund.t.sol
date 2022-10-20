@@ -8,6 +8,7 @@ import "../../contracts/gatekeepers/AllowListGateKeeper.sol";
 import "../../contracts/globals/Globals.sol";
 import "../../contracts/globals/LibGlobals.sol";
 import "../../contracts/renderers/CrowdfundNFTRenderer.sol";
+import "../../contracts/renderers/fonts/PixeldroidConsoleFont.sol";
 import "../../contracts/utils/Proxy.sol";
 import "../../contracts/utils/EIP165.sol";
 
@@ -48,8 +49,8 @@ contract CrowdfundTest is Test, TestUtils {
     event Contributed(address contributor, uint256 amount, address delegate, uint256 previousTotalContributions);
     event Burned(address contributor, uint256 ethUsed, uint256 ethOwed, uint256 votingPower);
 
-    string defaultName = 'AuctionCrowdfund';
-    string defaultSymbol = 'PBID';
+    string defaultName = 'Party of the Living Dead';
+    string defaultSymbol = 'ACF';
     uint40 defaultDuration = 60 * 60;
     uint96 defaultMaxBid = 10e18;
     address payable defaultSplitRecipient = payable(0);
@@ -72,11 +73,30 @@ contract CrowdfundTest is Test, TestUtils {
         defaultGovernanceOpts.voteDuration = 1 days;
         defaultGovernanceOpts.executionDelay = 0.5 days;
         defaultGovernanceOpts.passThresholdBps = 0.51e4;
-    }
 
-    function setUp() external {
-        CrowdfundNFTRenderer nftRenderer = new CrowdfundNFTRenderer(globals);
+        // Upload font on-chain
+        PixeldroidConsoleFont font = new PixeldroidConsoleFont();
+        RendererStorage nftRendererStorage = new RendererStorage(address(this));
+        CrowdfundNFTRenderer nftRenderer = new CrowdfundNFTRenderer(globals, nftRendererStorage, font);
         globals.setAddress(LibGlobals.GLOBAL_CF_NFT_RENDER_IMPL, address(nftRenderer));
+        globals.setAddress(LibGlobals.GLOBAL_RENDERER_STORAGE, address(nftRendererStorage));
+
+        // Generate customization options.
+        uint256 versionId = 1;
+        uint256 numOfColors = uint8(type(RendererCustomization.Color).max) + 1;
+        for (uint256 i; i < numOfColors; ++i) {
+            // Generate customization options for all colors w/ each mode (light and dark).
+            nftRendererStorage.createCustomizationPreset(
+                // Preset ID 0 is reserved. It is used to indicates to party instances
+                // to use the same customization preset as the crowdfund.
+                i + 1,
+                abi.encode(versionId, false, RendererCustomization.Color(i))
+            );
+            nftRendererStorage.createCustomizationPreset(
+                i + 1 + numOfColors,
+                abi.encode(versionId, true, RendererCustomization.Color(i))
+            );
+        }
     }
 
     function _createTokens(address owner, uint256 count)
@@ -95,7 +115,8 @@ contract CrowdfundTest is Test, TestUtils {
     function _createCrowdfund(
         uint256 initialContribution,
         address initialContributor,
-        address initialDelegate
+        address initialDelegate,
+        uint256 customizationPresetId
     )
         private
         returns (TestableCrowdfund cf)
@@ -106,6 +127,7 @@ contract CrowdfundTest is Test, TestUtils {
                 Crowdfund.CrowdfundOptions({
                     name: defaultName,
                     symbol: defaultSymbol,
+                    customizationPresetId: customizationPresetId,
                     splitRecipient: defaultSplitRecipient,
                     splitBps: defaultSplitBps,
                     initialContributor: initialContributor,
@@ -118,11 +140,23 @@ contract CrowdfundTest is Test, TestUtils {
         )));
     }
 
+    function _createCrowdfund(uint256 initialContribution, uint256 customizationPresetId)
+        private
+        returns (TestableCrowdfund cf)
+    {
+        return _createCrowdfund(
+            initialContribution,
+            address(this),
+            defaultInitialDelegate,
+            customizationPresetId
+        );
+    }
+
     function _createCrowdfund(uint256 initialContribution)
         private
         returns (TestableCrowdfund cf)
     {
-        return _createCrowdfund(initialContribution, address(this), defaultInitialDelegate);
+        return _createCrowdfund(initialContribution, address(this), defaultInitialDelegate, 0);
     }
 
     function _createExpectedPartyOptions(TestableCrowdfund cf, uint256 finalPrice)
@@ -134,6 +168,7 @@ contract CrowdfundTest is Test, TestUtils {
         return Party.PartyOptions({
             name: defaultName,
             symbol: defaultSymbol,
+            customizationPresetId: 0,
             governance: PartyGovernance.GovernanceOpts({
                 hosts: govOpts.hosts,
                 voteDuration: govOpts.voteDuration,
@@ -173,7 +208,8 @@ contract CrowdfundTest is Test, TestUtils {
         TestableCrowdfund cf = _createCrowdfund(
             initialContribution,
             initialContributor,
-            initialDelegate
+            initialDelegate,
+            0
         );
         (
             uint256 ethContributed,
@@ -191,7 +227,7 @@ contract CrowdfundTest is Test, TestUtils {
 
     function test_creation_initialContribution_noValue() external {
         address initialContributor = _randomAddress();
-        TestableCrowdfund cf = _createCrowdfund(0, initialContributor, initialContributor);
+        TestableCrowdfund cf = _createCrowdfund(0, initialContributor, initialContributor, 0);
         (
             uint256 ethContributed,
             uint256 ethUsed,
@@ -937,6 +973,7 @@ contract CrowdfundTest is Test, TestUtils {
                 Crowdfund.CrowdfundOptions({
                     name: defaultName,
                     symbol: defaultSymbol,
+                    customizationPresetId: 0,
                     splitRecipient: defaultSplitRecipient,
                     splitBps: defaultSplitBps,
                     initialContributor: address(0),
@@ -988,15 +1025,66 @@ contract CrowdfundTest is Test, TestUtils {
     }
 
     // test nft renderer
-    function test_nftRenderer() external {
-        TestableCrowdfund cf = _createCrowdfund(0);
+    function test_nftRenderer_works() public {
+        // should render a red cf card, dark mode
+        uint256 presetId = 16;
+        TestableCrowdfund cf = _createCrowdfund(0, presetId);
+
         address delegate1 = _randomAddress();
         address payable contributor1 = _randomAddress();
-        // contributor1 contributes 1 ETH
-        vm.deal(contributor1, 1e18);
+        // contributor1 contributes
+        vm.deal(contributor1, 123.456e18);
+        vm.prank(contributor1);
+        cf.contribute{ value: contributor1.balance }(delegate1, "");
+        // set crowdfund state
+        cf.testSetLifeCycle(Crowdfund.CrowdfundLifecycle.Active);
+
+        string memory tokenURI = cf.tokenURI(uint256(uint160(address(contributor1))));
+
+        // Uncomment for testing rendering:
+        // console.log(tokenURI);
+
+        assertTrue(bytes(tokenURI).length > 0);
+    }
+
+    // Test rendering using a preset ID 0, which is reserved and should not be
+    // used. If it is though, expect the `tokenURI()` to fallback to rendering
+    // the default card.
+    function test_nftRenderer_usingReservedPresetId() public {
+        // should fallback to rendering a default cf card
+        uint256 presetId = 0;
+        TestableCrowdfund cf = _createCrowdfund(0, presetId);
+
+        address delegate1 = _randomAddress();
+        address payable contributor1 = _randomAddress();
+        // contributor1 contributes
+        vm.deal(contributor1, 123.45e18);
         vm.prank(contributor1);
         cf.contribute{ value: contributor1.balance }(delegate1, "");
         string memory tokenURI = cf.tokenURI(uint256(uint160(address(contributor1))));
+
+        // Uncomment for testing rendering:
+        // console.log(tokenURI);
+
+        assertTrue(bytes(tokenURI).length > 0);
+    }
+
+    function test_nftRenderer_nonexistentPresetId() public {
+        // should fallback to rendering a default cf card
+        uint256 presetId = 999;
+        TestableCrowdfund cf = _createCrowdfund(0, presetId);
+
+        address delegate1 = _randomAddress();
+        address payable contributor1 = _randomAddress();
+        // contributor1 contributes
+        vm.deal(contributor1, 123.45e18);
+        vm.prank(contributor1);
+        cf.contribute{ value: contributor1.balance }(delegate1, "");
+        string memory tokenURI = cf.tokenURI(uint256(uint160(address(contributor1))));
+
+        // Uncomment for testing rendering:
+        // console.log(tokenURI);
+
         assertTrue(bytes(tokenURI).length > 0);
     }
 

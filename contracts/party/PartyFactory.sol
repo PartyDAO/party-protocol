@@ -6,13 +6,13 @@ import "../globals/IGlobals.sol";
 import "../globals/LibGlobals.sol";
 import "../tokens/IERC721.sol";
 import "../utils/Proxy.sol";
+import "../renderers/RendererStorage.sol";
 
 import "./Party.sol";
 import "./IPartyFactory.sol";
 
 /// @notice Factory used to deploys new proxified `Party` instances.
 contract PartyFactory is IPartyFactory {
-
     error InvalidAuthorityError(address authority);
 
     /// @inheritdoc IPartyFactory

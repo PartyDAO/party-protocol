@@ -68,6 +68,7 @@ contract CrowdfundHelpers is Test, TestUtils {
                 AuctionCrowdfund.AuctionCrowdfundOptions({
                     name: defaultName,
                     symbol: defaultSymbol,
+                    customizationPresetId: 0,
                     auctionId: auctionId,
                     market: market,
                     nftContract: market.nftContract(),
@@ -98,6 +99,7 @@ contract CrowdfundHelpers is Test, TestUtils {
                 BuyCrowdfund.BuyCrowdfundOptions({
                     name: defaultName,
                     symbol: defaultSymbol,
+                    customizationPresetId: 0,
                     nftContract: erc721Vault.token(),
                     nftTokenId: erc721Vault.mint(),
                     duration: defaultDuration,
@@ -127,6 +129,7 @@ contract CrowdfundHelpers is Test, TestUtils {
                 CollectionBuyCrowdfund.CollectionBuyCrowdfundOptions({
                     name: defaultName,
                     symbol: defaultSymbol,
+                    customizationPresetId: 0,
                     nftContract: erc721Vault.token(),
                     duration: defaultDuration,
                     maximumPrice: defaultMaxPrice,

@@ -5,6 +5,7 @@ pragma solidity 0.8.17;
 import "../globals/IGlobals.sol";
 import "../utils/LibRawResult.sol";
 import "../utils/Proxy.sol";
+import "../renderers/RendererStorage.sol";
 
 import "./AuctionCrowdfund.sol";
 import "./BuyCrowdfund.sol";

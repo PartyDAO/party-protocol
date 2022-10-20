@@ -46,6 +46,10 @@ contract GlobalsAdmin is Test {
   function setGovernanceNftRendererAddress(address rendererAddress) public {
     globals.setAddress(LibGlobals.GLOBAL_GOVERNANCE_NFT_RENDER_IMPL, rendererAddress);
   }
+
+  function setRendererStorage(address rendererStorage) public {
+    globals.setAddress(LibGlobals.GLOBAL_RENDERER_STORAGE, rendererStorage);
+  }
 }
 
 contract PartyAdmin is Test {
@@ -90,7 +94,8 @@ contract PartyAdmin is Test {
     Party.PartyOptions memory po = Party.PartyOptions({
       governance: govOpts,
       name: 'Dope party',
-      symbol: 'DOPE'
+      symbol: 'DOPE',
+      customizationPresetId: 0
     });
     IERC721[] memory preciousTokens = new IERC721[](1);
     preciousTokens[0] = IERC721(opts.preciousTokenAddress);

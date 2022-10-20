@@ -9,6 +9,7 @@ import "../tokens/ERC721Receiver.sol";
 import "../party/Party.sol";
 import "../globals/IGlobals.sol";
 import "../gatekeepers/IGateKeeper.sol";
+import "../renderers/RendererStorage.sol";
 
 import "./CrowdfundNFT.sol";
 
@@ -52,6 +53,7 @@ abstract contract Crowdfund is Implementation, ERC721Receiver, CrowdfundNFT {
     struct CrowdfundOptions {
         string name;
         string symbol;
+        uint256 customizationPresetId;
         address payable splitRecipient;
         uint16 splitBps;
         address initialContributor;
@@ -142,7 +144,7 @@ abstract contract Crowdfund is Implementation, ERC721Receiver, CrowdfundNFT {
     function _initialize(CrowdfundOptions memory opts)
         internal
     {
-        CrowdfundNFT._initialize(opts.name, opts.symbol);
+        CrowdfundNFT._initialize(opts.name, opts.symbol, opts.customizationPresetId);
         // Check that BPS values do not exceed the max.
         if (opts.governanceOpts.feeBps > 1e4) {
             revert InvalidBpsError(opts.governanceOpts.feeBps);
@@ -375,6 +377,8 @@ abstract contract Crowdfund is Implementation, ERC721Receiver, CrowdfundNFT {
                 Party.PartyOptions({
                     name: name,
                     symbol: symbol,
+                    // Indicates to the party to use the same customization preset as the crowdfund.
+                    customizationPresetId: 0,
                     governance: PartyGovernance.GovernanceOpts({
                         hosts: governanceOpts.hosts,
                         voteDuration: governanceOpts.voteDuration,

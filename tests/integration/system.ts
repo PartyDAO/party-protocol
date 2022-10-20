@@ -284,6 +284,7 @@ export class Party {
             {
                 name: opts.name,
                 symbol: opts.symbol,
+                customizationPresetId: 0,
                 governance: {
                     hosts: opts.hostAddresses,
                     voteDuration: opts.voteDuration,

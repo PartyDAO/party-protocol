@@ -95,6 +95,7 @@ contract CrowdfundFactoryTest is Test, TestUtils {
         AuctionCrowdfund.AuctionCrowdfundOptions memory opts = AuctionCrowdfund.AuctionCrowdfundOptions({
             name: randomStr,
             symbol: randomStr,
+            customizationPresetId: 0,
             auctionId: auctionId,
             market: IMarketWrapper(market),
             nftContract: nftContract,
@@ -152,6 +153,7 @@ contract CrowdfundFactoryTest is Test, TestUtils {
         AuctionCrowdfund.AuctionCrowdfundOptions memory opts = AuctionCrowdfund.AuctionCrowdfundOptions({
             name: "name",
             symbol: "symbol",
+            customizationPresetId: 0,
             auctionId: auctionId + 1,
             market: IMarketWrapper(market),
             nftContract: nftContract,
@@ -186,6 +188,7 @@ contract CrowdfundFactoryTest is Test, TestUtils {
         AuctionCrowdfund.AuctionCrowdfundOptions memory opts = AuctionCrowdfund.AuctionCrowdfundOptions({
             name: "name",
             symbol: "symbol",
+            customizationPresetId: 0,
             auctionId: auctionId,
             market: IMarketWrapper(market),
             nftContract: IERC721(address(0)),
@@ -221,6 +224,7 @@ contract CrowdfundFactoryTest is Test, TestUtils {
         AuctionCrowdfund.AuctionCrowdfundOptions memory opts = AuctionCrowdfund.AuctionCrowdfundOptions({
             name: "name",
             symbol: "symbol",
+            customizationPresetId: 0,
             auctionId: auctionId,
             market: IMarketWrapper(market),
             nftContract: nftContract,
@@ -270,6 +274,7 @@ contract CrowdfundFactoryTest is Test, TestUtils {
         BuyCrowdfund.BuyCrowdfundOptions memory opts = BuyCrowdfund.BuyCrowdfundOptions({
             name: randomStr,
             symbol: randomStr,
+            customizationPresetId: 0,
             nftContract: nftContract,
             nftTokenId: tokenId,
             // This is to avoid overflows when adding to `block.timestamp`.
@@ -337,6 +342,7 @@ contract CrowdfundFactoryTest is Test, TestUtils {
             CollectionBuyCrowdfund.CollectionBuyCrowdfundOptions({
                 name: randomStr,
                 symbol: randomStr,
+                customizationPresetId: 0,
                 nftContract: nftContract,
                 // This is to avoid overflows when adding to `block.timestamp`.
                 duration: uint40(_randomRange(1, type(uint40).max - block.timestamp)),
@@ -395,6 +401,7 @@ contract CrowdfundFactoryTest is Test, TestUtils {
         AuctionCrowdfund.AuctionCrowdfundOptions memory opts = AuctionCrowdfund.AuctionCrowdfundOptions({
             name: "name",
             symbol: "symbol",
+            customizationPresetId: 0,
             auctionId: auctionId,
             market: IMarketWrapper(market),
             nftContract: nftContract,

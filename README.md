@@ -40,7 +40,7 @@ contracts/
 |   # Used to render crowdfund and governance NFTs
 └── renderers/
     ├── CrowdfundNFTRenderer.sol
-    └── PartyGovernanceNFTRenderer.sol
+    └── PartyNFTRenderer.sol
 sol-tests/ # Foundry tests
 tests/ # TS tests
 ```

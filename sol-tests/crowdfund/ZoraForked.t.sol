@@ -68,6 +68,7 @@ contract ZoraForkedTest is TestUtils, ERC721Receiver {
                             AuctionCrowdfund.AuctionCrowdfundOptions({
                                 name: "Party",
                                 symbol: "PRTY",
+                                customizationPresetId: 0,
                                 auctionId: auctionId,
                                 market: zoraMarket,
                                 nftContract: nftContract,

@@ -16,7 +16,8 @@ import "../contracts/globals/LibGlobals.sol";
 import "../contracts/party/Party.sol";
 import "../contracts/party/PartyFactory.sol";
 import "../contracts/renderers/CrowdfundNFTRenderer.sol";
-import "../contracts/renderers/PartyGovernanceNFTRenderer.sol";
+import "../contracts/renderers/PartyNFTRenderer.sol";
+import "../contracts/renderers/fonts/PixeldroidConsoleFont.sol";
 import "../contracts/proposals/ProposalExecutionEngine.sol";
 import "../contracts/utils/PartyHelpers.sol";
 import "../contracts/market-wrapper/FoundationMarketWrapper.sol";
@@ -42,8 +43,9 @@ contract Deploy {
     IOpenseaExchange public seaport;
     ProposalExecutionEngine public proposalEngineImpl;
     TokenDistributor public tokenDistributor;
-    CrowdfundNFTRenderer public partyCrowdfundNFTRenderer;
-    PartyGovernanceNFTRenderer public partyGovernanceNFTRenderer;
+    RendererStorage public rendererStorage;
+    CrowdfundNFTRenderer public crowdfundNFTRenderer;
+    PartyNFTRenderer public partyNFTRenderer;
     PartyHelpers public partyHelpers;
     IGateKeeper public allowListGateKeeper;
     IGateKeeper public tokenGateKeeper;
@@ -323,46 +325,95 @@ contract Deploy {
         crowdfundFactory = new CrowdfundFactory(globals);
         console.log("  Deployed - CrowdfundFactory", address(crowdfundFactory));
 
-        // DEPLOY_PARTY_CROWDFUND_NFT_RENDERER
+        // DEPLOY_RENDERER_STORAGE
+        console.log("");
+        console.log("### RendererStorage");
+        console.log("  Deploying - RendererStorage");
+        rendererStorage = new RendererStorage(deployer);
+        console.log(
+            "  Deployed - RendererStorage",
+            address(rendererStorage)
+        );
+
+        console.log("");
+        console.log("  Globals - setting RendererStorage address");
+        globals.setAddress(
+            LibGlobals.GLOBAL_RENDERER_STORAGE,
+            address(rendererStorage)
+        );
+        console.log(
+            "  Globals - successfully set RendererStorage",
+            address(rendererStorage)
+        );
+
+        // CREATE_CUSTOMIZATION_OPTIONS
+        console.log("  Creating customization options");
+        uint256 versionId = 1;
+        uint256 numOfColors = uint8(type(RendererCustomization.Color).max) + 1;
+        for (uint256 i; i < numOfColors; ++i) {
+            // Create customization options for all colors w/ both modes (light and dark).
+            rendererStorage.createCustomizationPreset(
+                // Preset ID 0 is reserved. It is used to indicates to party instances
+                // to use the same customization preset as the crowdfund.
+                i + 1,
+                abi.encode(versionId, false, RendererCustomization.Color(i))
+            );
+            rendererStorage.createCustomizationPreset(
+                i + 1 + numOfColors,
+                abi.encode(versionId, true, RendererCustomization.Color(i))
+            );
+        }
+
+        // DEPLOY_FONT
+        console.log("");
+        console.log("### PixeldroidConsoleFont");
+        console.log("  Deploying - PixeldroidConsoleFont");
+        PixeldroidConsoleFont font = new PixeldroidConsoleFont();
+        console.log(
+            "  Deployed - PixeldroidConsoleFont",
+            address(font)
+        );
+
+        // DEPLOY_CROWDFUND_NFT_RENDERER
         console.log("");
         console.log("### CrowdfundNFTRenderer");
         console.log("  Deploying - CrowdfundNFTRenderer");
-        partyCrowdfundNFTRenderer = new CrowdfundNFTRenderer(globals);
+        crowdfundNFTRenderer = new CrowdfundNFTRenderer(globals, rendererStorage, IFont(address(font)));
         console.log(
             "  Deployed - CrowdfundNFTRenderer",
-            address(partyCrowdfundNFTRenderer)
+            address(crowdfundNFTRenderer)
         );
 
         console.log("");
         console.log("  Globals - setting CrowdfundNFTRenderer address");
         globals.setAddress(
             LibGlobals.GLOBAL_CF_NFT_RENDER_IMPL,
-            address(partyCrowdfundNFTRenderer)
+            address(crowdfundNFTRenderer)
         );
         console.log(
             "  Globals - successfully set CrowdfundNFTRenderer",
-            address(partyCrowdfundNFTRenderer)
+            address(crowdfundNFTRenderer)
         );
 
-        // DEPLOY_PARTY_GOVERNANCE_NFT_RENDERER
+        // DEPLOY_PARTY_NFT_RENDERER
         console.log("");
-        console.log("### PartyGovernanceNFTRenderer");
-        console.log("  Deploying - PartyGovernanceNFTRenderer");
-        partyGovernanceNFTRenderer = new PartyGovernanceNFTRenderer(globals);
+        console.log("### PartyNFTRenderer");
+        console.log("  Deploying - PartyNFTRenderer");
+        partyNFTRenderer = new PartyNFTRenderer(globals, rendererStorage, IFont(address(font)));
         console.log(
-            "  Deployed - PartyGovernanceNFTRenderer",
-            address(partyGovernanceNFTRenderer)
+            "  Deployed - PartyNFTRenderer",
+            address(partyNFTRenderer)
         );
 
         console.log("");
-        console.log("  Globals - setting PartyGovernanceNFTRenderer address");
+        console.log("  Globals - setting PartyNFTRenderer address");
         globals.setAddress(
             LibGlobals.GLOBAL_GOVERNANCE_NFT_RENDER_IMPL,
-            address(partyGovernanceNFTRenderer)
+            address(partyNFTRenderer)
         );
         console.log(
-            "  Globals - successfully set PartyGovernanceNFTRenderer",
-            address(partyGovernanceNFTRenderer)
+            "  Globals - successfully set PartyNFTRenderer",
+            address(partyNFTRenderer)
         );
 
         // DEPLOY_PARTY_HELPERS
@@ -414,7 +465,14 @@ contract Deploy {
             );
             globals.transferMultiSig(deployConstants.partyDaoMultisig);
             console.log(
-                "  Transferred ownership to",
+                "  Transferred ownership of Globals to",
+                deployConstants.partyDaoMultisig
+            );
+            console.log("");
+            console.log("### Transfer ownership of RendererStorage");
+            rendererStorage.transferOwnership(deployConstants.partyDaoMultisig);
+            console.log(
+                "  Transferring of RendererStorage ownership to",
                 deployConstants.partyDaoMultisig
             );
         }
@@ -453,7 +511,7 @@ contract DeployScript is Script, Deploy {
         Deploy.deploy(deployConstants);
         vm.stopBroadcast();
 
-        AddressMapping[] memory addressMapping = new AddressMapping[](18);
+        AddressMapping[] memory addressMapping = new AddressMapping[](19);
         addressMapping[0] = AddressMapping("globals", address(globals));
         addressMapping[1] = AddressMapping("tokenDistributor", address(tokenDistributor));
         addressMapping[2] = AddressMapping("seaportExchange", address(seaport));
@@ -464,14 +522,15 @@ contract DeployScript is Script, Deploy {
         addressMapping[7] = AddressMapping("buyCrowdfundImpl", address(buyCrowdfundImpl));
         addressMapping[8] = AddressMapping("collectionBuyCrowdfundImpl", address(collectionBuyCrowdfundImpl));
         addressMapping[9] = AddressMapping("partyCrowdfundFactory", address(crowdfundFactory));
-        addressMapping[10] = AddressMapping("partyCrowdfundNFTRenderer", address(partyCrowdfundNFTRenderer));
-        addressMapping[11] = AddressMapping("partyGovernanceNFTRenderer", address(partyGovernanceNFTRenderer));
+        addressMapping[10] = AddressMapping("partyCrowdfundNFTRenderer", address(crowdfundNFTRenderer));
+        addressMapping[11] = AddressMapping("partyGovernanceNFTRenderer", address(partyNFTRenderer));
         addressMapping[12] = AddressMapping("partyHelpers", address(partyHelpers));
         addressMapping[13] = AddressMapping("allowListGateKeeper", address(allowListGateKeeper));
         addressMapping[14] = AddressMapping("tokenGateKeeper", address(tokenGateKeeper));
         addressMapping[15] = AddressMapping("foundationMarketWrapper", address(foundationMarketWrapper));
         addressMapping[16] = AddressMapping("nounsMarketWrapper", address(nounsMarketWrapper));
         addressMapping[17] = AddressMapping("zoraMarketWrapper", address(zoraMarketWrapper));
+        addressMapping[18] = AddressMapping("rendererStorage", address(rendererStorage));
 
         console.log("");
         console.log("### Deployed addresses");

@@ -93,7 +93,8 @@ contract PartyFactoryTest is Test, TestUtils {
                 feeRecipient: payable(_randomAddress())
             }),
             name: randomStr,
-            symbol: randomStr
+            symbol: randomStr,
+            customizationPresetId: 0
         });
         Party party = factory.createParty(
             authority,

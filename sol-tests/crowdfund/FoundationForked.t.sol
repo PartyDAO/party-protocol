@@ -59,6 +59,7 @@ contract FoundationForkedTest is TestUtils {
                 AuctionCrowdfund.AuctionCrowdfundOptions({
                     name: "Party",
                     symbol: "PRTY",
+                    customizationPresetId: 0,
                     auctionId: auctionId,
                     market: foundationMarket,
                     nftContract: nftContract,
