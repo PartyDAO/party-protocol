@@ -636,6 +636,39 @@ contract CrowdfundTest is Test, TestUtils {
         cf.burn(contributor1);
     }
 
+    // Calling batchBurn() on a contributor that already burned and one that didn't.
+    function testWin_batchBurnCanBurnBurnedAndUnburnedTokens() external {
+        TestableCrowdfund cf = _createCrowdfund(0);
+        address payable contributor1 = _randomAddress();
+        address payable contributor2 = _randomAddress();
+        // contributor1 contributes 1 ETH
+        vm.deal(contributor1, 1e18);
+        vm.prank(contributor1);
+        cf.contribute{ value: contributor1.balance }(contributor1, "");
+        // contributor2 contributes 2 ETH
+        vm.deal(contributor2, 2e18);
+        vm.prank(contributor2);
+        cf.contribute{ value: contributor2.balance }(contributor2, "");
+        // set up a win using everyone's total contribution
+        (IERC721[] memory erc721Tokens, uint256[] memory erc721TokenIds) =
+            _createTokens(address(cf), 2);
+        cf.testSetWon(
+            3e18,
+            defaultGovernanceOpts,
+            erc721Tokens,
+            erc721TokenIds
+        );
+        // contributor1 burns tokens
+        cf.burn(contributor1);
+        // Use batchBurn() to burn both contributor's tokens.
+        address payable[] memory contributors = new address payable[](2);
+        contributors[0] = contributor1;
+        contributors[1] = contributor2;
+        _expectEmit0();
+        emit Burned(contributor2, 2e18, 0, 2e18);
+        cf.batchBurn(contributors);
+    }
+
     // Trying to pass in different governance opts after winning.
     function testWin_cannotChangeGovernanceOpts() external {
         TestableCrowdfund cf = _createCrowdfund(0);

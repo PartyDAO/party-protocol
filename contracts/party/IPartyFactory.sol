@@ -10,7 +10,7 @@ import "./Party.sol";
 // Creates generic Party instances.
 interface IPartyFactory {
     event PartyCreated(
-        Party party,
+        Party indexed party,
         Party.PartyOptions opts,
         IERC721[] preciousTokens,
         uint256[] preciousTokenIds,
