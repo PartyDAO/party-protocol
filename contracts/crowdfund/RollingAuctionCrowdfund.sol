@@ -245,10 +245,10 @@ contract RollingAuctionCrowdfund is Implementation, Crowdfund {
 
     /// @notice Calls `finalize()` on the market adapter, which will claim the NFT
     ///         (if necessary) if we won, or recover our bid (if necessary)
-    ///         if the crowfund expired and we lost. If we lost but the
-    ///         crowdfund has not expired, this will revert. Only call this to
-    ///         finalize the result of a won or expired crowdfund, otherwise
-    ///         call `finalizeOrRollOver()`.
+    ///         if the crowfund expired and we lost the current auction. If we
+    ///         lost but the crowdfund has not expired, this will revert. Only
+    ///         call this to finalize the result of a won or expired crowdfund,
+    ///         otherwise call `finalizeOrRollOver()`.
     /// @param governanceOpts The options used to initialize governance in the
     ///                       `Party` instance created if the crowdfund wins.
     /// @return party_ Address of the `Party` instance created if successful.
@@ -269,13 +269,17 @@ contract RollingAuctionCrowdfund is Implementation, Crowdfund {
     /// @param governanceOpts The options used to initialize governance in the
     ///                       `Party` instance created if the crowdfund wins.
     /// @param hostIndex If the caller is a host, this is the index of the caller in the
-    ///                  `governanceOpts.hosts` array. Only used if the crowdfund loses.
+    ///                  `governanceOpts.hosts` array. Only used if the
+    ///                  crowdfund lost the current auction AND host are allowed
+    ///                  to choose any next auction.
     /// @param nextNftTokenId The `tokenId` of the next NFT to bid on in the next
-    ///                       auction. Only used if the crowdfund loses.
+    ///                       auction. Only used if the crowdfund lost the
+    ///                       current auction.
     /// @param nextAuctionId The `auctionId` of the the next auction. Only
-    ///                      used if the crowdfund loses.
+    ///                      used if the crowdfund lost the current auction.
     /// @param proof The Merkle proof used to verify that `nextAuctionId` and
-    ///              `nextNftTokenId` are allowed. Only used if the crowdfund loses.
+    ///              `nextNftTokenId` are allowed. Only used if the crowdfund
+    ///              lost the current auction.
     /// @return party_ Address of the `Party` instance created if successful.
     function finalizeOrRollOver(
         FixedGovernanceOpts memory governanceOpts,

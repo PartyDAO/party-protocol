@@ -58,13 +58,6 @@ contract RollingNounsCrowdfundForkedTest is RollingAuctionCrowdfundTest {
         crowdfund.contribute{ value: 1000 ether }(address(this), "");
     }
 
-    function _setNextAuction() internal override {
-        market.finalize(auctionId);
-        (tokenId, , , , , ) = nounsAuctionHouse.auction();
-        auctionId = tokenId;
-        crowdfund.setAllowedAuctions(govOpts, keccak256(abi.encodePacked(auctionId, tokenId)), 0);
-    }
-
     function _endAuction() internal override {
         // Skip to end of auction
         skip(1 days);
