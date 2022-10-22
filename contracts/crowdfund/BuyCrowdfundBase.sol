@@ -29,7 +29,6 @@ abstract contract BuyCrowdfundBase is Crowdfund {
         // How long this crowdfund has to bid on the NFT, in seconds.
         uint40 duration;
         // Maximum amount this crowdfund will pay for the NFT.
-        // If zero, no maximum.
         uint96 maximumPrice;
         // An address that receives an extra share of the final voting power
         // when the party transitions into governance.
@@ -123,7 +122,7 @@ abstract contract BuyCrowdfundBase is Crowdfund {
         // Check that the call value is under the maximum price.
         {
             uint96 maximumPrice_ = maximumPrice;
-            if (maximumPrice_ != 0 && callValue > maximumPrice_) {
+            if (callValue > maximumPrice_) {
                 revert MaximumPriceError(callValue, maximumPrice_);
             }
         }
