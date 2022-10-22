@@ -8,6 +8,8 @@ library LibAddress {
     function transferEth(address payable receiver, uint256 amount)
         internal
     {
+        if (amount == 0) return;
+
         (bool s, bytes memory r) = receiver.call{value: amount}("");
         if (!s) {
             revert EthTransferFailed(receiver, r);

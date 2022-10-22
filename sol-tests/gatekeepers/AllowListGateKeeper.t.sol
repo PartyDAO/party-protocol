@@ -11,7 +11,7 @@ contract AllowListGateKeeperTest is Test, TestUtils {
 
     // Generates a randomized 4-member allow list.
     function _randomAllowList() private view returns (address[4] memory allowList) {
-        for (uint i = 0; i < 4; i++) {
+        for (uint i = 0; i < 4; ++i) {
             allowList[i] = _randomAddress();
         }
     }

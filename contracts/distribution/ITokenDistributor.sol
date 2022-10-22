@@ -59,7 +59,7 @@ interface ITokenDistributor {
     /// @param party The party whose members can claim the distribution.
     /// @param feeRecipient Who can claim `fee`.
     /// @param feeBps Percentage (in bps) of the distribution `feeRecipient` receives.
-    /// @param info Information on the created distribution.
+    /// @return info Information on the created distribution.
     function createNativeDistribution(
         ITokenDistributorParty party,
         address payable feeRecipient,
@@ -78,7 +78,7 @@ interface ITokenDistributor {
     /// @param party The party whose members can claim the distribution.
     /// @param feeRecipient Who can claim `fee`.
     /// @param feeBps Percentage (in bps) of the distribution `feeRecipient` receives.
-    /// @param info Information on the created distribution.
+    /// @return info Information on the created distribution.
     function createErc20Distribution(
         IERC20 token,
         ITokenDistributorParty party,
@@ -93,7 +93,7 @@ interface ITokenDistributor {
     ///         must own this token.
     /// @param info Information on the distribution being claimed.
     /// @param partyTokenId The ID of the party token to claim for.
-    /// @param amountClaimed The amount of the distribution claimed.
+    /// @return amountClaimed The amount of the distribution claimed.
     function claim(DistributionInfo calldata info, uint256 partyTokenId)
         external
         returns (uint128 amountClaimed);
@@ -108,7 +108,7 @@ interface ITokenDistributor {
     /// @notice Batch version of `claim()`.
     /// @param infos Information on the distributions being claimed.
     /// @param partyTokenIds The ID of the party tokens to claim for.
-    /// @param amountsClaimed The amount of the distributions claimed.
+    /// @return amountsClaimed The amount of the distributions claimed.
     function batchClaim(DistributionInfo[] calldata infos, uint256[] calldata partyTokenIds)
         external
         returns (uint128[] memory amountsClaimed);

@@ -12,7 +12,7 @@ library LibProposal {
         pure
         returns (bool)
     {
-        for (uint256 i = 0; i < preciousTokens.length; ++i) {
+        for (uint256 i; i < preciousTokens.length; ++i) {
             if (token == preciousTokens[i]) {
                 return true;
             }
@@ -30,7 +30,7 @@ library LibProposal {
         pure
         returns (bool)
     {
-        for (uint256 i = 0; i < preciousTokens.length; ++i) {
+        for (uint256 i; i < preciousTokens.length; ++i) {
             if (token == preciousTokens[i] && tokenId == preciousTokenIds[i]) {
                 return true;
             }

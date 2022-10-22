@@ -193,7 +193,7 @@ abstract contract Crowdfund is Implementation, ERC721Receiver, CrowdfundNFT {
     function batchBurn(address payable[] calldata contributors) external {
         Party party_ = party;
         CrowdfundLifecycle lc = getCrowdfundLifecycle();
-        for (uint256 i = 0; i < contributors.length; ++i) {
+        for (uint256 i; i < contributors.length; ++i) {
             _burn(contributors[i], lc, party_);
         }
     }
@@ -277,9 +277,9 @@ abstract contract Crowdfund is Implementation, ERC721Receiver, CrowdfundNFT {
         )
     {
         CrowdfundLifecycle lc = getCrowdfundLifecycle();
-        Contribution[] storage contributions = _contributionsByContributor[contributor];
+        Contribution[] memory contributions = _contributionsByContributor[contributor];
         uint256 numContributions = contributions.length;
-        for (uint256 i = 0; i < numContributions; ++i) {
+        for (uint256 i; i < numContributions; ++i) {
             ethContributed += contributions[i].amount;
         }
         if (lc == CrowdfundLifecycle.Won || lc == CrowdfundLifecycle.Lost) {
@@ -288,7 +288,7 @@ abstract contract Crowdfund is Implementation, ERC721Receiver, CrowdfundNFT {
     }
 
     /// @notice Get the current lifecycle of the crowdfund.
-    function getCrowdfundLifecycle() public virtual view returns (CrowdfundLifecycle);
+    function getCrowdfundLifecycle() public virtual view returns (CrowdfundLifecycle lifecycle);
 
     // Get the final sale price of the bought assets. This will also be the total
     // voting power of the governance party.
@@ -349,7 +349,7 @@ abstract contract Crowdfund is Implementation, ERC721Receiver, CrowdfundNFT {
     }
 
     // Can be called after a party has won.
-    // Deploys and initializes a a `Party` instance via the `PartyFactory`
+    // Deploys and initializes a `Party` instance via the `PartyFactory`
     // and transfers the bought NFT to it.
     // After calling this, anyone can burn CF tokens on a contributor's behalf
     // with the `burn()` function.
@@ -393,7 +393,7 @@ abstract contract Crowdfund is Implementation, ERC721Receiver, CrowdfundNFT {
                 preciousTokenIds
             );
         // Transfer the acquired NFTs to the new party.
-        for (uint256 i = 0; i < preciousTokens.length; ++i) {
+        for (uint256 i; i < preciousTokens.length; ++i) {
             preciousTokens[i].transferFrom(address(this), address(party_), preciousTokenIds[i]);
         }
     }
@@ -435,7 +435,7 @@ abstract contract Crowdfund is Implementation, ERC721Receiver, CrowdfundNFT {
         assembly {
             // Replace the address[] hosts field with its hash temporarily.
             let oldHostsFieldValue := mload(opts)
-            mstore(opts, keccak256(add(mload(opts), 0x20), mul(mload(mload(opts)), 32)))
+            mstore(opts, keccak256(add(oldHostsFieldValue, 0x20), mul(mload(oldHostsFieldValue), 32)))
             // Hash the entire struct.
             h := keccak256(opts, 0xC0)
             // Restore old hosts field value.
@@ -450,9 +450,9 @@ abstract contract Crowdfund is Implementation, ERC721Receiver, CrowdfundNFT {
     {
         uint256 totalEthUsed = _getFinalPrice();
         {
-            Contribution[] storage contributions = _contributionsByContributor[contributor];
+            Contribution[] memory contributions = _contributionsByContributor[contributor];
             uint256 numContributions = contributions.length;
-            for (uint256 i = 0; i < numContributions; ++i) {
+            for (uint256 i; i < numContributions; ++i) {
                 Contribution memory c = contributions[i];
                 if (c.previousTotalContributions >= totalEthUsed) {
                     // This entire contribution was not used.
@@ -496,11 +496,12 @@ abstract contract Crowdfund is Implementation, ERC721Receiver, CrowdfundNFT {
             revert InvalidDelegateError();
         }
         // Must not be blocked by gatekeeper.
-        if (gateKeeper != IGateKeeper(address(0))) {
-            if (!gateKeeper.isAllowed(contributor, gateKeeperId, gateData)) {
+        IGateKeeper _gateKeeper = gateKeeper;
+        if (_gateKeeper != IGateKeeper(address(0))) {
+            if (!_gateKeeper.isAllowed(contributor, gateKeeperId, gateData)) {
                 revert NotAllowedByGateKeeperError(
                     contributor,
-                    gateKeeper,
+                    _gateKeeper,
                     gateKeeperId,
                     gateData
                 );
@@ -514,9 +515,6 @@ abstract contract Crowdfund is Implementation, ERC721Receiver, CrowdfundNFT {
 
         // OK to contribute with zero just to update delegate.
         if (amount != 0) {
-            // Increase total contributions.
-            totalContributions += amount;
-
             // Only allow contributions while the crowdfund is active.
             {
                 CrowdfundLifecycle lc = getCrowdfundLifecycle();
@@ -524,6 +522,8 @@ abstract contract Crowdfund is Implementation, ERC721Receiver, CrowdfundNFT {
                     revert WrongLifecycleError(lc);
                 }
             }
+            // Increase total contributions.
+            totalContributions += amount;
             // Create contributions entry for this contributor.
             Contribution[] storage contributions = _contributionsByContributor[contributor];
             uint256 numContributions = contributions.length;
@@ -562,15 +562,18 @@ abstract contract Crowdfund is Implementation, ERC721Receiver, CrowdfundNFT {
             revert WrongLifecycleError(lc);
         }
         // Split recipient can burn even if they don't have a token.
-        if (contributor == splitRecipient) {
-            if (_splitRecipientHasBurned) {
-                revert SplitRecipientAlreadyBurnedError();
+        {
+            address splitRecipient_ = splitRecipient;
+            if (contributor == splitRecipient_) {
+                if (_splitRecipientHasBurned) {
+                    revert SplitRecipientAlreadyBurnedError();
+                }
+                _splitRecipientHasBurned = true;
             }
-            _splitRecipientHasBurned = true;
-        }
-        // Revert if already burned or does not exist.
-        if (splitRecipient != contributor || _doesTokenExistFor(contributor)) {
-            CrowdfundNFT._burn(contributor);
+            // Revert if already burned or does not exist.
+            if (splitRecipient_ != contributor || _doesTokenExistFor(contributor)) {
+                CrowdfundNFT._burn(contributor);
+            }
         }
         // Compute the contributions used and owed to the contributor, along
         // with the voting power they'll have in the governance stage.

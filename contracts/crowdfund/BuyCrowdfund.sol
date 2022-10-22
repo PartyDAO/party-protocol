@@ -5,7 +5,6 @@ pragma solidity 0.8.17;
 import "../tokens/IERC721.sol";
 import "../party/Party.sol";
 import "../utils/LibSafeERC721.sol";
-import "../utils/LibRawResult.sol";
 import "../globals/IGlobals.sol";
 import "../gatekeepers/IGateKeeper.sol";
 

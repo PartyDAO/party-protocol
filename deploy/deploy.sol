@@ -549,7 +549,7 @@ contract DeployScript is Script, Deploy {
         returns (string memory)
     {
         string memory vals = "";
-        for (uint256 i = 0; i < parts.length; ++i) {
+        for (uint256 i; i < parts.length; ++i) {
             string memory newValue = string.concat(
                 '"',
                 parts[i].key,

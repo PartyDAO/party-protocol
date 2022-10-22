@@ -290,7 +290,7 @@ abstract contract ListOnOpenseaProposal is ZoraHelpers {
             cons.identifierOrCriteria = 0;
             cons.startAmount = cons.endAmount = listPrice;
             cons.recipient = payable(address(this));
-            for (uint256 i = 0; i < fees.length; ++i) {
+            for (uint256 i; i < fees.length; ++i) {
                 cons = orderParams.consideration[1 + i];
                 cons.itemType = IOpenseaExchange.ItemType.NATIVE;
                 cons.token = address(0);

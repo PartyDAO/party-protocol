@@ -11,7 +11,6 @@ import "./ListOnOpenseaProposal.sol";
 import "./ListOnZoraProposal.sol";
 import "./FractionalizeProposal.sol";
 import "./ArbitraryCallsProposal.sol";
-import "./LibProposal.sol";
 import "./ProposalStorage.sol";
 
 /// @notice Upgradable implementation of proposal execution logic for parties that use it.
@@ -39,9 +38,7 @@ contract ProposalExecutionEngine is
         ListOnZora,
         Fractionalize,
         ArbitraryCalls,
-        UpgradeProposalEngineImpl,
-        // Append new proposal types here.
-        NumProposalTypes
+        UpgradeProposalEngineImpl
     }
 
     // Explicit storage bucket for "private" state owned by the `ProposalExecutionEngine`.
@@ -245,7 +242,7 @@ contract ProposalExecutionEngine is
             offsetProposalData := add(proposalData, 4)
         }
         require(proposalType != ProposalType.Invalid);
-        require(uint8(proposalType) < uint8(ProposalType.NumProposalTypes));
+        require(uint8(proposalType) <= uint8(type(ProposalType).max));
     }
 
     // Upgrade implementation to the latest version.

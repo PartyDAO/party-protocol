@@ -41,8 +41,9 @@ contract TokenDistributor is ITokenDistributor {
         uint16 feeBps;
     }
 
+    event EmergencyExecute(address target, bytes data);
+
     error OnlyPartyDaoError(address notDao, address partyDao);
-    error OnlyPartyDaoAuthorityError(address notDaoAuthority);
     error InvalidDistributionInfoError(DistributionInfo info);
     error DistributionAlreadyClaimedByPartyTokenError(uint256 distributionId, uint256 partyTokenId);
     error DistributionFeeAlreadyClaimedError(uint256 distributionId);
@@ -315,6 +316,7 @@ contract TokenDistributor is ITokenDistributor {
         if (!success) {
             res.rawRevert();
         }
+        emit EmergencyExecute(targetAddress, targetCallData);
     }
 
     function _createDistribution(CreateDistributionArgs memory args)

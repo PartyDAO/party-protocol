@@ -10,8 +10,8 @@ interface IReadOnlyDelegateCall {
         view;
 }
 
-// Inherited by contracts to performs read-only delegate calls.
-contract ReadOnlyDelegateCall {
+// Inherited by contracts to perform read-only delegate calls.
+abstract contract ReadOnlyDelegateCall {
     using LibRawResult for bytes;
 
     // Delegatecall into implement and revert with the raw result.

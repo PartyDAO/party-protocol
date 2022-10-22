@@ -29,9 +29,8 @@ abstract contract BuyCrowdfundBase is Crowdfund {
         // How long this crowdfund has to bid on the NFT, in seconds.
         uint40 duration;
         // Maximum amount this crowdfund will pay for the NFT.
-        // If zero, no maximum.
         uint96 maximumPrice;
-        // An address that receieves an extra share of the final voting power
+        // An address that receives an extra share of the final voting power
         // when the party transitions into governance.
         address payable splitRecipient;
         // What percentage (in bps) of the final total voting power `splitRecipient`

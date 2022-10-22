@@ -11,7 +11,7 @@ import "../renderers/RendererStorage.sol";
 import "./Party.sol";
 import "./IPartyFactory.sol";
 
-/// @notice Factory used to deploys new proxified `Party` instances.
+/// @notice Factory used to deploy new proxified `Party` instances.
 contract PartyFactory is IPartyFactory {
     error InvalidAuthorityError(address authority);
 
