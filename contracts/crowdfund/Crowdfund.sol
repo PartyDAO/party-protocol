@@ -189,12 +189,14 @@ abstract contract Crowdfund is Implementation, ERC721Receiver, CrowdfundNFT {
     }
 
     /// @notice `burn()` in batch form.
+    ///         Will not revert if any individual burn fails.
     /// @param contributors The contributors whose NFT to burn for.
     function batchBurn(address payable[] calldata contributors) external {
-        Party party_ = party;
-        CrowdfundLifecycle lc = getCrowdfundLifecycle();
-        for (uint256 i; i < contributors.length; ++i) {
-            _burn(contributors[i], lc, party_);
+        for (uint256 i = 0; i < contributors.length; ++i) {
+            (bool s,) = address(this).delegatecall(
+                abi.encodeCall(this.burn, (contributors[i]))
+            );
+            !!s; // Silence compiler warnings.
         }
     }
 
