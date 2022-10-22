@@ -280,20 +280,21 @@ contract AuctionCrowdfund is Crowdfund {
         }
         IERC721 nftContract_ = nftContract;
         uint256 nftTokenId_ = nftTokenId;
+        uint96 lastBid_ = lastBid;
         if (
             // Are we now in possession of the NFT?
             nftContract_.safeOwnerOf(nftTokenId_) == address(this) &&
             // And it wasn't acquired for free or "gifted" to us?
-            address(this).balance < totalContributions
+            (address(this).balance < totalContributions || lastBid_ != 0)
         ) {
             // Create a governance party around the NFT.
             party_ = _createParty(
                 governanceOpts,
                 false,
-                nftContract,
-                nftTokenId
+                nftContract_,
+                nftTokenId_
             );
-            emit Won(lastBid, party_);
+            emit Won(lastBid_, party_);
         } else {
             // Either the party failed to win the auction, or the NFT was
             // acquired for free. Refund contributors by declaring we lost.

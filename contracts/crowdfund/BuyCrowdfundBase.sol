@@ -57,7 +57,7 @@ abstract contract BuyCrowdfundBase is Crowdfund {
     error MaximumPriceError(uint96 callValue, uint96 maximumPrice);
     error NoContributionsError();
     error FailedToBuyNFTError(IERC721 token, uint256 tokenId);
-    error InvalidCallTargetError(address callTarget);
+    error CallProhibitedError(address target, bytes data);
 
     /// @notice When this crowdfund expires.
     uint40 public expiry;
@@ -96,7 +96,7 @@ abstract contract BuyCrowdfundBase is Crowdfund {
         uint256 tokenId,
         address payable callTarget,
         uint96 callValue,
-        bytes calldata callData,
+        bytes memory callData,
         FixedGovernanceOpts memory governanceOpts,
         bool isValidatedGovernanceOpts
     )
@@ -104,9 +104,9 @@ abstract contract BuyCrowdfundBase is Crowdfund {
         onlyDelegateCall
         returns (Party party_)
     {
-        // Ensure the call target isn't trying to reenter
-        if (callTarget == address(this)) {
-            revert InvalidCallTargetError(callTarget);
+        // Check that the call is not prohibited.
+        if (!_isCallAllowed(callTarget, callData, token)) {
+            revert CallProhibitedError(callTarget, callData);
         }
         // Check that the crowdfund is still active.
         CrowdfundLifecycle lc = getCrowdfundLifecycle();
@@ -188,5 +188,39 @@ abstract contract BuyCrowdfundBase is Crowdfund {
         returns (uint256)
     {
         return settledPrice;
+    }
+
+    function _isCallAllowed(
+        address payable callTarget,
+        bytes memory callData,
+        IERC721 token
+    )
+        private
+        view
+        returns (bool isAllowed)
+    {
+        // Ensure the call target isn't trying to reenter
+        if (callTarget == address(this)) {
+            return false;
+        }
+        if (callTarget == address(token) && callData.length >= 4) {
+            // Get the function selector of the call (first 4 bytes of calldata).
+            bytes4 selector;
+            assembly {
+                selector := and(
+                    mload(add(callData, 32)),
+                    0xffffffff00000000000000000000000000000000000000000000000000000000
+                )
+            }
+            // Prevent approving the NFT to be transferred out from the crowdfund.
+            if (
+                selector == IERC721.approve.selector ||
+                selector == IERC721.setApprovalForAll.selector
+            ) {
+                return false;
+            }
+        }
+        // All other calls are allowed.
+        return true;
     }
 }

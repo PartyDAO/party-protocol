@@ -666,10 +666,9 @@ contract AuctionCrowdfundTest is Test, TestUtils {
         // Contribute and delegate.
         address payable contributor = _randomAddress();
         _contribute(cf, contributor, 1e18);
-        // Bid on the auction.
-        cf.bid(defaultGovernanceOpts, 0);
-        // Outbid externally so we're losing.
+        // Acquire the NFT to gift.
         _outbidExternally(auctionId);
+        skip(defaultDuration);
         market.endAuction(auctionId);
         market.finalize(auctionId);
         // Gift the NFT to the crowdfund.

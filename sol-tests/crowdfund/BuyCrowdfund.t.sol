@@ -233,8 +233,9 @@ contract BuyCrowdfundTest is Test, TestUtils {
         // we are trying to call the CF itself in buy().
         vm.prank(host);
         vm.expectRevert(abi.encodeWithSelector(
-            BuyCrowdfundBase.InvalidCallTargetError.selector,
-            address(cf)
+            BuyCrowdfundBase.CallProhibitedError.selector,
+            address(cf),
+            ""
         ));
         cf.buy(payable(address(cf)), 0, "", defaultGovernanceOpts, 0);
 
@@ -300,8 +301,9 @@ contract BuyCrowdfundTest is Test, TestUtils {
         // we are trying to call the CF itself in buy().
         vm.prank(contributor);
         vm.expectRevert(abi.encodeWithSelector(
-            BuyCrowdfundBase.InvalidCallTargetError.selector,
-            address(cf)
+            BuyCrowdfundBase.CallProhibitedError.selector,
+            address(cf),
+            ""
         ));
         cf.buy(payable(address(cf)), 0, "", defaultGovernanceOpts, 0);
     }
@@ -336,8 +338,9 @@ contract BuyCrowdfundTest is Test, TestUtils {
         // we are trying to call the CF itself in buy().
         vm.prank(host);
         vm.expectRevert(abi.encodeWithSelector(
-            BuyCrowdfundBase.InvalidCallTargetError.selector,
-            address(cf)
+            BuyCrowdfundBase.CallProhibitedError.selector,
+            address(cf),
+            ""
         ));
         cf.buy(payable(address(cf)), 0, "", defaultGovernanceOpts, 0);
 
@@ -345,8 +348,9 @@ contract BuyCrowdfundTest is Test, TestUtils {
         // we are trying to call the CF itself in buy().
         vm.prank(contributor);
         vm.expectRevert(abi.encodeWithSelector(
-            BuyCrowdfundBase.InvalidCallTargetError.selector,
-            address(cf)
+            BuyCrowdfundBase.CallProhibitedError.selector,
+            address(cf),
+            ""
         ));
         cf.buy(payable(address(cf)), 0, "", defaultGovernanceOpts, 0);
     }
@@ -410,17 +414,17 @@ contract BuyCrowdfundTest is Test, TestUtils {
         vm.deal(contributor, 1e18);
         vm.prank(contributor);
         cf.contribute{ value: contributor.balance }(contributor, "");
+        bytes memory callData = abi.encodeCall(cf.contribute, (contributor, ""));
         // Attempt reentering back into the crowdfund directly.
-        vm.expectRevert(
-            abi.encodeWithSelector(
-                BuyCrowdfundBase.InvalidCallTargetError.selector,
-                address(cf)
-            )
-        );
+        vm.expectRevert(abi.encodeWithSelector(
+            BuyCrowdfundBase.CallProhibitedError.selector,
+            address(cf),
+            callData
+        ));
         cf.buy(
             payable(address(cf)),
             1e18,
-            abi.encodeCall(cf.contribute, (contributor, "")),
+            callData,
             defaultGovernanceOpts,
             0
         );
@@ -442,7 +446,47 @@ contract BuyCrowdfundTest is Test, TestUtils {
         assertTrue(cf.getCrowdfundLifecycle() == Crowdfund.CrowdfundLifecycle.Active);
     }
 
-    function testGettingNFTForFreeTriggersLossToRefund() public {
+    function testBuyCannotApprove() public {
+        uint256 tokenId = erc721Vault.mint();
+        // Create a BuyCrowdfund instance.
+        BuyCrowdfund cf = _createCrowdfund(tokenId, 0);
+        // Contribute.
+        address payable contributor = _randomAddress();
+        vm.deal(contributor, 1e18);
+        vm.prank(contributor);
+        cf.contribute{ value: contributor.balance }(contributor, "");
+        // Attempt calling `approve()`.
+        bytes memory callData = abi.encodeCall(IERC721.approve, (contributor, tokenId));
+        vm.expectRevert(abi.encodeWithSelector(
+            BuyCrowdfundBase.CallProhibitedError.selector,
+            address(cf),
+            callData
+        ));
+        cf.buy(
+            payable(address(cf)),
+            1e18,
+            callData,
+            defaultGovernanceOpts,
+            0
+        );
+        // Attempt calling `setApprovalForAll()`.
+        callData = abi.encodeCall(IERC721.setApprovalForAll, (contributor, true));
+        IERC721 token = erc721Vault.token();
+        vm.expectRevert(abi.encodeWithSelector(
+            BuyCrowdfundBase.CallProhibitedError.selector,
+            address(token),
+            callData
+        ));
+        cf.buy(
+            payable(address(token)),
+            1e18,
+            callData,
+            defaultGovernanceOpts,
+            0
+        );
+    }
+
+    function testGettingNFTForFreeTriggersLostToRefund() public {
         DummyERC721 token = erc721Vault.token();
         uint256 tokenId = 1;
         // Create a BuyCrowdfund instance.
