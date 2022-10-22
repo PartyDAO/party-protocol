@@ -471,13 +471,14 @@ contract BuyCrowdfundTest is Test, TestUtils {
         );
         // Attempt calling `setApprovalForAll()`.
         callData = abi.encodeCall(IERC721.setApprovalForAll, (contributor, true));
+        IERC721 token = erc721Vault.token();
         vm.expectRevert(abi.encodeWithSelector(
             BuyCrowdfundBase.CallProhibitedError.selector,
-            address(cf),
+            address(token),
             callData
         ));
         cf.buy(
-            payable(address(cf)),
+            payable(address(token)),
             1e18,
             callData,
             defaultGovernanceOpts,

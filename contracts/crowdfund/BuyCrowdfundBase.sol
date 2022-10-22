@@ -105,7 +105,7 @@ abstract contract BuyCrowdfundBase is Crowdfund {
         returns (Party party_)
     {
         // Check that the call is not prohibited.
-        if (!_isCallAllowed(callTarget, callData)) {
+        if (!_isCallAllowed(callTarget, callData, token)) {
             revert CallProhibitedError(callTarget, callData);
         }
         // Check that the crowdfund is still active.
@@ -192,13 +192,18 @@ abstract contract BuyCrowdfundBase is Crowdfund {
 
     function _isCallAllowed(
         address payable callTarget,
-        bytes memory callData
-    ) private view returns (bool isAllowed) {
+        bytes memory callData,
+        IERC721 token
+    )
+        private
+        view
+        returns (bool isAllowed)
+    {
         // Ensure the call target isn't trying to reenter
         if (callTarget == address(this)) {
             return false;
         }
-        if (callData.length >= 4) {
+        if (callTarget == address(token) && callData.length >= 4) {
             // Get the function selector of the call (first 4 bytes of calldata).
             bytes4 selector;
             assembly {
