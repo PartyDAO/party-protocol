@@ -488,10 +488,12 @@ contract BuyCrowdfundTest is Test, TestUtils {
 
     function testGettingNFTForFreeTriggersLostToRefund() public {
         DummyERC721 token = erc721Vault.token();
-        uint256 tokenId = 1;
+        uint256 tokenId = erc721Vault.mint();
         // Create a BuyCrowdfund instance.
         BuyCrowdfund cf = _createCrowdfund(tokenId, 0);
         // Acquire NFT for free.
+        vm.prank(address(cf));
+        erc721Vault.claim(tokenId);
         _expectEmit0();
         emit Lost();
         cf.buy(
