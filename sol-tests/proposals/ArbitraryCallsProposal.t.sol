@@ -11,6 +11,9 @@ import "../TestUtils.sol";
 import "../DummyERC721.sol";
 
 contract TestableArbitraryCallsProposal is ArbitraryCallsProposal {
+
+    constructor(IZoraAuctionHouse zora) ArbitraryCallsProposal(zora) {}
+
     function execute(
         IProposalExecutionEngine.ExecuteProposalParams calldata params
     )
@@ -66,6 +69,10 @@ contract ArbitraryCallTarget {
     }
 }
 
+contract FakeZora {
+    function cancelAuction(uint256 auctionId) external {}
+}
+
 contract ArbitraryCallsProposalTest is
     Test,
     TestUtils,
@@ -80,7 +87,9 @@ contract ArbitraryCallsProposalTest is
     event ArbitraryCallExecuted(uint256 proposalId, uint256 idx, uint256 count);
 
     ArbitraryCallTarget target = new ArbitraryCallTarget();
-    TestableArbitraryCallsProposal testContract = new TestableArbitraryCallsProposal();
+    FakeZora zora = new FakeZora();
+    TestableArbitraryCallsProposal testContract =
+        new TestableArbitraryCallsProposal(IZoraAuctionHouse(address(zora)));
     IERC721[] preciousTokens;
     uint256[] preciousTokenIds;
 
@@ -614,6 +623,44 @@ contract ArbitraryCallsProposalTest is
         ));
         testContract.execute(prop);
     }
+
+    function test_cannotCallCancelAuctionOnZoraIfNotLastCall() external {
+        (
+            ArbitraryCallsProposal.ArbitraryCall[] memory calls,
+        ) = _createSimpleCalls(2, false);
+        calls[0].target = payable(address(zora));
+        calls[0].data = abi.encodeCall(
+            IZoraAuctionHouse.cancelAuction,
+            (_randomUint256()) // params don't matter
+        );
+        IProposalExecutionEngine.ExecuteProposalParams memory prop =
+            _createTestProposal(calls);
+        vm.expectRevert(abi.encodeWithSelector(
+            ArbitraryCallsProposal.CallProhibitedError.selector,
+            calls[0].target,
+            calls[0].data
+        ));
+        testContract.execute(prop);
+    }
+
+    function test_canCallCancelAuctionOnZoraIfLastCall() external {
+        (
+            ArbitraryCallsProposal.ArbitraryCall[] memory calls,
+        ) = _createSimpleCalls(2, false);
+        calls[1].target = payable(address(zora));
+        calls[1].data = abi.encodeCall(
+            IZoraAuctionHouse.cancelAuction,
+            (_randomUint256()) // params don't matter
+        );
+        IProposalExecutionEngine.ExecuteProposalParams memory prop =
+            _createTestProposal(calls);
+        _expectEmit0();
+        emit ArbitraryCallExecuted(prop.proposalId, 0, 2);
+        _expectEmit0();
+        emit ArbitraryCallExecuted(prop.proposalId, 1, 2);
+        testContract.execute(prop);
+    }
+
 
     function test_cannotExecuteShortApproveCallData() external {
         (

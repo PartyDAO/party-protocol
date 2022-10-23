@@ -88,6 +88,7 @@ contract ProposalExecutionEngine is
         ListOnOpenseaProposal(globals, seaport, seaportConduitController)
         ListOnZoraProposal(globals, zoraAuctionHouse)
         FractionalizeProposal(fractionalVaultFactory)
+        ArbitraryCallsProposal(zoraAuctionHouse)
     {
         _GLOBALS = globals;
     }

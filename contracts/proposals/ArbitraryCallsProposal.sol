@@ -7,6 +7,7 @@ import "../tokens/IERC721Receiver.sol";
 import "../tokens/ERC1155Receiver.sol";
 import "../utils/LibSafeERC721.sol";
 import "../utils/LibAddress.sol";
+import "../vendor/markets/IZoraAuctionHouse.sol";
 import "./vendor/IOpenseaExchange.sol";
 
 import "./LibProposal.sol";
@@ -39,6 +40,12 @@ contract ArbitraryCallsProposal {
 
     event ArbitraryCallExecuted(uint256 proposalId, uint256 idx, uint256 count);
 
+    IZoraAuctionHouse private immutable _ZORA;
+
+    constructor(IZoraAuctionHouse zora) {
+        _ZORA = zora;
+    }
+
     function _executeArbitraryCalls(
         IProposalExecutionEngine.ExecuteProposalParams memory params
     )
@@ -67,7 +74,7 @@ contract ArbitraryCallsProposal {
             // Execute an arbitrary call.
             _executeSingleArbitraryCall(
                 i,
-                calls[i],
+                calls,
                 params.preciousTokens,
                 params.preciousTokenIds,
                 isUnanimous,
@@ -101,7 +108,7 @@ contract ArbitraryCallsProposal {
 
     function _executeSingleArbitraryCall(
         uint256 idx,
-        ArbitraryCall memory call,
+        ArbitraryCall[] memory calls,
         IERC721[] memory preciousTokens,
         uint256[] memory preciousTokenIds,
         bool isUnanimous,
@@ -109,8 +116,16 @@ contract ArbitraryCallsProposal {
     )
         private
     {
+        ArbitraryCall memory call = calls[idx];
         // Check that the call is not prohibited.
-        if (!_isCallAllowed(call, isUnanimous, preciousTokens, preciousTokenIds)) {
+        if (!_isCallAllowed(
+            call,
+            isUnanimous,
+            idx,
+            calls.length,
+            preciousTokens,
+            preciousTokenIds))
+        {
             revert CallProhibitedError(call.target, call.data);
         }
         // Check that we have enough ETH to execute the call.
@@ -151,6 +166,8 @@ contract ArbitraryCallsProposal {
     function _isCallAllowed(
         ArbitraryCall memory call,
         bool isUnanimous,
+        uint256 callIndex,
+        uint256 callsCount,
         IERC721[] memory preciousTokens,
         uint256[] memory preciousTokenIds
     )
@@ -196,6 +213,12 @@ contract ArbitraryCallsProposal {
                     (, bool isApproved) = _decodeSetApprovalForAllCallDataArgs(call.data);
                     if (isApproved) {
                         return !LibProposal.isTokenPrecious(IERC721(call.target), preciousTokens);
+                    }
+                // Can only call cancelAuction on the zora AH if it's the last call
+                // in the sequence.
+                } else if (selector == IZoraAuctionHouse.cancelAuction.selector) {
+                    if (call.target == address(_ZORA)) {
+                        return callIndex + 1 == callsCount;
                     }
                 }
             }
