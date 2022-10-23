@@ -113,11 +113,13 @@ abstract contract BuyCrowdfundBase is Crowdfund {
         if (lc != CrowdfundLifecycle.Active) {
             revert WrongLifecycleError(lc);
         }
-        uint96 totalContributions_ = totalContributions;
         // Prevent unaccounted ETH from being used to inflate the price and
         // create "ghost shares" in voting power.
-        if (callValue > totalContributions_) {
-            revert ExceedsTotalContributionsError(callValue, totalContributions_);
+        {
+            uint96 totalContributions_ = totalContributions;
+            if (callValue > totalContributions_) {
+                revert ExceedsTotalContributionsError(callValue, totalContributions_);
+            }
         }
         // Check that the call value is under the maximum price.
         {
@@ -128,8 +130,10 @@ abstract contract BuyCrowdfundBase is Crowdfund {
         }
         // Temporarily set to non-zero as a reentrancy guard.
         settledPrice = type(uint96).max;
-        {
-            // Execute the call to buy the NFT.
+
+        // Execute the call to buy the NFT, but only if we have a nonzero callValue 
+        // because a zero callValue will cause the CF to lose anyawy.
+        if (callValue != 0) {
             (bool s, bytes memory r) = callTarget.call{ value: callValue }(callData);
             if (!s) {
                 r.rawRevert();
@@ -137,11 +141,12 @@ abstract contract BuyCrowdfundBase is Crowdfund {
         }
         // Make sure we acquired the NFT we want.
         if (token.safeOwnerOf(tokenId) == address(this)) {
-            if (address(this).balance >= totalContributions_) {
+            if (callValue == 0) {
                 // If the purchase was free or the NFT was "gifted" to us,
                 // refund all contributors by declaring we lost.
                 settledPrice = 0;
-                expiry = 0;
+                // Set the expiry to now so people can withdraw their contributions.
+                expiry = uint40(block.timestamp);
                 emit Lost();
             } else {
                 settledPrice = callValue;
