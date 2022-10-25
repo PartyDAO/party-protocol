@@ -1022,7 +1022,6 @@ contract CrowdfundTest is Test, TestUtils {
     function test_canReuseContributionEntry() external {
         TestableCrowdfund cf = _createCrowdfund(0);
         address contributor = _randomAddress();
-        address payable badERC721Receiver = payable(new BadERC721Receiver());
         // Contributor contributes twice back-to-back.
         vm.deal(contributor, 3);
         vm.prank(contributor);
@@ -1039,7 +1038,6 @@ contract CrowdfundTest is Test, TestUtils {
         TestableCrowdfund cf = _createCrowdfund(0);
         address contributor1 = _randomAddress();
         address contributor2 = _randomAddress();
-        address payable badERC721Receiver = payable(new BadERC721Receiver());
         // contributor1 sandwiches contributor2.
         vm.deal(contributor1, 3);
         vm.deal(contributor2, 10);
