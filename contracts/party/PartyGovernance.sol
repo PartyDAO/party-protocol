@@ -222,7 +222,7 @@ abstract contract PartyGovernance is
         _;
     }
 
-    // Caller must own a governance NFT at the current time.
+    // Caller must have voting power at the current time.
     modifier onlyActiveMember() {
         {
             VotingPowerSnapshot memory snap =
@@ -235,7 +235,7 @@ abstract contract PartyGovernance is
         _;
     }
 
-    // Caller must own a governance NFT at the current time or be the `Party` instance.
+    // Caller must have voting power at the current time or be the `Party` instance.
     modifier onlyActiveMemberOrSelf() {
         // Ignore if the party is calling functions on itself, like with
         // `FractionalizeProposal` calling `distribute()`.
@@ -542,9 +542,9 @@ abstract contract PartyGovernance is
 
     /// @notice Make a proposal for members to vote on and cast a vote to accept it
     ///         as well.
-    /// @dev Only an active member (owns a governance token) can call this.
-    ///      Afterwards, members can vote to support it with accept() or a party
-    ///      host can unilaterally reject the proposal with veto().
+    /// @dev Only an active member (has voting power) can call this.
+    ///      Afterwards, members can vote to support it with `accept()` or a party
+    ///      host can unilaterally reject the proposal with `veto()`.
     /// @param proposal The details of the proposal.
     /// @param latestSnapIndex The index of the caller's most recent voting power
     ///                        snapshot before the proposal was created. Should
@@ -576,7 +576,7 @@ abstract contract PartyGovernance is
 
     /// @notice Vote to support a proposed proposal.
     /// @dev The voting power cast will be the effective voting power of the caller
-    ///      at the time propose() was called (see `getVotingPowerAt()`).
+    ///      just before `propose()` was called (see `getVotingPowerAt()`).
     ///      If the proposal reaches `passThresholdBps` acceptance ratio then the
     ///      proposal will be in the `Passed` state and will be executable after
     ///      the `executionDelay` has passed, putting it in the `Ready` state.

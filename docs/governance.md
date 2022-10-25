@@ -106,7 +106,7 @@ The voting power applied when a user votes on a proposal is their effective voti
 - A user (un)delegates their voting power.
 - A user gets voting power (un)delegated to them.
 
-When determining the effective voting power of a user, we binary search a user's voting power records for the most recent record <= the proposal time.
+When determining the effective voting power of a user, we binary search a user's voting power records for the most recent record < the proposal time.
 
 ---
 
