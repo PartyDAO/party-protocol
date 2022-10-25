@@ -763,15 +763,23 @@ abstract contract PartyGovernance is
             }
         }
         {
-            // Limit the maximum `cancelDelay` to the global max cancel delay
+            // Limit the `cancelDelay` to the global max and min cancel delay
             // to mitigate parties accidentally getting stuck forever by setting an
-            // unrealistic `cancelDelay`.
+            // unrealistic `cancelDelay` or being reckless with too low a
+            // cancel delay.
             uint256 cancelDelay = proposal.cancelDelay;
             uint256 globalMaxCancelDelay =
                 _GLOBALS.getUint256(LibGlobals.GLOBAL_PROPOSAL_MAX_CANCEL_DURATION);
+            uint256 globalMinCancelDelay =
+                _GLOBALS.getUint256(LibGlobals.GLOBAL_PROPOSAL_MIN_CANCEL_DURATION);
             if (globalMaxCancelDelay != 0) { // Only if we have one set.
                 if (cancelDelay > globalMaxCancelDelay) {
                     cancelDelay = globalMaxCancelDelay;
+                }
+            }
+            if (globalMinCancelDelay != 0) { // Only if we have one set.
+                if (cancelDelay < globalMinCancelDelay) {
+                    cancelDelay = globalMinCancelDelay;
                 }
             }
             uint256 cancelTime = values.executedTime + cancelDelay;

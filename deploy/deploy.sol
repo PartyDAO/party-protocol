@@ -173,6 +173,22 @@ contract Deploy {
             "  Globals - successfully set Zora max auction timeout",
             deployConstants.zoraMaxAuctionTimeout
         );
+        globals.setUint256(
+            LibGlobals.GLOBAL_PROPOSAL_MIN_CANCEL_DURATION,
+            deployConstants.minCancelDelay
+        );
+        console.log(
+            "  Globals - successfully set proposal min cancel delay",
+            deployConstants.minCancelDelay
+        );
+        globals.setUint256(
+            LibGlobals.GLOBAL_PROPOSAL_MAX_CANCEL_DURATION,
+            deployConstants.maxCancelDelay
+        );
+        console.log(
+            "  Globals - successfully set proposal max cancel delay",
+            deployConstants.maxCancelDelay
+        );
 
         // DEPLOY_PROPOSAL_EXECUTION_ENGINE
         console.log("");

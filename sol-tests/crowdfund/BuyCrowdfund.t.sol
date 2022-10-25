@@ -308,7 +308,7 @@ contract BuyCrowdfundTest is Test, TestUtils {
         cf.buy(payable(address(cf)), 0, "", defaultGovernanceOpts, 0);
     }
 
-    function testOnlyHostOrContributorCanBuy() public {
+    function testOnlyHostOrCanBuy_withGatekeeperSet() public {
         address host = _randomAddress();
         address contributor = _randomAddress();
 
@@ -331,7 +331,7 @@ contract BuyCrowdfundTest is Test, TestUtils {
         cf.contribute{ value: contributor.balance }(contributor, abi.encode(new bytes32[](0)));
 
         // Buy the token, expect revert because we are not a contributor or host.
-        vm.expectRevert(Crowdfund.OnlyPartyHostOrContributorError.selector);
+        vm.expectRevert(Crowdfund.OnlyPartyHostError.selector);
         cf.buy(payable(address(0)), 0, "", defaultGovernanceOpts, 0);
 
         // Now as the host, but this will fail with another error because
@@ -344,13 +344,10 @@ contract BuyCrowdfundTest is Test, TestUtils {
         ));
         cf.buy(payable(address(cf)), 0, "", defaultGovernanceOpts, 0);
 
-        // Buy as a contributor, but this will fail with another error because
-        // we are trying to call the CF itself in buy().
+        // Buy as a contributor, but this will fail because onlyHost is on.
         vm.prank(contributor);
         vm.expectRevert(abi.encodeWithSelector(
-            BuyCrowdfundBase.CallProhibitedError.selector,
-            address(cf),
-            ""
+            Crowdfund.OnlyPartyHostError.selector
         ));
         cf.buy(payable(address(cf)), 0, "", defaultGovernanceOpts, 0);
     }

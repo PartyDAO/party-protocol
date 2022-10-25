@@ -26,4 +26,5 @@ library LibGlobals {
     uint256 internal constant GLOBAL_OS_MAX_ORDER_DURATION          = 20;
     uint256 internal constant GLOBAL_DISABLE_PARTY_ACTIONS          = 21;
     uint256 internal constant GLOBAL_RENDERER_STORAGE               = 22;
+    uint256 internal constant GLOBAL_PROPOSAL_MIN_CANCEL_DURATION   = 23;
 }
