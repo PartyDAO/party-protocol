@@ -146,9 +146,8 @@ contract PartyGovernanceNFT is
             votingPower_ = totalVotingPower - mintedVotingPower_;
         }
         mintedVotingPower_ += votingPower_;
-        uint256 tokenId = tokenCount_ + 1;
         // Update state.
-        tokenCount = tokenId.safeCastUint256ToUint96();
+        tokenId = tokenCount = tokenCount_ + 1;
         mintedVotingPower = mintedVotingPower_;
         votingPowerByTokenId[tokenId] = votingPower_;
 
