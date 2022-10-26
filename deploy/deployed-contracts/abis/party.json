@@ -1233,6 +1233,11 @@
                 "internalType": "string",
                 "name": "symbol",
                 "type": "string"
+              },
+              {
+                "internalType": "uint256",
+                "name": "customizationPresetId",
+                "type": "uint256"
               }
             ],
             "internalType": "struct Party.PartyOptions",

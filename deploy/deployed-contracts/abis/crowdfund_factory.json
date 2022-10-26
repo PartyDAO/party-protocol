@@ -33,6 +33,11 @@
           },
           {
             "internalType": "uint256",
+            "name": "customizationPresetId",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
             "name": "auctionId",
             "type": "uint256"
           },
@@ -165,6 +170,11 @@
             "type": "string"
           },
           {
+            "internalType": "uint256",
+            "name": "customizationPresetId",
+            "type": "uint256"
+          },
+          {
             "internalType": "contract IERC721",
             "name": "nftContract",
             "type": "address"
@@ -288,6 +298,11 @@
             "type": "string"
           },
           {
+            "internalType": "uint256",
+            "name": "customizationPresetId",
+            "type": "uint256"
+          },
+          {
             "internalType": "contract IERC721",
             "name": "nftContract",
             "type": "address"
@@ -392,6 +407,11 @@
             "internalType": "string",
             "name": "symbol",
             "type": "string"
+          },
+          {
+            "internalType": "uint256",
+            "name": "customizationPresetId",
+            "type": "uint256"
           },
           {
             "internalType": "uint256",
@@ -532,6 +552,11 @@
             "type": "string"
           },
           {
+            "internalType": "uint256",
+            "name": "customizationPresetId",
+            "type": "uint256"
+          },
+          {
             "internalType": "contract IERC721",
             "name": "nftContract",
             "type": "address"
@@ -658,6 +683,11 @@
             "internalType": "string",
             "name": "symbol",
             "type": "string"
+          },
+          {
+            "internalType": "uint256",
+            "name": "customizationPresetId",
+            "type": "uint256"
           },
           {
             "internalType": "contract IERC721",
