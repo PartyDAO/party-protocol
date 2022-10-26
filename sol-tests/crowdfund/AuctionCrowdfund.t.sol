@@ -567,7 +567,7 @@ contract AuctionCrowdfundTest is Test, TestUtils {
         cf.bid(defaultGovernanceOpts, 0);
     }
 
-    function test_onlyHostOrContributorCanBid() public {
+    function test_onlyHostCanBidWithGatekeeperSet() public {
         address host = _randomAddress();
         address contributor = _randomAddress();
 
@@ -594,13 +594,12 @@ contract AuctionCrowdfundTest is Test, TestUtils {
         vm.warp(cf.expiry());
 
         // Bid, expect revert because we are not a host or contributor.
-        vm.expectRevert(Crowdfund.OnlyPartyHostOrContributorError.selector);
+        vm.expectRevert(Crowdfund.OnlyPartyHostError.selector);
         cf.bid(defaultGovernanceOpts, 0);
 
-        // Bid as a contributor, but expect a revert because the CF is expired.
+        // Bid as a contributor, but expect a revert because onlyHost is on.
         vm.expectRevert(abi.encodeWithSelector(
-            Crowdfund.WrongLifecycleError.selector,
-            Crowdfund.CrowdfundLifecycle.Expired
+            Crowdfund.OnlyPartyHostError.selector
         ));
         vm.prank(contributor);
         cf.bid(defaultGovernanceOpts, 0);

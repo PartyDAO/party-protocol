@@ -175,15 +175,8 @@ contract AuctionCrowdfund is Crowdfund {
     {
         // This function can be optionally restricted in different ways.
         if (onlyHostCanBid) {
-            if (address(gateKeeper) != address(0)) {
-                // `onlyHostCanBid` is true and we are using a gatekeeper. Either
-                // the host or a contributor can call this function.
-                _assertIsHostOrContributor(msg.sender, governanceOpts, hostIndex);
-            } else {
-                // `onlyHostCanBid` is true and we are NOT using a gatekeeper.
-                // Only a host can call this function.
-                _assertIsHost(msg.sender, governanceOpts, hostIndex);
-            }
+            // Only a host can call this function.
+            _assertIsHost(msg.sender, governanceOpts, hostIndex);
         } else if (address(gateKeeper) != address(0)) {
             // `onlyHostCanBid` is false and we are using a gatekeeper.
             // Only a contributor can call this function.

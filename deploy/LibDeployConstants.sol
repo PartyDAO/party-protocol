@@ -13,6 +13,8 @@ library LibDeployConstants {
     uint256 zoraMinAuctionDuration;
     uint256 zoraMaxAuctionDuration;
     uint256 zoraMaxAuctionTimeout;
+    uint256 minCancelDelay;
+    uint256 maxCancelDelay;
     uint40 distributorEmergencyActionAllowedDuration;
     address partyDaoMultisig;
     address osZone;
@@ -35,6 +37,8 @@ library LibDeployConstants {
       zoraMinAuctionDuration: 2 minutes,
       zoraMaxAuctionDuration: 10 days,
       zoraMaxAuctionTimeout: 7 days,
+      minCancelDelay: 5 minutes,
+      maxCancelDelay: 1 days,
       distributorEmergencyActionAllowedDuration: 365 days,
       partyDaoMultisig: multisig,
       osZone: 0x0000000000000000000000000000000000000000,
@@ -60,6 +64,8 @@ library LibDeployConstants {
       zoraMinAuctionDuration: 2 minutes,
       zoraMaxAuctionDuration: 10 days,
       zoraMaxAuctionTimeout: 7 days,
+      minCancelDelay: 5 minutes,
+      maxCancelDelay: 1 days,
       distributorEmergencyActionAllowedDuration: 365 days,
       partyDaoMultisig: multisig,
       osZone: 0x0000000000000000000000000000000000000000,
@@ -85,6 +91,8 @@ library LibDeployConstants {
       zoraMinAuctionDuration: 2 minutes,
       zoraMaxAuctionDuration: 10 days,
       zoraMaxAuctionTimeout: 7 days,
+      minCancelDelay: 1 hours,
+      maxCancelDelay: 30 days,
       distributorEmergencyActionAllowedDuration: 365 days,
       partyDaoMultisig: 0xF7f52Dd34bc21eDA08c0b804C7c1dbc48375820f,
       osZone: 0x0000000000000000000000000000000000000000,

@@ -90,7 +90,6 @@ abstract contract Crowdfund is Implementation, ERC721Receiver, CrowdfundNFT {
     error ExceedsTotalContributionsError(uint96 value, uint96 totalContributions);
     error NothingToClaimError();
     error OnlyPartyHostError();
-    error OnlyPartyHostOrContributorError();
     error OnlyContributorError();
     error MissingHostsError();
 
@@ -279,13 +278,16 @@ abstract contract Crowdfund is Implementation, ERC721Receiver, CrowdfundNFT {
         )
     {
         CrowdfundLifecycle lc = getCrowdfundLifecycle();
-        Contribution[] memory contributions = _contributionsByContributor[contributor];
-        uint256 numContributions = contributions.length;
-        for (uint256 i; i < numContributions; ++i) {
-            ethContributed += contributions[i].amount;
-        }
         if (lc == CrowdfundLifecycle.Won || lc == CrowdfundLifecycle.Lost) {
             (ethUsed, ethOwed, votingPower) = _getFinalContribution(contributor);
+            ethContributed = ethUsed + ethOwed;
+        } else {
+            Contribution[] memory contributions =
+                _contributionsByContributor[contributor];
+            uint256 numContributions = contributions.length;
+            for (uint256 i; i < numContributions; ++i) {
+                ethContributed += contributions[i].amount;
+            }
         }
     }
 
@@ -295,30 +297,6 @@ abstract contract Crowdfund is Implementation, ERC721Receiver, CrowdfundNFT {
     // Get the final sale price of the bought assets. This will also be the total
     // voting power of the governance party.
     function _getFinalPrice() internal virtual view returns (uint256);
-
-    // Assert either that:
-    // 1. `who` is a host at `governanceOpts.hosts[hostIndex]` and,
-    //     if so, assert that the governance opts is the same as the crowdfund
-    //     was created with.
-    // 2. `who` is a contributor to the crowdfund.
-    // Return true if `governanceOpts` was validated in the process.
-    function _assertIsHostOrContributor(
-        address who,
-        FixedGovernanceOpts memory governanceOpts,
-        uint256 hostIndex
-    )
-        internal
-        view
-        returns (bool isValidatedGovernanceOpts)
-    {
-        if (who == governanceOpts.hosts[hostIndex]) {
-            _assertValidGovernanceOpts(governanceOpts);
-            return true;
-        }
-        if (_contributionsByContributor[who].length == 0) {
-            revert OnlyPartyHostOrContributorError();
-        }
-    }
 
     // Assert that `who` is a host at `governanceOpts.hosts[hostIndex]` and,
     // if so, assert that the governance opts is the same as the crowdfund
