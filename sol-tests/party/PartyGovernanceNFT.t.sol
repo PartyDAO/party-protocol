@@ -201,6 +201,22 @@ contract PartyGovernanceNFTTest is Test, TestUtils {
         party.abdicate();
     }
 
+    function testGenerateSVG_works() public {
+        PartyGovernance.ProposalStatus[4] memory proposalStatuses = [
+            PartyGovernance.ProposalStatus.Voting,
+            PartyGovernance.ProposalStatus.Defeated,
+            PartyGovernance.ProposalStatus.Passed,
+            PartyGovernance.ProposalStatus.Invalid // Should not be rendered.
+        ];
+
+        string memory svg = nftRenderer.generateSVG("Test", "10.32", proposalStatuses, 3, 420, true, RendererCustomization.Color.CYAN, true);
+
+        // Uncomment for testing rendering:
+        // console.log(svg);
+
+        assertTrue(bytes(svg).length > 0);
+    }
+
     function testTokenURI_works() public {
         // Create party
         DummyParty party = new DummyParty(address(globals), "Party of the Living Dead");

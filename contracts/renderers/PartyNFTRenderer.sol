@@ -104,41 +104,43 @@ contract PartyNFTRenderer is IERC721Renderer, RendererCustomization {
             'data:application/json;base64,',
             Base64.encode(abi.encodePacked(
                 '{"name":"',
-                generateName(tokenId),
+                generateName(name, tokenId),
                 '", "description":"',
-                generateDescription(tokenId),
+                generateDescription(name, tokenId),
                 '", "external_url":"',
                 generateExternalURL(),
                 '", "attributes": [',
                 generateAttributes(tokenId),
-                '], "image": "data:image/svg+xml;base64,',
-                Base64.encode(abi.encodePacked(
-                    // Split to avoid stack too deep errors
-                    generateSVG1(color, isDarkMode),
-                    generateSVG2(color),
-                    generateSVG3(color),
-                    generateSVG4(color, tokenId),
-                    generateSVG5(color, tokenId)
-                )),
+                '], "image":"',
+                generateSVG(
+                    name,
+                    generateVotingPowerPercentage(tokenId),
+                    getLatestProposalStatuses(),
+                    lastProposalId,
+                    tokenId,
+                    hasUnclaimedDistribution(tokenId),
+                    color,
+                    isDarkMode
+                ),
                 '"}'
             ))
         );
     }
 
-    function generateName(uint256 tokenId) private view returns (string memory) {
-        return string.concat(name, ' Card #', tokenId.toString());
+    function generateName(string memory partyName, uint256 tokenId) private pure returns (string memory) {
+        return string.concat(partyName, ' Card #', tokenId.toString());
     }
 
     function generateExternalURL() private view returns (string memory) {
         return string.concat('https://partybid.app/party/', address(this).toHexString());
     }
 
-    function generateDescription(uint256 tokenId) private view returns (string memory) {
+    function generateDescription(string memory partyName, uint256 tokenId) private view returns (string memory) {
         return string.concat(
             'Card #',
             tokenId.toString(),
             ' in ',
-            name,
+            partyName,
             ". This item represents ",
             generateVotingPowerPercentage(tokenId),
             '% membership in the party. Head to ',
@@ -152,6 +154,29 @@ contract PartyNFTRenderer is IERC721Renderer, RendererCustomization {
             '{"trait_type":"Voting Power", "value":',
             generateVotingPowerPercentage(tokenId),
             ', "max_value":100}'
+        );
+    }
+
+    function generateSVG(
+        string memory partyName,
+        string memory votingPowerPercentage,
+        PartyGovernance.ProposalStatus[4] memory proposalStatuses,
+        uint256 latestProposalId,
+        uint256 tokenId,
+        bool hasUnclaimed,
+        Color color,
+        bool isDarkMode
+    ) public view returns (string memory) {
+        return string.concat(
+            'data:image/svg+xml;base64,',
+            Base64.encode(abi.encodePacked(
+                // Split to avoid stack too deep errors
+                generateSVG1(color, isDarkMode),
+                generateSVG2(partyName, color),
+                generateSVG3(partyName, color),
+                generateSVG4(latestProposalId, proposalStatuses, votingPowerPercentage, color),
+                generateSVG5(hasUnclaimed, tokenId, color)
+            ))
         );
     }
 
@@ -181,8 +206,8 @@ contract PartyNFTRenderer is IERC721Renderer, RendererCustomization {
         );
     }
 
-    function generateSVG2(Color color) private view returns (string memory) {
-        (uint256 duration, uint256 steps, uint256 delay, uint256 translateX) = calcAnimationVariables();
+    function generateSVG2(string memory partyName, Color color) private view returns (string memory) {
+        (uint256 duration, uint256 steps, uint256 delay, uint256 translateX) = calcAnimationVariables(partyName);
 
         return string.concat(
             '<symbol id="a" viewBox="0 0 300.15 300"><path d="M6.07 0v300m-3-300v300M.07 0v300m9-300v300m3-300v300m3-300v300m3-300v300m3-300v300m3-300v300m3-300v300m3-300v300m3-300v300m3-300v300m3-300v300m3-300v300m3-300v300m3-300v300m3-300v300m3-300v300m3-300v300m3-300v300m3-300v300m3-300v300m3-300v300m3-300v300m3-300v300m3-300v300m3-300v300m3-300v300m3-300v300m3-300v300m3-300v300m3-300v300m3-300v300m3-300v300m3-300v300m3-300v300m3-300v300m3-300v300m3-300v300m3-300v300m3-300v300m3-300v300m3-300v300m3-300v300m3-300v300m3-300v300m3-300v300m3-300v300m3-300v300m3-300v300m3-300v300m3-300v300m3-300v300m3-300v300m3-300v300m3-300v300m3-300v300m3-300v300m3-300v300m3-300v300m3-300v300m3-300v300m3-300v300m3-300v300m3-300v300m3-300v300m3-300v300m3-300v300m3-300v300m3-300v300m3-300v300m3-300v300m3-300v300m3-300v300m3-300v300m3-300v300m3-300v300m3-300v300m3-300v300m3-300v300m3-300v300m3-300v300m3-300v300m3-300v300m3-300v300m3-300v300m3-300v300m3-300v300m3-300v300m3-300v300m3-300v300m3-300v300m3-300v300m3-300v300m3-300v300m3-300v300m3-300v300m3-300v300m3-300v300m3-300v300" style="stroke-width:.15px;stroke:',
@@ -205,34 +230,37 @@ contract PartyNFTRenderer is IERC721Renderer, RendererCustomization {
         );
     }
 
-    function generateSVG3(Color color) private view returns (string memory) {
+    function generateSVG3(string memory partyName, Color color) private pure returns (string memory) {
         return string.concat(
             '<rect height="539" rx="29.5" ry="29.5" style="fill:url(#d);stroke:url(#e)" width="359" x=".5" y=".5"/><rect rx="15.5" ry="15.5" style="stroke:url(#f);fill:',
             generateColorHex(color, ColorType.PRIMARY),
             '" width="331" height="346" x="14.5" y="179.5"/><path d="M321 501H198v-27h123v27Zm9-282H30v27h300v-27Zm0 60H30v27h300v-27Zm0 30H30v27h300v-27Zm0 30H30v27h300v-27Zm0 30H30v27h300v-27Z" style="fill:',
             generateColorHex(color, ColorType.LIGHT),
             ';"/><clipPath id="clip"><path d="M31 501H198v-27h123v27Zm9-282H30v27h300v-27Zm0"/></clipPath><g clip-path="url(#clip)"><text class="v z" x="327" y="240">',
-            name,
+            partyName,
             '</text><text class="v z y" x="327" y="240">',
-            name,
+            partyName,
             '</text></g>'
         );
     }
 
-    function generateSVG4(Color color, uint256 tokenId) private view returns (string memory) {
-        string[4] memory latestProposalStatuses = getLatestProposalStatuses();
-
+    function generateSVG4(
+        uint256 latestProposalId,
+        PartyGovernance.ProposalStatus[4] memory proposalStatuses,
+        string memory votingPowerPercentage,
+        Color color
+    ) private pure returns (string memory) {
         return string.concat(
             '<text class="v" x="30" y="300">',
-            latestProposalStatuses[0],
+            generateProposalStatus(latestProposalId, proposalStatuses[0]),
             '</text><text class="v" x="30" y="330">',
-            latestProposalStatuses[1],
+            latestProposalId > 1 ? generateProposalStatus(latestProposalId - 1, proposalStatuses[1]) : '',
             '</text><text class="v" x="30" y="360">',
-            latestProposalStatuses[2],
+            latestProposalId > 2 ? generateProposalStatus(latestProposalId - 2, proposalStatuses[2]): '',
             '</text><text class="v" x="30" y="390">',
-            latestProposalStatuses[3],
+            latestProposalId > 3 ? generateProposalStatus(latestProposalId - 3, proposalStatuses[3]) : '',
             '</text><text class="v" x="201" y="495">',
-            generateVotingPowerPercentage(tokenId),
+            votingPowerPercentage,
             '</text><text class="v" x="297" y="495">%</text>'
             '<use height="300" x="30" y="210" width="300.15" xlink:href="#a"/><use height="300" transform="rotate(-90 270 240)" width="300.15" xlink:href="#a"/><rect rx="3.5" ry="3.5" style="fill:none;stroke:',
             generateColorHex(color, ColorType.DARK),
@@ -241,9 +269,7 @@ contract PartyNFTRenderer is IERC721Renderer, RendererCustomization {
         );
     }
 
-    function generateSVG5(Color color, uint256 tokenId) private view returns (string memory) {
-        bool hasUnclaimed = hasUnclaimedDistribution(tokenId);
-
+    function generateSVG5(bool hasUnclaimed, uint256 tokenId, Color color) private view returns (string memory) {
         return string.concat(
             '"',
             _storage.readFile(PARTY_CARD_DATA),
@@ -265,26 +291,27 @@ contract PartyNFTRenderer is IERC721Renderer, RendererCustomization {
         );
     }
 
-    function generateProposalStatus(uint256 proposalId) private view returns (string memory) {
-        (PartyGovernance.ProposalStatus status, ) = PartyGovernance(address(this)).getProposalStateInfo(proposalId);
-
+    function generateProposalStatus(uint256 proposalId, PartyGovernance.ProposalStatus status) private pure returns (string memory) {
+        string memory statusMessage;
         if (status == PartyGovernance.ProposalStatus.Voting) {
-            return "Voting now";
+            statusMessage = "Voting now";
         } else if (status == PartyGovernance.ProposalStatus.Passed) {
-            return "Passing";
+            statusMessage = "Passing";
         } else if (status == PartyGovernance.ProposalStatus.Ready) {
-            return "Executable";
+            statusMessage = "Executable";
         } else if (status == PartyGovernance.ProposalStatus.InProgress) {
-            return "In progress";
+            statusMessage = "In progress";
         } else if (status == PartyGovernance.ProposalStatus.Complete) {
-            return "Complete";
+            statusMessage = "Complete";
         } else if (status == PartyGovernance.ProposalStatus.Defeated) {
-            return "Defeated";
+            statusMessage = "Defeated";
         } else if (status == PartyGovernance.ProposalStatus.Cancelled) {
-            return "Cancelled";
+            statusMessage = "Cancelled";
         } else {
-            return "Invalid";
+            statusMessage = "Invalid";
         }
+
+        return string.concat('#', proposalId.toString(), ' - ', statusMessage);
     }
 
     function generateVotingPowerPercentage(uint256 tokenId) private view returns (string memory) {
@@ -314,17 +341,13 @@ contract PartyNFTRenderer is IERC721Renderer, RendererCustomization {
         }
     }
 
-    function getLatestProposalStatuses() private view returns(string[4] memory latestProposalStatuses) {
+    function getLatestProposalStatuses() private view returns(PartyGovernance.ProposalStatus[4] memory proposalStatuses) {
         uint256 latestProposalId = lastProposalId;
         uint256 numOfProposalsToDisplay = latestProposalId < 4 ? latestProposalId : 4;
         for (uint256 i; i < numOfProposalsToDisplay; ++i) {
             uint256 proposalId = latestProposalId - i;
-            latestProposalStatuses[i] = string.concat(
-                '#',
-                proposalId.toString(),
-                ' - ',
-                generateProposalStatus(proposalId)
-            );
+            (PartyGovernance.ProposalStatus status, ) = PartyGovernance(address(this)).getProposalStateInfo(proposalId);
+            proposalStatuses[i] = status;
         }
     }
 
@@ -340,9 +363,9 @@ contract PartyNFTRenderer is IERC721Renderer, RendererCustomization {
         return false;
     }
 
-    function calcAnimationVariables()
+    function calcAnimationVariables(string memory partyName)
         private
-        view
+        pure
         returns (
             uint256 duration,
             uint256 steps,
@@ -350,7 +373,7 @@ contract PartyNFTRenderer is IERC721Renderer, RendererCustomization {
             uint256 translateX
         )
     {
-        translateX = bytes(name).length * 30 + 300;
+        translateX = bytes(partyName).length * 30 + 300;
         duration = translateX / 56;
         if (duration % 2 != 0) {
             // Make duration even so that the animation delay is always exactly

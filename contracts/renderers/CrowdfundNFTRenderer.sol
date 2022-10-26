@@ -93,18 +93,11 @@ contract CrowdfundNFTRenderer is IERC721Renderer, RendererCustomization {
                 '{"name":"',
                 generateName(owner),
                 '", "description":"',
-                generateDescription(owner),
+                generateDescription(name, owner),
                 '", "external_url":"',
                 generateExternalURL(),
-                '", "image": "data:image/svg+xml;base64,',
-                Base64.encode(abi.encodePacked(
-                    // Split to avoid stack too deep errors
-                    generateSVG1(color, isDarkMode),
-                    generateSVG2(color),
-                    generateSVG3(color, owner),
-                    generateSVG4(color),
-                    generateSVG5()
-                )),
+                '", "image":"',
+                generateSVG(name, getContribution(owner), getCrowdfundStatus(), color, isDarkMode),
                 '"}'
             ))
         );
@@ -118,21 +111,21 @@ contract CrowdfundNFTRenderer is IERC721Renderer, RendererCustomization {
         return string.concat('https://partybid.app/join/', address(this).toHexString());
     }
 
-    function generateDescription(address owner) private view returns (string memory) {
+    function generateDescription(string memory partyName, address owner) private view returns (string memory) {
         CrowdfundStatus status = getCrowdfundStatus();
         string memory externalURL = generateExternalURL();
         string memory contribution = getContribution(owner);
 
         if (status == CrowdfundStatus.WON) {
             return string.concat(
-                name,
+                partyName,
                 ' has won! You can use this item to activate your membership in the party. Head to ',
                 externalURL,
                 ' to activate.'
             );
         } else if (status == CrowdfundStatus.LOST) {
             return string.concat(
-                name,
+                partyName,
                 ' has lost. You can use this item to claim your ETH back from the party. Head to ',
                 externalURL,
                 ' to claim.'
@@ -142,12 +135,32 @@ contract CrowdfundNFTRenderer is IERC721Renderer, RendererCustomization {
                 'This item represents your contribution of ',
                 contribution,
                 ' ETH to the ',
-                name,
+                partyName,
                 ' crowdfund. When the crowdfund concludes, you can use this card to claim your ETH or membership in the party. Head to ',
                 externalURL,
                 ' to see more.'
             );
         }
+    }
+
+    function generateSVG(
+        string memory partyName,
+        string memory contributionAmount,
+        CrowdfundStatus status,
+        Color color,
+        bool isDarkMode
+    ) public view returns (string memory) {
+        return string.concat(
+            'data:image/svg+xml;base64,',
+            Base64.encode(abi.encodePacked(
+                // Split to avoid stack too deep errors
+                generateSVG1(color, isDarkMode),
+                generateSVG2(partyName, color),
+                generateSVG3(contributionAmount, color),
+                generateSVG4(status, color),
+                generateSVG5(partyName)
+            ))
+        );
     }
 
     function generateSVG1(Color color, bool isDarkMode) private pure returns (string memory) {
@@ -176,8 +189,8 @@ contract CrowdfundNFTRenderer is IERC721Renderer, RendererCustomization {
         );
     }
 
-    function generateSVG2(Color color) private view returns (string memory) {
-        (uint256 duration, uint256 steps, uint256 delay, uint256 translateX) = calcAnimationVariables();
+    function generateSVG2(string memory partyName, Color color) private view returns (string memory) {
+        (uint256 duration, uint256 steps, uint256 delay, uint256 translateX) = calcAnimationVariables(partyName);
         return string.concat(
             '<symbol id="b" viewBox="0 0 300 21.15"><path class="s" d="M0 21.08h300m-300-3h300m-300-3h300m-300-3h300m-300-3h300m-300-3h300m-300-3h300M0 .08h300"/></symbol><style>.z{animation:x ',
             duration.toString(),
@@ -199,20 +212,19 @@ contract CrowdfundNFTRenderer is IERC721Renderer, RendererCustomization {
         );
     }
 
-    function generateSVG3(Color color, address owner) private view returns (string memory) {
+    function generateSVG3(string memory contributionAmount, Color color) private pure returns (string memory) {
         return string.concat(
             '<rect height="539" rx="29.5" ry="29.5" style="fill:url(#d);stroke:url(#e);" width="359" x=".5" y=".5"/><path d="M30 525.5c-8.55 0-15.5-6.95-15.5-15.5v-98c0-8.55 6.95-15.5 15.5-15.5h113.81a30.5 30.5 0 0 1 19.97 7.45l28.09 24.34a29.48 29.48 0 0 0 19.32 7.21H330c8.55 0 15.5 6.95 15.5 15.5v59c0 8.55-6.95 15.5-15.5 15.5H30Z" style="fill:',
             generateColorHex(color, ColorType.PRIMARY),
             ';stroke:url(#f)"/><path d="M330 444H30v27h300v-27Zm-219-27.5v15H36v-15h75Z" fill="',
             generateColorHex(color, ColorType.LIGHT),
             '"/><text class="p" x="33" y="431.5">',
-            getContribution(owner),
+            contributionAmount,
             '</text>'
         );
     }
 
-    function generateSVG4(Color color) private view returns (string memory) {
-        CrowdfundStatus status = getCrowdfundStatus();
+    function generateSVG4(CrowdfundStatus status, Color color) private pure returns (string memory) {
         string memory activeColorHex = generateColorHex(color, ColorType.DARK);
         string memory inactiveColorHex = generateColorHex(color, ColorType.LIGHT);
         return string.concat(
@@ -232,12 +244,12 @@ contract CrowdfundNFTRenderer is IERC721Renderer, RendererCustomization {
         );
     }
 
-    function generateSVG5() private view returns (string memory) {
+    function generateSVG5(string memory partyName) private view returns (string memory) {
         return string.concat(
             '<clipPath id="clip"><path d="M330 444H30v27h300"/></clipPath><g clip-path="url(#clip)"><text class="p z" x="327" y="465">',
-            name,
+            partyName,
             '</text><text class="p z y" x="327" y="465">',
-            name,
+            partyName,
             '</text></g>',
             _storage.readFile(CROWDFUND_CARD_DATA)
         );
@@ -286,9 +298,9 @@ contract CrowdfundNFTRenderer is IERC721Renderer, RendererCustomization {
         }
     }
 
-    function calcAnimationVariables()
+    function calcAnimationVariables(string memory partyName)
         private
-        view
+        pure
         returns (
             uint256 duration,
             uint256 steps,
@@ -296,7 +308,7 @@ contract CrowdfundNFTRenderer is IERC721Renderer, RendererCustomization {
             uint256 translateX
         )
     {
-        translateX = bytes(name).length * 30 + 300;
+        translateX = bytes(partyName).length * 30 + 300;
         duration = translateX / 56;
         if (duration % 2 != 0) {
             // Make duration even so that the animation delay is always exactly

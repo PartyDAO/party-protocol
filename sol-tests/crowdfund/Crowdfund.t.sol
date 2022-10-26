@@ -63,6 +63,7 @@ contract CrowdfundTest is Test, TestUtils {
     Globals globals = new Globals(address(this));
     MockPartyFactory partyFactory = new MockPartyFactory();
     MockParty party;
+    CrowdfundNFTRenderer nftRenderer;
 
     constructor() {
         globals.setAddress(LibGlobals.GLOBAL_PARTY_FACTORY, address(partyFactory));
@@ -77,7 +78,7 @@ contract CrowdfundTest is Test, TestUtils {
         // Upload font on-chain
         PixeldroidConsoleFont font = new PixeldroidConsoleFont();
         RendererStorage nftRendererStorage = new RendererStorage(address(this));
-        CrowdfundNFTRenderer nftRenderer = new CrowdfundNFTRenderer(globals, nftRendererStorage, font);
+        nftRenderer = new CrowdfundNFTRenderer(globals, nftRendererStorage, font);
         globals.setAddress(LibGlobals.GLOBAL_CF_NFT_RENDER_IMPL, address(nftRenderer));
         globals.setAddress(LibGlobals.GLOBAL_RENDERER_STORAGE, address(nftRendererStorage));
 
@@ -1053,6 +1054,21 @@ contract CrowdfundTest is Test, TestUtils {
         cf.contribute{ value: 2 }(contributor1, "");
         assertEq(cf.totalContributions(), 13);
         assertEq(cf.getContributionEntriesByContributorCount(contributor1), 2);
+    }
+
+    function test_generateSVG_works() public {
+        string memory svg = nftRenderer.generateSVG(
+            "Test",
+            "0.420",
+            CrowdfundNFTRenderer.CrowdfundStatus.WON,
+            RendererCustomization.Color.CYAN,
+            true
+        );
+
+        // Uncomment for testing rendering:
+        // console.log(svg);
+
+        assertTrue(bytes(svg).length > 0);
     }
 
     // test nft renderer
