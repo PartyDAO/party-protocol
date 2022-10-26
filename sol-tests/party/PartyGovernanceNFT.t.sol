@@ -164,7 +164,7 @@ contract PartyGovernanceNFTTest is Test, TestUtils {
         DummyParty party = new DummyParty(address(globals), "Party of the Living Dead");
 
         // Set customization option
-        party.useCustomizationPreset(15); // Should make card red w/ dark mode.
+        party.useCustomizationPreset(16); // Should make card red w/ dark mode.
 
         // Create proposals
         party.createMockProposal(PartyGovernance.ProposalStatus.Complete);
@@ -368,7 +368,7 @@ contract DummyParty is ReadOnlyDelegateCall {
     }
 
     function getDistributionShareOf(uint256) external pure returns (uint256) {
-        return 10.32e18;
+        return 0.1032e18;
     }
 
     function _delegateToRenderer() private view {
