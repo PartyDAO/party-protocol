@@ -209,7 +209,7 @@ abstract contract PartyGovernance is
     /// @notice The last person a voter delegated its voting power to.
     mapping(address => address) public delegationsByVoter;
     // Constant governance parameters, fixed from the inception of this party.
-    GovernanceValues private _governanceValues;
+    GovernanceValues internal _governanceValues;
     // ProposalState by proposal ID.
     mapping(uint256 => ProposalState) private _proposalStateByProposalId;
     // Snapshots of voting power per user, each sorted by increasing time.

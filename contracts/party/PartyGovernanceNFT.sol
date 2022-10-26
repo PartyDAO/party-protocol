@@ -18,6 +18,7 @@ contract PartyGovernanceNFT is
     IERC2981
 {
     using LibSafeCast for uint256;
+    using LibSafeCast for uint96;
 
     error OnlyMintAuthorityError(address actual, address expected);
 
@@ -28,9 +29,11 @@ contract PartyGovernanceNFT is
     /// @notice Who can call `mint()`. Usually this will be the crowdfund contract that
     /// created the party.
     address public mintAuthority;
-
     /// @notice The number of tokens that have been minted.
-    uint256 public tokenCount;
+    uint96 public tokenCount;
+    /// @notice The total minted voting power.
+    ///         Capped to `_governanceValues.totalVotingPower`
+    uint96 public mintedVotingPower;
     /// @notice The voting power of `tokenId`.
     mapping (uint256 => uint256) public votingPowerByTokenId;
 
@@ -135,8 +138,18 @@ contract PartyGovernanceNFT is
         onlyDelegateCall
         returns (uint256 tokenId)
     {
-        tokenId = ++tokenCount;
-        votingPowerByTokenId[tokenId] = votingPower;
+        (uint96 tokenCount_, uint96 mintedVotingPower_) = (tokenCount, mintedVotingPower);
+        uint96 totalVotingPower = _governanceValues.totalVotingPower;
+        // Cap voting power to remaining unminted voting power supply.
+        uint96 votingPower_ = votingPower.safeCastUint256ToUint96();
+        if (totalVotingPower - mintedVotingPower_ < votingPower_) {
+            votingPower_ = totalVotingPower - mintedVotingPower_;
+        }
+        mintedVotingPower_ += votingPower_;
+        // Update state.
+        tokenId = tokenCount = tokenCount_ + 1;
+        mintedVotingPower = mintedVotingPower_;
+        votingPowerByTokenId[tokenId] = votingPower_;
 
         // Use delegate from party over the one set during crowdfund.
         address delegate_ = delegationsByVoter[owner];
@@ -144,7 +157,7 @@ contract PartyGovernanceNFT is
             delegate = delegate_;
         }
 
-        _adjustVotingPower(owner, votingPower.safeCastUint256ToInt192(), delegate);
+        _adjustVotingPower(owner, votingPower_.safeCastUint96ToInt192(), delegate);
         _safeMint(owner, tokenId);
     }
 
