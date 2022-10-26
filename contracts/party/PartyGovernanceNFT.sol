@@ -178,8 +178,8 @@ contract PartyGovernanceNFT is
         override
         onlyDelegateCall
     {
-        // Transfer voting along with token.
-        _transferVotingPower(owner, to, votingPowerByTokenId[tokenId]);
+        // super.safeTransferFrom() will call transferFrom() first which will
+        // transfer voting power.
         super.safeTransferFrom(owner, to, tokenId);
     }
 
@@ -189,8 +189,8 @@ contract PartyGovernanceNFT is
         override
         onlyDelegateCall
     {
-        // Transfer voting along with token.
-        _transferVotingPower(owner, to, votingPowerByTokenId[tokenId]);
+        // super.safeTransferFrom() will call transferFrom() first which will
+        // transfer voting power.
         super.safeTransferFrom(owner, to, tokenId, data);
     }
 
