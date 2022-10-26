@@ -159,11 +159,11 @@ abstract contract Crowdfund is Implementation, ERC721Receiver, CrowdfundNFT {
         splitBps = opts.splitBps;
         // If the deployer passed in some ETH during deployment, credit them
         // for the initial contribution.
-        uint96 initialBalance = address(this).balance.safeCastUint256ToUint96();
-        if (initialBalance > 0) {
+        uint96 initialContribution = msg.value.safeCastUint256ToUint96();
+        if (initialContribution > 0) {
             // If this contract has ETH, either passed in during deployment or
             // pre-existing, credit it to the `initialContributor`.
-            _contribute(opts.initialContributor, initialBalance, opts.initialDelegate, 0, "");
+            _contribute(opts.initialContributor, initialContribution, opts.initialDelegate, 0, "");
         }
         // Set up gatekeeper after initial contribution (initial always gets in).
         gateKeeper = opts.gateKeeper;
