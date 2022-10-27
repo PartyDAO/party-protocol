@@ -13,7 +13,10 @@ const RELEVANT_ABIS = [
   "PartyHelpers",
   "ProposalExecutionEngine",
   "TokenDistributor",
-  "TokenGateKeeper"
+  "TokenGateKeeper",
+  "RendererStorage",
+  "PartyNFTRenderer",
+  "CrowdfundNFTRenderer"
 ];
 
 // AFileName -> a_file_name

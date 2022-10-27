@@ -187,28 +187,6 @@
   {
     "inputs": [
       {
-        "internalType": "uint256",
-        "name": "proposalId",
-        "type": "uint256"
-      }
-    ],
-    "name": "ProposalExistsError",
-    "type": "error"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "uint256",
-        "name": "proposalId",
-        "type": "uint256"
-      }
-    ],
-    "name": "ProposalHasNoVotesError",
-    "type": "error"
-  },
-  {
-    "inputs": [
-      {
         "internalType": "contract IERC20",
         "name": "token",
         "type": "address"
@@ -250,6 +228,37 @@
       }
     ],
     "name": "DistributionCreated",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": false,
+        "internalType": "address",
+        "name": "target",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "bytes",
+        "name": "data",
+        "type": "bytes"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "amountEth",
+        "type": "uint256"
+      }
+    ],
+    "name": "EmergencyExecute",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [],
+    "name": "EmergencyExecuteDisabled",
     "type": "event"
   },
   {
