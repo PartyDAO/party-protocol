@@ -77,8 +77,8 @@ abstract contract RendererBase is IERC721Renderer {
                 image = 'QmdcjXrxj7EimjuNTLQp1uKM2zYhuF1WVkVjF6TpfNNXrf';
                 banner = 'QmSBqgzPyAtEp1T2cbX4Wcoo7nH1ggfWMsYBfgnDcLs5pU';
             } else if (color == Color.CYAN) {
-                image = 'QmeiBRb9muNXej3dn4usjjdtbUpgYASfA5jmWqJRshivGH';
-                banner = 'QmVcV1ECvHVvUQ3SVszmZeDjA4Bxxjfjo81Rg5JpxmHSfd';
+                image = 'QmS678DTkTTzFQEDiqj3AsW6wt6bi4bNhWbKcBM29HBhhB';
+                banner = 'QmVT5QtzCxsvbMt1c3hSDrvYCxrc1QtBPiTV4HYnMCYbW6';
             } else if (color == Color.BLUE) {
                 image = 'QmX2k8beAjyVhPk1ZrK6KrwbqLk3fRNPPmknRti7zEtGQa';
                 banner = 'QmVZC9fmWkpWaP4vLKVQdcH9J9pDzvPUsts7mTCiUofeJL';
@@ -103,8 +103,8 @@ abstract contract RendererBase is IERC721Renderer {
                 image = 'QmR7t2g2hrkMYyzhUMEANzEGX74FQcbg3c7eTvCcQucMst';
                 banner = 'QmeZKC2L3Y6gD2NsWAked44nRdPDFKQQ7ZKWioJnzGewPH';
             } else if (color == Color.CYAN) {
-                image = 'QmS678DTkTTzFQEDiqj3AsW6wt6bi4bNhWbKcBM29HBhhB';
-                banner = 'QmVT5QtzCxsvbMt1c3hSDrvYCxrc1QtBPiTV4HYnMCYbW6';
+                image = 'QmeiBRb9muNXej3dn4usjjdtbUpgYASfA5jmWqJRshivGH';
+                banner = 'QmVcV1ECvHVvUQ3SVszmZeDjA4Bxxjfjo81Rg5JpxmHSfd';
             } else if (color == Color.BLUE) {
                 image = 'QmaErgGsanUTo73RMgvizMg3c7x1d1X4t76Tti22Pc1xan';
                 banner = 'QmcQWYuw7aZ9om5nPQ2Bj84tuLFpbbPZx3Rcy4fG8ALuaB';
