@@ -1136,7 +1136,8 @@ contract CrowdfundTest is Test, TestUtils {
     }
 
     function test_contractURI() external {
-        TestableCrowdfund cf = _createCrowdfund(0);
+        uint256 presetId = 0;
+        TestableCrowdfund cf = _createCrowdfund(0, presetId);
 
         string memory contractURI = cf.contractURI();
 

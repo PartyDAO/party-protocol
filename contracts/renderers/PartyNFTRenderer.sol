@@ -105,15 +105,13 @@ contract PartyNFTRenderer is RendererBase {
 
     function generateDescription(string memory partyName, uint256 tokenId) private view returns (string memory) {
         return string.concat(
-            'Card #',
-            tokenId.toString(),
-            ' in ',
-            partyName,
-            ". This item represents ",
+            'This Party Card represents ',
             generateVotingPowerPercentage(tokenId),
-            '% membership in the party. Head to ',
+            '% voting power in the following Party: ',
+            partyName,
+            '. Head to ',
             generateExternalURL(),
-            " to view the party's latest activity."
+            " to view the Party's latest activity."
         );
     }
 
@@ -122,6 +120,16 @@ contract PartyNFTRenderer is RendererBase {
             '{"trait_type":"Voting Power", "value":',
             generateVotingPowerPercentage(tokenId),
             ', "max_value":100}'
+        );
+    }
+
+    function generateCollectionDescription() internal override view returns (string memory) {
+        return string.concat(
+            'This collection represents memberships in the following Party: ',
+            name,
+            '. Head to ',
+            generateExternalURL(),
+            " to view the Party's latest activity."
         );
     }
 

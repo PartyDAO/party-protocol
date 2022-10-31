@@ -86,14 +86,14 @@ contract CrowdfundNFTRenderer is RendererBase {
         if (status == CrowdfundStatus.WON) {
             return string.concat(
                 partyName,
-                ' has won! You can use this item to activate your membership in the party. Head to ',
+                ' has won! You can use this item to activate your membership in the Party. Head to ',
                 externalURL,
                 ' to activate.'
             );
         } else if (status == CrowdfundStatus.LOST) {
             return string.concat(
                 partyName,
-                ' has lost. You can use this item to claim your ETH back from the party. Head to ',
+                ' has lost. You can use this item to claim your ETH back from the Party. Head to ',
                 externalURL,
                 ' to claim.'
             );
@@ -103,11 +103,21 @@ contract CrowdfundNFTRenderer is RendererBase {
                 contribution,
                 ' ETH to the ',
                 partyName,
-                ' crowdfund. When the crowdfund concludes, you can use this card to claim your ETH or membership in the party. Head to ',
+                ' crowdfund. When the crowdfund concludes, you can use this Party Card to claim your ETH or activate your membership in the Party. During the crowdfund, Party Cards are non-transferable. Head to ',
                 externalURL,
                 ' to see more.'
             );
         }
+    }
+
+    function generateCollectionDescription() internal override view returns (string memory) {
+        return string.concat(
+            'Party Cards in this collection represent contributions to the ',
+            name,
+            ' crowdfund. When the crowdfund concludes, Party Cards can be used to claim ETH or activate membership in the Party. During the crowdfund, Party Cards are non-transferable. Head to ',
+            generateExternalURL(),
+            ' to learn more about this Party.'
+        );
     }
 
     function generateSVG(

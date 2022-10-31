@@ -314,18 +314,10 @@ contract PartyGovernanceNFTTest is Test, TestUtils {
 
     function testContractURI() external {
         // Create party
-        (Party party, ,) = partyAdmin.createParty(
-            PartyAdmin.PartyCreationMinimalOptions({
-                host1: address(this),
-                host2: address(0),
-                passThresholdBps: 5100,
-                totalVotingPower: 100,
-                preciousTokenAddress: address(toadz),
-                preciousTokenId: 1,
-                feeBps: 0,
-                feeRecipient: payable(0)
-            })
-        );
+        DummyParty party = new DummyParty(address(globals), "Party of the Living Dead");
+
+        // Set customization option
+        party.useCustomizationPreset(1);
 
         string memory contractURI = party.contractURI();
 
@@ -403,6 +395,11 @@ contract DummyParty is ReadOnlyDelegateCall {
     }
 
     function tokenURI(uint256) public view returns (string memory) {
+        _delegateToRenderer();
+        return ""; // Just to make the compiler happy.
+    }
+
+    function contractURI() public view returns (string memory) {
         _delegateToRenderer();
         return ""; // Just to make the compiler happy.
     }
