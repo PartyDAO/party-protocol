@@ -6,14 +6,10 @@ import "../utils/LibSafeCast.sol";
 import "../utils/vendor/Strings.sol";
 import "../utils/vendor/Base64.sol";
 
-import "./IERC721Renderer.sol";
-import "./RendererCustomization.sol";
-import "../globals/IGlobals.sol";
+import "./RendererBase.sol";
 import "../crowdfund/Crowdfund.sol";
-import "./RendererStorage.sol";
-import "./fonts/IFont.sol";
 
-contract CrowdfundNFTRenderer is IERC721Renderer, RendererCustomization {
+contract CrowdfundNFTRenderer is RendererBase {
     using LibSafeCast for uint256;
     using Strings for uint256;
     using Strings for address;
@@ -28,17 +24,8 @@ contract CrowdfundNFTRenderer is IERC721Renderer, RendererCustomization {
 
     uint256 constant CROWDFUND_CARD_DATA = 0;
 
-    IGlobals immutable _GLOBALS;
-    RendererStorage immutable _storage;
-    IFont immutable _font;
-
     constructor(IGlobals globals, RendererStorage rendererStorage, IFont font)
-        RendererCustomization(rendererStorage)
-    {
-        _GLOBALS = globals;
-        _storage = rendererStorage;
-        _font = font;
-    }
+        RendererBase(globals, rendererStorage, font) { }
 
     // The renderer is called via delegateCall, so we need to declare the storage layout.
     // Run `yarn layout Crowdfund.sol/Crowdfund` to generate the current layout.
@@ -56,26 +43,6 @@ contract CrowdfundNFTRenderer is IERC721Renderer, RendererCustomization {
     mapping(address => address) delegationsByContributor;
     mapping(address => Crowdfund.Contribution[]) _contributionsByContributor;
     mapping(address => Crowdfund.Claim) claims;
-
-    // TODO: Implement contract URI
-    function contractURI() external view returns (string memory) {
-        string memory json = Base64.encode(bytes(
-            string(
-                abi.encodePacked(
-                    '{"name":"',
-                    name,
-                    '", "description":"',
-                    "AuctionCrowdfund Crowdfund NFTs represent your spot in a AuctionCrowdfund party.",
-                    '"}'
-                    // '", "image": "data:image/svg+xml;base64,',
-                    // Base64.encode(bytes(output)),
-                    // '"}'
-                )
-            )
-        ));
-
-        return string(abi.encodePacked('data:application/json;base64,', json));
-    }
 
     function tokenURI(uint256 tokenId) external view returns (string memory) {
         address owner = _owners[tokenId];

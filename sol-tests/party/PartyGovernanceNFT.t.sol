@@ -56,18 +56,18 @@ contract PartyGovernanceNFTTest is Test, TestUtils {
 
         // Generate customization options.
         uint256 versionId = 1;
-        uint256 numOfColors = uint8(type(RendererCustomization.Color).max) + 1;
+        uint256 numOfColors = uint8(type(RendererBase.Color).max) + 1;
         for (uint256 i; i < numOfColors; ++i) {
             // Generate customization options for all colors w/ each mode (light and dark).
             nftRendererStorage.createCustomizationPreset(
                 // Preset ID 0 is reserved. It is used to indicates to party instances
                 // to use the same customization preset as the crowdfund.
                 i + 1,
-                abi.encode(versionId, false, RendererCustomization.Color(i))
+                abi.encode(versionId, false, RendererBase.Color(i))
             );
             nftRendererStorage.createCustomizationPreset(
                 i + 1 + numOfColors,
-                abi.encode(versionId, true, RendererCustomization.Color(i))
+                abi.encode(versionId, true, RendererBase.Color(i))
             );
         }
 
@@ -209,7 +209,7 @@ contract PartyGovernanceNFTTest is Test, TestUtils {
             PartyGovernance.ProposalStatus.Invalid // Should not be rendered.
         ];
 
-        string memory svg = nftRenderer.generateSVG("Test", "10.32", proposalStatuses, 3, 420, true, RendererCustomization.Color.CYAN, true);
+        string memory svg = nftRenderer.generateSVG("Test", "10.32", proposalStatuses, 3, 420, true, RendererBase.Color.CYAN, true);
 
         // Uncomment for testing rendering:
         // console.log(svg);
