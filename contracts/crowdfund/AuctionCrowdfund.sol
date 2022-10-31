@@ -191,7 +191,7 @@ contract AuctionCrowdfund is Crowdfund {
             }
         }
 
-        // Mark as busy to prevent `burn()`, `bid()`, and `contribute()`
+        // Mark as busy to prevent `resolveContribution()`, `bid()`, and `contribute()`
         // getting called because this will result in a `CrowdfundLifecycle.Busy`.
         _bidStatus = AuctionCrowdfundStatus.Busy;
 
@@ -252,7 +252,7 @@ contract AuctionCrowdfund is Crowdfund {
         if (lc != CrowdfundLifecycle.Active && lc != CrowdfundLifecycle.Expired) {
             revert WrongLifecycleError(lc);
         }
-        // Mark as busy to prevent burn(), bid(), and contribute()
+        // Mark as busy to prevent resolveContribution(), bid(), and contribute()
         // getting called because this will result in a `CrowdfundLifecycle.Busy`.
         _bidStatus = AuctionCrowdfundStatus.Busy;
         {
@@ -288,7 +288,7 @@ contract AuctionCrowdfund is Crowdfund {
         } else {
             // Otherwise we lost the auction or the NFT was gifted to us.
             // Clear `lastBid` so `_getFinalPrice()` is 0 and people can redeem their
-            // full contributions when they burn their participation NFTs.
+            // full contributions when they active their participation NFTs.
             lastBid = 0;
             emit Lost();
         }

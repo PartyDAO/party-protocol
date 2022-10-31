@@ -210,7 +210,7 @@ describeFork('Mainnet deployment fork smoke tests', (provider) => {
             );
 
             // mint voting power
-            r = await (await cf.burn(contributor.address)).wait();
+            r = await (await cf.resolveContribution(contributor.address)).wait();
             const member: MemberInfo = {
                 wallet: contributor,
                 governanceTokenId: findEvent(r, 'Transfer', party.address).args.tokenId,

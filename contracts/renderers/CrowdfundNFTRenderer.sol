@@ -51,7 +51,7 @@ contract CrowdfundNFTRenderer is IERC721Renderer, RendererCustomization {
     bytes12 gateKeeperId;
     address payable splitRecipient;
     uint16 splitBps;
-    bool _splitRecipientHasBurned;
+    bool _splitRecipientHasResolved;
     bytes32 governanceOptsHash;
     mapping(address => address) delegationsByContributor;
     mapping(address => Crowdfund.Contribution[]) _contributionsByContributor;

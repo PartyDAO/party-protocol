@@ -14,7 +14,7 @@ import "../renderers/RendererStorage.sol";
 import "./CrowdfundNFT.sol";
 
 // Base contract for AuctionCrowdfund/BuyCrowdfund.
-// Holds post-win/loss logic. E.g., burning contribution NFTs and creating a
+// Holds post-win/loss logic. E.g., resolving their contribution NFTs and creating a
 // party after winning.
 abstract contract Crowdfund is Implementation, ERC721Receiver, CrowdfundNFT {
     using LibRawResult for bytes;
@@ -73,7 +73,7 @@ abstract contract Crowdfund is Implementation, ERC721Receiver, CrowdfundNFT {
     }
 
     // A record of the refund and governance NFT owed to a contributor if it
-    // could not be received by them from `burn()`.
+    // could not be received by them from `resolveContribution()`.
     struct Claim {
         uint256 refund;
         uint256 governanceTokenId;
@@ -85,7 +85,7 @@ abstract contract Crowdfund is Implementation, ERC721Receiver, CrowdfundNFT {
     error InvalidDelegateError();
     error NoPartyError();
     error NotAllowedByGateKeeperError(address contributor, IGateKeeper gateKeeper, bytes12 gateKeeperId, bytes gateData);
-    error SplitRecipientAlreadyBurnedError();
+    error SplitRecipientAlreadyResolvedError();
     error InvalidBpsError(uint16 bps);
     error ExceedsTotalContributionsError(uint96 value, uint96 totalContributions);
     error NothingToClaimError();
@@ -93,7 +93,7 @@ abstract contract Crowdfund is Implementation, ERC721Receiver, CrowdfundNFT {
     error OnlyContributorError();
     error MissingHostsError();
 
-    event Burned(address contributor, uint256 ethUsed, uint256 ethOwed, uint256 votingPower);
+    event Resolved(address contributor, uint256 ethUsed, uint256 ethOwed, uint256 votingPower);
     event Contributed(address contributor, uint256 amount, address delegate, uint256 previousTotalContributions);
 
     // The `Globals` contract storing global configuration values. This contract
@@ -116,8 +116,8 @@ abstract contract Crowdfund is Implementation, ERC721Receiver, CrowdfundNFT {
     /// @notice How much governance power to reserve for `splitRecipient`,
     ///         in bps, where 10,000 = 100%.
     uint16 public splitBps;
-    // Whether the share for split recipient has been claimed through `burn()`.
-    bool private _splitRecipientHasBurned;
+    // Whether the share for split recipient has been claimed through `resolveContribution()`.
+    bool private _splitRecipientHasResolved;
     /// @notice Hash of party governance options passed into `initialize()`.
     ///         Used to check whether the `GovernanceOpts` passed into
     ///         `_createParty()` matches.
@@ -130,7 +130,7 @@ abstract contract Crowdfund is Implementation, ERC721Receiver, CrowdfundNFT {
     mapping(address => Contribution[]) internal _contributionsByContributor;
     /// @notice Stores the amount of ETH owed back to a contributor and governance NFT
     ///         that should be minted to them if it could not be transferred to
-    ///         them with `burn()`.
+    ///         them with `resolveContribution()`.
     mapping(address => Claim) public claims;
 
     // Set the `Globals` contract.
@@ -170,7 +170,7 @@ abstract contract Crowdfund is Implementation, ERC721Receiver, CrowdfundNFT {
         gateKeeperId = opts.gateKeeperId;
     }
 
-    /// @notice Burn the participation NFT for `contributor`, potentially
+    /// @notice Resolve the participation NFT for `contributor`, potentially
     ///         minting voting power and/or refunding unused ETH. `contributor`
     ///         may also be the split recipient, regardless of whether they are
     ///         also a contributor or not. This can be called by anyone on a
@@ -178,32 +178,33 @@ abstract contract Crowdfund is Implementation, ERC721Receiver, CrowdfundNFT {
     ///         governance stage ensuring delegates receive their voting
     ///         power and governance is not stalled.
     /// @dev If the party has won, someone needs to call `_createParty()` first. After
-    ///      which, `burn()` will refund unused ETH and mint governance tokens for the
+    ///      which, `resolveContribution()` will refund unused ETH and mint governance tokens for the
     ///      given `contributor`.
     ///      If the party has lost, this will only refund unused ETH (all of it) for
     ///      the given `contributor`.
-    /// @param contributor The contributor whose NFT to burn for.
-    function burn(address payable contributor) external {
-        return _burn(contributor, getCrowdfundLifecycle(), party);
+    /// @param contributor The contributor whose NFT to resolve.
+    function resolveContribution(address payable contributor) external {
+        return _resolveContribution(contributor, getCrowdfundLifecycle(), party);
     }
 
-    /// @notice `burn()` in batch form.
-    ///         Will not revert if any individual burn fails.
-    /// @param contributors The contributors whose NFT to burn for.
-    function batchBurn(address payable[] calldata contributors) external {
+    /// @notice `resolveContribution()` in batch form.
+    ///         Will not revert if any individual call fails.
+    /// @param contributors The contributors whose NFTs to resolve.
+    function batchResolveContribution(address payable[] calldata contributors) external {
         for (uint256 i = 0; i < contributors.length; ++i) {
+            // Do this to ignore failures.
             (bool s,) = address(this).delegatecall(
-                abi.encodeCall(this.burn, (contributors[i]))
+                abi.encodeCall(this.resolveContribution, (contributors[i]))
             );
             !!s; // Silence compiler warnings.
         }
     }
 
     /// @notice Claim a governance NFT or refund that is owed back but could not be
-    ///         given due to error in `_burn()` (eg. a contract that does not
+    ///         given due to error in `resolveContribution()` (eg. a contract that does not
     ///         implement `onERC721Received()` or cannot receive ETH). Only call
     ///         this if refund and governance NFT minting could not be returned
-    ///         with `burn()`.
+    ///         with `resolveContribution()`.
     /// @param receiver The address to receive the NFT or refund.
     function claim(address payable receiver) external {
         Claim memory claimInfo = claims[msg.sender];
@@ -331,8 +332,8 @@ abstract contract Crowdfund is Implementation, ERC721Receiver, CrowdfundNFT {
     // Can be called after a party has won.
     // Deploys and initializes a `Party` instance via the `PartyFactory`
     // and transfers the bought NFT to it.
-    // After calling this, anyone can burn CF tokens on a contributor's behalf
-    // with the `burn()` function.
+    // After calling this, anyone can resolve CF tokens on a contributor's behalf
+    // with the `resolveContribution()` function.
     function _createParty(
         FixedGovernanceOpts memory governanceOpts,
         bool governanceOptsAlreadyValidated,
@@ -531,7 +532,7 @@ abstract contract Crowdfund is Implementation, ERC721Receiver, CrowdfundNFT {
         }
     }
 
-    function _burn(address payable contributor, CrowdfundLifecycle lc, Party party_) private {
+    function _resolveContribution(address payable contributor, CrowdfundLifecycle lc, Party party_) private {
         // If the CF has won, a party must have been created prior.
         if (lc == CrowdfundLifecycle.Won) {
             if (party_ == Party(payable(0))) {
@@ -541,18 +542,18 @@ abstract contract Crowdfund is Implementation, ERC721Receiver, CrowdfundNFT {
             // Otherwise it must have lost.
             revert WrongLifecycleError(lc);
         }
-        // Split recipient can burn even if they don't have a token.
+        // Split recipient can resolve even if they don't have a token.
         {
             address splitRecipient_ = splitRecipient;
             if (contributor == splitRecipient_) {
-                if (_splitRecipientHasBurned) {
-                    revert SplitRecipientAlreadyBurnedError();
+                if (_splitRecipientHasResolved) {
+                    revert SplitRecipientAlreadyResolvedError();
                 }
-                _splitRecipientHasBurned = true;
+                _splitRecipientHasResolved = true;
             }
-            // Revert if already burned or does not exist.
+            // Revert if already activated or does not exist.
             if (splitRecipient_ != contributor || _doesTokenExistFor(contributor)) {
-                CrowdfundNFT._burn(contributor);
+                _burn(contributor);
             }
         }
         // Compute the contributions used and owed to the contributor, along
@@ -584,7 +585,7 @@ abstract contract Crowdfund is Implementation, ERC721Receiver, CrowdfundNFT {
             // from the crowdfund.
             claims[contributor].refund = ethOwed;
         }
-        emit Burned(contributor, ethUsed, ethOwed, votingPower);
+        emit Resolved(contributor, ethUsed, ethOwed, votingPower);
     }
 
     function _getPartyFactory() internal view returns (IPartyFactory) {

@@ -44,7 +44,7 @@ contract AuctionCrowdfundTest is Test, TestUtils {
         uint256 topBid
     );
 
-    event Burned(address contributor, uint256 ethUsed, uint256 ethOwed, uint256 votingPower);
+    event Resolved(address contributor, uint256 ethUsed, uint256 ethOwed, uint256 votingPower);
     event Contributed(address contributor, uint256 amount, address delegate, uint256 previousTotalContributions);
     event Won(uint256 bid, Party party);
     event Lost();
@@ -182,7 +182,7 @@ contract AuctionCrowdfundTest is Test, TestUtils {
         );
         Party party_ = cf.finalize(defaultGovernanceOpts);
         assertEq(address(party_), address(party));
-        // Burn contributor's NFT, mock minting governance tokens and returning
+        // Resolve contributor's NFT, mock minting governance tokens and returning
         // unused contribution.
         _expectEmit0();
         emit MockMint(
@@ -192,8 +192,8 @@ contract AuctionCrowdfundTest is Test, TestUtils {
             delegate
         );
         _expectEmit0();
-        emit Burned(contributor, 1337, 1e18 - 1337, 1337);
-        cf.burn(contributor);
+        emit Resolved(contributor, 1337, 1e18 - 1337, 1337);
+        cf.resolveContribution(contributor);
         assertEq(contributor.balance, 1e18 - 1337);
     }
 
@@ -218,10 +218,10 @@ contract AuctionCrowdfundTest is Test, TestUtils {
         skip(defaultDuration);
         Party party_ = cf.finalize(defaultGovernanceOpts);
         assertEq(address(party_), address(0));
-        // Burn contributor's NFT, which should refund all contributed ETH.
+        // Resolve contributor's NFT, which should refund all contributed ETH.
         _expectEmit0();
-        emit Burned(contributor, 0, 1e18, 0);
-        cf.burn(contributor);
+        emit Resolved(contributor, 0, 1e18, 0);
+        cf.resolveContribution(contributor);
         assertEq(contributor.balance, 1e18);
     }
 
@@ -243,10 +243,10 @@ contract AuctionCrowdfundTest is Test, TestUtils {
         skip(defaultDuration);
         Party party_ = cf.finalize(defaultGovernanceOpts);
         assertEq(address(party_), address(0));
-        // Burn contributor's NFT, which should refund all contributed ETH.
+        // Resolve contributor's NFT, which should refund all contributed ETH.
         _expectEmit0();
-        emit Burned(contributor, 0, 1e18, 0);
-        cf.burn(contributor);
+        emit Resolved(contributor, 0, 1e18, 0);
+        cf.resolveContribution(contributor);
         assertEq(contributor.balance, 1e18);
     }
 
@@ -269,10 +269,10 @@ contract AuctionCrowdfundTest is Test, TestUtils {
         skip(defaultDuration);
         Party party_ = cf.finalize(defaultGovernanceOpts);
         assertEq(address(party_), address(0));
-        // Burn contributor's NFT, which should refund all contributed ETH.
+        // Resolve contributor's NFT, which should refund all contributed ETH.
         _expectEmit0();
-        emit Burned(contributor, 0, 1e18, 0);
-        cf.burn(contributor);
+        emit Resolved(contributor, 0, 1e18, 0);
+        cf.resolveContribution(contributor);
         assertEq(contributor.balance, 1e18);
     }
 
@@ -294,10 +294,10 @@ contract AuctionCrowdfundTest is Test, TestUtils {
         // Finalize the crowdfund.
         Party party_ = cf.finalize(defaultGovernanceOpts);
         assertEq(address(party_), address(party));
-        // Burn contributor's NFT, which should refund unused ETH and mint voting power.
+        // Resolve contributor's NFT, which should refund unused ETH and mint voting power.
         _expectEmit0();
-        emit Burned(contributor, 1337, 1e18 - 1337, 1337);
-        cf.burn(contributor);
+        emit Resolved(contributor, 1337, 1e18 - 1337, 1337);
+        cf.resolveContribution(contributor);
         assertEq(contributor.balance, 1e18 - 1337);
     }
 

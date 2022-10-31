@@ -59,7 +59,7 @@ The sequence of events is:
     - This will deploy a new `Proxy` instance with an implementation pointing to the Party contract defined by in the `Globals` contract by the key `GLOBAL_PARTY_IMPL`.
 2. Transfer assets to the created Party, which will typically be the precious NFTs.
 3. As the `authority`, mint Governance NFTs to members of the party by calling `Party.mint()`.
-    - In typical flow, the crowdfund contract will call this when contributors burn their contribution NFTs.
+    - In typical flow, the crowdfund contract will call this when contributors activate their contribution NFTs.
 4. Optionally, call `Party.abdicate()`, as the `authority`, to revoke minting privilege once all Governance NFTs have been minted.
 5. At any step after the party creation, members with Governance NFTs can perform governance actions, though they may not be able to reach consensus if the total supply of voting power hasn't been minted/distributed yet.
 

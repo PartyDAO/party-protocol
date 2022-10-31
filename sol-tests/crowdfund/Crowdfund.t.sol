@@ -47,7 +47,7 @@ contract CrowdfundTest is Test, TestUtils {
     );
 
     event Contributed(address contributor, uint256 amount, address delegate, uint256 previousTotalContributions);
-    event Burned(address contributor, uint256 ethUsed, uint256 ethOwed, uint256 votingPower);
+    event Resolved(address contributor, uint256 ethUsed, uint256 ethOwed, uint256 votingPower);
 
     string defaultName = 'Party of the Living Dead';
     string defaultSymbol = 'ACF';
@@ -271,7 +271,7 @@ contract CrowdfundTest is Test, TestUtils {
             erc721TokenIds
         );
         assertEq(address(party_), address(party));
-        // contributor1 burns tokens
+        // contributor1 resolves contribution
         vm.expectEmit(false, false, false, true);
         emit MockMint(
             address(cf),
@@ -279,7 +279,7 @@ contract CrowdfundTest is Test, TestUtils {
             1e18,
             delegate1
         );
-        cf.burn(contributor1);
+        cf.resolveContribution(contributor1);
         // contributor1 gets back none of their contribution
         assertEq(contributor1.balance, 0);
     }
@@ -318,7 +318,7 @@ contract CrowdfundTest is Test, TestUtils {
             erc721TokenIds
         );
         assertEq(address(party_), address(party));
-        // contributor1 burns tokens
+        // contributor1 resolves contribution
         vm.expectEmit(false, false, false, true);
         emit MockMint(
             address(cf),
@@ -326,10 +326,10 @@ contract CrowdfundTest is Test, TestUtils {
             1e18,
             delegate1
         );
-        cf.burn(contributor1);
+        cf.resolveContribution(contributor1);
         // contributor1 gets back none of their contribution
         assertEq(contributor1.balance, 0);
-        // contributor2 burns tokens
+        // contributor2 resolves contribution
         vm.expectEmit(false, false, false, true);
         emit MockMint(
             address(cf),
@@ -337,7 +337,7 @@ contract CrowdfundTest is Test, TestUtils {
             0.5e18,
             delegate2
         );
-        cf.burn(contributor2);
+        cf.resolveContribution(contributor2);
         // contributor2 gets back none of their contribution
         assertEq(contributor2.balance, 0);
     }
@@ -374,7 +374,7 @@ contract CrowdfundTest is Test, TestUtils {
             erc721Tokens,
             erc721TokenIds
         );
-        // contributor1 burns tokens
+        // contributor1 resolves contribution
         vm.expectEmit(false, false, false, true);
         emit MockMint(
             address(cf),
@@ -382,10 +382,10 @@ contract CrowdfundTest is Test, TestUtils {
             1e18,
             delegate1
         );
-        cf.burn(contributor1);
+        cf.resolveContribution(contributor1);
         // contributor1 gets back none of their contribution
         assertEq(contributor1.balance, 0);
-        // contributor2 burns tokens
+        // contributor2 resolves contribution
         vm.expectEmit(false, false, false, true);
         emit MockMint(
             address(cf),
@@ -393,7 +393,7 @@ contract CrowdfundTest is Test, TestUtils {
             0.25e18,
             delegate2
         );
-        cf.burn(contributor2);
+        cf.resolveContribution(contributor2);
         // contributor2 gets back half their contribution
         assertEq(contributor2.balance, 0.25e18);
     }
@@ -435,7 +435,7 @@ contract CrowdfundTest is Test, TestUtils {
             erc721Tokens,
             erc721TokenIds
         );
-        // contributor1 burns tokens
+        // contributor1 resolves contribution
         vm.expectEmit(false, false, false, true);
         emit MockMint(
             address(cf),
@@ -443,10 +443,10 @@ contract CrowdfundTest is Test, TestUtils {
             1.15e18,
             delegate1
         );
-        cf.burn(contributor1);
+        cf.resolveContribution(contributor1);
         // contributor1 gets back some of their second contribution
         assertEq(contributor1.balance, 0.1e18);
-        // contributor2 burns tokens
+        // contributor2 resolves contribution
         vm.expectEmit(false, false, false, true);
         emit MockMint(
             address(cf),
@@ -454,7 +454,7 @@ contract CrowdfundTest is Test, TestUtils {
             0.5e18,
             delegate2
         );
-        cf.burn(contributor2);
+        cf.resolveContribution(contributor2);
         // contributor2 gets back none of their contribution
         assertEq(contributor2.balance, 0);
     }
@@ -487,15 +487,15 @@ contract CrowdfundTest is Test, TestUtils {
             erc721TokenIds
         );
         assertEq(address(party_), address(party));
-        // contributor1 burns tokens
+        // contributor1 resolves contribution
         vm.expectEmit(false, false, false, true);
-        emit Burned(
+        emit Resolved(
             contributor1,
             0,
             1e18,
             0
         );
-        cf.burn(contributor1);
+        cf.resolveContribution(contributor1);
         // contributor1 gets back all of their contribution
         assertEq(contributor1.balance, 1e18);
     }
@@ -519,22 +519,22 @@ contract CrowdfundTest is Test, TestUtils {
         // set up a loss
         cf.testSetLifeCycle(Crowdfund.CrowdfundLifecycle.Lost);
         assertEq(address(cf.party()), address(0));
-        // contributor1 burns tokens
+        // contributor1 resolves contribution
         vm.expectEmit(false, false, false, true);
-        emit Burned(contributor1, 0, 1e18, 0);
-        cf.burn(contributor1);
+        emit Resolved(contributor1, 0, 1e18, 0);
+        cf.resolveContribution(contributor1);
         // contributor1 gets back their contribution
         assertEq(contributor1.balance, 1e18);
-        // contributor2 burns tokens
+        // contributor2 resolves contribution
         vm.expectEmit(false, false, false, true);
-        emit Burned(contributor2, 0, 0.5e18, 0);
-        cf.burn(contributor2);
+        emit Resolved(contributor2, 0, 0.5e18, 0);
+        cf.resolveContribution(contributor2);
         // contributor2 gets back their contribution
         assertEq(contributor2.balance, 0.5e18);
     }
 
-    // One person contributes, their entire contribution is used, they try to burn twice.
-    function testWin_oneContributor_cannotBurnTwice() external {
+    // One person contributes, their entire contribution is used, they try to resolve twice.
+    function testWin_oneContributor_cannotResolveTwice() external {
         TestableCrowdfund cf = _createCrowdfund(0);
         address delegate1 = _randomAddress();
         address payable contributor1 = _randomAddress();
@@ -551,19 +551,19 @@ contract CrowdfundTest is Test, TestUtils {
             erc721Tokens,
             erc721TokenIds
         );
-        // contributor1 burns tokens
-        cf.burn(contributor1);
+        // contributor1 resolves contribution
+        cf.resolveContribution(contributor1);
         // They try to burn again.
         vm.expectRevert(abi.encodeWithSelector(
             CrowdfundNFT.AlreadyBurnedError.selector,
             contributor1,
             uint256(uint160(address(contributor1)))
         ));
-        cf.burn(contributor1);
+        cf.resolveContribution(contributor1);
     }
 
-    // One person contributes, part of their contribution is used, they try to burn twice.
-    function testWin_oneContributor_partialContributionUsed_cannotBurnTwice() external {
+    // One person contributes, part of their contribution is used, they try to resolve twice.
+    function testWin_oneContributor_partialContributionUsed_cannotResolveTwice() external {
         TestableCrowdfund cf = _createCrowdfund(0);
         address delegate1 = _randomAddress();
         address payable contributor1 = _randomAddress();
@@ -580,8 +580,8 @@ contract CrowdfundTest is Test, TestUtils {
             erc721Tokens,
             erc721TokenIds
         );
-        // contributor1 burns tokens
-        cf.burn(contributor1);
+        // contributor1 resolves contribution
+        cf.resolveContribution(contributor1);
         // contributor1 gets back part of their contribution
         assertEq(contributor1.balance, 0.5e18);
         // They try to burn again.
@@ -590,11 +590,11 @@ contract CrowdfundTest is Test, TestUtils {
             contributor1,
             uint256(uint160(address(contributor1)))
         ));
-        cf.burn(contributor1);
+        cf.resolveContribution(contributor1);
     }
 
-    // One person contributes, CF loses, they try to burn twice.
-    function testLoss_oneContributor_cannotBurnTwice() external {
+    // One person contributes, CF loses, they try to resolve twice.
+    function testLoss_oneContributor_cannotResolveTwice() external {
         TestableCrowdfund cf = _createCrowdfund(0);
         address delegate1 = _randomAddress();
         address payable contributor1 = _randomAddress();
@@ -605,8 +605,8 @@ contract CrowdfundTest is Test, TestUtils {
         // Set up a loss.
         cf.testSetLifeCycle(Crowdfund.CrowdfundLifecycle.Lost);
         assertEq(address(cf.party()), address(0));
-        // contributor1 burns tokens
-        cf.burn(contributor1);
+        // contributor1 resolves contribution
+        cf.resolveContribution(contributor1);
         // contributor1 gets back their contribution
         assertEq(contributor1.balance, 1e18);
         // They try to burn again.
@@ -615,11 +615,11 @@ contract CrowdfundTest is Test, TestUtils {
             contributor1,
             uint256(uint160(address(contributor1)))
         ));
-        cf.burn(contributor1);
+        cf.resolveContribution(contributor1);
     }
 
-    // One person contributes, CF is busy, they try to burn.
-    function testBusy_oneContributor_cannotBurn() external {
+    // One person contributes, CF is busy, they try to resolve.
+    function testBusy_oneContributor_cannotResolve() external {
         TestableCrowdfund cf = _createCrowdfund(0);
         address delegate1 = _randomAddress();
         address payable contributor1 = _randomAddress();
@@ -634,11 +634,11 @@ contract CrowdfundTest is Test, TestUtils {
             Crowdfund.WrongLifecycleError.selector,
             Crowdfund.CrowdfundLifecycle.Busy
         ));
-        cf.burn(contributor1);
+        cf.resolveContribution(contributor1);
     }
 
-    // Calling batchBurn() on a contributor that already burned and one that didn't.
-    function testWin_batchBurnCanBurnBurnedAndUnburnedTokens() external {
+    // Calling batchResolveContribution() on a contributor that already resolved and one that didn't.
+    function testWin_batchResolveContributionCanResolveBurnedAndUnburnedTokens() external {
         TestableCrowdfund cf = _createCrowdfund(0);
         address payable contributor1 = _randomAddress();
         address payable contributor2 = _randomAddress();
@@ -659,15 +659,15 @@ contract CrowdfundTest is Test, TestUtils {
             erc721Tokens,
             erc721TokenIds
         );
-        // contributor1 burns tokens
-        cf.burn(contributor1);
-        // Use batchBurn() to burn both contributor's tokens.
+        // contributor1 resolves contribution
+        cf.resolveContribution(contributor1);
+        // Use batchResolveContribution() to burn both contributor's tokens.
         address payable[] memory contributors = new address payable[](2);
         contributors[0] = contributor1;
         contributors[1] = contributor2;
         _expectEmit0();
-        emit Burned(contributor2, 2e18, 0, 2e18);
-        cf.batchBurn(contributors);
+        emit Resolved(contributor2, 2e18, 0, 2e18);
+        cf.batchResolveContribution(contributors);
     }
 
     // Trying to pass in different governance opts after winning.
@@ -719,7 +719,7 @@ contract CrowdfundTest is Test, TestUtils {
             erc721Tokens,
             erc721TokenIds
         );
-        // contributor1 burns tokens
+        // contributor1 resolves contribution
         vm.expectEmit(false, false, false, true);
         emit MockMint(
             address(cf),
@@ -727,10 +727,10 @@ contract CrowdfundTest is Test, TestUtils {
             _getAmountWithoutSplit(0.5e18),
             delegate1 // will use last contribute() delegate
         );
-        cf.burn(contributor1);
+        cf.resolveContribution(contributor1);
         // contributor1 gets back half of their contribution
         assertEq(contributor1.balance, 0.5e18);
-        // split recipient burns
+        // split recipient resolves
         vm.expectEmit(false, false, false, true);
         emit MockMint(
             address(cf),
@@ -738,7 +738,7 @@ contract CrowdfundTest is Test, TestUtils {
             _getAmountWithSplit(0, 0.5e18),
             splitRecipient
         );
-        cf.burn(splitRecipient);
+        cf.resolveContribution(splitRecipient);
     }
 
     // Split recipient set and contributes.
@@ -769,7 +769,7 @@ contract CrowdfundTest is Test, TestUtils {
             erc721Tokens,
             erc721TokenIds
         );
-        // contributor1 burns tokens
+        // contributor1 resolves contribution
         vm.expectEmit(false, false, false, true);
         emit MockMint(
             address(cf),
@@ -777,10 +777,10 @@ contract CrowdfundTest is Test, TestUtils {
             _getAmountWithoutSplit(1e18),
             delegate1 // will use last contribute() delegate
         );
-        cf.burn(contributor1);
+        cf.resolveContribution(contributor1);
         // contributor1 gets back none of their contribution
         assertEq(contributor1.balance, 0);
-        // split recipient burns
+        // split recipient resolves
         vm.expectEmit(false, false, false, true);
         emit MockMint(
             address(cf),
@@ -788,7 +788,7 @@ contract CrowdfundTest is Test, TestUtils {
             _getAmountWithSplit(0.25e18, 1.25e18),
             delegate2
         );
-        cf.burn(splitRecipient);
+        cf.resolveContribution(splitRecipient);
     }
 
     // Split recipient set and contributes.
@@ -819,7 +819,7 @@ contract CrowdfundTest is Test, TestUtils {
             erc721Tokens,
             erc721TokenIds
         );
-        // contributor1 burns tokens
+        // contributor1 resolves contribution
         vm.expectEmit(false, false, false, true);
         emit MockMint(
             address(cf),
@@ -827,10 +827,10 @@ contract CrowdfundTest is Test, TestUtils {
             _getAmountWithoutSplit(1e18),
             delegate1 // will use last contribute() delegate
         );
-        cf.burn(contributor1);
+        cf.resolveContribution(contributor1);
         // contributor1 gets back none of their contribution
         assertEq(contributor1.balance, 0);
-        // split recipient burns
+        // split recipient resolves
         vm.expectEmit(false, false, false, true);
         emit MockMint(
             address(cf),
@@ -838,7 +838,7 @@ contract CrowdfundTest is Test, TestUtils {
             _getAmountWithSplit(0, 1e18),
             delegate2
         );
-        cf.burn(splitRecipient);
+        cf.resolveContribution(splitRecipient);
     }
 
     // Two contributors, one is blocked
@@ -872,7 +872,7 @@ contract CrowdfundTest is Test, TestUtils {
         cf.contribute{ value: contributor2.balance }(delegate2, abi.encode(new bytes32[](0)));
     }
 
-    function testBurn_failMintingGovNFT() external {
+    function testResolveContribution_failMintingGovNFT() external {
         TestableCrowdfund cf = _createCrowdfund(0);
         address delegate1 = _randomAddress();
         address payable badERC721Receiver = payable(new BadERC721Receiver());
@@ -899,7 +899,7 @@ contract CrowdfundTest is Test, TestUtils {
             erc721TokenIds
         );
         assertEq(address(party_), address(party));
-        // badERC721Receiver burns tokens
+        // badERC721Receiver resolves contribution
         vm.expectEmit(false, false, false, true);
         emit MockMint(
             address(cf),
@@ -907,7 +907,7 @@ contract CrowdfundTest is Test, TestUtils {
             1e18,
             delegate1
         );
-        cf.burn(badERC721Receiver);
+        cf.resolveContribution(badERC721Receiver);
         assertEq(party.balanceOf(badERC721Receiver), 0);
         assertEq(party.balanceOf(address(cf)), 1);
 
@@ -928,7 +928,7 @@ contract CrowdfundTest is Test, TestUtils {
         assertEq(governanceTokenId, 0);
     }
 
-    function testBurn_failRefundingETH() external {
+    function testResolveContribution_failRefundingETH() external {
         TestableCrowdfund cf = _createCrowdfund(0);
         address delegate1 = _randomAddress();
         address payable badETHReceiver = payable(address(new BadETHReceiver()));
@@ -955,7 +955,7 @@ contract CrowdfundTest is Test, TestUtils {
             erc721TokenIds
         );
         assertEq(address(party_), address(party));
-        // badETHReceiver burns tokens
+        // badETHReceiver resolves contribution
         vm.expectEmit(false, false, false, true);
         emit MockMint(
             address(cf),
@@ -963,7 +963,7 @@ contract CrowdfundTest is Test, TestUtils {
             1e18,
             delegate1
         );
-        cf.burn(badETHReceiver);
+        cf.resolveContribution(badETHReceiver);
         assertEq(badETHReceiver.balance, 0);
 
         // Expect revert if claiming to bad receiver

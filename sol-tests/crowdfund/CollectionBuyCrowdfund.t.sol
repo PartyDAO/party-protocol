@@ -139,7 +139,7 @@ contract CollectionBuyCrowdfundTest is Test, TestUtils {
             0
         );
         assertEq(address(party), address(party_));
-        // Burn contributor's NFT, mock minting governance tokens and returning
+        // Resolve contributor's NFT, mock minting governance tokens and returning
         // unused contribution.
         vm.expectEmit(false, false, false, true);
         emit MockMint(
@@ -148,7 +148,7 @@ contract CollectionBuyCrowdfundTest is Test, TestUtils {
             0.5e18,
             delegate
         );
-        cf.burn(contributor);
+        cf.resolveContribution(contributor);
         assertEq(contributor.balance, 0.5e18);
     }
 
