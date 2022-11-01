@@ -7,7 +7,7 @@ These contracts allow people to create and join a crowdfund, pooling ETH togethe
 ## Key Concepts
 
 - **Crowdfunds**: Contracts implementing various strategies that allow people to pool ETH together to acquire an NFT, with the end goal of forming a governance party around it.
-- **Crowdfund NFTs**: A _soulbound_ NFT (ERC721) representing contributions made to a crowdfund. Each contributor gets one of these the first time they contribute. At the end of the crowdfund (successful or unsuccessful), these are activated to either redeem unused ETH or mint governance shares.
+- **Crowdfund NFTs**: A _soulbound_ NFT (ERC721) representing contributions made to a crowdfund. Each contributor gets one of these the first time they contribute. At the end of the crowdfund (successful or unsuccessful), these are burned to either redeem unused ETH or mint governance shares.
 - **Party**: The governance contract, which will be created and will custody the NFT after it has been acquired by the crowdfund.
 - **Globals**: A single contract that holds configuration values, referenced by several ecosystem contracts.
 - **Proxies**: All Crowdfund instances are deployed as simple [`Proxy`](../contracts/utils/Proxy.sol) contracts that forward calls to a specific crowdfund implementation that inherits from `Crowdfund`.
@@ -144,7 +144,7 @@ The only way of contributing to a crowdfund is through the payable `contribute()
 
 ### Participation NFTs
 
-The first time a user contributes, they are minted a soulbound participation NFT, which is implemented by the crowdfund contract itself. This NFT can later be activated to refund unused ETH and/or mint voting power in the governance party.
+The first time a user contributes, they are minted a soulbound participation NFT, which is implemented by the crowdfund contract itself. This NFT can later be burned to refund unused ETH and/or mint voting power in the governance party.
 
 A contributor can only own one crowdfund NFT; multiple contributions by the same contributor will not mint them additional crowdfund NFTs.
 
@@ -194,30 +194,30 @@ After the auction has ended, someone must call `finalize()`, regardless of wheth
 
 In every crowdfund, immediately after the party has won by acquiring the NFT, it will create a new governance Party instance, using the same fixed governance options provided at crowdfund creation. The `totalVotingPower` the governance Party is created with is simply the settled price of the NFT (how much ETH we paid for it). The bought NFT is immediately transferred to the governance Party as well.
 
-After this point, the crowdfund will be in the `Won` lifecycle and no more contributions will be allowed. Contributors can call `resolveContribution()` to burn their participation NFT in exchange for a party governance card ("activating" it) and refund any ETH they contributed that was not used as well as mint voting power within the governance Party (which is also an NFT).
+After this point, the crowdfund will be in the `Won` lifecycle and no more contributions will be allowed. Contributors can `burn()` their participation NFT to refund any ETH they contributed that was not used as well as mint voting power within the governance Party (which is also an NFT).
 
 ## Losing
 
 Crowdfunds generally lose when they expire before acquiring a target NFT. The one exception is `AuctionCrowdfund`, which can still be finalized and win after expiration.
 
-When a crowdfund enters the Lost lifecycle, contributors may call `resolveContribution()` to refund all the ETH they contributed.
+When a crowdfund enters the Lost lifecycle, contributors may `burn()` their participation NFT to refund all the ETH they contributed.
 
-## Activating
+## Burning
 
-At the conclusion of a crowdfund (Won or Lost lifecycle), contributors may active their participation NFT via the `resolveContribution()` function to get their party governance NFT.
+At the conclusion of a crowdfund (Won or Lost lifecycle), contributors may burn their participation NFT via the `burn()` function.
 
-If the crowdfund lost, activating the participation NFT will refund all of the contributor's contributed ETH.
-If the crowdfund won, activating the participation NFT will refund any of the contributor's _unused_ ETH and mint voting power in the governance party.
+If the crowdfund lost, burning the participation NFT will refund all of the contributor's contributed ETH.
+If the crowdfund won, burning the participation NFT will refund any of the contributor's _unused_ ETH and mint voting power in the governance party.
 
 ### Calculating Voting Power
 
-Voting power for a contributor is equivalent to the amount of ETH they contributed that was used to acquire the NFT. Each individual contribution is tracked against the total ETH raised at the time of contribution. If a user contributes after the crowdfund received enough ETH to acquire the NFT, only their contributions from prior will count towards their final voting power. All else will be refunded when they active their participation token.
+Voting power for a contributor is equivalent to the amount of ETH they contributed that was used to acquire the NFT. Each individual contribution is tracked against the total ETH raised at the time of contribution. If a user contributes after the crowdfund received enough ETH to acquire the NFT, only their contributions from prior will count towards their final voting power. All else will be refunded when they burn their participation token.
 
 - If the crowdfund was created with a valid `splitBps` value, this percent of every contributor's voting power will be reserved for the `splitRecipient` to claim. If they are also a contributor, they will receive the sum of both.
 
-### Activating Someone Else's NFT
+### Burning Someone Else's NFT
 
-It's not uncommon for contributors to go inactive before a crowdfund ends. To help ensure delegates in the governance party have enough voting power to operate in proposal flow as quickly as possible, anyone can active any contributor's participation NFT. This will credit a contributor's delegate in the governance Party with that contributor's voting power, which may be enough to act on proposals without the contributor's intervention.
+It's not uncommon for contributors to go inactive before a crowdfund ends. To help ensure delegates in the governance party have enough voting power to operate in proposal flow as quickly as possible, anyone can burn any contributor's participation NFT. This will credit a contributor's delegate in the governance Party with that contributor's voting power, which may be enough to act on proposals without the contributor's intervention.
 
 ## Gatekeepers
 
