@@ -106,6 +106,16 @@ export interface ArbitraryCall {
     expectedResultHash: string;
 }
 
+export interface DistributionInfo {
+    tokenType: TokenType;
+    distributionId: BigNumber;
+    party: string;
+    feeRecipient: string;
+    token: string;
+    memberSupply: BigNumber;
+    fee: BigNumber;
+}
+
 interface OpenSeaProposalInfo {
     listPrice: BigNumber;
     duration: number;

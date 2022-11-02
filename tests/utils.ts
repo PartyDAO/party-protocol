@@ -109,9 +109,14 @@ export async function setBalance(provider: MockProvider, address: string, balanc
     await provider.send('evm_setAccountBalance', [address, ethers.utils.hexlify(balance)]);
 }
 
-export async function createUnlockedWallet(provider: MockProvider, address: string): Promise<Contract> {
+export async function increaseBalance(provider: MockProvider, address: string, extraBalance: BigNumber | number) {
+    const bal = await provider.getBalance(address);
+    await provider.send('evm_setAccountBalance', [address, ethers.utils.hexlify(bal.add(extraBalance))]);
+}
+
+export async function createUnlockedWallet(provider: MockProvider, address: string, signer: Signer): Promise<Contract> {
     await setBytecode(provider, address, UNLOCKED_WALLET_ARTIFACT.deployedBytecode.object);
-    return new Contract(address, UNLOCKED_WALLET_ARTIFACT.abi, provider);
+    return new Contract(address, UNLOCKED_WALLET_ARTIFACT.abi, signer);
 }
 
 export async function mineTx

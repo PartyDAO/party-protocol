@@ -1,6 +1,6 @@
 import { expect, use } from 'chai';
 import { Contract, BigNumber, Wallet } from 'ethers';
-import { solidity } from 'ethereum-waffle';
+import { MockProvider, solidity } from 'ethereum-waffle';
 import * as ethers from 'ethers';
 
 import DEPLOY_ARTIFACT from '../../out/deploy.sol/DeployFork.json';
@@ -18,6 +18,7 @@ import ERC20_ARTIFACT from '../../out/IERC20.sol/IERC20.json';
 import ERC721_ARTIFACT from '../../out/IERC721.sol/IERC721.json';
 
 import {
+    DistributionInfo,
     GlobalKeys,
     Proposal,
     ProposalStatus,
@@ -43,10 +44,9 @@ import {
     runInSnapshot,
     increaseTime,
     createUnlockedWallet,
-    randomAddress,
-    setBalance,
     mineTx,
     TransactionReceiptWithEvents,
+    increaseBalance,
 } from '../utils';
 
 use(solidity);
@@ -168,7 +168,10 @@ describeFork('Mainnet deployment fork smoke tests', (provider) => {
         daoWallet = await createUnlockedWallet(
             provider,
             await globals.getAddress(GlobalKeys.DaoMultisig),
+            worker,
         );
+
+        await fundWallets(provider, provider.getWallets(), ONE_ETHER.mul(100));
     });
 
     describeSnapshot('BuyCrowdfund', provider, () => {
@@ -226,6 +229,7 @@ describeFork('Mainnet deployment fork smoke tests', (provider) => {
 
             // mint voting powers
             const members = await burnContributors(cf, [...contributors, splitRecipient]);
+            console.log(members.map(m => m.governanceTokens.map(t => [t.tokenId.toString(), t.votingPower.toString()])));
 
             await runInSnapshot(
                 provider,
@@ -234,6 +238,10 @@ describeFork('Mainnet deployment fork smoke tests', (provider) => {
             await runInSnapshot(
                 provider,
                 async () => runListOnOpenseaTest(party, members, buyTokenId),
+            );
+            await runInSnapshot(
+                provider,
+                async () => runListOnOpenseaTest(party, members, buyTokenId, true),
             );
             await runInSnapshot(
                 provider,
@@ -256,9 +264,9 @@ describeFork('Mainnet deployment fork smoke tests', (provider) => {
             ),
         );
         const proposalId = await proposeAndAccept(party, proposal, members);
-
         // Execute
         await increaseTime(provider, FIXED_GOVERNANCE_OPTS.executionDelay);
+        // TODO: this fails randomly.
         const r = await executeProposal(party, members[0], proposalId, proposal, preciousTokenId);
 
         const fracToken = new Contract(
@@ -266,9 +274,12 @@ describeFork('Mainnet deployment fork smoke tests', (provider) => {
             ERC20_ARTIFACT.abi,
             worker,
         );
+        // fractional proposal will automatically create a distribution.
+        const { info: distInfo } =
+            findEvent(r, 'DistributionCreated', distributor.address).args;
         const { totalVotingPower } = await party.getGovernanceValues();
-        expect(await fracToken.balanceOf(party.address)).to.eq(totalVotingPower);
-        await runDistributionTest(party, fracToken, members);
+        expect(await fracToken.balanceOf(distributor.address)).to.eq(totalVotingPower);
+        await runDistributionTest(party, fracToken, members, distInfo);
     }
 
     async function runListOnOpenseaTest(
@@ -306,19 +317,23 @@ describeFork('Mainnet deployment fork smoke tests', (provider) => {
         // Execute
         let progressData = NULL_BYTES;
         if (!passUnanimously) {
+            console.log('aaaa');
             await increaseTime(provider, FIXED_GOVERNANCE_OPTS.executionDelay);
             // List on zora.
+            console.log('bbbb');
             const r = await executeProposal(party, members[0], proposalId, proposal, preciousTokenId);
             progressData = findEvent(r, 'ProposalExecuted', party.address).args.nextProgressData;
             // Timeout zora auction.
             const timeout = await globals.getUint256(GlobalKeys.OpenSeaZoraAuctionTimeout);
             await increaseTime(provider, timeout);
         }
+        console.log('cccc');
         // List on OS.
         let r = await executeProposal(party, members[0], proposalId, proposal, preciousTokenId, progressData);
         const { orderParams } = findEvent(r, 'OpenseaOrderListed', party.address).args;
         progressData = findEvent(r, 'ProposalExecuted', party.address).args.nextProgressData;
         
+        console.log('dddd');
         // Buy on OS.
         await _buyOpenseaListing(orderParams);
 
@@ -387,22 +402,27 @@ describeFork('Mainnet deployment fork smoke tests', (provider) => {
         party: Contract,
         erc20: Contract | null,
         members: MemberInfo[],
+        distInfo?: DistributionInfo,
     ): Promise<void> {
         console.info('Testing distribution...');
-        // Create a distribution.
-        let r = await (await party.connect(members[0].wallet).distribute(
-            erc20 ? TokenType.Erc20 : TokenType.Native,
-            erc20 ? erc20.address : NULL_ADDRESS,
-            0,
-        )).wait();
-        const { info: distInfo } =
-            findEvent(r, 'DistributionCreated', distributor.address).args;
+        if (!distInfo) {
+            // Create a distribution.
+            const r = await mineTx(party.connect(members[0].wallet).distribute(
+                erc20 ? TokenType.Erc20 : TokenType.Native,
+                erc20 ? erc20.address : NULL_ADDRESS,
+                0,
+            ));
+            distInfo = findEvent(r, 'DistributionCreated', distributor.address).args.info;
+        }
         // Claim distribution from members.
         for (const m of members) {
-            r = await mineTx(
+            const r = await mineTx(
                 distributor
                     .connect(m.wallet)
-                    .batchClaim(distInfo, m.governanceTokens.map(t => t.tokenId)),
+                    .batchClaim(
+                        [...new Array(m.governanceTokens.length)].map(() => distInfo),
+                        m.governanceTokens.map(t => t.tokenId),
+                    ),
                 );
             for (const tok of m.governanceTokens) {
                 const claimedAmount =
@@ -419,7 +439,9 @@ describeFork('Mainnet deployment fork smoke tests', (provider) => {
             }
         }
         // Claim fees from multisig.
-        r = await mineTx(daoWallet.execCall(
+        const r = await mineTx(daoWallet.execCall(
+            distributor.address,
+            ZERO,
             (await distributor.populateTransaction.claimFee(distInfo, multisig.address)).data,
         ));
         const claimedAmount = findEvent(
@@ -427,7 +449,7 @@ describeFork('Mainnet deployment fork smoke tests', (provider) => {
             'DistributionFeeClaimed',
             distributor.address,
             { feeRecipient: multisig.address },
-        ).args.claimedAmount;
+        ).args.amount;
         expect(claimedAmount).to.exist;
         if (erc20) {
             expect(findEvent(r, 'Transfer', erc20.address).args.amount).to.eq(claimedAmount);
@@ -535,6 +557,15 @@ describeFork('Mainnet deployment fork smoke tests', (provider) => {
         return decoded;
     }
 
+    function doesEventExist(receipt: { logs: any[] }, name: string, source?: string, matchArgs?: { [k: string]: any }): boolean {
+        try {
+            findEvent(receipt, name, source, matchArgs);
+        } catch {
+            return false;
+        }
+        return true;
+    }
+
     function findEvent(receipt: { logs: any[] }, name: string, source?: string, matchArgs?: { [k: string]: any }): any {
         const e = decodeEvents(receipt)
             .find(e => {
@@ -551,6 +582,10 @@ describeFork('Mainnet deployment fork smoke tests', (provider) => {
                             if (e.args[k] !== v) {
                                 if (typeof(v) === 'string' && v.startsWith('0x')) {
                                     if (v.toLowerCase() !== e.args[k].toLowerCase()) {
+                                        return false;
+                                    }
+                                } else if (BigNumber.isBigNumber(v)) {
+                                    if (!v.eq(e.args[k])) {
                                         return false;
                                     }
                                 } else {
@@ -581,7 +616,7 @@ describeFork('Mainnet deployment fork smoke tests', (provider) => {
 
     async function contribute(cf: Contract, contributor: Wallet, contributionValue: BigNumber) {
         // Fund the contributor.
-        setBalance(provider, contributor.address, contributionValue.add(ONE_ETHER));
+        await increaseBalance(provider, contributor.address, contributionValue);
         // Contribute to the crowdfund.
         await (await cf.connect(contributor).contribute(
             contributor.address,
@@ -594,8 +629,8 @@ describeFork('Mainnet deployment fork smoke tests', (provider) => {
         const partyAddress = await cf.party();
         const r = await mineTx(cf.batchBurn(contributorWallets.map(m => m.address)));
         return contributorWallets.map(w => {
-            const { tokenId } = findEvent(r, 'Transfer', partyAddress, { to: w.address });
-            const { votingPower } = findEvent(r, 'Burned', cf.address, { contributor: w.address });
+            const { tokenId } = findEvent(r, 'Transfer', partyAddress, { owner: NULL_ADDRESS, to: w.address }).args;
+            const { votingPower } = findEvent(r, 'Burned', cf.address, { contributor: w.address }).args;
             return {
                 wallet: w,
                 governanceTokens: [{ tokenId, votingPower }],
@@ -618,6 +653,7 @@ describeFork('Mainnet deployment fork smoke tests', (provider) => {
         passUnanimously: boolean = false
     ): Promise<BigNumber>
     {
+        // await increaseTime(provider, 1);
         // propose() from the first member and accept() from the rest until it passes.
         let snapIndex = await party.findVotingPowerSnapshotIndex(members[0].wallet.address, now());
         let r = await mineTx(party.connect(members[0].wallet).propose(proposal, snapIndex));
@@ -625,15 +661,21 @@ describeFork('Mainnet deployment fork smoke tests', (provider) => {
         const { proposalId } = findEvent(r, 'Proposed', party.address).args;
         for (const m of members.slice(1)) {
             snapIndex = await party.findVotingPowerSnapshotIndex(m.wallet.address, proposedTime);
-            r = await mineTx(party.connect(m.wallet).accept(proposalId, 0));
+            console.log(snapIndex);
+            console.log(await party['getVotingPowerAt(address,uint40,uint256)'](m.wallet.address, proposedTime, snapIndex));
+            console.log(await party['getVotingPowerAt(address,uint40,uint256)'](m.wallet.address, proposedTime - 1, snapIndex));
+            r = await mineTx(party.connect(m.wallet).accept(proposalId, snapIndex));
+            console.log(r.events.map(e => e.args));
             // If passUnanimously is true, vote from every member.
-            if (!passUnanimously && findEvent(r, 'ProposalPassed', party.address)) {
+            if (!passUnanimously && doesEventExist(r, 'ProposalPassed', party.address)) {
                 break;
             }
         }
+        const [status, ] = await party.getProposalStateInfo(proposalId);
         if (passUnanimously) {
-            const [status, ] = await party.getProposalStateInfo(proposalId);
-            expect(status).to.eq(ProposalStatus.Ready);
+            expect(status).to.eq(ProposalStatus.Ready, 'unanimous proposal should be ready');
+        } else {
+            expect(status).to.eq(ProposalStatus.Passed, 'proposal should be passed');
         }
         return proposalId;
     }
@@ -647,14 +689,20 @@ describeFork('Mainnet deployment fork smoke tests', (provider) => {
         progressData: string = NULL_BYTES,
         extraData: string = NULL_BYTES,
     ): Promise<TransactionReceiptWithEvents> {
-        return mineTx(party.connect(member.wallet).execute(
+        const args = [
             proposalId,
             proposal,
             [dummyERC721Contract.address],
             [preciousTokenId],
             progressData,
             extraData,
-        ));
+        ];
+        try {
+            return await mineTx(party.connect(member.wallet).execute(...args));
+        } catch {
+            console.error('executeProposal() failed...');
+            throw new Error(await party.connect(member.wallet).callStatic.execute(...args));
+        }
     }
 
     async function clampToGlobals(
@@ -676,5 +724,9 @@ describeFork('Mainnet deployment fork smoke tests', (provider) => {
             }
         }
         return clamped;
+    }
+
+    async function fundWallets(provider: MockProvider, wallets: Wallet[], amount: BigNumber = ONE_ETHER) {
+        return Promise.all(wallets.map(w => increaseBalance(provider, w.address, amount)));
     }
 });
