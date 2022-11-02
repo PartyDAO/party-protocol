@@ -16,4 +16,6 @@ contract UnlockedWallet {
             assembly { revert(add(r, 0x20), mload(r)) }
         }
     }
+
+    receive() external payable {}
 }

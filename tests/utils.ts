@@ -57,6 +57,7 @@ export function describeFork(name: string, body: (forkProvider: MockProvider) =>
         console.info('no FORK_URL env var set, skipping forked tests.');
         return;
     }
+    const [, nodeUrl, blockNumber] = /^(.+?)(?:@(\d+))?$/.exec(ENV.FORK_URL);
     global.it = Object.assign(
         (name: string, ...args: any[]) => {
             it(`${name} [⑃]`, ...args);
@@ -65,7 +66,12 @@ export function describeFork(name: string, body: (forkProvider: MockProvider) =>
     );
     const provider = new MockProvider({
         ganacheOptions: {
-            fork: { url: ENV.FORK_URL },
+            fork: {
+                deleteCache: false,
+                disableCache: false,
+                url: nodeUrl,
+                ...(blockNumber ? { blockNumber: Number(blockNumber) } : {}),
+            },
             chain: {
                 allowUnlimitedContractSize: true,
             },
@@ -73,21 +79,34 @@ export function describeFork(name: string, body: (forkProvider: MockProvider) =>
                 blockGasLimit: 100e9,
             },
             wallet: {
-                totalAccounts: 256,
+                totalAccounts: 12,
                 defaultBalance: 100e18,
             }
         },
     });
-    describeSnapshot(`${name} [⑃]`, provider, () => body(provider));
+    describe(`${name} [⑃]`, () => body(provider));
+}
+
+export function itSnapshot(name: string, provider: MockProvider, body: () => Promise<void>) {
+    describe('\r', () => {
+        let snapshot: string;
+        before(async () => {
+            snapshot = await provider.send('evm_snapshot', []);
+        });
+        after(async () => {
+            await provider.send('evm_revert', [ snapshot ]);
+        });
+        it(name, body);
+    });
 }
 
 export function describeSnapshot(name: string, provider: MockProvider, body: () => void) {
     describe(name, () => {
         let snapshot: string;
-        beforeEach(async () => {
+        before(async () => {
             snapshot = await provider.send('evm_snapshot', []);
         });
-        afterEach(async () => {
+        after(async () => {
             await provider.send('evm_revert', [ snapshot ]);
         });
         body();
