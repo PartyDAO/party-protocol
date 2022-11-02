@@ -252,7 +252,7 @@ contract PartyNFTRenderer is IERC721Renderer, RendererCustomization {
     ) private pure returns (string memory) {
         return string.concat(
             '<text class="v" x="30" y="300">',
-            generateProposalStatus(latestProposalId, proposalStatuses[0]),
+            latestProposalId > 0 ? generateProposalStatus(latestProposalId, proposalStatuses[0]) : '',
             '</text><text class="v" x="30" y="330">',
             latestProposalId > 1 ? generateProposalStatus(latestProposalId - 1, proposalStatuses[1]) : '',
             '</text><text class="v" x="30" y="360">',
@@ -308,7 +308,7 @@ contract PartyNFTRenderer is IERC721Renderer, RendererCustomization {
         } else if (status == PartyGovernance.ProposalStatus.Cancelled) {
             statusMessage = "Cancelled";
         } else {
-            statusMessage = "Invalid";
+            return "";
         }
 
         return string.concat('#', proposalId.toString(), ' - ', statusMessage);
