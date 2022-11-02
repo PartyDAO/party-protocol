@@ -1,8 +1,11 @@
+import { TransactionResponse, TransactionReceipt } from '@ethersproject/abstract-provider';
 import crypto from 'crypto';
 import { BigNumber, Contract, ContractFactory, Signer } from 'ethers';
 import * as ethers from 'ethers';
 import { MockProvider } from 'ethereum-waffle';
 import { env as ENV } from 'process';
+
+import UNLOCKED_WALLET_ARTIFACT from '../out/UnlockedWallet.sol/UnlockedWallet.json';
 
 export const NULL_ADDRESS = '0x0000000000000000000000000000000000000000';
 export const NULL_HASH = '0x0000000000000000000000000000000000000000000000000000000000000000';
@@ -12,6 +15,10 @@ export const ONE_DAY_SECONDS = ONE_HOUR_SECONDS * 24;
 export const ONE_ETHER = BigNumber.from('10').pow(18);
 export const ZERO = BigNumber.from(0);
 export const NULL_BYTES = '0x';
+
+export interface TransactionReceiptWithEvents extends TransactionReceipt {
+    events: any[];
+}
 
 export function randomAddress(): string {
     return '0x' + crypto.randomBytes(20).toString('hex');
@@ -92,4 +99,37 @@ export async function runInSnapshot(provider: MockProvider, body: () => Promise<
     snapshot = await provider.send('evm_snapshot', []);
     await body();
     await provider.send('evm_revert', [ snapshot ]);
+}
+
+export async function setBytecode(provider: MockProvider, address: string, bytecode: string) {
+    await provider.send('evm_setAccountCode', [address, bytecode]);
+}
+
+export async function setBalance(provider: MockProvider, address: string, balance: BigNumber | number) {
+    await provider.send('evm_setAccountBalance', [address, ethers.utils.hexlify(balance)]);
+}
+
+export async function createUnlockedWallet(provider: MockProvider, address: string): Promise<Contract> {
+    await setBytecode(provider, address, UNLOCKED_WALLET_ARTIFACT.deployedBytecode.object);
+    return new Contract(address, UNLOCKED_WALLET_ARTIFACT.abi, provider);
+}
+
+export async function mineTx
+    <
+        TArgs extends any[],
+        TMethod extends (...args: TArgs) => Promise<TransactionResponse>
+    >
+    (txReponsePromise: Promise<TransactionResponse>): Promise<TransactionReceiptWithEvents>
+{
+    return { events: [], ...(await (await txReponsePromise).wait()) };
+}
+
+export async function callAndMineTx
+    <
+        TArgs extends any[],
+        TMethod extends (...args: TArgs) => Promise<TransactionResponse>
+    >
+    (contract: Contract, method: TMethod, ...args: TArgs): Promise<TransactionReceiptWithEvents>
+{
+    return mineTx(method.call(contract, ...args));
 }

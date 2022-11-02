@@ -20,6 +20,7 @@ import ERC721_ARTIFACT from '../../out/IERC721.sol/IERC721.json';
 import {
     GlobalKeys,
     Proposal,
+    ProposalStatus,
     ProposalType,
     TokenType,
 } from '../integration/system';
@@ -41,6 +42,11 @@ import {
     now,
     runInSnapshot,
     increaseTime,
+    createUnlockedWallet,
+    randomAddress,
+    setBalance,
+    mineTx,
+    TransactionReceiptWithEvents,
 } from '../utils';
 
 use(solidity);
@@ -50,9 +56,14 @@ interface OpenseaListing {
     signature: string;
 }
 
+interface GovernanceToken {
+    tokenId: BigNumber;
+    votingPower: BigNumber;
+}
+
 interface MemberInfo {
     wallet: Wallet;
-    governanceTokenId: BigNumber;
+    governanceTokens: GovernanceToken[];
 }
 
 const ALL_INTERFACES = [
@@ -73,12 +84,14 @@ describeFork('Mainnet deployment fork smoke tests', (provider) => {
     const NULL_GATEKEEPER_ID = '0x000000000000000000000000';
     const OPENSEA_FEE_RECIPIENT = '0x0000a26b00c1F0DF003000390027140000fAa719';
     const OPENSEA_FEE_BPS = 0.025e4;
+    const SPLIT_BPS = .10e4;
 
     const [
         worker,
         multisig,
         buyer,
         seller,
+        splitRecipient,
         ...users
     ] = provider.getWallets();
 
@@ -101,6 +114,7 @@ describeFork('Mainnet deployment fork smoke tests', (provider) => {
     let zora: Contract;
     let globals: Contract;
     let distributor: Contract;
+    let daoWallet: Contract;
 
     before(async () => {
         // Create a test ERC721 contract and some token IDs owned by seller.
@@ -113,7 +127,7 @@ describeFork('Mainnet deployment fork smoke tests', (provider) => {
         // Deploy the protocol deployer.
         deployer = await deployContract(worker, DEPLOY_ARTIFACT as any);
         // Deploy the protocol with mainnet config.
-        await (await deployer.deployMainnetFork(multisig.address)).wait();
+        await mineTx(deployer.deployMainnetFork(multisig.address));
 
         // Populate deployed contract addresses.
         globals = new Contract(
@@ -151,6 +165,10 @@ describeFork('Mainnet deployment fork smoke tests', (provider) => {
             OPENSEA_CONDUIT_CONTROLLER_ARTIFACT.abi,
             worker,
         );
+        daoWallet = await createUnlockedWallet(
+            provider,
+            await globals.getAddress(GlobalKeys.DaoMultisig),
+        );
     });
 
     describeSnapshot('BuyCrowdfund', provider, () => {
@@ -158,12 +176,12 @@ describeFork('Mainnet deployment fork smoke tests', (provider) => {
         let cf: Contract;
         let buyTokenId: BigNumber;
         let listing: OpenseaListing;
-        let contributor = users[0];
+        const contributors = users.slice(0, 3);
 
         before(async () => {
             buyTokenId = testERC721tokenIds[0];
             listing = await createOpenseaListing(buyTokenId, LIST_PRICE);
-            let r = await (await crowdfundFactory.createBuyCrowdfund(
+            let r = await mineTx(crowdfundFactory.createBuyCrowdfund(
                 {
                     name: PARTY_NAME,
                     symbol: PARTY_SYMBOL,
@@ -172,8 +190,8 @@ describeFork('Mainnet deployment fork smoke tests', (provider) => {
                     nftTokenId: buyTokenId,
                     duration: CF_DURATION,
                     maximumPrice: LIST_PRICE,
-                    splitRecipient: NULL_ADDRESS,
-                    splitBps: 0,
+                    splitRecipient: splitRecipient.address,
+                    splitBps: SPLIT_BPS,
                     initialContributor: NULL_ADDRESS,
                     initialDelegate: NULL_ADDRESS,
                     gateKeeper: NULL_ADDRESS,
@@ -181,59 +199,52 @@ describeFork('Mainnet deployment fork smoke tests', (provider) => {
                     governanceOpts: FIXED_GOVERNANCE_OPTS,
                 },
                 NULL_BYTES,
-            )).wait();
+            ));
             cf = new Contract(
-                r.events.find((e: any) => e.event === 'BuyCrowdfundCreated').args.crowdfund,
+                findEvent(r, 'BuyCrowdfundCreated', crowdfundFactory.address).args.crowdfund,
                 BUY_CF_ARTIFACT.abi,
                 worker,
             );
         });
 
         it('winning path', async () => {
-            // contribute the full amount and self-delegate.
-            await (await cf.connect(contributor).contribute(
-                contributor.address,
-                NULL_BYTES,
-                { value: LIST_PRICE },
-            )).wait();
+            await contributeEvenly(cf, contributors, LIST_PRICE);
+            
             // buy the NFT
-            let r = await (await cf.buy(
+            let r = await mineTx(cf.buy(
                 opensea.address,
                 LIST_PRICE,
                 (await opensea.populateTransaction.fulfillOrder(listing, NULL_HASH)).data,
                 FIXED_GOVERNANCE_OPTS,
-            )).wait();
+                0,
+            ));
             let party = new Contract(
-                r.events.find((e: any) => e.event === 'Won').args.party,
+                findEvent(r, 'Won', cf.address).args.party,
                 PARTY_ARTIFACT.abi,
                 worker,
             );
 
-            // mint voting power
-            r = await (await cf.burn(contributor.address)).wait();
-            const member: MemberInfo = {
-                wallet: contributor,
-                governanceTokenId: findEvent(r, 'Transfer', party.address).args.tokenId,
-            };
+            // mint voting powers
+            const members = await burnContributors(cf, [...contributors, splitRecipient]);
 
             await runInSnapshot(
                 provider,
-                async () => runFractionalizeTest(party, member, buyTokenId),
+                async () => runFractionalizeTest(party, members, buyTokenId),
             );
             await runInSnapshot(
                 provider,
-                async () => runListOnOpenseaTest(party, member, buyTokenId),
+                async () => runListOnOpenseaTest(party, members, buyTokenId),
             );
             await runInSnapshot(
                 provider,
-                async () => runListOnZoraTest(party, member, buyTokenId),
+                async () => runListOnZoraTest(party, members, buyTokenId),
             );
         });
     });
 
     async function runFractionalizeTest(
         party: Contract,
-        member: MemberInfo,
+        members: MemberInfo[],
         preciousTokenId: BigNumber,
     ): Promise<void> {
         console.info(`Testing fractional proposal...`);
@@ -244,21 +255,11 @@ describeFork('Mainnet deployment fork smoke tests', (provider) => {
                 [ [ dummyERC721Contract.address, preciousTokenId, ONE_ETHER ] ],
             ),
         );
-        // propose() will pass unanimously because member has 100% of VP.
-        let r = await (await party.connect(member.wallet).propose(proposal, 0)).wait();
-        const { proposalId } = findEvent(r, 'Proposed').args;
-        expect(findEvent(r, 'ProposalPassed')).to.exist;
+        const proposalId = await proposeAndAccept(party, proposal, members);
 
         // Execute
         await increaseTime(provider, FIXED_GOVERNANCE_OPTS.executionDelay);
-        r = await (await party.connect(member.wallet).execute(
-            proposalId,
-            proposal,
-            [dummyERC721Contract.address],
-            [preciousTokenId],
-            NULL_BYTES,
-            NULL_BYTES,
-        )).wait();
+        const r = await executeProposal(party, members[0], proposalId, proposal, preciousTokenId);
 
         const fracToken = new Contract(
             findEvent(r, 'FractionalV1VaultCreated').args.vault,
@@ -267,17 +268,21 @@ describeFork('Mainnet deployment fork smoke tests', (provider) => {
         );
         const { totalVotingPower } = await party.getGovernanceValues();
         expect(await fracToken.balanceOf(party.address)).to.eq(totalVotingPower);
-        await runDistributionTest(party, fracToken, member);
+        await runDistributionTest(party, fracToken, members);
     }
 
     async function runListOnOpenseaTest(
         party: Contract,
-        member: MemberInfo,
+        members: MemberInfo[],
         preciousTokenId: BigNumber,
+        passUnanimously: boolean = false,
     ): Promise<void> {
         console.info(`Testing opensea proposal...`);
-        const listPrice = ONE_ETHER;
-        const duration = ONE_DAY_SECONDS;
+        const duration = await clampToGlobals(
+            ONE_DAY_SECONDS,
+            GlobalKeys.OpenSeaMinOrderDuration,
+            GlobalKeys.OpenSeaMaxOrderDuration,
+        );
         const openseaFee = ONE_ETHER.mul(OPENSEA_FEE_BPS).div(1e4);
         const sellerPrice = ONE_ETHER.sub(openseaFee);
         const proposal = buildProposal(
@@ -296,52 +301,52 @@ describeFork('Mainnet deployment fork smoke tests', (provider) => {
                 ],
             ),
         );
-        // propose() will pass unanimously because member has 100% of VP.
-        let r = await (await party.connect(member.wallet).propose(proposal, 0)).wait();
-        const { proposalId } = findEvent(r, 'Proposed').args;
-        expect(findEvent(r, 'ProposalPassed')).to.exist;
+        const proposalId = await proposeAndAccept(party, proposal, members, passUnanimously);
 
-        // Execute (1/2)
-        await increaseTime(provider, FIXED_GOVERNANCE_OPTS.executionDelay);
-        r = await (await party.connect(member.wallet).execute(
-            proposalId,
-            proposal,
-            [dummyERC721Contract.address],
-            [preciousTokenId],
-            NULL_BYTES,
-            NULL_BYTES,
-        )).wait();
-        let progressData = findEvent(r, 'ProposalExecuted').args.nextProgressData;
-        const { orderParams } = findEvent(r, 'OpenseaOrderListed').args;
-
-        // Buy.
+        // Execute
+        let progressData = NULL_BYTES;
+        if (!passUnanimously) {
+            await increaseTime(provider, FIXED_GOVERNANCE_OPTS.executionDelay);
+            // List on zora.
+            const r = await executeProposal(party, members[0], proposalId, proposal, preciousTokenId);
+            progressData = findEvent(r, 'ProposalExecuted', party.address).args.nextProgressData;
+            // Timeout zora auction.
+            const timeout = await globals.getUint256(GlobalKeys.OpenSeaZoraAuctionTimeout);
+            await increaseTime(provider, timeout);
+        }
+        // List on OS.
+        let r = await executeProposal(party, members[0], proposalId, proposal, preciousTokenId, progressData);
+        const { orderParams } = findEvent(r, 'OpenseaOrderListed', party.address).args;
+        progressData = findEvent(r, 'ProposalExecuted', party.address).args.nextProgressData;
+        
+        // Buy on OS.
         await _buyOpenseaListing(orderParams);
 
-        // Execute (2/2)
-        await increaseTime(provider, FIXED_GOVERNANCE_OPTS.executionDelay);
-        r = await (await party.connect(member.wallet).execute(
-            proposalId,
-            proposal,
-            [dummyERC721Contract.address],
-            [preciousTokenId],
-            progressData,
-            NULL_BYTES,
-        )).wait();
-        const { tokenId: soldTokenId } = findEvent(r, 'OpenseaOrderSold').args;
+        // Finalize proposal.
+        r = await executeProposal(party, members[0], proposalId, proposal, preciousTokenId, progressData);
+        const { tokenId: soldTokenId } = findEvent(r, 'OpenseaOrderSold', party.address).args;
         expect(soldTokenId).to.eq(preciousTokenId);
 
-        await runDistributionTest(party, null, member);
+        await runDistributionTest(party, null, members);
     }
 
     async function runListOnZoraTest(
         party: Contract,
-        member: MemberInfo,
+        members: MemberInfo[],
         preciousTokenId: BigNumber,
     ): Promise<void> {
         console.info(`Testing zora proposal...`);
         const listPrice = ONE_ETHER;
-        const duration = ONE_DAY_SECONDS;
-        const timeout = ONE_DAY_SECONDS;
+        const duration = await clampToGlobals(
+            ONE_DAY_SECONDS,
+            GlobalKeys.ZoraMinAuctionDuration,
+            GlobalKeys.ZoraMaxAuctionDuration,
+        );
+        const timeout = await clampToGlobals(
+            ONE_DAY_SECONDS,
+            undefined,
+            GlobalKeys.ZoraMaxAuctionTimeout,
+        );
         const proposal = buildProposal(
             ProposalType.ListOnZora,
             ethers.utils.defaultAbiCoder.encode(
@@ -357,68 +362,75 @@ describeFork('Mainnet deployment fork smoke tests', (provider) => {
                 ],
             ),
         );
-        // propose() will pass unanimously because member has 100% of VP.
-        let r = await (await party.connect(member.wallet).propose(proposal, 0)).wait();
-        const { proposalId } = findEvent(r, 'Proposed').args;
-        expect(findEvent(r, 'ProposalPassed')).to.exist;
+        const proposalId = await proposeAndAccept(party, proposal, members);
 
-        // Execute (1/2)
+        // Execute
         await increaseTime(provider, FIXED_GOVERNANCE_OPTS.executionDelay);
-        r = await (await party.connect(member.wallet).execute(
-            proposalId,
-            proposal,
-            [dummyERC721Contract.address],
-            [preciousTokenId],
-            NULL_BYTES,
-            NULL_BYTES,
-        )).wait();
-        let progressData = findEvent(r, 'ProposalExecuted').args.nextProgressData;
-        const { auctionId } = findEvent(r, 'ZoraAuctionCreated').args;
+        // List on zora
+        let r = await executeProposal(party, members[0], proposalId, proposal, preciousTokenId);
+        let progressData = findEvent(r, 'ProposalExecuted', party.address).args.nextProgressData;
+        const { auctionId } = findEvent(r, 'ZoraAuctionCreated', party.address).args;
 
         // Bid.
         await _bidOnZoraListing(auctionId, listPrice);
         // Skip to end.
-        await increaseTime(provider, duration);
-
-        // Execute (2/2)
-        await increaseTime(provider, FIXED_GOVERNANCE_OPTS.executionDelay);
-        r = await (await party.connect(member.wallet).execute(
-            proposalId,
-            proposal,
-            [dummyERC721Contract.address],
-            [preciousTokenId],
-            progressData,
-            NULL_BYTES,
-        )).wait();
-        const { auctionId: soldAuctionId } = findEvent(r, 'ZoraAuctionSold').args;
+        await increaseTime(provider, duration.toNumber());
+        // Settle.
+        r = await executeProposal(party, members[0], proposalId, proposal, preciousTokenId, progressData);
+        const { auctionId: soldAuctionId } = findEvent(r, 'ZoraAuctionSold', party.address).args;
         expect(soldAuctionId).to.eq(auctionId);
 
-        await runDistributionTest(party, null, member);
+        await runDistributionTest(party, null, members);
     }
 
     async function runDistributionTest(
         party: Contract,
         erc20: Contract | null,
-        member: MemberInfo,
+        members: MemberInfo[],
     ): Promise<void> {
         console.info('Testing distribution...');
         // Create a distribution.
-        let r = await (await party.connect(member.wallet).distribute(
+        let r = await (await party.connect(members[0].wallet).distribute(
             erc20 ? TokenType.Erc20 : TokenType.Native,
             erc20 ? erc20.address : NULL_ADDRESS,
             0,
         )).wait();
         const { info: distInfo } =
             findEvent(r, 'DistributionCreated', distributor.address).args;
-        // Claim distribution.
-        r = await (await distributor
-                .connect(member.wallet)
-                .claim(distInfo, member.governanceTokenId)
-            ).wait();
-        const claimedAmount =
-            findEvent(r, 'DistributionClaimedByPartyToken').args.amountClaimed;
+        // Claim distribution from members.
+        for (const m of members) {
+            r = await mineTx(
+                distributor
+                    .connect(m.wallet)
+                    .batchClaim(distInfo, m.governanceTokens.map(t => t.tokenId)),
+                );
+            for (const tok of m.governanceTokens) {
+                const claimedAmount =
+                    findEvent(
+                        r,
+                        'DistributionClaimedByPartyToken',
+                        distributor.address,
+                        { party: party.address, partyTokenId: tok.tokenId },
+                    ).args.amountClaimed;
+                expect(claimedAmount).to.exist;
+                if (erc20) {
+                    expect(findEvent(r, 'Transfer', erc20.address).args.amount).to.eq(claimedAmount);
+                }
+            }
+        }
+        // Claim fees from multisig.
+        r = await mineTx(daoWallet.execCall(
+            (await distributor.populateTransaction.claimFee(distInfo, multisig.address)).data,
+        ));
+        const claimedAmount = findEvent(
+            r,
+            'DistributionFeeClaimed',
+            distributor.address,
+            { feeRecipient: multisig.address },
+        ).args.claimedAmount;
+        expect(claimedAmount).to.exist;
         if (erc20) {
-            expect(findEvent(r, 'Transfer').args.amount, erc20.address).to.eq(claimedAmount);
+            expect(findEvent(r, 'Transfer', erc20.address).args.amount).to.eq(claimedAmount);
         }
     }
 
@@ -523,11 +535,35 @@ describeFork('Mainnet deployment fork smoke tests', (provider) => {
         return decoded;
     }
 
-    function findEvent(receipt: { logs: any[] }, name: string, source?: string): any {
+    function findEvent(receipt: { logs: any[] }, name: string, source?: string, matchArgs?: { [k: string]: any }): any {
         const e = decodeEvents(receipt)
-            .find(e => e.event === name && (source ? e.address === source : true));
+            .find(e => {
+                if (e.event !== name) {
+                    return false;
+                }
+                if (source && e.address !== source) {
+                    return false;
+                }
+                if (matchArgs) {
+                    for (const k in matchArgs) {
+                        const v = matchArgs[k];
+                        if (v !== undefined) {
+                            if (e.args[k] !== v) {
+                                if (typeof(v) === 'string' && v.startsWith('0x')) {
+                                    if (v.toLowerCase() !== e.args[k].toLowerCase()) {
+                                        return false;
+                                    }
+                                } else {
+                                    return false;
+                                }
+                            }
+                        }
+                    }
+                }
+                return true;
+            });
         if (!e) {
-            throw new Error(`no event "${name}" in receipt.`);
+            throw new Error(`no event "${name}" in receipt from ${source} with args ${matchArgs}.`);
         }
         return e;
     }
@@ -541,5 +577,104 @@ describeFork('Mainnet deployment fork smoke tests', (provider) => {
                 proposalData,
             ]),
         };
+    }
+
+    async function contribute(cf: Contract, contributor: Wallet, contributionValue: BigNumber) {
+        // Fund the contributor.
+        setBalance(provider, contributor.address, contributionValue.add(ONE_ETHER));
+        // Contribute to the crowdfund.
+        await (await cf.connect(contributor).contribute(
+            contributor.address,
+            NULL_BYTES,
+            { value: contributionValue },
+        )).wait();
+    }
+
+    async function burnContributors(cf: Contract, contributorWallets: Wallet[]): Promise<MemberInfo[]> {
+        const partyAddress = await cf.party();
+        const r = await mineTx(cf.batchBurn(contributorWallets.map(m => m.address)));
+        return contributorWallets.map(w => {
+            const { tokenId } = findEvent(r, 'Transfer', partyAddress, { to: w.address });
+            const { votingPower } = findEvent(r, 'Burned', cf.address, { contributor: w.address });
+            return {
+                wallet: w,
+                governanceTokens: [{ tokenId, votingPower }],
+            } as MemberInfo;
+        });
+    }
+
+    async function contributeEvenly(cf: Contract, contributorWallets: Wallet[], totalContribution: BigNumber) {
+        const n = contributorWallets.length;
+        const contributionValue = totalContribution.add(n - 1).div(n);
+        for (const c of contributorWallets) {
+            await contribute(cf, c, contributionValue);
+        }
+    }
+
+    async function proposeAndAccept(
+        party: Contract,
+        proposal: Proposal,
+        members: MemberInfo[],
+        passUnanimously: boolean = false
+    ): Promise<BigNumber>
+    {
+        // propose() from the first member and accept() from the rest until it passes.
+        let snapIndex = await party.findVotingPowerSnapshotIndex(members[0].wallet.address, now());
+        let r = await mineTx(party.connect(members[0].wallet).propose(proposal, snapIndex));
+        const { timestamp: proposedTime } = await party.provider.getBlock(r.blockNumber);
+        const { proposalId } = findEvent(r, 'Proposed', party.address).args;
+        for (const m of members.slice(1)) {
+            snapIndex = await party.findVotingPowerSnapshotIndex(m.wallet.address, proposedTime);
+            r = await mineTx(party.connect(m.wallet).accept(proposalId, 0));
+            // If passUnanimously is true, vote from every member.
+            if (!passUnanimously && findEvent(r, 'ProposalPassed', party.address)) {
+                break;
+            }
+        }
+        if (passUnanimously) {
+            const [status, ] = await party.getProposalStateInfo(proposalId);
+            expect(status).to.eq(ProposalStatus.Ready);
+        }
+        return proposalId;
+    }
+
+    async function executeProposal(
+        party: Contract,
+        member: MemberInfo,
+        proposalId: BigNumber,
+        proposal: Proposal,
+        preciousTokenId: BigNumber,
+        progressData: string = NULL_BYTES,
+        extraData: string = NULL_BYTES,
+    ): Promise<TransactionReceiptWithEvents> {
+        return mineTx(party.connect(member.wallet).execute(
+            proposalId,
+            proposal,
+            [dummyERC721Contract.address],
+            [preciousTokenId],
+            progressData,
+            extraData,
+        ));
+    }
+
+    async function clampToGlobals(
+        value: number | BigNumber,
+        minKey?: GlobalKeys,
+        maxKey?: GlobalKeys,
+    ): Promise<BigNumber> {
+        let clamped = BigNumber.from(value);
+        if (minKey) {
+            const min = await globals.getUint256(minKey);
+            if (min.gt(clamped)) {
+                clamped = min;
+            }
+        }
+        if (maxKey) {
+            const max = await globals.getUint256(maxKey);
+            if (max.lt(clamped)) {
+                clamped = max;
+            }
+        }
+        return clamped;
     }
 });
