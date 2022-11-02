@@ -84,18 +84,18 @@ contract CrowdfundTest is Test, TestUtils {
 
         // Generate customization options.
         uint256 versionId = 1;
-        uint256 numOfColors = uint8(type(RendererCustomization.Color).max) + 1;
+        uint256 numOfColors = uint8(type(RendererBase.Color).max) + 1;
         for (uint256 i; i < numOfColors; ++i) {
             // Generate customization options for all colors w/ each mode (light and dark).
             nftRendererStorage.createCustomizationPreset(
                 // Preset ID 0 is reserved. It is used to indicates to party instances
                 // to use the same customization preset as the crowdfund.
                 i + 1,
-                abi.encode(versionId, false, RendererCustomization.Color(i))
+                abi.encode(versionId, false, RendererBase.Color(i))
             );
             nftRendererStorage.createCustomizationPreset(
                 i + 1 + numOfColors,
-                abi.encode(versionId, true, RendererCustomization.Color(i))
+                abi.encode(versionId, true, RendererBase.Color(i))
             );
         }
     }
@@ -1061,7 +1061,7 @@ contract CrowdfundTest is Test, TestUtils {
             "Test",
             "0.420",
             CrowdfundNFTRenderer.CrowdfundStatus.WON,
-            RendererCustomization.Color.CYAN,
+            RendererBase.Color.CYAN,
             true
         );
 
@@ -1136,7 +1136,8 @@ contract CrowdfundTest is Test, TestUtils {
     }
 
     function test_contractURI() external {
-        TestableCrowdfund cf = _createCrowdfund(0);
+        uint256 presetId = 0;
+        TestableCrowdfund cf = _createCrowdfund(0, presetId);
 
         string memory contractURI = cf.contractURI();
 

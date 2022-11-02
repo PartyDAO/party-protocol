@@ -2,10 +2,15 @@
 // http://ipfs.io/ipfs/QmbGX2MFCaMAsMNMugRFND6DtYygRkwkvrqEyTKhTdBLo5
 pragma solidity 0.8.17;
 
+import "../utils/vendor/Base64.sol";
+
 import "contracts/party/Party.sol";
+import "../globals/IGlobals.sol";
+import "./fonts/IFont.sol";
+import "./IERC721Renderer.sol";
 import "./RendererStorage.sol";
 
-abstract contract RendererCustomization {
+abstract contract RendererBase is IERC721Renderer {
     enum Color {
         DEFAULT,
         GREEN,
@@ -24,10 +29,105 @@ abstract contract RendererCustomization {
         DARK
     }
 
-    RendererStorage private immutable _storage;
+    IGlobals immutable _GLOBALS;
+    RendererStorage immutable _storage;
+    IFont immutable _font;
 
-    constructor(RendererStorage rendererStorage) {
+    constructor(IGlobals globals, RendererStorage rendererStorage, IFont font) {
+        _GLOBALS = globals;
         _storage = rendererStorage;
+        _font = font;
+    }
+
+    function contractURI() external view returns (string memory) {
+        (bool isDarkMode, Color color) = getCustomizationChoices();
+        (string memory image, string memory banner) = getCollectionImageAndBanner(color, isDarkMode);
+
+        return string.concat(
+            'data:application/json;base64,',
+            Base64.encode(abi.encodePacked(
+                '{"name":"',
+                generateCollectionName(),
+                '", "description":"',
+                generateCollectionDescription(),
+                '", "external_url":"',
+                'https://www.partybid.app/'
+                '", "image":"',
+                image,
+                '", "banner":"',
+                banner,
+                '"}'
+            ))
+        );
+    }
+
+    function generateCollectionName() private view returns (string memory) {
+        return string.concat('Party Cards - ', IERC721(address(this)).name());
+    }
+
+    function generateCollectionDescription() internal virtual view returns (string memory);
+
+    function getCollectionImageAndBanner(Color color, bool isDarkMode)
+        private
+        pure
+        returns (string memory image, string memory banner)
+    {
+        if (isDarkMode) {
+            if (color == Color.GREEN) {
+                image = 'QmdcjXrxj7EimjuNTLQp1uKM2zYhuF1WVkVjF6TpfNNXrf';
+                banner = 'QmSBqgzPyAtEp1T2cbX4Wcoo7nH1ggfWMsYBfgnDcLs5pU';
+            } else if (color == Color.CYAN) {
+                image = 'QmS678DTkTTzFQEDiqj3AsW6wt6bi4bNhWbKcBM29HBhhB';
+                banner = 'QmVT5QtzCxsvbMt1c3hSDrvYCxrc1QtBPiTV4HYnMCYbW6';
+            } else if (color == Color.BLUE) {
+                image = 'QmX2k8beAjyVhPk1ZrK6KrwbqLk3fRNPPmknRti7zEtGQa';
+                banner = 'QmVZC9fmWkpWaP4vLKVQdcH9J9pDzvPUsts7mTCiUofeJL';
+            } else if (color == Color.PURPLE) {
+                image = 'Qmf8SrxKH3QZQCEzcMbA3UoJGZ1j2coTLaQFptWhZZvqhg';
+                banner = 'QmcYdEGsdLNNHdyqcsFk4eECpjtSVrVruHmvsfhYgnpLSB';
+            } else if (color == Color.PINK) {
+                image = 'QmV5eT9DWvU5BJa4LVSemkoDKyjJBC56adk2JLWMXYEQfn';
+                banner = 'Qmbts1Cw1uqqf5gBZXMMxVhpVkdDhZHHsAJsME2yPECBgj';
+            } else if (color == Color.ORANGE) {
+                image = 'QmPirB7VFaao2ZUxLtM5WTCwZhE7c9Uy2heyNZF5t9PgsS';
+                banner = 'QmfPeMEi97HsePp728FaNK2Xhg4sHa5vNh4FvRhgTnDSu4';
+            } else if (color == Color.RED) {
+                image = 'QmNRZ3syuEiiAkWYRFs9BpQ5M38wv8tEu17J2sYwmMdeta';
+                banner = 'QmWkhsUAXPqCjUgcvSwLdbev1baBwecXvrTgjVXGFYfjUJ';
+            } else {
+                image = 'QmNwGtGyYwDfS6ghQbDw5a9buv7auFXz63W3rDhzmxjVhw';
+                banner = 'Qmbh1nvLdJmvErRFaNhVZu3Hqyp7mqSnojwW2fHsD7PLDc';
+            }
+        } else {
+            if (color == Color.GREEN) {
+                image = 'QmR7t2g2hrkMYyzhUMEANzEGX74FQcbg3c7eTvCcQucMst';
+                banner = 'QmeZKC2L3Y6gD2NsWAked44nRdPDFKQQ7ZKWioJnzGewPH';
+            } else if (color == Color.CYAN) {
+                image = 'QmeiBRb9muNXej3dn4usjjdtbUpgYASfA5jmWqJRshivGH';
+                banner = 'QmVcV1ECvHVvUQ3SVszmZeDjA4Bxxjfjo81Rg5JpxmHSfd';
+            } else if (color == Color.BLUE) {
+                image = 'QmaErgGsanUTo73RMgvizMg3c7x1d1X4t76Tti22Pc1xan';
+                banner = 'QmcQWYuw7aZ9om5nPQ2Bj84tuLFpbbPZx3Rcy4fG8ALuaB';
+            } else if (color == Color.PURPLE) {
+                image = 'QmeVJTcUpKQFSz5aBsVpQk8quoXEEZBNPAAMo3wHvdRzHa';
+                banner = 'QmSpmE91Covpn7TZZ168tzQUByyBF8wQB3RDMktjsvAFpR';
+            } else if (color == Color.PINK) {
+                image = 'QmY4JJkBEeHVYHdfCCXPd7bWkAhNRxuKTWdf9MssGxSmCG';
+                banner = 'Qma5tpXfkD1sB72oxMbYHsmD9XFfseqqfqGmJAiPmjdiuJ';
+            } else if (color == Color.ORANGE) {
+                image = 'QmYhB3vjBLPwPTC5SBidNbZhB5oBMBMpKy4g6ejTxmGLkK';
+                banner = 'QmcbCZDhj56eKmU6XvtZA2KCdQhSiu315eJbVi8tUMB1rm';
+            } else if (color == Color.RED) {
+                image = 'QmfG8HPMEsKwKJ8xX3i2JhJtCskuiUjZLe8NhvXFdYyFR2';
+                banner = 'QmdwXUfunRFtsDCLtmXkUZLdNAEgYGa1tyHUbJax8mdMuY';
+            } else {
+                image = 'QmZKE4XkPvU7Z8CdgK2Cn7gLQ4t8CDkkfnR1j5bZ2AfRJu';
+                banner = 'QmPQybDnxiScSGatBLzLvw49iUHVB7j6fNxv7p6bYSjvXm';
+            }
+        }
+
+        image = string.concat('ipfs://', image);
+        banner = string.concat('ipfs://', banner);
     }
 
     function getCustomizationChoices() internal view returns (bool isDarkMode, Color color) {

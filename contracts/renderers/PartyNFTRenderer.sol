@@ -6,16 +6,12 @@ import "../utils/LibSafeCast.sol";
 import "../utils/vendor/Strings.sol";
 import "../utils/vendor/Base64.sol";
 
-import "./IERC721Renderer.sol";
-import "./RendererCustomization.sol";
-import "../globals/IGlobals.sol";
+import "./RendererBase.sol";
 import "../party/PartyGovernance.sol";
 import "../party/PartyGovernanceNFT.sol";
 import "../distribution/TokenDistributor.sol";
-import "./RendererStorage.sol";
-import "./fonts/IFont.sol";
 
-contract PartyNFTRenderer is IERC721Renderer, RendererCustomization {
+contract PartyNFTRenderer is RendererBase {
     using LibSafeCast for uint256;
     using Strings for uint256;
     using Strings for address;
@@ -29,17 +25,8 @@ contract PartyNFTRenderer is IERC721Renderer, RendererCustomization {
 
     uint256 constant PARTY_CARD_DATA = 1;
 
-    IGlobals private immutable _GLOBALS;
-    RendererStorage private immutable _storage;
-    IFont private immutable _font;
-
     constructor(IGlobals globals, RendererStorage rendererStorage, IFont font)
-        RendererCustomization(rendererStorage)
-    {
-        _GLOBALS = globals;
-        _storage = rendererStorage;
-        _font = font;
-    }
+        RendererBase(globals, rendererStorage, font) { }
 
     // The renderer is called via delegateCall, so we need to declare the storage layout.
     // Run `yarn layout Party.sol/Party` to generate the current layout.
@@ -62,25 +49,6 @@ contract PartyNFTRenderer is IERC721Renderer, RendererCustomization {
     address mintAuthority;
     uint256 tokenCount;
     mapping(uint256 => uint256) votingPowerByTokenId;
-
-    // TODO: Implement contract URI
-    function contractURI() external view returns (string memory) {
-        string memory json = Base64.encode(bytes(
-            string(
-                abi.encodePacked(
-                    '{"name":"',
-                    name,
-                    '", "description":"',
-                    "AuctionCrowdfund Governance NFTs give you voting power in a AuctionCrowdfund party.",
-                    // '", "image": "data:image/svg+xml;base64,',
-                    // Base64.encode(bytes(output)),
-                    '"}'
-                )
-            )
-        ));
-
-        return string(abi.encodePacked('data:application/json;base64,', json));
-    }
 
     function royaltyInfo(uint256, uint256)
         external
@@ -137,15 +105,13 @@ contract PartyNFTRenderer is IERC721Renderer, RendererCustomization {
 
     function generateDescription(string memory partyName, uint256 tokenId) private view returns (string memory) {
         return string.concat(
-            'Card #',
-            tokenId.toString(),
-            ' in ',
-            partyName,
-            ". This item represents ",
+            'This Party Card represents ',
             generateVotingPowerPercentage(tokenId),
-            '% membership in the party. Head to ',
+            '% voting power in the following Party: ',
+            partyName,
+            '. Head to ',
             generateExternalURL(),
-            " to view the party's latest activity."
+            " to view the Party's latest activity."
         );
     }
 
@@ -154,6 +120,16 @@ contract PartyNFTRenderer is IERC721Renderer, RendererCustomization {
             '{"trait_type":"Voting Power", "value":',
             generateVotingPowerPercentage(tokenId),
             ', "max_value":100}'
+        );
+    }
+
+    function generateCollectionDescription() internal override view returns (string memory) {
+        return string.concat(
+            'This collection represents memberships in the following Party: ',
+            name,
+            '. Head to ',
+            generateExternalURL(),
+            " to view the Party's latest activity."
         );
     }
 
