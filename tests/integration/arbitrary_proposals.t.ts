@@ -14,6 +14,7 @@ import {
     now,
     increaseTime,
     randomAddress,
+    itSnapshot,
 } from '../utils';
 
 import DUMMY_CALL_TARGET_ARTIFACT from '../../out/DummyCallTarget.sol/DummyCallTarget.json';
@@ -39,7 +40,7 @@ describe('Arbitrary proposals integrations test', () => {
         );
     });
 
-    it('works', async () => {
+    itSnapshot('works', provider, async () => {
         const party = await Party.createAsync({
             worker,
             minter,
