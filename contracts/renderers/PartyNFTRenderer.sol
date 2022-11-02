@@ -158,7 +158,7 @@ contract PartyNFTRenderer is RendererBase {
 
     function generateSVG1(Color color, bool isDarkMode) private pure returns (string memory) {
         return string.concat(
-            '<svg viewBox="0 0 360 540" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><defs><linearGradient id="d" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="',
+            '<svg width="540" height="540" viewBox="0 0 360 540" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><defs><linearGradient id="d" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="',
             isDarkMode ? '#2e3847' : '#ffffff',
             '"/><stop offset="1" stop-color="',
             isDarkMode ? '#000000' : '#e6edf5',
@@ -212,11 +212,11 @@ contract PartyNFTRenderer is RendererBase {
             generateColorHex(color, ColorType.PRIMARY),
             '" width="331" height="346" x="14.5" y="179.5"/><path d="M321 501H198v-27h123v27Zm9-282H30v27h300v-27Zm0 60H30v27h300v-27Zm0 30H30v27h300v-27Zm0 30H30v27h300v-27Zm0 30H30v27h300v-27Z" style="fill:',
             generateColorHex(color, ColorType.LIGHT),
-            ';"/><clipPath id="clip"><path d="M31 501H198v-27h123v27Zm9-282H30v27h300v-27Zm0"/></clipPath><g clip-path="url(#clip)"><text class="v z" x="327" y="240">',
+            ';"/><clipPath id="clip"><path d="M31 501H198v-27h123v27Zm9-282H30v27h300v-27Zm0"/></clipPath><g clip-path="url(#clip)"><g class="z"><text class="v" x="327" y="240">',
             partyName,
-            '</text><text class="v z y" x="327" y="240">',
+            '</text></g><g class="z y"><text class="v" x="327" y="240">',
             partyName,
-            '</text></g>'
+            '</text></g></g>'
         );
     }
 
@@ -253,13 +253,11 @@ contract PartyNFTRenderer is RendererBase {
             generateColorHex(color, ColorType.PRIMARY),
             ';stroke-width:2px"/><path d="M307.5 68.19c-20.71 0-37.5 11.6-37.5 25.91s16.79 25.91 37.5 25.91S345 108.41 345 94.1s-16.79-25.91-37.5-25.91Zm12.84 41.66v-7.31l9.74-3.17-25.51-8.29 14.01 19.28a43.35 43.35 0 0 1-20.64.38v-8.33l9.74-3.17-25.51-8.29 14.06 19.35c-10.92-3-18.63-10.23-18.63-18.68 0-6.22 4.17-11.78 10.73-15.48l14.24 19.6V85.5l9.74-3.17-22.07-7.17a40.24 40.24 0 0 1 17.25-3.7c11.3 0 21.13 4.23 26.21 10.47l-23.17-7.53 15.76 21.7V85.86l8.32-2.7a14.9 14.9 0 0 1 2.77 8.48c0 8.04-6.97 14.98-17.05 18.22Z" style="fill:',
             generateColorHex(color, ColorType.PRIMARY),
-            '"/><path class="',
-            hasUnclaimed ? 'w' : '',
-            '" d="m98.43 483.54 1.39 5.02h-3.77l1.42-5.02.38-2.02h.17l.41 2.02ZM171 470v35a5 5 0 0 1-5 5H35a5 5 0 0 1-5-5v-35a5 5 0 0 1 5-5h131a5 5 0 0 1 5 5Zm-93.49 10.56c-1.71-1.4-3.1-2.06-5.5-2.06-3.82 0-7.39 3.19-7.39 8.64 0 6.35 3.17 9.36 7.34 9.36 2.4 0 4.12-.82 5.47-2.47v-4.06c-1.06 1.58-2.35 2.95-4.54 2.95-3.19 0-4.13-3.44-4.13-5.38 0-3.42 1.76-4.94 4.1-4.94 1.78 0 3.26.71 4.63 2.93v-4.97Zm11.28 11.81h-4.36v-13.54h-4.25v17.3h8.61v-3.77Zm17.27 3.77-5.06-17.3h-6.1l-5.09 17.3h4.27l1.06-4.06h5.59l1.06 4.06h4.27Zm6.21-17.3H108v17.3h4.27v-17.3Zm22.1 0h-6.39l-2.45 9.73-.28 3.64h-.24l-.32-3.67-2.46-9.71h-6.39v17.3h4.15v-10.44c0-.38-.1-2.16-.17-3.07h.24l3.07 13.51h3.96l3.07-13.51h.24l-.19 3.07v10.44h4.15v-17.3Z" style="fill:',
+            '"/><clipPath id="C"><path d="m98.43 483.54 1.39 5.02h-3.77l1.42-5.02.38-2.02h.17l.41 2.02ZM171 470v35a5 5 0 0 1-5 5H35a5 5 0 0 1-5-5v-35a5 5 0 0 1 5-5h131a5 5 0 0 1 5 5Zm-93.49 10.56c-1.71-1.4-3.1-2.06-5.5-2.06-3.82 0-7.39 3.19-7.39 8.64 0 6.35 3.17 9.36 7.34 9.36 2.4 0 4.12-.82 5.47-2.47v-4.06c-1.06 1.58-2.35 2.95-4.54 2.95-3.19 0-4.13-3.44-4.13-5.38 0-3.42 1.76-4.94 4.1-4.94 1.78 0 3.26.71 4.63 2.93v-4.97Zm11.28 11.81h-4.36v-13.54h-4.25v17.3h8.61v-3.77Zm17.27 3.77-5.06-17.3h-6.1l-5.09 17.3h4.27l1.06-4.06h5.59l1.06 4.06h4.27Zm6.21-17.3H108v17.3h4.27v-17.3Zm22.1 0h-6.39l-2.45 9.73-.28 3.64h-.24l-.32-3.67-2.46-9.71h-6.39v17.3h4.15v-10.44c0-.38-.1-2.16-.17-3.07h.24l3.07 13.51h3.96l3.07-13.51h.24l-.19 3.07v10.44h4.15v-17.3Z" /></clipPath><g clip-path="url(#C)"><rect class="w" x="30" y="465" width="142" height="50" fill="',
             hasUnclaimed ?
                 generateColorHex(color, ColorType.DARK) :
                 generateColorHex(color, ColorType.LIGHT),
-            '"/><rect height="345" rx="15" ry="15" style="fill:url(#i)" width="330" x="15" y="180"/><text text-anchor="middle" style="font-family:ui-monospace,Cascadia Mono,Menlo,Monaco,Segoe UI Mono,Roboto Mono,Oxygen Mono,Ubuntu Monospace,Source Code Pro,Droid Sans Mono,Fira Mono,Courier,monospace;fill:',
+            '"/></g><rect height="345" rx="15" ry="15" style="fill:url(#i)" width="330" x="15" y="180"/><text text-anchor="middle" style="font-family:ui-monospace,Cascadia Mono,Menlo,Monaco,Segoe UI Mono,Roboto Mono,Oxygen Mono,Ubuntu Monospace,Source Code Pro,Droid Sans Mono,Fira Mono,Courier,monospace;fill:',
             generateColorHex(color, ColorType.PRIMARY),
             ';font-weight:500;" x="307.5" y="156">',
             tokenId.toString(),
