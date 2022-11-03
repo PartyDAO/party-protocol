@@ -140,7 +140,7 @@ contract ListOnOpenseaProposalForkedTest is
                 tokenId: tokenId,
                 fees: fees,
                 feeRecipients: feeRecipients,
-                domainHashPrefix: bytes4(keccak256("partybid"))
+                domainHashPrefix: bytes4(keccak256("partyprotocol"))
             });
         executeParams =
             IProposalExecutionEngine.ExecuteProposalParams({
