@@ -228,29 +228,7 @@ contract CrowdfundNFTRenderer is RendererBase {
 
     function getContribution(address owner) private view returns (string memory amount) {
         (uint256 ethContributed, , ,) = Crowdfund(address(this)).getContributorInfo(owner);
-
-        if (ethContributed < 0.01e18) {
-            return "&lt;0.01";
-        } else if (ethContributed >= 1000e18) {
-            // Truncate value to 0 decimals
-            return (ethContributed / 1e18).toString();
-        } else if (ethContributed >= 100e18) {
-            // Truncate value to 1 decimals
-            amount = string.concat((ethContributed / 1e18).toString(), ".", (ethContributed / 1e17 % 1e1).toString());
-        } else if (ethContributed >= 10e18) {
-            // Truncate value to 2 decimals
-            amount = string.concat((ethContributed / 1e18).toString(), ".", (ethContributed / 1e16 % 1e2).toString());
-        } else {
-            // Truncate value to 3 decimals
-            amount = string.concat((ethContributed / 1e18).toString(), ".", (ethContributed / 1e15 % 1e3).toString());
-        }
-
-        // Append additional zeros if needed to get it to expected length
-        uint256 expectedLength = 5;
-        uint256 length = bytes(amount).length;
-        for (uint256 i; i < expectedLength - length; ++i) {
-            amount = string.concat(amount, "0");
-        }
+        return formatAsDecimalString(ethContributed, 18);
     }
 
     function getCrowdfundStatus() private view returns (CrowdfundStatus) {

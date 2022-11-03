@@ -290,28 +290,10 @@ contract PartyNFTRenderer is RendererBase {
 
     function generateVotingPowerPercentage(uint256 tokenId) private view returns (string memory) {
         uint256 intrinsicVotingPowerPercentage = PartyGovernance(address(this)).getDistributionShareOf(tokenId);
-
-        if (intrinsicVotingPowerPercentage < 0.0001e18) {
-            return "&lt;0.01";
+        if (intrinsicVotingPowerPercentage == 1e18) {
+            return "100";
         } else {
-            // Get the digits before the decimal point (eg. "10" in 10.123)
-            string memory integerPart = (intrinsicVotingPowerPercentage / 1e16).toString();
-            // Get the digits after the decimal point (eg. "123" in 10.123)
-            string memory decimalsPart = (intrinsicVotingPowerPercentage / 1e14 % 1e2).toString();
-
-            // Prepend decimals part with 0 for decimals if needed. Otherwise a
-            // 0.01, for example, would incorrectly render as 0.1.
-            if (bytes(decimalsPart).length < 2) {
-                decimalsPart = string.concat("0", decimalsPart);
-            }
-
-            return string.concat(
-                // Integer part
-                integerPart,
-                ".",
-                // Last 2 decimals
-                decimalsPart
-            );
+            return formatAsDecimalString(intrinsicVotingPowerPercentage, 16);
         }
     }
 
