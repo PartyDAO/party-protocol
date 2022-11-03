@@ -28,7 +28,7 @@ contract CrowdfundNFTRenderer is RendererBase {
         RendererBase(globals, rendererStorage, font) { }
 
     // The renderer is called via delegateCall, so we need to declare the storage layout.
-    // Run `yarn layout Crowdfund.sol/Crowdfund` to generate the current layout.
+    // Run `yarn build && yarn layout Crowdfund.sol/Crowdfund` to generate the current layout.
     string name;
     string symbol;
     mapping(uint256 => address) _owners;

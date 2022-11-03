@@ -29,7 +29,7 @@ contract PartyNFTRenderer is RendererBase {
         RendererBase(globals, rendererStorage, font) { }
 
     // The renderer is called via delegateCall, so we need to declare the storage layout.
-    // Run `yarn layout Party.sol/Party` to generate the current layout.
+    // Run `yarn build && yarn layout Party.sol/Party` to generate the current layout.
     bool emergencyExecuteDisabled;
     uint16 feeBps;
     address payable feeRecipient;
@@ -47,7 +47,8 @@ contract PartyNFTRenderer is RendererBase {
     mapping(uint256 => address) getApproved;
     mapping(address => mapping(address => bool)) isApprovedForAll;
     address mintAuthority;
-    uint256 tokenCount;
+    uint96 tokenCount;
+    uint96 mintedVotingPower;
     mapping(uint256 => uint256) votingPowerByTokenId;
 
     function royaltyInfo(uint256, uint256)
