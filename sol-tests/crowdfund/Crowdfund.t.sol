@@ -1080,7 +1080,7 @@ contract CrowdfundTest is Test, TestUtils {
         address delegate1 = _randomAddress();
         address payable contributor1 = _randomAddress();
         // contributor1 contributes
-        vm.deal(contributor1, 123.456e18);
+        vm.deal(contributor1, 0.050e18);
         vm.prank(contributor1);
         cf.contribute{ value: contributor1.balance }(delegate1, "");
         // set crowdfund state

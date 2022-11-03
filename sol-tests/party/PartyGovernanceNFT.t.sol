@@ -423,7 +423,7 @@ contract DummyParty is ReadOnlyDelegateCall {
     }
 
     function getDistributionShareOf(uint256) external pure returns (uint256) {
-        return 0.1032e18;
+        return 0.42069e18;
     }
 
     function _delegateToRenderer() private view {
