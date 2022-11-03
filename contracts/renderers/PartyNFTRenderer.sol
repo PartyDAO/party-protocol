@@ -158,7 +158,7 @@ contract PartyNFTRenderer is RendererBase {
 
     function generateSVG1(Color color, bool isDarkMode) private pure returns (string memory) {
         return string.concat(
-            '<svg width="540" height="540" viewBox="0 0 360 540" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><defs><linearGradient id="d" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="',
+            '<svg width="540" height="540" viewBox="0 -10 360 560" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><defs><linearGradient id="d" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="',
             isDarkMode ? '#2e3847' : '#ffffff',
             '"/><stop offset="1" stop-color="',
             isDarkMode ? '#000000' : '#e6edf5',
