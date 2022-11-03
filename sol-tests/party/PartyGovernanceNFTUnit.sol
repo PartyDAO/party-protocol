@@ -122,8 +122,8 @@ contract PartyGovernanceNFTUnitTest is TestUtils {
         address from = _randomAddress();
         uint256 vp1 = _randomUint256() % defaultGovernanceOpts.totalVotingPower / 10;
         uint256 vp2 = vp1 + 1;
-        uint256 tokenId1 = nft.mint(from, vp1, from);
-        uint256 tokenId2 = nft.mint(from, vp2, from);
+        nft.mint(from, vp1, from);
+        nft.mint(from, vp2, from);
         assertEq(nft.getCurrentVotingPower(from), vp1 + vp2);
     }
 
@@ -147,7 +147,6 @@ contract PartyGovernanceNFTUnitTest is TestUtils {
     function test_onlyAuthorityCanMint() external {
         _initGovernance();
         address from = _randomAddress();
-        address to = _randomAddress();
         uint256 vp = _randomUint256() % defaultGovernanceOpts.totalVotingPower;
         address notAuthority = _randomAddress();
         vm.prank(notAuthority);

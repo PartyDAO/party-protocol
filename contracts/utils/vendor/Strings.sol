@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 pragma solidity ^0.8;
 
-// https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/utils/Strings.sol
+// Modified from https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/utils/Strings.sol
 library Strings {
     bytes16 private constant _HEX_SYMBOLS = "0123456789abcdef";
     uint8 private constant _ADDRESS_LENGTH = 20;
@@ -67,5 +67,14 @@ library Strings {
      */
     function toHexString(address addr) internal pure returns (string memory) {
         return toHexString(uint256(uint160(addr)), _ADDRESS_LENGTH);
+    }
+
+    function substring(string memory str, uint startIndex, uint endIndex) internal pure returns (string memory ) {
+        bytes memory strBytes = bytes(str);
+        bytes memory result = new bytes(endIndex-startIndex);
+        for(uint i = startIndex; i < endIndex; i++) {
+            result[i-startIndex] = strBytes[i];
+        }
+        return string(result);
     }
 }

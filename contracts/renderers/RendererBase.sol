@@ -2,6 +2,7 @@
 // http://ipfs.io/ipfs/QmbGX2MFCaMAsMNMugRFND6DtYygRkwkvrqEyTKhTdBLo5
 pragma solidity 0.8.17;
 
+import "../utils/vendor/Strings.sol";
 import "../utils/vendor/Base64.sol";
 
 import "contracts/party/Party.sol";
@@ -11,6 +12,9 @@ import "./IERC721Renderer.sol";
 import "./RendererStorage.sol";
 
 abstract contract RendererBase is IERC721Renderer {
+    using Strings for uint256;
+    using Strings for string;
+
     enum Color {
         DEFAULT,
         GREEN,
@@ -250,6 +254,26 @@ abstract contract RendererBase is IERC721Renderer {
             } else if (colorType == ColorType.DARK) {
                 return "#6F0000";
             }
+        }
+    }
+
+    function formatAsDecimalString(uint256 n, uint256 decimals) internal pure returns (string memory) {
+        string memory str = n.toString();
+        uint256 oneUnit = 10**decimals;
+        if (n < 10**(decimals - 2)) {
+            return "&lt;0.01";
+        } else if (n < oneUnit) {
+            // Preserve leading zeros for decimals.
+            // (eg. if 0.01, `n` will "1" so we need to prepend a "0").
+            for (uint256 i; i < decimals - bytes(str).length; ++i) {
+                str = string.concat("0", str);
+            }
+            return string.concat("0.", str.substring(0, 4 - 1));
+        } else if (n >= 1000 * oneUnit) {
+            return str.substring(0, 4);
+        } else {
+            uint256 i = bytes((n / oneUnit).toString()).length;
+            return string.concat(str.substring(0, i), ".", str.substring(i, 4));
         }
     }
 }
