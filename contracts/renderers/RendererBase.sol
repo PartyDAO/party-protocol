@@ -79,54 +79,54 @@ abstract contract RendererBase is IERC721Renderer {
         if (isDarkMode) {
             if (color == Color.GREEN) {
                 image = 'QmdcjXrxj7EimjuNTLQp1uKM2zYhuF1WVkVjF6TpfNNXrf';
-                banner = 'QmSBqgzPyAtEp1T2cbX4Wcoo7nH1ggfWMsYBfgnDcLs5pU';
+                banner = 'QmR3vqAV17SJiwksiCHV1cLQuf9TKZuar8NQu8GmKkHRXM';
             } else if (color == Color.CYAN) {
                 image = 'QmS678DTkTTzFQEDiqj3AsW6wt6bi4bNhWbKcBM29HBhhB';
-                banner = 'QmVT5QtzCxsvbMt1c3hSDrvYCxrc1QtBPiTV4HYnMCYbW6';
+                banner = 'QmYSbXyPh9Lx2wmv6Z7SK8iFD9kyADxtaohV1gv6ZVKFj4';
             } else if (color == Color.BLUE) {
                 image = 'QmX2k8beAjyVhPk1ZrK6KrwbqLk3fRNPPmknRti7zEtGQa';
-                banner = 'QmVZC9fmWkpWaP4vLKVQdcH9J9pDzvPUsts7mTCiUofeJL';
+                banner = 'QmaXN8MbcrjkHPt97Z7xeuTCx6wPkJ9xZN7ExZZwMabspy';
             } else if (color == Color.PURPLE) {
                 image = 'Qmf8SrxKH3QZQCEzcMbA3UoJGZ1j2coTLaQFptWhZZvqhg';
-                banner = 'QmcYdEGsdLNNHdyqcsFk4eECpjtSVrVruHmvsfhYgnpLSB';
+                banner = 'QmWhpo9kN2Nf8ioWb7BKwqsCQKt3M2TduHPNqMqXz9jUK4';
             } else if (color == Color.PINK) {
                 image = 'QmV5eT9DWvU5BJa4LVSemkoDKyjJBC56adk2JLWMXYEQfn';
-                banner = 'Qmbts1Cw1uqqf5gBZXMMxVhpVkdDhZHHsAJsME2yPECBgj';
+                banner = 'QmP2NTyvMQ5yN1RY4nH1HfoTX2r6Ug6WZfN9GFf9toak8M';
             } else if (color == Color.ORANGE) {
                 image = 'QmPirB7VFaao2ZUxLtM5WTCwZhE7c9Uy2heyNZF5t9PgsS';
-                banner = 'QmfPeMEi97HsePp728FaNK2Xhg4sHa5vNh4FvRhgTnDSu4';
+                banner = 'QmUMgkjhrxedcLUvWt8VKrZdvrCGmjxWDSDXfm2M96nKUx';
             } else if (color == Color.RED) {
                 image = 'QmNRZ3syuEiiAkWYRFs9BpQ5M38wv8tEu17J2sYwmMdeta';
-                banner = 'QmWkhsUAXPqCjUgcvSwLdbev1baBwecXvrTgjVXGFYfjUJ';
+                banner = 'QmQV1EjzwQsXdgi6C6ubfopZrprk6Ab9LVnggZBgJDg5C2';
             } else {
                 image = 'QmNwGtGyYwDfS6ghQbDw5a9buv7auFXz63W3rDhzmxjVhw';
-                banner = 'Qmbh1nvLdJmvErRFaNhVZu3Hqyp7mqSnojwW2fHsD7PLDc';
+                banner = 'QmYUujTBgH6RTswZSiSzuy2GUojE6H9edaXeoSwwvh2T7o';
             }
         } else {
             if (color == Color.GREEN) {
                 image = 'QmR7t2g2hrkMYyzhUMEANzEGX74FQcbg3c7eTvCcQucMst';
-                banner = 'QmeZKC2L3Y6gD2NsWAked44nRdPDFKQQ7ZKWioJnzGewPH';
+                banner = 'Qmc3zRfT6nC2G1KgoWpCvLDVjNi7x7KFgwButecj3sq9qg';
             } else if (color == Color.CYAN) {
                 image = 'QmeiBRb9muNXej3dn4usjjdtbUpgYASfA5jmWqJRshivGH';
-                banner = 'QmVcV1ECvHVvUQ3SVszmZeDjA4Bxxjfjo81Rg5JpxmHSfd';
+                banner = 'QmcsvMB2xiBKKMyKsBkC51TjWnyk42nNJnsudoGFsvvXCt';
             } else if (color == Color.BLUE) {
                 image = 'QmaErgGsanUTo73RMgvizMg3c7x1d1X4t76Tti22Pc1xan';
-                banner = 'QmcQWYuw7aZ9om5nPQ2Bj84tuLFpbbPZx3Rcy4fG8ALuaB';
+                banner = 'QmSjhHF994xBd7wavV4mhj7GpZmw5euQUBxpiPbbmxExqp';
             } else if (color == Color.PURPLE) {
                 image = 'QmeVJTcUpKQFSz5aBsVpQk8quoXEEZBNPAAMo3wHvdRzHa';
-                banner = 'QmSpmE91Covpn7TZZ168tzQUByyBF8wQB3RDMktjsvAFpR';
+                banner = 'QmYx6aHYGitr6p8dHUa7n4nyew3pWy1Mfdn8fpFLejmhHC';
             } else if (color == Color.PINK) {
                 image = 'QmY4JJkBEeHVYHdfCCXPd7bWkAhNRxuKTWdf9MssGxSmCG';
-                banner = 'Qma5tpXfkD1sB72oxMbYHsmD9XFfseqqfqGmJAiPmjdiuJ';
+                banner = 'QmQH5CFf3qXG2oymGzwTDgUmPFBsaTw2Qbfhjk58VHcABd';
             } else if (color == Color.ORANGE) {
                 image = 'QmYhB3vjBLPwPTC5SBidNbZhB5oBMBMpKy4g6ejTxmGLkK';
-                banner = 'QmcbCZDhj56eKmU6XvtZA2KCdQhSiu315eJbVi8tUMB1rm';
+                banner = 'QmRP8cVjJyPRV7wXs5ApwbCFyTBpHXmHsDexbcN4o7aomd';
             } else if (color == Color.RED) {
                 image = 'QmfG8HPMEsKwKJ8xX3i2JhJtCskuiUjZLe8NhvXFdYyFR2';
-                banner = 'QmdwXUfunRFtsDCLtmXkUZLdNAEgYGa1tyHUbJax8mdMuY';
+                banner = 'QmazXbqfFtQexkwFDbYkyvLF4xRSDrmEVQS4PSAs2ZtxDn';
             } else {
                 image = 'QmZKE4XkPvU7Z8CdgK2Cn7gLQ4t8CDkkfnR1j5bZ2AfRJu';
-                banner = 'QmPQybDnxiScSGatBLzLvw49iUHVB7j6fNxv7p6bYSjvXm';
+                banner = 'QmTKCqLUQJt3VxGuUqLMj1jcCRRsaZwY4k757Wb7YPzmH2';
             }
         }
 
