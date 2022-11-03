@@ -265,7 +265,8 @@ abstract contract RendererBase is IERC721Renderer {
         } else if (n < oneUnit) {
             // Preserve leading zeros for decimals.
             // (eg. if 0.01, `n` will "1" so we need to prepend a "0").
-            for (uint256 i; i < decimals - bytes(str).length; ++i) {
+            uint256 len = bytes(str).length;
+            for (uint256 i; i < decimals - len; ++i) {
                 str = string.concat("0", str);
             }
             return string.concat("0.", str.substring(0, 4 - 1));

@@ -231,7 +231,7 @@ contract PartyGovernanceNFTTest is Test, TestUtils {
         party.createMockProposal(PartyGovernance.ProposalStatus.InProgress);
 
         // Mint governance NFT
-        uint256 tokenId = 396;
+        uint256 tokenId = 1;
         party.mint(tokenId);
 
         // Set claimed/unclaimed state
