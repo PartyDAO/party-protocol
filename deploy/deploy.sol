@@ -52,6 +52,7 @@ contract Deploy {
     FoundationMarketWrapper public foundationMarketWrapper;
     NounsMarketWrapper public nounsMarketWrapper;
     ZoraMarketWrapper public zoraMarketWrapper;
+    PixeldroidConsoleFont public pixeldroidConsoleFont;
 
     function deploy(LibDeployConstants.DeployConstants memory deployConstants) public virtual {
         address deployer = this.getDeployer();
@@ -384,17 +385,17 @@ contract Deploy {
         console.log("");
         console.log("### PixeldroidConsoleFont");
         console.log("  Deploying - PixeldroidConsoleFont");
-        PixeldroidConsoleFont font = new PixeldroidConsoleFont();
+        pixeldroidConsoleFont = new PixeldroidConsoleFont();
         console.log(
             "  Deployed - PixeldroidConsoleFont",
-            address(font)
+            address(pixeldroidConsoleFont)
         );
 
         // DEPLOY_CROWDFUND_NFT_RENDERER
         console.log("");
         console.log("### CrowdfundNFTRenderer");
         console.log("  Deploying - CrowdfundNFTRenderer");
-        crowdfundNFTRenderer = new CrowdfundNFTRenderer(globals, rendererStorage, IFont(address(font)));
+        crowdfundNFTRenderer = new CrowdfundNFTRenderer(globals, rendererStorage, IFont(address(pixeldroidConsoleFont)));
         console.log(
             "  Deployed - CrowdfundNFTRenderer",
             address(crowdfundNFTRenderer)
@@ -415,7 +416,7 @@ contract Deploy {
         console.log("");
         console.log("### PartyNFTRenderer");
         console.log("  Deploying - PartyNFTRenderer");
-        partyNFTRenderer = new PartyNFTRenderer(globals, rendererStorage, IFont(address(font)));
+        partyNFTRenderer = new PartyNFTRenderer(globals, rendererStorage, IFont(address(pixeldroidConsoleFont)));
         console.log(
             "  Deployed - PartyNFTRenderer",
             address(partyNFTRenderer)
@@ -527,7 +528,7 @@ contract DeployScript is Script, Deploy {
         Deploy.deploy(deployConstants);
         vm.stopBroadcast();
 
-        AddressMapping[] memory addressMapping = new AddressMapping[](19);
+        AddressMapping[] memory addressMapping = new AddressMapping[](20);
         addressMapping[0] = AddressMapping("globals", address(globals));
         addressMapping[1] = AddressMapping("tokenDistributor", address(tokenDistributor));
         addressMapping[2] = AddressMapping("seaportExchange", address(seaport));
@@ -547,6 +548,7 @@ contract DeployScript is Script, Deploy {
         addressMapping[16] = AddressMapping("nounsMarketWrapper", address(nounsMarketWrapper));
         addressMapping[17] = AddressMapping("zoraMarketWrapper", address(zoraMarketWrapper));
         addressMapping[18] = AddressMapping("rendererStorage", address(rendererStorage));
+        addressMapping[19] = AddressMapping("pixeldroidConsoleFont", address(pixeldroidConsoleFont));
 
         console.log("");
         console.log("### Deployed addresses");
