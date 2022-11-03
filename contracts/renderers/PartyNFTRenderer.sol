@@ -260,7 +260,8 @@ contract PartyNFTRenderer is RendererBase {
             '"/></g><rect height="345" rx="15" ry="15" style="fill:url(#i)" width="330" x="15" y="180"/><text text-anchor="middle" style="font-family:ui-monospace,Cascadia Mono,Menlo,Monaco,Segoe UI Mono,Roboto Mono,Oxygen Mono,Ubuntu Monospace,Source Code Pro,Droid Sans Mono,Fira Mono,Courier,monospace;fill:',
             generateColorHex(color, ColorType.PRIMARY),
             ';font-weight:500;" x="307.5" y="156">',
-            tokenId.toString(),
+            // Always render token ID with 3 digits.
+            prependNumWithZeros(tokenId.toString(), 3),
             '</text></svg>'
         );
     }
@@ -292,8 +293,10 @@ contract PartyNFTRenderer is RendererBase {
         uint256 intrinsicVotingPowerPercentage = PartyGovernance(address(this)).getDistributionShareOf(tokenId);
         if (intrinsicVotingPowerPercentage == 1e18) {
             return "100";
+        } else if (intrinsicVotingPowerPercentage < 0.1e18) {
+            return formatAsDecimalString(intrinsicVotingPowerPercentage, 16, 3);
         } else {
-            return formatAsDecimalString(intrinsicVotingPowerPercentage, 16);
+            return formatAsDecimalString(intrinsicVotingPowerPercentage, 16, 4);
         }
     }
 

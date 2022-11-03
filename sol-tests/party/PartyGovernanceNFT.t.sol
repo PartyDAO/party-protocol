@@ -234,6 +234,9 @@ contract PartyGovernanceNFTTest is Test, TestUtils {
         uint256 tokenId = 396;
         party.mint(tokenId);
 
+        // Set voting power percentage
+        party.setVotingPowerPercentage(0.42069e18);
+
         // Set claimed/unclaimed state
         tokenDistributor.setHasClaimed(address(party), false);
 
@@ -271,6 +274,9 @@ contract PartyGovernanceNFTTest is Test, TestUtils {
         uint256 tokenId = 396;
         party.mint(tokenId);
 
+        // Set voting power percentage
+        party.setVotingPowerPercentage(0.42069e18);
+
         // Set claimed/unclaimed state
         tokenDistributor.setHasClaimed(address(party), false);
 
@@ -299,6 +305,9 @@ contract PartyGovernanceNFTTest is Test, TestUtils {
         // Mint governance NFT
         uint256 tokenId = 396;
         party.mint(tokenId);
+
+        // Set voting power percentage
+        party.setVotingPowerPercentage(0.42069e18);
 
         // Set claimed/unclaimed state
         tokenDistributor.setHasClaimed(address(party), false);
@@ -384,6 +393,7 @@ contract DummyParty is ReadOnlyDelegateCall {
     mapping(uint256 => uint256) public votingPowerByTokenId;
 
     mapping(uint256 => PartyGovernance.ProposalStatus) _proposalStatuses;
+    uint256 votingPowerPercentage; // 1e18 == 100%
 
     function useCustomizationPreset(uint256 customizationPresetId) external {
         if (customizationPresetId != 0) {
@@ -422,8 +432,12 @@ contract DummyParty is ReadOnlyDelegateCall {
         values;
     }
 
-    function getDistributionShareOf(uint256) external pure returns (uint256) {
-        return 0.42069e18;
+    function setVotingPowerPercentage(uint256 vp) external {
+        votingPowerPercentage = vp;
+    }
+
+    function getDistributionShareOf(uint256) external view returns (uint256) {
+        return votingPowerPercentage;
     }
 
     function _delegateToRenderer() private view {

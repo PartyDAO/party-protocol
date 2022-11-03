@@ -228,7 +228,7 @@ contract CrowdfundNFTRenderer is RendererBase {
 
     function getContribution(address owner) private view returns (string memory amount) {
         (uint256 ethContributed, , ,) = Crowdfund(address(this)).getContributorInfo(owner);
-        return formatAsDecimalString(ethContributed, 18);
+        return formatAsDecimalString(ethContributed, 18, 4);
     }
 
     function getCrowdfundStatus() private view returns (CrowdfundStatus) {

@@ -257,7 +257,7 @@ abstract contract RendererBase is IERC721Renderer {
         }
     }
 
-    function formatAsDecimalString(uint256 n, uint256 decimals) internal pure returns (string memory) {
+    function formatAsDecimalString(uint256 n, uint256 decimals, uint256 maxChars) internal pure returns (string memory) {
         string memory str = n.toString();
         uint256 oneUnit = 10**decimals;
         if (n < 10**(decimals - 2)) {
@@ -265,15 +265,23 @@ abstract contract RendererBase is IERC721Renderer {
         } else if (n < oneUnit) {
             // Preserve leading zeros for decimals.
             // (eg. if 0.01, `n` will "1" so we need to prepend a "0").
-            for (uint256 i; i < decimals - bytes(str).length; ++i) {
-                str = string.concat("0", str);
-            }
-            return string.concat("0.", str.substring(0, 4 - 1));
+            return string.concat("0.", prependNumWithZeros(str, decimals).substring(0, maxChars - 1));
         } else if (n >= 1000 * oneUnit) {
-            return str.substring(0, 4);
+            return str.substring(0, maxChars);
         } else {
             uint256 i = bytes((n / oneUnit).toString()).length;
-            return string.concat(str.substring(0, i), ".", str.substring(i, 4));
+            return string.concat(str.substring(0, i), ".", str.substring(i, maxChars));
         }
+    }
+
+    function prependNumWithZeros(string memory numStr, uint256 expectedLength) internal pure returns (string memory) {
+        uint256 length = bytes(numStr).length;
+        if (length < expectedLength) {
+            for (uint256 i; i < expectedLength - length; ++i) {
+                numStr = string.concat("0", numStr);
+            }
+        }
+
+        return numStr;
     }
 }
