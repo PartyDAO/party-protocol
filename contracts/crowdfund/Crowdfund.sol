@@ -188,7 +188,7 @@ abstract contract Crowdfund is Implementation, ERC721Receiver, CrowdfundNFT {
     }
 
     /// @dev Alias for `burn()`.
-    function convert(address payable contributor) external {
+    function activateOrRefund(address payable contributor) external {
         burn(contributor);
     }
 
@@ -205,7 +205,7 @@ abstract contract Crowdfund is Implementation, ERC721Receiver, CrowdfundNFT {
     }
 
     /// @dev Alias for `batchBurn()`.
-    function batchConvert(address payable[] calldata contributors) external {
+    function batchActivateOrRefund(address payable[] calldata contributors) external {
         batchBurn(contributors);
     }
 
