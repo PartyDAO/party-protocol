@@ -9,13 +9,14 @@
   "buyCrowdfundImpl": "0xcf3f6990b0f73a9ac1105e5826df75f89e3aaeca",
   "collectionBuyCrowdfundImpl": "0x552c818a2281585abb4af8f431aadc101e2a0702",
   "partyCrowdfundFactory": "0x3fd4db056f7ba3d3716485b938c67b493b4c44f6",
-  "partyCrowdfundNFTRenderer": "0x868e38eb9b123c13ce974d96cc1fc4a7e09a6e56",
-  "partyGovernanceNFTRenderer": "0x6036f23fae5dfaf8a18a93023e201ed8a2fb40b4",
+  "partyCrowdfundNFTRenderer": "0xb390733c13225f509d710a04bbd7688eca4d0cc9",
+  "partyGovernanceNFTRenderer": "0x8066da7de35e5cd29bc4e162d68d3874f69ab4c8",
   "partyHelpers": "0x2d791ca6630cfcb5c1e84268547b3dfab75428e1",
   "allowListGateKeeper": "0xf7174cb72c44ff8c68f22fdb025b87f61a04a53c",
   "tokenGateKeeper": "0xce73010a06979e6bf4b5d8fd0c34f325dbdea1f7",
   "foundationMarketWrapper": "0xac2b9e3dc34242243c3652dbda18d854cda8a741",
   "nounsMarketWrapper": "0xf52a727686fa2dc6d09a2cf269a9f322e036804b",
   "zoraMarketWrapper": "0xfa233814317ca648c8d602a68387b209c1ed3291",
-  "rendererStorage": "0xa379833e0f88b6becdb22cb098088e4c07585c93"
+  "rendererStorage": "0xa379833e0f88b6becdb22cb098088e4c07585c93",
+  "pixeldroidConsoleFont": "0x64466990bd0fb1195c1d9a7d74c4795d395e0498"
 }
