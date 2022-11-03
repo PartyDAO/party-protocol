@@ -25,7 +25,7 @@
     "anonymous": false,
     "inputs": [
       {
-        "indexed": false,
+        "indexed": true,
         "internalType": "contract Party",
         "name": "party",
         "type": "address"

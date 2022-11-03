@@ -34,6 +34,22 @@
   {
     "inputs": [
       {
+        "internalType": "address",
+        "name": "owner",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "tokenId",
+        "type": "uint256"
+      }
+    ],
+    "name": "AlreadyMintedError",
+    "type": "error"
+  },
+  {
+    "inputs": [
+      {
         "internalType": "uint256",
         "name": "auctionId",
         "type": "uint256"
@@ -138,6 +154,22 @@
     "type": "error"
   },
   {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "bidAmount",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "maximumBid",
+        "type": "uint256"
+      }
+    ],
+    "name": "MinimumBidExceedsMaximumBidError",
+    "type": "error"
+  },
+  {
     "inputs": [],
     "name": "MissingHostsError",
     "type": "error"
@@ -201,11 +233,6 @@
   {
     "inputs": [],
     "name": "OnlyPartyHostError",
-    "type": "error"
-  },
-  {
-    "inputs": [],
-    "name": "OnlyPartyHostOrContributorError",
     "type": "error"
   },
   {
@@ -437,6 +464,19 @@
   {
     "inputs": [
       {
+        "internalType": "address payable",
+        "name": "contributor",
+        "type": "address"
+      }
+    ],
+    "name": "activateOrRefund",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
         "internalType": "address",
         "name": "",
         "type": "address"
@@ -449,7 +489,7 @@
     ],
     "name": "approve",
     "outputs": [],
-    "stateMutability": "nonpayable",
+    "stateMutability": "pure",
     "type": "function"
   },
   {
@@ -482,6 +522,19 @@
       }
     ],
     "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address payable[]",
+        "name": "contributors",
+        "type": "address[]"
+      }
+    ],
+    "name": "batchActivateOrRefund",
+    "outputs": [],
+    "stateMutability": "nonpayable",
     "type": "function"
   },
   {
@@ -1167,7 +1220,7 @@
     ],
     "name": "safeTransferFrom",
     "outputs": [],
-    "stateMutability": "nonpayable",
+    "stateMutability": "pure",
     "type": "function"
   },
   {
@@ -1195,7 +1248,7 @@
     ],
     "name": "safeTransferFrom",
     "outputs": [],
-    "stateMutability": "nonpayable",
+    "stateMutability": "pure",
     "type": "function"
   },
   {
@@ -1213,7 +1266,7 @@
     ],
     "name": "setApprovalForAll",
     "outputs": [],
-    "stateMutability": "nonpayable",
+    "stateMutability": "pure",
     "type": "function"
   },
   {
@@ -1326,7 +1379,7 @@
     ],
     "name": "transferFrom",
     "outputs": [],
-    "stateMutability": "nonpayable",
+    "stateMutability": "pure",
     "type": "function"
   },
   {
