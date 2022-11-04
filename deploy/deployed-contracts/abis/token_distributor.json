@@ -185,17 +185,6 @@
     "inputs": [
       {
         "internalType": "address",
-        "name": "notDaoAuthority",
-        "type": "address"
-      }
-    ],
-    "name": "OnlyPartyDaoAuthorityError",
-    "type": "error"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "address",
         "name": "notDao",
         "type": "address"
       },
@@ -374,6 +363,25 @@
       }
     ],
     "name": "DistributionFeeClaimed",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": false,
+        "internalType": "address",
+        "name": "target",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "bytes",
+        "name": "data",
+        "type": "bytes"
+      }
+    ],
+    "name": "EmergencyExecute",
     "type": "event"
   },
   {
