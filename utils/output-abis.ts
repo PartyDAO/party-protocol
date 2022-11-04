@@ -16,7 +16,8 @@ const RELEVANT_ABIS = [
   "TokenGateKeeper",
   "RendererStorage",
   "PartyNFTRenderer",
-  "CrowdfundNFTRenderer"
+  "CrowdfundNFTRenderer",
+  "Globals"
 ];
 
 // AFileName -> a_file_name
