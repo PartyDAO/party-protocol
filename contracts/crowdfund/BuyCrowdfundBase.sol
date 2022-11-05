@@ -1,5 +1,4 @@
-// SPDX-License-Identifier: Beta Software
-// http://ipfs.io/ipfs/QmbGX2MFCaMAsMNMugRFND6DtYygRkwkvrqEyTKhTdBLo5
+// SPDX-License-Identifier: GPL-3.0
 pragma solidity 0.8.17;
 
 import "../tokens/IERC721.sol";
@@ -131,7 +130,7 @@ abstract contract BuyCrowdfundBase is Crowdfund {
         // Temporarily set to non-zero as a reentrancy guard.
         settledPrice = type(uint96).max;
 
-        // Execute the call to buy the NFT, but only if we have a nonzero callValue 
+        // Execute the call to buy the NFT, but only if we have a nonzero callValue
         // because a zero callValue will cause the CF to lose anyawy.
         if (callValue != 0) {
             (bool s, bytes memory r) = callTarget.call{ value: callValue }(callData);

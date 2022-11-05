@@ -82,3 +82,9 @@ yarn test:sol --gas-report
 ```bash
 forge test -m testFork --fork-url $YOUR_RPC_URL
 ```
+
+## License
+
+The primary license for the Party Protocol is the GNU General Public License 3.0 (`GPL-3.0`), see [LICENSE](./LICENSE).
+- Several interface/dependencies files from other sources maintain their original license (as indicated in their SPDX header).
+- All files in `sol-tests/` and `tests/` remain unlicensed (as indicated in their SPDX header).
