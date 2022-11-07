@@ -85,20 +85,20 @@ contract CrowdfundNFTRenderer is RendererBase {
         if (status == CrowdfundStatus.WON) {
             return string.concat(
                 partyName,
-                ' has won! You can use this item to activate your membership in the Party. Head to ',
+                ' has won! You can use this Party Card to activate your membership in the Party. Head to ',
                 externalURL,
                 ' to activate.'
             );
         } else if (status == CrowdfundStatus.LOST) {
             return string.concat(
                 partyName,
-                ' has lost. You can use this item to claim your ETH back from the Party. Head to ',
+                ' has lost. You can use this Party Card to claim your ETH back from the Party. Head to ',
                 externalURL,
                 ' to claim.'
             );
         } else {
             return string.concat(
-                'This item represents your contribution of ',
+                'This Party Card represents your contribution of ',
                 contribution,
                 ' ETH to the ',
                 partyName,
