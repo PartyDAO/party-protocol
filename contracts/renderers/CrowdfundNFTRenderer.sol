@@ -109,6 +109,10 @@ contract CrowdfundNFTRenderer is RendererBase {
         }
     }
 
+    function generateCollectionName() internal override view returns (string memory) {
+        return string.concat(name, ' - Contributions');
+    }
+
     function generateCollectionDescription() internal override view returns (string memory) {
         return string.concat(
             'Party Cards in this collection represent contributions to the ',

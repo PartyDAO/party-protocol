@@ -123,6 +123,10 @@ contract PartyNFTRenderer is RendererBase {
         );
     }
 
+    function generateCollectionName() internal override view returns (string memory) {
+        return string.concat(name, ' - Party Cards');
+    }
+
     function generateCollectionDescription() internal override view returns (string memory) {
         return string.concat(
             'This collection represents memberships in the following Party: ',
