@@ -10,7 +10,7 @@ These contracts allow people to create and join a crowdfund, pooling ETH togethe
 - **Crowdfund NFTs**: A _soulbound_ NFT (ERC721) representing contributions made to a crowdfund. Each contributor gets one of these the first time they contribute. At the end of the crowdfund (successful or unsuccessful), these are burned to either redeem unused ETH or mint governance shares.
 - **Party**: The governance contract, which will be created and will custody the NFT after it has been acquired by the crowdfund.
 - **Globals**: A single contract that holds configuration values, referenced by several ecosystem contracts.
-- **Proxies**: All Crowdfund instances are deployed as simple [`Proxy`](../contracts/utils/Proxy.sol) contracts that forward calls to a specific crowdfund implementation that inherits from `Crowdfund`.
+- **Proxies**: All Crowdfund instances are deployed as simple [`Proxy`](../contracts/utils/Proxy.sol) contracts that forward calls to a specific crowdfund implementation that inherits from [`Crowdfund`](../contracts/crowdfund/Crowdfund.sol).
 
 ---
 
@@ -18,23 +18,23 @@ These contracts allow people to create and join a crowdfund, pooling ETH togethe
 
 The main contracts involved in this phase are:
 
-- `CrowdfundFactory`([source](../contracts/crowdfund/CrowdfundFactory.sol))
+- `CrowdfundFactory`([code](../contracts/crowdfund/CrowdfundFactory.sol))
   - Factory contract that deploys a new proxified `Crowdfund` instance.
-- `Crowdfund` ([source](../contracts/crowdfund/Crowdfund.sol))
+- `Crowdfund` ([code](../contracts/crowdfund/Crowdfund.sol))
   - Abstract base class for all crowdfund contracts. Implements most contribution accounting and end-of-life logic for crowdfunds.
-- `BuyCrowdfund` ([source](../contracts/crowdfund/BuyCrowdfund.sol))
+- `BuyCrowdfund` ([code](../contracts/crowdfund/BuyCrowdfund.sol))
   - A crowdfund that purchases a specific NFT (i.e., with a known token ID) listing for a known price.
-- `CollectionBuyCrowdfund` ([source](../contracts/crowdfund/CollectionBuyCrowdfund.sol))
+- `CollectionBuyCrowdfund` ([code](../contracts/crowdfund/CollectionBuyCrowdfund.sol))
   - A crowdfund that purchases any NFT from a collection (i.e., any token ID) from a collection for a known price. Like `BuyCrowdfund` but allows any token ID in a collection to be bought.
-- `AuctionCrowdfund` ([source](../contracts/crowdfund/AuctionCrowdfund.sol))
-  - A crowdfund that can repeatedly bid on an auction for a specific NFT (i.e., with a known token ID) until it wins.
-- `IMarketWrapper` ([source](../contracts/crowdfund/IMarketWrapper.sol))
+- `AuctionCrowdfund` ([code](../contracts/crowdfund/AuctionCrowdfund.sol))
+  - A crowdfund that can repeatedly bid on an auction for a specific NFT (i.e., with a known token ID) until it wins or loses.
+- `IMarketWrapper` ([code](../contracts/crowdfund/IMarketWrapper.sol))
   - A generic interface consumed by `AuctionCrowdfund` to abstract away interactions with any auction marketplace.
-- `IGateKeeper` ([source](../contracts/gatekeepers/IGateKeeper.sol))
+- `IGateKeeper` ([code](../contracts/gatekeepers/IGateKeeper.sol))
   - An interface implemented by gatekeeper contracts that restrict who can participate in a crowdfund. There are currently two implementations of this interface:
-    - `AllowListGateKeeper` ([source](../contracts/gatekeepers/AllowListGateKeeper.sol))
+    - `AllowListGateKeeper` ([code](../contracts/gatekeepers/AllowListGateKeeper.sol))
       - Restricts participation based on whether an address exists in a merkle tree.
-    - `TokenGateKeeper` ([source](../contracts/gatekeepers/TokenGateKeeper.sol))
+    - `TokenGateKeeper` ([code](../contracts/gatekeepers/TokenGateKeeper.sol))
       - Restricts participation based on whether an address has a minimum balance of a token (ERC20 or ERC721).
 - `Globals` ([code](../contracts/globals/Globals.sol))
   - A contract that defines global configuration values referenced by other contracts across the entire protocol.
@@ -51,9 +51,9 @@ The `CrowdfundFactory` contract is the canonical contract for creating crowdfund
 
 `BuyCrowdfund`s are created via the `createBuyCrowdfund()` function. `BuyCrowdfund`s:
 
-- Are trying to buy a specific ERC721 contract + token ID.
+- Are trying to buy a specific ERC721 contract and specific token ID.
 - While active, users can contribute ETH to the cause.
-- Succeeds if anyone executes an arbitrary call with value through `buy()` to acquire the NFT.
+- Succeeds when an allowed actor (e.g. host, contributor) executes an arbitrary call with value through `buy()` and acquires the NFT.
 - Fails if the `expiry` time passes before acquiring the NFT.
 
 #### Crowdfund Specific Creation Options
@@ -70,7 +70,7 @@ The `CrowdfundFactory` contract is the canonical contract for creating crowdfund
 
 - Are trying to buy _any_ token ID on an ERC721 contract.
 - While active, users can contribute ETH to the cause.
-- Succeeds if the host executes an arbitrary call with value through `buy()` to acquire an eligible NFT.
+- Succeeds when a host executes an arbitrary call with value through `buy()` and acquires an eligible NFT.
 - Fails if the `expiry` time passes before acquiring an eligible NFT.
 
 #### Crowdfund Specific Creation Options
@@ -83,12 +83,12 @@ The `CrowdfundFactory` contract is the canonical contract for creating crowdfund
 
 `CollectionBuyCrowdfund`s are created via the `createAuctionCrowdfund()` function. `AuctionCrowdfund`s:
 
-- Are trying to buy a specific ERC721 contract + token ID listed on an auction market.
+- Are trying to buy a specific ERC721 contract and specific token ID listed on an auction market.
 - Directly interact with a Market Wrapper, which is an abstractions/wrapper of an NFT auction protocol.
   - These Market Wrappers are inherited from [v1](https://github.com/PartyDAO/PartyBid) of the protocol and are actually delegatecalled into.
 - While active, users can contribute ETH to the cause.
 - While active, ETH bids can be placed by anyone via the `bid()` function.
-- Succeeds if anyone calls `finalize()`, which attempts to settle the auction, and the crowdfund ends up holding the NFT.
+- Succeeds when an allowed actor (e.g. host, contributor) calls `finalize()`, which attempts to settle the auction, and the crowdfund ends up holding the NFT.
 - Fails if the `expiry` time passes before acquiring an eligible NFT.
 
 #### Crowdfund Specific Creation Options
@@ -107,15 +107,16 @@ In addition to the creation options described for each crowdfund type, there are
 
 - `string name`: The name of the crowdfund/governance party.
 - `string symbol`: The token symbol for crowdfund/governance party NFT.
+- `uint256 customizationPresetId`: Customization preset ID to use for the crowdfund and governance NFTs. Defines how the crowdfund's `tokenURI()` SVG image will be rendered (e.g. color, light/dark mode).
 - `address splitRecipient`: An address that receives a portion of voting power (or extra voting power) when the party transitions into governance.
 - `uint16 splitBps`: What percentage (in basis points) of the final total voting power `splitRecipient` receives.
 - `address initialContributor`: If ETH is attached during deployment, it will be interpreted as a contribution. This is who gets credit for that contribution.
 - `address initialDelegate`: If there is an initial contribution, this is who they will initially delegate their voting power to when the crowdfund transitions to governance.
 - `IGateKeeper gateKeeper`: The gatekeeper contract to use (if non-null) to restrict who can contribute to (and sometimes buy/bid in) this crowdfund.
-- `bytes12 gateKeeperId`: The gate ID within the gateKeeper contract to use.
-- `FixedGovernanceOpts governanceOpts`: Fixed [governance options](https://github.com/PartyDAO/partybidV2/blob/main/docs/governance.md#governance-options) that the governance Party will be created with if the crowdfund succeeds. Aside from the party `hosts`, only the hash of this field is stored on-chain at creation. It must be provided in full again in order for the party to win.
+- `bytes12 gateKeeperId`: The gate ID within the `gateKeeper` contract to use.
+- `FixedGovernanceOpts governanceOpts`: Fixed [governance options](https://github.com/PartyDAO/party-protocol/blob/main/docs/governance.md#governance-options) that the governance Party will be created with if the crowdfund succeeds. Aside from the party `hosts`, only the hash of this field is stored on-chain at creation. It must be provided in full again in order for the party to win.
 
-Crowdfunds are initialized with fixed options, i.e. cannot be changed after creating a party.
+Crowdfunds are initialized with mostly fixed options, i.e. cannot be changed during the crowdfund or after creating a party to enter the governance stage. The only exception is `customizationPresetId`, which [can be changed later in the governance stage](https://github.com/PartyDAO/party-protocol/blob/main/docs/governance.md#party-card-customization).
 
 ### Optional Gatekeeper Creation Data
 
@@ -135,6 +136,12 @@ All crowdfunds share a concept of a lifecycle, wherein only certain actions can 
 - `Busy`: An temporary state set by the contract during complex operations to act as a reentrancy guard.
 - `Lost`: The crowdfund has failed to acquire the NFT in time. Contributors can reclaim their full contributions.
 - `Won`: The crowdfund has acquired the NFT and it is now held by a governance party. Contributors can claim their voting tokens.
+
+## Crowdfund Card Customization
+
+The creator of a crowdfund can customize how they want their crowdfund's NFT card to look. Currently, this means picking a color and choosing a light or dark theme. This setting will also be carry over to the governance NFTs should the crowdfund win.
+
+Customization is done by choosing the `customizationPresetId` parameter that crowdfunds are initialized with, beginning at ID 1. Note that ID 0 is reserved and has [special meaning within the protocol](https://github.com/PartyDAO/party-protocol/blob/main/docs/governance.md#governance-card-customization). Although it should never be used by crowdfunds, if set the crowdfund card will fallback to the default design. The same will happen if an invalid `customizationPresetID` (e.g. an ID that doesn't exist) is chosen.
 
 ## Making Contributions
 
@@ -176,17 +183,25 @@ Each crowdfund type has its own criteria and operations for winning.
 
 ### BuyCrowdfund
 
-`BuyCrowdfund` wins if _anyone_ successfully calls `buy()` before the crowdfund expires. The `buy()` function will perform an arbitrary call with value (up to `maximumPrice`) to attempt to acquire the predetermined NFT. The NFT must be held by the party after the arbitrary call successfully returns. It will then proceed with creating a governance Party.
+`BuyCrowdfund` wins if an allowed actor successfully calls `buy()` before the crowdfund expires.
+
+Who can call `buy()` is determined by `onlyHostCanBuy` and if the crowdfund uses a gatekeeper. If `onlyHostCanBuy`, then only a host can call it. If the crowdfund uses a gatekeeper, then only contributors may call it. The former case takes precedent over the latter, meaning if both are true then only the host can call it.
+
+The `buy()` function will perform an arbitrary call with value of ETH (up to `maximumPrice`) to attempt to acquire the predetermined NFT. The NFT must be held by the party after the arbitrary call successfully returns. It will then proceed with creating a governance Party.
 
 ### CollectionBuyCrowdfund
 
-`CollectionBuyCrowdfund` wins if a _host_ successfully calls `buy()` before the crowdfund expires. The `buy()` function will perform an arbitrary call with value (up to `maximumPrice`) to attempt to acquire _any_ NFT token ID from the predetermined ERC721. The NFT must be held by the party after the arbitrary call successfully returns. It will then proceed with creating a governance Party.
+`CollectionBuyCrowdfund` wins if a _host_ successfully calls `buy()` before the crowdfund expires. The `buy()` function will perform an arbitrary call with value (up to `maximumPrice`) to attempt to acquire _any_ NFT token ID from the predetermined ERC721. The NFT must be held by the party after the arbitrary call successfully returns. It will then proceed with creating a governance Party, unless the NFT was acquired for free (or "gifted"). In this case, it will refund all contributors for their original contribution amounts and declare a loss.
 
 ### AuctionCrowdfund
 
 `AuctionCrowdfund` requires more steps and active intervention than the other crowdfunds because it needs to interact with auctions.
 
-While the crowdfund is Active, anyone can, and should, call `bid()` to bid on the auction the crowdfund was started around. The amount to bid will be the minimum winning amount determined by the Market Wrapper being used. Only up to `maximumBid` ETH will ever be used in a bid. The crowdfund contract will `delegatecall` into the Market Wrapper to perform the bid, so it is important that a crowdfund only uses trusted Market Wrappers.
+While the crowdfund is Active, only allowed parties can call `bid()` to bid on the auction the crowdfund was started around.
+
+Who can call `bid()` is determined by `onlyHostCanBid` and if the crowdfund uses a gatekeeper. If `onlyHostCanBid`, then only a host can call it. If the crowdfund uses a gatekeeper, then only contributors may call it. The former case takes precedent over the latter, meaning if both are true then only the host can call it.
+
+For each `bid()` call, the amount to bid will be the minimum winning amount determined by the Market Wrapper being used. Only up to `maximumBid` ETH will ever be used in a bid. The crowdfund contract will `delegatecall` into the Market Wrapper to perform the bid, so it is important that a crowdfund only uses trusted Market Wrappers.
 
 After the auction has ended, someone must call `finalize()`, regardless of whether the crowdfund has placed a bid or not. This will settle the auction (if necessary), possibly returning bidded ETH to the party or acquiring the auctioned NFT. It is possible to call `finalize()` even after the crowdfund has Expired and the crowdfund may even still win in this scenario. If the NFT was acquired, it will then proceed with creating a governance party.
 
@@ -198,7 +213,7 @@ After this point, the crowdfund will be in the `Won` lifecycle and no more contr
 
 ## Losing
 
-Crowdfunds generally lose when they expire before acquiring a target NFT. The one exception is `AuctionCrowdfund`, which can still be finalized and win after expiration.
+Crowdfunds generally lose when they expire before acquiring a target NFT. The one exception is `AuctionCrowdfund`, which can still be finalized and win after expiration if it holds the NFT.
 
 When a crowdfund enters the Lost lifecycle, contributors may `burn()` their participation NFT to refund all the ETH they contributed.
 
@@ -207,13 +222,14 @@ When a crowdfund enters the Lost lifecycle, contributors may `burn()` their part
 At the conclusion of a crowdfund (Won or Lost lifecycle), contributors may burn their participation NFT via the `burn()` function.
 
 If the crowdfund lost, burning the participation NFT will refund all of the contributor's contributed ETH.
+
 If the crowdfund won, burning the participation NFT will refund any of the contributor's _unused_ ETH and mint voting power in the governance party.
 
 ### Calculating Voting Power
 
 Voting power for a contributor is equivalent to the amount of ETH they contributed that was used to acquire the NFT. Each individual contribution is tracked against the total ETH raised at the time of contribution. If a user contributes after the crowdfund received enough ETH to acquire the NFT, only their contributions from prior will count towards their final voting power. All else will be refunded when they burn their participation token.
 
-- If the crowdfund was created with a valid `splitBps` value, this percent of every contributor's voting power will be reserved for the `splitRecipient` to claim. If they are also a contributor, they will receive the sum of both.
+If the crowdfund was created with a valid `splitBps` value, this percent of every contributor's voting power will be reserved for the `splitRecipient` to claim. If they are also a contributor, they will receive the sum of both.
 
 ### Burning Someone Else's NFT
 
@@ -223,10 +239,12 @@ It's not uncommon for contributors to go inactive before a crowdfund ends. To he
 
 Gatekeepers allow crowdfunds to limit who can contribute to them. Each gatekeeper implementation stores multiple "gates," i.e. a set of conditions used to define whether a participant `isAllowed` to contribute to a crowdfund. Each gate has its own ID.
 
+For certain crowdfunds, e.g. `AuctionCrowdfund` and `BuyCrowdfund`, using a gatekeeper also limits who can perform certain actions. For example, for a `BuyCrowdfund` it limits who can call `buy()` to only contributors (as opposed to anybody being able to call it if `onlyHostCanBuy` is false).
+
 When a crowdfund is created, users can choose to create a new gate within a gatekeeper implementation or use an existing one by passing in its gate ID. There are currently two gatekeeper types supported:
 
-- [TokenGateKeeper](https://github.com/PartyDAO/partybidV2/blob/main/docs/crowdfund.md#tokengatekeeper)
-- [AllowListGateKeeper](https://github.com/PartyDAO/partybidV2/blob/main/docs/crowdfund.md#allowlistgatekeeper)
+- [TokenGateKeeper](https://github.com/PartyDAO/party-protocol/blob/main/docs/crowdfund.md#tokengatekeeper)
+- [AllowListGateKeeper](https://github.com/PartyDAO/party-protocol/blob/main/docs/crowdfund.md#allowlistgatekeeper)
 
 ### TokenGateKeeper
 
@@ -234,4 +252,4 @@ This gatekeeper only allows contributions from holders of a specific token (e.g.
 
 ### AllowListGateKeeper
 
-This gatekeeper only allows contributions from addresses on an allowlist. The gatekeeper stores a [merkle root](https://www.investopedia.com/terms/m/merkle-root-cryptocurrency.asp) it uses to check whether an address belongs in the allowlist or not using [proof](https://github.com/dragonfly-xyz/useful-solidity-patterns/tree/main/examples/merkle-proofs#merkle-proofs-1) provided along with their address. Each gate stores the merkle root it uses which is set when the gate is created.
+This gatekeeper only allows contributions from addresses on an allowlist. The gatekeeper stores a [merkle root](https://www.investopedia.com/terms/m/merkle-root-cryptocurrency.asp) it uses to check whether an address belongs in the allowlist or not using a [proof](https://github.com/dragonfly-xyz/useful-solidity-patterns/tree/main/patterns/merkle-proofs) provided along with their address. Each gate stores the merkle root it uses which is set when the gate is created.

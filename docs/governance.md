@@ -40,7 +40,7 @@ The main contracts involved in this phase are:
 ## Party Creation
 
 Parties are created through the `PartyFactory` contract. This is typically automatically done
-by a crowdfund instance after it wins, but it is also a valid use case to interact with the PartyFactory contract directly to, for example, form a governance party around an NFT you already own.
+by a crowdfund instance after it wins, but it is also a valid use case to interact with the `PartyFactory` contract directly to, for example, form a governance party around an NFT you already own.
 
 The sequence of events is:
 
@@ -54,7 +54,7 @@ The sequence of events is:
     )
     ```
     - `authority` will be the address that can mint tokens on the created Party. In typical flow, the crowdfund contract will set this to itself.
-    - `opts` are (mostly) immutable [configuration parameters](#governance-options) for the Party, defining the Party name and symbol (the Party instance will also be an ERC721) and governance parameters.
+    - `opts` are (mostly) immutable [configuration parameters](#governance-options) for the Party, defining the Party name, symbol, and customization preset (the Party instance will also be an ERC721) along with governance parameters.
     - `preciousTokens` and `preciousTokenIds` together define the NFTs the Party will custody and enforce extra restrictions on so they are not easily transferred out of the Party. This list cannot be changed after Party creation. Note that this list is never stored on-chain (only the hash is) and will need to be passed into the `execute()` call when executing proposals.
     - This will deploy a new `Proxy` instance with an implementation pointing to the Party contract defined by in the `Globals` contract by the key `GLOBAL_PARTY_IMPL`.
 2. Transfer assets to the created Party, which will typically be the precious NFTs.
@@ -62,6 +62,16 @@ The sequence of events is:
     - In typical flow, the crowdfund contract will call this when contributors burn their contribution NFTs.
 4. Optionally, call `Party.abdicate()`, as the `authority`, to revoke minting privilege once all Governance NFTs have been minted.
 5. At any step after the party creation, members with Governance NFTs can perform governance actions, though they may not be able to reach consensus if the total supply of voting power hasn't been minted/distributed yet.
+
+## Governance Card Customization
+
+When created through the `PartyFactory` directly, the creator of a party can customize how they want their party's governance NFT card to look. For most parties, however, they will be created from successful crowdfunds and so will inherit the customization options set during initialization of that crowdfund.
+
+The way that a crowdfund indicate to the parties they create to inherit their customization options is by passing in an ID of 0 to `customizationPresetId` when creating the party. When rendering the `tokenURI()`, this tells the `PartyNFTRenderer` to read and use the `customizationPresetId` of the Party's `mintAuthority` (which should be the crowdfund that created it for parties created conventionally) for rendering its card SVG.
+
+Parties can change their customization preset by executing an arbitrary call proposal that calls `RendererStorage.useCustomizationPreset()` to chose another customization preset.
+
+If an invalid `customizationPresetID` (e.g. an ID that doesn't exist) is chosen or preset ID 0 is used but `mintAuthority` has no preset ID chosen, it will fallback to the default design.
 
 ---
 
@@ -149,7 +159,7 @@ When creating a distribution, implementing contracts are expected to transfer th
 
 ### Emergency Actions
 
-`TokenDistributor` contains an `emergencyExecute` function that can perform an arbitrary delegatecall. This will only be called in a catastrophic scenario where the `TokenDistributor` must be decommissioned. It is restricted to the PartyDAO Multisig. The ability to call this function will be disabled after `emergencyExecuteDisabledTimestamp` has passed.
+`TokenDistributor` contains an `emergencyExecute()` function that can perform an arbitrary delegatecall. This will only be called in a catastrophic scenario where the `TokenDistributor` must be decommissioned. It is restricted to the PartyDAO multisig. The ability to call this function will be disabled after `emergencyExecuteDisabledTimestamp` has passed.
 
 ---
 
@@ -480,4 +490,4 @@ This proposal is always atomic and completes in a single step/execute.
 
 ## Emergency Execution
 
-By default when a party is created, there is an `emergencyExecute` function that can be used by the PartyDAO multisig in the case of an emergency. This function can execute arbitrary bytecode and withdraw ETH. This emergency power can be revoked by any party host, or by the PartyDAO multisig itself.
+By default when a party is created, there is an `emergencyExecute()` function that can be used by the PartyDAO multisig in the case of an emergency. This function can execute arbitrary bytecode and withdraw ETH. This emergency power can be revoked by any party host, or by the PartyDAO multisig itself.
