@@ -95,8 +95,8 @@ contract PartyNFTRenderer is RendererBase {
         );
     }
 
-    function generateName(string memory partyName, uint256 tokenId) private pure returns (string memory) {
-        return string.concat(partyName, ' Card #', tokenId.toString());
+    function generateName(string memory partyName, uint256 tokenId) private view returns (string memory) {
+        return string.concat(partyName, ' - ', generateVotingPowerPercentage(tokenId), '% Voting Power');
     }
 
     function generateExternalURL() private view returns (string memory) {
@@ -107,7 +107,7 @@ contract PartyNFTRenderer is RendererBase {
         return string.concat(
             'This Party Card represents ',
             generateVotingPowerPercentage(tokenId),
-            '% voting power in the following Party: ',
+            '% voting power in ',
             partyName,
             '. Head to ',
             generateExternalURL(),
@@ -121,6 +121,10 @@ contract PartyNFTRenderer is RendererBase {
             generateVotingPowerPercentage(tokenId),
             ', "max_value":100}'
         );
+    }
+
+    function generateCollectionName() internal override view returns (string memory) {
+        return string.concat(name, ' - Party Cards');
     }
 
     function generateCollectionDescription() internal override view returns (string memory) {

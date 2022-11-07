@@ -64,9 +64,7 @@ abstract contract RendererBase is IERC721Renderer {
         );
     }
 
-    function generateCollectionName() private view returns (string memory) {
-        return string.concat('Party Cards - ', IERC721(address(this)).name());
-    }
+    function generateCollectionName() internal virtual view returns (string memory);
 
     function generateCollectionDescription() internal virtual view returns (string memory);
 
