@@ -667,7 +667,7 @@ contract CrowdfundTest is Test, TestUtils {
         contributors[1] = contributor2;
         _expectEmit0();
         emit Burned(contributor2, 2e18, 0, 2e18);
-        cf.batchBurn(contributors);
+        cf.batchBurn(contributors, false);
     }
 
     // Trying to pass in different governance opts after winning.

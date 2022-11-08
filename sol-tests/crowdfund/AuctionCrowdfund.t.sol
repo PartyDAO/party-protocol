@@ -446,6 +446,22 @@ contract AuctionCrowdfundTest is Test, TestUtils {
         cf.finalize(defaultGovernanceOpts);
     }
 
+    function test_canFinalizeIfExpiredAndNeverBid() external {
+        // Create a token and auction with min bid of 1337 wei.
+        (uint256 auctionId, uint256 tokenId) = market.createAuction(1337);
+        // Create a AuctionCrowdfund instance.
+        AuctionCrowdfund cf = _createCrowdfund(auctionId, tokenId, 0);
+        // Contribute and delegate.
+        address payable contributor = _randomAddress();
+        _contribute(cf, contributor, 1e18);
+        uint256 bid = market.getMinimumBid(auctionId);
+        // Expire the CF.
+        skip(defaultDuration);
+        _expectEmit0();
+        emit Lost();
+        cf.finalize(defaultGovernanceOpts);
+    }
+
     function test_cannotReenterFinalize() external {
         // Create a token and auction with min bid of 1337 wei.
         (uint256 auctionId, uint256 tokenId) = market.createAuction(1337);

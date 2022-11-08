@@ -56,6 +56,8 @@ export enum GlobalKeys {
     OpenSeaMinOrderDuration     = 19,
     OpenSeaMaxOrderDuration     = 20,
     DisablePartyActions         = 21,
+    RendererStorage             = 22,
+    ProposalMinCancelDuration   = 23,
 }
 
 export enum ProposalType {
@@ -102,6 +104,16 @@ export interface ArbitraryCall {
     data: string;
     optional: boolean;
     expectedResultHash: string;
+}
+
+export interface DistributionInfo {
+    tokenType: TokenType;
+    distributionId: BigNumber;
+    party: string;
+    feeRecipient: string;
+    token: string;
+    memberSupply: BigNumber;
+    fee: BigNumber;
 }
 
 interface OpenSeaProposalInfo {

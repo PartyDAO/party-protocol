@@ -26,6 +26,7 @@ import {
     describeFork,
     now,
     increaseTime,
+    itSnapshot,
 } from '../utils';
 
 use(solidity);
@@ -60,7 +61,7 @@ describeFork('Seaport proposals integrations test', (provider) => {
         });
     });
 
-    it('works with full expiration', async () => {
+    itSnapshot('works with full expiration', provider, async () => {
         const party = await Party.createAsync({
             worker,
             minter,
@@ -124,7 +125,7 @@ describeFork('Seaport proposals integrations test', (provider) => {
         expect(await party.getProposalStatusAsync(proposalId)).to.eq(ProposalStatus.Complete);
     });
 
-    it('works when OS sale is successful', async () => {
+    itSnapshot('works when OS sale is successful', provider, async () => {
         const party = await Party.createAsync({
             worker,
             minter,

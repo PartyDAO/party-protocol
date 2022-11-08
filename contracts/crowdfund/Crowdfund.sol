@@ -194,18 +194,26 @@ abstract contract Crowdfund is Implementation, ERC721Receiver, CrowdfundNFT {
     /// @notice `burn()` in batch form.
     ///         Will not revert if any individual burn fails.
     /// @param contributors The contributors whose NFT to burn for.
-    function batchBurn(address payable[] calldata contributors) public {
+    /// @param revertOnFailure If true, revert if any burn fails.
+    function batchBurn(address payable[] calldata contributors, bool revertOnFailure) public {
         for (uint256 i = 0; i < contributors.length; ++i) {
-            (bool s,) = address(this).delegatecall(
+            (bool s, bytes memory r) = address(this).delegatecall(
                 abi.encodeCall(this.burn, (contributors[i]))
             );
-            !!s; // Silence compiler warnings.
+            if (revertOnFailure && !s) {
+                r.rawRevert();
+            }
         }
     }
 
     /// @dev Alias for `batchBurn()`.
-    function batchActivateOrRefund(address payable[] calldata contributors) external {
-        batchBurn(contributors);
+    function batchActivateOrRefund(
+        address payable[] calldata contributors,
+        bool revertOnFailure
+    )
+        external
+    {
+        batchBurn(contributors, revertOnFailure);
     }
 
     /// @notice Claim a governance NFT or refund that is owed back but could not be

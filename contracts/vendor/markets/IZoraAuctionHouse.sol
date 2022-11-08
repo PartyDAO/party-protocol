@@ -34,6 +34,18 @@ interface IZoraAuctionHouse {
         // If set to 0x0, the auction will be run in ETH
         IERC20 auctionCurrency;
     }
+    
+    event AuctionCreated(
+        uint256 indexed auctionId,
+        uint256 indexed tokenId,
+        address indexed tokenContract,
+        uint256 duration,
+        uint256 reservePrice,
+        address tokenOwner,
+        address curator,
+        uint8 curatorFeePercentage,
+        address auctionCurrency
+    );
 
     function createAuction(
         uint256 tokenId,
