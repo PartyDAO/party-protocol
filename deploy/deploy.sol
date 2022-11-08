@@ -97,10 +97,14 @@ contract Deploy {
         console.log("");
         console.log("### TokenDistributor");
         console.log("  Deploying - TokenDistributor");
+        // Deploy to 0x1ca2002babed23b91537e2f9c8bb61b97798c806
+        uint256 g = gasleft();
+        _useVanityDeployer(0x6b244BAe54866c05c85F072D10567d1A964a21aF);
         tokenDistributor = new TokenDistributor(
             globals,
             uint40(block.timestamp) + deployConstants.distributorEmergencyActionAllowedDuration
         );
+        console.log(" (gas used:", g - gasleft(), ")");
         console.log("  Deployed - TokenDistributor", address(tokenDistributor));
 
         console.log("");
@@ -250,7 +254,11 @@ contract Deploy {
         console.log("");
         console.log("### PartyFactory");
         console.log("  Deploying - PartyFactory");
+        // Deploy to 0x1ca20040ce6ad406bc2a6c89976388829e7fbade
+        g = gasleft();
+        _useVanityDeployer(0xdf6602CB4175618228259614fe3792b51919eDdf);
         partyFactory = new PartyFactory(globals);
+        console.log(" (gas used:", g - gasleft(), ")");
         console.log("  Deployed - PartyFactory", address(partyFactory));
 
         console.log("");
@@ -339,7 +347,11 @@ contract Deploy {
         console.log("");
         console.log("### CrowdfundFactory");
         console.log("  Deploying - CrowdfundFactory");
+        // Deploy to 0x1ca2007d4f2bc0ec2a56ecb890e56e05f36182df
+        _useVanityDeployer(0x5084EAC7494814249E57882722d51bD0eFcA1459);
+        g = gasleft();
         crowdfundFactory = new CrowdfundFactory(globals);
+        console.log(" (gas used:", g - gasleft(), ")");
         console.log("  Deployed - CrowdfundFactory", address(crowdfundFactory));
 
         // DEPLOY_RENDERER_STORAGE
@@ -452,21 +464,18 @@ contract Deploy {
             address(allowListGateKeeper)
         );
 
-        // DEPLOY_MARKET_WRAPPERS
-        console.log("");
-        console.log("### MarketWrappers");
-        console.log("  Deploying - FoundationMarketWrapper");
-        foundationMarketWrapper = new FoundationMarketWrapper(deployConstants.foundationMarket);
-        console.log("  Deployed - FoundationMarketWrapper", address(foundationMarketWrapper));
-        console.log("  Deploying - NounsMarketWrapper");
-        nounsMarketWrapper = new NounsMarketWrapper(deployConstants.nounsAuctionHouse);
-        console.log("  Deployed - NounsMarketWrapper", address(nounsMarketWrapper));
-        console.log("  Deploying - ZoraMarketWrapper");
-        zoraMarketWrapper = new ZoraMarketWrapper(deployConstants.zoraAuctionHouse);
-        console.log("  Deployed - ZoraMarketWrapper", address(zoraMarketWrapper));
-
-        console.log("Starting deploy script.");
-        console.log("DEPLOYER_ADDRESS", deployer);
+        // // DEPLOY_MARKET_WRAPPERS
+        // console.log("");
+        // console.log("### MarketWrappers");
+        // console.log("  Deploying - FoundationMarketWrapper");
+        // foundationMarketWrapper = new FoundationMarketWrapper(deployConstants.foundationMarket);
+        // console.log("  Deployed - FoundationMarketWrapper", address(foundationMarketWrapper));
+        // console.log("  Deploying - NounsMarketWrapper");
+        // nounsMarketWrapper = new NounsMarketWrapper(deployConstants.nounsAuctionHouse);
+        // console.log("  Deployed - NounsMarketWrapper", address(nounsMarketWrapper));
+        // console.log("  Deploying - ZoraMarketWrapper");
+        // zoraMarketWrapper = new ZoraMarketWrapper(deployConstants.zoraAuctionHouse);
+        // console.log("  Deployed - ZoraMarketWrapper", address(zoraMarketWrapper));
 
         console.log("  Deploying - TokenGateKeeper");
         tokenGateKeeper = new TokenGateKeeper();
@@ -502,6 +511,8 @@ contract Deploy {
     function isTest() internal view returns (bool) {
         return address(this) == this.getDeployer();
     }
+
+    function _useVanityDeployer(address deployer) internal virtual {}
 }
 
 contract DeployFork is Deploy {
