@@ -13,7 +13,8 @@ contract MainnetDeploy is DeployScript {
     console.log('Ending mainnet deploy script.');
   }
 
-  function _useVanityDeployer(address deployer) internal override {
-    vm.broadcast(deployer);
+  function _switchDeployer(address deployer) internal override {
+    vm.stopBroadcast();
+    vm.startBroadcast(deployer);
   }
 }
