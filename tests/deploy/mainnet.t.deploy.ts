@@ -291,7 +291,19 @@ describeFork('Mainnet deployment fork smoke tests', (provider) => {
             });
 
             describeSnapshot('winning path', provider, () => {
-                it('can win', async () => {
+                itSnapshot('can lose', provider, async () => {
+                    await contributeEvenly(cf, contributors, RESERVE_PRICE);
+                    // End auction.
+                    increaseTime(provider, CF_DURATION);
+                    // Finalize and lose.
+                    await cf.callStatic.finalize(FIXED_GOVERNANCE_OPTS);
+                    let r = await mineTx(cf.finalize(FIXED_GOVERNANCE_OPTS));
+                    expect(doesEventExist(r, 'Lost', cf.address)).to.be.true;
+                    // Redeem contributions.
+                    await burnContributors(cf, contributors);
+                });
+                
+                itSnapshot('can win', provider, async () => {
                     await contributeEvenly(cf, contributors, RESERVE_PRICE);
                     // Bid on auction.
                     let r = await mineTx(cf.connect(host).bid(
@@ -931,11 +943,15 @@ describeFork('Mainnet deployment fork smoke tests', (provider) => {
         const partyAddress = await cf.party();
         const r = await mineTx(cf.batchBurn(contributorWallets.map(m => m.address)));
         return contributorWallets.map(w => {
-            const { tokenId } = findEvent(r, 'Transfer', partyAddress, { owner: NULL_ADDRESS, to: w.address }).args;
             const { votingPower } = findEvent(r, 'Burned', cf.address, { contributor: w.address }).args;
+            const governanceTokens = [];
+            if (votingPower.gt(0)) {
+                const { tokenId } = findEvent(r, 'Transfer', partyAddress, { owner: NULL_ADDRESS, to: w.address }).args;
+                governanceTokens.push({ tokenId, votingPower });
+            }
             return {
                 wallet: w,
-                governanceTokens: [{ tokenId, votingPower }],
+                governanceTokens: governanceTokens,
             } as MemberInfo;
         });
     }
