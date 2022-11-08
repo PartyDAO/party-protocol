@@ -302,7 +302,7 @@ describeFork('Mainnet deployment fork smoke tests', (provider) => {
                     // Redeem contributions.
                     await burnContributors(cf, contributors);
                 });
-                
+
                 itSnapshot('can win', provider, async () => {
                     await contributeEvenly(cf, contributors, RESERVE_PRICE);
                     // Bid on auction.
@@ -941,7 +941,7 @@ describeFork('Mainnet deployment fork smoke tests', (provider) => {
     async function burnContributors(cf: Contract, contributorWallets: Wallet[]): Promise<MemberInfo[]> {
         noise(`\tBurning ${contributorWallets.length} crowdfund NFTs...`);
         const partyAddress = await cf.party();
-        const r = await mineTx(cf.batchBurn(contributorWallets.map(m => m.address)));
+        const r = await mineTx(cf.batchBurn(contributorWallets.map(m => m.address), true));
         return contributorWallets.map(w => {
             const { votingPower } = findEvent(r, 'Burned', cf.address, { contributor: w.address }).args;
             const governanceTokens = [];
