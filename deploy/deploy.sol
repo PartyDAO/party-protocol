@@ -467,19 +467,32 @@ contract Deploy {
             address(allowListGateKeeper)
         );
 
-        // // DEPLOY_MARKET_WRAPPERS
-        // console.log("");
-        // console.log("### MarketWrappers");
-        // console.log("  Deploying - FoundationMarketWrapper");
-        // foundationMarketWrapper = new FoundationMarketWrapper(deployConstants.foundationMarket);
-        // console.log("  Deployed - FoundationMarketWrapper", address(foundationMarketWrapper));
-        // console.log("  Deploying - NounsMarketWrapper");
-        // nounsMarketWrapper = new NounsMarketWrapper(deployConstants.nounsAuctionHouse);
-        // console.log("  Deployed - NounsMarketWrapper", address(nounsMarketWrapper));
-        // console.log("  Deploying - ZoraMarketWrapper");
-        // zoraMarketWrapper = new ZoraMarketWrapper(deployConstants.zoraAuctionHouse);
-        // console.log("  Deployed - ZoraMarketWrapper", address(zoraMarketWrapper));
+        // DEPLOY_MARKET_WRAPPERS
+        console.log("");
+        console.log("### MarketWrappers");
+        if (address(deployConstants.deployedFoundationMarketWrapper) == address(0)) {
+            console.log("  Deploying - FoundationMarketWrapper");
+            foundationMarketWrapper = new FoundationMarketWrapper(deployConstants.foundationMarket);
+            console.log("  Deployed - FoundationMarketWrapper", address(foundationMarketWrapper));
+        } else {
+            foundationMarketWrapper = FoundationMarketWrapper(deployConstants.deployedFoundationMarketWrapper);
+        }
+        if (address(deployConstants.deployedNounsMarketWrapper) == address(0)) {
+            console.log("  Deploying - NounsMarketWrapper");
+            nounsMarketWrapper = new NounsMarketWrapper(deployConstants.nounsAuctionHouse);
+            console.log("  Deployed - NounsMarketWrapper", address(nounsMarketWrapper));
+        } else {
+            nounsMarketWrapper = NounsMarketWrapper(deployConstants.deployedNounsMarketWrapper);
+        }
+        if (address(deployConstants.deployedZoraMarketWrapper) == address(0)) {
+            console.log("  Deploying - ZoraMarketWrapper");
+            zoraMarketWrapper = new ZoraMarketWrapper(deployConstants.zoraAuctionHouse);
+            console.log("  Deployed - ZoraMarketWrapper", address(zoraMarketWrapper));
+        } else {
+            zoraMarketWrapper = ZoraMarketWrapper(deployConstants.deployedZoraMarketWrapper);
+        }
 
+        console.log("");
         console.log("  Deploying - TokenGateKeeper");
         tokenGateKeeper = new TokenGateKeeper();
         console.log("  Deployed - TokenGateKeeper", address(tokenGateKeeper));
