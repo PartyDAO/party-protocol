@@ -1,6 +1,6 @@
 # Party Protocol
 
-The PartyBid V1 protocol allowed people to pool funds together to acquire NFTs. V2 (Party Protocol) adds new features to allow parties to use and govern those NFTs together as well. The party never ends!
+A protocol for *group coordination*. Party Protocol lets people crowdfund, use, sell, and distribute on-chain assets as a group. Currently focused on making NFTs multiplayer.
 
 ## Layout
 
