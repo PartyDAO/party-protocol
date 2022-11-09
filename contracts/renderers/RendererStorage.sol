@@ -2,11 +2,9 @@
 pragma solidity 0.8.17;
 
 import "solmate/utils/SSTORE2.sol";
-import "../utils/LibRawResult.sol";
+import "../utils/Multicall.sol";
 
-contract RendererStorage {
-    using LibRawResult for bytes;
-    
+contract RendererStorage is Multicall {
     error AlreadySetError();
     error NotOwnerError(address caller, address owner);
 
@@ -84,14 +82,5 @@ contract RendererStorage {
     /// @param id The ID of the customization preset.
     function useCustomizationPreset(uint256 id) external {
         getPresetFor[msg.sender] = id;
-    }
-
-    function multicall(bytes[] calldata multicallData) external {
-        for (uint256 i; i < multicallData.length; ++i) {
-            (bool s, bytes memory r) = address(this).delegatecall(multicallData[i]);
-            if (!s) {
-                r.rawRevert();
-            }
-        }
     }
 }
