@@ -471,7 +471,7 @@ abstract contract Deploy {
                     (deployConstants.partyDaoMultisig)
                 );
             }
-            require(n == multicallData.length, 'wrong multicall length');
+            assembly { mstore(multicallData, n) }
             _trackDeployerGasBefore();
             globals.multicall(multicallData);
             _trackDeployerGasAfter();
@@ -528,7 +528,6 @@ contract DeployScript is Script, Deploy {
     address[] private _deployersUsed;
 
     function run() external {
-        _switchDeployer(DeployerRole.Default);
         _run();
 
         {
