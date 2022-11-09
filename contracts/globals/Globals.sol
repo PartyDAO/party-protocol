@@ -1,10 +1,13 @@
 // SPDX-License-Identifier: GPL-3.0
 pragma solidity 0.8.17;
 
+import "../utils/LibRawResult.sol";
 import "./IGlobals.sol";
 
 /// @notice Contract storing global configuration values.
 contract Globals is IGlobals {
+    using LibRawResult for bytes;
+
     address public multiSig;
     address public pendingMultiSig;
     // key -> word value
@@ -104,5 +107,14 @@ contract Globals is IGlobals {
 
     function setIncludesAddress(uint256 key, address value, bool isIncluded) external onlyMultisig {
         _includedWordValues[key][bytes32(uint256(uint160(value)))] = isIncluded;
+    }
+
+    function multicall(bytes[] calldata multicallData) external {
+        for (uint256 i; i < multicallData.length; ++i) {
+            (bool s, bytes memory r) = address(this).delegatecall(multicallData[i]);
+            if (!s) {
+                r.rawRevert();
+            }
+        }
     }
 }
