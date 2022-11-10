@@ -89,11 +89,11 @@ Voting power within the governance Party is represented and held by Governance N
 
 Owners of Governance NFTs can call `Party.delegateVotingPower()` to delegate their *total intrinsic voting power* at the time of the call to another account. The minter of the Governance NFT can also set an initial delegate for the owner, meaning any Governance NFTs held by the owner will be delegated by default. If a user transfers their Governance NFT, the voting power will be delegated to the recipient's existing delegate.
 
-The chosen delegate does not need to own a Governance NFT. Delegating voting power strips the owner of their entire voting power until they redelegate to themselves, meaning they will not be able to vote on proposals created afterwards (because votes cast rely on [snapshots](#voting-power-snapshots)). Governance NFT owners can recover their voting power for future proposals if they delegate to themselves or to the zero address.
+The chosen delegate does not need to own a Governance NFT. Delegating voting power strips the owner of their total intrinsic voting power until they redelegate to themselves, meaning they will not be able to use these votes on proposals created  in the meantime (because votes cast rely on [snapshots](#voting-power-snapshots)). Governance NFT owners can recover their voting power for future proposals if they delegate to themselves or to the zero address. Even while delegating votes to another account, it's possible for a member to receive delegated votes from a separate address. Delegated votes are not forwarded beyond a single hop. 
 
 ### Calculating Effective Voting Power
 
-The effective voting power of a user is the sum of all undelegated (or self-delegated) voting power from their Governance NFTs plus the sum of all voting power delegated to them by other users.
+The effective voting power of a user is the sum of all undelegated (or self-delegated) voting power from their Governance NFTs plus the sum of all voting power delegated to them by other members.
 
 The effective voting power of a user at a given time can be found by calling `Party.getVotingPowerAt()`.
 
@@ -103,10 +103,10 @@ The voting power applied when a user votes on a proposal is their effective voti
 
 - A user receives a Governance NFT (transfer or minting).
 - A user transfers their Governance NFT to another user.
-- A user (un)delegates their voting power.
-- A user gets voting power (un)delegated to them.
+- A user delegates (or undelegates) their voting power.
+- A user gets voting power delegated (or undelegated) to them.
 
-When determining the effective voting power of a user, we binary search a user's voting power records for the most recent record < the proposal time.
+When determining the effective voting power of a user, the protocol binary searches an address's voting power records for the most recent record that was created before the proposal's creation time.
 
 ---
 
