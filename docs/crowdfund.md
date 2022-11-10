@@ -180,7 +180,7 @@ Each crowdfund type has its own criteria and operations for winning.
 
 ### CollectionBuyCrowdfund
 
-`CollectionBuyCrowdfund` wins if a _host_ successfully calls `buy()` before the crowdfund expires. The `buy()` function will perform an arbitrary call with value (up to `maximumPrice`) to attempt to acquire _any_ NFT token ID from the predetermined ERC721. The NFT must be held by the party after the arbitrary call successfully returns. It will then proceed with creating a governance Party.
+`CollectionBuyCrowdfund` wins if a _host_ successfully calls `buy()` before the crowdfund expires. The `buy()` function will perform an arbitrary call with value (up to `maximumPrice`) to attempt to acquire _any_ NFT token ID from the predetermined ERC721. The NFT must be held by the crowdfund after the arbitrary call successfully returns. It will then proceed with creating a governance Party.
 
 ### AuctionCrowdfund
 
@@ -189,6 +189,8 @@ Each crowdfund type has its own criteria and operations for winning.
 While the crowdfund is Active, anyone can, and should, call `bid()` to bid on the auction the crowdfund was started around. The amount to bid will be the minimum winning amount determined by the Market Wrapper being used. Only up to `maximumBid` ETH will ever be used in a bid. The crowdfund contract will `delegatecall` into the Market Wrapper to perform the bid, so it is important that a crowdfund only uses trusted Market Wrappers.
 
 After the auction has ended, someone must call `finalize()`, regardless of whether the crowdfund has placed a bid or not. This will settle the auction (if necessary), possibly returning bidded ETH to the party or acquiring the auctioned NFT. It is possible to call `finalize()` even after the crowdfund has Expired and the crowdfund may even still win in this scenario. If the NFT was acquired, it will then proceed with creating a governance party.
+
+If the `onlyHostCanBid` option is set, then only a host will be able to call `bid()`.
 
 ### Creating a Governance Party
 
