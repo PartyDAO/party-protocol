@@ -196,7 +196,7 @@ If the `onlyHostCanBid` option is set, then only a host will be able to call `bi
 
 In every crowdfund, immediately after the party has won by acquiring the NFT, it will create a new governance Party instance, using the same fixed governance options provided at crowdfund creation. The `totalVotingPower` the governance Party is created with is simply the settled price of the NFT (how much ETH we paid for it). The bought NFT is immediately transferred to the governance Party as well.
 
-After this point, the crowdfund will be in the `Won` lifecycle and no more contributions will be allowed. Contributors can `burn()` their participation NFT to refund any ETH they contributed that was not used as well as mint voting power within the governance Party (which is also an NFT).
+After this point, the crowdfund will be in the `Won` lifecycle and no more contributions will be allowed. Contributors can `burn()` their Crowdfund NFT to refund any ETH they contributed that was not used, as well as mint a membership NFT within the governance Party, which contains voting power.
 
 ## Losing
 
