@@ -142,9 +142,9 @@ While the crowdfund is in the `Active` lifecycle, users can contribute ETH to it
 
 The only way of contributing to a crowdfund is through the payable `contribute()` function. Contribution records are created per-user, tracking the individual contribution amount as well as the overall total contribution amount, in order to determine what fraction of each user's contribution was used by a successful crowdfund.
 
-### Participation NFTs
+### Crowdfund NFTs
 
-The first time a user contributes, they are minted a soulbound participation NFT, which is implemented by the crowdfund contract itself. This NFT can later be burned to refund unused ETH and/or mint voting power in the governance party.
+The first time a user contributes, they are minted a _soulbound_ Crowdfund NFT, which is implemented by the crowdfund contract itself. This NFT can later be burned to refund unused ETH and/or mint voting power in the governance party.
 
 A contributor can only own one crowdfund NFT; multiple contributions by the same contributor will not mint them additional crowdfund NFTs.
 
