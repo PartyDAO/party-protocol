@@ -69,8 +69,8 @@ The `CrowdfundFactory` contract is the canonical contract for creating crowdfund
 `CollectionBuyCrowdfund`s are created via the `createCollectionBuyCrowdfund()` function. `CollectionBuyCrowdfund`s:
 
 - Are trying to buy _any_ token ID on an ERC721 contract.
-- While active, users can contribute ETH to the cause.
-- Succeeds if the host executes an arbitrary call with value through `buy()` to acquire an eligible NFT.
+- While active, users can contribute ETH.
+- Succeeds if the host executes an arbitrary call with value through `buy()` which successfully acquires an eligible NFT.
 - Fails if the `expiry` time passes before acquiring an eligible NFT.
 
 #### Crowdfund Specific Creation Options
@@ -86,7 +86,7 @@ The `CrowdfundFactory` contract is the canonical contract for creating crowdfund
 - Are trying to buy a specific ERC721 contract + token ID listed on an auction market.
 - Directly interact with a Market Wrapper, which is an abstractions/wrapper of an NFT auction protocol.
   - These Market Wrappers are inherited from [v1](https://github.com/PartyDAO/PartyBid) of the protocol and are actually delegatecalled into.
-- While active, users can contribute ETH to the cause.
+- While active, users can contribute ETH.
 - While active, ETH bids can be placed by anyone via the `bid()` function.
 - Succeeds if anyone calls `finalize()`, which attempts to settle the auction, and the crowdfund ends up holding the NFT.
 - Fails if the `expiry` time passes before acquiring an eligible NFT.
