@@ -23,7 +23,7 @@ The main contracts involved in this phase are:
 - `Crowdfund` ([source](../contracts/crowdfund/Crowdfund.sol))
   - Abstract base class for all crowdfund contracts. Implements most contribution accounting and end-of-life logic for crowdfunds.
 - `BuyCrowdfund` ([source](../contracts/crowdfund/BuyCrowdfund.sol))
-  - A crowdfund that purchases a specific NFT (i.e., with a known token ID) listing for a known price.
+  - A crowdfund that purchases a specific NFT (i.e., with a known token ID) below a maximum price.
 - `CollectionBuyCrowdfund` ([source](../contracts/crowdfund/CollectionBuyCrowdfund.sol))
   - A crowdfund that purchases any NFT from a collection (i.e., any token ID) from a collection for a known price. Like `BuyCrowdfund` but allows any token ID in a collection to be bought.
 - `AuctionCrowdfund` ([source](../contracts/crowdfund/AuctionCrowdfund.sol))
