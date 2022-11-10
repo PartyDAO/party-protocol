@@ -176,7 +176,7 @@ Each crowdfund type has its own criteria and operations for winning.
 
 ### BuyCrowdfund
 
-`BuyCrowdfund` wins if _anyone_ successfully calls `buy()` before the crowdfund expires. The `buy()` function will perform an arbitrary call with value (up to `maximumPrice`) to attempt to acquire the predetermined NFT. The NFT must be held by the party after the arbitrary call successfully returns. It will then proceed with creating a governance Party.
+`BuyCrowdfund` wins if _anyone_ successfully calls `buy()` before the crowdfund expires. The `buy()` function will perform an arbitrary call with value (up to `maximumPrice`) to attempt to acquire the predetermined NFT. The NFT must be held by the crowdfund after the arbitrary call successfully returns. It will then proceed with creating a governance Party. If the `onlyHostCanBuy` option is set, then only a host will be able to call `buy()`.
 
 ### CollectionBuyCrowdfund
 
