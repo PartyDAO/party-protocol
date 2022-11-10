@@ -115,7 +115,7 @@ In addition to the creation options described for each crowdfund type, there are
 - `bytes12 gateKeeperId`: The gate ID within the gateKeeper contract to use.
 - `FixedGovernanceOpts governanceOpts`: Fixed [governance options](https://github.com/PartyDAO/partybidV2/blob/main/docs/governance.md#governance-options) that the governance Party will be created with if the crowdfund succeeds. Aside from the party `hosts`, only the hash of this field is stored on-chain at creation. It must be provided in full again in order for the party to win.
 
-Crowdfunds are initialized with fixed options, i.e. cannot be changed after creating a party.
+Crowdfunds are initialized with fixed options, i.e. options cannot be changed after creating a crowdfund.
 
 ### Optional Gatekeeper Creation Data
 
