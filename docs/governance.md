@@ -1,6 +1,6 @@
 # Governance Contracts
 
-After a crowdfund has acquired its NFTs, they transfer it to and form a governance `Party` around it, where the contributors are minted voting power equivalent to their contribution during the crowdfund and use that voting power to vote on proposals to be executed as the Party.
+After a crowdfund has acquired its NFTs, it creates a new governance `Party`, where the NFTs are transferred. Contributors are minted NFT memberships in the new Party, containing voting power equivalent to their contribution during the crowdfund. Voting power can be used to vote on proposals suggestion actions for the Party to execute.
 
 ---
 
