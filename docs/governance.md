@@ -149,7 +149,7 @@ When creating a distribution, implementing contracts are expected to transfer th
 
 ### Emergency Actions
 
-`TokenDistributor` contains an `emergencyExecute` function that can perform an arbitrary delegatecall. This will only be called in a catastrophic scenario where the `TokenDistributor` must be decommissioned. It is restricted to the PartyDAO Multisig. The ability to call this function will be disabled after `emergencyExecuteDisabledTimestamp` has passed.
+`TokenDistributor` contains an `emergencyExecute` function that can perform an arbitrary delegatecall. This will only be called in an emergency scenario where the `TokenDistributor` must be decommissioned. It is restricted to the PartyDAO Multisig. The ability to call this function will be disabled after `emergencyExecuteDisabledTimestamp` has passed.
 
 ---
 
