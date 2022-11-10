@@ -6,12 +6,12 @@ After a crowdfund has acquired its NFTs, it creates a new governance `Party`, wh
 
 ## Key Concepts
 
-- **Precious**: A set of ERC721 tokens custodied by the governance contract (`Party`), conventionally acquired by the crowdfund phase. These are protected assets and are subject to extra restrictions in proposals vs other assets.
-- **Governance NFTs**: An NFT (721) representing voting power within the governance Party.
-- **Party**: The governance contract itself, which custodies the NFT, tracks voting power, manages the lifecycle of proposals, and is simultaneously the token contract for Governance NFTs.
-- **Proposals**: On-chain actions that will be executed as the party that must progress through the entire governance lifecycle.
-- **Distributions**: An (ungoverned) mechanism by which parties can distribute ETH and ERC20 tokens held by the party to members proportional to their relative voting power (Governance NFTs).
-- **Party Hosts**: Predefined accounts that can unilaterally veto proposals in the party. Conventionally defined when the crowdfund is created.
+- **Precious**: A set of ERC721 tokens custodied by the governance contract (`Party`), conventionally acquired in the crowdfund phase. These are protected assets and are subject to extra restrictions in proposals vs other assets.
+- **Governance NFT**: An NFT (ERC721) representing a membership with voting power within the governance Party.
+- **Party**: The governance contract itself, which custodies the Precious, tracks voting power, manages the lifecycle of proposals, and is simultaneously the token contract for Governance NFTs.
+- **Proposals**: On-chain actions that the Party wil execute, which must progress through the entire governance lifecycle in order to do so.
+- **Distributions**: An (ungoverned) mechanism by which parties can distribute ETH and ERC20 tokens held by the Party to members, proportional to their relative voting power (Governance NFTs).
+- **Party Hosts**: Predefined accounts that can unilaterally veto proposals in the Party. Conventionally defined when the crowdfund is created.
 - **Globals**: A single contract that holds configuration values, referenced by several ecosystem contracts.
 - **Proxies**: All `Party` instances are deployed as simple [`Proxy`](../contracts/utils/Proxy.sol) contracts that forward calls to a `Party` implementation contract.
 - **ProposalExecutionEngine**: An upgradable contract the `Party` contract delegatecalls into that implements the logic for executing specific proposal types.
