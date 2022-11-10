@@ -1,6 +1,6 @@
 # Party Protocol
 
-A protocol for *group coordination*. Party Protocol lets people crowdfund, use, sell, and distribute on-chain assets as a group. Currently focused on making NFTs multiplayer.
+A protocol for *group coordination*. Party Protocol provides on-chain functionality for group formation, coordination, and distribution. Currently focused on making NFTs multiplayer.
 
 ## Layout
 
