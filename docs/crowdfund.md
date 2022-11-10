@@ -25,9 +25,9 @@ The main contracts involved in this phase are:
 - `BuyCrowdfund` ([source](../contracts/crowdfund/BuyCrowdfund.sol))
   - A crowdfund that purchases a specific NFT (i.e., with a known token ID) below a maximum price.
 - `CollectionBuyCrowdfund` ([source](../contracts/crowdfund/CollectionBuyCrowdfund.sol))
-  - A crowdfund that purchases any NFT from a collection (i.e., any token ID) from a collection for a known price. Like `BuyCrowdfund` but allows any token ID in a collection to be bought.
+  - A crowdfund that purchases any NFT from a collection (i.e., any token ID) from a collection below a maximum price. Like `BuyCrowdfund` but allows any token ID in a collection to be bought.
 - `AuctionCrowdfund` ([source](../contracts/crowdfund/AuctionCrowdfund.sol))
-  - A crowdfund that can repeatedly bid on an auction for a specific NFT (i.e., with a known token ID) until it wins.
+  - A crowdfund that can repeatedly bid in an auction for a specific NFT (i.e., with a known token ID) until the auction ends.
 - `IMarketWrapper` ([source](../contracts/crowdfund/IMarketWrapper.sol))
   - A generic interface consumed by `AuctionCrowdfund` to abstract away interactions with any auction marketplace.
 - `IGateKeeper` ([source](../contracts/gatekeepers/IGateKeeper.sol))
