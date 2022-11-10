@@ -116,7 +116,7 @@ When determining the effective voting power of a user, the protocol binary searc
 
 Distributions allow parties to distribute fungible tokens and ETH to party members, proportional to the voting power of their Governance NFTs.
 
-Unlike proposals, distributions do not require any votes to pass.  Any member of the party can call `distribute` to distribute any ETH or ERC20 held by the party.
+Unlike proposals, distributions do not require any votes to pass.  Any member of the party can call `distribute` to distribute any ETH or ERC-20 tokens held by the party.
 
 Upon `distribute` being called, the entire balance of the specified token will be transfered to the canonical `TokenDistributor` contract, and a new distribution will be created.
 
@@ -134,7 +134,7 @@ Keith has 20% ownership of the party
 Donna has 30% ownership of the party
 Jerry has 50% ownership of the party
 
-1000 DAI is deposited into the party contract
+1000 DAI is deposited into the party contract, and a new distribution is created for this DAI.
 When Bob calls `claimFee`, they receive 25.00 DAI   (1000*0.025)
 When Keith calls `claim`,  they receive 195.00 DAI  (1000*0.975)*0.2
 When Donna calls `claim`,  they receive 292.50 DAI  (1000*0.975)*0.3
@@ -143,7 +143,7 @@ When Jerry calls `claim`,  they receive 487.50 DAI  (1000*0.975)*0.5
 
 ### Interoperability
 
-Our `TokenDistributor` contract was designed to work with parties, but a `Distribution` can be created for any contract that implements the `ITokenDistributorParty` interface.  Implementors of the `ITokenDistributorParty` must implement `getDistributionShareOf(uint256 tokenId)` which returns how much of a distribution a particular tokenId should receive. Denominated in proportion to `1e18` (i.e. `0.5e18` represents 50%), as well as `ownerOf(uint256 tokenId)` which returns the owner of a tokenId.  In the case of a `PartyGovernanceNFT`, the `getDistributionShareOf(uint256 tokenId)` defers to the ratio of the voting power of the specific `tokenId` against the `totalVotingPower`.
+Party Protocol's `TokenDistributor` contract was designed to work with Parties, but a `Distribution` can be created for any contract that implements the `ITokenDistributorParty` interface.  Implementors of the `ITokenDistributorParty` must implement `getDistributionShareOf(uint256 tokenId)` which returns how much of a distribution a particular tokenId should receive. Denominated in proportion to `1e18` (i.e. `0.5e18` represents 50%), as well as `ownerOf(uint256 tokenId)` which returns the owner of a tokenId.  In the case of a `PartyGovernanceNFT`, the `getDistributionShareOf(uint256 tokenId)` defers to the ratio of the voting power of the specific `tokenId` against the `totalVotingPower`.
 
 When creating a distribution, implementing contracts are expected to transfer the tokens prior to calling the accompanying `create{Erc20Distribution,createNativeDistribution}` method in the same transaction.
 
