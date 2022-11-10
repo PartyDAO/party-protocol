@@ -213,13 +213,13 @@ If the crowdfund won, burning the Crowdfund NFT will refund any of the contribut
 
 ### Calculating Voting Power
 
-Voting power for a contributor is equivalent to the amount of ETH they contributed that was used to acquire the NFT. Each individual contribution is tracked against the total ETH raised at the time of contribution. If a user contributes after the crowdfund received enough ETH to acquire the NFT, only their contributions from prior will count towards their final voting power. All else will be refunded when they burn their participation token.
+Voting power for a contributor is proportional to the amount of ETH they contributed that was used to acquire the NFT. Each individual contribution is tracked against the total ETH raised at the time of contribution. If a user contributes after the crowdfund received enough ETH to acquire the NFT, only their contributions from prior will count towards their final voting power. All else will be refunded when they burn their Crowdfund NFT.
 
 - If the crowdfund was created with a valid `splitBps` value, this percent of every contributor's voting power will be reserved for the `splitRecipient` to claim. If they are also a contributor, they will receive the sum of both.
 
 ### Burning Someone Else's NFT
 
-It's not uncommon for contributors to go inactive before a crowdfund ends. To help ensure delegates in the governance party have enough voting power to operate in proposal flow as quickly as possible, anyone can burn any contributor's participation NFT. This will credit a contributor's delegate in the governance Party with that contributor's voting power, which may be enough to act on proposals without the contributor's intervention.
+It's not uncommon for contributors to go inactive before a crowdfund ends. To help ensure that members in the governance party have enough voting power to operate in the proposal flow as quickly as possible, anyone can burn any contributor's Crowdfund NFT. Doing so will credit the contributor's delegate in the governance Party with the contributor's voting power, enabling the delegate to begin using that voting power.
 
 ## Gatekeepers
 
