@@ -10,7 +10,7 @@ These contracts allow people to create and join a crowdfund, pooling ETH togethe
 - **Crowdfund NFT**: A _soulbound_ NFT (ERC721) representing a contribution made to a Crowdfund. Each contributor gets one of these the first time they contribute. At the end of the crowdfund (successful or unsuccessful), a Crowdfund NFT can be burned, either to redeem unused ETH or to claim a membership NFT in the new Party.
 - **Party**: The governance contract, which will be created and will custody the NFT after it has been acquired by the crowdfund.
 - **Globals**: A single contract that holds configuration values, referenced by several ecosystem contracts.
-- **Proxies**: All Crowdfund instances are deployed as simple [`Proxy`](../contracts/utils/Proxy.sol) contracts that forward calls to a specific crowdfund implementation that inherits from `Crowdfund`.
+- **Proxies**: All crowdfund instances are deployed as simple [`Proxy`](../contracts/utils/Proxy.sol) contracts that forward calls to a specific crowdfund implementation that inherits from `Crowdfund`.
 
 ---
 
