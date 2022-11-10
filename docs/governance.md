@@ -89,7 +89,7 @@ Voting power within the governance Party is represented and held by Governance N
 
 Owners of Governance NFTs can call `Party.delegateVotingPower()` to delegate their *total intrinsic voting power* at the time of the call to another account. The minter of the Governance NFT can also set an initial delegate for the owner, meaning any Governance NFTs held by the owner will be delegated by default. If a user transfers their Governance NFT, the voting power will be delegated to the recipient's existing delegate.
 
-The chosen delegate does not need to own a Governance NFT. Delegating voting power strips the owner of their total intrinsic voting power until they redelegate to themselves, meaning they will not be able to use these votes on proposals created  in the meantime (because votes cast rely on [snapshots](#voting-power-snapshots)). Governance NFT owners can recover their voting power for future proposals if they delegate to themselves or to the zero address. Even while delegating votes to another account, it's possible for a member to receive delegated votes from a separate address. Delegated votes are not forwarded beyond a single hop. 
+The chosen delegate does not need to own a Governance NFT. Delegating voting power strips the owner of their total intrinsic voting power until they redelegate to themselves, meaning they will not be able to use these votes on proposals created  in the meantime (because votes cast rely on [snapshots](#voting-power-snapshots)). Governance NFT owners can recover their voting power for future proposals if they delegate to themselves or to the zero address. Even while delegating votes to another account, it's possible for a member to receive delegated votes from a separate address. Delegated votes are not forwarded beyond a single hop.
 
 ### Calculating Effective Voting Power
 
@@ -291,7 +291,7 @@ abi.encodeWithSelector(
 
 #### Steps
 
-This proposal is atomic, always completing in one step/execute.
+This proposal is atomic, completing in 1 step (aka. 1 `execute()` call):
 
 - Each call is executed in the order declared.
 - ETH to attach to each call must be provided by the caller of the `Party.execute()` call. If the sum of all successful calls try to consume more than `msg.value`, the entire proposal will revert.
@@ -333,7 +333,8 @@ abi.encodeWithSelector(
 
 #### Steps
 
-This proposal always has two steps:
+This proposal always has 2 steps (aka. 2 `execute()` calls):
+
 1. Transfer the token to the Zora auction house contract and create an auction with `listPrice` reserve price and `duration` auction duration (which starts after someone places a bid).
     - This will emit the next `progressData`:
     ```solidity
@@ -354,7 +355,7 @@ This proposal always has two steps:
 
 ### ListOnOpensea Proposal Type
 
-This proposal type *ultimately* tries to list an NFT held by the Party on OpenSea (Seaport 1.1). Because OpenSea listings are limit orders, there is no mechanism for on-chain price discovery (unlike a Zora auction). So to mitigate a malicious proposal listing a precious NFT for far below its actual worth, this proposal type will first place the NFT in a Zora auction before creating an OpenSea listing. The durations for this mandatory Zora step are defined by the global values `GLOBAL_OS_ZORA_AUCTION_TIMEOUT` and `GLOBAL_OS_ZORA_AUCTION_DURATION`.
+This proposal type *ultimately* tries to list an NFT held by the Party on OpenSea (Seaport 1.1). Because OpenSea listings are limit orders, there is no mechanism for on-chain price discovery (unlike a Zora auction). To mitigate a malicious proposal listing a precious NFT for far below its actual worth this proposal type will first place the NFT in a Zora auction that must end without receiving any bids before creating an OpenSea listing *if* the proposal was not passed unanimously. If it was passed unanimously or the NFT listed is not a precious, this step is skipped. The durations for this Zora step are defined by the global values `GLOBAL_OS_ZORA_AUCTION_TIMEOUT` and `GLOBAL_OS_ZORA_AUCTION_DURATION`.
 
 #### Proposal Data
 
@@ -383,10 +384,10 @@ abi.encodeWithSelector(
 
 #### Steps
 
-This proposal has between 2-3 steps:
+This proposal has between 2-3 steps (aka. 2-3 `execute()` calls), depending on whether the proposal was passed unanimously and whether the lisetd NFT is precious or not:
 
-1. If the proposal did not pass unanimously and the `token` + `tokenId` is precious:
-    1. Transfer the token to the Zora auction house contract and create an auction with `listPrice` reserve price and `GLOBAL_OS_ZORA_AUCTION_DURATION` auction duration (which starts after someone places a bid).
+1. If the proposal did not pass unanimously AND the `token` + `tokenId` is precious, the proposal starts here. Otherwise, if *either* of those conditions are false, skip to 3.
+    - Transfer the token to the Zora auction house contract and create an auction with `listPrice` reserve price and `GLOBAL_OS_ZORA_AUCTION_DURATION` auction duration (which starts after someone places a bid).
         - This will emit the next `progressData`:
         ```solidity
         abi.encode(
@@ -400,11 +401,11 @@ This proposal has between 2-3 steps:
             )
         );
         ```
-    2. Either cancel or finalize the auction.
-        - Cancel the auction if the auction was never bid on and `progressData.minExpiry` has passed. This will also return the NFT to the party. Proceed to 2.1.
-        - Finalize the auction if someone has bid on it and the auction duration has passed. This will transfer the top bid amount (in ETH) to the Party. It is also possible someone else finalized the auction already, in which case the Party already has the ETH and this step becomes a no-op. *The proposal will be complete at this point with no further steps.*
-2. If the proposal passed unanimously or if the `token` + `tokenId` is not precious:
-    1. Grant OpenSea an allowance for the NFT and create a non-custodial OpenSea listing for the NFT with price `listPrice` + any extra `fees` that is valid for `duration` seconds.
+2. After the Zora auction concluded or has expired, finalize or cancel the auction.
+    - Cancel the auction if the auction was never bid on and `progressData.minExpiry` has passed. This will also return the NFT to the party. The party may now safely proceed to 3.
+    - Finalize the auction if someone has bid on it and the auction duration has passed. This will transfer the top bid amount (in ETH) to the Party. It is also possible someone else finalized the auction already, in which case the Party already has the ETH and this step becomes a no-op. *The proposal will be complete at this point with no further steps.*
+3. If the proposal passed unanimously, the `token` + `tokenId` is not precious, or `token` + `tokenId` is precious but passed the safety Zora auction:
+    - Grant OpenSea an allowance for the NFT and create a non-custodial OpenSea listing for the NFT with price `listPrice` + any extra `fees` that is valid for `duration` seconds.
         - This will emit the next `progressData`:
         ```solidity
         abi.encode(
@@ -418,7 +419,7 @@ This proposal has between 2-3 steps:
             )
         );
         ```
-3. Clean up the OpenSea listing, emitting an event with the outcome, and:
+4. Clean up the OpenSea listing, emitting an event with the outcome, and:
     - If the order was filled, the Party has the `listPrice` ETH, the NFT allowance was consumed, and there is nothing left to do.
     - If the order expired, no one bought the listing and the Party still owns the NFT. Revoke OpenSea's token allowance.
 
@@ -446,7 +447,8 @@ abi.encodeWithSelector(
 
 #### Steps
 
-This proposal is atomic, completing in one step/execute:
+This proposal is atomic, completing in 1 step (aka. 1 `execute()` call):
+
 1. Create a new Fractional V1 vault around `token` + `tokenId`.
     - Reserve price will be set to the proposal's `listPrice`.
     - Curator will be set to `address(0)`.
@@ -470,7 +472,7 @@ abi.encodeWithSelector(
 
 #### Steps
 
-This proposal is always atomic and completes in a single step/execute.
+This proposal is atomic, completing in 1 step (aka. 1 `execute()` call):
 
 - The current `ProposalExecutionEngine` implementation address is looked up in the `Globals` contract, keyed by `GLOBAL_PROPOSAL_ENGINE_IMPL`.
 - The current `ProposalExecutionEngine` implementation address used by the Party is kept at an explicit, non-overlapping storage slot and will be overwritten with the new implementation address (see [ProposalStorage](../contracts/proposals/ProposalStorage.sol)).
