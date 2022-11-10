@@ -202,14 +202,14 @@ After this point, the crowdfund will be in the `Won` lifecycle and no more contr
 
 Crowdfunds generally lose when they expire before acquiring a target NFT. The one exception is `AuctionCrowdfund`, which can still be finalized and win after expiration.
 
-When a crowdfund enters the Lost lifecycle, contributors may `burn()` their participation NFT to refund all the ETH they contributed.
+When a crowdfund enters the Lost lifecycle, contributors may `burn()` their Crowdfund NFT to refund all the ETH they contributed.
 
 ## Burning
 
-At the conclusion of a crowdfund (Won or Lost lifecycle), contributors may burn their participation NFT via the `burn()` function.
+At the conclusion of a crowdfund (Won or Lost lifecycle), contributors may burn their Crowdfund NFT via the `burn()` function.
 
-If the crowdfund lost, burning the participation NFT will refund all of the contributor's contributed ETH.
-If the crowdfund won, burning the participation NFT will refund any of the contributor's _unused_ ETH and mint voting power in the governance party.
+If the crowdfund lost, burning the Crowdfund NFT will refund all of the contributor's contributed ETH.
+If the crowdfund won, burning the Crowdfund NFT will refund any of the contributor's _unused_ ETH and mint voting power in the governance party.
 
 ### Calculating Voting Power
 
