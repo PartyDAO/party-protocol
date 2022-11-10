@@ -89,7 +89,7 @@ The `CrowdfundFactory` contract is the canonical contract for creating crowdfund
 - While active, users can contribute ETH.
 - While active, ETH bids can be placed by anyone via the `bid()` function.
 - Succeeds if anyone calls `finalize()`, which attempts to settle the auction, and the crowdfund ends up holding the NFT.
-- Fails if the `expiry` time passes before acquiring an eligible NFT.
+- Fails if the `expiry` time passes before acquiring the specified NFT.
 
 #### Crowdfund Specific Creation Options
 
