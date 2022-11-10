@@ -52,8 +52,8 @@ The `CrowdfundFactory` contract is the canonical contract for creating crowdfund
 `BuyCrowdfund`s are created via the `createBuyCrowdfund()` function. `BuyCrowdfund`s:
 
 - Are trying to buy a specific ERC721 contract + token ID.
-- While active, users can contribute ETH to the cause.
-- Succeeds if anyone executes an arbitrary call with value through `buy()` to acquire the NFT.
+- While active, users can contribute ETH.
+- Succeeds if anyone executes an arbitrary call with value through `buy()` which successfully acquires the NFT.
 - Fails if the `expiry` time passes before acquiring the NFT.
 
 #### Crowdfund Specific Creation Options
