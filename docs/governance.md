@@ -402,7 +402,7 @@ This proposal has between 2-3 steps:
         ```
     2. Either cancel or finalize the auction.
         - Cancel the auction if the auction was never bid on and `progressData.minExpiry` has passed. This will also return the NFT to the party. Proceed to 2.1.
-        - Finalize the auction if someone has bid on it and the auction duration has passed. This will transfer the top bid amount (in ETH) to the Party. It is also possible someone else finalized the auction for us, in which case the Party already has the ETH and this step becomes a no-op. *The proposal will be complete at this point with no further steps.*
+        - Finalize the auction if someone has bid on it and the auction duration has passed. This will transfer the top bid amount (in ETH) to the Party. It is also possible someone else finalized the auction already, in which case the Party already has the ETH and this step becomes a no-op. *The proposal will be complete at this point with no further steps.*
 2. If the proposal passed unanimously or if the `token` + `tokenId` is not precious:
     1. Grant OpenSea an allowance for the NFT and create a non-custodial OpenSea listing for the NFT with price `listPrice` + any extra `fees` that is valid for `duration` seconds.
         - This will emit the next `progressData`:
