@@ -83,11 +83,11 @@ Parties are initialized with fixed governance options which will (mostly) never 
 
 ### Governance NFTs
 
-Voting power within the governance Party is represented and held by a Governance NFTs, which are ERC721s minted for each member of the Party. Each Governance NFT has a distinct voting power/weight associated with it. These cards can never be broken up or combined, but a user may own multiple Governance NFTs within a Party. The total *intrinsic* voting power a member has is the sum of all the voting power in all the Governance NFTs for that Party they possess at a given timestamp.
+Voting power within the governance Party is represented and held by Governance NFTs, which are ERC721s minted for each member of the Party. Each Governance NFT has a distinct voting power/weight associated with it. These cards can never be broken up or combined, but a user may own multiple Governance NFTs within a Party. Within a Party, the total *intrinsic* voting power that a member has is the sum of all the voting power in all the Governance NFTs they possess at a given timestamp.
 
 ### Delegation
 
-Owners of Governance NFTs can call `Party.delegateVotingPower()` to delegate their intrinsic *total* voting power across all Governance NFTs they hold, at the time of the call forward, to another account. The minter of the Governance NFT can also set an initial delegate for the owner, meaning any Governance NFTs held by the owner will be delegated by default. If a user transfers their Governance NFT, the voting power will be delegated to the recipient's existing delegate.
+Owners of Governance NFTs can call `Party.delegateVotingPower()` to delegate their *total intrinsic voting power* at the time of the call to another account. The minter of the Governance NFT can also set an initial delegate for the owner, meaning any Governance NFTs held by the owner will be delegated by default. If a user transfers their Governance NFT, the voting power will be delegated to the recipient's existing delegate.
 
 The chosen delegate does not need to own a Governance NFT. Delegating voting power strips the owner of their entire voting power until they redelegate to themselves, meaning they will not be able to vote on proposals created afterwards (because votes cast rely on [snapshots](#voting-power-snapshots)). Governance NFT owners can recover their voting power for future proposals if they delegate to themselves or to the zero address.
 
