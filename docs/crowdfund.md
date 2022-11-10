@@ -132,9 +132,9 @@ All crowdfunds share a concept of a lifecycle, wherein only certain actions can 
 - `Invalid`: The crowdfund does not exist.
 - `Active`: The crowdfund has been created and contributions can be made and acquisition functions may be called.
 - `Expired`: The crowdfund has passed its expiration time. No more contributions are allowed.
-- `Busy`: An temporary state set by the contract during complex operations to act as a reentrancy guard.
+- `Busy`: A temporary state set by the contract during complex operations to act as a reentrancy guard.
 - `Lost`: The crowdfund has failed to acquire the NFT in time. Contributors can reclaim their full contributions.
-- `Won`: The crowdfund has acquired the NFT and it is now held by a governance party. Contributors can claim their voting tokens.
+- `Won`: The crowdfund has acquired the NFT and it is now held by a governance party. Contributors can claim their membership NFTs or reclaim unused ETH.
 
 ## Making Contributions
 
