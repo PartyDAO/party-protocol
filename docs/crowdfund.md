@@ -7,7 +7,7 @@ These contracts allow people to create and join a crowdfund, pooling ETH togethe
 ## Key Concepts
 
 - **Crowdfunds**: Contracts implementing various strategies that allow people to pool ETH together to acquire an NFT, with the end goal of forming a Party around it.
-- **Crowdfund NFT**: A _soulbound_ NFT (ERC721) representing a contribution made to a Crowdfund. Each contributor gets one of these the first time they contribute. At the end of the crowdfund (successful or unsuccessful), a Crowdfund NFT can be burned, either to redeem unused ETH or to claim a membership NFT in the new Party.
+- **Crowdfund NFT**: A _soulbound_ NFT (ERC721) representing a contribution made to a Crowdfund. Each contributor gets one of these the first time they contribute. At the end of the crowdfund (successful or unsuccessful), a Crowdfund NFT can be burned, either to redeem unused ETH or to claim a governance NFT in the new Party.
 - **Party**: The governance contract, which will be created and will custody the NFT after it has been acquired by the crowdfund.
 - **Globals**: A single contract that holds configuration values, referenced by several ecosystem contracts.
 - **Proxies**: All crowdfund instances are deployed as simple [`Proxy`](../contracts/utils/Proxy.sol) contracts that forward calls to a specific crowdfund implementation that inherits from `Crowdfund`.
@@ -134,7 +134,7 @@ All crowdfunds share a concept of a lifecycle, wherein only certain actions can 
 - `Expired`: The crowdfund has passed its expiration time. No more contributions are allowed.
 - `Busy`: A temporary state set by the contract during complex operations to act as a reentrancy guard.
 - `Lost`: The crowdfund has failed to acquire the NFT in time. Contributors can reclaim their full contributions.
-- `Won`: The crowdfund has acquired the NFT and it is now held by a governance party. Contributors can claim their membership NFTs or reclaim unused ETH.
+- `Won`: The crowdfund has acquired the NFT and it is now held by a governance party. Contributors can claim their governance NFTs or reclaim unused ETH.
 
 ## Making Contributions
 
@@ -196,7 +196,7 @@ If the `onlyHostCanBid` option is set, then only a host will be able to call `bi
 
 In every crowdfund, immediately after the party has won by acquiring the NFT, it will create a new governance Party instance, using the same fixed governance options provided at crowdfund creation. The `totalVotingPower` the governance Party is created with is simply the settled price of the NFT (how much ETH we paid for it). The bought NFT is immediately transferred to the governance Party as well.
 
-After this point, the crowdfund will be in the `Won` lifecycle and no more contributions will be allowed. Contributors can `burn()` their Crowdfund NFT to refund any ETH they contributed that was not used, as well as mint a membership NFT within the governance Party, which contains voting power.
+After this point, the crowdfund will be in the `Won` lifecycle and no more contributions will be allowed. Contributors can `burn()` their Crowdfund NFT to refund any ETH they contributed that was not used, as well as mint a governance NFT containing voting power within the Party.
 
 ## Losing
 
@@ -209,7 +209,7 @@ When a crowdfund enters the Lost lifecycle, contributors may `burn()` their Crow
 At the conclusion of a crowdfund (Won or Lost lifecycle), contributors may burn their Crowdfund NFT via the `burn()` function.
 
 If the crowdfund lost, burning the Crowdfund NFT will refund all of the contributor's contributed ETH.
-If the crowdfund won, burning the Crowdfund NFT will refund any of the contributor's _unused_ ETH and mint a membership NFT containing voting power in the governance Party, equivalent to the contributor's _used_ ETH.
+If the crowdfund won, burning the Crowdfund NFT will refund any of the contributor's _unused_ ETH and mint a governance NFT containing voting power in the governance Party, equivalent to the contributor's _used_ ETH.
 
 ### Calculating Voting Power
 
