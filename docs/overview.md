@@ -1,6 +1,6 @@
 # Party Protocol
 
-The Party Protocol allows people to pool funds together to acquire NFTs then govern those NFTs together.
+A protocol for _group coordination_. Party Protocol provides on-chain functionality for group formation, coordination, and distribution. Party Protocol allows people to pool funds together to acquire NFTs, then coordinate together to use or sell those NFTs as a group.
 
 ## Patterns
 
