@@ -155,7 +155,7 @@ When creating a distribution, implementing contracts are expected to transfer th
 
 ## Governance Lifecycle
 
-Governance in Parties follows a fairly traditional model, revolving around passing and executing proposals. Proposals have the following properties:
+Governance in Parties revolves around creating, passing, and executing proposals. Proposals have the following properties:
 
 - `maxExecutableTime`: A timestamp beyond which the proposal can no longer be executed. In the case of [multi-step proposals](#multi-step-proposals), this only restricts the first time the proposal is executed.
 - `cancelDelay`: Number of seconds after a proposal enters the `InProgress` state after which it can be forcibly interrupted and marked complete so another proposal can be executed.
