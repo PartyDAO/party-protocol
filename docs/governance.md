@@ -6,11 +6,11 @@ After a crowdfund has acquired its NFTs, it creates a new governance `Party`, wh
 
 ## Key Concepts
 
-- **Precious**: A set of ERC721 tokens custodied by the governance contract (`Party`), conventionally acquired in the crowdfund phase. These are protected assets and are subject to extra restrictions in proposals vs other assets.
+- **Precious**: A set of ERC-721 tokens custodied by the governance contract (`Party`), conventionally acquired in the crowdfund phase. These are protected assets and are subject to extra restrictions in proposals vs other assets.
 - **Governance NFT**: An NFT (ERC721) representing a membership with voting power within the governance Party.
 - **Party**: The governance contract itself, which custodies the Precious, tracks voting power, manages the lifecycle of proposals, and is simultaneously the token contract for Governance NFTs.
 - **Proposals**: On-chain actions that the Party wil execute, which must progress through the entire governance lifecycle in order to do so.
-- **Distributions**: An (ungoverned) mechanism by which parties can distribute ETH and ERC20 tokens held by the Party to members, proportional to their relative voting power (Governance NFTs).
+- **Distributions**: An (ungoverned) mechanism by which parties can distribute ETH and ERC-20 tokens held by the Party to members, proportional to their relative voting power (Governance NFTs).
 - **Party Hosts**: Predefined accounts that can unilaterally veto proposals in the Party. Conventionally defined when the crowdfund is created.
 - **Globals**: A single contract that holds configuration values, referenced by several ecosystem contracts.
 - **Proxies**: All `Party` instances are deployed as simple [`Proxy`](../contracts/utils/Proxy.sol) contracts that forward calls to a `Party` implementation contract.
@@ -25,7 +25,7 @@ The main contracts involved in this phase are:
 - `PartyFactory` ([code](../contracts/party/PartyFactory.sol))
     - Creates new proxified `Party` instances.
 - `Party` ([code](../contracts/party/Party.sol))
-    - The governance contract that also custodies the precious NFTs. This is also the Governance NFT 721 contract.
+    - The governance contract that also custodies the precious NFTs. This is also the ERC-721 contract for the Governance NFTs.
 - `ProposalExecutionEngine` ([code](../contracts/proposals/ProposalExecutionEngine.sol))
     - An upgradable logic (and some state) contract for executing each proposal type from the context of the `Party`.
 - `TokenDistributor` ([code](../contracts/distribution/TokenDistributor.sol))
