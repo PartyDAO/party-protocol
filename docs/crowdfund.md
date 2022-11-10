@@ -209,11 +209,11 @@ When a crowdfund enters the Lost lifecycle, contributors may `burn()` their Crow
 At the conclusion of a crowdfund (Won or Lost lifecycle), contributors may burn their Crowdfund NFT via the `burn()` function.
 
 If the crowdfund lost, burning the Crowdfund NFT will refund all of the contributor's contributed ETH.
-If the crowdfund won, burning the Crowdfund NFT will refund any of the contributor's _unused_ ETH and mint a membership NFT containing voting power in the governance Party, proportional to the contributor's _used_ ETH.
+If the crowdfund won, burning the Crowdfund NFT will refund any of the contributor's _unused_ ETH and mint a membership NFT containing voting power in the governance Party, equivalent to the contributor's _used_ ETH.
 
 ### Calculating Voting Power
 
-Voting power for a contributor is proportional to the amount of ETH they contributed that was used to acquire the NFT. Each individual contribution is tracked against the total ETH raised at the time of contribution. If a user contributes after the crowdfund received enough ETH to acquire the NFT, only their contributions from prior will count towards their final voting power. All else will be refunded when they burn their Crowdfund NFT.
+Voting power for a contributor is equivalent to the amount of ETH they contributed that was used to acquire the NFT. Each individual contribution is tracked against the total ETH raised at the time of contribution. If a user contributes after the crowdfund received enough ETH to acquire the NFT, only their contributions from prior will count towards their final voting power. All else will be refunded when they burn their Crowdfund NFT.
 
 - If the crowdfund was created with a valid `splitBps` value, this percent of every contributor's voting power will be reserved for the `splitRecipient` to claim. If they are also a contributor, they will receive the sum of both.
 
