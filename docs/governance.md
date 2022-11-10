@@ -350,7 +350,7 @@ This proposal always has two steps:
     ```
 2. Either cancel or finalize the auction.
     - Cancel the auction if the auction was never bid on and `minExpiry` time has passed. This will also return the NFT to the party.
-    - Finalize the auction if someone has bid on it and the auction `duration` has passed. This will transfer the top bid amount (in ETH) to the Party. It is also possible someone else finalized the auction for us, in which case the Party already has the ETH and this step becomes a no-op.
+    - Finalize the auction if someone has bid on it and the auction `duration` has passed. This will transfer the top bid amount (in ETH) to the Party. It is also possible someone else finalized the auction already, in which case the Party already has the ETH and this step becomes a no-op.
 
 ### ListOnOpensea Proposal Type
 
