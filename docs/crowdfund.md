@@ -144,7 +144,7 @@ The only way of contributing to a crowdfund is through the payable `contribute()
 
 ### Crowdfund NFTs
 
-The first time a user contributes, they are minted a _soulbound_ Crowdfund NFT, which is implemented by the crowdfund contract itself. This NFT can later be burned to refund unused ETH and/or mint voting power in the governance party.
+The first time a user contributes, they are minted a _soulbound_ Crowdfund NFT, which is implemented by the crowdfund contract itself. This NFT can later be burned to refund unused ETH and/or mint an NFT containing voting power in the governance Party.
 
 A contributor can only own one crowdfund NFT; multiple contributions by the same contributor will not mint them additional crowdfund NFTs.
 
@@ -209,7 +209,7 @@ When a crowdfund enters the Lost lifecycle, contributors may `burn()` their Crow
 At the conclusion of a crowdfund (Won or Lost lifecycle), contributors may burn their Crowdfund NFT via the `burn()` function.
 
 If the crowdfund lost, burning the Crowdfund NFT will refund all of the contributor's contributed ETH.
-If the crowdfund won, burning the Crowdfund NFT will refund any of the contributor's _unused_ ETH and mint voting power in the governance party.
+If the crowdfund won, burning the Crowdfund NFT will refund any of the contributor's _unused_ ETH and mint a membership NFT containing voting power in the governance Party.
 
 ### Calculating Voting Power
 
