@@ -1063,7 +1063,7 @@ contract CrowdfundTest is Test, TestUtils {
         assertEq(cf.getContributionEntriesByContributorCount(contributor1), 2);
     }
 
-    function test_canCanEmergencyExecute() external {
+    function test_canEmergencyExecute() external {
         TestableCrowdfund cf = _createCrowdfund(0);
         bytes memory callData = abi.encodeCall(emergencyExecuteTarget.foo, (address(cf), 123));
         vm.deal(address(cf), 123);
