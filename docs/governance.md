@@ -181,7 +181,7 @@ The stages of a proposal are defined in `PartyGovernance.ProposalStatus`:
 
 A proposer should choose an appropriate `maxExecutableTime` and `cancelDelay`. The `proposalData` should be prefixed (like a function call) with a 4-byte `IProposalExecutionEngine.ProposalType` value followed by the ABI-encoded data specific to that proposal type (see [Proposal Types](#proposal-types)), e.g., `abi.encodeWithSelector(bytes4(ProposalType.ListOnZoraProposal), abi.encode(ZoraProposalData(...)))`.
 
-Once ready, an active member or delegate (someone with nonzero effective voting power) can call `propose()` with the proposal properties, which will assign a unique, nonzero proposal ID and put the proposal in the `Voting` status. Creating a proposal will also automatically cast the proposer's votes for it.
+Once ready, any member or delegate (someone with nonzero effective voting power) can call `propose()` with the proposal properties, which will assign a unique, nonzero proposal ID and put the proposal in the `Voting` status. Creating a proposal will also automatically cast the proposer's votes for it.
 
 ### Voting on Proposals
 
