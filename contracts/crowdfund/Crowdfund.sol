@@ -232,10 +232,6 @@ abstract contract Crowdfund is Implementation, ERC721Receiver, CrowdfundNFT {
     ///         contributor's behalf to unlock their voting power in the
     ///         governance stage ensuring delegates receive their voting
     ///         power and governance is not stalled.
-    /// @dev If the party has won, someone needs to call `_createParty()` first. After
-    ///      which, `
-    ///      If the party has lost, this will only refund unused ETH (all of it) for
-    ///      the given `contributor`.
     /// @param contributor The contributor whose NFT to burn for.
     function burn(address payable contributor) public {
         return _burn(contributor, getCrowdfundLifecycle(), party);
