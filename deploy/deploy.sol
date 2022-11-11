@@ -557,12 +557,11 @@ contract DeployScript is Script, Deploy {
     }
 
     function _switchDeployer(DeployerRole role) internal override {
-        address lastDeployer = this.getDeployer();
         vm.stopBroadcast();
         {
-            address deployer = _deployerByRole[role];
-            if (deployer != address(0)) {
-                vm.startBroadcast(deployer);
+            address deployer_ = _deployerByRole[role];
+            if (deployer_ != address(0)) {
+                vm.startBroadcast(deployer_);
             } else {
                 vm.startBroadcast();
             }

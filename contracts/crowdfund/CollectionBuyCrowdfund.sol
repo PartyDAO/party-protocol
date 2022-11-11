@@ -112,8 +112,7 @@ contract CollectionBuyCrowdfund is BuyCrowdfundBase {
         returns (Party party_)
     {
         // This function is always restricted to hosts.
-        bool isValidatedGovernanceOpts =
-                _assertIsHost(msg.sender, governanceOpts, hostIndex);
+        _assertIsHost(msg.sender, governanceOpts, hostIndex);
         return _buy(
             nftContract,
             tokenId,
@@ -121,7 +120,7 @@ contract CollectionBuyCrowdfund is BuyCrowdfundBase {
             callValue,
             callData,
             governanceOpts,
-            isValidatedGovernanceOpts
+            true
         );
     }
 }
