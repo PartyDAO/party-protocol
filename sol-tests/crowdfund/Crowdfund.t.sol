@@ -48,6 +48,9 @@ contract CrowdfundTest is Test, TestUtils {
 
     event Contributed(address contributor, uint256 amount, address delegate, uint256 previousTotalContributions);
     event Burned(address contributor, uint256 ethUsed, uint256 ethOwed, uint256 votingPower);
+    event EmergencyExecuteTargetCalled();
+    event EmergencyExecuteDisabled();
+    event EmergencyExecute(address target, bytes data, uint256 amountEth);
 
     string defaultName = 'Party of the Living Dead';
     string defaultSymbol = 'ACF';
@@ -59,6 +62,8 @@ contract CrowdfundTest is Test, TestUtils {
     IGateKeeper defaultGateKeeper;
     bytes12 defaultGateKeeperId;
     Crowdfund.FixedGovernanceOpts defaultGovernanceOpts;
+    address dao;
+    EmergencyExecuteTarget emergencyExecuteTarget = new EmergencyExecuteTarget();
 
     Globals globals = new Globals(address(this));
     MockPartyFactory partyFactory = new MockPartyFactory();
@@ -74,6 +79,7 @@ contract CrowdfundTest is Test, TestUtils {
         defaultGovernanceOpts.voteDuration = 1 days;
         defaultGovernanceOpts.executionDelay = 0.5 days;
         defaultGovernanceOpts.passThresholdBps = 0.51e4;
+        dao =_randomAddress();
 
         // Upload font on-chain
         PixeldroidConsoleFont font = new PixeldroidConsoleFont();
@@ -81,6 +87,7 @@ contract CrowdfundTest is Test, TestUtils {
         nftRenderer = new CrowdfundNFTRenderer(globals, nftRendererStorage, font);
         globals.setAddress(LibGlobals.GLOBAL_CF_NFT_RENDER_IMPL, address(nftRenderer));
         globals.setAddress(LibGlobals.GLOBAL_RENDERER_STORAGE, address(nftRendererStorage));
+        globals.setAddress(LibGlobals.GLOBAL_DAO_WALLET, dao);
 
         // Generate customization options.
         uint256 versionId = 1;
@@ -1056,6 +1063,72 @@ contract CrowdfundTest is Test, TestUtils {
         assertEq(cf.getContributionEntriesByContributorCount(contributor1), 2);
     }
 
+    function test_canCanEmergencyExecute() external {
+        TestableCrowdfund cf = _createCrowdfund(0);
+        bytes memory callData = abi.encodeCall(emergencyExecuteTarget.foo, (address(cf), 123));
+        vm.deal(address(cf), 123);
+        vm.prank(dao);
+        _expectEmit0();
+        emit EmergencyExecuteTargetCalled();
+        _expectEmit0();
+        emit EmergencyExecute(address(emergencyExecuteTarget), callData, 123);
+        cf.emergencyExecute(
+            address(emergencyExecuteTarget),
+            callData,
+            123
+        );
+    }
+    
+    function test_hostCanDisableEmergencyFunctions() external {
+        TestableCrowdfund cf = _createCrowdfund(0);
+        vm.prank(defaultGovernanceOpts.hosts[0]);
+        _expectEmit0();
+        emit EmergencyExecuteDisabled();
+        cf.disableEmergencyExecute(defaultGovernanceOpts, 0);
+        assertEq(cf.emergencyExecuteDisabled(), true);
+    }
+    
+    function test_daoCanDisableEmergencyFunctions() external {
+        TestableCrowdfund cf = _createCrowdfund(0);
+        vm.prank(dao);
+        _expectEmit0();
+        emit EmergencyExecuteDisabled();
+        cf.disableEmergencyExecute(defaultGovernanceOpts, 0);
+        assertEq(cf.emergencyExecuteDisabled(), true);
+    }
+
+    function test_nonHostOrDaoCannotDisableEmergencyFunctions() external {
+        TestableCrowdfund cf = _createCrowdfund(0);
+        address notHost = _randomAddress();
+        vm.prank(notHost);
+        vm.expectRevert(abi.encodeWithSelector(Crowdfund.OnlyPartyDaoOrHostError.selector, notHost));
+        cf.disableEmergencyExecute(defaultGovernanceOpts, 0);
+    }
+
+    function test_cannotEmergencyExecuteIfDisabled() external {
+        TestableCrowdfund cf = _createCrowdfund(0);
+        vm.prank(defaultGovernanceOpts.hosts[0]);
+        cf.disableEmergencyExecute(defaultGovernanceOpts, 0);
+        vm.expectRevert(abi.encodeWithSelector(Crowdfund.OnlyWhenEmergencyActionsAllowedError.selector));
+        vm.prank(dao);
+        cf.emergencyExecute(address(0), "", 0);
+    }
+
+    function test_hostCannotEmergencyExecute() external {
+        TestableCrowdfund cf = _createCrowdfund(0);
+        vm.prank(defaultGovernanceOpts.hosts[0]);
+        vm.expectRevert(abi.encodeWithSelector(Crowdfund.OnlyPartyDaoError.selector, defaultGovernanceOpts.hosts[0]));
+        cf.emergencyExecute(address(0), "", 0);
+    }
+
+    function test_randoCannotEmergencyExecute() external {
+        TestableCrowdfund cf = _createCrowdfund(0);
+        address rando = _randomAddress();
+        vm.prank(rando);
+        vm.expectRevert(abi.encodeWithSelector(Crowdfund.OnlyPartyDaoError.selector, rando));
+        cf.emergencyExecute(address(0), "", 0);
+    }
+
     function test_generateSVG_works() public {
         string memory svg = nftRenderer.generateSVG(
             "Test",
@@ -1152,5 +1225,14 @@ contract CrowdfundTest is Test, TestUtils {
         cf.supportsInterface(0x01ffc9a7); // EIP165
         cf.supportsInterface(0x80ac58cd); // ERC721
         cf.supportsInterface(0x150b7a02); // ERC721Receiver
+    }
+}
+
+contract EmergencyExecuteTarget {
+    event EmergencyExecuteTargetCalled();
+
+    function foo(address cf, uint256 amt) external payable {
+        require(cf == msg.sender && msg.value == amt, 'unexpected call');
+        emit EmergencyExecuteTargetCalled();
     }
 }
