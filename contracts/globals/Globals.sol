@@ -1,10 +1,11 @@
 // SPDX-License-Identifier: GPL-3.0
 pragma solidity 0.8.17;
 
+import "../utils/Multicall.sol";
 import "./IGlobals.sol";
 
 /// @notice Contract storing global configuration values.
-contract Globals is IGlobals {
+contract Globals is IGlobals, Multicall {
     address public multiSig;
     address public pendingMultiSig;
     // key -> word value

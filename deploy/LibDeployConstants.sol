@@ -25,6 +25,9 @@ library LibDeployConstants {
     address nounsAuctionHouse;
     address zoraAuctionHouse;
     string networkName;
+    address deployedNounsMarketWrapper;
+    address deployedFoundationMarketWrapper;
+    address deployedZoraMarketWrapper;
   }
 
   function rinkeby(address multisig) internal pure returns (DeployConstants memory) {
@@ -48,7 +51,10 @@ library LibDeployConstants {
       foundationMarket: 0x21b700d637551f15078E11871a3c0dcCf283D1e7,
       nounsAuctionHouse: 0x7cb0384b923280269b3BD85f0a7fEaB776588382,
       zoraAuctionHouse: 0xE7dd1252f50B3d845590Da0c5eADd985049a03ce,
-      networkName: 'rinkeby'
+      networkName: 'rinkeby',
+      deployedNounsMarketWrapper: 0x0000000000000000000000000000000000000000,
+      deployedFoundationMarketWrapper: 0x0000000000000000000000000000000000000000,
+      deployedZoraMarketWrapper: 0x0000000000000000000000000000000000000000
     });
 
     return deployConstants;
@@ -75,7 +81,10 @@ library LibDeployConstants {
       foundationMarket: 0xeB1bD095061bbDb1aD065524628812cae63e4222,
       nounsAuctionHouse: 0x7295e70f2B26986Ba108bD1Bf9E349a181F4a6Ea,
       zoraAuctionHouse: 0x6a6Cdb103f1072E0aFeADAC9BeBD6E14B287Ca57,
-      networkName: 'goerli'
+      networkName: 'goerli',
+      deployedNounsMarketWrapper: 0x0000000000000000000000000000000000000000,
+      deployedFoundationMarketWrapper: 0x0000000000000000000000000000000000000000,
+      deployedZoraMarketWrapper: 0x0000000000000000000000000000000000000000
     });
 
     return deployConstants;
@@ -102,7 +111,10 @@ library LibDeployConstants {
       foundationMarket: 0xcDA72070E455bb31C7690a170224Ce43623d0B6f,
       nounsAuctionHouse: 0x830BD73E4184ceF73443C15111a1DF14e495C706,
       zoraAuctionHouse: 0xE468cE99444174Bd3bBBEd09209577d25D1ad673,
-      networkName: 'mainnet'
+      networkName: 'mainnet',
+      deployedNounsMarketWrapper: 0x9319DAd8736D752C5c72DB229f8e1b280DC80ab1,
+      deployedFoundationMarketWrapper: 0x96e5b0519983f2f984324b926e6d28C3A4Eb92A1,
+      deployedZoraMarketWrapper: 0x11c07cE1315a3b92C9755F90cDF40B04b88c5731
     });
 
     return deployConstants;

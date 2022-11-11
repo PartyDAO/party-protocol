@@ -2,8 +2,9 @@
 pragma solidity 0.8.17;
 
 import "solmate/utils/SSTORE2.sol";
+import "../utils/Multicall.sol";
 
-contract RendererStorage {
+contract RendererStorage is Multicall {
     error AlreadySetError();
     error NotOwnerError(address caller, address owner);
 

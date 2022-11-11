@@ -20,8 +20,10 @@
         "test:ts": "yarn build:ts && yarn test:ts:run",
         "test:ts:run": "mocha -t 0 -b 'js/**/*.t.js'",
         "test:deploy:run": "mocha --require source-map-support/register -t 0 -b 'js/tests/deploy/**.t.deploy.js'",
-        "deploy:rinkeby": "yarn build:ts && forge script ./deploy/rinkeby.sol -vvv --rpc-url https://eth-rinkeby.g.alchemy.com/v2/${ALCHEMY_API_KEY} --private-key ${PRIVATE_KEY} --broadcast --verify --etherscan-api-key ${ETHERSCAN_API_KEY} --optimize --optimizer-runs 200 --ffi",
-        "deploy:goerli": "yarn build:ts && forge script ./deploy/goerli.sol -vvv --rpc-url https://eth-goerli.g.alchemy.com/v2/${ALCHEMY_API_KEY} --private-key ${PRIVATE_KEY} --broadcast --verify --etherscan-api-key ${ETHERSCAN_API_KEY} --optimize --optimizer-runs 200 --ffi",
+        "deploy:goerli": "DRY_RUN=0 forge script ./deploy/goerli.sol -vvv --rpc-url https://eth-goerli.g.alchemy.com/v2/${ALCHEMY_API_KEY} --broadcast --verify --etherscan-api-key ${ETHERSCAN_API_KEY} --optimize --optimizer-runs 200 --ffi",
+        "deploy:goerli:dry": "DRY_RUN=1 forge script ./deploy/goerli.sol -vvv --fork-url https://eth-goerli.g.alchemy.com/v2/${ALCHEMY_API_KEY} --optimize --optimizer-runs 200 --ffi",
+        "deploy:mainnet": "DRY_RUN=0 forge script ./deploy/mainnet.sol -vvv --rpc-url https://eth-mainnet.g.alchemy.com/v2/${ALCHEMY_API_KEY} --broadcast --verify --etherscan-api-key ${ETHERSCAN_API_KEY} --optimize --optimizer-runs 200 --ffi",
+        "deploy:mainnet:dry": "DRY_RUN=1 forge script ./deploy/mainnet.sol -vvv --fork-url https://eth-mainnet.g.alchemy.com/v2/${ALCHEMY_API_KEY} --optimize --optimizer-runs 200 --ffi",
         "decode-revert": "node js/utils/decode-revert.js",
         "layout": "node js/utils/gen-storage-layout.js"
     },

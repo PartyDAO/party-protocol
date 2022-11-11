@@ -224,6 +224,19 @@
     "type": "function"
   },
   {
+    "inputs": [
+      {
+        "internalType": "bytes[]",
+        "name": "multicallData",
+        "type": "bytes[]"
+      }
+    ],
+    "name": "multicall",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
     "inputs": [],
     "name": "pendingMultiSig",
     "outputs": [

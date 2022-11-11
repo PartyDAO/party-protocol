@@ -530,6 +530,11 @@
         "internalType": "address payable[]",
         "name": "contributors",
         "type": "address[]"
+      },
+      {
+        "internalType": "bool",
+        "name": "revertOnFailure",
+        "type": "bool"
       }
     ],
     "name": "batchActivateOrRefund",
@@ -543,6 +548,11 @@
         "internalType": "address payable[]",
         "name": "contributors",
         "type": "address[]"
+      },
+      {
+        "internalType": "bool",
+        "name": "revertOnFailure",
+        "type": "bool"
       }
     ],
     "name": "batchBurn",
