@@ -1,17 +1,17 @@
 # Governance Contracts
 
-After a crowdfund has acquired its NFTs, they transfer it to and form a governance `Party` around it, where the contributors are minted voting power equivalent to their contribution during the crowdfund and use that voting power to vote on proposals to be executed as the Party.
+After a crowdfund has acquired its NFTs, it creates a new governance `Party`, where the NFTs are transferred. Contributors are minted NFT memberships in the new Party, containing voting power equivalent to their contribution during the crowdfund. Voting power can be used to vote on proposals, which contain possible actions for the Party to execute.
 
 ---
 
 ## Key Concepts
 
-- **Precious**: A set of ERC721 tokens custodied by the governance contract (`Party`), conventionally acquired by the crowdfund phase. These are protected assets and are subject to extra restrictions in proposals vs other assets.
-- **Governance NFTs**: An NFT (721) representing voting power within the governance Party.
-- **Party**: The governance contract itself, which custodies the NFT, tracks voting power, manages the lifecycle of proposals, and is simultaneously the token contract for Governance NFTs.
-- **Proposals**: On-chain actions that will be executed as the party that must progress through the entire governance lifecycle.
-- **Distributions**: An (ungoverned) mechanism by which parties can distribute ETH and ERC20 tokens held by the party to members proportional to their relative voting power (Governance NFTs).
-- **Party Hosts**: Predefined accounts that can unilaterally veto proposals in the party. Conventionally defined when the crowdfund is created.
+- **Precious**: A set of ERC-721 tokens custodied by the governance contract (`Party`), conventionally acquired in the crowdfund phase. These are protected assets and are subject to extra restrictions in proposals vs other assets.
+- **Governance NFT**: An NFT (ERC721) representing a membership with voting power within the governance Party.
+- **Party**: The governance contract itself, which custodies the Precious, tracks voting power, manages the lifecycle of proposals, and is simultaneously the token contract for Governance NFTs.
+- **Proposals**: On-chain actions that the Party wil execute, which must progress through the entire governance lifecycle in order to do so.
+- **Distributions**: An (ungoverned) mechanism by which parties can distribute ETH and ERC-20 tokens held by the Party to members, proportional to their relative voting power (Governance NFTs).
+- **Party Hosts**: Predefined accounts that can unilaterally veto proposals in the Party. Conventionally defined when the crowdfund is created.
 - **Globals**: A single contract that holds configuration values, referenced by several ecosystem contracts.
 - **Proxies**: All `Party` instances are deployed as simple [`Proxy`](../contracts/utils/Proxy.sol) contracts that forward calls to a `Party` implementation contract.
 - **ProposalExecutionEngine**: An upgradable contract the `Party` contract delegatecalls into that implements the logic for executing specific proposal types.
@@ -25,7 +25,7 @@ The main contracts involved in this phase are:
 - `PartyFactory` ([code](../contracts/party/PartyFactory.sol))
     - Creates new proxified `Party` instances.
 - `Party` ([code](../contracts/party/Party.sol))
-    - The governance contract that also custodies the precious NFTs. This is also the Governance NFT 721 contract.
+    - The governance contract that also custodies the precious NFTs. This is also the ERC-721 contract for the Governance NFTs.
 - `ProposalExecutionEngine` ([code](../contracts/proposals/ProposalExecutionEngine.sol))
     - An upgradable logic (and some state) contract for executing each proposal type from the context of the `Party`.
 - `TokenDistributor` ([code](../contracts/distribution/TokenDistributor.sol))
@@ -83,17 +83,17 @@ Parties are initialized with fixed governance options which will (mostly) never 
 
 ### Governance NFTs
 
-Voting power within the governance Party is represented and held by a Governance NFTs, which are ERC721s minted for each member of the Party. Each Governance NFT has a distinct voting power/weight associated with it. These cards can never be broken up or combined, but a user may own multiple Governance NFTs within a Party. The total *intrinsic* voting power a member has is the sum of all the voting power in all the Governance NFTs for that Party they possess at a given timestamp.
+Voting power within the governance Party is represented and held by Governance NFTs, which are ERC721s minted for each member of the Party. Each Governance NFT has a distinct voting power/weight associated with it. These cards can never be broken up or combined, but a user may own multiple Governance NFTs within a Party. Within a Party, the total *intrinsic* voting power that a member has is the sum of all the voting power in all the Governance NFTs they possess at a given timestamp.
 
 ### Delegation
 
-Owners of Governance NFTs can call `Party.delegateVotingPower()` to delegate their intrinsic *total* voting power across all Governance NFTs they hold, at the time of the call forward, to another account. The minter of the Governance NFT can also set an initial delegate for the owner, meaning any Governance NFTs held by the owner will be delegated by default. If a user transfers their Governance NFT, the voting power will be delegated to the recipient's existing delegate.
+Owners of Governance NFTs can call `Party.delegateVotingPower()` to delegate their *total intrinsic voting power* at the time of the call to another account. The minter of the Governance NFT can also set an initial delegate for the owner, meaning any Governance NFTs held by the owner will be delegated by default. If a user transfers their Governance NFT, the voting power will be delegated to the recipient's existing delegate.
 
-The chosen delegate does not need to own a Governance NFT. Delegating voting power strips the owner of their entire voting power until they redelegate to themselves, meaning they will not be able to vote on proposals created afterwards (because votes cast rely on [snapshots](#voting-power-snapshots)). Governance NFT owners can recover their voting power for future proposals if they delegate to themselves or to the zero address.
+The chosen delegate does not need to own a Governance NFT. Delegating voting power strips the owner of their total intrinsic voting power until they redelegate to themselves, meaning they will not be able to use these votes on proposals created  in the meantime (because votes cast rely on [snapshots](#voting-power-snapshots)). Governance NFT owners can recover their voting power for future proposals if they delegate to themselves or to the zero address. Even while delegating votes to another account, it's possible for a member to receive delegated votes from a separate address. Delegated votes are not forwarded beyond a single hop.
 
 ### Calculating Effective Voting Power
 
-The effective voting power of a user is the sum of all undelegated (or self-delegated) voting power from their Governance NFTs plus the sum of all voting power delegated to them by other users.
+The effective voting power of a user is the sum of all undelegated (or self-delegated) voting power from their Governance NFTs plus the sum of all voting power delegated to them by other members.
 
 The effective voting power of a user at a given time can be found by calling `Party.getVotingPowerAt()`.
 
@@ -103,10 +103,10 @@ The voting power applied when a user votes on a proposal is their effective voti
 
 - A user receives a Governance NFT (transfer or minting).
 - A user transfers their Governance NFT to another user.
-- A user (un)delegates their voting power.
-- A user gets voting power (un)delegated to them.
+- A user delegates (or undelegates) their voting power.
+- A user gets voting power delegated (or undelegated) to them.
 
-When determining the effective voting power of a user, we binary search a user's voting power records for the most recent record < the proposal time.
+When determining the effective voting power of a user, the protocol binary searches an address's voting power records for the most recent record that was created before the proposal's creation time.
 
 ---
 
@@ -116,7 +116,7 @@ When determining the effective voting power of a user, we binary search a user's
 
 Distributions allow parties to distribute fungible tokens and ETH to party members, proportional to the voting power of their Governance NFTs.
 
-Unlike proposals, distributions do not require any votes to pass.  Any member of the party can call `distribute` to distribute any ETH or ERC20 held by the party.
+Unlike proposals, distributions do not require any votes to pass.  Any member of the party can call `distribute` to distribute any ETH or ERC-20 tokens held by the party.
 
 Upon `distribute` being called, the entire balance of the specified token will be transfered to the canonical `TokenDistributor` contract, and a new distribution will be created.
 
@@ -134,7 +134,7 @@ Keith has 20% ownership of the party
 Donna has 30% ownership of the party
 Jerry has 50% ownership of the party
 
-1000 DAI is deposited into the party contract
+1000 DAI is deposited into the party contract, and a new distribution is created for this DAI.
 When Bob calls `claimFee`, they receive 25.00 DAI   (1000*0.025)
 When Keith calls `claim`,  they receive 195.00 DAI  (1000*0.975)*0.2
 When Donna calls `claim`,  they receive 292.50 DAI  (1000*0.975)*0.3
@@ -143,19 +143,19 @@ When Jerry calls `claim`,  they receive 487.50 DAI  (1000*0.975)*0.5
 
 ### Interoperability
 
-Our `TokenDistributor` contract was designed to work with parties, but a `Distribution` can be created for any contract that implements the `ITokenDistributorParty` interface.  Implementors of the `ITokenDistributorParty` must implement `getDistributionShareOf(uint256 tokenId)` which returns how much of a distribution a particular tokenId should receive. Denominated in proportion to `1e18` (i.e. `0.5e18` represents 50%), as well as `ownerOf(uint256 tokenId)` which returns the owner of a tokenId.  In the case of a `PartyGovernanceNFT`, the `getDistributionShareOf(uint256 tokenId)` defers to the ratio of the voting power of the specific `tokenId` against the `totalVotingPower`.
+Party Protocol's `TokenDistributor` contract was designed to work with Parties, but a `Distribution` can be created for any contract that implements the `ITokenDistributorParty` interface.  Implementors of the `ITokenDistributorParty` must implement `getDistributionShareOf(uint256 tokenId)` which returns how much of a distribution a particular tokenId should receive. Denominated in proportion to `1e18` (i.e. `0.5e18` represents 50%), as well as `ownerOf(uint256 tokenId)` which returns the owner of a tokenId.  In the case of a `PartyGovernanceNFT`, the `getDistributionShareOf(uint256 tokenId)` defers to the ratio of the voting power of the specific `tokenId` against the `totalVotingPower`.
 
 When creating a distribution, implementing contracts are expected to transfer the tokens prior to calling the accompanying `create{Erc20Distribution,createNativeDistribution}` method in the same transaction.
 
 ### Emergency Actions
 
-`TokenDistributor` contains an `emergencyExecute` function that can perform an arbitrary delegatecall. This will only be called in a catastrophic scenario where the `TokenDistributor` must be decommissioned. It is restricted to the PartyDAO Multisig. The ability to call this function will be disabled after `emergencyExecuteDisabledTimestamp` has passed.
+`TokenDistributor` contains an `emergencyExecute` function that can perform an arbitrary delegatecall. This will only be called in an emergency scenario where the `TokenDistributor` must be decommissioned. It is restricted to the PartyDAO Multisig. The ability to call this function will be disabled after `emergencyExecuteDisabledTimestamp` has passed.
 
 ---
 
 ## Governance Lifecycle
 
-Governance in Parties follows a fairly traditional model, revolving around passing and executing proposals. Proposals have the following properties:
+Governance in Parties revolves around creating, passing, and executing proposals. Proposals have the following properties:
 
 - `maxExecutableTime`: A timestamp beyond which the proposal can no longer be executed. In the case of [multi-step proposals](#multi-step-proposals), this only restricts the first time the proposal is executed.
 - `cancelDelay`: Number of seconds after a proposal enters the `InProgress` state after which it can be forcibly interrupted and marked complete so another proposal can be executed.
@@ -181,11 +181,11 @@ The stages of a proposal are defined in `PartyGovernance.ProposalStatus`:
 
 A proposer should choose an appropriate `maxExecutableTime` and `cancelDelay`. The `proposalData` should be prefixed (like a function call) with a 4-byte `IProposalExecutionEngine.ProposalType` value followed by the ABI-encoded data specific to that proposal type (see [Proposal Types](#proposal-types)), e.g., `abi.encodeWithSelector(bytes4(ProposalType.ListOnZoraProposal), abi.encode(ZoraProposalData(...)))`.
 
-Once ready, an active member or delegate (someone with nonzero effective voting power) can call `propose()` with the proposal properties, which will assign a unique, nonzero proposal ID and put the proposal in the `Voting` status. Proposing a proposal will also automatically cast the proposer's votes for it.
+Once ready, an active member or delegate (someone with nonzero effective voting power) can call `propose()` with the proposal properties, which will assign a unique, nonzero proposal ID and put the proposal in the `Voting` status. Creating a proposal will also automatically cast the proposer's votes for it.
 
 ### Voting on Proposals
 
-Any proposal in the `Voting`, `Passed`, or `Ready` status can be voted on by members and delegates via `Party.accept()`. The `accept()` function casts the caller's *total* effective voting power at the time the proposal was proposed for it. Once the total voting power cast for the proposal meets or exceeds the `passThresholdBps` ratio, given by `total cast voting power / totalVotingPower`, the proposal will enter the `Passed` state.
+Any proposal in the `Voting`, `Passed`, or `Ready` status can be voted on by members and delegates via `Party.accept()`. The `accept()` function casts the caller's *total* effective voting power at the time the proposal was created. Once the total voting power cast for the proposal meets or exceeds the `passThresholdBps` ratio, given by `total cast voting power / totalVotingPower`, the proposal will enter the `Passed` state.
 
 Members can continue to vote even beyond the `Passed` state in order to achieve a unanimous vote, which allows the proposal to bypass the `executionDelay` and unlocks specific behavior for certain proposal types. A unanimous vote condition is met when 99.99% of `totalVotingPower` has been cast for a proposal. We do not check for 100% because of possible rounding errors during minting from crowdfunds.
 
@@ -193,7 +193,7 @@ Members can continue to vote even beyond the `Passed` state in order to achieve 
 
 During the `Voting`, `Passed`, and `Ready` phases of a proposal, a Party host may unilaterally veto that proposal by calling `Party.veto()`, immediately putting the proposal in the `Defeated` state. At that point, no further action can be taken on the proposal.
 
-The rationale behind the veto power that if voting power in a Party becomes so consolidated that a bad actor can pass a malicious proposal, the party host can act as the final backstop. On the other hand, a party host can also stall a Party by vetoing every legitimate proposal, so Parties need to be extremely careful with who they agree to be hosts.
+The rationale behind the veto power that if voting power in a Party becomes so consolidated that a bad actor can pass a malicious proposal, the party host can act as the final backstop. On the other hand, a party host can also stall a Party by vetoing every legitimate proposal, so Parties need to be extremely careful with who their hosts are.
 
 ### Executing Proposals
 
@@ -211,7 +211,7 @@ If the proposal is atomic, meaning it is a single-step proposal, it will immedia
 
 Some proposal types require multiple steps and transactions to be completed. An example is the `ListOnZoraProposal` type. This proposal will first list an NFT on Zora as an auction then if the auction does not receive any bids after some amount of time or if the auction completes with a winning bid, the auction will need to be cancelled or finalized by the Party. To accomplish this, the proposal must be executed multiple times until it is considered complete and can enter the `Complete` status.
 
-Usually further steps in a multi-step proposal requires some state to be remembered between steps. For example, the `ListOnZoraProposal` type will need to recall the ID of the Zora auction it created so it can cancel or finalize it as a final step. Rather than storing this (potentially complex) data on-chain, executing a proposal will emit a `ProposalExecuted` event with an arbitrary bytes `nextProgressData` parameter, which should be passed into the next call to `execute()` to advance the proposal. The `Party` will only store the hash of the `nextProgressData` and confirm it matches the hash of what is passed in. This data blob holds any encoded state necessary to progress the proposal to the next step.
+Usually further steps in a multi-step proposal require some state to be remembered between steps. For example, the `ListOnZoraProposal` type will need to recall the ID of the Zora auction it created so it can cancel or finalize it as a final step. Rather than storing this (potentially complex) data on-chain, executing a proposal will emit a `ProposalExecuted` event with an arbitrary bytes `nextProgressData` parameter, which should be passed into the next call to `execute()` to advance the proposal. The `Party` will only store the hash of the `nextProgressData` and confirm it matches the hash of what is passed in. This data blob holds any encoded state necessary to progress the proposal to the next step.
 
 Once the proposal has executed its final step, it will emit an empty `nextProgressData` in the `ProposalExecuted` event.
 
@@ -291,7 +291,7 @@ abi.encodeWithSelector(
 
 #### Steps
 
-This proposal is atomic, always completing in one step/execute.
+This proposal is atomic, completing in 1 step (aka. 1 `execute()` call):
 
 - Each call is executed in the order declared.
 - ETH to attach to each call must be provided by the caller of the `Party.execute()` call. If the sum of all successful calls try to consume more than `msg.value`, the entire proposal will revert.
@@ -333,7 +333,8 @@ abi.encodeWithSelector(
 
 #### Steps
 
-This proposal always has two steps:
+This proposal always has 2 steps (aka. 2 `execute()` calls):
+
 1. Transfer the token to the Zora auction house contract and create an auction with `listPrice` reserve price and `duration` auction duration (which starts after someone places a bid).
     - This will emit the next `progressData`:
     ```solidity
@@ -350,11 +351,11 @@ This proposal always has two steps:
     ```
 2. Either cancel or finalize the auction.
     - Cancel the auction if the auction was never bid on and `minExpiry` time has passed. This will also return the NFT to the party.
-    - Finalize the auction if someone has bid on it and the auction `duration` has passed. This will transfer the top bid amount (in ETH) to the Party. It is also possible someone else finalized the auction for us, in which case the Party already has the ETH and this step becomes a no-op.
+    - Finalize the auction if someone has bid on it and the auction `duration` has passed. This will transfer the top bid amount (in ETH) to the Party. It is also possible someone else finalized the auction already, in which case the Party already has the ETH and this step becomes a no-op.
 
 ### ListOnOpensea Proposal Type
 
-This proposal type *ultimately* tries to list an NFT held by the Party on OpenSea (Seaport 1.1). Because OpenSea listings are limit orders, there is no mechanism for on-chain price discovery (unlike a Zora auction). So to mitigate a malicious proposal listing a precious NFT for far below its actual worth, this proposal type will first place the NFT in a Zora auction before creating an OpenSea listing. The durations for this mandatory Zora step are defined by the global values `GLOBAL_OS_ZORA_AUCTION_TIMEOUT` and `GLOBAL_OS_ZORA_AUCTION_DURATION`.
+This proposal type *ultimately* tries to list an NFT held by the Party on OpenSea (Seaport 1.1). Because OpenSea listings are limit orders, there is no mechanism for on-chain price discovery (unlike a Zora auction). To mitigate a malicious proposal listing a precious NFT for far below its actual worth this proposal type will first place the NFT in a Zora auction that must end without receiving any bids before creating an OpenSea listing *if* the proposal was not passed unanimously. If it was passed unanimously or the NFT listed is not a precious, this step is skipped. The durations for this Zora step are defined by the global values `GLOBAL_OS_ZORA_AUCTION_TIMEOUT` and `GLOBAL_OS_ZORA_AUCTION_DURATION`.
 
 #### Proposal Data
 
@@ -383,10 +384,10 @@ abi.encodeWithSelector(
 
 #### Steps
 
-This proposal has between 2-3 steps:
+This proposal has between 2-3 steps (aka. 2-3 `execute()` calls), depending on whether the proposal was passed unanimously and whether the lisetd NFT is precious or not:
 
-1. If the proposal did not pass unanimously and the `token` + `tokenId` is precious:
-    1. Transfer the token to the Zora auction house contract and create an auction with `listPrice` reserve price and `GLOBAL_OS_ZORA_AUCTION_DURATION` auction duration (which starts after someone places a bid).
+1. If the proposal did not pass unanimously AND the `token` + `tokenId` is precious, the proposal starts here. Otherwise, if *either* of those conditions are false, skip to 2B.
+    - Transfer the token to the Zora auction house contract and create an auction with `listPrice` reserve price and `GLOBAL_OS_ZORA_AUCTION_DURATION` auction duration (which starts after someone places a bid).
         - This will emit the next `progressData`:
         ```solidity
         abi.encode(
@@ -400,11 +401,11 @@ This proposal has between 2-3 steps:
             )
         );
         ```
-    2. Either cancel or finalize the auction.
-        - Cancel the auction if the auction was never bid on and `progressData.minExpiry` has passed. This will also return the NFT to the party. Proceed to 2.1.
-        - Finalize the auction if someone has bid on it and the auction duration has passed. This will transfer the top bid amount (in ETH) to the Party. It is also possible someone else finalized the auction for us, in which case the Party already has the ETH and this step becomes a no-op. *The proposal will be complete at this point with no further steps.*
-2. If the proposal passed unanimously or if the `token` + `tokenId` is not precious:
-    1. Grant OpenSea an allowance for the NFT and create a non-custodial OpenSea listing for the NFT with price `listPrice` + any extra `fees` that is valid for `duration` seconds.
+2A. If a bid was placed and an auction happened, finalize the auction.
+    - Finalize the auction if someone has bid on it and the auction duration has passed. This will transfer the top bid amount (in ETH) to the Party. It is also possible someone else finalized the auction already, in which case the Party already has the ETH and this step becomes a no-op. *The proposal will be complete at this point with no further steps.*
+2B. If the proposal passed unanimously, or the `token` + `tokenId` is not precious, or `token` + `tokenId` is precious but no bid was placed during the safety Zora auction period:
+    - If the item was listed for safety auction, was never bid on, and `progressData.minExpiry` has passed, cancel the auction. This will also return the NFT to the party.
+    - Grant OpenSea an allowance for the NFT and create a non-custodial OpenSea listing for the NFT with price `listPrice` + any extra `fees` that is valid for `duration` seconds.
         - This will emit the next `progressData`:
         ```solidity
         abi.encode(
@@ -446,7 +447,8 @@ abi.encodeWithSelector(
 
 #### Steps
 
-This proposal is atomic, completing in one step/execute:
+This proposal is atomic, completing in 1 step (aka. 1 `execute()` call):
+
 1. Create a new Fractional V1 vault around `token` + `tokenId`.
     - Reserve price will be set to the proposal's `listPrice`.
     - Curator will be set to `address(0)`.
@@ -470,7 +472,7 @@ abi.encodeWithSelector(
 
 #### Steps
 
-This proposal is always atomic and completes in a single step/execute.
+This proposal is atomic, completing in 1 step (aka. 1 `execute()` call):
 
 - The current `ProposalExecutionEngine` implementation address is looked up in the `Globals` contract, keyed by `GLOBAL_PROPOSAL_ENGINE_IMPL`.
 - The current `ProposalExecutionEngine` implementation address used by the Party is kept at an explicit, non-overlapping storage slot and will be overwritten with the new implementation address (see [ProposalStorage](../contracts/proposals/ProposalStorage.sol)).

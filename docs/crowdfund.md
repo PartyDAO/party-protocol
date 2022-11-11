@@ -6,11 +6,11 @@ These contracts allow people to create and join a crowdfund, pooling ETH togethe
 
 ## Key Concepts
 
-- **Crowdfunds**: Contracts implementing various strategies that allow people to pool ETH together to acquire an NFT, with the end goal of forming a governance party around it.
-- **Crowdfund NFTs**: A _soulbound_ NFT (ERC721) representing contributions made to a crowdfund. Each contributor gets one of these the first time they contribute. At the end of the crowdfund (successful or unsuccessful), these are burned to either redeem unused ETH or mint governance shares.
+- **Crowdfunds**: Contracts implementing various strategies that allow people to pool ETH together to acquire an NFT, with the end goal of forming a Party around it.
+- **Crowdfund NFT**: A _soulbound_ NFT (ERC721) representing a contribution made to a Crowdfund. Each contributor gets one of these the first time they contribute. At the end of the crowdfund (successful or unsuccessful), a Crowdfund NFT can be burned, either to redeem unused ETH or to claim a governance NFT in the new Party.
 - **Party**: The governance contract, which will be created and will custody the NFT after it has been acquired by the crowdfund.
 - **Globals**: A single contract that holds configuration values, referenced by several ecosystem contracts.
-- **Proxies**: All Crowdfund instances are deployed as simple [`Proxy`](../contracts/utils/Proxy.sol) contracts that forward calls to a specific crowdfund implementation that inherits from `Crowdfund`.
+- **Proxies**: All crowdfund instances are deployed as simple [`Proxy`](../contracts/utils/Proxy.sol) contracts that forward calls to a specific crowdfund implementation that inherits from `Crowdfund`.
 
 ---
 
@@ -23,11 +23,11 @@ The main contracts involved in this phase are:
 - `Crowdfund` ([source](../contracts/crowdfund/Crowdfund.sol))
   - Abstract base class for all crowdfund contracts. Implements most contribution accounting and end-of-life logic for crowdfunds.
 - `BuyCrowdfund` ([source](../contracts/crowdfund/BuyCrowdfund.sol))
-  - A crowdfund that purchases a specific NFT (i.e., with a known token ID) listing for a known price.
+  - A crowdfund that purchases a specific NFT (i.e., with a known token ID) below a maximum price.
 - `CollectionBuyCrowdfund` ([source](../contracts/crowdfund/CollectionBuyCrowdfund.sol))
-  - A crowdfund that purchases any NFT from a collection (i.e., any token ID) from a collection for a known price. Like `BuyCrowdfund` but allows any token ID in a collection to be bought.
+  - A crowdfund that purchases any NFT from a collection (i.e., any token ID) from a collection below a maximum price. Like `BuyCrowdfund` but allows any token ID in a collection to be bought.
 - `AuctionCrowdfund` ([source](../contracts/crowdfund/AuctionCrowdfund.sol))
-  - A crowdfund that can repeatedly bid on an auction for a specific NFT (i.e., with a known token ID) until it wins.
+  - A crowdfund that can repeatedly bid in an auction for a specific NFT (i.e., with a known token ID) until the auction ends.
 - `IMarketWrapper` ([source](../contracts/crowdfund/IMarketWrapper.sol))
   - A generic interface consumed by `AuctionCrowdfund` to abstract away interactions with any auction marketplace.
 - `IGateKeeper` ([source](../contracts/gatekeepers/IGateKeeper.sol))
@@ -52,8 +52,8 @@ The `CrowdfundFactory` contract is the canonical contract for creating crowdfund
 `BuyCrowdfund`s are created via the `createBuyCrowdfund()` function. `BuyCrowdfund`s:
 
 - Are trying to buy a specific ERC721 contract + token ID.
-- While active, users can contribute ETH to the cause.
-- Succeeds if anyone executes an arbitrary call with value through `buy()` to acquire the NFT.
+- While active, users can contribute ETH.
+- Succeeds if anyone executes an arbitrary call with value through `buy()` which successfully acquires the NFT.
 - Fails if the `expiry` time passes before acquiring the NFT.
 
 #### Crowdfund Specific Creation Options
@@ -69,8 +69,8 @@ The `CrowdfundFactory` contract is the canonical contract for creating crowdfund
 `CollectionBuyCrowdfund`s are created via the `createCollectionBuyCrowdfund()` function. `CollectionBuyCrowdfund`s:
 
 - Are trying to buy _any_ token ID on an ERC721 contract.
-- While active, users can contribute ETH to the cause.
-- Succeeds if the host executes an arbitrary call with value through `buy()` to acquire an eligible NFT.
+- While active, users can contribute ETH.
+- Succeeds if the host executes an arbitrary call with value through `buy()` which successfully acquires an eligible NFT.
 - Fails if the `expiry` time passes before acquiring an eligible NFT.
 
 #### Crowdfund Specific Creation Options
@@ -86,10 +86,10 @@ The `CrowdfundFactory` contract is the canonical contract for creating crowdfund
 - Are trying to buy a specific ERC721 contract + token ID listed on an auction market.
 - Directly interact with a Market Wrapper, which is an abstractions/wrapper of an NFT auction protocol.
   - These Market Wrappers are inherited from [v1](https://github.com/PartyDAO/PartyBid) of the protocol and are actually delegatecalled into.
-- While active, users can contribute ETH to the cause.
+- While active, users can contribute ETH.
 - While active, ETH bids can be placed by anyone via the `bid()` function.
 - Succeeds if anyone calls `finalize()`, which attempts to settle the auction, and the crowdfund ends up holding the NFT.
-- Fails if the `expiry` time passes before acquiring an eligible NFT.
+- Fails if the `expiry` time passes before acquiring the specified NFT.
 
 #### Crowdfund Specific Creation Options
 
@@ -115,7 +115,7 @@ In addition to the creation options described for each crowdfund type, there are
 - `bytes12 gateKeeperId`: The gate ID within the gateKeeper contract to use.
 - `FixedGovernanceOpts governanceOpts`: Fixed [governance options](https://github.com/PartyDAO/partybidV2/blob/main/docs/governance.md#governance-options) that the governance Party will be created with if the crowdfund succeeds. Aside from the party `hosts`, only the hash of this field is stored on-chain at creation. It must be provided in full again in order for the party to win.
 
-Crowdfunds are initialized with fixed options, i.e. cannot be changed after creating a party.
+Crowdfunds are initialized with fixed options, i.e. options cannot be changed after creating a crowdfund.
 
 ### Optional Gatekeeper Creation Data
 
@@ -132,9 +132,9 @@ All crowdfunds share a concept of a lifecycle, wherein only certain actions can 
 - `Invalid`: The crowdfund does not exist.
 - `Active`: The crowdfund has been created and contributions can be made and acquisition functions may be called.
 - `Expired`: The crowdfund has passed its expiration time. No more contributions are allowed.
-- `Busy`: An temporary state set by the contract during complex operations to act as a reentrancy guard.
+- `Busy`: A temporary state set by the contract during complex operations to act as a reentrancy guard.
 - `Lost`: The crowdfund has failed to acquire the NFT in time. Contributors can reclaim their full contributions.
-- `Won`: The crowdfund has acquired the NFT and it is now held by a governance party. Contributors can claim their voting tokens.
+- `Won`: The crowdfund has acquired the NFT and it is now held by a governance party. Contributors can claim their governance NFTs or reclaim unused ETH.
 
 ## Making Contributions
 
@@ -142,9 +142,9 @@ While the crowdfund is in the `Active` lifecycle, users can contribute ETH to it
 
 The only way of contributing to a crowdfund is through the payable `contribute()` function. Contribution records are created per-user, tracking the individual contribution amount as well as the overall total contribution amount, in order to determine what fraction of each user's contribution was used by a successful crowdfund.
 
-### Participation NFTs
+### Crowdfund NFTs
 
-The first time a user contributes, they are minted a soulbound participation NFT, which is implemented by the crowdfund contract itself. This NFT can later be burned to refund unused ETH and/or mint voting power in the governance party.
+The first time a user contributes, they are minted a _soulbound_ Crowdfund NFT, which is implemented by the crowdfund contract itself. This NFT can later be burned to refund unused ETH and/or mint an NFT containing voting power in the governance Party.
 
 A contributor can only own one crowdfund NFT; multiple contributions by the same contributor will not mint them additional crowdfund NFTs.
 
@@ -176,11 +176,11 @@ Each crowdfund type has its own criteria and operations for winning.
 
 ### BuyCrowdfund
 
-`BuyCrowdfund` wins if _anyone_ successfully calls `buy()` before the crowdfund expires. The `buy()` function will perform an arbitrary call with value (up to `maximumPrice`) to attempt to acquire the predetermined NFT. The NFT must be held by the party after the arbitrary call successfully returns. It will then proceed with creating a governance Party.
+`BuyCrowdfund` wins if _anyone_ successfully calls `buy()` before the crowdfund expires. The `buy()` function will perform an arbitrary call with value (up to `maximumPrice`) to attempt to acquire the predetermined NFT. The NFT must be held by the crowdfund after the arbitrary call successfully returns. It will then proceed with creating a governance Party. If the `onlyHostCanBuy` option is set, then only a host will be able to call `buy()`.
 
 ### CollectionBuyCrowdfund
 
-`CollectionBuyCrowdfund` wins if a _host_ successfully calls `buy()` before the crowdfund expires. The `buy()` function will perform an arbitrary call with value (up to `maximumPrice`) to attempt to acquire _any_ NFT token ID from the predetermined ERC721. The NFT must be held by the party after the arbitrary call successfully returns. It will then proceed with creating a governance Party.
+`CollectionBuyCrowdfund` wins if a _host_ successfully calls `buy()` before the crowdfund expires. The `buy()` function will perform an arbitrary call with value (up to `maximumPrice`) to attempt to acquire _any_ NFT token ID from the predetermined ERC721. The NFT must be held by the crowdfund after the arbitrary call successfully returns. It will then proceed with creating a governance Party.
 
 ### AuctionCrowdfund
 
@@ -190,34 +190,36 @@ While the crowdfund is Active, anyone can, and should, call `bid()` to bid on th
 
 After the auction has ended, someone must call `finalize()`, regardless of whether the crowdfund has placed a bid or not. This will settle the auction (if necessary), possibly returning bidded ETH to the party or acquiring the auctioned NFT. It is possible to call `finalize()` even after the crowdfund has Expired and the crowdfund may even still win in this scenario. If the NFT was acquired, it will then proceed with creating a governance party.
 
+If the `onlyHostCanBid` option is set, then only a host will be able to call `bid()`.
+
 ### Creating a Governance Party
 
 In every crowdfund, immediately after the party has won by acquiring the NFT, it will create a new governance Party instance, using the same fixed governance options provided at crowdfund creation. The `totalVotingPower` the governance Party is created with is simply the settled price of the NFT (how much ETH we paid for it). The bought NFT is immediately transferred to the governance Party as well.
 
-After this point, the crowdfund will be in the `Won` lifecycle and no more contributions will be allowed. Contributors can `burn()` their participation NFT to refund any ETH they contributed that was not used as well as mint voting power within the governance Party (which is also an NFT).
+After this point, the crowdfund will be in the `Won` lifecycle and no more contributions will be allowed. Contributors can `burn()` their Crowdfund NFT to refund any ETH they contributed that was not used, as well as mint a governance NFT containing voting power within the Party.
 
 ## Losing
 
 Crowdfunds generally lose when they expire before acquiring a target NFT. The one exception is `AuctionCrowdfund`, which can still be finalized and win after expiration.
 
-When a crowdfund enters the Lost lifecycle, contributors may `burn()` their participation NFT to refund all the ETH they contributed.
+When a crowdfund enters the Lost lifecycle, contributors may `burn()` their Crowdfund NFT to refund all the ETH they contributed.
 
 ## Burning
 
-At the conclusion of a crowdfund (Won or Lost lifecycle), contributors may burn their participation NFT via the `burn()` function.
+At the conclusion of a crowdfund (Won or Lost lifecycle), contributors may burn their Crowdfund NFT via the `burn()` function.
 
-If the crowdfund lost, burning the participation NFT will refund all of the contributor's contributed ETH.
-If the crowdfund won, burning the participation NFT will refund any of the contributor's _unused_ ETH and mint voting power in the governance party.
+If the crowdfund lost, burning the Crowdfund NFT will refund all of the contributor's contributed ETH.
+If the crowdfund won, burning the Crowdfund NFT will refund any of the contributor's _unused_ ETH and mint a governance NFT containing voting power in the governance Party, equivalent to the contributor's _used_ ETH.
 
 ### Calculating Voting Power
 
-Voting power for a contributor is equivalent to the amount of ETH they contributed that was used to acquire the NFT. Each individual contribution is tracked against the total ETH raised at the time of contribution. If a user contributes after the crowdfund received enough ETH to acquire the NFT, only their contributions from prior will count towards their final voting power. All else will be refunded when they burn their participation token.
+Voting power for a contributor is equivalent to the amount of ETH they contributed that was used to acquire the NFT. Each individual contribution is tracked against the total ETH raised at the time of contribution. If a user contributes after the crowdfund received enough ETH to acquire the NFT, only their contributions from prior will count towards their final voting power. All else will be refunded when they burn their Crowdfund NFT.
 
 - If the crowdfund was created with a valid `splitBps` value, this percent of every contributor's voting power will be reserved for the `splitRecipient` to claim. If they are also a contributor, they will receive the sum of both.
 
 ### Burning Someone Else's NFT
 
-It's not uncommon for contributors to go inactive before a crowdfund ends. To help ensure delegates in the governance party have enough voting power to operate in proposal flow as quickly as possible, anyone can burn any contributor's participation NFT. This will credit a contributor's delegate in the governance Party with that contributor's voting power, which may be enough to act on proposals without the contributor's intervention.
+It's not uncommon for contributors to go inactive before a crowdfund ends. To help ensure that members in the governance party have enough voting power to operate in the proposal flow as quickly as possible, anyone can burn any contributor's Crowdfund NFT. Doing so will credit the contributor's delegate in the governance Party with the contributor's voting power, enabling the delegate to begin using that voting power.
 
 ## Gatekeepers
 
