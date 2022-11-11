@@ -537,7 +537,7 @@ contract DeployScript is Script, Deploy {
                 address deployer = _deployersUsed[i];
                 uint256 gasUsed = _getDeployerGasUsage(deployer);
                 console.log("deployer:", deployer);
-                console.log("cost:", _formatCost(gasUsed * tx.gasprice));
+                console.log("cost:", gasUsed * tx.gasprice);
                 console.log("gas:", gasUsed);
                 if (i + 1 < n) {
                     console.log("");
@@ -548,21 +548,12 @@ contract DeployScript is Script, Deploy {
 
     function _run() internal virtual {}
 
-    function _formatCost(uint256 cost) private pure returns (string memory s) {
-        return string(abi.encodePacked(
-            Strings.toString(cost / 1e18),
-            ".",
-            Strings.toString(cost - cost / 1e18)
-        ));
-    }
-
     function _switchDeployer(DeployerRole role) internal override {
-        address lastDeployer = this.getDeployer();
         vm.stopBroadcast();
         {
-            address deployer = _deployerByRole[role];
-            if (deployer != address(0)) {
-                vm.startBroadcast(deployer);
+            address deployer_ = _deployerByRole[role];
+            if (deployer_ != address(0)) {
+                vm.startBroadcast(deployer_);
             } else {
                 vm.startBroadcast();
             }

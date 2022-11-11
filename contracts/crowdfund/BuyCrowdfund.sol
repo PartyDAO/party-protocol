@@ -122,8 +122,9 @@ contract BuyCrowdfund is BuyCrowdfundBase {
         bool isValidatedGovernanceOpts;
         if (onlyHostCanBuy) {
             // Only a host can call this function.
-            isValidatedGovernanceOpts =
-                _assertIsHost(msg.sender, governanceOpts, hostIndex);
+            _assertIsHost(msg.sender, governanceOpts, hostIndex);
+            // If _assertIsHost() succeeded, the governance opts were validated.
+            isValidatedGovernanceOpts = true;
         } else if (address(gateKeeper) != address(0)) {
             // `onlyHostCanBuy` is false and we are using a gatekeeper.
             // Only a contributor can call this function.

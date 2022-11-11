@@ -91,9 +91,14 @@ abstract contract Crowdfund is Implementation, ERC721Receiver, CrowdfundNFT {
     error OnlyPartyHostError();
     error OnlyContributorError();
     error MissingHostsError();
+    error OnlyPartyDaoError(address notDao);
+    error OnlyPartyDaoOrHostError(address notDao);
+    error OnlyWhenEmergencyActionsAllowedError();
 
     event Burned(address contributor, uint256 ethUsed, uint256 ethOwed, uint256 votingPower);
     event Contributed(address contributor, uint256 amount, address delegate, uint256 previousTotalContributions);
+    event EmergencyExecute(address target, bytes data, uint256 amountEth);
+    event EmergencyExecuteDisabled();
 
     // The `Globals` contract storing global configuration values. This contract
     // is immutable and it’s address will never change.
@@ -131,6 +136,8 @@ abstract contract Crowdfund is Implementation, ERC721Receiver, CrowdfundNFT {
     ///         that should be minted to them if it could not be transferred to
     ///         them with `burn()`.
     mapping(address => Claim) public claims;
+    /// @notice Whether the DAO has emergency powers for this party.
+    bool public emergencyExecuteDisabled;
 
     // Set the `Globals` contract.
     constructor(IGlobals globals) CrowdfundNFT(globals) {
@@ -169,6 +176,55 @@ abstract contract Crowdfund is Implementation, ERC721Receiver, CrowdfundNFT {
         gateKeeperId = opts.gateKeeperId;
     }
 
+    /// @notice As the DAO, execute an arbitrary function call from this contract.
+    /// @dev Emergency actions must not be revoked for this to work.
+    /// @param targetAddress The contract to call.
+    /// @param targetCallData The data to pass to the contract.
+    /// @param amountEth The amount of ETH to send to the contract.
+    function emergencyExecute(
+        address targetAddress,
+        bytes calldata targetCallData,
+        uint256 amountEth
+    )
+        external
+        payable
+        onlyDelegateCall
+    {
+        // Must be called by the DAO.
+        if (!_isPartyDao(msg.sender)) {
+            revert OnlyPartyDaoError(msg.sender);
+        }
+        // Must not be disabled by DAO or host.
+        if (emergencyExecuteDisabled) {
+            revert OnlyWhenEmergencyActionsAllowedError();
+        }
+        (bool success, bytes memory res) = targetAddress.call{value: amountEth}(targetCallData);
+        if (!success) {
+            res.rawRevert();
+        }
+        emit EmergencyExecute(targetAddress, targetCallData, amountEth);
+    }
+
+    /// @notice Revoke the DAO's ability to call emergencyExecute().
+    /// @dev Either the DAO or the party host can call this.
+    /// @param governanceOpts The fixed governance opts the crowdfund was created with.
+    /// @param hostIndex The index of the party host (caller).
+    function disableEmergencyExecute(
+        FixedGovernanceOpts memory governanceOpts,
+        uint256 hostIndex
+    )
+        external
+        onlyDelegateCall
+    {
+        // Only the DAO or a host can call this.
+        if (!_isHost(msg.sender, governanceOpts, hostIndex) && !_isPartyDao(msg.sender)) {
+            revert OnlyPartyDaoOrHostError(msg.sender);
+        }
+        emergencyExecuteDisabled = true;
+        emit EmergencyExecuteDisabled();
+    }
+
+
     /// @notice Burn the participation NFT for `contributor`, potentially
     ///         minting voting power and/or refunding unused ETH. `contributor`
     ///         may also be the split recipient, regardless of whether they are
@@ -176,11 +232,6 @@ abstract contract Crowdfund is Implementation, ERC721Receiver, CrowdfundNFT {
     ///         contributor's behalf to unlock their voting power in the
     ///         governance stage ensuring delegates receive their voting
     ///         power and governance is not stalled.
-    /// @dev If the party has won, someone needs to call `_createParty()` first. After
-    ///      which, `burn()` will refund unused ETH and mint governance tokens for the
-    ///      given `contributor`.
-    ///      If the party has lost, this will only refund unused ETH (all of it) for
-    ///      the given `contributor`.
     /// @param contributor The contributor whose NFT to burn for.
     function burn(address payable contributor) public {
         return _burn(contributor, getCrowdfundLifecycle(), party);
@@ -326,13 +377,32 @@ abstract contract Crowdfund is Implementation, ERC721Receiver, CrowdfundNFT {
     )
         internal
         view
-        returns (bool isValidatedGovernanceOpts)
     {
-        if (who == governanceOpts.hosts[hostIndex]) {
+        if (!_isHost(who, governanceOpts, hostIndex)) {
+            revert OnlyPartyHostError();
+        }
+    }
+
+    // Check if `who` is a host at `hostIndex` index. Validates governance opts if so.
+    function _isHost(
+        address who,
+        FixedGovernanceOpts memory governanceOpts,
+        uint256 hostIndex
+    )
+        private
+        view
+        returns (bool isHost)
+    {
+        if (hostIndex < governanceOpts.hosts.length && who == governanceOpts.hosts[hostIndex]) {
+            // Validate governance opts if the host was found.
             _assertValidGovernanceOpts(governanceOpts);
             return true;
         }
-        revert OnlyPartyHostError();
+        return false;
+    }
+
+    function _isPartyDao(address who) private view returns (bool isPartyDao) {
+        return who == _GLOBALS.getAddress(LibGlobals.GLOBAL_DAO_WALLET);
     }
 
     // Assert that `who` is a contributor to the crowdfund.
