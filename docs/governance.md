@@ -386,7 +386,7 @@ abi.encodeWithSelector(
 
 This proposal has between 2-3 steps (aka. 2-3 `execute()` calls), depending on whether the proposal was passed unanimously and whether the lisetd NFT is precious or not:
 
-1. If the proposal did not pass unanimously AND the `token` + `tokenId` is precious, the proposal starts here. Otherwise, if *either* of those conditions are false, skip to 3.
+1. If the proposal did not pass unanimously AND the `token` + `tokenId` is precious, the proposal starts here. Otherwise, if *either* of those conditions are false, skip to 2B.
     - Transfer the token to the Zora auction house contract and create an auction with `listPrice` reserve price and `GLOBAL_OS_ZORA_AUCTION_DURATION` auction duration (which starts after someone places a bid).
         - This will emit the next `progressData`:
         ```solidity
@@ -401,10 +401,10 @@ This proposal has between 2-3 steps (aka. 2-3 `execute()` calls), depending on w
             )
         );
         ```
-2. After the Zora auction concluded or has expired, finalize or cancel the auction.
-    - Cancel the auction if the auction was never bid on and `progressData.minExpiry` has passed. This will also return the NFT to the party. The party may now safely proceed to 3.
+2A. If a bid was placed and an auction happened, finalize the auction.
     - Finalize the auction if someone has bid on it and the auction duration has passed. This will transfer the top bid amount (in ETH) to the Party. It is also possible someone else finalized the auction already, in which case the Party already has the ETH and this step becomes a no-op. *The proposal will be complete at this point with no further steps.*
-3. If the proposal passed unanimously, the `token` + `tokenId` is not precious, or `token` + `tokenId` is precious but passed the safety Zora auction:
+2B. If the proposal passed unanimously, or the `token` + `tokenId` is not precious, or `token` + `tokenId` is precious but no bid was placed during the safety Zora auction period:
+    - If the item was listed for safety auction, was never bid on, and `progressData.minExpiry` has passed, cancel the auction. This will also return the NFT to the party.
     - Grant OpenSea an allowance for the NFT and create a non-custodial OpenSea listing for the NFT with price `listPrice` + any extra `fees` that is valid for `duration` seconds.
         - This will emit the next `progressData`:
         ```solidity
@@ -419,7 +419,7 @@ This proposal has between 2-3 steps (aka. 2-3 `execute()` calls), depending on w
             )
         );
         ```
-4. Clean up the OpenSea listing, emitting an event with the outcome, and:
+3. Clean up the OpenSea listing, emitting an event with the outcome, and:
     - If the order was filled, the Party has the `listPrice` ETH, the NFT allowance was consumed, and there is nothing left to do.
     - If the order expired, no one bought the listing and the Party still owns the NFT. Revoke OpenSea's token allowance.
 
