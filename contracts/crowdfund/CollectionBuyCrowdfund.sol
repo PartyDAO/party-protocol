@@ -120,6 +120,7 @@ contract CollectionBuyCrowdfund is BuyCrowdfundBase {
             callValue,
             callData,
             governanceOpts,
+            // If _assertIsHost() succeeded, the governance opts were validated.
             true
         );
     }

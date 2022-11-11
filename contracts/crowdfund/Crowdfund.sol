@@ -195,10 +195,8 @@ abstract contract Crowdfund is Implementation, ERC721Receiver, CrowdfundNFT {
             revert OnlyPartyDaoError(msg.sender);
         }
         // Must not be disabled by DAO or host.
-        {
-            if (emergencyExecuteDisabled) {
-                revert OnlyWhenEmergencyActionsAllowedError();
-            }
+        if (emergencyExecuteDisabled) {
+            revert OnlyWhenEmergencyActionsAllowedError();
         }
         (bool success, bytes memory res) = targetAddress.call{value: amountEth}(targetCallData);
         if (!success) {
