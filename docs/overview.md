@@ -22,4 +22,4 @@ The protocol has two distinct phases that occur in this order:
 
 ## Protocol Lifecycle
 
-![contract lifecycle](./contract-lifecycle.png)
+![contract lifecycle](../.github/assets/contract-lifecycle.png)

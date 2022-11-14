@@ -1,4 +1,4 @@
-<img width="1500" alt="ProtocolWide" src="https://user-images.githubusercontent.com/5778373/201268656-b9363be5-af63-4fc5-acac-cd4d43669435.png">
+![Party Protocol](.github/assets/banner.png)
 
 # Party Protocol
 

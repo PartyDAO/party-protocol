@@ -33,7 +33,7 @@ The main contracts involved in this phase are:
 - `Globals` ([code](../contracts/globals/Globals.sol))
     - A contract that defines global configuration values referenced by other contracts across the entire protocol.
 
-![contracts](./governance-contracts.png)
+![contracts](../.github/assets/governance-contracts.png)
 
 ---
 
