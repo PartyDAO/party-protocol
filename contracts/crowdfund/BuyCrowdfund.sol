@@ -71,28 +71,26 @@ contract BuyCrowdfund is BuyCrowdfundBase {
     ///         revert if called outside the constructor.
     /// @param opts Options used to initialize the crowdfund. These are fixed
     ///             and cannot be changed later.
-    function initialize(BuyCrowdfundOptions memory opts)
-        external
-        payable
-        onlyConstructor
-    {
+    function initialize(BuyCrowdfundOptions memory opts) external payable onlyConstructor {
         if (opts.onlyHostCanBuy && opts.governanceOpts.hosts.length == 0) {
             revert MissingHostsError();
         }
-        BuyCrowdfundBase._initialize(BuyCrowdfundBaseOptions({
-            name: opts.name,
-            symbol: opts.symbol,
-            customizationPresetId: opts.customizationPresetId,
-            duration: opts.duration,
-            maximumPrice: opts.maximumPrice,
-            splitRecipient: opts.splitRecipient,
-            splitBps: opts.splitBps,
-            initialContributor: opts.initialContributor,
-            initialDelegate: opts.initialDelegate,
-            gateKeeper: opts.gateKeeper,
-            gateKeeperId: opts.gateKeeperId,
-            governanceOpts: opts.governanceOpts
-        }));
+        BuyCrowdfundBase._initialize(
+            BuyCrowdfundBaseOptions({
+                name: opts.name,
+                symbol: opts.symbol,
+                customizationPresetId: opts.customizationPresetId,
+                duration: opts.duration,
+                maximumPrice: opts.maximumPrice,
+                splitRecipient: opts.splitRecipient,
+                splitBps: opts.splitBps,
+                initialContributor: opts.initialContributor,
+                initialDelegate: opts.initialDelegate,
+                gateKeeper: opts.gateKeeper,
+                gateKeeperId: opts.gateKeeperId,
+                governanceOpts: opts.governanceOpts
+            })
+        );
         onlyHostCanBuy = opts.onlyHostCanBuy;
         nftTokenId = opts.nftTokenId;
         nftContract = opts.nftContract;
@@ -114,10 +112,7 @@ contract BuyCrowdfund is BuyCrowdfundBase {
         bytes memory callData,
         FixedGovernanceOpts memory governanceOpts,
         uint256 hostIndex
-    )
-        external
-        returns (Party party_)
-    {
+    ) external returns (Party party_) {
         // This function can be optionally restricted in different ways.
         bool isValidatedGovernanceOpts;
         if (onlyHostCanBuy) {
@@ -131,14 +126,15 @@ contract BuyCrowdfund is BuyCrowdfundBase {
             _assertIsContributor(msg.sender);
         }
 
-        return _buy(
-            nftContract,
-            nftTokenId,
-            callTarget,
-            callValue,
-            callData,
-            governanceOpts,
-            isValidatedGovernanceOpts
-        );
+        return
+            _buy(
+                nftContract,
+                nftTokenId,
+                callTarget,
+                callValue,
+                callData,
+                governanceOpts,
+                isValidatedGovernanceOpts
+            );
     }
 }

@@ -83,7 +83,12 @@ abstract contract Crowdfund is Implementation, ERC721Receiver, CrowdfundNFT {
     error InvalidGovernanceOptionsError();
     error InvalidDelegateError();
     error NoPartyError();
-    error NotAllowedByGateKeeperError(address contributor, IGateKeeper gateKeeper, bytes12 gateKeeperId, bytes gateData);
+    error NotAllowedByGateKeeperError(
+        address contributor,
+        IGateKeeper gateKeeper,
+        bytes12 gateKeeperId,
+        bytes gateData
+    );
     error SplitRecipientAlreadyBurnedError();
     error InvalidBpsError(uint16 bps);
     error ExceedsTotalContributionsError(uint96 value, uint96 totalContributions);
@@ -96,7 +101,12 @@ abstract contract Crowdfund is Implementation, ERC721Receiver, CrowdfundNFT {
     error OnlyWhenEmergencyActionsAllowedError();
 
     event Burned(address contributor, uint256 ethUsed, uint256 ethOwed, uint256 votingPower);
-    event Contributed(address contributor, uint256 amount, address delegate, uint256 previousTotalContributions);
+    event Contributed(
+        address contributor,
+        uint256 amount,
+        address delegate,
+        uint256 previousTotalContributions
+    );
     event EmergencyExecute(address target, bytes data, uint256 amountEth);
     event EmergencyExecuteDisabled();
 
@@ -146,9 +156,7 @@ abstract contract Crowdfund is Implementation, ERC721Receiver, CrowdfundNFT {
 
     // Initialize storage for proxy contracts, credit initial contribution (if
     // any), and setup gatekeeper.
-    function _initialize(CrowdfundOptions memory opts)
-        internal
-    {
+    function _initialize(CrowdfundOptions memory opts) internal {
         CrowdfundNFT._initialize(opts.name, opts.symbol, opts.customizationPresetId);
         // Check that BPS values do not exceed the max.
         if (opts.governanceOpts.feeBps > 1e4) {
@@ -185,11 +193,7 @@ abstract contract Crowdfund is Implementation, ERC721Receiver, CrowdfundNFT {
         address targetAddress,
         bytes calldata targetCallData,
         uint256 amountEth
-    )
-        external
-        payable
-        onlyDelegateCall
-    {
+    ) external payable onlyDelegateCall {
         // Must be called by the DAO.
         if (!_isPartyDao(msg.sender)) {
             revert OnlyPartyDaoError(msg.sender);
@@ -198,7 +202,7 @@ abstract contract Crowdfund is Implementation, ERC721Receiver, CrowdfundNFT {
         if (emergencyExecuteDisabled) {
             revert OnlyWhenEmergencyActionsAllowedError();
         }
-        (bool success, bytes memory res) = targetAddress.call{value: amountEth}(targetCallData);
+        (bool success, bytes memory res) = targetAddress.call{ value: amountEth }(targetCallData);
         if (!success) {
             res.rawRevert();
         }
@@ -212,10 +216,7 @@ abstract contract Crowdfund is Implementation, ERC721Receiver, CrowdfundNFT {
     function disableEmergencyExecute(
         FixedGovernanceOpts memory governanceOpts,
         uint256 hostIndex
-    )
-        external
-        onlyDelegateCall
-    {
+    ) external onlyDelegateCall {
         // Only the DAO or a host can call this.
         if (!_isHost(msg.sender, governanceOpts, hostIndex) && !_isPartyDao(msg.sender)) {
             revert OnlyPartyDaoOrHostError(msg.sender);
@@ -223,7 +224,6 @@ abstract contract Crowdfund is Implementation, ERC721Receiver, CrowdfundNFT {
         emergencyExecuteDisabled = true;
         emit EmergencyExecuteDisabled();
     }
-
 
     /// @notice Burn the participation NFT for `contributor`, potentially
     ///         minting voting power and/or refunding unused ETH. `contributor`
@@ -261,9 +261,7 @@ abstract contract Crowdfund is Implementation, ERC721Receiver, CrowdfundNFT {
     function batchActivateOrRefund(
         address payable[] calldata contributors,
         bool revertOnFailure
-    )
-        external
-    {
+    ) external {
         batchBurn(contributors, revertOnFailure);
     }
 
@@ -296,11 +294,7 @@ abstract contract Crowdfund is Implementation, ERC721Receiver, CrowdfundNFT {
     ///         membership to the gatekeeper.
     /// @param delegate The address to delegate to for the governance phase.
     /// @param gateData Data to pass to the gatekeeper to prove eligibility.
-    function contribute(address delegate, bytes memory gateData)
-        public
-        payable
-        onlyDelegateCall
-    {
+    function contribute(address delegate, bytes memory gateData) public payable onlyDelegateCall {
         _contribute(
             msg.sender,
             msg.value.safeCastUint256ToUint96(),
@@ -318,13 +312,11 @@ abstract contract Crowdfund is Implementation, ERC721Receiver, CrowdfundNFT {
     }
 
     /// @inheritdoc EIP165
-    function supportsInterface(bytes4 interfaceId)
-        public
-        override(ERC721Receiver, CrowdfundNFT)
-        pure
-        returns (bool)
-    {
-        return ERC721Receiver.supportsInterface(interfaceId) ||
+    function supportsInterface(
+        bytes4 interfaceId
+    ) public pure override(ERC721Receiver, CrowdfundNFT) returns (bool) {
+        return
+            ERC721Receiver.supportsInterface(interfaceId) ||
             CrowdfundNFT.supportsInterface(interfaceId);
     }
 
@@ -335,23 +327,19 @@ abstract contract Crowdfund is Implementation, ERC721Receiver, CrowdfundNFT {
     /// @return ethUsed The total ETH used by `contributor` to acquire the NFT.
     /// @return ethOwed The total ETH refunded back to `contributor`.
     /// @return votingPower The total voting power minted to `contributor`.
-    function getContributorInfo(address contributor)
+    function getContributorInfo(
+        address contributor
+    )
         external
         view
-        returns (
-            uint256 ethContributed,
-            uint256 ethUsed,
-            uint256 ethOwed,
-            uint256 votingPower
-        )
+        returns (uint256 ethContributed, uint256 ethUsed, uint256 ethOwed, uint256 votingPower)
     {
         CrowdfundLifecycle lc = getCrowdfundLifecycle();
         if (lc == CrowdfundLifecycle.Won || lc == CrowdfundLifecycle.Lost) {
             (ethUsed, ethOwed, votingPower) = _getFinalContribution(contributor);
             ethContributed = ethUsed + ethOwed;
         } else {
-            Contribution[] memory contributions =
-                _contributionsByContributor[contributor];
+            Contribution[] memory contributions = _contributionsByContributor[contributor];
             uint256 numContributions = contributions.length;
             for (uint256 i; i < numContributions; ++i) {
                 ethContributed += contributions[i].amount;
@@ -360,11 +348,11 @@ abstract contract Crowdfund is Implementation, ERC721Receiver, CrowdfundNFT {
     }
 
     /// @notice Get the current lifecycle of the crowdfund.
-    function getCrowdfundLifecycle() public virtual view returns (CrowdfundLifecycle lifecycle);
+    function getCrowdfundLifecycle() public view virtual returns (CrowdfundLifecycle lifecycle);
 
     // Get the final sale price of the bought assets. This will also be the total
     // voting power of the governance party.
-    function _getFinalPrice() internal virtual view returns (uint256);
+    function _getFinalPrice() internal view virtual returns (uint256);
 
     // Assert that `who` is a host at `governanceOpts.hosts[hostIndex]` and,
     // if so, assert that the governance opts is the same as the crowdfund
@@ -374,10 +362,7 @@ abstract contract Crowdfund is Implementation, ERC721Receiver, CrowdfundNFT {
         address who,
         FixedGovernanceOpts memory governanceOpts,
         uint256 hostIndex
-    )
-        internal
-        view
-    {
+    ) internal view {
         if (!_isHost(who, governanceOpts, hostIndex)) {
             revert OnlyPartyHostError();
         }
@@ -388,11 +373,7 @@ abstract contract Crowdfund is Implementation, ERC721Receiver, CrowdfundNFT {
         address who,
         FixedGovernanceOpts memory governanceOpts,
         uint256 hostIndex
-    )
-        private
-        view
-        returns (bool isHost)
-    {
+    ) private view returns (bool isHost) {
         if (hostIndex < governanceOpts.hosts.length && who == governanceOpts.hosts[hostIndex]) {
             // Validate governance opts if the host was found.
             _assertValidGovernanceOpts(governanceOpts);
@@ -406,10 +387,7 @@ abstract contract Crowdfund is Implementation, ERC721Receiver, CrowdfundNFT {
     }
 
     // Assert that `who` is a contributor to the crowdfund.
-    function _assertIsContributor(address who)
-        internal
-        view
-    {
+    function _assertIsContributor(address who) internal view {
         if (_contributionsByContributor[who].length == 0) {
             revert OnlyContributorError();
         }
@@ -425,10 +403,7 @@ abstract contract Crowdfund is Implementation, ERC721Receiver, CrowdfundNFT {
         bool governanceOptsAlreadyValidated,
         IERC721[] memory preciousTokens,
         uint256[] memory preciousTokenIds
-    )
-        internal
-        returns (Party party_)
-    {
+    ) internal returns (Party party_) {
         if (party != Party(payable(0))) {
             revert PartyAlreadyExistsError(party);
         }
@@ -438,27 +413,26 @@ abstract contract Crowdfund is Implementation, ERC721Receiver, CrowdfundNFT {
             _assertValidGovernanceOpts(governanceOpts);
         }
         // Create a party.
-        party = party_ = _getPartyFactory()
-            .createParty(
-                address(this),
-                Party.PartyOptions({
-                    name: name,
-                    symbol: symbol,
-                    // Indicates to the party to use the same customization preset as the crowdfund.
-                    customizationPresetId: 0,
-                    governance: PartyGovernance.GovernanceOpts({
-                        hosts: governanceOpts.hosts,
-                        voteDuration: governanceOpts.voteDuration,
-                        executionDelay: governanceOpts.executionDelay,
-                        passThresholdBps: governanceOpts.passThresholdBps,
-                        totalVotingPower: _getFinalPrice().safeCastUint256ToUint96(),
-                        feeBps: governanceOpts.feeBps,
-                        feeRecipient: governanceOpts.feeRecipient
-                    })
-                }),
-                preciousTokens,
-                preciousTokenIds
-            );
+        party = party_ = _getPartyFactory().createParty(
+            address(this),
+            Party.PartyOptions({
+                name: name,
+                symbol: symbol,
+                // Indicates to the party to use the same customization preset as the crowdfund.
+                customizationPresetId: 0,
+                governance: PartyGovernance.GovernanceOpts({
+                    hosts: governanceOpts.hosts,
+                    voteDuration: governanceOpts.voteDuration,
+                    executionDelay: governanceOpts.executionDelay,
+                    passThresholdBps: governanceOpts.passThresholdBps,
+                    totalVotingPower: _getFinalPrice().safeCastUint256ToUint96(),
+                    feeBps: governanceOpts.feeBps,
+                    feeRecipient: governanceOpts.feeRecipient
+                })
+            }),
+            preciousTokens,
+            preciousTokenIds
+        );
         // Transfer the acquired NFTs to the new party.
         for (uint256 i; i < preciousTokens.length; ++i) {
             preciousTokens[i].transferFrom(address(this), address(party_), preciousTokenIds[i]);
@@ -471,10 +445,7 @@ abstract contract Crowdfund is Implementation, ERC721Receiver, CrowdfundNFT {
         bool governanceOptsAlreadyValidated,
         IERC721 preciousToken,
         uint256 preciousTokenId
-    )
-        internal
-        returns (Party party_)
-    {
+    ) internal returns (Party party_) {
         IERC721[] memory tokens = new IERC721[](1);
         tokens[0] = preciousToken;
         uint256[] memory tokenIds = new uint256[](1);
@@ -483,26 +454,24 @@ abstract contract Crowdfund is Implementation, ERC721Receiver, CrowdfundNFT {
     }
 
     // Assert that the hash of `opts` matches the hash this crowdfund was initialized with.
-    function _assertValidGovernanceOpts(FixedGovernanceOpts memory governanceOpts)
-        private
-        view
-    {
+    function _assertValidGovernanceOpts(FixedGovernanceOpts memory governanceOpts) private view {
         bytes32 governanceOptsHash_ = _hashFixedGovernanceOpts(governanceOpts);
         if (governanceOptsHash_ != governanceOptsHash) {
             revert InvalidGovernanceOptionsError();
         }
     }
 
-    function _hashFixedGovernanceOpts(FixedGovernanceOpts memory opts)
-        internal
-        pure
-        returns (bytes32 h)
-    {
+    function _hashFixedGovernanceOpts(
+        FixedGovernanceOpts memory opts
+    ) internal pure returns (bytes32 h) {
         // Hash in place.
         assembly {
             // Replace the address[] hosts field with its hash temporarily.
             let oldHostsFieldValue := mload(opts)
-            mstore(opts, keccak256(add(oldHostsFieldValue, 0x20), mul(mload(oldHostsFieldValue), 32)))
+            mstore(
+                opts,
+                keccak256(add(oldHostsFieldValue, 0x20), mul(mload(oldHostsFieldValue), 32))
+            )
             // Hash the entire struct.
             h := keccak256(opts, 0xC0)
             // Restore old hosts field value.
@@ -510,11 +479,9 @@ abstract contract Crowdfund is Implementation, ERC721Receiver, CrowdfundNFT {
         }
     }
 
-    function _getFinalContribution(address contributor)
-        internal
-        view
-        returns (uint256 ethUsed, uint256 ethOwed, uint256 votingPower)
-    {
+    function _getFinalContribution(
+        address contributor
+    ) internal view returns (uint256 ethUsed, uint256 ethOwed, uint256 votingPower) {
         uint256 totalEthUsed = _getFinalPrice();
         {
             Contribution[] memory contributions = _contributionsByContributor[contributor];
@@ -555,9 +522,7 @@ abstract contract Crowdfund is Implementation, ERC721Receiver, CrowdfundNFT {
         address delegate,
         uint96 previousTotalContributions,
         bytes memory gateData
-    )
-        private
-    {
+    ) private {
         // Require a non-null delegate.
         if (delegate == address(0)) {
             revert InvalidDelegateError();
@@ -598,8 +563,8 @@ abstract contract Crowdfund is Implementation, ERC721Receiver, CrowdfundNFT {
                 Contribution memory lastContribution = contributions[numContributions - 1];
                 // If no one else (other than this contributor) has contributed since,
                 // we can just reuse this contributor's last entry.
-                uint256 totalContributionsAmountForReuse =
-                    lastContribution.previousTotalContributions + lastContribution.amount;
+                uint256 totalContributionsAmountForReuse = lastContribution
+                    .previousTotalContributions + lastContribution.amount;
                 if (totalContributionsAmountForReuse == previousTotalContributions) {
                     lastContribution.amount += amount;
                     contributions[numContributions - 1] = lastContribution;
@@ -607,10 +572,12 @@ abstract contract Crowdfund is Implementation, ERC721Receiver, CrowdfundNFT {
                 }
             }
             // Add a new contribution entry.
-            contributions.push(Contribution({
-                previousTotalContributions: previousTotalContributions,
-                amount: amount
-            }));
+            contributions.push(
+                Contribution({
+                    previousTotalContributions: previousTotalContributions,
+                    amount: amount
+                })
+            );
             // Mint a participation NFT if this is their first contribution.
             if (numContributions == 0) {
                 _mint(contributor);
@@ -644,8 +611,9 @@ abstract contract Crowdfund is Implementation, ERC721Receiver, CrowdfundNFT {
         }
         // Compute the contributions used and owed to the contributor, along
         // with the voting power they'll have in the governance stage.
-        (uint256 ethUsed, uint256 ethOwed, uint256 votingPower) =
-            _getFinalContribution(contributor);
+        (uint256 ethUsed, uint256 ethOwed, uint256 votingPower) = _getFinalContribution(
+            contributor
+        );
         if (votingPower > 0) {
             // Get the address to delegate voting power to. If null, delegate to self.
             address delegate = delegationsByContributor[contributor];
@@ -665,7 +633,7 @@ abstract contract Crowdfund is Implementation, ERC721Receiver, CrowdfundNFT {
             }
         }
         // Refund any ETH owed back to the contributor.
-        (bool s, ) = contributor.call{value: ethOwed}("");
+        (bool s, ) = contributor.call{ value: ethOwed }("");
         if (!s) {
             // If the transfer fails, the contributor can still come claim it
             // from the crowdfund.

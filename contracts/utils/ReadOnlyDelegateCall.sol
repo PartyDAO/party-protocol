@@ -5,9 +5,7 @@ import "./LibRawResult.sol";
 
 interface IReadOnlyDelegateCall {
     // Marked `view` so that `_readOnlyDelegateCall` can be `view` as well.
-    function delegateCallAndRevert(address impl, bytes memory callData)
-        external
-        view;
+    function delegateCallAndRevert(address impl, bytes memory callData) external view;
 }
 
 // Inherited by contracts to perform read-only delegate calls.
@@ -28,8 +26,7 @@ abstract contract ReadOnlyDelegateCall {
         try IReadOnlyDelegateCall(address(this)).delegateCallAndRevert(impl, callData) {
             // Should never happen.
             assert(false);
-        }
-        catch (bytes memory r) {
+        } catch (bytes memory r) {
             (bool success, bytes memory resultData) = abi.decode(r, (bool, bytes));
             if (!success) {
                 resultData.rawRevert();

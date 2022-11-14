@@ -1,0 +1,36 @@
+name: Run tests and lint
+
+on: [push, pull_request]
+
+env:
+  FORK_URL: ${{ secrets.FORK_URL }}
+  ETHERSCAN_API_KEY: ${{ secrets.ETHERSCAN_API_KEY }}
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+    steps:
+      - name: "Check out the repo"
+        uses: actions/checkout@v3
+        with:
+          submodules: recursive
+
+      - name: "Install Foundry"
+        uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: nightly
+
+      - name: "Install Node.js"
+        uses: actions/setup-node@v3
+
+      - name: "Install dev dependencies"
+        run: yarn -D
+
+      - name: "Run lints"
+        run: yarn lint
+
+      - name: "Run Foundry tests"
+        run: forge test -vvv --fork-url $FORK_URL --etherscan-api-key $ETHERSCAN_API_KEY
+
+      - name: "Run TypeScript tests"
+        run: yarn test:ts

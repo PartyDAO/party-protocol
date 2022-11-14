@@ -5,12 +5,10 @@ library LibAddress {
     error EthTransferFailed(address receiver, bytes errData);
 
     // Transfer ETH with full gas stipend.
-    function transferEth(address payable receiver, uint256 amount)
-        internal
-    {
+    function transferEth(address payable receiver, uint256 amount) internal {
         if (amount == 0) return;
 
-        (bool s, bytes memory r) = receiver.call{value: amount}("");
+        (bool s, bytes memory r) = receiver.call{ value: amount }("");
         if (!s) {
             revert EthTransferFailed(receiver, r);
         }

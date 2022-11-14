@@ -69,23 +69,23 @@ abstract contract BuyCrowdfundBase is Crowdfund {
     constructor(IGlobals globals) Crowdfund(globals) {}
 
     // Initialize storage for proxy contracts.
-    function _initialize(BuyCrowdfundBaseOptions memory opts)
-        internal
-    {
+    function _initialize(BuyCrowdfundBaseOptions memory opts) internal {
         expiry = uint40(opts.duration + block.timestamp);
         maximumPrice = opts.maximumPrice;
-        Crowdfund._initialize(CrowdfundOptions({
-            name: opts.name,
-            symbol: opts.symbol,
-            customizationPresetId: opts.customizationPresetId,
-            splitRecipient: opts.splitRecipient,
-            splitBps: opts.splitBps,
-            initialContributor: opts.initialContributor,
-            initialDelegate: opts.initialDelegate,
-            gateKeeper: opts.gateKeeper,
-            gateKeeperId: opts.gateKeeperId,
-            governanceOpts: opts.governanceOpts
-        }));
+        Crowdfund._initialize(
+            CrowdfundOptions({
+                name: opts.name,
+                symbol: opts.symbol,
+                customizationPresetId: opts.customizationPresetId,
+                splitRecipient: opts.splitRecipient,
+                splitBps: opts.splitBps,
+                initialContributor: opts.initialContributor,
+                initialDelegate: opts.initialDelegate,
+                gateKeeper: opts.gateKeeper,
+                gateKeeperId: opts.gateKeeperId,
+                governanceOpts: opts.governanceOpts
+            })
+        );
     }
 
     // Execute arbitrary calldata to perform a buy, creating a party
@@ -98,11 +98,7 @@ abstract contract BuyCrowdfundBase is Crowdfund {
         bytes memory callData,
         FixedGovernanceOpts memory governanceOpts,
         bool isValidatedGovernanceOpts
-    )
-        internal
-        onlyDelegateCall
-        returns (Party party_)
-    {
+    ) internal onlyDelegateCall returns (Party party_) {
         // Check that the call is not prohibited.
         if (!_isCallAllowed(callTarget, callData, token)) {
             revert CallProhibitedError(callTarget, callData);
@@ -168,14 +164,13 @@ abstract contract BuyCrowdfundBase is Crowdfund {
     }
 
     /// @inheritdoc Crowdfund
-    function getCrowdfundLifecycle() public override view returns (CrowdfundLifecycle) {
+    function getCrowdfundLifecycle() public view override returns (CrowdfundLifecycle) {
         // If there is a settled price then we tried to buy the NFT.
         if (settledPrice != 0) {
-            return address(party) != address(0)
-                // If we have a party, then we succeeded buying the NFT.
-                ? CrowdfundLifecycle.Won
-                // Otherwise we're in the middle of the `buy()`.
-                : CrowdfundLifecycle.Busy;
+            return
+                address(party) != address(0) // If we have a party, then we succeeded buying the NFT.
+                    ? CrowdfundLifecycle.Won // Otherwise we're in the middle of the `buy()`.
+                    : CrowdfundLifecycle.Busy;
         }
         if (block.timestamp >= expiry) {
             // Expired, but nothing to do so skip straight to lost, or NFT was
@@ -185,12 +180,7 @@ abstract contract BuyCrowdfundBase is Crowdfund {
         return CrowdfundLifecycle.Active;
     }
 
-    function _getFinalPrice()
-        internal
-        override
-        view
-        returns (uint256)
-    {
+    function _getFinalPrice() internal view override returns (uint256) {
         return settledPrice;
     }
 
@@ -198,11 +188,7 @@ abstract contract BuyCrowdfundBase is Crowdfund {
         address payable callTarget,
         bytes memory callData,
         IERC721 token
-    )
-        private
-        view
-        returns (bool isAllowed)
-    {
+    ) private view returns (bool isAllowed) {
         // Ensure the call target isn't trying to reenter
         if (callTarget == address(this)) {
             return false;

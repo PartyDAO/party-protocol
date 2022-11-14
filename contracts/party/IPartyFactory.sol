@@ -33,9 +33,7 @@ interface IPartyFactory {
         Party.PartyOptions calldata opts,
         IERC721[] memory preciousTokens,
         uint256[] memory preciousTokenIds
-    )
-        external
-        returns (Party party);
+    ) external returns (Party party);
 
     /// @notice The `Globals` contract storing global configuration values. This contract
     ///         is immutable and it’s address will never change.

@@ -24,18 +24,18 @@ contract BuyCrowdfundTest is Test, TestUtils {
         uint256[] preciousTokenIds
     );
 
-    event MockMint(
-        address caller,
-        address owner,
-        uint256 amount,
-        address delegate
-    );
+    event MockMint(address caller, address owner, uint256 amount, address delegate);
 
-    event Contributed(address contributor, uint256 amount, address delegate, uint256 previousTotalContributions);
+    event Contributed(
+        address contributor,
+        uint256 amount,
+        address delegate,
+        uint256 previousTotalContributions
+    );
     event Lost();
 
-    string defaultName = 'BuyCrowdfund';
-    string defaultSymbol = 'PBID';
+    string defaultName = "BuyCrowdfund";
+    string defaultSymbol = "PBID";
     uint40 defaultDuration = 60 * 60;
     uint96 defaultMaxPrice = 10e18;
     address payable defaultSplitRecipient = payable(0);
@@ -57,8 +57,7 @@ contract BuyCrowdfundTest is Test, TestUtils {
         buyCrowdfundImpl = new BuyCrowdfund(globals);
     }
 
-    function setUp() public {
-    }
+    function setUp() public {}
 
     function _createCrowdfund(
         uint256 tokenId,
@@ -67,72 +66,72 @@ contract BuyCrowdfundTest is Test, TestUtils {
         IGateKeeper gateKeeper,
         bytes12 gateKeeperId,
         address[] memory hosts
-    )
-        private
-        returns (BuyCrowdfund cf)
-    {
+    ) private returns (BuyCrowdfund cf) {
         defaultGovernanceOpts.hosts = hosts;
-        cf = BuyCrowdfund(payable(address(new Proxy{ value: initialContribution }(
-            buyCrowdfundImpl,
-            abi.encodeCall(
-                BuyCrowdfund.initialize,
-                BuyCrowdfund.BuyCrowdfundOptions({
-                    name: defaultName,
-                    symbol: defaultSymbol,
-                    customizationPresetId: 0,
-                    nftContract: erc721Vault.token(),
-                    nftTokenId: tokenId,
-                    duration: defaultDuration,
-                    maximumPrice: defaultMaxPrice,
-                    splitRecipient: defaultSplitRecipient,
-                    splitBps: defaultSplitBps,
-                    initialContributor: address(this),
-                    initialDelegate: defaultInitialDelegate,
-                    gateKeeper: gateKeeper,
-                    gateKeeperId: gateKeeperId,
-                    onlyHostCanBuy: onlyHostCanBuy,
-                    governanceOpts: defaultGovernanceOpts
-                })
+        cf = BuyCrowdfund(
+            payable(
+                address(
+                    new Proxy{ value: initialContribution }(
+                        buyCrowdfundImpl,
+                        abi.encodeCall(
+                            BuyCrowdfund.initialize,
+                            BuyCrowdfund.BuyCrowdfundOptions({
+                                name: defaultName,
+                                symbol: defaultSymbol,
+                                customizationPresetId: 0,
+                                nftContract: erc721Vault.token(),
+                                nftTokenId: tokenId,
+                                duration: defaultDuration,
+                                maximumPrice: defaultMaxPrice,
+                                splitRecipient: defaultSplitRecipient,
+                                splitBps: defaultSplitBps,
+                                initialContributor: address(this),
+                                initialDelegate: defaultInitialDelegate,
+                                gateKeeper: gateKeeper,
+                                gateKeeperId: gateKeeperId,
+                                onlyHostCanBuy: onlyHostCanBuy,
+                                governanceOpts: defaultGovernanceOpts
+                            })
+                        )
+                    )
+                )
             )
-        ))));
+        );
     }
 
     function _createCrowdfund(
         uint256 tokenId,
         uint96 initialContribution
-    )
-        private
-        returns (BuyCrowdfund cf)
-    {
-        return _createCrowdfund(
-            tokenId,
-            initialContribution,
-            false,
-            defaultGateKeeper,
-            defaultGateKeeperId,
-            defaultGovernanceOpts.hosts
-        );
+    ) private returns (BuyCrowdfund cf) {
+        return
+            _createCrowdfund(
+                tokenId,
+                initialContribution,
+                false,
+                defaultGateKeeper,
+                defaultGateKeeperId,
+                defaultGovernanceOpts.hosts
+            );
     }
 
-    function _createExpectedPartyOptions(uint256 finalPrice)
-        private
-        view
-        returns (Party.PartyOptions memory opts)
-    {
-        return Party.PartyOptions({
-            name: defaultName,
-            symbol: defaultSymbol,
-            customizationPresetId: 0,
-            governance: PartyGovernance.GovernanceOpts({
-                hosts: defaultGovernanceOpts.hosts,
-                voteDuration: defaultGovernanceOpts.voteDuration,
-                executionDelay: defaultGovernanceOpts.executionDelay,
-                passThresholdBps: defaultGovernanceOpts.passThresholdBps,
-                totalVotingPower: uint96(finalPrice),
-                feeBps: defaultGovernanceOpts.feeBps,
-                feeRecipient: defaultGovernanceOpts.feeRecipient
-            })
-        });
+    function _createExpectedPartyOptions(
+        uint256 finalPrice
+    ) private view returns (Party.PartyOptions memory opts) {
+        return
+            Party.PartyOptions({
+                name: defaultName,
+                symbol: defaultSymbol,
+                customizationPresetId: 0,
+                governance: PartyGovernance.GovernanceOpts({
+                    hosts: defaultGovernanceOpts.hosts,
+                    voteDuration: defaultGovernanceOpts.voteDuration,
+                    executionDelay: defaultGovernanceOpts.executionDelay,
+                    passThresholdBps: defaultGovernanceOpts.passThresholdBps,
+                    totalVotingPower: uint96(finalPrice),
+                    feeBps: defaultGovernanceOpts.feeBps,
+                    feeRecipient: defaultGovernanceOpts.feeRecipient
+                })
+            });
     }
 
     function testHappyPath() public {
@@ -165,12 +164,7 @@ contract BuyCrowdfundTest is Test, TestUtils {
         // Burn contributor's NFT, mock minting governance tokens and returning
         // unused contribution.
         vm.expectEmit(false, false, false, true);
-        emit MockMint(
-            address(cf),
-            contributor,
-            0.5e18,
-            delegate
-        );
+        emit MockMint(address(cf), contributor, 0.5e18, delegate);
         cf.burn(contributor);
         assertEq(contributor.balance, 0.5e18);
     }
@@ -232,11 +226,9 @@ contract BuyCrowdfundTest is Test, TestUtils {
         // Now as the host, but this will fail with another error because
         // we are trying to call the CF itself in buy().
         vm.prank(host);
-        vm.expectRevert(abi.encodeWithSelector(
-            BuyCrowdfundBase.CallProhibitedError.selector,
-            address(cf),
-            ""
-        ));
+        vm.expectRevert(
+            abi.encodeWithSelector(BuyCrowdfundBase.CallProhibitedError.selector, address(cf), "")
+        );
         cf.buy(payable(address(cf)), 0, "", defaultGovernanceOpts, 0);
 
         // Buy as a contributor, but this will fail because only the host can
@@ -300,11 +292,9 @@ contract BuyCrowdfundTest is Test, TestUtils {
         // Buy as a contributor, but this will fail with another error because
         // we are trying to call the CF itself in buy().
         vm.prank(contributor);
-        vm.expectRevert(abi.encodeWithSelector(
-            BuyCrowdfundBase.CallProhibitedError.selector,
-            address(cf),
-            ""
-        ));
+        vm.expectRevert(
+            abi.encodeWithSelector(BuyCrowdfundBase.CallProhibitedError.selector, address(cf), "")
+        );
         cf.buy(payable(address(cf)), 0, "", defaultGovernanceOpts, 0);
     }
 
@@ -337,21 +327,16 @@ contract BuyCrowdfundTest is Test, TestUtils {
         // Now as the host, but this will fail with another error because
         // we are trying to call the CF itself in buy().
         vm.prank(host);
-        vm.expectRevert(abi.encodeWithSelector(
-            BuyCrowdfundBase.CallProhibitedError.selector,
-            address(cf),
-            ""
-        ));
+        vm.expectRevert(
+            abi.encodeWithSelector(BuyCrowdfundBase.CallProhibitedError.selector, address(cf), "")
+        );
         cf.buy(payable(address(cf)), 0, "", defaultGovernanceOpts, 0);
 
         // Buy as a contributor, but this will fail because onlyHost is on.
         vm.prank(contributor);
-        vm.expectRevert(abi.encodeWithSelector(
-            Crowdfund.OnlyPartyHostError.selector
-        ));
+        vm.expectRevert(abi.encodeWithSelector(Crowdfund.OnlyPartyHostError.selector));
         cf.buy(payable(address(cf)), 0, "", defaultGovernanceOpts, 0);
     }
-
 
     function testOnlyHostOrContributorCanBuy_CannotFakeGovernanceOpts() public {
         // Create a BuyCrowdfund instance with `onlyHost` enabled.
@@ -388,11 +373,13 @@ contract BuyCrowdfundTest is Test, TestUtils {
         cf.contribute{ value: contributor.balance }(delegate, "");
 
         uint96 totalContributions = cf.totalContributions();
-        vm.expectRevert(abi.encodeWithSelector(
-            Crowdfund.ExceedsTotalContributionsError.selector,
-            totalContributions + 1,
-            totalContributions
-        ));
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                Crowdfund.ExceedsTotalContributionsError.selector,
+                totalContributions + 1,
+                totalContributions
+            )
+        );
         cf.buy(
             payable(address(erc721Vault)),
             totalContributions + 1,
@@ -413,18 +400,14 @@ contract BuyCrowdfundTest is Test, TestUtils {
         cf.contribute{ value: contributor.balance }(contributor, "");
         bytes memory callData = abi.encodeCall(cf.contribute, (contributor, ""));
         // Attempt reentering back into the crowdfund directly.
-        vm.expectRevert(abi.encodeWithSelector(
-            BuyCrowdfundBase.CallProhibitedError.selector,
-            address(cf),
-            callData
-        ));
-        cf.buy(
-            payable(address(cf)),
-            1e18,
-            callData,
-            defaultGovernanceOpts,
-            0
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                BuyCrowdfundBase.CallProhibitedError.selector,
+                address(cf),
+                callData
+            )
         );
+        cf.buy(payable(address(cf)), 1e18, callData, defaultGovernanceOpts, 0);
         ReenteringContract reenteringContract = new ReenteringContract();
         // Attempt reentering back into the crowdfund via a proxy.
         vm.expectRevert(
@@ -454,33 +437,25 @@ contract BuyCrowdfundTest is Test, TestUtils {
         cf.contribute{ value: contributor.balance }(contributor, "");
         // Attempt calling `approve()`.
         bytes memory callData = abi.encodeCall(IERC721.approve, (contributor, tokenId));
-        vm.expectRevert(abi.encodeWithSelector(
-            BuyCrowdfundBase.CallProhibitedError.selector,
-            address(cf),
-            callData
-        ));
-        cf.buy(
-            payable(address(cf)),
-            1e18,
-            callData,
-            defaultGovernanceOpts,
-            0
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                BuyCrowdfundBase.CallProhibitedError.selector,
+                address(cf),
+                callData
+            )
         );
+        cf.buy(payable(address(cf)), 1e18, callData, defaultGovernanceOpts, 0);
         // Attempt calling `setApprovalForAll()`.
         callData = abi.encodeCall(IERC721.setApprovalForAll, (contributor, true));
         IERC721 token = erc721Vault.token();
-        vm.expectRevert(abi.encodeWithSelector(
-            BuyCrowdfundBase.CallProhibitedError.selector,
-            address(token),
-            callData
-        ));
-        cf.buy(
-            payable(address(token)),
-            1e18,
-            callData,
-            defaultGovernanceOpts,
-            0
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                BuyCrowdfundBase.CallProhibitedError.selector,
+                address(token),
+                callData
+            )
         );
+        cf.buy(payable(address(token)), 1e18, callData, defaultGovernanceOpts, 0);
     }
 
     function testGettingNFTForFreeTriggersLostToRefund() public {
@@ -518,29 +493,35 @@ contract BuyCrowdfundTest is Test, TestUtils {
         address initialDelegate = _randomAddress();
         vm.deal(address(this), initialContribution);
         emit Contributed(initialContributor, initialContribution, initialDelegate, 0);
-        BuyCrowdfund(payable(address(new Proxy{ value: initialContribution }(
-            buyCrowdfundImpl,
-            abi.encodeCall(
-                BuyCrowdfund.initialize,
-                BuyCrowdfund.BuyCrowdfundOptions({
-                    name: defaultName,
-                    symbol: defaultSymbol,
-                    customizationPresetId: 0,
-                    nftContract: erc721Vault.token(),
-                    nftTokenId: tokenId,
-                    duration: defaultDuration,
-                    maximumPrice: defaultMaxPrice,
-                    splitRecipient: defaultSplitRecipient,
-                    splitBps: defaultSplitBps,
-                    initialContributor: initialContributor,
-                    initialDelegate: initialDelegate,
-                    gateKeeper: defaultGateKeeper,
-                    gateKeeperId: defaultGateKeeperId,
-                    onlyHostCanBuy: false,
-                    governanceOpts: defaultGovernanceOpts
-                })
+        BuyCrowdfund(
+            payable(
+                address(
+                    new Proxy{ value: initialContribution }(
+                        buyCrowdfundImpl,
+                        abi.encodeCall(
+                            BuyCrowdfund.initialize,
+                            BuyCrowdfund.BuyCrowdfundOptions({
+                                name: defaultName,
+                                symbol: defaultSymbol,
+                                customizationPresetId: 0,
+                                nftContract: erc721Vault.token(),
+                                nftTokenId: tokenId,
+                                duration: defaultDuration,
+                                maximumPrice: defaultMaxPrice,
+                                splitRecipient: defaultSplitRecipient,
+                                splitBps: defaultSplitBps,
+                                initialContributor: initialContributor,
+                                initialDelegate: initialDelegate,
+                                gateKeeper: defaultGateKeeper,
+                                gateKeeperId: defaultGateKeeperId,
+                                onlyHostCanBuy: false,
+                                governanceOpts: defaultGovernanceOpts
+                            })
+                        )
+                    )
+                )
             )
-        ))));
+        );
     }
 }
 

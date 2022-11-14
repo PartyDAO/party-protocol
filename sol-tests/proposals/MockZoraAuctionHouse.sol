@@ -19,30 +19,27 @@ contract MockZoraAuctionHouse is IZoraAuctionHouse {
         address payable,
         uint8,
         IERC20
-    )
-        external
-        returns (uint256 auctionId)
-    {
+    ) external returns (uint256 auctionId) {
         auctionId = ++lastAuctionId;
     }
 
     function createBid(uint256, uint256) external payable {
-        revert('no implementado');
+        revert("no implementado");
     }
 
     function endAuction(uint256) external pure {
-        revert('no implementado');
+        revert("no implementado");
     }
 
     function cancelAuction(uint256) external pure {
-        revert('no implementado');
+        revert("no implementado");
     }
 
     function auctions(uint256) external pure returns (Auction memory) {
-        revert('no implementado');
+        revert("no implementado");
     }
 
     function minBidIncrementPercentage() external pure returns (uint8) {
-        revert('no implementado');
+        revert("no implementado");
     }
 }

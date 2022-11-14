@@ -44,91 +44,96 @@ abstract contract RendererBase is IERC721Renderer {
 
     function contractURI() external view returns (string memory) {
         (bool isDarkMode, Color color) = getCustomizationChoices();
-        (string memory image, string memory banner) = getCollectionImageAndBanner(color, isDarkMode);
-
-        return string.concat(
-            'data:application/json;base64,',
-            Base64.encode(abi.encodePacked(
-                '{"name":"',
-                generateCollectionName(),
-                '", "description":"',
-                generateCollectionDescription(),
-                '", "external_url":"',
-                'https://www.partybid.app/'
-                '", "image":"',
-                image,
-                '", "banner":"',
-                banner,
-                '"}'
-            ))
+        (string memory image, string memory banner) = getCollectionImageAndBanner(
+            color,
+            isDarkMode
         );
+
+        return
+            string.concat(
+                "data:application/json;base64,",
+                Base64.encode(
+                    abi.encodePacked(
+                        '{"name":"',
+                        generateCollectionName(),
+                        '", "description":"',
+                        generateCollectionDescription(),
+                        '", "external_url":"',
+                        "https://www.partybid.app/"
+                        '", "image":"',
+                        image,
+                        '", "banner":"',
+                        banner,
+                        '"}'
+                    )
+                )
+            );
     }
 
-    function generateCollectionName() internal virtual view returns (string memory);
+    function generateCollectionName() internal view virtual returns (string memory);
 
-    function generateCollectionDescription() internal virtual view returns (string memory);
+    function generateCollectionDescription() internal view virtual returns (string memory);
 
-    function getCollectionImageAndBanner(Color color, bool isDarkMode)
-        private
-        pure
-        returns (string memory image, string memory banner)
-    {
+    function getCollectionImageAndBanner(
+        Color color,
+        bool isDarkMode
+    ) private pure returns (string memory image, string memory banner) {
         if (isDarkMode) {
             if (color == Color.GREEN) {
-                image = 'QmdcjXrxj7EimjuNTLQp1uKM2zYhuF1WVkVjF6TpfNNXrf';
-                banner = 'QmR3vqAV17SJiwksiCHV1cLQuf9TKZuar8NQu8GmKkHRXM';
+                image = "QmdcjXrxj7EimjuNTLQp1uKM2zYhuF1WVkVjF6TpfNNXrf";
+                banner = "QmR3vqAV17SJiwksiCHV1cLQuf9TKZuar8NQu8GmKkHRXM";
             } else if (color == Color.CYAN) {
-                image = 'QmS678DTkTTzFQEDiqj3AsW6wt6bi4bNhWbKcBM29HBhhB';
-                banner = 'QmYSbXyPh9Lx2wmv6Z7SK8iFD9kyADxtaohV1gv6ZVKFj4';
+                image = "QmS678DTkTTzFQEDiqj3AsW6wt6bi4bNhWbKcBM29HBhhB";
+                banner = "QmYSbXyPh9Lx2wmv6Z7SK8iFD9kyADxtaohV1gv6ZVKFj4";
             } else if (color == Color.BLUE) {
-                image = 'QmX2k8beAjyVhPk1ZrK6KrwbqLk3fRNPPmknRti7zEtGQa';
-                banner = 'QmaXN8MbcrjkHPt97Z7xeuTCx6wPkJ9xZN7ExZZwMabspy';
+                image = "QmX2k8beAjyVhPk1ZrK6KrwbqLk3fRNPPmknRti7zEtGQa";
+                banner = "QmaXN8MbcrjkHPt97Z7xeuTCx6wPkJ9xZN7ExZZwMabspy";
             } else if (color == Color.PURPLE) {
-                image = 'Qmf8SrxKH3QZQCEzcMbA3UoJGZ1j2coTLaQFptWhZZvqhg';
-                banner = 'QmWhpo9kN2Nf8ioWb7BKwqsCQKt3M2TduHPNqMqXz9jUK4';
+                image = "Qmf8SrxKH3QZQCEzcMbA3UoJGZ1j2coTLaQFptWhZZvqhg";
+                banner = "QmWhpo9kN2Nf8ioWb7BKwqsCQKt3M2TduHPNqMqXz9jUK4";
             } else if (color == Color.PINK) {
-                image = 'QmV5eT9DWvU5BJa4LVSemkoDKyjJBC56adk2JLWMXYEQfn';
-                banner = 'QmP2NTyvMQ5yN1RY4nH1HfoTX2r6Ug6WZfN9GFf9toak8M';
+                image = "QmV5eT9DWvU5BJa4LVSemkoDKyjJBC56adk2JLWMXYEQfn";
+                banner = "QmP2NTyvMQ5yN1RY4nH1HfoTX2r6Ug6WZfN9GFf9toak8M";
             } else if (color == Color.ORANGE) {
-                image = 'QmPirB7VFaao2ZUxLtM5WTCwZhE7c9Uy2heyNZF5t9PgsS';
-                banner = 'QmUMgkjhrxedcLUvWt8VKrZdvrCGmjxWDSDXfm2M96nKUx';
+                image = "QmPirB7VFaao2ZUxLtM5WTCwZhE7c9Uy2heyNZF5t9PgsS";
+                banner = "QmUMgkjhrxedcLUvWt8VKrZdvrCGmjxWDSDXfm2M96nKUx";
             } else if (color == Color.RED) {
-                image = 'QmNRZ3syuEiiAkWYRFs9BpQ5M38wv8tEu17J2sYwmMdeta';
-                banner = 'QmQV1EjzwQsXdgi6C6ubfopZrprk6Ab9LVnggZBgJDg5C2';
+                image = "QmNRZ3syuEiiAkWYRFs9BpQ5M38wv8tEu17J2sYwmMdeta";
+                banner = "QmQV1EjzwQsXdgi6C6ubfopZrprk6Ab9LVnggZBgJDg5C2";
             } else {
-                image = 'QmNwGtGyYwDfS6ghQbDw5a9buv7auFXz63W3rDhzmxjVhw';
-                banner = 'QmYUujTBgH6RTswZSiSzuy2GUojE6H9edaXeoSwwvh2T7o';
+                image = "QmNwGtGyYwDfS6ghQbDw5a9buv7auFXz63W3rDhzmxjVhw";
+                banner = "QmYUujTBgH6RTswZSiSzuy2GUojE6H9edaXeoSwwvh2T7o";
             }
         } else {
             if (color == Color.GREEN) {
-                image = 'QmR7t2g2hrkMYyzhUMEANzEGX74FQcbg3c7eTvCcQucMst';
-                banner = 'Qmc3zRfT6nC2G1KgoWpCvLDVjNi7x7KFgwButecj3sq9qg';
+                image = "QmR7t2g2hrkMYyzhUMEANzEGX74FQcbg3c7eTvCcQucMst";
+                banner = "Qmc3zRfT6nC2G1KgoWpCvLDVjNi7x7KFgwButecj3sq9qg";
             } else if (color == Color.CYAN) {
-                image = 'QmeiBRb9muNXej3dn4usjjdtbUpgYASfA5jmWqJRshivGH';
-                banner = 'QmcsvMB2xiBKKMyKsBkC51TjWnyk42nNJnsudoGFsvvXCt';
+                image = "QmeiBRb9muNXej3dn4usjjdtbUpgYASfA5jmWqJRshivGH";
+                banner = "QmcsvMB2xiBKKMyKsBkC51TjWnyk42nNJnsudoGFsvvXCt";
             } else if (color == Color.BLUE) {
-                image = 'QmaErgGsanUTo73RMgvizMg3c7x1d1X4t76Tti22Pc1xan';
-                banner = 'QmSjhHF994xBd7wavV4mhj7GpZmw5euQUBxpiPbbmxExqp';
+                image = "QmaErgGsanUTo73RMgvizMg3c7x1d1X4t76Tti22Pc1xan";
+                banner = "QmSjhHF994xBd7wavV4mhj7GpZmw5euQUBxpiPbbmxExqp";
             } else if (color == Color.PURPLE) {
-                image = 'QmeVJTcUpKQFSz5aBsVpQk8quoXEEZBNPAAMo3wHvdRzHa';
-                banner = 'QmYx6aHYGitr6p8dHUa7n4nyew3pWy1Mfdn8fpFLejmhHC';
+                image = "QmeVJTcUpKQFSz5aBsVpQk8quoXEEZBNPAAMo3wHvdRzHa";
+                banner = "QmYx6aHYGitr6p8dHUa7n4nyew3pWy1Mfdn8fpFLejmhHC";
             } else if (color == Color.PINK) {
-                image = 'QmY4JJkBEeHVYHdfCCXPd7bWkAhNRxuKTWdf9MssGxSmCG';
-                banner = 'QmQH5CFf3qXG2oymGzwTDgUmPFBsaTw2Qbfhjk58VHcABd';
+                image = "QmY4JJkBEeHVYHdfCCXPd7bWkAhNRxuKTWdf9MssGxSmCG";
+                banner = "QmQH5CFf3qXG2oymGzwTDgUmPFBsaTw2Qbfhjk58VHcABd";
             } else if (color == Color.ORANGE) {
-                image = 'QmYhB3vjBLPwPTC5SBidNbZhB5oBMBMpKy4g6ejTxmGLkK';
-                banner = 'QmRP8cVjJyPRV7wXs5ApwbCFyTBpHXmHsDexbcN4o7aomd';
+                image = "QmYhB3vjBLPwPTC5SBidNbZhB5oBMBMpKy4g6ejTxmGLkK";
+                banner = "QmRP8cVjJyPRV7wXs5ApwbCFyTBpHXmHsDexbcN4o7aomd";
             } else if (color == Color.RED) {
-                image = 'QmfG8HPMEsKwKJ8xX3i2JhJtCskuiUjZLe8NhvXFdYyFR2';
-                banner = 'QmazXbqfFtQexkwFDbYkyvLF4xRSDrmEVQS4PSAs2ZtxDn';
+                image = "QmfG8HPMEsKwKJ8xX3i2JhJtCskuiUjZLe8NhvXFdYyFR2";
+                banner = "QmazXbqfFtQexkwFDbYkyvLF4xRSDrmEVQS4PSAs2ZtxDn";
             } else {
-                image = 'QmZKE4XkPvU7Z8CdgK2Cn7gLQ4t8CDkkfnR1j5bZ2AfRJu';
-                banner = 'QmTKCqLUQJt3VxGuUqLMj1jcCRRsaZwY4k757Wb7YPzmH2';
+                image = "QmZKE4XkPvU7Z8CdgK2Cn7gLQ4t8CDkkfnR1j5bZ2AfRJu";
+                banner = "QmTKCqLUQJt3VxGuUqLMj1jcCRRsaZwY4k757Wb7YPzmH2";
             }
         }
 
-        image = string.concat('ipfs://', image);
-        banner = string.concat('ipfs://', banner);
+        image = string.concat("ipfs://", image);
+        banner = string.concat("ipfs://", banner);
     }
 
     function getCustomizationChoices() internal view returns (bool isDarkMode, Color color) {
@@ -170,7 +175,10 @@ abstract contract RendererBase is IERC721Renderer {
         }
     }
 
-    function generateColorHex(Color color, ColorType colorType) internal pure returns (string memory colorHex) {
+    function generateColorHex(
+        Color color,
+        ColorType colorType
+    ) internal pure returns (string memory colorHex) {
         if (color == Color.DEFAULT) {
             if (colorType == ColorType.PRIMARY) {
                 return "#A7B8CF";
@@ -254,15 +262,20 @@ abstract contract RendererBase is IERC721Renderer {
         }
     }
 
-    function formatAsDecimalString(uint256 n, uint256 decimals, uint256 maxChars) internal pure returns (string memory) {
+    function formatAsDecimalString(
+        uint256 n,
+        uint256 decimals,
+        uint256 maxChars
+    ) internal pure returns (string memory) {
         string memory str = n.toString();
-        uint256 oneUnit = 10**decimals;
-        if (n < 10**(decimals - 2)) {
+        uint256 oneUnit = 10 ** decimals;
+        if (n < 10 ** (decimals - 2)) {
             return "&lt;0.01";
         } else if (n < oneUnit) {
             // Preserve leading zeros for decimals.
             // (eg. if 0.01, `n` will "1" so we need to prepend a "0").
-            return string.concat("0.", prependNumWithZeros(str, decimals).substring(0, maxChars - 1));
+            return
+                string.concat("0.", prependNumWithZeros(str, decimals).substring(0, maxChars - 1));
         } else if (n >= 1000 * oneUnit) {
             return str.substring(0, maxChars);
         } else {
@@ -271,7 +284,10 @@ abstract contract RendererBase is IERC721Renderer {
         }
     }
 
-    function prependNumWithZeros(string memory numStr, uint256 expectedLength) internal pure returns (string memory) {
+    function prependNumWithZeros(
+        string memory numStr,
+        uint256 expectedLength
+    ) internal pure returns (string memory) {
         uint256 length = bytes(numStr).length;
         if (length < expectedLength) {
             for (uint256 i; i < expectedLength - length; ++i) {

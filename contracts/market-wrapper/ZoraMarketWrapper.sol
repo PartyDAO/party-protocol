@@ -2,10 +2,10 @@
 pragma solidity 0.8.17;
 
 // ============ External Imports ============
-import {IZoraAuctionHouse} from "../vendor/markets/IZoraAuctionHouse.sol";
+import { IZoraAuctionHouse } from "../vendor/markets/IZoraAuctionHouse.sol";
 
 // ============ Internal Imports ============
-import {IMarketWrapper} from "./IMarketWrapper.sol";
+import { IMarketWrapper } from "./IMarketWrapper.sol";
 import "../tokens/IERC721.sol";
 import "../tokens/IERC20.sol";
 
@@ -26,8 +26,7 @@ contract ZoraMarketWrapper is IMarketWrapper {
 
     constructor(address _zoraAuctionHouse) {
         market = IZoraAuctionHouse(_zoraAuctionHouse);
-        minBidIncrementPercentage = IZoraAuctionHouse(_zoraAuctionHouse)
-            .minBidIncrementPercentage();
+        minBidIncrementPercentage = IZoraAuctionHouse(_zoraAuctionHouse).minBidIncrementPercentage();
     }
 
     // ======== External Functions =========
@@ -64,12 +63,7 @@ contract ZoraMarketWrapper is IMarketWrapper {
      * @notice Calculate the minimum next bid for this auction
      * @return minimum bid amount
      */
-    function getMinimumBid(uint256 auctionId)
-        external
-        view
-        override
-        returns (uint256)
-    {
+    function getMinimumBid(uint256 auctionId) external view override returns (uint256) {
         // line 173 of Zora Auction House, calculation within createBid() function (calculation not exposed publicly)
         IZoraAuctionHouse.Auction memory _auction = market.auctions(auctionId);
         if (_auction.bidder == address(0)) {
@@ -77,7 +71,7 @@ contract ZoraMarketWrapper is IMarketWrapper {
             return _auction.reservePrice;
         } else {
             // if there ARE bids, the minimum bid is the current bid plus the increment buffer
-            return _auction.amount + (_auction.amount * minBidIncrementPercentage / 100);
+            return _auction.amount + ((_auction.amount * minBidIncrementPercentage) / 100);
         }
     }
 
@@ -85,12 +79,7 @@ contract ZoraMarketWrapper is IMarketWrapper {
      * @notice Query the current highest bidder for this auction
      * @return highest bidder
      */
-    function getCurrentHighestBidder(uint256 auctionId)
-        external
-        view
-        override
-        returns (address)
-    {
+    function getCurrentHighestBidder(uint256 auctionId) external view override returns (address) {
         // line 279 of NFTMarketReserveAuction, getMinBidAmount() function
         IZoraAuctionHouse.Auction memory _auction = market.auctions(auctionId);
         return _auction.bidder;
@@ -101,14 +90,8 @@ contract ZoraMarketWrapper is IMarketWrapper {
      */
     function bid(uint256 auctionId, uint256 bidAmount) external override {
         // line 153 of Zora Auction House, createBid() function
-        (bool success, bytes memory returnData) = address(market).call{
-            value: bidAmount
-        }(
-            abi.encodeWithSignature(
-                "createBid(uint256,uint256)",
-                auctionId,
-                bidAmount
-            )
+        (bool success, bytes memory returnData) = address(market).call{ value: bidAmount }(
+            abi.encodeWithSignature("createBid(uint256,uint256)", auctionId, bidAmount)
         );
         require(success, string(returnData));
     }
@@ -117,12 +100,7 @@ contract ZoraMarketWrapper is IMarketWrapper {
      * @notice Determine whether the auction has been finalized
      * @return TRUE if the auction has been finalized
      */
-    function isFinalized(uint256 auctionId)
-        external
-        view
-        override
-        returns (bool)
-    {
+    function isFinalized(uint256 auctionId) external view override returns (bool) {
         // line 302 of Zora Auction House,
         // the auction is deleted at the end of the endAuction() function
         // since we checked that the auction DID exist when we deployed the partyBid,

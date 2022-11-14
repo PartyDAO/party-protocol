@@ -15,8 +15,8 @@ contract TestableFractionalizeProposal is FractionalizeProposal {
     );
 
     PartyGovernance.GovernanceValues _governanceValues;
-    string public constant name = 'Test party';
-    string public constant symbol = 'TST';
+    string public constant name = "Test party";
+    string public constant symbol = "TST";
 
     // A shallow version of the `onlyActiveMemberOrSelf` modifier in `PartyGovernance`.
     modifier onlyActiveMemberOrSelf() {
@@ -26,9 +26,7 @@ contract TestableFractionalizeProposal is FractionalizeProposal {
         _;
     }
 
-    constructor(IFractionalV1VaultFactory vaultFactory)
-        FractionalizeProposal(vaultFactory)
-    {}
+    constructor(IFractionalV1VaultFactory vaultFactory) FractionalizeProposal(vaultFactory) {}
 
     function getGovernanceValues() external view returns (PartyGovernance.GovernanceValues memory) {
         return _governanceValues;
@@ -36,10 +34,7 @@ contract TestableFractionalizeProposal is FractionalizeProposal {
 
     function executeFractionalize(
         IProposalExecutionEngine.ExecuteProposalParams memory params
-    )
-        external
-        returns (bytes memory nextProgressData)
-    {
+    ) external returns (bytes memory nextProgressData) {
         return _executeFractionalize(params);
     }
 
@@ -53,11 +48,7 @@ contract TestableFractionalizeProposal is FractionalizeProposal {
         ITokenDistributor.TokenType tokenType,
         address token,
         uint256 tokenId
-    )
-        external
-        onlyActiveMemberOrSelf
-        returns (ITokenDistributor.DistributionInfo memory distInfo)
-    {
+    ) external onlyActiveMemberOrSelf returns (ITokenDistributor.DistributionInfo memory distInfo) {
         emit MockCreateDistribution(msg.sender, tokenType, token, tokenId);
         return distInfo;
     }
@@ -100,33 +91,44 @@ contract FractionalizeProposalForkedTest is TestUtils {
         _expectEmit2();
         emit FractionalV1VaultCreated(erc721, tokenId, expectedVaultId, expectedVault, listPrice);
         _expectEmit0();
-        emit MockCreateDistribution(address(impl), ITokenDistributor.TokenType.Erc20, address(expectedVault), expectedVaultId);
-        bytes memory nextProgressData =
-            impl.executeFractionalize(IProposalExecutionEngine.ExecuteProposalParams({
+        emit MockCreateDistribution(
+            address(impl),
+            ITokenDistributor.TokenType.Erc20,
+            address(expectedVault),
+            expectedVaultId
+        );
+        bytes memory nextProgressData = impl.executeFractionalize(
+            IProposalExecutionEngine.ExecuteProposalParams({
                 proposalId: _randomUint256(),
                 progressData: "",
                 extraData: "",
                 flags: 0,
                 preciousTokens: new IERC721[](0),
                 preciousTokenIds: new uint256[](0),
-                proposalData: abi.encode(FractionalizeProposal.FractionalizeProposalData({
-                    token: erc721,
-                    tokenId: tokenId,
-                    listPrice: listPrice
-                }))
-            }));
+                proposalData: abi.encode(
+                    FractionalizeProposal.FractionalizeProposalData({
+                        token: erc721,
+                        tokenId: tokenId,
+                        listPrice: listPrice
+                    })
+                )
+            })
+        );
         assertEq(nextProgressData.length, 0);
-        assertEq(expectedVault.balanceOf(address(impl)), impl.getGovernanceValues().totalVotingPower);
+        assertEq(
+            expectedVault.balanceOf(address(impl)),
+            impl.getGovernanceValues().totalVotingPower
+        );
         assertEq(expectedVault.reservePrice(), listPrice);
         assertEq(expectedVault.curator(), address(0));
     }
 
-    function _getNextVault()
-        private
-        returns (IFractionalV1Vault v)
-    {
-        try this.__getNextVaultAndRevert() { assert(false); }
-        catch (bytes memory revertData) { v = abi.decode(revertData, (IFractionalV1Vault)); }
+    function _getNextVault() private returns (IFractionalV1Vault v) {
+        try this.__getNextVaultAndRevert() {
+            assert(false);
+        } catch (bytes memory revertData) {
+            v = abi.decode(revertData, (IFractionalV1Vault));
+        }
     }
 
     function __getNextVaultAndRevert() external {

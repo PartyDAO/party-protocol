@@ -25,17 +25,11 @@ contract OpenseaTestUtils is Test {
         bytes32 conduitKey;
     }
 
-    function _buyOpenseaListing(BuyOpenseaListingParams memory params)
-        internal
-    {
+    function _buyOpenseaListing(BuyOpenseaListingParams memory params) internal {
         vm.deal(params.buyer, address(params.buyer).balance + params.listPrice);
         vm.prank(params.buyer);
         SEAPORT.fulfillOrder{ value: params.listPrice }(
-            _createFullOpenseaOrderParams(
-                params,
-                new uint256[](0),
-                new address payable[](0)
-            ),
+            _createFullOpenseaOrderParams(params, new uint256[](0), new address payable[](0)),
             0
         );
     }
@@ -44,9 +38,7 @@ contract OpenseaTestUtils is Test {
         BuyOpenseaListingParams memory params,
         uint256[] memory fees,
         address payable[] memory feeRecipients
-    )
-        internal
-    {
+    ) internal {
         uint256 totalValue = params.listPrice;
         for (uint256 i; i < fees.length; ++i) {
             totalValue += fees[i];
@@ -54,11 +46,7 @@ contract OpenseaTestUtils is Test {
         vm.deal(params.buyer, address(params.buyer).balance + totalValue);
         vm.prank(params.buyer);
         SEAPORT.fulfillOrder{ value: totalValue }(
-            _createFullOpenseaOrderParams(
-                params,
-                fees,
-                feeRecipients
-            ),
+            _createFullOpenseaOrderParams(params, fees, feeRecipients),
             0
         );
     }
@@ -67,25 +55,21 @@ contract OpenseaTestUtils is Test {
         BuyOpenseaListingParams memory params,
         uint256[] memory fees,
         address payable[] memory feeRecipients
-    )
-        internal
-        pure
-        returns (IOpenseaExchange.Order memory order)
-    {
+    ) internal pure returns (IOpenseaExchange.Order memory order) {
         order.parameters.salt = uint256(bytes32(bytes4(keccak256("partyprotocol"))));
         order.parameters.orderType = params.zone == address(0)
             ? IOpenseaExchange.OrderType.FULL_OPEN
             : IOpenseaExchange.OrderType.FULL_RESTRICTED;
-        IOpenseaExchange.OfferItem[] memory offers =
-            order.parameters.offer =
-                new IOpenseaExchange.OfferItem[](1);
+        IOpenseaExchange.OfferItem[] memory offers = order
+            .parameters
+            .offer = new IOpenseaExchange.OfferItem[](1);
         offers[0].itemType = IOpenseaExchange.ItemType.ERC721;
         offers[0].token = address(params.token);
         offers[0].identifierOrCriteria = params.tokenId;
         offers[0].startAmount = offers[0].endAmount = 1;
-        IOpenseaExchange.ConsiderationItem[] memory considerations =
-            order.parameters.consideration =
-                new IOpenseaExchange.ConsiderationItem[](1 + fees.length);
+        IOpenseaExchange.ConsiderationItem[] memory considerations = order
+            .parameters
+            .consideration = new IOpenseaExchange.ConsiderationItem[](1 + fees.length);
         considerations[0].itemType = IOpenseaExchange.ItemType.NATIVE;
         considerations[0].token = address(0);
         considerations[0].identifierOrCriteria = 0;
@@ -106,15 +90,9 @@ contract OpenseaTestUtils is Test {
         order.parameters.zone = params.zone;
     }
 
-    function _createFullOpenseaOrderParams(BuyOpenseaListingParams memory params)
-        internal
-        pure
-        returns (IOpenseaExchange.Order memory order)
-    {
-        return _createFullOpenseaOrderParams(
-            params,
-            new uint256[](0),
-            new address payable[](0)
-        );
+    function _createFullOpenseaOrderParams(
+        BuyOpenseaListingParams memory params
+    ) internal pure returns (IOpenseaExchange.Order memory order) {
+        return _createFullOpenseaOrderParams(params, new uint256[](0), new address payable[](0));
     }
 }

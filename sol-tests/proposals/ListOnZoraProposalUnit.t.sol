@@ -11,10 +11,8 @@ import "../DummyERC721.sol";
 contract ListOnZoraProposalUnitTest is Test, TestUtils {
     MockZoraAuctionHouse zora = new MockZoraAuctionHouse();
     Globals globals = new Globals(address(this));
-    TestableListOnZoraProposal impl = new TestableListOnZoraProposal(
-        IGlobals(address(globals)),
-        IZoraAuctionHouse(zora)
-    );
+    TestableListOnZoraProposal impl =
+        new TestableListOnZoraProposal(IGlobals(address(globals)), IZoraAuctionHouse(zora));
     DummyERC721 token = new DummyERC721();
     uint256 tokenId = token.mint(address(impl));
 
@@ -83,7 +81,9 @@ contract ListOnZoraProposalUnitTest is Test, TestUtils {
         ) = _createTestProposal();
 
         // Test minimum auction duration is enforced
-        uint40 minDuration = uint40(globals.getUint256(LibGlobals.GLOBAL_ZORA_MIN_AUCTION_DURATION));
+        uint40 minDuration = uint40(
+            globals.getUint256(LibGlobals.GLOBAL_ZORA_MIN_AUCTION_DURATION)
+        );
         data.duration = minDuration / 2;
         params.proposalData = abi.encode(data);
         _expectEmit0();
@@ -98,7 +98,9 @@ contract ListOnZoraProposalUnitTest is Test, TestUtils {
         impl.executeListOnZora(params);
 
         // Test maximum auction duration is enforced
-        uint40 maxDuration = uint40(globals.getUint256(LibGlobals.GLOBAL_ZORA_MAX_AUCTION_DURATION));
+        uint40 maxDuration = uint40(
+            globals.getUint256(LibGlobals.GLOBAL_ZORA_MAX_AUCTION_DURATION)
+        );
         data.duration = maxDuration * 2;
         params.proposalData = abi.encode(data);
         _expectEmit0();

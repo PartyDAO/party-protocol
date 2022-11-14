@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8;
 
-import {Test} from "../../lib/forge-std/src/Test.sol";
-import {console} from "../../lib/forge-std/src/console.sol";
-import {DummyERC20} from "../DummyERC20.sol";
-import {DummyERC721} from "../DummyERC721.sol";
-import {TestUtils} from "../TestUtils.sol";
-import {TokenGateKeeper, Token} from "../../contracts/gatekeepers/TokenGateKeeper.sol";
+import { Test } from "../../lib/forge-std/src/Test.sol";
+import { console } from "../../lib/forge-std/src/console.sol";
+import { DummyERC20 } from "../DummyERC20.sol";
+import { DummyERC721 } from "../DummyERC721.sol";
+import { TestUtils } from "../TestUtils.sol";
+import { TokenGateKeeper, Token } from "../../contracts/gatekeepers/TokenGateKeeper.sol";
 import "../../contracts/utils/LibERC20Compat.sol";
 
 contract TokenGateKeeperTest is Test, TestUtils {

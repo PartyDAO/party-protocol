@@ -28,10 +28,7 @@ contract PartyFactory is IPartyFactory {
         Party.PartyOptions memory opts,
         IERC721[] memory preciousTokens,
         uint256[] memory preciousTokenIds
-    )
-        external
-        returns (Party party)
-    {
+    ) external returns (Party party) {
         // Ensure a valid authority is set to mint governance NFTs.
         if (authority == address(0)) {
             revert InvalidAuthorityError(authority);
@@ -43,12 +40,14 @@ contract PartyFactory is IPartyFactory {
             preciousTokenIds: preciousTokenIds,
             mintAuthority: authority
         });
-        party = Party(payable(
-            new Proxy(
-                GLOBALS.getImplementation(LibGlobals.GLOBAL_PARTY_IMPL),
-                abi.encodeCall(Party.initialize, (initData))
+        party = Party(
+            payable(
+                new Proxy(
+                    GLOBALS.getImplementation(LibGlobals.GLOBAL_PARTY_IMPL),
+                    abi.encodeCall(Party.initialize, (initData))
+                )
             )
-        ));
+        );
         emit PartyCreated(party, opts, preciousTokens, preciousTokenIds, msg.sender);
     }
 }

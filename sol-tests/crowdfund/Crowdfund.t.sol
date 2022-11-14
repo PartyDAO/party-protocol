@@ -39,21 +39,21 @@ contract CrowdfundTest is Test, TestUtils {
         uint256[] preciousTokenIds
     );
 
-    event MockMint(
-        address caller,
-        address owner,
-        uint256 amount,
-        address delegate
-    );
+    event MockMint(address caller, address owner, uint256 amount, address delegate);
 
-    event Contributed(address contributor, uint256 amount, address delegate, uint256 previousTotalContributions);
+    event Contributed(
+        address contributor,
+        uint256 amount,
+        address delegate,
+        uint256 previousTotalContributions
+    );
     event Burned(address contributor, uint256 ethUsed, uint256 ethOwed, uint256 votingPower);
     event EmergencyExecuteTargetCalled();
     event EmergencyExecuteDisabled();
     event EmergencyExecute(address target, bytes data, uint256 amountEth);
 
-    string defaultName = 'Party of the Living Dead';
-    string defaultSymbol = 'ACF';
+    string defaultName = "Party of the Living Dead";
+    string defaultSymbol = "ACF";
     uint40 defaultDuration = 60 * 60;
     uint96 defaultMaxBid = 10e18;
     address payable defaultSplitRecipient = payable(0);
@@ -79,7 +79,7 @@ contract CrowdfundTest is Test, TestUtils {
         defaultGovernanceOpts.voteDuration = 1 days;
         defaultGovernanceOpts.executionDelay = 0.5 days;
         defaultGovernanceOpts.passThresholdBps = 0.51e4;
-        dao =_randomAddress();
+        dao = _randomAddress();
 
         // Upload font on-chain
         PixeldroidConsoleFont font = new PixeldroidConsoleFont();
@@ -107,10 +107,10 @@ contract CrowdfundTest is Test, TestUtils {
         }
     }
 
-    function _createTokens(address owner, uint256 count)
-        private
-        returns (IERC721[] memory tokens, uint256[] memory tokenIds)
-    {
+    function _createTokens(
+        address owner,
+        uint256 count
+    ) private returns (IERC721[] memory tokens, uint256[] memory tokenIds) {
         tokens = new IERC721[](count);
         tokenIds = new uint256[](count);
         for (uint256 i; i < count; ++i) {
@@ -125,85 +125,84 @@ contract CrowdfundTest is Test, TestUtils {
         address initialContributor,
         address initialDelegate,
         uint256 customizationPresetId
-    )
-        private
-        returns (TestableCrowdfund cf)
-    {
-        cf = TestableCrowdfund(payable(new Proxy{ value: initialContribution }(
-            Implementation(new TestableCrowdfund(globals)),
-            abi.encodeCall(TestableCrowdfund.initialize, (
-                Crowdfund.CrowdfundOptions({
-                    name: defaultName,
-                    symbol: defaultSymbol,
-                    customizationPresetId: customizationPresetId,
-                    splitRecipient: defaultSplitRecipient,
-                    splitBps: defaultSplitBps,
-                    initialContributor: initialContributor,
-                    initialDelegate: initialDelegate,
-                    gateKeeper: defaultGateKeeper,
-                    gateKeeperId: defaultGateKeeperId,
-                    governanceOpts: defaultGovernanceOpts
-                })
-            ))
-        )));
-    }
-
-    function _createCrowdfund(uint256 initialContribution, uint256 customizationPresetId)
-        private
-        returns (TestableCrowdfund cf)
-    {
-        return _createCrowdfund(
-            initialContribution,
-            address(this),
-            defaultInitialDelegate,
-            customizationPresetId
+    ) private returns (TestableCrowdfund cf) {
+        cf = TestableCrowdfund(
+            payable(
+                new Proxy{ value: initialContribution }(
+                    Implementation(new TestableCrowdfund(globals)),
+                    abi.encodeCall(
+                        TestableCrowdfund.initialize,
+                        (
+                            Crowdfund.CrowdfundOptions({
+                                name: defaultName,
+                                symbol: defaultSymbol,
+                                customizationPresetId: customizationPresetId,
+                                splitRecipient: defaultSplitRecipient,
+                                splitBps: defaultSplitBps,
+                                initialContributor: initialContributor,
+                                initialDelegate: initialDelegate,
+                                gateKeeper: defaultGateKeeper,
+                                gateKeeperId: defaultGateKeeperId,
+                                governanceOpts: defaultGovernanceOpts
+                            })
+                        )
+                    )
+                )
+            )
         );
     }
 
-    function _createCrowdfund(uint256 initialContribution)
-        private
-        returns (TestableCrowdfund cf)
-    {
+    function _createCrowdfund(
+        uint256 initialContribution,
+        uint256 customizationPresetId
+    ) private returns (TestableCrowdfund cf) {
+        return
+            _createCrowdfund(
+                initialContribution,
+                address(this),
+                defaultInitialDelegate,
+                customizationPresetId
+            );
+    }
+
+    function _createCrowdfund(uint256 initialContribution) private returns (TestableCrowdfund cf) {
         return _createCrowdfund(initialContribution, address(this), defaultInitialDelegate, 0);
     }
 
-    function _createExpectedPartyOptions(TestableCrowdfund cf, uint256 finalPrice)
-        private
-        view
-        returns (Party.PartyOptions memory opts)
-    {
+    function _createExpectedPartyOptions(
+        TestableCrowdfund cf,
+        uint256 finalPrice
+    ) private view returns (Party.PartyOptions memory opts) {
         Crowdfund.FixedGovernanceOpts memory govOpts = cf.getFixedGovernanceOpts();
-        return Party.PartyOptions({
-            name: defaultName,
-            symbol: defaultSymbol,
-            customizationPresetId: 0,
-            governance: PartyGovernance.GovernanceOpts({
-                hosts: govOpts.hosts,
-                voteDuration: govOpts.voteDuration,
-                executionDelay: govOpts.executionDelay,
-                passThresholdBps: govOpts.passThresholdBps,
-                totalVotingPower: uint96(finalPrice),
-                feeBps: defaultGovernanceOpts.feeBps,
-                feeRecipient: defaultGovernanceOpts.feeRecipient
-            })
-        });
+        return
+            Party.PartyOptions({
+                name: defaultName,
+                symbol: defaultSymbol,
+                customizationPresetId: 0,
+                governance: PartyGovernance.GovernanceOpts({
+                    hosts: govOpts.hosts,
+                    voteDuration: govOpts.voteDuration,
+                    executionDelay: govOpts.executionDelay,
+                    passThresholdBps: govOpts.passThresholdBps,
+                    totalVotingPower: uint96(finalPrice),
+                    feeBps: defaultGovernanceOpts.feeBps,
+                    feeRecipient: defaultGovernanceOpts.feeRecipient
+                })
+            });
     }
 
-    function _getAmountWithoutSplit(uint256 contribution)
-        private
-        view
-        returns (uint256 r)
-    {
+    function _getAmountWithoutSplit(uint256 contribution) private view returns (uint256 r) {
         return (uint256(1e4 - defaultSplitBps) * contribution) / 1e4;
     }
 
-    function _getAmountWithSplit(uint256 contribution, uint256 totalContributions)
-        private
-        view
-        returns (uint256 r)
-    {
-        return _getAmountWithoutSplit(contribution) +
-            (uint256(defaultSplitBps) * totalContributions + (1e4 - 1)) / 1e4;
+    function _getAmountWithSplit(
+        uint256 contribution,
+        uint256 totalContributions
+    ) private view returns (uint256 r) {
+        return
+            _getAmountWithoutSplit(contribution) +
+            (uint256(defaultSplitBps) * totalContributions + (1e4 - 1)) /
+            1e4;
     }
 
     function test_creation_initialContribution_withDelegate() external {
@@ -219,12 +218,8 @@ contract CrowdfundTest is Test, TestUtils {
             initialDelegate,
             0
         );
-        (
-            uint256 ethContributed,
-            uint256 ethUsed,
-            uint256 ethOwed,
-            uint256 votingPower
-        ) = cf.getContributorInfo(initialContributor);
+        (uint256 ethContributed, uint256 ethUsed, uint256 ethOwed, uint256 votingPower) = cf
+            .getContributorInfo(initialContributor);
         assertEq(ethContributed, initialContribution);
         assertEq(ethUsed, 0);
         assertEq(ethOwed, 0);
@@ -236,12 +231,8 @@ contract CrowdfundTest is Test, TestUtils {
     function test_creation_initialContribution_noValue() external {
         address initialContributor = _randomAddress();
         TestableCrowdfund cf = _createCrowdfund(0, initialContributor, initialContributor, 0);
-        (
-            uint256 ethContributed,
-            uint256 ethUsed,
-            uint256 ethOwed,
-            uint256 votingPower
-        ) = cf.getContributorInfo(initialContributor);
+        (uint256 ethContributed, uint256 ethUsed, uint256 ethOwed, uint256 votingPower) = cf
+            .getContributorInfo(initialContributor);
         assertEq(ethContributed, 0);
         assertEq(ethUsed, 0);
         assertEq(ethOwed, 0);
@@ -261,8 +252,10 @@ contract CrowdfundTest is Test, TestUtils {
         cf.contribute{ value: contributor1.balance }(delegate1, "");
         assertEq(cf.totalContributions(), 1e18);
         // set up a win using contributor1's total contribution
-        (IERC721[] memory erc721Tokens, uint256[] memory erc721TokenIds) =
-            _createTokens(address(cf), 2);
+        (IERC721[] memory erc721Tokens, uint256[] memory erc721TokenIds) = _createTokens(
+            address(cf),
+            2
+        );
         vm.expectEmit(false, false, false, true);
         emit MockPartyFactoryCreateParty(
             address(cf),
@@ -271,21 +264,11 @@ contract CrowdfundTest is Test, TestUtils {
             erc721Tokens,
             erc721TokenIds
         );
-        Party party_ = cf.testSetWon(
-            1e18,
-            defaultGovernanceOpts,
-            erc721Tokens,
-            erc721TokenIds
-        );
+        Party party_ = cf.testSetWon(1e18, defaultGovernanceOpts, erc721Tokens, erc721TokenIds);
         assertEq(address(party_), address(party));
         // contributor1 burns tokens
         vm.expectEmit(false, false, false, true);
-        emit MockMint(
-            address(cf),
-            contributor1,
-            1e18,
-            delegate1
-        );
+        emit MockMint(address(cf), contributor1, 1e18, delegate1);
         cf.burn(contributor1);
         // contributor1 gets back none of their contribution
         assertEq(contributor1.balance, 0);
@@ -308,8 +291,10 @@ contract CrowdfundTest is Test, TestUtils {
         cf.contribute{ value: contributor2.balance }(delegate2, "");
         assertEq(cf.totalContributions(), 1.5e18);
         // set up a win using everyone's total contributions
-        (IERC721[] memory erc721Tokens, uint256[] memory erc721TokenIds) =
-            _createTokens(address(cf), 2);
+        (IERC721[] memory erc721Tokens, uint256[] memory erc721TokenIds) = _createTokens(
+            address(cf),
+            2
+        );
         vm.expectEmit(false, false, false, true);
         emit MockPartyFactoryCreateParty(
             address(cf),
@@ -318,32 +303,17 @@ contract CrowdfundTest is Test, TestUtils {
             erc721Tokens,
             erc721TokenIds
         );
-        Party party_ = cf.testSetWon(
-            1.5e18,
-            defaultGovernanceOpts,
-            erc721Tokens,
-            erc721TokenIds
-        );
+        Party party_ = cf.testSetWon(1.5e18, defaultGovernanceOpts, erc721Tokens, erc721TokenIds);
         assertEq(address(party_), address(party));
         // contributor1 burns tokens
         vm.expectEmit(false, false, false, true);
-        emit MockMint(
-            address(cf),
-            contributor1,
-            1e18,
-            delegate1
-        );
+        emit MockMint(address(cf), contributor1, 1e18, delegate1);
         cf.burn(contributor1);
         // contributor1 gets back none of their contribution
         assertEq(contributor1.balance, 0);
         // contributor2 burns tokens
         vm.expectEmit(false, false, false, true);
-        emit MockMint(
-            address(cf),
-            contributor2,
-            0.5e18,
-            delegate2
-        );
+        emit MockMint(address(cf), contributor2, 0.5e18, delegate2);
         cf.burn(contributor2);
         // contributor2 gets back none of their contribution
         assertEq(contributor2.balance, 0);
@@ -365,8 +335,10 @@ contract CrowdfundTest is Test, TestUtils {
         vm.prank(contributor2);
         cf.contribute{ value: contributor2.balance }(delegate2, "");
         // set up a win using half of contributor2's total contributions
-        (IERC721[] memory erc721Tokens, uint256[] memory erc721TokenIds) =
-            _createTokens(address(cf), 2);
+        (IERC721[] memory erc721Tokens, uint256[] memory erc721TokenIds) = _createTokens(
+            address(cf),
+            2
+        );
         vm.expectEmit(false, false, false, true);
         emit MockPartyFactoryCreateParty(
             address(cf),
@@ -375,31 +347,16 @@ contract CrowdfundTest is Test, TestUtils {
             erc721Tokens,
             erc721TokenIds
         );
-        cf.testSetWon(
-            1.25e18,
-            defaultGovernanceOpts,
-            erc721Tokens,
-            erc721TokenIds
-        );
+        cf.testSetWon(1.25e18, defaultGovernanceOpts, erc721Tokens, erc721TokenIds);
         // contributor1 burns tokens
         vm.expectEmit(false, false, false, true);
-        emit MockMint(
-            address(cf),
-            contributor1,
-            1e18,
-            delegate1
-        );
+        emit MockMint(address(cf), contributor1, 1e18, delegate1);
         cf.burn(contributor1);
         // contributor1 gets back none of their contribution
         assertEq(contributor1.balance, 0);
         // contributor2 burns tokens
         vm.expectEmit(false, false, false, true);
-        emit MockMint(
-            address(cf),
-            contributor2,
-            0.25e18,
-            delegate2
-        );
+        emit MockMint(address(cf), contributor2, 0.25e18, delegate2);
         cf.burn(contributor2);
         // contributor2 gets back half their contribution
         assertEq(contributor2.balance, 0.25e18);
@@ -426,8 +383,10 @@ contract CrowdfundTest is Test, TestUtils {
         vm.prank(contributor1);
         cf.contribute{ value: contributor1.balance }(delegate1, "");
         // set up a win using half of contributor2's total contributions
-        (IERC721[] memory erc721Tokens, uint256[] memory erc721TokenIds) =
-            _createTokens(address(cf), 2);
+        (IERC721[] memory erc721Tokens, uint256[] memory erc721TokenIds) = _createTokens(
+            address(cf),
+            2
+        );
         vm.expectEmit(false, false, false, true);
         emit MockPartyFactoryCreateParty(
             address(cf),
@@ -436,31 +395,16 @@ contract CrowdfundTest is Test, TestUtils {
             erc721Tokens,
             erc721TokenIds
         );
-        cf.testSetWon(
-            1.65e18,
-            defaultGovernanceOpts,
-            erc721Tokens,
-            erc721TokenIds
-        );
+        cf.testSetWon(1.65e18, defaultGovernanceOpts, erc721Tokens, erc721TokenIds);
         // contributor1 burns tokens
         vm.expectEmit(false, false, false, true);
-        emit MockMint(
-            address(cf),
-            contributor1,
-            1.15e18,
-            delegate1
-        );
+        emit MockMint(address(cf), contributor1, 1.15e18, delegate1);
         cf.burn(contributor1);
         // contributor1 gets back some of their second contribution
         assertEq(contributor1.balance, 0.1e18);
         // contributor2 burns tokens
         vm.expectEmit(false, false, false, true);
-        emit MockMint(
-            address(cf),
-            contributor2,
-            0.5e18,
-            delegate2
-        );
+        emit MockMint(address(cf), contributor2, 0.5e18, delegate2);
         cf.burn(contributor2);
         // contributor2 gets back none of their contribution
         assertEq(contributor2.balance, 0);
@@ -477,8 +421,10 @@ contract CrowdfundTest is Test, TestUtils {
         cf.contribute{ value: contributor1.balance }(delegate1, "");
         assertEq(cf.totalContributions(), 1e18);
         // set up a win with 0 final price
-        (IERC721[] memory erc721Tokens, uint256[] memory erc721TokenIds) =
-            _createTokens(address(cf), 2);
+        (IERC721[] memory erc721Tokens, uint256[] memory erc721TokenIds) = _createTokens(
+            address(cf),
+            2
+        );
         vm.expectEmit(false, false, false, true);
         emit MockPartyFactoryCreateParty(
             address(cf),
@@ -487,21 +433,11 @@ contract CrowdfundTest is Test, TestUtils {
             erc721Tokens,
             erc721TokenIds
         );
-        Party party_ = cf.testSetWon(
-            0,
-            defaultGovernanceOpts,
-            erc721Tokens,
-            erc721TokenIds
-        );
+        Party party_ = cf.testSetWon(0, defaultGovernanceOpts, erc721Tokens, erc721TokenIds);
         assertEq(address(party_), address(party));
         // contributor1 burns tokens
         vm.expectEmit(false, false, false, true);
-        emit Burned(
-            contributor1,
-            0,
-            1e18,
-            0
-        );
+        emit Burned(contributor1, 0, 1e18, 0);
         cf.burn(contributor1);
         // contributor1 gets back all of their contribution
         assertEq(contributor1.balance, 1e18);
@@ -550,22 +486,21 @@ contract CrowdfundTest is Test, TestUtils {
         vm.prank(contributor1);
         cf.contribute{ value: contributor1.balance }(delegate1, "");
         // set up a win using contributor1's total contribution
-        (IERC721[] memory erc721Tokens, uint256[] memory erc721TokenIds) =
-            _createTokens(address(cf), 2);
-        cf.testSetWon(
-            1e18,
-            defaultGovernanceOpts,
-            erc721Tokens,
-            erc721TokenIds
+        (IERC721[] memory erc721Tokens, uint256[] memory erc721TokenIds) = _createTokens(
+            address(cf),
+            2
         );
+        cf.testSetWon(1e18, defaultGovernanceOpts, erc721Tokens, erc721TokenIds);
         // contributor1 burns tokens
         cf.burn(contributor1);
         // They try to burn again.
-        vm.expectRevert(abi.encodeWithSelector(
-            CrowdfundNFT.AlreadyBurnedError.selector,
-            contributor1,
-            uint256(uint160(address(contributor1)))
-        ));
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                CrowdfundNFT.AlreadyBurnedError.selector,
+                contributor1,
+                uint256(uint160(address(contributor1)))
+            )
+        );
         cf.burn(contributor1);
     }
 
@@ -579,24 +514,23 @@ contract CrowdfundTest is Test, TestUtils {
         vm.prank(contributor1);
         cf.contribute{ value: contributor1.balance }(delegate1, "");
         // set up a win using contributor1's total contribution
-        (IERC721[] memory erc721Tokens, uint256[] memory erc721TokenIds) =
-            _createTokens(address(cf), 2);
-        cf.testSetWon(
-            0.5e18,
-            defaultGovernanceOpts,
-            erc721Tokens,
-            erc721TokenIds
+        (IERC721[] memory erc721Tokens, uint256[] memory erc721TokenIds) = _createTokens(
+            address(cf),
+            2
         );
+        cf.testSetWon(0.5e18, defaultGovernanceOpts, erc721Tokens, erc721TokenIds);
         // contributor1 burns tokens
         cf.burn(contributor1);
         // contributor1 gets back part of their contribution
         assertEq(contributor1.balance, 0.5e18);
         // They try to burn again.
-        vm.expectRevert(abi.encodeWithSelector(
-            CrowdfundNFT.AlreadyBurnedError.selector,
-            contributor1,
-            uint256(uint160(address(contributor1)))
-        ));
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                CrowdfundNFT.AlreadyBurnedError.selector,
+                contributor1,
+                uint256(uint160(address(contributor1)))
+            )
+        );
         cf.burn(contributor1);
     }
 
@@ -617,11 +551,13 @@ contract CrowdfundTest is Test, TestUtils {
         // contributor1 gets back their contribution
         assertEq(contributor1.balance, 1e18);
         // They try to burn again.
-        vm.expectRevert(abi.encodeWithSelector(
-            CrowdfundNFT.AlreadyBurnedError.selector,
-            contributor1,
-            uint256(uint160(address(contributor1)))
-        ));
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                CrowdfundNFT.AlreadyBurnedError.selector,
+                contributor1,
+                uint256(uint160(address(contributor1)))
+            )
+        );
         cf.burn(contributor1);
     }
 
@@ -637,10 +573,12 @@ contract CrowdfundTest is Test, TestUtils {
         // Set up a loss.
         cf.testSetLifeCycle(Crowdfund.CrowdfundLifecycle.Busy);
         // They try to burn again.
-        vm.expectRevert(abi.encodeWithSelector(
-            Crowdfund.WrongLifecycleError.selector,
-            Crowdfund.CrowdfundLifecycle.Busy
-        ));
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                Crowdfund.WrongLifecycleError.selector,
+                Crowdfund.CrowdfundLifecycle.Busy
+            )
+        );
         cf.burn(contributor1);
     }
 
@@ -658,14 +596,11 @@ contract CrowdfundTest is Test, TestUtils {
         vm.prank(contributor2);
         cf.contribute{ value: contributor2.balance }(contributor2, "");
         // set up a win using everyone's total contribution
-        (IERC721[] memory erc721Tokens, uint256[] memory erc721TokenIds) =
-            _createTokens(address(cf), 2);
-        cf.testSetWon(
-            3e18,
-            defaultGovernanceOpts,
-            erc721Tokens,
-            erc721TokenIds
+        (IERC721[] memory erc721Tokens, uint256[] memory erc721TokenIds) = _createTokens(
+            address(cf),
+            2
         );
+        cf.testSetWon(3e18, defaultGovernanceOpts, erc721Tokens, erc721TokenIds);
         // contributor1 burns tokens
         cf.burn(contributor1);
         // Use batchBurn() to burn both contributor's tokens.
@@ -681,8 +616,10 @@ contract CrowdfundTest is Test, TestUtils {
     function testWin_cannotChangeGovernanceOpts() external {
         TestableCrowdfund cf = _createCrowdfund(0);
         // set up a win using contributor1's total contribution
-        (IERC721[] memory erc721Tokens, uint256[] memory erc721TokenIds) =
-            _createTokens(address(cf), 2);
+        (IERC721[] memory erc721Tokens, uint256[] memory erc721TokenIds) = _createTokens(
+            address(cf),
+            2
+        );
         unchecked {
             uint256 r = _randomUint256() % 4;
             if (r == 0) {
@@ -696,12 +633,7 @@ contract CrowdfundTest is Test, TestUtils {
             }
         }
         vm.expectRevert(Crowdfund.InvalidGovernanceOptionsError.selector);
-        cf.testSetWon(
-            1e18,
-            defaultGovernanceOpts,
-            erc721Tokens,
-            erc721TokenIds
-        );
+        cf.testSetWon(1e18, defaultGovernanceOpts, erc721Tokens, erc721TokenIds);
     }
 
     // Split recipient set but does not contribute.
@@ -718,14 +650,11 @@ contract CrowdfundTest is Test, TestUtils {
         vm.prank(contributor1);
         cf.contribute{ value: contributor1.balance }(delegate1, "");
         // set up a win using half of contributor1's total contribution
-        (IERC721[] memory erc721Tokens, uint256[] memory erc721TokenIds) =
-            _createTokens(address(cf), 2);
-        cf.testSetWon(
-            0.5e18,
-            defaultGovernanceOpts,
-            erc721Tokens,
-            erc721TokenIds
+        (IERC721[] memory erc721Tokens, uint256[] memory erc721TokenIds) = _createTokens(
+            address(cf),
+            2
         );
+        cf.testSetWon(0.5e18, defaultGovernanceOpts, erc721Tokens, erc721TokenIds);
         // contributor1 burns tokens
         vm.expectEmit(false, false, false, true);
         emit MockMint(
@@ -739,19 +668,16 @@ contract CrowdfundTest is Test, TestUtils {
         assertEq(contributor1.balance, 0.5e18);
         // split recipient burns
         vm.expectEmit(false, false, false, true);
-        emit MockMint(
-            address(cf),
-            splitRecipient,
-            _getAmountWithSplit(0, 0.5e18),
-            splitRecipient
-        );
+        emit MockMint(address(cf), splitRecipient, _getAmountWithSplit(0, 0.5e18), splitRecipient);
         cf.burn(splitRecipient);
     }
 
     // Split recipient set and contributes.
     // All of contributor1's contrubtion used.
     // Part of split recipient's contribution used.
-    function testWin_participatingSplitRecipient_splitRecipientContributionPartiallyUsed() external {
+    function testWin_participatingSplitRecipient_splitRecipientContributionPartiallyUsed()
+        external
+    {
         address payable splitRecipient = _randomAddress();
         defaultSplitRecipient = splitRecipient;
         TestableCrowdfund cf = _createCrowdfund(0);
@@ -768,14 +694,11 @@ contract CrowdfundTest is Test, TestUtils {
         vm.prank(splitRecipient);
         cf.contribute{ value: splitRecipient.balance }(delegate2, "");
         // set up a win using half of split recipient's total contribution
-        (IERC721[] memory erc721Tokens, uint256[] memory erc721TokenIds) =
-            _createTokens(address(cf), 2);
-        cf.testSetWon(
-            1.25e18,
-            defaultGovernanceOpts,
-            erc721Tokens,
-            erc721TokenIds
+        (IERC721[] memory erc721Tokens, uint256[] memory erc721TokenIds) = _createTokens(
+            address(cf),
+            2
         );
+        cf.testSetWon(1.25e18, defaultGovernanceOpts, erc721Tokens, erc721TokenIds);
         // contributor1 burns tokens
         vm.expectEmit(false, false, false, true);
         emit MockMint(
@@ -818,14 +741,11 @@ contract CrowdfundTest is Test, TestUtils {
         vm.prank(splitRecipient);
         cf.contribute{ value: splitRecipient.balance }(delegate2, "");
         // set up a win using none of split recipient's total contribution
-        (IERC721[] memory erc721Tokens, uint256[] memory erc721TokenIds) =
-            _createTokens(address(cf), 2);
-        cf.testSetWon(
-            1e18,
-            defaultGovernanceOpts,
-            erc721Tokens,
-            erc721TokenIds
+        (IERC721[] memory erc721Tokens, uint256[] memory erc721TokenIds) = _createTokens(
+            address(cf),
+            2
         );
+        cf.testSetWon(1e18, defaultGovernanceOpts, erc721Tokens, erc721TokenIds);
         // contributor1 burns tokens
         vm.expectEmit(false, false, false, true);
         emit MockMint(
@@ -839,12 +759,7 @@ contract CrowdfundTest is Test, TestUtils {
         assertEq(contributor1.balance, 0);
         // split recipient burns
         vm.expectEmit(false, false, false, true);
-        emit MockMint(
-            address(cf),
-            splitRecipient,
-            _getAmountWithSplit(0, 1e18),
-            delegate2
-        );
+        emit MockMint(address(cf), splitRecipient, _getAmountWithSplit(0, 1e18), delegate2);
         cf.burn(splitRecipient);
     }
 
@@ -869,13 +784,15 @@ contract CrowdfundTest is Test, TestUtils {
         // contributor2 contributes 0.5 ETH but will be blocked by the gatekeeper.
         vm.deal(contributor2, 0.5e18);
         vm.prank(contributor2);
-        vm.expectRevert(abi.encodeWithSelector(
-            Crowdfund.NotAllowedByGateKeeperError.selector,
-            contributor2,
-            defaultGateKeeper,
-            gateId,
-            abi.encode(new bytes32[](0))
-        ));
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                Crowdfund.NotAllowedByGateKeeperError.selector,
+                contributor2,
+                defaultGateKeeper,
+                gateId,
+                abi.encode(new bytes32[](0))
+            )
+        );
         cf.contribute{ value: contributor2.balance }(delegate2, abi.encode(new bytes32[](0)));
     }
 
@@ -889,8 +806,10 @@ contract CrowdfundTest is Test, TestUtils {
         cf.contribute{ value: badERC721Receiver.balance }(delegate1, "");
         assertEq(cf.totalContributions(), 1e18);
         // set up a win using badERC721Receiver's total contribution
-        (IERC721[] memory erc721Tokens, uint256[] memory erc721TokenIds) =
-            _createTokens(address(cf), 2);
+        (IERC721[] memory erc721Tokens, uint256[] memory erc721TokenIds) = _createTokens(
+            address(cf),
+            2
+        );
         vm.expectEmit(false, false, false, true);
         emit MockPartyFactoryCreateParty(
             address(cf),
@@ -899,12 +818,7 @@ contract CrowdfundTest is Test, TestUtils {
             erc721Tokens,
             erc721TokenIds
         );
-        Party party_ = cf.testSetWon(
-            1e18,
-            defaultGovernanceOpts,
-            erc721Tokens,
-            erc721TokenIds
-        );
+        Party party_ = cf.testSetWon(1e18, defaultGovernanceOpts, erc721Tokens, erc721TokenIds);
         assertEq(address(party_), address(party));
         // badERC721Receiver burns tokens
         vm.expectEmit(false, false, false, true);
@@ -945,8 +859,10 @@ contract CrowdfundTest is Test, TestUtils {
         cf.contribute{ value: badETHReceiver.balance }(delegate1, "");
         assertEq(cf.totalContributions(), 2e18);
         // set up a win using badETHReceiver's total contribution
-        (IERC721[] memory erc721Tokens, uint256[] memory erc721TokenIds) =
-            _createTokens(address(cf), 2);
+        (IERC721[] memory erc721Tokens, uint256[] memory erc721TokenIds) = _createTokens(
+            address(cf),
+            2
+        );
         vm.expectEmit(false, false, false, true);
         emit MockPartyFactoryCreateParty(
             address(cf),
@@ -955,31 +871,19 @@ contract CrowdfundTest is Test, TestUtils {
             erc721Tokens,
             erc721TokenIds
         );
-        Party party_ = cf.testSetWon(
-            1e18,
-            defaultGovernanceOpts,
-            erc721Tokens,
-            erc721TokenIds
-        );
+        Party party_ = cf.testSetWon(1e18, defaultGovernanceOpts, erc721Tokens, erc721TokenIds);
         assertEq(address(party_), address(party));
         // badETHReceiver burns tokens
         vm.expectEmit(false, false, false, true);
-        emit MockMint(
-            address(cf),
-            badETHReceiver,
-            1e18,
-            delegate1
-        );
+        emit MockMint(address(cf), badETHReceiver, 1e18, delegate1);
         cf.burn(badETHReceiver);
         assertEq(badETHReceiver.balance, 0);
 
         // Expect revert if claiming to bad receiver
         vm.prank(badETHReceiver);
-        vm.expectRevert(abi.encodeWithSelector(
-            LibAddress.EthTransferFailed.selector,
-            badETHReceiver,
-            ""
-        ));
+        vm.expectRevert(
+            abi.encodeWithSelector(LibAddress.EthTransferFailed.selector, badETHReceiver, "")
+        );
         cf.claim(badETHReceiver);
 
         address payable receiver = payable(_randomAddress());
@@ -996,9 +900,7 @@ contract CrowdfundTest is Test, TestUtils {
 
     function testClaim_nothingToClaim() external {
         TestableCrowdfund cf = _createCrowdfund(0);
-        vm.expectRevert(abi.encodeWithSelector(
-            Crowdfund.NothingToClaimError.selector
-        ));
+        vm.expectRevert(abi.encodeWithSelector(Crowdfund.NothingToClaimError.selector));
         cf.claim(_randomAddress());
     }
 
@@ -1008,23 +910,30 @@ contract CrowdfundTest is Test, TestUtils {
         // initial contributor. Should revert when it attempts to mint a
         // contributor NFT to `address(0)`.
         vm.expectRevert(CrowdfundNFT.InvalidAddressError.selector);
-        TestableCrowdfund(payable(new Proxy{ value: 1 ether }(
-            impl,
-            abi.encodeCall(TestableCrowdfund.initialize, (
-                Crowdfund.CrowdfundOptions({
-                    name: defaultName,
-                    symbol: defaultSymbol,
-                    customizationPresetId: 0,
-                    splitRecipient: defaultSplitRecipient,
-                    splitBps: defaultSplitBps,
-                    initialContributor: address(0),
-                    initialDelegate: address(this),
-                    gateKeeper: defaultGateKeeper,
-                    gateKeeperId: defaultGateKeeperId,
-                    governanceOpts: defaultGovernanceOpts
-                })
-            ))
-        )));
+        TestableCrowdfund(
+            payable(
+                new Proxy{ value: 1 ether }(
+                    impl,
+                    abi.encodeCall(
+                        TestableCrowdfund.initialize,
+                        (
+                            Crowdfund.CrowdfundOptions({
+                                name: defaultName,
+                                symbol: defaultSymbol,
+                                customizationPresetId: 0,
+                                splitRecipient: defaultSplitRecipient,
+                                splitBps: defaultSplitBps,
+                                initialContributor: address(0),
+                                initialDelegate: address(this),
+                                gateKeeper: defaultGateKeeper,
+                                gateKeeperId: defaultGateKeeperId,
+                                governanceOpts: defaultGovernanceOpts
+                            })
+                        )
+                    )
+                )
+            )
+        );
     }
 
     function test_canReuseContributionEntry() external {
@@ -1072,13 +981,9 @@ contract CrowdfundTest is Test, TestUtils {
         emit EmergencyExecuteTargetCalled();
         _expectEmit0();
         emit EmergencyExecute(address(emergencyExecuteTarget), callData, 123);
-        cf.emergencyExecute(
-            address(emergencyExecuteTarget),
-            callData,
-            123
-        );
+        cf.emergencyExecute(address(emergencyExecuteTarget), callData, 123);
     }
-    
+
     function test_hostCanDisableEmergencyFunctions() external {
         TestableCrowdfund cf = _createCrowdfund(0);
         vm.prank(defaultGovernanceOpts.hosts[0]);
@@ -1087,7 +992,7 @@ contract CrowdfundTest is Test, TestUtils {
         cf.disableEmergencyExecute(defaultGovernanceOpts, 0);
         assertEq(cf.emergencyExecuteDisabled(), true);
     }
-    
+
     function test_daoCanDisableEmergencyFunctions() external {
         TestableCrowdfund cf = _createCrowdfund(0);
         vm.prank(dao);
@@ -1101,7 +1006,9 @@ contract CrowdfundTest is Test, TestUtils {
         TestableCrowdfund cf = _createCrowdfund(0);
         address notHost = _randomAddress();
         vm.prank(notHost);
-        vm.expectRevert(abi.encodeWithSelector(Crowdfund.OnlyPartyDaoOrHostError.selector, notHost));
+        vm.expectRevert(
+            abi.encodeWithSelector(Crowdfund.OnlyPartyDaoOrHostError.selector, notHost)
+        );
         cf.disableEmergencyExecute(defaultGovernanceOpts, 0);
     }
 
@@ -1109,7 +1016,9 @@ contract CrowdfundTest is Test, TestUtils {
         TestableCrowdfund cf = _createCrowdfund(0);
         vm.prank(defaultGovernanceOpts.hosts[0]);
         cf.disableEmergencyExecute(defaultGovernanceOpts, 0);
-        vm.expectRevert(abi.encodeWithSelector(Crowdfund.OnlyWhenEmergencyActionsAllowedError.selector));
+        vm.expectRevert(
+            abi.encodeWithSelector(Crowdfund.OnlyWhenEmergencyActionsAllowedError.selector)
+        );
         vm.prank(dao);
         cf.emergencyExecute(address(0), "", 0);
     }
@@ -1117,7 +1026,12 @@ contract CrowdfundTest is Test, TestUtils {
     function test_hostCannotEmergencyExecute() external {
         TestableCrowdfund cf = _createCrowdfund(0);
         vm.prank(defaultGovernanceOpts.hosts[0]);
-        vm.expectRevert(abi.encodeWithSelector(Crowdfund.OnlyPartyDaoError.selector, defaultGovernanceOpts.hosts[0]));
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                Crowdfund.OnlyPartyDaoError.selector,
+                defaultGovernanceOpts.hosts[0]
+            )
+        );
         cf.emergencyExecute(address(0), "", 0);
     }
 
@@ -1232,7 +1146,7 @@ contract EmergencyExecuteTarget {
     event EmergencyExecuteTargetCalled();
 
     function foo(address cf, uint256 amt) external payable {
-        require(cf == msg.sender && msg.value == amt, 'unexpected call');
+        require(cf == msg.sender && msg.value == amt, "unexpected call");
         emit EmergencyExecuteTargetCalled();
     }
 }

@@ -2,10 +2,10 @@
 pragma solidity 0.8.17;
 
 // ============ External Imports ============
-import {IFoundationMarket} from "../vendor/markets/IFoundationMarket.sol";
+import { IFoundationMarket } from "../vendor/markets/IFoundationMarket.sol";
 
 // ============ Internal Imports ============
-import {IMarketWrapper} from "./IMarketWrapper.sol";
+import { IMarketWrapper } from "./IMarketWrapper.sol";
 
 /**
  * @title FoundationMarketWrapper
@@ -34,8 +34,7 @@ contract FoundationMarketWrapper is IMarketWrapper {
      */
     function auctionExists(uint256 auctionId) public view returns (bool) {
         // line 219 of NFTMarketReserveAuction, logic within placeBid() function (not exposed publicly)
-        IFoundationMarket.ReserveAuction memory _auction = market
-            .getReserveAuction(auctionId);
+        IFoundationMarket.ReserveAuction memory _auction = market.getReserveAuction(auctionId);
         return _auction.amount != 0;
     }
 
@@ -56,15 +55,9 @@ contract FoundationMarketWrapper is IMarketWrapper {
      * @notice Query the current highest bidder for this auction
      * @return highest bidder
      */
-    function getCurrentHighestBidder(uint256 auctionId)
-        external
-        view
-        override
-        returns (address)
-    {
+    function getCurrentHighestBidder(uint256 auctionId) external view override returns (address) {
         // line 279 of NFTMarketReserveAuction, getMinBidAmount() function
-        IFoundationMarket.ReserveAuction memory _auction = market
-            .getReserveAuction(auctionId);
+        IFoundationMarket.ReserveAuction memory _auction = market.getReserveAuction(auctionId);
         return _auction.bidder;
     }
 
@@ -72,12 +65,7 @@ contract FoundationMarketWrapper is IMarketWrapper {
      * @notice Calculate the minimum next bid for this auction
      * @return minimum bid amount
      */
-    function getMinimumBid(uint256 auctionId)
-        external
-        view
-        override
-        returns (uint256)
-    {
+    function getMinimumBid(uint256 auctionId) external view override returns (uint256) {
         // line 279 of NFTMarketReserveAuction, getMinBidAmount() function
         return market.getMinBidAmount(auctionId);
     }
@@ -87,9 +75,9 @@ contract FoundationMarketWrapper is IMarketWrapper {
      */
     function bid(uint256 auctionId, uint256 bidAmount) external override {
         // line 217 of NFTMarketReserveAuction, placeBid() function
-        (bool success, bytes memory returnData) = address(market).call{
-            value: bidAmount
-        }(abi.encodeWithSignature("placeBid(uint256)", auctionId));
+        (bool success, bytes memory returnData) = address(market).call{ value: bidAmount }(
+            abi.encodeWithSignature("placeBid(uint256)", auctionId)
+        );
         require(success, string(returnData));
     }
 
@@ -97,12 +85,7 @@ contract FoundationMarketWrapper is IMarketWrapper {
      * @notice Determine whether the auction has been finalized
      * @return TRUE if the auction has been finalized
      */
-    function isFinalized(uint256 auctionId)
-        external
-        view
-        override
-        returns (bool)
-    {
+    function isFinalized(uint256 auctionId) external view override returns (bool) {
         // line 266 of NFTMarketReserveAuction,
         // the auction is deleted at the end of the finalizeReserveAuction() function
         // since we checked that the auction DID exist when we deployed the partyBid,

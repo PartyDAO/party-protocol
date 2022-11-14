@@ -26,10 +26,10 @@ contract CrowdfundNFT is IERC721, EIP165, ReadOnlyDelegateCall {
     ///         the governance party.
     string public symbol;
 
-    mapping (uint256 => address) private _owners;
+    mapping(uint256 => address) private _owners;
 
     modifier alwaysRevert() {
-        revert('ALWAYS FAILING');
+        revert("ALWAYS FAILING");
         _; // Compiler requires this.
     }
 
@@ -43,10 +43,7 @@ contract CrowdfundNFT is IERC721, EIP165, ReadOnlyDelegateCall {
         string memory name_,
         string memory symbol_,
         uint256 customizationPresetId
-    )
-        internal
-        virtual
-    {
+    ) internal virtual {
         name = name_;
         symbol = symbol_;
         if (customizationPresetId != 0) {
@@ -57,74 +54,44 @@ contract CrowdfundNFT is IERC721, EIP165, ReadOnlyDelegateCall {
 
     /// @notice DO NOT CALL. This is a soulbound NFT and cannot be transferred.
     ///         Attempting to call this function will always fail.
-    function transferFrom(address, address, uint256)
-        external
-        pure
-        alwaysRevert
-    {}
+    function transferFrom(address, address, uint256) external pure alwaysRevert {}
 
     /// @notice DO NOT CALL. This is a soulbound NFT and cannot be transferred.
     ///         Attempting to call this function will always fail.
-    function safeTransferFrom(address, address, uint256)
-        external
-        pure
-        alwaysRevert
-    {}
+    function safeTransferFrom(address, address, uint256) external pure alwaysRevert {}
 
     /// @notice DO NOT CALL. This is a soulbound NFT and cannot be transferred.
     ///         Attempting to call this function will always fail.
-    function safeTransferFrom(address, address, uint256, bytes calldata)
-        external
-        pure
-        alwaysRevert
-    {}
+    function safeTransferFrom(
+        address,
+        address,
+        uint256,
+        bytes calldata
+    ) external pure alwaysRevert {}
 
     /// @notice DO NOT CALL. This is a soulbound NFT and cannot be transferred.
     ///         Attempting to call this function will always fail.
-    function approve(address, uint256)
-        external
-        pure
-        alwaysRevert
-    {}
+    function approve(address, uint256) external pure alwaysRevert {}
 
     /// @notice DO NOT CALL. This is a soulbound NFT and cannot be transferred.
     ///         Attempting to call this function will always fail.
-    function setApprovalForAll(address, bool)
-        external
-        pure
-        alwaysRevert
-    {}
+    function setApprovalForAll(address, bool) external pure alwaysRevert {}
 
     /// @notice This is a soulbound NFT and cannot be transferred.
     ///         Attempting to call this function will always return null.
-    function getApproved(uint256)
-        external
-        pure
-        returns (address)
-    {
+    function getApproved(uint256) external pure returns (address) {
         return address(0);
     }
 
     /// @notice This is a soulbound NFT and cannot be transferred.
     ///         Attempting to call this function will always return false.
-    function isApprovedForAll(address, address)
-        external
-        pure
-        returns (bool)
-    {
+    function isApprovedForAll(address, address) external pure returns (bool) {
         return false;
     }
 
     /// @inheritdoc EIP165
-    function supportsInterface(bytes4 interfaceId)
-        public
-        virtual
-        override
-        pure
-        returns (bool)
-    {
-        return super.supportsInterface(interfaceId) ||
-            interfaceId == type(IERC721).interfaceId;
+    function supportsInterface(bytes4 interfaceId) public pure virtual override returns (bool) {
+        return super.supportsInterface(interfaceId) || interfaceId == type(IERC721).interfaceId;
     }
 
     /// @notice Returns a URI to render the NFT.

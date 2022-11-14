@@ -31,11 +31,10 @@ contract PartyHelpers {
     // Crowdfund helpers //
     ////////////////////////////
 
-    function getCrowdfundType(address globals, address crowdfund)
-        external
-        view
-        returns (CrowdfundType)
-    {
+    function getCrowdfundType(
+        address globals,
+        address crowdfund
+    ) external view returns (CrowdfundType) {
         IGlobals g = IGlobals(globals);
         Implementation cf = Implementation(crowdfund);
         address impl = cf.IMPL();
@@ -54,11 +53,10 @@ contract PartyHelpers {
     /////////////////////////////
 
     /// @notice Get the current delegate for each member in `members`
-    function getCurrentDelegates(address party, address[] calldata members)
-        external
-        view
-        returns (MemberAndDelegate[] memory membersAndDelegates)
-    {
+    function getCurrentDelegates(
+        address party,
+        address[] calldata members
+    ) external view returns (MemberAndDelegate[] memory membersAndDelegates) {
         Party p = Party(payable(party));
         membersAndDelegates = new MemberAndDelegate[](members.length);
         for (uint256 i; i < members.length; ++i) {
@@ -75,11 +73,7 @@ contract PartyHelpers {
         address[] calldata voters,
         uint40 timestamp,
         uint256[] calldata indexes
-    )
-        external
-        view
-        returns (MemberAndVotingPower[] memory memberAndVotingPower)
-    {
+    ) external view returns (MemberAndVotingPower[] memory memberAndVotingPower) {
         Party p = Party(payable(party));
         memberAndVotingPower = new MemberAndVotingPower[](voters.length);
         for (uint256 i; i < voters.length; ++i) {
@@ -90,17 +84,16 @@ contract PartyHelpers {
         }
     }
 
-
     ////////////////////////////////
     // PartyGovernanceNFT helpers //
     ////////////////////////////////
 
     /// @notice Get the owner and intrinsic voting power of each governance nft in a range
-    function getNftInfos(address party, uint256 startTokenId, uint256 endTokenId)
-        external
-        view
-        returns (NftInfo[] memory nftInfos)
-    {
+    function getNftInfos(
+        address party,
+        uint256 startTokenId,
+        uint256 endTokenId
+    ) external view returns (NftInfo[] memory nftInfos) {
         Party p = Party(payable(party));
         uint256 count = endTokenId - startTokenId + 1;
         {

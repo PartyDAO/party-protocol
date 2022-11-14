@@ -38,8 +38,8 @@ abstract contract Deploy {
         address value;
     }
 
-    mapping (address => uint256) private _deployerGasBefore;
-    mapping (address => uint256) private _deployerGasUsage;
+    mapping(address => uint256) private _deployerGasBefore;
+    mapping(address => uint256) private _deployerGasUsage;
 
     // temporary variables to store deployed contract addresses
     Globals public globals;
@@ -94,15 +94,13 @@ abstract contract Deploy {
         console.log("");
         console.log("### ProposalExecutionEngine");
         console.log("  Deploying - ProposalExecutionEngine");
-        zoraAuctionHouse = IZoraAuctionHouse(
-            deployConstants.zoraAuctionHouse
-        );
+        zoraAuctionHouse = IZoraAuctionHouse(deployConstants.zoraAuctionHouse);
         IOpenseaConduitController conduitController = IOpenseaConduitController(
             deployConstants.osConduitController
         );
         IFractionalV1VaultFactory fractionalVaultFactory = IFractionalV1VaultFactory(
-                deployConstants.fractionalVaultFactory
-            );
+            deployConstants.fractionalVaultFactory
+        );
         _trackDeployerGasBefore();
         proposalEngineImpl = new ProposalExecutionEngine(
             globals,
@@ -112,10 +110,7 @@ abstract contract Deploy {
             fractionalVaultFactory
         );
         _trackDeployerGasAfter();
-        console.log(
-            "  Deployed - ProposalExecutionEngine",
-            address(proposalEngineImpl)
-        );
+        console.log("  Deployed - ProposalExecutionEngine", address(proposalEngineImpl));
 
         // DEPLOY_PARTY_IMPLEMENTATION
         console.log("");
@@ -137,7 +132,6 @@ abstract contract Deploy {
         console.log("  Deployed - PartyFactory", address(partyFactory));
         _switchDeployer(DeployerRole.Default);
 
-
         // DEPLOY_AUCTION_CF_IMPLEMENTATION
         console.log("");
         console.log("### AuctionCrowdfund crowdfund implementation");
@@ -149,7 +143,6 @@ abstract contract Deploy {
             "  Deployed - AuctionCrowdfund crowdfund implementation",
             address(auctionCrowdfundImpl)
         );
-
 
         // DEPLOY_BUY_CF_IMPLEMENTATION
         console.log("");
@@ -163,13 +156,10 @@ abstract contract Deploy {
             address(buyCrowdfundImpl)
         );
 
-
         // DEPLOY_COLLECTION_BUY_CF_IMPLEMENTATION
         console.log("");
         console.log("### CollectionBuyCrowdfund crowdfund implementation");
-        console.log(
-            "  Deploying - CollectionBuyCrowdfund crowdfund implementation"
-        );
+        console.log("  Deploying - CollectionBuyCrowdfund crowdfund implementation");
         _trackDeployerGasBefore();
         collectionBuyCrowdfundImpl = new CollectionBuyCrowdfund(globals);
         _trackDeployerGasAfter();
@@ -196,10 +186,7 @@ abstract contract Deploy {
         _trackDeployerGasBefore();
         rendererStorage = new RendererStorage(this.getDeployer());
         _trackDeployerGasAfter();
-        console.log(
-            "  Deployed - RendererStorage",
-            address(rendererStorage)
-        );
+        console.log("  Deployed - RendererStorage", address(rendererStorage));
 
         // CREATE_CUSTOMIZATION_OPTIONS
         {
@@ -220,10 +207,7 @@ abstract contract Deploy {
                 );
                 multicallData[i * 2 + 1] = abi.encodeCall(
                     rendererStorage.createCustomizationPreset,
-                    (
-                        i + 1 + numOfColors,
-                        abi.encode(versionId, true, RendererBase.Color(i))
-                    )
+                    (i + 1 + numOfColors, abi.encode(versionId, true, RendererBase.Color(i)))
                 );
             }
             _trackDeployerGasBefore();
@@ -238,34 +222,33 @@ abstract contract Deploy {
         _trackDeployerGasBefore();
         pixeldroidConsoleFont = new PixeldroidConsoleFont();
         _trackDeployerGasAfter();
-        console.log(
-            "  Deployed - PixeldroidConsoleFont",
-            address(pixeldroidConsoleFont)
-        );
+        console.log("  Deployed - PixeldroidConsoleFont", address(pixeldroidConsoleFont));
 
         // DEPLOY_CROWDFUND_NFT_RENDERER
         console.log("");
         console.log("### CrowdfundNFTRenderer");
         console.log("  Deploying - CrowdfundNFTRenderer");
         _trackDeployerGasBefore();
-        crowdfundNFTRenderer = new CrowdfundNFTRenderer(globals, rendererStorage, IFont(address(pixeldroidConsoleFont)));
-        _trackDeployerGasAfter();
-        console.log(
-            "  Deployed - CrowdfundNFTRenderer",
-            address(crowdfundNFTRenderer)
+        crowdfundNFTRenderer = new CrowdfundNFTRenderer(
+            globals,
+            rendererStorage,
+            IFont(address(pixeldroidConsoleFont))
         );
+        _trackDeployerGasAfter();
+        console.log("  Deployed - CrowdfundNFTRenderer", address(crowdfundNFTRenderer));
 
         // DEPLOY_PARTY_NFT_RENDERER
         console.log("");
         console.log("### PartyNFTRenderer");
         console.log("  Deploying - PartyNFTRenderer");
         _trackDeployerGasBefore();
-        partyNFTRenderer = new PartyNFTRenderer(globals, rendererStorage, IFont(address(pixeldroidConsoleFont)));
-        _trackDeployerGasAfter();
-        console.log(
-            "  Deployed - PartyNFTRenderer",
-            address(partyNFTRenderer)
+        partyNFTRenderer = new PartyNFTRenderer(
+            globals,
+            rendererStorage,
+            IFont(address(pixeldroidConsoleFont))
         );
+        _trackDeployerGasAfter();
+        console.log("  Deployed - PartyNFTRenderer", address(partyNFTRenderer));
 
         // DEPLOY_PARTY_HELPERS
         if (!isTest()) {
@@ -285,10 +268,7 @@ abstract contract Deploy {
         _trackDeployerGasBefore();
         allowListGateKeeper = new AllowListGateKeeper();
         _trackDeployerGasAfter();
-        console.log(
-            "  Deployed - AllowListGateKeeper",
-            address(allowListGateKeeper)
-        );
+        console.log("  Deployed - AllowListGateKeeper", address(allowListGateKeeper));
 
         // DEPLOY_MARKET_WRAPPERS
         console.log("");
@@ -300,7 +280,9 @@ abstract contract Deploy {
             _trackDeployerGasAfter();
             console.log("  Deployed - FoundationMarketWrapper", address(foundationMarketWrapper));
         } else {
-            foundationMarketWrapper = FoundationMarketWrapper(deployConstants.deployedFoundationMarketWrapper);
+            foundationMarketWrapper = FoundationMarketWrapper(
+                deployConstants.deployedFoundationMarketWrapper
+            );
         }
         if (address(deployConstants.deployedNounsMarketWrapper) == address(0)) {
             console.log("  Deploying - NounsMarketWrapper");
@@ -333,145 +315,110 @@ abstract contract Deploy {
             console.log("### Configure Globals");
             bytes[] memory multicallData = new bytes[](23);
             uint256 n = 0;
-            multicallData[n++] = abi.encodeCall(globals.setAddress,
-                (
-                    LibGlobals.GLOBAL_DAO_WALLET,
-                    deployConstants.partyDaoMultisig
-                )
+            multicallData[n++] = abi.encodeCall(
+                globals.setAddress,
+                (LibGlobals.GLOBAL_DAO_WALLET, deployConstants.partyDaoMultisig)
             );
-            multicallData[n++] = abi.encodeCall(globals.setBytes32,
-                (
-                    LibGlobals.GLOBAL_OPENSEA_CONDUIT_KEY,
-                    deployConstants.osConduitKey
-                )
+            multicallData[n++] = abi.encodeCall(
+                globals.setBytes32,
+                (LibGlobals.GLOBAL_OPENSEA_CONDUIT_KEY, deployConstants.osConduitKey)
             );
-            multicallData[n++] = abi.encodeCall(globals.setAddress,
-                (
-                    LibGlobals.GLOBAL_OPENSEA_ZONE,
-                    deployConstants.osZone
-                )
+            multicallData[n++] = abi.encodeCall(
+                globals.setAddress,
+                (LibGlobals.GLOBAL_OPENSEA_ZONE, deployConstants.osZone)
             );
-            multicallData[n++] = abi.encodeCall(globals.setAddress,
-                (
-                    LibGlobals.GLOBAL_TOKEN_DISTRIBUTOR,
-                    address(tokenDistributor)
-                )
+            multicallData[n++] = abi.encodeCall(
+                globals.setAddress,
+                (LibGlobals.GLOBAL_TOKEN_DISTRIBUTOR, address(tokenDistributor))
             );
-            multicallData[n++] = abi.encodeCall(globals.setUint256,
-                (
-                    LibGlobals.GLOBAL_OS_ZORA_AUCTION_DURATION,
-                    deployConstants.osZoraAuctionDuration
-                )
+            multicallData[n++] = abi.encodeCall(
+                globals.setUint256,
+                (LibGlobals.GLOBAL_OS_ZORA_AUCTION_DURATION, deployConstants.osZoraAuctionDuration)
             );
-            multicallData[n++] = abi.encodeCall(globals.setUint256,
-                (
-                    LibGlobals.GLOBAL_OS_ZORA_AUCTION_TIMEOUT,
-                    deployConstants.osZoraAuctionTimeout
-                )
+            multicallData[n++] = abi.encodeCall(
+                globals.setUint256,
+                (LibGlobals.GLOBAL_OS_ZORA_AUCTION_TIMEOUT, deployConstants.osZoraAuctionTimeout)
             );
-            multicallData[n++] = abi.encodeCall(globals.setUint256,
-                (
-                    LibGlobals.GLOBAL_OS_MIN_ORDER_DURATION,
-                    deployConstants.osMinOrderDuration
-                )
+            multicallData[n++] = abi.encodeCall(
+                globals.setUint256,
+                (LibGlobals.GLOBAL_OS_MIN_ORDER_DURATION, deployConstants.osMinOrderDuration)
             );
-            multicallData[n++] = abi.encodeCall(globals.setUint256,
-                (
-                    LibGlobals.GLOBAL_OS_MAX_ORDER_DURATION,
-                    deployConstants.osMaxOrderDuration
-                )
+            multicallData[n++] = abi.encodeCall(
+                globals.setUint256,
+                (LibGlobals.GLOBAL_OS_MAX_ORDER_DURATION, deployConstants.osMaxOrderDuration)
             );
-            multicallData[n++] = abi.encodeCall(globals.setUint256,
+            multicallData[n++] = abi.encodeCall(
+                globals.setUint256,
                 (
                     LibGlobals.GLOBAL_ZORA_MIN_AUCTION_DURATION,
                     deployConstants.zoraMinAuctionDuration
                 )
             );
-            multicallData[n++] = abi.encodeCall(globals.setUint256,
+            multicallData[n++] = abi.encodeCall(
+                globals.setUint256,
                 (
                     LibGlobals.GLOBAL_ZORA_MAX_AUCTION_DURATION,
                     deployConstants.zoraMaxAuctionDuration
                 )
             );
-            multicallData[n++] = abi.encodeCall(globals.setUint256,
-                (
-                    LibGlobals.GLOBAL_ZORA_MAX_AUCTION_TIMEOUT,
-                    deployConstants.zoraMaxAuctionTimeout
-                )
+            multicallData[n++] = abi.encodeCall(
+                globals.setUint256,
+                (LibGlobals.GLOBAL_ZORA_MAX_AUCTION_TIMEOUT, deployConstants.zoraMaxAuctionTimeout)
             );
-            multicallData[n++] = abi.encodeCall(globals.setUint256,
-                (
-                    LibGlobals.GLOBAL_PROPOSAL_MIN_CANCEL_DURATION,
-                    deployConstants.minCancelDelay
-                )
+            multicallData[n++] = abi.encodeCall(
+                globals.setUint256,
+                (LibGlobals.GLOBAL_PROPOSAL_MIN_CANCEL_DURATION, deployConstants.minCancelDelay)
             );
-            multicallData[n++] = abi.encodeCall(globals.setUint256,
-                (
-                    LibGlobals.GLOBAL_PROPOSAL_MAX_CANCEL_DURATION,
-                    deployConstants.maxCancelDelay
-                )
+            multicallData[n++] = abi.encodeCall(
+                globals.setUint256,
+                (LibGlobals.GLOBAL_PROPOSAL_MAX_CANCEL_DURATION, deployConstants.maxCancelDelay)
             );
-            multicallData[n++] = abi.encodeCall(globals.setAddress,
-                (
-                    LibGlobals.GLOBAL_PROPOSAL_ENGINE_IMPL,
-                    address(proposalEngineImpl)
-                )
+            multicallData[n++] = abi.encodeCall(
+                globals.setAddress,
+                (LibGlobals.GLOBAL_PROPOSAL_ENGINE_IMPL, address(proposalEngineImpl))
             );
-            multicallData[n++] = abi.encodeCall(globals.setAddress,
-                (
-                    LibGlobals.GLOBAL_PARTY_IMPL,
-                    address(partyImpl)
-                )
+            multicallData[n++] = abi.encodeCall(
+                globals.setAddress,
+                (LibGlobals.GLOBAL_PARTY_IMPL, address(partyImpl))
             );
-            multicallData[n++] = abi.encodeCall(globals.setAddress,
-                (
-                    LibGlobals.GLOBAL_PARTY_FACTORY,
-                    address(partyFactory)
-                )
+            multicallData[n++] = abi.encodeCall(
+                globals.setAddress,
+                (LibGlobals.GLOBAL_PARTY_FACTORY, address(partyFactory))
             );
-            multicallData[n++] = abi.encodeCall(globals.setAddress,
-                (
-                    LibGlobals.GLOBAL_AUCTION_CF_IMPL,
-                    address(auctionCrowdfundImpl)
-                )
+            multicallData[n++] = abi.encodeCall(
+                globals.setAddress,
+                (LibGlobals.GLOBAL_AUCTION_CF_IMPL, address(auctionCrowdfundImpl))
             );
-            multicallData[n++] = abi.encodeCall(globals.setAddress,
-                (
-                    LibGlobals.GLOBAL_BUY_CF_IMPL,
-                    address(buyCrowdfundImpl)
-                )
+            multicallData[n++] = abi.encodeCall(
+                globals.setAddress,
+                (LibGlobals.GLOBAL_BUY_CF_IMPL, address(buyCrowdfundImpl))
             );
-            multicallData[n++] = abi.encodeCall(globals.setAddress,
-                (
-                    LibGlobals.GLOBAL_COLLECTION_BUY_CF_IMPL,
-                    address(collectionBuyCrowdfundImpl)
-                )
+            multicallData[n++] = abi.encodeCall(
+                globals.setAddress,
+                (LibGlobals.GLOBAL_COLLECTION_BUY_CF_IMPL, address(collectionBuyCrowdfundImpl))
             );
-            multicallData[n++] = abi.encodeCall(globals.setAddress,
-                (
-                    LibGlobals.GLOBAL_RENDERER_STORAGE,
-                    address(rendererStorage)
-                )
+            multicallData[n++] = abi.encodeCall(
+                globals.setAddress,
+                (LibGlobals.GLOBAL_RENDERER_STORAGE, address(rendererStorage))
             );
-            multicallData[n++] = abi.encodeCall(globals.setAddress,
-                (
-                    LibGlobals.GLOBAL_CF_NFT_RENDER_IMPL,
-                    address(crowdfundNFTRenderer)
-                )
+            multicallData[n++] = abi.encodeCall(
+                globals.setAddress,
+                (LibGlobals.GLOBAL_CF_NFT_RENDER_IMPL, address(crowdfundNFTRenderer))
             );
-            multicallData[n++] = abi.encodeCall(globals.setAddress,
-                (
-                    LibGlobals.GLOBAL_GOVERNANCE_NFT_RENDER_IMPL,
-                    address(partyNFTRenderer)
-                )
+            multicallData[n++] = abi.encodeCall(
+                globals.setAddress,
+                (LibGlobals.GLOBAL_GOVERNANCE_NFT_RENDER_IMPL, address(partyNFTRenderer))
             );
             // transfer ownership of Globals to multisig
             if (this.getDeployer() != deployConstants.partyDaoMultisig) {
-                multicallData[n++] = abi.encodeCall(globals.transferMultiSig,
+                multicallData[n++] = abi.encodeCall(
+                    globals.transferMultiSig,
                     (deployConstants.partyDaoMultisig)
                 );
             }
-            assembly { mstore(multicallData, n) }
+            assembly {
+                mstore(multicallData, n)
+            }
             _trackDeployerGasBefore();
             globals.multicall(multicallData);
             _trackDeployerGasAfter();
@@ -514,8 +461,7 @@ abstract contract Deploy {
 
 contract DeployFork is Deploy {
     function deployMainnetFork(address multisig) public {
-        LibDeployConstants.DeployConstants memory dc = LibDeployConstants
-            .mainnet();
+        LibDeployConstants.DeployConstants memory dc = LibDeployConstants.mainnet();
         dc.partyDaoMultisig = multisig;
         deploy(dc);
     }
@@ -524,7 +470,7 @@ contract DeployFork is Deploy {
 }
 
 contract DeployScript is Script, Deploy {
-    mapping (DeployerRole => address) internal _deployerByRole;
+    mapping(DeployerRole => address) internal _deployerByRole;
     address[] private _deployersUsed;
 
     function run() external {
@@ -571,10 +517,7 @@ contract DeployScript is Script, Deploy {
         }
     }
 
-    function deploy(LibDeployConstants.DeployConstants memory deployConstants)
-        public
-        override
-    {
+    function deploy(LibDeployConstants.DeployConstants memory deployConstants) public override {
         Deploy.deploy(deployConstants);
         vm.stopBroadcast();
 
@@ -587,18 +530,33 @@ contract DeployScript is Script, Deploy {
         addressMapping[5] = AddressMapping("partyFactory", address(partyFactory));
         addressMapping[6] = AddressMapping("auctionCrowdfundImpl", address(auctionCrowdfundImpl));
         addressMapping[7] = AddressMapping("buyCrowdfundImpl", address(buyCrowdfundImpl));
-        addressMapping[8] = AddressMapping("collectionBuyCrowdfundImpl", address(collectionBuyCrowdfundImpl));
+        addressMapping[8] = AddressMapping(
+            "collectionBuyCrowdfundImpl",
+            address(collectionBuyCrowdfundImpl)
+        );
         addressMapping[9] = AddressMapping("partyCrowdfundFactory", address(crowdfundFactory));
-        addressMapping[10] = AddressMapping("partyCrowdfundNFTRenderer", address(crowdfundNFTRenderer));
-        addressMapping[11] = AddressMapping("partyGovernanceNFTRenderer", address(partyNFTRenderer));
+        addressMapping[10] = AddressMapping(
+            "partyCrowdfundNFTRenderer",
+            address(crowdfundNFTRenderer)
+        );
+        addressMapping[11] = AddressMapping(
+            "partyGovernanceNFTRenderer",
+            address(partyNFTRenderer)
+        );
         addressMapping[12] = AddressMapping("partyHelpers", address(partyHelpers));
         addressMapping[13] = AddressMapping("allowListGateKeeper", address(allowListGateKeeper));
         addressMapping[14] = AddressMapping("tokenGateKeeper", address(tokenGateKeeper));
-        addressMapping[15] = AddressMapping("foundationMarketWrapper", address(foundationMarketWrapper));
+        addressMapping[15] = AddressMapping(
+            "foundationMarketWrapper",
+            address(foundationMarketWrapper)
+        );
         addressMapping[16] = AddressMapping("nounsMarketWrapper", address(nounsMarketWrapper));
         addressMapping[17] = AddressMapping("zoraMarketWrapper", address(zoraMarketWrapper));
         addressMapping[18] = AddressMapping("rendererStorage", address(rendererStorage));
-        addressMapping[19] = AddressMapping("pixeldroidConsoleFont", address(pixeldroidConsoleFont));
+        addressMapping[19] = AddressMapping(
+            "pixeldroidConsoleFont",
+            address(pixeldroidConsoleFont)
+        );
 
         console.log("");
         console.log("### Deployed addresses");
@@ -611,11 +569,9 @@ contract DeployScript is Script, Deploy {
         console.log("Ending deploy script.");
     }
 
-    function generateJSONString(AddressMapping[] memory parts)
-        private
-        pure
-        returns (string memory)
-    {
+    function generateJSONString(
+        AddressMapping[] memory parts
+    ) private pure returns (string memory) {
         string memory vals = "";
         for (uint256 i; i < parts.length; ++i) {
             string memory newValue = string.concat(

@@ -30,10 +30,7 @@ interface ITokenDistributor {
         uint128 fee;
     }
 
-    event DistributionCreated(
-        ITokenDistributorParty indexed party,
-        DistributionInfo info
-    );
+    event DistributionCreated(ITokenDistributorParty indexed party, DistributionInfo info);
     event DistributionFeeClaimed(
         ITokenDistributorParty indexed party,
         address indexed feeRecipient,
@@ -63,10 +60,7 @@ interface ITokenDistributor {
         ITokenDistributorParty party,
         address payable feeRecipient,
         uint16 feeBps
-    )
-        external
-        payable
-        returns (DistributionInfo memory info);
+    ) external payable returns (DistributionInfo memory info);
 
     /// @notice Create a new distribution for an outstanding ERC20 token balance
     ///         governed by a party.
@@ -83,9 +77,7 @@ interface ITokenDistributor {
         ITokenDistributorParty party,
         address payable feeRecipient,
         uint16 feeBps
-    )
-        external
-        returns (DistributionInfo memory info);
+    ) external returns (DistributionInfo memory info);
 
     /// @notice Claim a portion of a distribution owed to a `partyTokenId` belonging
     ///         to the party that created the distribution. The caller
@@ -93,30 +85,33 @@ interface ITokenDistributor {
     /// @param info Information on the distribution being claimed.
     /// @param partyTokenId The ID of the party token to claim for.
     /// @return amountClaimed The amount of the distribution claimed.
-    function claim(DistributionInfo calldata info, uint256 partyTokenId)
-        external
-        returns (uint128 amountClaimed);
+    function claim(
+        DistributionInfo calldata info,
+        uint256 partyTokenId
+    ) external returns (uint128 amountClaimed);
 
     /// @notice Claim the fee for a distribution. Only a distribution's `feeRecipient`
     ///         can call this.
     /// @param info Information on the distribution being claimed.
     /// @param recipient The address to send the fee to.
-    function claimFee(DistributionInfo calldata info, address payable recipient)
-        external;
+    function claimFee(DistributionInfo calldata info, address payable recipient) external;
 
     /// @notice Batch version of `claim()`.
     /// @param infos Information on the distributions being claimed.
     /// @param partyTokenIds The ID of the party tokens to claim for.
     /// @return amountsClaimed The amount of the distributions claimed.
-    function batchClaim(DistributionInfo[] calldata infos, uint256[] calldata partyTokenIds)
-        external
-        returns (uint128[] memory amountsClaimed);
+    function batchClaim(
+        DistributionInfo[] calldata infos,
+        uint256[] calldata partyTokenIds
+    ) external returns (uint128[] memory amountsClaimed);
 
     /// @notice Batch version of `claimFee()`.
     /// @param infos Information on the distributions to claim fees for.
     /// @param recipients The addresses to send the fees to.
-    function batchClaimFee(DistributionInfo[] calldata infos, address payable[] calldata recipients)
-        external;
+    function batchClaimFee(
+        DistributionInfo[] calldata infos,
+        address payable[] calldata recipients
+    ) external;
 
     /// @notice Compute the amount of a distribution's token are owed to a party
     ///         member, identified by the `partyTokenId`.
@@ -128,19 +123,16 @@ interface ITokenDistributor {
         ITokenDistributorParty party,
         uint256 memberSupply,
         uint256 partyTokenId
-    )
-        external
-        view
-        returns (uint128);
+    ) external view returns (uint128);
 
     /// @notice Check whether the fee has been claimed for a distribution.
     /// @param party The party to use for checking whether the fee has been claimed.
     /// @param distributionId The ID of the distribution to check.
     /// @return feeClaimed Whether the fee has been claimed.
-    function wasFeeClaimed(ITokenDistributorParty party, uint256 distributionId)
-        external
-        view
-        returns (bool);
+    function wasFeeClaimed(
+        ITokenDistributorParty party,
+        uint256 distributionId
+    ) external view returns (bool);
 
     /// @notice Check whether a `partyTokenId` has claimed their share of a distribution.
     /// @param party The party to use for checking whether the `partyTokenId` has claimed.
@@ -151,9 +143,7 @@ interface ITokenDistributor {
         ITokenDistributorParty party,
         uint256 partyTokenId,
         uint256 distributionId
-    )
-        external
-        view returns (bool);
+    ) external view returns (bool);
 
     /// @notice Get how much unclaimed member tokens are left in a distribution.
     /// @param party The party to use for checking the unclaimed member tokens.
@@ -162,8 +152,5 @@ interface ITokenDistributor {
     function getRemainingMemberSupply(
         ITokenDistributorParty party,
         uint256 distributionId
-    )
-        external
-        view
-        returns (uint128);
+    ) external view returns (uint128);
 }

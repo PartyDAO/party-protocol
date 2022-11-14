@@ -33,7 +33,11 @@ contract ArbitraryCallsProposal {
     error PreciousLostError(IERC721 token, uint256 tokenId);
     error CallProhibitedError(address target, bytes data);
     error ArbitraryCallFailedError(bytes revertData);
-    error UnexpectedCallResultHashError(uint256 idx, bytes32 resultHash, bytes32 expectedResultHash);
+    error UnexpectedCallResultHashError(
+        uint256 idx,
+        bytes32 resultHash,
+        bytes32 expectedResultHash
+    );
     error NotEnoughEthAttachedError(uint256 callValue, uint256 ethAvailable);
     error InvalidApprovalCallLength(uint256 callDataLength);
 
@@ -47,15 +51,12 @@ contract ArbitraryCallsProposal {
 
     function _executeArbitraryCalls(
         IProposalExecutionEngine.ExecuteProposalParams memory params
-    )
-        internal
-        returns (bytes memory nextProgressData)
-    {
+    ) internal returns (bytes memory nextProgressData) {
         // Get the calls to execute.
-        (ArbitraryCall[] memory calls) = abi.decode(params.proposalData, (ArbitraryCall[]));
+        ArbitraryCall[] memory calls = abi.decode(params.proposalData, (ArbitraryCall[]));
         // Check whether the proposal was unanimously passed.
-        bool isUnanimous = params.flags & LibProposal.PROPOSAL_FLAG_UNANIMOUS
-            == LibProposal.PROPOSAL_FLAG_UNANIMOUS;
+        bool isUnanimous = params.flags & LibProposal.PROPOSAL_FLAG_UNANIMOUS ==
+            LibProposal.PROPOSAL_FLAG_UNANIMOUS;
         // If not unanimous, keep track of which preciouses we had before the calls
         // so we can check that we still have them later.
         bool[] memory hadPreciouses = new bool[](params.preciousTokenIds.length);
@@ -102,7 +103,7 @@ contract ArbitraryCallsProposal {
             payable(msg.sender).transferEth(ethAvailable);
         }
         // No next step, so no progressData.
-        return '';
+        return "";
     }
 
     function _executeSingleArbitraryCall(
@@ -112,19 +113,12 @@ contract ArbitraryCallsProposal {
         uint256[] memory preciousTokenIds,
         bool isUnanimous,
         uint256 ethAvailable
-    )
-        private
-    {
+    ) private {
         ArbitraryCall memory call = calls[idx];
         // Check that the call is not prohibited.
-        if (!_isCallAllowed(
-            call,
-            isUnanimous,
-            idx,
-            calls.length,
-            preciousTokens,
-            preciousTokenIds))
-        {
+        if (
+            !_isCallAllowed(call, isUnanimous, idx, calls.length, preciousTokens, preciousTokenIds)
+        ) {
             revert CallProhibitedError(call.target, call.data);
         }
         // Check that we have enough ETH to execute the call.
@@ -143,22 +137,17 @@ contract ArbitraryCallsProposal {
             if (call.expectedResultHash != bytes32(0)) {
                 bytes32 resultHash = keccak256(r);
                 if (resultHash != call.expectedResultHash) {
-                    revert UnexpectedCallResultHashError(
-                        idx,
-                        resultHash,
-                        call.expectedResultHash
-                    );
+                    revert UnexpectedCallResultHashError(idx, resultHash, call.expectedResultHash);
                 }
             }
         }
     }
 
     // Do we possess the precious?
-    function _getHasPrecious(IERC721 preciousToken, uint256 preciousTokenId)
-        private
-        view
-        returns (bool hasPrecious)
-    {
+    function _getHasPrecious(
+        IERC721 preciousToken,
+        uint256 preciousTokenId
+    ) private view returns (bool hasPrecious) {
         hasPrecious = preciousToken.safeOwnerOf(preciousTokenId) == address(this);
     }
 
@@ -169,11 +158,7 @@ contract ArbitraryCallsProposal {
         uint256 callsCount,
         IERC721[] memory preciousTokens,
         uint256[] memory preciousTokenIds
-    )
-        private
-        view
-        returns (bool isAllowed)
-    {
+    ) private view returns (bool isAllowed) {
         // Cannot call ourselves.
         if (call.target == address(this)) {
             return false;
@@ -199,22 +184,23 @@ contract ArbitraryCallsProposal {
                     // Can only call `approve()` on the precious if the operator is null.
                     (address op, uint256 tokenId) = _decodeApproveCallDataArgs(call.data);
                     if (op != address(0)) {
-                        return !LibProposal.isTokenIdPrecious(
-                            IERC721(call.target),
-                            tokenId,
-                            preciousTokens,
-                            preciousTokenIds
-                        );
+                        return
+                            !LibProposal.isTokenIdPrecious(
+                                IERC721(call.target),
+                                tokenId,
+                                preciousTokens,
+                                preciousTokenIds
+                            );
                     }
-                // Can only call `setApprovalForAll()` on the precious if
-                // toggling off.
+                    // Can only call `setApprovalForAll()` on the precious if
+                    // toggling off.
                 } else if (selector == IERC721.setApprovalForAll.selector) {
                     (, bool isApproved) = _decodeSetApprovalForAllCallDataArgs(call.data);
                     if (isApproved) {
                         return !LibProposal.isTokenPrecious(IERC721(call.target), preciousTokens);
                     }
-                // Can only call cancelAuction on the zora AH if it's the last call
-                // in the sequence.
+                    // Can only call cancelAuction on the zora AH if it's the last call
+                    // in the sequence.
                 } else if (selector == IZoraAuctionHouse.cancelAuction.selector) {
                     if (call.target == address(_ZORA)) {
                         return callIndex + 1 == callsCount;
@@ -227,7 +213,7 @@ contract ArbitraryCallsProposal {
                 selector == ERC1155TokenReceiverBase.onERC1155Received.selector ||
                 selector == ERC1155TokenReceiverBase.onERC1155BatchReceived.selector
             ) {
-               return false;
+                return false;
             }
             // Disallow calling `validate()` on Seaport.
             if (selector == IOpenseaExchange.validate.selector) {
@@ -239,39 +225,28 @@ contract ArbitraryCallsProposal {
     }
 
     // Get the `operator` and `tokenId` from the `approve()` call data.
-    function _decodeApproveCallDataArgs(bytes memory callData)
-        private
-        pure
-        returns (address operator, uint256 tokenId)
-    {
+    function _decodeApproveCallDataArgs(
+        bytes memory callData
+    ) private pure returns (address operator, uint256 tokenId) {
         if (callData.length < 68) {
             revert InvalidApprovalCallLength(callData.length);
         }
         assembly {
-            operator := and(
-                mload(add(callData, 36)),
-                0xffffffffffffffffffffffffffffffffffffffff
-            )
+            operator := and(mload(add(callData, 36)), 0xffffffffffffffffffffffffffffffffffffffff)
             tokenId := mload(add(callData, 68))
         }
     }
 
     // Get the `operator` and `tokenId` from the `setApprovalForAll()` call data.
-    function _decodeSetApprovalForAllCallDataArgs(bytes memory callData)
-        private
-        pure
-        returns (address operator, bool isApproved)
-    {
+    function _decodeSetApprovalForAllCallDataArgs(
+        bytes memory callData
+    ) private pure returns (address operator, bool isApproved) {
         if (callData.length < 68) {
             revert InvalidApprovalCallLength(callData.length);
         }
         assembly {
-            operator := and(
-                mload(add(callData, 36)),
-                0xffffffffffffffffffffffffffffffffffffffff
-            )
+            operator := and(mload(add(callData, 36)), 0xffffffffffffffffffffffffffffffffffffffff)
             isApproved := xor(iszero(mload(add(callData, 68))), 1)
         }
     }
-
 }
