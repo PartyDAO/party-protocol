@@ -1,12 +1,8 @@
 {
-    "name": "partybidV2",
-    "version": "1.0.0",
-    "description": "AuctionCrowdfundV2 Contracts",
-    "main": "index.js",
-    "repository": "git@github.com:PartyDAO/partybidV2.git",
+    "name": "party-protocol",
+    "description": "Party Protocol is an open protocol for on-chain group coordination.",
     "author": "Lawrence Forman <me@merklejerk.com>",
-    "license": "Apache-2.0",
-    "private": true,
+    "license": "GPL-3.0",
     "scripts": {
         "clean": "rm -rf out/ js/",
         "build": "yarn build:sol && yarn build:ts",
