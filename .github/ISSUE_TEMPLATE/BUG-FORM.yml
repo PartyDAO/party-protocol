@@ -1,0 +1,23 @@
+name: Bug report
+description: File a bug report
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Please ensure this bug that has not already been reported.
+
+        Thanks for your help improving the Party Protocol!
+  - type: checkboxes
+    attributes:
+      label: Have you ensured that you are on the latest commit?
+      options:
+        - label: "Yes"
+          required: true
+        - label: "No"
+  - type: textarea
+    attributes:
+      label: Describe the bug
+      description: Please also describe step-by-step how to reproduce the behavior, if relevant.
+    validations:
+      required: true
