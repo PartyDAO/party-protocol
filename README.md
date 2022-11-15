@@ -2,7 +2,7 @@
 
 # Party Protocol
 
-A protocol for *group coordination*. Party Protocol provides on-chain functionality for group formation, coordination, and distribution. Currently focused on making NFTs multiplayer.
+A protocol for _group coordination_. Party Protocol provides on-chain functionality for group formation, coordination, and distribution. Currently focused on making NFTs multiplayer.
 
 ## Layout
 
@@ -85,8 +85,17 @@ yarn test:sol --gas-report
 forge test -m testFork --fork-url $YOUR_RPC_URL
 ```
 
+## Audits
+
+The following auditors were engaged to review the protocol before launch:
+
+- a16z Security (no report)
+- Code4rena (report [here](./audits/partydao-c4-report.md))
+- Macro (report [here](./audits/Party-Protocol-Macro-Audit.pdf))
+
 ## License
 
 The primary license for the Party Protocol is the GNU General Public License 3.0 (`GPL-3.0`), see [LICENSE](./LICENSE).
+
 - Several interface/dependencies files from other sources maintain their original license (as indicated in their SPDX header).
 - All files in `sol-tests/` and `tests/` remain unlicensed (as indicated in their SPDX header).
