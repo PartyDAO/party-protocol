@@ -168,9 +168,9 @@ abstract contract BuyCrowdfundBase is Crowdfund {
         // If there is a settled price then we tried to buy the NFT.
         if (settledPrice != 0) {
             return
-                address(party) != address(0) // If we have a party, then we succeeded buying the NFT.
-                    ? CrowdfundLifecycle.Won // Otherwise we're in the middle of the `buy()`.
-                    : CrowdfundLifecycle.Busy;
+                address(party) != address(0)
+                    ? CrowdfundLifecycle.Won // If we have a party, then we succeeded buying the NFT.
+                    : CrowdfundLifecycle.Busy; // Otherwise we're in the middle of the `buy()`.
         }
         if (block.timestamp >= expiry) {
             // Expired, but nothing to do so skip straight to lost, or NFT was
