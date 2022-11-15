@@ -30,6 +30,7 @@ contract Globals is IGlobals, Multicall {
         }
         _;
     }
+
     constructor(address multiSig_) {
         multiSig = multiSig_;
     }

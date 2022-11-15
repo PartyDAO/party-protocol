@@ -26,10 +26,7 @@ contract TestableListOnOpenseaProposal is
 
     function executeListOnOpensea(
         IProposalExecutionEngine.ExecuteProposalParams memory params
-    )
-        public
-        returns (bytes memory nextProgressData)
-    {
+    ) public returns (bytes memory nextProgressData) {
         return _executeListOnOpensea(params);
     }
 }

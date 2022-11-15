@@ -33,11 +33,7 @@ contract TestablePartyGovernanceNFT is PartyGovernanceNFT {
         );
     }
 
-    function getCurrentVotingPower(address voter)
-        external
-        view
-        returns (uint96 vp)
-    {
+    function getCurrentVotingPower(address voter) external view returns (uint96 vp) {
         return this.getVotingPowerAt(voter, uint40(block.timestamp));
     }
 
@@ -53,8 +49,8 @@ contract PartyGovernanceNFTUnitTest is TestUtils {
     function _initGovernance() private {
         defaultGovernanceOpts.totalVotingPower = 1e18;
         nft.initialize(
-            'TEST',
-            'TST',
+            "TEST",
+            "TST",
             0,
             defaultGovernanceOpts,
             new IERC721[](0),
@@ -120,7 +116,7 @@ contract PartyGovernanceNFTUnitTest is TestUtils {
     function test_canMintMultipleTokensToOneOwner() external {
         _initGovernance();
         address from = _randomAddress();
-        uint256 vp1 = _randomUint256() % defaultGovernanceOpts.totalVotingPower / 10;
+        uint256 vp1 = (_randomUint256() % defaultGovernanceOpts.totalVotingPower) / 10;
         uint256 vp2 = vp1 + 1;
         nft.mint(from, vp1, from);
         nft.mint(from, vp2, from);
@@ -150,10 +146,13 @@ contract PartyGovernanceNFTUnitTest is TestUtils {
         uint256 vp = _randomUint256() % defaultGovernanceOpts.totalVotingPower;
         address notAuthority = _randomAddress();
         vm.prank(notAuthority);
-        vm.expectRevert(abi.encodeWithSelector(
-            PartyGovernanceNFT.OnlyMintAuthorityError.selector,
-            notAuthority, address(this)
-        ));
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                PartyGovernanceNFT.OnlyMintAuthorityError.selector,
+                notAuthority,
+                address(this)
+            )
+        );
         nft.mint(from, vp, from);
     }
 

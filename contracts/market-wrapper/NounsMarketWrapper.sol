@@ -2,10 +2,10 @@
 pragma solidity 0.8.17;
 
 // ============ External Imports ============
-import {INounsAuctionHouse} from "../vendor/markets/INounsAuctionHouse.sol";
+import { INounsAuctionHouse } from "../vendor/markets/INounsAuctionHouse.sol";
 
 // ============ Internal Imports ============
-import {IMarketWrapper} from "./IMarketWrapper.sol";
+import { IMarketWrapper } from "./IMarketWrapper.sol";
 
 /**
  * @title NounsMarketWrapper
@@ -46,7 +46,7 @@ contract NounsMarketWrapper is IMarketWrapper {
      */
     function auctionIdMatchesToken(
         uint256 auctionId,
-        address, /* nftContract */
+        address /* nftContract */,
         uint256 tokenId
     ) public view override returns (bool) {
         return auctionId == tokenId && auctionExists(auctionId);
@@ -56,16 +56,8 @@ contract NounsMarketWrapper is IMarketWrapper {
      * @notice Calculate the minimum next bid for the active auction
      * @return minimum bid amount
      */
-    function getMinimumBid(uint256 auctionId)
-        external
-        view
-        override
-        returns (uint256)
-    {
-        require(
-            auctionExists(auctionId),
-            "NounsMarketWrapper::getMinimumBid: Auction not active"
-        );
+    function getMinimumBid(uint256 auctionId) external view override returns (uint256) {
+        require(auctionExists(auctionId), "NounsMarketWrapper::getMinimumBid: Auction not active");
 
         (, uint256 amount, , , address payable bidder, ) = market.auction();
         if (bidder == address(0)) {
@@ -81,12 +73,7 @@ contract NounsMarketWrapper is IMarketWrapper {
      * @notice Query the current highest bidder for this auction
      * @return highest bidder
      */
-    function getCurrentHighestBidder(uint256 auctionId)
-        external
-        view
-        override
-        returns (address)
-    {
+    function getCurrentHighestBidder(uint256 auctionId) external view override returns (address) {
         require(
             auctionExists(auctionId),
             "NounsMarketWrapper::getCurrentHighestBidder: Auction not active"
@@ -101,9 +88,9 @@ contract NounsMarketWrapper is IMarketWrapper {
      */
     function bid(uint256 auctionId, uint256 bidAmount) external override {
         // line 104 of Nouns Auction House, createBid() function
-        (bool success, bytes memory returnData) = address(market).call{
-            value: bidAmount
-        }(abi.encodeWithSignature("createBid(uint256)", auctionId));
+        (bool success, bytes memory returnData) = address(market).call{ value: bidAmount }(
+            abi.encodeWithSignature("createBid(uint256)", auctionId)
+        );
         require(success, string(returnData));
     }
 
@@ -111,12 +98,7 @@ contract NounsMarketWrapper is IMarketWrapper {
      * @notice Determine whether the auction has been finalized
      * @return TRUE if the auction has been finalized
      */
-    function isFinalized(uint256 auctionId)
-        external
-        view
-        override
-        returns (bool)
-    {
+    function isFinalized(uint256 auctionId) external view override returns (bool) {
         (uint256 currentAuctionId, , , , , bool settled) = market.auction();
         bool settledNormally = auctionId != currentAuctionId;
         bool settledWhenPaused = auctionId == currentAuctionId && settled;
@@ -126,9 +108,7 @@ contract NounsMarketWrapper is IMarketWrapper {
     /**
      * @notice Finalize the results of the auction
      */
-    function finalize(
-        uint256 /* auctionId */
-    ) external override {
+    function finalize(uint256 /* auctionId */) external override {
         if (market.paused()) {
             market.settleAuction();
         } else {

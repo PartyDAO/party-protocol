@@ -37,11 +37,13 @@ contract TestContract is ReadOnlyDelegateCall {
 }
 
 interface ICallReadOnlyDelegateCall {
-    function readOnlyDelegateCall(address impl, bytes memory callData) external view returns (uint256);
+    function readOnlyDelegateCall(
+        address impl,
+        bytes memory callData
+    ) external view returns (uint256);
 }
 
 contract ReadOnlyDelegateCallTest is Test, TestUtils {
-
     TestContract testContract = new TestContract();
     TestImpl impl = new TestImpl();
 

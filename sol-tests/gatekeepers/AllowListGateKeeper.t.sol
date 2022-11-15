@@ -19,14 +19,8 @@ contract AllowListGateKeeperTest is Test, TestUtils {
     // Constructs a merkle root from the given 4-member allow list.
     function _constructTree(address[4] memory members) private pure returns (bytes32 merkleRoot) {
         merkleRoot = _hashNode(
-            _hashNode(
-                _hashLeaf(members[0]),
-                _hashLeaf(members[1])
-            ),
-            _hashNode(
-                _hashLeaf(members[2]),
-                _hashLeaf(members[3])
-            )
+            _hashNode(_hashLeaf(members[0]), _hashLeaf(members[1])),
+            _hashNode(_hashLeaf(members[2]), _hashLeaf(members[3]))
         );
     }
 

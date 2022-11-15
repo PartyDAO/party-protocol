@@ -16,8 +16,8 @@ contract PartyFactoryTest is Test, TestUtils {
     Party.PartyOptions defaultPartyOptions;
 
     constructor() {
-        defaultPartyOptions.name = 'PARTY';
-        defaultPartyOptions.symbol = 'PR-T';
+        defaultPartyOptions.name = "PARTY";
+        defaultPartyOptions.symbol = "PR-T";
         defaultPartyOptions.governance.hosts.push(_randomAddress());
         defaultPartyOptions.governance.hosts.push(_randomAddress());
         defaultPartyOptions.governance.voteDuration = 1 days;
@@ -37,11 +37,9 @@ contract PartyFactoryTest is Test, TestUtils {
         globals.setAddress(LibGlobals.GLOBAL_PROPOSAL_ENGINE_IMPL, address(eng));
     }
 
-    function _createPreciouses(uint256 count)
-        private
-        view
-        returns (IERC721[] memory preciousTokens, uint256[] memory preciousTokenIds)
-    {
+    function _createPreciouses(
+        uint256 count
+    ) private view returns (IERC721[] memory preciousTokens, uint256[] memory preciousTokenIds) {
         preciousTokens = new IERC721[](count);
         preciousTokenIds = new uint256[](count);
         for (uint256 i; i < count; ++i) {
@@ -53,20 +51,10 @@ contract PartyFactoryTest is Test, TestUtils {
     function _hashPreciousList(
         IERC721[] memory preciousTokens,
         uint256[] memory preciousTokenIds
-    )
-        internal
-        pure
-        returns (bytes32 h)
-    {
+    ) internal pure returns (bytes32 h) {
         assembly {
-            mstore(0x00, keccak256(
-                add(preciousTokens, 0x20),
-                mul(mload(preciousTokens), 0x20)
-            ))
-            mstore(0x20, keccak256(
-                add(preciousTokenIds, 0x20),
-                mul(mload(preciousTokenIds), 0x20)
-            ))
+            mstore(0x00, keccak256(add(preciousTokens, 0x20), mul(mload(preciousTokens), 0x20)))
+            mstore(0x20, keccak256(add(preciousTokenIds, 0x20), mul(mload(preciousTokenIds), 0x20)))
             h := keccak256(0x00, 0x40)
         }
     }
@@ -80,8 +68,7 @@ contract PartyFactoryTest is Test, TestUtils {
         vm.assume(randomBps <= 1e4);
 
         address authority = _randomAddress();
-        (IERC721[] memory preciousTokens, uint256[] memory preciousTokenIds) =
-            _createPreciouses(3);
+        (IERC721[] memory preciousTokens, uint256[] memory preciousTokenIds) = _createPreciouses(3);
         Party.PartyOptions memory opts = Party.PartyOptions({
             governance: PartyGovernance.GovernanceOpts({
                 hosts: _toAddressArray(_randomAddress()),
@@ -96,12 +83,7 @@ contract PartyFactoryTest is Test, TestUtils {
             symbol: randomStr,
             customizationPresetId: 0
         });
-        Party party = factory.createParty(
-            authority,
-            opts,
-            preciousTokens,
-            preciousTokenIds
-        );
+        Party party = factory.createParty(authority, opts, preciousTokens, preciousTokenIds);
         assertEq(party.name(), opts.name);
         assertEq(party.symbol(), opts.symbol);
         assertEq(party.mintAuthority(), authority);
@@ -121,17 +103,18 @@ contract PartyFactoryTest is Test, TestUtils {
         vm.assume(passThresholdBps > 1e4 || feeBps > 1e4);
 
         address authority = _randomAddress();
-        (IERC721[] memory preciousTokens, uint256[] memory preciousTokenIds) =
-            _createPreciouses(3);
+        (IERC721[] memory preciousTokens, uint256[] memory preciousTokenIds) = _createPreciouses(3);
 
         Party.PartyOptions memory opts = defaultPartyOptions;
         opts.governance.feeBps = feeBps;
         opts.governance.passThresholdBps = passThresholdBps;
 
-        vm.expectRevert(abi.encodeWithSelector(
-            PartyGovernance.InvalidBpsError.selector,
-            feeBps > 1e4 ? feeBps : passThresholdBps
-        ));
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                PartyGovernance.InvalidBpsError.selector,
+                feeBps > 1e4 ? feeBps : passThresholdBps
+            )
+        );
         factory.createParty(authority, opts, preciousTokens, preciousTokenIds);
     }
 }

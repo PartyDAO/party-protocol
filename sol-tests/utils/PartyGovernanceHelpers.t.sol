@@ -61,7 +61,7 @@ contract PartyGovernanceHelpersTest is Test, TestUtils {
     ///////////////////////////////////
     function testGetCurrDelegates() public {
         // Create party
-        (Party party, ,) = partyAdmin.createParty(
+        (Party party, , ) = partyAdmin.createParty(
             PartyAdmin.PartyCreationMinimalOptions({
                 host1: address(this),
                 host2: address(0),
@@ -89,7 +89,10 @@ contract PartyGovernanceHelpersTest is Test, TestUtils {
         members[1] = address(steve);
         members[2] = address(lawrence);
         members[3] = address(anna);
-        PartyHelpers.MemberAndDelegate[] memory membersAndDelegates = ph.getCurrentDelegates(address(party), members);
+        PartyHelpers.MemberAndDelegate[] memory membersAndDelegates = ph.getCurrentDelegates(
+            address(party),
+            members
+        );
         assertTrue(membersAndDelegates.length == 4);
         assertTrue(membersAndDelegates[0].member == address(john));
         assertTrue(membersAndDelegates[0].delegate == address(john));
@@ -103,7 +106,7 @@ contract PartyGovernanceHelpersTest is Test, TestUtils {
 
     function testGetVotingPowersAt() public {
         // Create party
-        (Party party, ,) = partyAdmin.createParty(
+        (Party party, , ) = partyAdmin.createParty(
             PartyAdmin.PartyCreationMinimalOptions({
                 host1: address(this),
                 host2: address(0),
@@ -132,8 +135,12 @@ contract PartyGovernanceHelpersTest is Test, TestUtils {
         voters[2] = address(lawrence);
         voters[3] = address(anna);
         uint256[] memory indexes = new uint256[](4);
-        PartyHelpers.MemberAndVotingPower[] memory membersAndVotingPowers =
-            ph.getVotingPowersAt(address(party), voters, uint40(block.timestamp), indexes);
+        PartyHelpers.MemberAndVotingPower[] memory membersAndVotingPowers = ph.getVotingPowersAt(
+            address(party),
+            voters,
+            uint40(block.timestamp),
+            indexes
+        );
         assertTrue(membersAndVotingPowers.length == 4);
         assertTrue(membersAndVotingPowers[0].member == address(john));
         assertTrue(membersAndVotingPowers[0].votingPower == 30);
@@ -150,7 +157,7 @@ contract PartyGovernanceHelpersTest is Test, TestUtils {
     //////////////////////////////////////
     function testGetNftInfos() public {
         // Create party
-        (Party party, ,) = partyAdmin.createParty(
+        (Party party, , ) = partyAdmin.createParty(
             PartyAdmin.PartyCreationMinimalOptions({
                 host1: address(this),
                 host2: address(0),

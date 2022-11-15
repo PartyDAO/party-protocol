@@ -13,11 +13,7 @@ library LibSafeERC721 {
     // - `token` is an empty contract
     // - `token` is a "bad" implementation of ERC721 that returns nothing for
     //   `ownerOf()`
-    function safeOwnerOf(IERC721 token, uint256 tokenId)
-        internal
-        view
-        returns (address owner)
-    {
+    function safeOwnerOf(IERC721 token, uint256 tokenId) internal view returns (address owner) {
         (bool s, bytes memory r) = address(token).staticcall(
             abi.encodeCall(token.ownerOf, (tokenId))
         );

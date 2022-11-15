@@ -6,12 +6,7 @@ abstract contract EIP165 {
     /// @param interfaceId The interface identifier, as specified in ERC-165
     /// @return `true` if the contract implements `interfaceId` and
     ///         `interfaceId` is not 0xffffffff, `false` otherwise
-    function supportsInterface(bytes4 interfaceId)
-        public
-        virtual
-        pure
-        returns (bool)
-    {
+    function supportsInterface(bytes4 interfaceId) public pure virtual returns (bool) {
         return interfaceId == this.supportsInterface.selector;
     }
 }

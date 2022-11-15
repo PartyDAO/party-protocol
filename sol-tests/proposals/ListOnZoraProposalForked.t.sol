@@ -9,8 +9,7 @@ import "./TestableListOnZoraProposal.sol";
 import "./ZoraTestUtils.sol";
 
 contract ListOnZoraProposalForkedTest is ZoraTestUtils, TestUtils {
-    IZoraAuctionHouse ZORA =
-        IZoraAuctionHouse(0xE468cE99444174Bd3bBBEd09209577d25D1ad673);
+    IZoraAuctionHouse ZORA = IZoraAuctionHouse(0xE468cE99444174Bd3bBBEd09209577d25D1ad673);
     Globals globals = new Globals(address(this));
     TestableListOnZoraProposal proposal = new TestableListOnZoraProposal(globals, ZORA);
     DummyERC721 nftToken = new DummyERC721();
@@ -108,7 +107,7 @@ contract ListOnZoraProposalForkedTest is ZoraTestUtils, TestUtils {
             auction.firstBidTime == 0,
             block.timestamp - auction.firstBidTime - auction.duration <= timeBuffer
         );
-        ZORA.createBid{value: bid}(auctionId, bid);
+        ZORA.createBid{ value: bid }(auctionId, bid);
     }
 
     function testForked_canCreateListing() external onlyForked {
@@ -180,11 +179,13 @@ contract ListOnZoraProposalForkedTest is ZoraTestUtils, TestUtils {
         uint256 auctionId = _getNextZoraAuctionId();
         executeParams.progressData = proposal.executeListOnZora(executeParams);
         skip(proposalData.timeout - 1);
-        vm.expectRevert(abi.encodeWithSelector(
-            ListOnZoraProposal.ZoraListingNotExpired.selector,
-            auctionId,
-            block.timestamp + 1
-        ));
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                ListOnZoraProposal.ZoraListingNotExpired.selector,
+                auctionId,
+                block.timestamp + 1
+            )
+        );
         proposal.executeListOnZora(executeParams);
     }
 
@@ -196,7 +197,7 @@ contract ListOnZoraProposalForkedTest is ZoraTestUtils, TestUtils {
         uint256 auctionId = _getNextZoraAuctionId();
         executeParams.progressData = proposal.executeListOnZora(executeParams);
         _bidOnListing(auctionId, proposalData.listPrice);
-        vm.expectRevert('Auction hasn\'t completed');
+        vm.expectRevert("Auction hasn't completed");
         proposal.executeListOnZora(executeParams);
     }
 
@@ -251,7 +252,12 @@ contract ListOnZoraProposalForkedTest is ZoraTestUtils, TestUtils {
 }
 
 contract BadBidder {
-    function onERC721Received(address, address, uint256, bytes memory) external pure returns (bytes4) {
-        revert('nope');
+    function onERC721Received(
+        address,
+        address,
+        uint256,
+        bytes memory
+    ) external pure returns (bytes4) {
+        revert("nope");
     }
 }

@@ -9,15 +9,16 @@ library LibERC20Compat {
     error TokenTransferFailedError(IERC20 token, address to, uint256 amount);
 
     // Perform an `IERC20.transfer()` handling non-compliant implementations.
-    function compatTransfer(IERC20 token, address to, uint256 amount)
-        internal
-    {
-        (bool s, bytes memory r) =
-            address(token).call(abi.encodeCall(IERC20.transfer, (to, amount)));
+    function compatTransfer(IERC20 token, address to, uint256 amount) internal {
+        (bool s, bytes memory r) = address(token).call(
+            abi.encodeCall(IERC20.transfer, (to, amount))
+        );
         if (s) {
             if (r.length == 0) {
                 uint256 cs;
-                assembly { cs := extcodesize(token) }
+                assembly {
+                    cs := extcodesize(token)
+                }
                 if (cs == 0) {
                     revert NotATokenError(token);
                 }

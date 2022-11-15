@@ -78,7 +78,7 @@ contract PartyGovernanceNFTTest is Test, TestUtils {
     }
 
     function testMint() external {
-        (Party party, ,) = partyAdmin.createParty(
+        (Party party, , ) = partyAdmin.createParty(
             PartyAdmin.PartyCreationMinimalOptions({
                 host1: address(this),
                 host2: address(0),
@@ -95,7 +95,7 @@ contract PartyGovernanceNFTTest is Test, TestUtils {
     }
 
     function testMint_onlyMinter() external {
-        (Party party, ,) = partyAdmin.createParty(
+        (Party party, , ) = partyAdmin.createParty(
             PartyAdmin.PartyCreationMinimalOptions({
                 host1: address(this),
                 host2: address(0),
@@ -108,17 +108,19 @@ contract PartyGovernanceNFTTest is Test, TestUtils {
             })
         );
         address notAuthority = _randomAddress();
-        vm.expectRevert(abi.encodeWithSelector(
-            PartyGovernanceNFT.OnlyMintAuthorityError.selector,
-            notAuthority,
-            address(partyAdmin)
-        ));
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                PartyGovernanceNFT.OnlyMintAuthorityError.selector,
+                notAuthority,
+                address(partyAdmin)
+            )
+        );
         vm.prank(notAuthority);
         party.mint(_randomAddress(), 1, _randomAddress());
     }
 
     function testMint_cannotMintBeyondTotalVotingPower() external {
-        (Party party, ,) = partyAdmin.createParty(
+        (Party party, , ) = partyAdmin.createParty(
             PartyAdmin.PartyCreationMinimalOptions({
                 host1: address(this),
                 host2: address(0),
@@ -137,7 +139,7 @@ contract PartyGovernanceNFTTest is Test, TestUtils {
     }
 
     function testMint_cannotMintBeyondTotalVotingPower_twoMints() external {
-        (Party party, ,) = partyAdmin.createParty(
+        (Party party, , ) = partyAdmin.createParty(
             PartyAdmin.PartyCreationMinimalOptions({
                 host1: address(this),
                 host2: address(0),
@@ -160,7 +162,7 @@ contract PartyGovernanceNFTTest is Test, TestUtils {
     }
 
     function testAbdicate() external {
-        (Party party, ,) = partyAdmin.createParty(
+        (Party party, , ) = partyAdmin.createParty(
             PartyAdmin.PartyCreationMinimalOptions({
                 host1: address(this),
                 host2: address(0),
@@ -179,7 +181,7 @@ contract PartyGovernanceNFTTest is Test, TestUtils {
     }
 
     function testAbdicate_onlyMinter() external {
-        (Party party, ,) = partyAdmin.createParty(
+        (Party party, , ) = partyAdmin.createParty(
             PartyAdmin.PartyCreationMinimalOptions({
                 host1: address(this),
                 host2: address(0),
@@ -192,11 +194,13 @@ contract PartyGovernanceNFTTest is Test, TestUtils {
             })
         );
         address notAuthority = _randomAddress();
-        vm.expectRevert(abi.encodeWithSelector(
-            PartyGovernanceNFT.OnlyMintAuthorityError.selector,
-            notAuthority,
-            address(partyAdmin)
-        ));
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                PartyGovernanceNFT.OnlyMintAuthorityError.selector,
+                notAuthority,
+                address(partyAdmin)
+            )
+        );
         vm.prank(notAuthority);
         party.abdicate();
     }
@@ -209,7 +213,16 @@ contract PartyGovernanceNFTTest is Test, TestUtils {
             PartyGovernance.ProposalStatus.Invalid // Should not be rendered.
         ];
 
-        string memory svg = nftRenderer.generateSVG("Test", "10.32", proposalStatuses, 3, 420, true, RendererBase.Color.CYAN, true);
+        string memory svg = nftRenderer.generateSVG(
+            "Test",
+            "10.32",
+            proposalStatuses,
+            3,
+            420,
+            true,
+            RendererBase.Color.CYAN,
+            true
+        );
 
         // Uncomment for testing rendering:
         // console.log(svg);
@@ -338,7 +351,7 @@ contract PartyGovernanceNFTTest is Test, TestUtils {
 
     function testRoyaltyInfo() external {
         // Create party
-        (Party party, ,) = partyAdmin.createParty(
+        (Party party, , ) = partyAdmin.createParty(
             PartyAdmin.PartyCreationMinimalOptions({
                 host1: address(this),
                 host2: address(0),
@@ -357,8 +370,9 @@ contract PartyGovernanceNFTTest is Test, TestUtils {
     }
 
     function _createMockProposal(DummyParty party) private {
-        PartyGovernance.ProposalStatus status =
-            PartyGovernance.ProposalStatus(_randomRange(1, uint8(type(PartyGovernance.ProposalStatus).max)));
+        PartyGovernance.ProposalStatus status = PartyGovernance.ProposalStatus(
+            _randomRange(1, uint8(type(PartyGovernance.ProposalStatus).max))
+        );
 
         party.createMockProposal(status);
     }
@@ -423,10 +437,15 @@ contract DummyParty is ReadOnlyDelegateCall {
         _proposalStatuses[++lastProposalId] = status;
     }
 
-    function getProposalStateInfo(uint256 proposalId)
+    function getProposalStateInfo(
+        uint256 proposalId
+    )
         external
         view
-        returns (PartyGovernance.ProposalStatus status, PartyGovernance.ProposalStateValues memory values)
+        returns (
+            PartyGovernance.ProposalStatus status,
+            PartyGovernance.ProposalStateValues memory values
+        )
     {
         status = _proposalStatuses[proposalId];
         values;
@@ -463,10 +482,7 @@ contract TestTokenDistributor {
         ITokenDistributorParty,
         uint256,
         uint256
-    )
-        external
-        view returns (bool)
-    {
+    ) external view returns (bool) {
         return _hasClaimed;
     }
 }

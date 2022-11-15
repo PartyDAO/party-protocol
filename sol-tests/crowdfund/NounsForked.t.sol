@@ -29,12 +29,9 @@ contract NounsForkedTest is TestUtils {
     Crowdfund.FixedGovernanceOpts defaultGovOpts;
 
     // Initialize nouns contracts
-    INounsAuctionHouse nounsAuctionHouse = INounsAuctionHouse(
-        0x830BD73E4184ceF73443C15111a1DF14e495C706
-    );
-    IMarketWrapper nounsMarket = IMarketWrapper(
-        0x9319DAd8736D752C5c72DB229f8e1b280DC80ab1
-    );
+    INounsAuctionHouse nounsAuctionHouse =
+        INounsAuctionHouse(0x830BD73E4184ceF73443C15111a1DF14e495C706);
+    IMarketWrapper nounsMarket = IMarketWrapper(0x9319DAd8736D752C5c72DB229f8e1b280DC80ab1);
     IERC721 nounsToken;
     uint256 tokenId;
 
@@ -46,31 +43,37 @@ contract NounsForkedTest is TestUtils {
         (tokenId, , , , , ) = nounsAuctionHouse.auction();
 
         // Create a AuctionCrowdfund crowdfund
-        cf = AuctionCrowdfund(payable(address(new Proxy(
-            pbImpl,
-            abi.encodeCall(
-                AuctionCrowdfund.initialize,
-                AuctionCrowdfund.AuctionCrowdfundOptions({
-                    name: "Party",
-                    symbol: "PRTY",
-                    customizationPresetId: 0,
-                    auctionId: tokenId,
-                    market: nounsMarket,
-                    nftContract: nounsToken,
-                    nftTokenId: tokenId,
-                    duration: 1 days,
-                    maximumBid: type(uint96).max,
-                    splitRecipient: payable(address(0)),
-                    splitBps: 0,
-                    initialContributor: address(this),
-                    initialDelegate: address(0),
-                    gateKeeper: IGateKeeper(address(0)),
-                    gateKeeperId: 0,
-                    onlyHostCanBid: false,
-                    governanceOpts: defaultGovOpts
-                })
+        cf = AuctionCrowdfund(
+            payable(
+                address(
+                    new Proxy(
+                        pbImpl,
+                        abi.encodeCall(
+                            AuctionCrowdfund.initialize,
+                            AuctionCrowdfund.AuctionCrowdfundOptions({
+                                name: "Party",
+                                symbol: "PRTY",
+                                customizationPresetId: 0,
+                                auctionId: tokenId,
+                                market: nounsMarket,
+                                nftContract: nounsToken,
+                                nftTokenId: tokenId,
+                                duration: 1 days,
+                                maximumBid: type(uint96).max,
+                                splitRecipient: payable(address(0)),
+                                splitBps: 0,
+                                initialContributor: address(this),
+                                initialDelegate: address(0),
+                                gateKeeper: IGateKeeper(address(0)),
+                                gateKeeperId: 0,
+                                onlyHostCanBid: false,
+                                governanceOpts: defaultGovOpts
+                            })
+                        )
+                    )
+                )
             )
-        ))));
+        );
 
         // Contribute ETH used to bid.
         vm.deal(address(this), 1000 ether);
@@ -84,8 +87,7 @@ contract NounsForkedTest is TestUtils {
 
         // Check that we are highest bidder.
         uint256 lastBid = cf.lastBid();
-        (, uint256 highestBid, , , address payable highestBidder, )
-            = nounsAuctionHouse.auction();
+        (, uint256 highestBid, , , address payable highestBidder, ) = nounsAuctionHouse.auction();
         assertEq(lastBid, highestBid);
         assertEq(address(cf), highestBidder);
 
@@ -107,8 +109,7 @@ contract NounsForkedTest is TestUtils {
 
         // Check that we are highest bidder.
         uint256 lastBid = cf.lastBid();
-        (, uint256 highestBid, , , address payable highestBidder, )
-            = nounsAuctionHouse.auction();
+        (, uint256 highestBid, , , address payable highestBidder, ) = nounsAuctionHouse.auction();
         assertEq(lastBid, highestBid);
         assertEq(address(cf), highestBidder);
 

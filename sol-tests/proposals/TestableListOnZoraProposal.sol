@@ -8,15 +8,14 @@ import "../../contracts/proposals/ListOnZoraProposal.sol";
 import "../../contracts/tokens/ERC721Receiver.sol";
 
 contract TestableListOnZoraProposal is ListOnZoraProposal, ERC721Receiver {
-    constructor(IGlobals globals, IZoraAuctionHouse zoraAuctionHouse)
-        ListOnZoraProposal(globals, zoraAuctionHouse) { }
+    constructor(
+        IGlobals globals,
+        IZoraAuctionHouse zoraAuctionHouse
+    ) ListOnZoraProposal(globals, zoraAuctionHouse) {}
 
     function executeListOnZora(
         IProposalExecutionEngine.ExecuteProposalParams memory params
-    )
-        public
-        returns (bytes memory nextProgressData)
-    {
+    ) public returns (bytes memory nextProgressData) {
         return _executeListOnZora(params);
     }
 

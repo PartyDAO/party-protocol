@@ -12,17 +12,12 @@ contract ZoraTestUtils is Test {
         _ZORA = zora;
     }
 
-    function _bidOnZoraListing(uint256 auctionId, address bidder, uint256 bidPrice)
-        internal
-    {
+    function _bidOnZoraListing(uint256 auctionId, address bidder, uint256 bidPrice) internal {
         hoax(bidder, bidPrice);
         _ZORA.createBid{ value: bidPrice }(auctionId, bidPrice);
     }
 
-    function _getNextZoraAuctionId()
-        internal
-        returns (uint256 auctionId)
-    {
+    function _getNextZoraAuctionId() internal returns (uint256 auctionId) {
         return uint256(vm.load(address(_ZORA), bytes32(uint256(5))));
     }
 }

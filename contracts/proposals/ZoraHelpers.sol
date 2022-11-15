@@ -30,10 +30,7 @@ abstract contract ZoraHelpers {
         uint40 duration,
         IERC721 token,
         uint256 tokenId
-    )
-        internal
-        virtual
-        returns (uint256 auctionId);
+    ) internal virtual returns (uint256 auctionId);
 
     // Either cancel or finalize a Zora auction.
     function _settleZoraAuction(
@@ -41,8 +38,5 @@ abstract contract ZoraHelpers {
         uint40 minExpiry,
         IERC721 token,
         uint256 tokenId
-    )
-        internal
-        virtual
-        returns (ZoraAuctionStatus statusCode);
+    ) internal virtual returns (ZoraAuctionStatus statusCode);
 }

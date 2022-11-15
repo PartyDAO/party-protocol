@@ -16,6 +16,7 @@ contract MockPartyFactory is IPartyFactory {
     );
 
     function GLOBALS() external pure returns (IGlobals g) {}
+
     function abdicate(Party) external {}
 
     function createParty(
@@ -23,10 +24,7 @@ contract MockPartyFactory is IPartyFactory {
         Party.PartyOptions memory opts,
         IERC721[] memory preciousTokens,
         uint256[] memory preciousTokenIds
-    )
-        external
-        returns (Party party)
-    {
+    ) external returns (Party party) {
         emit MockPartyFactoryCreateParty(
             msg.sender,
             authority,

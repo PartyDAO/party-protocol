@@ -5,12 +5,7 @@ import "contracts/tokens/IERC721Receiver.sol";
 import "contracts/vendor/solmate/ERC721.sol";
 
 contract MockParty is ERC721("MockParty", "MOCK") {
-    event MockMint(
-        address caller,
-        address owner,
-        uint256 amount,
-        address delegate
-    );
+    event MockMint(address caller, address owner, uint256 amount, address delegate);
 
     uint256 public tokenCount;
 
