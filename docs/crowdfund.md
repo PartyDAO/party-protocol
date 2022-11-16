@@ -85,7 +85,7 @@ The `CrowdfundFactory` contract is the canonical contract for creating crowdfund
 
 - Are trying to buy a specific ERC721 contract and specific token ID listed on an auction market.
 - Directly interact with a Market Wrapper, which is an abstractions/wrapper of an NFT auction protocol.
-  - These Market Wrappers are inherited from [v1](https://github.com/PartyDAO/PartyBid) of the protocol and are actually delegatecalled into.
+  - These Market Wrappers are inherited from [v1 of the protocol](https://github.com/PartyDAO/PartyBid) and are actually delegatecalled into.
 - While active, users can contribute ETH.
 - While active, ETH bids can be placed by anyone via the `bid()` function.
 - Succeeds when an allowed actor (e.g. host, contributor) calls `finalize()`, which attempts to settle the auction, and the crowdfund ends up holding the NFT.
@@ -116,7 +116,7 @@ In addition to the creation options described for each crowdfund type, there are
 - `bytes12 gateKeeperId`: The gate ID within the `gateKeeper` contract to use.
 - `FixedGovernanceOpts governanceOpts`: Fixed [governance options](https://github.com/PartyDAO/party-protocol/blob/main/docs/governance.md#governance-options) that the governance Party will be created with if the crowdfund succeeds. Aside from the party `hosts`, only the hash of this field is stored on-chain at creation. It must be provided in full again in order for the party to win.
 
-Crowdfunds are initialized with mostly fixed options, i.e. cannot be changed after creating a crowdfund. The only exception is `customizationPresetId`, which [can be changed later in the governance stage](https://github.com/PartyDAO/party-protocol/blob/main/docs/governance.md#party-card-customization).
+Crowdfunds are initialized with mostly fixed options, i.e. cannot be changed after creating a crowdfund. The only exception is `customizationPresetId`, which [can be changed later in the governance stage](https://github.com/PartyDAO/party-protocol/blob/main/docs/governance.md#governance-card-customization).
 
 ### Optional Gatekeeper Creation Data
 
