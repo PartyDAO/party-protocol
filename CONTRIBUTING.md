@@ -73,7 +73,7 @@ Last but not least, please check first before opening a pull request that it is 
 
 #### Any PartyDAO community member is welcome to review any pull request.
 
-When reviewing a pull request, the primary goal is to improve the protocol and for the person submitting the request to succeed. All contributors who choose to review and provide feedback on pull requests have a responsibility to both the project and the individual contributioning. Reviews and feedback should be helpful, insightful, and geared towards improving the contribution as opposed to simply blocking it. If there are reasons why you feel the PR should not be merged, explain what those are. Do not expect to be able to block a PR from advancing simply because you say "no" without explaining. Be open to having your mind changed. Be open to working with the contributor to make the pull request better.
+When reviewing a pull request, the primary goal is to improve the protocol and for the person submitting the request to succeed. All contributors who choose to review and provide feedback on pull requests have a responsibility to both the project and the individual contributing. Reviews and feedback should be helpful, insightful, and geared towards improving the contribution as opposed to simply blocking it. If there are reasons why you feel the PR should not be merged, explain what those are. Do not expect to be able to block a PR from advancing simply because you say "no" without explaining. Be open to having your mind changed. Be open to working with the contributor to make the pull request better.
 
 #### Remember there is a person behind the screen
 
