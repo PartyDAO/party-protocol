@@ -17,8 +17,9 @@ There are plenty of ways you could contribute, but here are just a few ways you 
 - Contributing code
 - Reviewing code
 - Writing documentation
-- Building an integration
 - Adding tests
+- Submitting issues
+- Building an integration
 - Discussing new features
 
 **Remember that anybody can participate in any stage of contribution.** We urge you to participate in areas that interest you most and where you believe you could have the most impact.
@@ -27,22 +28,22 @@ There are plenty of ways you could contribute, but here are just a few ways you 
 
 This cycle of development encapsulates our process:
 
-1. Open an issue with a stated motivation and suggested solution OR pick up existing issues. Every contribution should begin with an issue.
+1. **Open an issue** with a stated motivation and suggested solution OR pick up existing issues. Every contribution should begin with an issue.
    - If you are contributing code and are new to the codebase or a beginner to Solidity, we highly recommend you [start here](https://github.com/PartyDAO/party-protocol/contribute) on existing issues we've labeled with "good first issue".
    - Remember that following up and responding to discussions in your opened issue is just as if not more important than opening up the issue itself.
-2. Open a PR with nice commits.
+2. **Open a PR** with nice commits.
    - Ideally, each commit focuses on a single thing and is easy to cherry pick. It has concise and clear commit messages. Additional context too wordy to be contained in the message is instead included in either the description of the commit or the description of the pull request it is in.
-3. Discuss and engage with reviewers in review session loops.
+3. **Discuss and engage** with reviewers in review session loops.
    - We treat promptness of response as a tremendous courtesy to your reviewers and fellow contributors.
-4. Merge when approved by a core team member.
-5. Open followup issues and pull requests, if any.
-6. Repeat.
+4. **Merge** when approved by a core team member.
+5. **Open followup issues** and pull requests, if any.
+6. **Repeat**.
 
 Although this process should feel simple and natural to follow, doing so consistently end-to-end is very impressive and will not go unnoticed.
 
 ### Submitting a bug report
 
-When filing a new bug report on the issues page, you will be presented with a basic form to fill out. Here are the steps to creating a bug report:
+When filing a new bug report on the Issues page, you will be presented with a basic form to fill out. Here are the steps to creating a bug report:
 
 1. Go to the "Issues" page of the repo to submit a new issue.
 
@@ -68,7 +69,7 @@ Before pushing your changes, please make sure all tests pass. If it is a new fea
 
 Last but not least, please check first before opening a pull request that it is not a duplicate of an active _or_ closed pull request. To be extra sure, we also encourage you to check in the [#developer-chat](https://discord.gg/8FcPddUUks) Discord channel to check if someone is already working on or thinking of working on the same thing as you. And if they are, don't be discouraged. Perhaps you could help each other.
 
-### Reviewing Pull Request
+### Reviewing a Pull Request
 
 #### Any PartyDAO community member is welcome to review any pull request.
 
