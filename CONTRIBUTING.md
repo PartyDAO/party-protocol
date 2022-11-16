@@ -83,6 +83,10 @@ Be conscious that *how* you communicate requests and reviews in your feedback m
 
 If a pull request appears to be abandoned or stalled, it is polite to first check with the contributor to see if they intend to continue the work before checking if they would mind if you took it over. When doing so, please give the original contributor credit for the work they started, either by preserving their name and e-mail address in the commit log, or including them in the "Author:" or "Co-authored-by:" metadata tag in the commits.
 
+## Getting more involved
+
+Interested in spending your full time working on the Party Protocol? Learn more about PartyDAO on the [Contributors page](https://partydao.notion.site/Join-PartyDAO-as-a-Contributor-6400211b6c2843998e22d8ba465b82b0).
+
 ## Anything we missed?
 
 Please let us know on the [Discussions board](https://github.com/PartyDAO/party-protocol/discussions) or in [Discord](https://discord.gg/zUeXpDX8HA) if there is anything we should have included that would be helpful and any questions you may still have after reading.
