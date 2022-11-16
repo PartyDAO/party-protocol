@@ -8,7 +8,7 @@ A protocol for _group coordination_. Party Protocol provides on-chain functional
 
 - [Party Protocol](https://github.com/PartyDAO/party-protocol#party-protocol)
   - [Table of Contents](https://github.com/PartyDAO/party-protocol#table-of-contents)
-  - [Background](https://github.com/PartyDAO/party-protocol#background)
+  - [Documentation](https://github.com/PartyDAO/party-protocol#documentation)
   - [Layout](https://github.com/PartyDAO/party-protocol#layout)
   - [Deployments](https://github.com/PartyDAO/party-protocol#deployments)
   - [Install](https://github.com/PartyDAO/party-protocol#install)
@@ -16,13 +16,13 @@ A protocol for _group coordination_. Party Protocol provides on-chain functional
   - [Audits](https://github.com/PartyDAO/party-protocol#audits)
   - [License](https://github.com/PartyDAO/party-protocol#license)
 
-## Background
+## Documentation
 
-Party Protocol allows people to pool funds together to acquire NFTs, then coordinate together to use or sell those NFTs as a group. Each party goes through these two stages: 1) the crowdfund stage and 2) the governance stage.
+For more information on Party Protocol, see the documentation [here](./docs/).
 
-![contract lifecycle](./.github/assets/contract-lifecycle.png)
-
-See the documentation [here](./docs/) for more information on Party Protocol.
+- [Overview](./docs/README.md)
+- [Crowdfund](./docs/crowdfund.md)
+- [Governance](./docs/governance.md)
 
 ## Layout
 
