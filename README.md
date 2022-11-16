@@ -89,7 +89,6 @@ forge test -m testFork --fork-url $YOUR_RPC_URL
 
 The following auditors were engaged to review the protocol before launch:
 
-- a16z Security (no report)
 - Code4rena (report [here](./audits/partydao-c4-report.md))
 - Macro (report [here](./audits/Party-Protocol-Macro-Audit.pdf))
 
