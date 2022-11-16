@@ -1,5 +1,7 @@
 # PartyDAO C4 Contest
 
+This contest took place at this commit hash: [1eb4909a2f568d910e70e2db1b487a0236fbe10b](https://github.com/PartyDAO/party-protocol/tree/1eb4909a2f568d910e70e2db1b487a0236fbe10b)
+
 ## About C4
 
 Code4rena (C4) is an open organization consisting of security researchers, auditors, developers, and individuals with domain expertise in smart contracts.
