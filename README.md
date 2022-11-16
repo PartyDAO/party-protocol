@@ -15,6 +15,7 @@ A protocol for _group coordination_. Party Protocol provides on-chain functional
   - [Install](https://github.com/PartyDAO/party-protocol#install)
   - [Testing](https://github.com/PartyDAO/party-protocol#testing)
   - [Audits](https://github.com/PartyDAO/party-protocol#audits)
+  - [Bug Bounty](https://github.com/PartyDAO/party-protocol#bug-bounty)
   - [License](https://github.com/PartyDAO/party-protocol#license)
 
 ## Documentation
