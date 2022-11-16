@@ -1,10 +1,10 @@
 ## Contributing to Party Protocol
 
-Thanks for your help contributing to the Party Protocol! 🥳
-
-There are multiple opportunities to contribute at any level. It doesn't matter if you are just getting started or are the most weathered expert, we can use your help.
+Thanks for your help contributing to the Party Protocol!
 
 **We value contributions of any level.**
+
+There are multiple opportunities to contribute at any level - whether you're just getting started or the most seasoned expert, we can use your help.
 
 This should be a guide to help walk you through our development process.
 
