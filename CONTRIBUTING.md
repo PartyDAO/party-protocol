@@ -85,4 +85,4 @@ If a pull request appears to be abandoned or stalled, it is polite to first chec
 
 ## Anything we missed?
 
-Please let us know on [Discord](https://discord.gg/zUeXpDX8HA) if there is anything we should have included that would be helpful and any questions you may still have after reading.
+Please let us know on the [Discussions board](https://github.com/PartyDAO/party-protocol/discussions) or in [Discord](https://discord.gg/zUeXpDX8HA) if there is anything we should have included that would be helpful and any questions you may still have after reading.
