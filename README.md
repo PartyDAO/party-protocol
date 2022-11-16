@@ -139,6 +139,23 @@ The following auditors were engaged to review the protocol before launch:
 - Code4rena (report [here](./audits/partydao-c4-report.md))
 - Macro (report [here](./audits/Party-Protocol-Macro-Audit.pdf))
 
+## Bug Bounty
+
+All contracts except tests, interfaces, dependencies, and those in `renderers/` are in scope and eligible for the Party Protocol Bug Bounty program.
+
+The rubric we use to determine bug bounties is as follows:
+
+| **Level**   | **Example**                                                                                                                                                                                      | **Maximum Bug Bounty** |
+| ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------- |
+| 6. Severe   | - Draining or freezing of holdings protocol-wide (e.g. draining token distributor, economic attacks, flash loan attacks, reentrancy, MEV, logic errors)                                          | Let's talk             |
+| 5. Critical | - Contracts with balances can be exploited to steal holdings under specific conditions (e.g. bypass guardrails to transfer precious NFT from parties, user can steal their party's distribution) | Up to 25 ETH           |
+| 4. High     | - Contracts temporarily unable to transfer holdings<br>- Users spoof each other                                                                                                                  | Up to 10 ETH           |
+| 3. Medium   | - Contract consumes unbounded gas<br>- Griefing, denial of service (i.e. attacker spends as much in gas as damage to the contract)                                                               | Up to 5 ETH            |
+| 2. Low      | - Contract fails to deliver promised returns, but doesn't lose value                                                                                                                             | Up to 1 ETH            |
+| 1. None     | - Best practices                                                                                                                                                                                 |                        |
+
+Any vulnerability or bug discovered must be reported only to the following email: [security@partydao.org](mailto:security@partydao.org).
+
 ## License
 
 The primary license for the Party Protocol is the GNU General Public License 3.0 (`GPL-3.0`), see [LICENSE](./LICENSE).
