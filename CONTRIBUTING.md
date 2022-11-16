@@ -1,4 +1,4 @@
-## Contributing to Party Protocol
+## Contributing to the Party Protocol
 
 Thanks for your help contributing to the Party Protocol!
 
