@@ -9,6 +9,7 @@ A protocol for _group coordination_. Party Protocol provides on-chain functional
 - [Party Protocol](https://github.com/PartyDAO/party-protocol#party-protocol)
   - [Table of Contents](https://github.com/PartyDAO/party-protocol#table-of-contents)
   - [Documentation](https://github.com/PartyDAO/party-protocol#documentation)
+  - [Contributing](https://github.com/PartyDAO/party-protocol#contributing)
   - [Layout](https://github.com/PartyDAO/party-protocol#layout)
   - [Deployments](https://github.com/PartyDAO/party-protocol#deployments)
   - [Install](https://github.com/PartyDAO/party-protocol#install)
@@ -23,6 +24,10 @@ For more information on Party Protocol, see the documentation [here](./docs/).
 - [Overview](./docs/README.md)
 - [Crowdfund](./docs/crowdfund.md)
 - [Governance](./docs/governance.md)
+
+## Contributing
+
+This is an open protocol, so if you are interested in contributioning see [here](./CONTRIBUTING.md) for more details about how you could get involved.
 
 ## Layout
 
