@@ -35,7 +35,7 @@ This cycle of development encapsulates our process:
    - Ideally, each commit focuses on a single thing and is easy to cherry pick. It has concise and clear commit messages. Additional context too wordy to be contained in the message is instead included in either the description of the commit or the description of the pull request it is in.
 3. **Discuss and engage** with reviewers in review session loops.
    - We treat promptness of response as a tremendous courtesy to your reviewers and fellow contributors.
-4. **Merge** when approved by a core team member.
+4. **Merge** when approved by a maintainer.
 5. **Open followup issues** and pull requests, if any.
 6. **Repeat**.
 
