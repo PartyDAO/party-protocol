@@ -8,7 +8,7 @@ There are multiple opportunities to contribute at any level - whether you're jus
 
 This should be a guide to help walk you through our development process.
 
-Our Discord channel [#developer-chat](https://discord.gg/8FcPddUUks) is available for any questions or concerns you may have that are not covered here.
+Please feel free to ask questions on our [Discussions board](https://github.com/PartyDAO/party-protocol/discussions). Additionally, our Discord channel [#developer-chat](https://discord.gg/8FcPddUUks) is available for any questions or concerns you may have that are not covered here.
 
 ### Getting Started
 
