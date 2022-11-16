@@ -77,7 +77,7 @@ When reviewing a pull request, the primary goal is to improve the protocol and f
 
 #### Remember there is a person behind the screen
 
-Be conscious that *how* you communicate requests and reviews in your feedback matters. In some cases, even more than what you communicate. Yes, your feedback may be driving a particular change that makes Party Protocol better. But the individual implementing your suggestion may just not want anything to do with PartyDAO ever again.
+Be conscious that *how* you communicate requests and reviews in your feedback matters. In some cases, even more than what you communicate. Yes, your feedback may be driving a particular change that makes the Party Protocol better. But the individual implementing your suggestion may just not want anything to do with PartyDAO ever again.
 
 #### Abandoned or stale pull requests
 
