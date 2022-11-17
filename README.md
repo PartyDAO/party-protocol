@@ -1,5 +1,25 @@
 ![Party Protocol](.github/assets/banner.png)
 
+[![Version][version-badge]][version-link]
+[![License][license-badge]][license-link]
+[![Test][ci-badge]][ci-link]
+[![Docs][docs-badge]][docs-link]
+[![Discussions][discussions-badge]][discussions-link]
+[![Discord][discord-badge]][discord-link]
+
+[version-badge]: https://img.shields.io/github/release/PartyDAO/party-protocol?label=version
+[version-link]: https://github.com/PartyDAO/party-protocol/releases
+[license-badge]: https://img.shields.io/github/license/PartyDAO/party-protocol
+[license-link]: https://github.com/PartyDAO/party-protocol/blob/main/LICENSE
+[ci-badge]: https://github.com/PartyDAO/party-protocol/actions/workflows/ci.yml/badge.svg
+[ci-link]: https://github.com/PartyDAO/party-protocol/actions/workflows/ci.yml
+[docs-badge]: https://img.shields.io/badge/Party-documentation-informational
+[docs-link]: https://github.com/PartyDAO/party-protocol/tree/main/docs
+[discussions-badge]: https://img.shields.io/badge/Party-discussions-blueviolet
+[discussions-link]: https://github.com/PartyDAO/party-protocol/discussions
+[discord-badge]: https://img.shields.io/static/v1?logo=discord&label=discord&message=join&color=blue
+[discord-link]: https://discord.gg/zUeXpDX8HA
+
 # Party Protocol
 
 A protocol for _group coordination_. Party Protocol provides on-chain functionality for group formation, coordination, and distribution. Currently focused on making NFTs multiplayer.
