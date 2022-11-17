@@ -400,12 +400,41 @@ abi.encodeWithSelector(
 
 This proposal has between 2-3 steps (aka. 2-3 `execute()` calls), depending on whether the proposal was passed unanimously and whether the lisetd NFT is precious or not:
 
-1. If the proposal did not pass unanimously AND the `token` + `tokenId` is precious, the proposal starts here. Otherwise, if _either_ of those conditions are false, skip to 2B. - Transfer the token to the Zora auction house contract and create an auction with `listPrice` reserve price and `GLOBAL_OS_ZORA_AUCTION_DURATION` auction duration (which starts after someone places a bid). - This will emit the next `progressData`:
-   `solidity abi.encode( // The current step. ListOnOpenseaStep.ListedOnZora, ZoraProposalData( // The Zora auction ID. /* uint256 */ auctionId, // The minimum time when the auction can be cancelled. /* minExpiry */ minExpiry ) ); `
-   2A. If a bid was placed and an auction happened, finalize the auction. - Finalize the auction if someone has bid on it and the auction duration has passed. This will transfer the top bid amount (in ETH) to the Party. It is also possible someone else finalized the auction already, in which case the Party already has the ETH and this step becomes a no-op. _The proposal will be complete at this point with no further steps._
-   2B. If the proposal passed unanimously, or the `token` + `tokenId` is not precious, or `token` + `tokenId` is precious but no bid was placed during the safety Zora auction period: - If the item was listed for safety auction, was never bid on, and `progressData.minExpiry` has passed, cancel the auction. This will also return the NFT to the party. - Grant OpenSea an allowance for the NFT and create a non-custodial OpenSea listing for the NFT with price `listPrice` + any extra `fees` that is valid for `duration` seconds. - This will emit the next `progressData`:
-   `solidity abi.encode( // The current step. ListOnOpenseaStep.ListedOnOpenSea, OpenseaProgressData( // Hash of the OS order that was listed. /* bytes32 */ orderHash, // Expiration timestamp of the listing. /* uint40 */ expiry ) ); `
-2. Clean up the OpenSea listing, emitting an event with the outcome, and:
+1. If the proposal did not pass unanimously AND the `token` + `tokenId` is precious, the proposal starts here. Otherwise, if _either_ of those conditions are false, skip to 2b.
+   - Transfer the token to the Zora auction house contract and create an auction with `listPrice` reserve price and `GLOBAL_OS_ZORA_AUCTION_DURATION` auction duration (which starts after someone places a bid).
+     - This will emit the next `progressData`:
+     ```solidity
+     abi.encode(
+         // The current step.
+         ListOnOpenseaStep.ListedOnZora,
+         ZoraProposalData(
+             // The Zora auction ID.
+             /* uint256 */ auctionId,
+             // The minimum time when the auction can be cancelled.
+             /* minExpiry */ minExpiry
+         )
+     );
+     ```
+2. Now it branches off into one of two paths:
+   1. If a bid was placed and an auction happened, finalize the auction.
+      - Finalize the auction if someone has bid on it and the auction duration has passed. This will transfer the top bid amount (in ETH) to the Party. It is also possible someone else finalized the auction already, in which case the Party already has the ETH and this step becomes a no-op. _The proposal will be complete at this point with no further steps._
+   2. If the proposal passed unanimously, or the `token` + `tokenId` is not precious, or `token` + `tokenId` is precious but no bid was placed during the safety Zora auction period:
+      - If the item was listed for safety auction, was never bid on, and `progressData.minExpiry` has passed, cancel the auction. This will also return the NFT to the party.
+      - Grant OpenSea an allowance for the NFT and create a non-custodial OpenSea listing for the NFT with price `listPrice` + any extra `fees` that is valid for `duration` seconds.
+        - This will emit the next `progressData`:
+        ```solidity
+        abi.encode(
+            // The current step.
+            ListOnOpenseaStep.ListedOnOpenSea,
+            OpenseaProgressData(
+                // Hash of the OS order that was listed.
+                /* bytes32 */ orderHash,
+                // Expiration timestamp of the listing.
+                /* uint40 */ expiry
+            )
+        );
+        ```
+3. Clean up the OpenSea listing, emitting an event with the outcome, and:
    - If the order was filled, the Party has the `listPrice` ETH, the NFT allowance was consumed, and there is nothing left to do.
    - If the order expired, no one bought the listing and the Party still owns the NFT. Revoke OpenSea's token allowance.
 
