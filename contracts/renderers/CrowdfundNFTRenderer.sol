@@ -82,7 +82,7 @@ contract CrowdfundNFTRenderer is RendererBase {
     }
 
     function generateName(address owner) private view returns (string memory) {
-        return string.concat("Contribution - ", getContribution(owner), " ETH");
+        return string.concat(getContribution(owner), " ETH Contribution");
     }
 
     function generateExternalURL() private view returns (string memory) {
@@ -128,7 +128,7 @@ contract CrowdfundNFTRenderer is RendererBase {
     }
 
     function generateCollectionName() internal view override returns (string memory) {
-        return string.concat(name, " - Contributions");
+        return string.concat("Party Contributions: ", name);
     }
 
     function generateCollectionDescription() internal view override returns (string memory) {

@@ -76,7 +76,7 @@ contract PartyNFTRenderer is RendererBase {
                 Base64.encode(
                     abi.encodePacked(
                         '{"name":"',
-                        generateName(name, tokenId),
+                        generateName(tokenId),
                         '", "description":"',
                         generateDescription(name, tokenId),
                         '", "external_url":"',
@@ -100,17 +100,8 @@ contract PartyNFTRenderer is RendererBase {
             );
     }
 
-    function generateName(
-        string memory partyName,
-        uint256 tokenId
-    ) private view returns (string memory) {
-        return
-            string.concat(
-                partyName,
-                " - ",
-                generateVotingPowerPercentage(tokenId),
-                "% Voting Power"
-            );
+    function generateName(uint256 tokenId) private view returns (string memory) {
+        return string.concat(generateVotingPowerPercentage(tokenId), "% Voting Power");
     }
 
     function generateExternalURL() private view returns (string memory) {
@@ -143,7 +134,7 @@ contract PartyNFTRenderer is RendererBase {
     }
 
     function generateCollectionName() internal view override returns (string memory) {
-        return string.concat(name, " - Party Cards");
+        return string.concat("Party Cards: ", name);
     }
 
     function generateCollectionDescription() internal view override returns (string memory) {
