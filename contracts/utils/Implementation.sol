@@ -22,11 +22,7 @@ abstract contract Implementation {
 
     // Reverts if the current function context is not inside of a constructor.
     modifier onlyConstructor() {
-        uint256 codeSize;
-        assembly {
-            codeSize := extcodesize(address())
-        }
-        if (codeSize != 0) {
+        if (address(this).code.length != 0) {
             revert OnlyConstructorError();
         }
         _;
