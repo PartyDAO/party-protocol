@@ -44,6 +44,7 @@ contract BuyCrowdfundTest is Test, TestUtils {
     IGateKeeper defaultGateKeeper;
     bytes12 defaultGateKeeperId;
     Crowdfund.FixedGovernanceOpts defaultGovernanceOpts;
+    ENS defaultENS;
 
     Globals globals = new Globals(address(this));
     MockPartyFactory partyFactory = new MockPartyFactory();
@@ -90,7 +91,8 @@ contract BuyCrowdfundTest is Test, TestUtils {
                                 gateKeeper: gateKeeper,
                                 gateKeeperId: gateKeeperId,
                                 onlyHostCanBuy: onlyHostCanBuy,
-                                governanceOpts: defaultGovernanceOpts
+                                governanceOpts: defaultGovernanceOpts,
+                                ens: defaultENS
                             })
                         )
                     )
@@ -515,7 +517,8 @@ contract BuyCrowdfundTest is Test, TestUtils {
                                 gateKeeper: defaultGateKeeper,
                                 gateKeeperId: defaultGateKeeperId,
                                 onlyHostCanBuy: false,
-                                governanceOpts: defaultGovernanceOpts
+                                governanceOpts: defaultGovernanceOpts,
+                                ens: defaultENS
                             })
                         )
                     )

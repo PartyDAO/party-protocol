@@ -23,7 +23,8 @@ contract MockPartyFactory is IPartyFactory {
         address authority,
         Party.PartyOptions memory opts,
         IERC721[] memory preciousTokens,
-        uint256[] memory preciousTokenIds
+        uint256[] memory preciousTokenIds,
+        ENS memory
     ) external returns (Party party) {
         emit MockPartyFactoryCreateParty(
             msg.sender,

@@ -4,6 +4,7 @@ pragma solidity 0.8.17;
 import "../globals/IGlobals.sol";
 import "../utils/LibRawResult.sol";
 import "../utils/Proxy.sol";
+import "../utils/LibENS.sol";
 import "../renderers/RendererStorage.sol";
 
 import "./AuctionCrowdfund.sol";
@@ -37,6 +38,14 @@ contract CrowdfundFactory {
     ///         known token ID) listing for a known price.
     /// @param opts Options used to initialize the crowdfund. These are fixed
     ///             and cannot be changed later.
+    ///
+    ///             IMPORTANT: If using a custom ENS domain (aka. not a
+    ///             "partybid.eth" subdomain) for the crowdfund, the owner MUST
+    ///             authorize the crowdfund to be able to edit the domain's
+    ///             records so that it can update the address record to the new
+    ///             party after it wins. This can be done by calling
+    ///             `setAuthorisation()` on the ENS public resolver at:
+    ///             0x4976fb03C32e5B8cfe2b6cCB31c09Ba78EBaBa41.
     /// @param createGateCallData Encoded calldata used by `createGate()` to
     ///                           create the crowdfund if one is specified in `opts`.
     function createBuyCrowdfund(
@@ -44,6 +53,13 @@ contract CrowdfundFactory {
         bytes memory createGateCallData
     ) public payable returns (BuyCrowdfund inst) {
         opts.gateKeeperId = _prepareGate(opts.gateKeeper, opts.gateKeeperId, createGateCallData);
+
+        // Create a "partybid.eth" subdomain for the crowdfund if specified.
+        bytes32 subdomainNode;
+        if (LibENS.isPartyBidSubdomain(opts.ens.node)) {
+            subdomainNode = LibENS.createSubdomain(opts.ens.label, address(this));
+        }
+
         inst = BuyCrowdfund(
             payable(
                 new Proxy{ value: msg.value }(
@@ -52,6 +68,13 @@ contract CrowdfundFactory {
                 )
             )
         );
+
+        // Finish configuring subdomain if newly created.
+        if (subdomainNode != bytes32(0)) {
+            LibENS.setAddress(subdomainNode, address(inst));
+            LibENS.setAuthorization(subdomainNode, address(inst), true);
+        }
+
         emit BuyCrowdfundCreated(inst, opts);
     }
 
@@ -59,6 +82,14 @@ contract CrowdfundFactory {
     ///         (i.e. with a known token ID).
     /// @param opts Options used to initialize the crowdfund. These are fixed
     ///             and cannot be changed later.
+    ///
+    ///             IMPORTANT: If using a custom ENS domain (aka. not a
+    ///             "partybid.eth" subdomain) for the crowdfund, the owner MUST
+    ///             authorize the crowdfund to be able to edit the domain's
+    ///             records so that it can update the address record to the new
+    ///             party after it wins. This can be done by calling
+    ///             `setAuthorisation()` on the ENS public resolver at:
+    ///             0x4976fb03C32e5B8cfe2b6cCB31c09Ba78EBaBa41.
     /// @param createGateCallData Encoded calldata used by `createGate()` to create
     ///                           the crowdfund if one is specified in `opts`.
     function createAuctionCrowdfund(
@@ -66,6 +97,13 @@ contract CrowdfundFactory {
         bytes memory createGateCallData
     ) public payable returns (AuctionCrowdfund inst) {
         opts.gateKeeperId = _prepareGate(opts.gateKeeper, opts.gateKeeperId, createGateCallData);
+
+        // Create a "partybid.eth" subdomain for the crowdfund if specified.
+        bytes32 subdomainNode;
+        if (LibENS.isPartyBidSubdomain(opts.ens.node)) {
+            subdomainNode = LibENS.createSubdomain(opts.ens.label, address(this));
+        }
+
         inst = AuctionCrowdfund(
             payable(
                 new Proxy{ value: msg.value }(
@@ -74,6 +112,13 @@ contract CrowdfundFactory {
                 )
             )
         );
+
+        // Finish configuring subdomain if newly created.
+        if (subdomainNode != bytes32(0)) {
+            LibENS.setAddress(subdomainNode, address(inst));
+            LibENS.setAuthorization(subdomainNode, address(inst), true);
+        }
+
         emit AuctionCrowdfundCreated(inst, opts);
     }
 
@@ -81,6 +126,14 @@ contract CrowdfundFactory {
     ///         (i.e. any token ID) from a collection for a known price.
     /// @param opts Options used to initialize the crowdfund. These are fixed
     ///             and cannot be changed later.
+    ///
+    ///             IMPORTANT: If using a custom ENS domain (aka. not a
+    ///             "partybid.eth" subdomain) for the crowdfund, the owner MUST
+    ///             authorize the crowdfund to be able to edit the domain's
+    ///             records so that it can update the address record to the new
+    ///             party after it wins. This can be done by calling
+    ///             `setAuthorisation()` on the ENS public resolver at:
+    ///             0x4976fb03C32e5B8cfe2b6cCB31c09Ba78EBaBa41.
     /// @param createGateCallData Encoded calldata used by `createGate()` to create
     ///                           the crowdfund if one is specified in `opts`.
     function createCollectionBuyCrowdfund(
@@ -88,6 +141,13 @@ contract CrowdfundFactory {
         bytes memory createGateCallData
     ) public payable returns (CollectionBuyCrowdfund inst) {
         opts.gateKeeperId = _prepareGate(opts.gateKeeper, opts.gateKeeperId, createGateCallData);
+
+        // Create a "partybid.eth" subdomain for the crowdfund if specified.
+        bytes32 subdomainNode;
+        if (LibENS.isPartyBidSubdomain(opts.ens.node)) {
+            subdomainNode = LibENS.createSubdomain(opts.ens.label, address(this));
+        }
+
         inst = CollectionBuyCrowdfund(
             payable(
                 new Proxy{ value: msg.value }(
@@ -96,6 +156,13 @@ contract CrowdfundFactory {
                 )
             )
         );
+
+        // Finish configuring subdomain if newly created.
+        if (subdomainNode != bytes32(0)) {
+            LibENS.setAddress(subdomainNode, address(inst));
+            LibENS.setAuthorization(subdomainNode, address(inst), true);
+        }
+
         emit CollectionBuyCrowdfundCreated(inst, opts);
     }
 

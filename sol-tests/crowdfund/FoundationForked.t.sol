@@ -28,6 +28,7 @@ contract FoundationForkedTest is TestUtils {
     AuctionCrowdfund cf;
 
     Crowdfund.FixedGovernanceOpts defaultGovOpts;
+    ENS defaultENS;
 
     // Initialize Foundation contracts
     IFoundationMarket foundation = IFoundationMarket(0xcDA72070E455bb31C7690a170224Ce43623d0B6f);
@@ -74,7 +75,8 @@ contract FoundationForkedTest is TestUtils {
                                 gateKeeper: IGateKeeper(address(0)),
                                 gateKeeperId: 0,
                                 onlyHostCanBid: false,
-                                governanceOpts: defaultGovOpts
+                                governanceOpts: defaultGovOpts,
+                                ens: defaultENS
                             })
                         )
                     )

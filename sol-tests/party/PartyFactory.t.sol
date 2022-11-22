@@ -14,6 +14,7 @@ contract PartyFactoryTest is Test, TestUtils {
     PartyFactory factory = new PartyFactory(globals);
     ProposalExecutionEngine eng;
     Party.PartyOptions defaultPartyOptions;
+    ENS defaultENS;
 
     constructor() {
         defaultPartyOptions.name = "PARTY";
@@ -83,7 +84,13 @@ contract PartyFactoryTest is Test, TestUtils {
             symbol: randomStr,
             customizationPresetId: 0
         });
-        Party party = factory.createParty(authority, opts, preciousTokens, preciousTokenIds);
+        Party party = factory.createParty(
+            authority,
+            opts,
+            preciousTokens,
+            preciousTokenIds,
+            defaultENS
+        );
         assertEq(party.name(), opts.name);
         assertEq(party.symbol(), opts.symbol);
         assertEq(party.mintAuthority(), authority);
@@ -115,6 +122,32 @@ contract PartyFactoryTest is Test, TestUtils {
                 feeBps > 1e4 ? feeBps : passThresholdBps
             )
         );
-        factory.createParty(authority, opts, preciousTokens, preciousTokenIds);
+        factory.createParty(authority, opts, preciousTokens, preciousTokenIds, defaultENS);
+    }
+
+    function testCreatePartyWithENSDomain() public onlyForked {
+        // Approve factory to set ENS domain.
+        vm.prank(ENS_REGISTRY.owner(DOMAIN_NODE));
+        ENS_REGISTRY.setApprovalForAll(address(factory), true);
+
+        address authority = _randomAddress();
+        (IERC721[] memory preciousTokens, uint256[] memory preciousTokenIds) = _createPreciouses(3);
+        Party.PartyOptions memory opts = defaultPartyOptions;
+
+        string memory subdomain = "livingdead.partybid.eth";
+        bytes32 label = keccak256(bytes("livingdead"));
+        bytes32 subnode = keccak256(abi.encodePacked(DOMAIN_NODE, label));
+        ENS memory ens = ENS({ name: subdomain, node: DOMAIN_NODE, label: label });
+
+        Party party = factory.createParty(authority, opts, preciousTokens, preciousTokenIds, ens);
+
+        assertEq(_getENSName(address(party)), subdomain);
+        assertEq(ENS_REGISTRY.owner(subnode), DOMAIN_OWNER);
+        assertEq(RESOLVER.addr(subnode), address(party));
+    }
+
+    function _getENSName(address addr) internal view returns (string memory) {
+        bytes32 node = REVERSE_REGISTRY.node(addr);
+        return ENSResolver(ENS_REGISTRY.resolver(node)).name(node);
     }
 }

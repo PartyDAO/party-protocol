@@ -28,6 +28,7 @@ contract ZoraForkedTest is TestUtils, ERC721Receiver {
     AuctionCrowdfund cf;
 
     Crowdfund.FixedGovernanceOpts defaultGovOpts;
+    ENS defaultENS;
 
     // Initialize Zora contracts
     IZoraAuctionHouse zora = IZoraAuctionHouse(0xE468cE99444174Bd3bBBEd09209577d25D1ad673);
@@ -77,7 +78,8 @@ contract ZoraForkedTest is TestUtils, ERC721Receiver {
                                 gateKeeper: IGateKeeper(address(0)),
                                 gateKeeperId: 0,
                                 onlyHostCanBid: false,
-                                governanceOpts: defaultGovOpts
+                                governanceOpts: defaultGovOpts,
+                                ens: defaultENS
                             })
                         )
                     )

@@ -102,11 +102,14 @@ contract PartyAdmin is Test {
         uint256[] memory preciousTokenIds = new uint256[](1);
         preciousTokenIds[0] = opts.preciousTokenId;
 
+        ENS memory defaultENS;
+
         Party party = _partyFactory.createParty(
             address(this),
             po,
             preciousTokens,
-            preciousTokenIds
+            preciousTokenIds,
+            defaultENS
         );
         return (party, preciousTokens, preciousTokenIds);
     }

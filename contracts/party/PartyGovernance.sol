@@ -12,6 +12,7 @@ import "../tokens/ERC1155Receiver.sol";
 import "../utils/LibERC20Compat.sol";
 import "../utils/LibRawResult.sol";
 import "../utils/LibSafeCast.sol";
+import "../utils/LibENS.sol";
 import "../globals/IGlobals.sol";
 import "../globals/LibGlobals.sol";
 import "../proposals/IProposalExecutionEngine.sol";
@@ -287,7 +288,8 @@ abstract contract PartyGovernance is
     function _initialize(
         GovernanceOpts memory opts,
         IERC721[] memory preciousTokens,
-        uint256[] memory preciousTokenIds
+        uint256[] memory preciousTokenIds,
+        string memory ensName
     ) internal virtual {
         // Check BPS are valid.
         if (opts.feeBps > 1e4) {
@@ -311,6 +313,10 @@ abstract contract PartyGovernance is
         // Set fees.
         feeBps = opts.feeBps;
         feeRecipient = opts.feeRecipient;
+        // Set the ENS name for the party.
+        if (bytes(ensName).length != 0) {
+            LibENS.setDomainName(ensName);
+        }
         // Set the precious list.
         _setPreciousList(preciousTokens, preciousTokenIds);
         // Set the party hosts.

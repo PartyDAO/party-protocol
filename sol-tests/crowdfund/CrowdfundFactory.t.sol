@@ -25,6 +25,8 @@ contract CrowdfundFactoryTest is Test, TestUtils {
     AllowListGateKeeper allowListGateKeeper = new AllowListGateKeeper();
     TokenGateKeeper tokenGateKeeper = new TokenGateKeeper();
 
+    ENS defaultENS;
+
     event Contributed(
         address contributor,
         uint256 amount,
@@ -127,7 +129,8 @@ contract CrowdfundFactoryTest is Test, TestUtils {
                     passThresholdBps: randomBps,
                     feeBps: randomBps,
                     feeRecipient: payable(_randomAddress())
-                })
+                }),
+                ens: defaultENS
             });
 
         vm.deal(address(this), randomUint40);
@@ -188,7 +191,8 @@ contract CrowdfundFactoryTest is Test, TestUtils {
                     passThresholdBps: 51e2,
                     feeBps: 0,
                     feeRecipient: payable(address(0))
-                })
+                }),
+                ens: defaultENS
             });
 
         vm.expectRevert(AuctionCrowdfund.InvalidAuctionIdError.selector);
@@ -224,7 +228,8 @@ contract CrowdfundFactoryTest is Test, TestUtils {
                     passThresholdBps: 51e2,
                     feeBps: 0,
                     feeRecipient: payable(address(0))
-                })
+                }),
+                ens: defaultENS
             });
 
         vm.expectRevert(AuctionCrowdfund.InvalidAuctionIdError.selector);
@@ -261,7 +266,8 @@ contract CrowdfundFactoryTest is Test, TestUtils {
                     passThresholdBps: 51e2,
                     feeBps: 0,
                     feeRecipient: payable(address(0))
-                })
+                }),
+                ens: defaultENS
             });
 
         vm.expectRevert(AuctionCrowdfund.InvalidAuctionIdError.selector);
@@ -310,7 +316,8 @@ contract CrowdfundFactoryTest is Test, TestUtils {
                 passThresholdBps: randomBps,
                 feeBps: randomBps,
                 feeRecipient: payable(_randomAddress())
-            })
+            }),
+            ens: defaultENS
         });
 
         vm.deal(address(this), randomUint40);
@@ -379,7 +386,8 @@ contract CrowdfundFactoryTest is Test, TestUtils {
                     passThresholdBps: randomBps,
                     feeBps: randomBps,
                     feeRecipient: payable(_randomAddress())
-                })
+                }),
+                ens: defaultENS
             });
 
         vm.deal(address(this), randomUint40);
@@ -443,7 +451,8 @@ contract CrowdfundFactoryTest is Test, TestUtils {
                     passThresholdBps: passThresholdBps,
                     feeBps: feeBps,
                     feeRecipient: payable(address(0))
-                })
+                }),
+                ens: defaultENS
             });
 
         uint16 invalidBps;
@@ -456,5 +465,60 @@ contract CrowdfundFactoryTest is Test, TestUtils {
         }
         vm.expectRevert(abi.encodeWithSelector(Crowdfund.InvalidBpsError.selector, invalidBps));
         partyCrowdfundFactory.createAuctionCrowdfund(opts, "");
+    }
+
+    function testCreateCrowdfundWithENSDomain() public onlyForked {
+        // Approve factory to set ENS domain.
+        vm.prank(ENS_REGISTRY.owner(DOMAIN_NODE));
+        ENS_REGISTRY.setApprovalForAll(address(partyCrowdfundFactory), true);
+
+        // Create an NFT.
+        DummyERC721 nftContract = new DummyERC721();
+        uint256 tokenId = nftContract.mint(address(this));
+
+        string memory subdomain = "livingdead.partybid.eth";
+        bytes32 label = keccak256(bytes("livingdead"));
+        bytes32 subnode = keccak256(abi.encodePacked(DOMAIN_NODE, label));
+        BuyCrowdfund.BuyCrowdfundOptions memory opts = BuyCrowdfund.BuyCrowdfundOptions({
+            name: "name",
+            symbol: "symbol",
+            customizationPresetId: 0,
+            nftContract: nftContract,
+            nftTokenId: tokenId,
+            // This is to avoid overflows when adding to `block.timestamp`.
+            duration: 7 days,
+            maximumPrice: type(uint96).max,
+            splitRecipient: payable(address(0)),
+            splitBps: 0,
+            initialContributor: address(0),
+            initialDelegate: address(0),
+            gateKeeper: IGateKeeper(address(0)),
+            gateKeeperId: 0,
+            onlyHostCanBuy: false,
+            governanceOpts: Crowdfund.FixedGovernanceOpts({
+                hosts: _toAddressArray(address(this)),
+                voteDuration: 3 days,
+                executionDelay: 1 days,
+                passThresholdBps: 0,
+                feeBps: 0,
+                feeRecipient: payable(address(0))
+            }),
+            ens: ENS({ name: subdomain, node: DOMAIN_NODE, label: label })
+        });
+
+        BuyCrowdfund inst = partyCrowdfundFactory.createBuyCrowdfund(opts, "");
+
+        assertEq(_getENSName(address(inst)), subdomain);
+        assertEq(ENS_REGISTRY.owner(subnode), address(partyCrowdfundFactory));
+        assertEq(RESOLVER.addr(subnode), address(inst));
+        assertEq(
+            RESOLVER.authorisations(subnode, address(partyCrowdfundFactory), address(inst)),
+            true
+        );
+    }
+
+    function _getENSName(address addr) internal view returns (string memory) {
+        bytes32 node = REVERSE_REGISTRY.node(addr);
+        return ENSResolver(ENS_REGISTRY.resolver(node)).name(node);
     }
 }

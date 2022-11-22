@@ -62,6 +62,7 @@ contract CrowdfundTest is Test, TestUtils {
     IGateKeeper defaultGateKeeper;
     bytes12 defaultGateKeeperId;
     Crowdfund.FixedGovernanceOpts defaultGovernanceOpts;
+    ENS defaultENS;
     address dao;
     EmergencyExecuteTarget emergencyExecuteTarget = new EmergencyExecuteTarget();
 
@@ -143,7 +144,8 @@ contract CrowdfundTest is Test, TestUtils {
                                 initialDelegate: initialDelegate,
                                 gateKeeper: defaultGateKeeper,
                                 gateKeeperId: defaultGateKeeperId,
-                                governanceOpts: defaultGovernanceOpts
+                                governanceOpts: defaultGovernanceOpts,
+                                ens: defaultENS
                             })
                         )
                     )
@@ -927,7 +929,8 @@ contract CrowdfundTest is Test, TestUtils {
                                 initialDelegate: address(this),
                                 gateKeeper: defaultGateKeeper,
                                 gateKeeperId: defaultGateKeeperId,
-                                governanceOpts: defaultGovernanceOpts
+                                governanceOpts: defaultGovernanceOpts,
+                                ens: defaultENS
                             })
                         )
                     )

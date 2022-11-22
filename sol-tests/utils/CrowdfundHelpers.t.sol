@@ -28,6 +28,7 @@ contract CrowdfundHelpers is Test, TestUtils {
     IGateKeeper defaultGateKeeper;
     bytes12 defaultGateKeeperId;
     Crowdfund.FixedGovernanceOpts defaultGovernanceOpts;
+    ENS defaultENS;
 
     Globals globals;
     AuctionCrowdfund auctionCrowdfundImpl;
@@ -85,7 +86,8 @@ contract CrowdfundHelpers is Test, TestUtils {
                                 gateKeeper: defaultGateKeeper,
                                 gateKeeperId: defaultGateKeeperId,
                                 onlyHostCanBid: false,
-                                governanceOpts: defaultGovernanceOpts
+                                governanceOpts: defaultGovernanceOpts,
+                                ens: defaultENS
                             })
                         )
                     )
@@ -119,7 +121,8 @@ contract CrowdfundHelpers is Test, TestUtils {
                                 gateKeeper: defaultGateKeeper,
                                 gateKeeperId: defaultGateKeeperId,
                                 onlyHostCanBuy: false,
-                                governanceOpts: defaultGovernanceOpts
+                                governanceOpts: defaultGovernanceOpts,
+                                ens: defaultENS
                             })
                         )
                     )
@@ -152,7 +155,8 @@ contract CrowdfundHelpers is Test, TestUtils {
                                 initialDelegate: defaultInitialDelegate,
                                 gateKeeper: defaultGateKeeper,
                                 gateKeeperId: defaultGateKeeperId,
-                                governanceOpts: defaultGovernanceOpts
+                                governanceOpts: defaultGovernanceOpts,
+                                ens: defaultENS
                             })
                         )
                     )

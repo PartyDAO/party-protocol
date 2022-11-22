@@ -60,6 +60,7 @@ abstract contract Crowdfund is Implementation, ERC721Receiver, CrowdfundNFT {
         IGateKeeper gateKeeper;
         bytes12 gateKeeperId;
         FixedGovernanceOpts governanceOpts;
+        ENS ens;
     }
 
     // A record of a single contribution made by a user.
@@ -148,6 +149,8 @@ abstract contract Crowdfund is Implementation, ERC721Receiver, CrowdfundNFT {
     mapping(address => Claim) public claims;
     /// @notice Whether the DAO has emergency powers for this party.
     bool public emergencyExecuteDisabled;
+    // ENS domain options to pass on, if used, when creating the party after crowdfund wins.
+    ENS private _ens;
 
     // Set the `Globals` contract.
     constructor(IGlobals globals) CrowdfundNFT(globals) {
@@ -178,6 +181,26 @@ abstract contract Crowdfund is Implementation, ERC721Receiver, CrowdfundNFT {
             // If this contract has ETH, either passed in during deployment or
             // pre-existing, credit it to the `initialContributor`.
             _contribute(opts.initialContributor, initialContribution, opts.initialDelegate, 0, "");
+        }
+
+        // Set the ENS name for the crowdfund.
+        if (bytes(opts.ens.name).length != 0) {
+            // Skip check if "partybid.eth" subdomain since it is authorized
+            // after the crowdfund is initialized.
+            if (!LibENS.isPartyBidSubdomain(opts.ens.node)) {
+                // Without this check, crowdfund might fail later on when trying
+                // to create the party after it wins because it does not have
+                // authorization to update the address record of the domain to
+                // that of the new party.
+                LibENS.ensureIsAuthorized(
+                    opts.ens.label == bytes32(0)
+                        ? opts.ens.node
+                        : keccak256(abi.encodePacked(opts.ens.node, opts.ens.label)),
+                    address(this)
+                );
+            }
+            LibENS.setDomainName(opts.ens.name);
+            _ens = opts.ens;
         }
         // Set up gatekeeper after initial contribution (initial always gets in).
         gateKeeper = opts.gateKeeper;
@@ -412,6 +435,7 @@ abstract contract Crowdfund is Implementation, ERC721Receiver, CrowdfundNFT {
         if (!governanceOptsAlreadyValidated) {
             _assertValidGovernanceOpts(governanceOpts);
         }
+        ENS memory ens = _ens;
         // Create a party.
         party = party_ = _getPartyFactory().createParty(
             address(this),
@@ -431,8 +455,27 @@ abstract contract Crowdfund is Implementation, ERC721Receiver, CrowdfundNFT {
                 })
             }),
             preciousTokens,
-            preciousTokenIds
+            preciousTokenIds,
+            // Pass existing ENS name, if used, to the party.
+            ENS({
+                name: ens.name,
+                // Indicates to the party factory not to create a new ENS subdomain
+                // if this crowdfund was using one since it already exist.
+                node: !LibENS.isPartyBidSubdomain(ens.node) ? ens.node : bytes32(0),
+                label: ens.label
+            })
         );
+        if (bytes(ens.name).length > 0) {
+            // Delete ENS name record
+            LibENS.setDomainName("");
+            // Update ENS address record to that of the party's.
+            LibENS.setAddress(
+                ens.label == bytes32(0)
+                    ? ens.node
+                    : keccak256(abi.encodePacked(ens.node, ens.label)),
+                address(party)
+            );
+        }
         // Transfer the acquired NFTs to the new party.
         for (uint256 i; i < preciousTokens.length; ++i) {
             preciousTokens[i].transferFrom(address(this), address(party_), preciousTokenIds[i]);

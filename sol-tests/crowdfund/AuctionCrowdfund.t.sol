@@ -51,6 +51,7 @@ contract AuctionCrowdfundTest is Test, TestUtils {
     IGateKeeper defaultGateKeeper;
     bytes12 defaultGateKeeperId;
     Crowdfund.FixedGovernanceOpts defaultGovernanceOpts;
+    ENS defaultENS;
 
     Globals globals = new Globals(address(this));
     MockPartyFactory partyFactory = new MockPartyFactory();
@@ -100,7 +101,8 @@ contract AuctionCrowdfundTest is Test, TestUtils {
                                 gateKeeper: gateKeeper,
                                 gateKeeperId: gateKeeperId,
                                 onlyHostCanBid: onlyHostCanBid,
-                                governanceOpts: defaultGovernanceOpts
+                                governanceOpts: defaultGovernanceOpts,
+                                ens: defaultENS
                             })
                         )
                     )
@@ -445,7 +447,7 @@ contract AuctionCrowdfundTest is Test, TestUtils {
         // Contribute and delegate.
         address payable contributor = _randomAddress();
         _contribute(cf, contributor, 1e18);
-        uint256 bid = market.getMinimumBid(auctionId);
+        market.getMinimumBid(auctionId);
         // Expire the CF.
         skip(defaultDuration);
         _expectEmit0();
@@ -732,7 +734,8 @@ contract AuctionCrowdfundTest is Test, TestUtils {
                                 gateKeeper: defaultGateKeeper,
                                 gateKeeperId: defaultGateKeeperId,
                                 onlyHostCanBid: false,
-                                governanceOpts: defaultGovernanceOpts
+                                governanceOpts: defaultGovernanceOpts,
+                                ens: defaultENS
                             })
                         )
                     )

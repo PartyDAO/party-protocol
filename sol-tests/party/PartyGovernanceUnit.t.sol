@@ -151,7 +151,7 @@ contract TestablePartyGovernance is PartyGovernance {
         IERC721[] memory preciousTokens,
         uint256[] memory preciousTokenIds
     ) PartyGovernance(globals) {
-        _initialize(opts, preciousTokens, preciousTokenIds);
+        _initialize(opts, preciousTokens, preciousTokenIds, "");
     }
 
     function rawAdjustVotingPower(

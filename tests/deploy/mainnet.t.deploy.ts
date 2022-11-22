@@ -119,6 +119,12 @@ describeFork("Mainnet deployment fork smoke tests", provider => {
     feeRecipient: deployOwner.address,
   };
 
+  const ENS = {
+    name: "",
+    node: NULL_HASH,
+    label: NULL_HASH,
+  };
+
   let dummyERC721Contract: Contract;
   let testERC721tokenIds: BigNumber[] = [];
   let deployer: Contract;
@@ -249,6 +255,7 @@ describeFork("Mainnet deployment fork smoke tests", provider => {
               gateKeeperId: NULL_GATEKEEPER_ID,
               onlyHostCanBid: true,
               governanceOpts: FIXED_GOVERNANCE_OPTS,
+              ens: ENS,
             },
             NULL_BYTES,
           ),
@@ -320,6 +327,7 @@ describeFork("Mainnet deployment fork smoke tests", provider => {
             gateKeeper: NULL_ADDRESS,
             gateKeeperId: NULL_GATEKEEPER_ID,
             governanceOpts: FIXED_GOVERNANCE_OPTS,
+            ens: ENS,
           },
           NULL_BYTES,
         ),
@@ -390,6 +398,7 @@ describeFork("Mainnet deployment fork smoke tests", provider => {
             gateKeeper: NULL_ADDRESS,
             gateKeeperId: NULL_GATEKEEPER_ID,
             governanceOpts: FIXED_GOVERNANCE_OPTS,
+            ens: ENS,
           },
           NULL_BYTES,
         ),

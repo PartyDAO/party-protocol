@@ -27,6 +27,7 @@ contract NounsForkedTest is TestUtils {
     AuctionCrowdfund cf;
 
     Crowdfund.FixedGovernanceOpts defaultGovOpts;
+    ENS defaultENS;
 
     // Initialize nouns contracts
     INounsAuctionHouse nounsAuctionHouse =
@@ -67,7 +68,8 @@ contract NounsForkedTest is TestUtils {
                                 gateKeeper: IGateKeeper(address(0)),
                                 gateKeeperId: 0,
                                 onlyHostCanBid: false,
-                                governanceOpts: defaultGovOpts
+                                governanceOpts: defaultGovOpts,
+                                ens: defaultENS
                             })
                         )
                     )

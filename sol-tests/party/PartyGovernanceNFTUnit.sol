@@ -29,7 +29,8 @@ contract TestablePartyGovernanceNFT is PartyGovernanceNFT {
             governanceOpts,
             preciousTokens,
             preciousTokenIds,
-            mintAuthority_
+            mintAuthority_,
+            ""
         );
     }
 

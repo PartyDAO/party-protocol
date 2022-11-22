@@ -52,6 +52,8 @@ contract CollectionBuyCrowdfund is BuyCrowdfundBase {
         // Fixed governance options (i.e. cannot be changed) that the governance
         // `Party` will be created with if the crowdfund succeeds.
         FixedGovernanceOpts governanceOpts;
+        // Optional ENS domain name options to use for the crowdfund and party.
+        ENS ens;
     }
 
     /// @notice The NFT contract to buy.
@@ -83,7 +85,8 @@ contract CollectionBuyCrowdfund is BuyCrowdfundBase {
                 initialDelegate: opts.initialDelegate,
                 gateKeeper: opts.gateKeeper,
                 gateKeeperId: opts.gateKeeperId,
-                governanceOpts: opts.governanceOpts
+                governanceOpts: opts.governanceOpts,
+                ens: opts.ens
             })
         );
         nftContract = opts.nftContract;

@@ -48,6 +48,8 @@ abstract contract BuyCrowdfundBase is Crowdfund {
         bytes12 gateKeeperId;
         // Governance options.
         FixedGovernanceOpts governanceOpts;
+        // Optional ENS domain name options to use for the crowdfund and party.
+        ENS ens;
     }
 
     event Won(Party party, IERC721 token, uint256 tokenId, uint256 settledPrice);
@@ -83,7 +85,8 @@ abstract contract BuyCrowdfundBase is Crowdfund {
                 initialDelegate: opts.initialDelegate,
                 gateKeeper: opts.gateKeeper,
                 gateKeeperId: opts.gateKeeperId,
-                governanceOpts: opts.governanceOpts
+                governanceOpts: opts.governanceOpts,
+                ens: opts.ens
             })
         );
     }

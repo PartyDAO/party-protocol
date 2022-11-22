@@ -5,6 +5,7 @@ import "../globals/IGlobals.sol";
 import "../globals/LibGlobals.sol";
 import "../tokens/IERC721.sol";
 import "../utils/Proxy.sol";
+import "../utils/LibENS.sol";
 import "../renderers/RendererStorage.sol";
 
 import "./Party.sol";
@@ -27,18 +28,27 @@ contract PartyFactory is IPartyFactory {
         address authority,
         Party.PartyOptions memory opts,
         IERC721[] memory preciousTokens,
-        uint256[] memory preciousTokenIds
+        uint256[] memory preciousTokenIds,
+        ENS memory ens
     ) external returns (Party party) {
         // Ensure a valid authority is set to mint governance NFTs.
         if (authority == address(0)) {
             revert InvalidAuthorityError(authority);
         }
+
+        // Create a "partybid.eth" subdomain for the party if specified.
+        bytes32 subdomainNode;
+        if (LibENS.isPartyBidSubdomain(ens.node)) {
+            subdomainNode = LibENS.createSubdomain(ens.label, address(this));
+        }
+
         // Deploy a new proxified `Party` instance.
         Party.PartyInitData memory initData = Party.PartyInitData({
             options: opts,
             preciousTokens: preciousTokens,
             preciousTokenIds: preciousTokenIds,
-            mintAuthority: authority
+            mintAuthority: authority,
+            ensName: ens.name
         });
         party = Party(
             payable(
@@ -48,6 +58,13 @@ contract PartyFactory is IPartyFactory {
                 )
             )
         );
+
+        // Finish configuring subdomain if newly created.
+        if (subdomainNode != bytes32(0)) {
+            LibENS.setAddress(subdomainNode, address(party));
+            LibENS.setSubdomainOwnership(ens.node, ens.label, DOMAIN_OWNER);
+        }
+
         emit PartyCreated(party, opts, preciousTokens, preciousTokenIds, msg.sender);
     }
 }

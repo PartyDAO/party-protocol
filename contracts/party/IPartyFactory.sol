@@ -3,6 +3,7 @@ pragma solidity 0.8.17;
 
 import "../globals/IGlobals.sol";
 import "../tokens/IERC721.sol";
+import "../utils/LibENS.sol";
 
 import "./Party.sol";
 
@@ -32,7 +33,8 @@ interface IPartyFactory {
         address authority,
         Party.PartyOptions calldata opts,
         IERC721[] memory preciousTokens,
-        uint256[] memory preciousTokenIds
+        uint256[] memory preciousTokenIds,
+        ENS memory ens
     ) external returns (Party party);
 
     /// @notice The `Globals` contract storing global configuration values. This contract

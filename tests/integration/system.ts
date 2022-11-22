@@ -300,6 +300,11 @@ export class Party {
         },
         preciousTokens.map(({ token }) => token.address),
         preciousTokens.map(({ tokenId }) => tokenId),
+        {
+          name: "",
+          node: NULL_HASH,
+          label: NULL_HASH,
+        },
       )
     ).wait();
     const partyAddress = tx.events.find((e: any) => e.event === "PartyCreated").args[0];
