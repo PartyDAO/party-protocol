@@ -4,11 +4,11 @@ pragma solidity 0.8.17;
 import "./vendor/ENS.sol";
 
 struct ENS {
-    // Domain name (eg. "partybid.eth")
+    // Domain name (eg. "livingdead.partybid.eth")
     string name;
-    // Node of the domain, hashed as specified in EIP-137
+    // Node of the domain (eg. "partybid.eth"), hashed as specified in EIP-137
     bytes32 node;
-    // Hash of the label specifying the subnode
+    // Hash of the domain label (eg. `keccak256("livingdead")`)
     bytes32 label;
 }
 
