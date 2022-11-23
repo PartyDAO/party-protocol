@@ -294,7 +294,7 @@ abstract contract Crowdfund is Implementation, ERC721Receiver, CrowdfundNFT {
     ///         membership to the gatekeeper.
     /// @param delegate The address to delegate to for the governance phase.
     /// @param gateData Data to pass to the gatekeeper to prove eligibility.
-    function contribute(address delegate, bytes memory gateData) public payable onlyDelegateCall {
+    function contribute(address delegate, bytes memory gateData) external payable onlyDelegateCall {
         _contribute(
             msg.sender,
             msg.value.safeCastUint256ToUint96(),
@@ -306,6 +306,24 @@ abstract contract Crowdfund is Implementation, ERC721Receiver, CrowdfundNFT {
             // because it would ultimately result in governance power that
             // is unattributed/unclaimable, meaning that party will never be
             // able to reach 100% consensus.
+            totalContributions,
+            gateData
+        );
+    }
+
+    /// @notice Contribute to this crowdfund on behalf of another address.
+    /// @param recipient The address to record the contribution under.
+    /// @param gateData Data to pass to the gatekeeper to prove eligibility.
+    function contributeFor(
+        address recipient,
+        bytes memory gateData
+    ) external payable onlyDelegateCall {
+        address delegate = delegationsByContributor[recipient];
+
+        _contribute(
+            recipient,
+            msg.value.safeCastUint256ToUint96(),
+            delegate != address(0) ? delegate : recipient,
             totalContributions,
             gateData
         );

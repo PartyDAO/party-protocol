@@ -936,6 +936,42 @@ contract CrowdfundTest is Test, TestUtils {
         );
     }
 
+    function test_contributeFor() external {
+        TestableCrowdfund cf = _createCrowdfund(0);
+        address contributor = _randomAddress();
+        address recipient = _randomAddress();
+        // Contributor contributes on recipient's behalf
+        vm.deal(contributor, 1e18);
+        vm.prank(contributor);
+        cf.contributeFor{ value: 1e18 }(recipient, "");
+        assertEq(cf.getContributionEntriesByContributorCount(contributor), 0);
+        assertEq(cf.getContributionEntriesByContributorCount(recipient), 1);
+        (uint256 ethContributed, uint256 ethUsed, uint256 ethOwed, uint256 votingPower) = cf
+            .getContributorInfo(recipient);
+        assertEq(ethContributed, 1e18);
+        assertEq(ethUsed, 0);
+        assertEq(ethOwed, 0);
+        assertEq(votingPower, 0);
+        assertEq(uint256(cf.totalContributions()), 1e18);
+        assertEq(cf.delegationsByContributor(recipient), recipient);
+    }
+
+    function test_contributeFor_doesNotUpdateExistingDelegation() external {
+        TestableCrowdfund cf = _createCrowdfund(0);
+        address contributor = _randomAddress();
+        address recipient = _randomAddress();
+        address delegate = _randomAddress();
+        // Recipient delegates to delegate
+        vm.prank(recipient);
+        cf.contribute(delegate, "");
+        assertEq(cf.delegationsByContributor(recipient), delegate);
+        // Contributor contributes on recipient's behalf
+        vm.deal(contributor, 1e18);
+        vm.prank(contributor);
+        cf.contributeFor{ value: 1e18 }(recipient, "");
+        assertEq(cf.delegationsByContributor(recipient), delegate);
+    }
+
     function test_canReuseContributionEntry() external {
         TestableCrowdfund cf = _createCrowdfund(0);
         address contributor = _randomAddress();
