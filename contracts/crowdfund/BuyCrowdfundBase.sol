@@ -108,13 +108,10 @@ abstract contract BuyCrowdfundBase is Crowdfund {
                 revert MaximumPriceError(callValue, maximumPrice_);
             }
         }
-        // Execute the call to buy the NFT, but only if we have a nonzero callValue
-        // because a zero callValue will cause the crowdfund to lose anyway.
-        if (callValue != 0) {
-            (bool s, bytes memory r) = callTarget.call{ value: callValue }(callData);
-            if (!s) {
-                r.rawRevert();
-            }
+        // Execute the call to buy the NFT.
+        (bool s, bytes memory r) = callTarget.call{ value: callValue }(callData);
+        if (!s) {
+            r.rawRevert();
         }
         // Make sure we acquired the NFT we want.
         if (token.safeOwnerOf(tokenId) != address(this)) {
