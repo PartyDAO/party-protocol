@@ -1,21 +1,21 @@
-// SPDX-License-Identifier: GPL-3.0
+// SPDX-License-Identifier: Beta Software
+// http://ipfs.io/ipfs/QmbGX2MFCaMAsMNMugRFND6DtYygRkwkvrqEyTKhTdBLo5
 pragma solidity 0.8.17;
 
 import "../tokens/IERC721.sol";
 import "../party/Party.sol";
+import "../utils/Implementation.sol";
 import "../utils/LibSafeERC721.sol";
 import "../globals/IGlobals.sol";
 import "../gatekeepers/IGateKeeper.sol";
 
 import "./BuyCrowdfundBase.sol";
 
-/// @notice A crowdfund that purchases a specific NFT (i.e., with a known token
-///         ID) listing for a known price.
-contract BuyCrowdfund is BuyCrowdfundBase {
+contract CollectionBatchBuyCrowdfund is BuyCrowdfundBase {
     using LibSafeERC721 for IERC721;
     using LibSafeCast for uint256;
 
-    struct BuyCrowdfundOptions {
+    struct CollectionBatchBuyCrowdfundOptions {
         // The name of the crowdfund.
         // This will also carry over to the governance party.
         string name;
@@ -23,13 +23,11 @@ contract BuyCrowdfund is BuyCrowdfundBase {
         string symbol;
         // Customization preset ID to use for the crowdfund and governance NFTs.
         uint256 customizationPresetId;
-        // The ERC721 contract of the NFT being bought.
+        // The ERC721 contract of the NFTs being bought.
         IERC721 nftContract;
-        // ID of the NFT being bought.
-        uint256 nftTokenId;
-        // How long this crowdfund has to buy the NFT, in seconds.
+        // How long this crowdfund has to buy the NFTs, in seconds.
         uint40 duration;
-        // Maximum amount this crowdfund will pay for the NFT.
+        // Maximum amount this crowdfund will pay for an NFT.
         uint96 maximumPrice;
         // An address that receives a portion of the final voting power
         // when the party transitions into governance.
@@ -44,24 +42,17 @@ contract BuyCrowdfund is BuyCrowdfundBase {
         // voting power to when the crowdfund transitions to governance.
         address initialDelegate;
         // The gatekeeper contract to use (if non-null) to restrict who can
-        // contribute to this crowdfund. If used, only contributors or hosts can
-        // call `buy()`.
+        // contribute to this crowdfund.
         IGateKeeper gateKeeper;
         // The gate ID within the gateKeeper contract to use.
         bytes12 gateKeeperId;
-        // Whether the party is only allowing a host to call `buy()`.
-        bool onlyHostCanBuy;
         // Fixed governance options (i.e. cannot be changed) that the governance
         // `Party` will be created with if the crowdfund succeeds.
         FixedGovernanceOpts governanceOpts;
     }
 
-    /// @notice The NFT token ID to buy.
-    uint256 public nftTokenId;
-    /// @notice The NFT contract to buy.
+    /// @notice The contract of NFTs to buy.
     IERC721 public nftContract;
-    /// @notice Whether the party is only allowing a host to call `buy()`.
-    bool public onlyHostCanBuy;
 
     // Set the `Globals` contract.
     constructor(IGlobals globals) BuyCrowdfundBase(globals) {}
@@ -70,8 +61,10 @@ contract BuyCrowdfund is BuyCrowdfundBase {
     ///         revert if called outside the constructor.
     /// @param opts Options used to initialize the crowdfund. These are fixed
     ///             and cannot be changed later.
-    function initialize(BuyCrowdfundOptions memory opts) external payable onlyConstructor {
-        if (opts.onlyHostCanBuy && opts.governanceOpts.hosts.length == 0) {
+    function initialize(
+        CollectionBatchBuyCrowdfundOptions memory opts
+    ) external payable onlyConstructor {
+        if (opts.governanceOpts.hosts.length == 0) {
             revert MissingHostsError();
         }
         BuyCrowdfundBase._initialize(
@@ -90,40 +83,30 @@ contract BuyCrowdfund is BuyCrowdfundBase {
                 governanceOpts: opts.governanceOpts
             })
         );
-        onlyHostCanBuy = opts.onlyHostCanBuy;
-        nftTokenId = opts.nftTokenId;
         nftContract = opts.nftContract;
     }
 
-    /// @notice Execute arbitrary calldata to perform a buy, creating a party
-    ///         if it successfully buys the NFT.
-    /// @param callTarget The target contract to call to buy the NFT.
-    /// @param callValue The amount of ETH to send with the call.
-    /// @param callData The calldata to execute.
+    /// @notice Execute arbitrary calldata to perform a batch buy, creating a party
+    ///         if it successfully buys the NFT. Only a host may call this.
+    /// @param tokenIds The token IDs of the NFTs in the collection to buy.
+    /// @param callTargets The target contracts to call to buy the NFTs.
+    /// @param callValues The amount of ETH to send with each call.
+    /// @param callDatas The calldata to execute for each call.
     /// @param governanceOpts The options used to initialize governance in the
     ///                       `Party` instance created if the buy was successful.
-    /// @param hostIndex If the caller is a host, this is the index of the caller in the
-    ///                  `governanceOpts.hosts` array.
+    /// @param hostIndex This is the index of the caller in the `governanceOpts.hosts` array.
     /// @return party_ Address of the `Party` instance created after its bought.
-    function buy(
-        address payable callTarget,
-        uint96 callValue,
-        bytes memory callData,
+    function batchBuy(
+        uint256[] memory tokenIds,
+        address payable[] memory callTargets,
+        uint96[] memory callValues,
+        bytes[] memory callDatas,
         FixedGovernanceOpts memory governanceOpts,
         uint256 hostIndex
     ) external onlyDelegateCall returns (Party party_) {
-        // This function can be optionally restricted in different ways.
-        bool isValidatedGovernanceOpts;
-        if (onlyHostCanBuy) {
-            // Only a host can call this function.
-            _assertIsHost(msg.sender, governanceOpts, hostIndex);
-            // If _assertIsHost() succeeded, the governance opts were validated.
-            isValidatedGovernanceOpts = true;
-        } else if (address(gateKeeper) != address(0)) {
-            // `onlyHostCanBuy` is false and we are using a gatekeeper.
-            // Only a contributor can call this function.
-            _assertIsContributor(msg.sender);
-        }
+        // This function is restricted to hosts.
+        _assertIsHost(msg.sender, governanceOpts, hostIndex);
+
         {
             // Ensure that the crowdfund is still active.
             CrowdfundLifecycle lc = getCrowdfundLifecycle();
@@ -135,15 +118,27 @@ contract BuyCrowdfund is BuyCrowdfundBase {
         // Temporarily set to non-zero as a reentrancy guard.
         settledPrice = type(uint96).max;
 
-        _buy(nftContract, nftTokenId, callTarget, callValue, callData);
+        IERC721 nftContract_ = nftContract;
+        // Records total amount of ETH used to buy all NFTs.
+        uint96 totalEthUsed;
+        // This is needed because `_createParty()` requires an array of tokens.
+        IERC721[] memory tokens = new IERC721[](tokenIds.length);
+        for (uint256 i; i < tokenIds.length; ++i) {
+            // Execute the call to buy the NFT.
+            _buy(nftContract_, tokenIds[i], callTargets[i], callValues[i], callDatas[i]);
+
+            tokens[i] = nftContract_;
+            totalEthUsed += callValues[i];
+        }
 
         return
             _finalize(
-                nftContract,
-                nftTokenId,
-                callValue,
+                tokens,
+                tokenIds,
+                totalEthUsed,
                 governanceOpts,
-                isValidatedGovernanceOpts
+                // If `_assertIsHost()` succeeded, the governance opts were validated.
+                true
             );
     }
 }

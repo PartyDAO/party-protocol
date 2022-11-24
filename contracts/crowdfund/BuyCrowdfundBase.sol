@@ -25,7 +25,7 @@ abstract contract BuyCrowdfundBase is Crowdfund {
         string symbol;
         // Customization preset ID to use for the crowdfund and governance NFTs.
         uint256 customizationPresetId;
-        // How long this crowdfund has to bid on the NFT, in seconds.
+        // How long this crowdfund has to buy the NFT, in seconds.
         uint40 duration;
         // Maximum amount this crowdfund will pay for the NFT.
         uint96 maximumPrice;
@@ -50,7 +50,7 @@ abstract contract BuyCrowdfundBase is Crowdfund {
         FixedGovernanceOpts governanceOpts;
     }
 
-    event Won(Party party, IERC721 token, uint256 tokenId, uint256 settledPrice);
+    event Won(Party party, IERC721[] tokens, uint256[] tokenIds, uint256 settledPrice);
     event Lost();
 
     error MaximumPriceError(uint96 callValue, uint96 maximumPrice);
@@ -60,7 +60,7 @@ abstract contract BuyCrowdfundBase is Crowdfund {
 
     /// @notice When this crowdfund expires.
     uint40 public expiry;
-    /// @notice Maximum amount this crowdfund will pay for the NFT. If zero, no maximum.
+    /// @notice Maximum amount this crowdfund will pay for the NFT.
     uint96 public maximumPrice;
     /// @notice What the NFT was actually bought for.
     uint96 public settledPrice;
@@ -95,26 +95,11 @@ abstract contract BuyCrowdfundBase is Crowdfund {
         uint256 tokenId,
         address payable callTarget,
         uint96 callValue,
-        bytes memory callData,
-        FixedGovernanceOpts memory governanceOpts,
-        bool isValidatedGovernanceOpts
-    ) internal onlyDelegateCall returns (Party party_) {
+        bytes memory callData
+    ) internal {
         // Check that the call is not prohibited.
         if (!_isCallAllowed(callTarget, callData, token)) {
             revert CallProhibitedError(callTarget, callData);
-        }
-        // Check that the crowdfund is still active.
-        CrowdfundLifecycle lc = getCrowdfundLifecycle();
-        if (lc != CrowdfundLifecycle.Active) {
-            revert WrongLifecycleError(lc);
-        }
-        // Prevent unaccounted ETH from being used to inflate the price and
-        // create "ghost shares" in voting power.
-        {
-            uint96 totalContributions_ = totalContributions;
-            if (callValue > totalContributions_) {
-                revert ExceedsTotalContributionsError(callValue, totalContributions_);
-            }
         }
         // Check that the call value is under the maximum price.
         {
@@ -123,11 +108,8 @@ abstract contract BuyCrowdfundBase is Crowdfund {
                 revert MaximumPriceError(callValue, maximumPrice_);
             }
         }
-        // Temporarily set to non-zero as a reentrancy guard.
-        settledPrice = type(uint96).max;
-
         // Execute the call to buy the NFT, but only if we have a nonzero callValue
-        // because a zero callValue will cause the CF to lose anyawy.
+        // because a zero callValue will cause the crowdfund to lose anyway.
         if (callValue != 0) {
             (bool s, bytes memory r) = callTarget.call{ value: callValue }(callData);
             if (!s) {
@@ -135,32 +117,52 @@ abstract contract BuyCrowdfundBase is Crowdfund {
             }
         }
         // Make sure we acquired the NFT we want.
-        if (token.safeOwnerOf(tokenId) == address(this)) {
-            if (callValue == 0) {
-                // If the purchase was free or the NFT was "gifted" to us,
-                // refund all contributors by declaring we lost.
-                settledPrice = 0;
-                // Set the expiry to now so people can withdraw their contributions.
-                expiry = uint40(block.timestamp);
-                emit Lost();
-            } else {
-                settledPrice = callValue;
-                emit Won(
-                    // Create a party around the newly bought NFT.
-                    party_ = _createParty(
-                        governanceOpts,
-                        isValidatedGovernanceOpts,
-                        token,
-                        tokenId
-                    ),
-                    token,
-                    tokenId,
-                    callValue
-                );
-            }
-        } else {
+        if (token.safeOwnerOf(tokenId) != address(this)) {
             revert FailedToBuyNFTError(token, tokenId);
         }
+    }
+
+    function _finalize(
+        IERC721[] memory tokens,
+        uint256[] memory tokenIds,
+        uint96 totalEthUsed,
+        FixedGovernanceOpts memory governanceOpts,
+        bool isValidatedGovernanceOpts
+    ) internal returns (Party party_) {
+        {
+            // Prevent unaccounted ETH from being used to inflate the price and
+            // create "ghost shares" in voting power.
+            uint96 totalContributions_ = totalContributions;
+            if (totalEthUsed > totalContributions_) {
+                revert ExceedsTotalContributionsError(totalEthUsed, totalContributions_);
+            }
+        }
+        if (totalEthUsed != 0) {
+            // Create a party around the newly bought NFTs and finalize a win.
+            settledPrice = totalEthUsed;
+            party_ = _createParty(governanceOpts, isValidatedGovernanceOpts, tokens, tokenIds);
+            emit Won(party_, tokens, tokenIds, totalEthUsed);
+        } else {
+            // If all NFTs were purchased for free or were all "gifted" to us,
+            // refund all contributors by finalizing a loss.
+            settledPrice = 0;
+            expiry = uint40(block.timestamp);
+            emit Lost();
+        }
+    }
+
+    function _finalize(
+        IERC721 token,
+        uint256 tokenId,
+        uint96 totalEthUsed,
+        FixedGovernanceOpts memory governanceOpts,
+        bool isValidatedGovernanceOpts
+    ) internal returns (Party party_) {
+        IERC721[] memory tokens = new IERC721[](1);
+        tokens[0] = token;
+        uint256[] memory tokenIds = new uint256[](1);
+        tokenIds[0] = tokenId;
+        return _finalize(tokens, tokenIds, totalEthUsed, governanceOpts, isValidatedGovernanceOpts);
     }
 
     /// @inheritdoc Crowdfund

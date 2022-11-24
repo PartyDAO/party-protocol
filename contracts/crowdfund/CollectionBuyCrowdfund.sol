@@ -27,10 +27,9 @@ contract CollectionBuyCrowdfund is BuyCrowdfundBase {
         uint256 customizationPresetId;
         // The ERC721 contract of the NFT being bought.
         IERC721 nftContract;
-        // How long this crowdfund has to bid on the NFT, in seconds.
+        // How long this crowdfund has to buy the NFT, in seconds.
         uint40 duration;
         // Maximum amount this crowdfund will pay for the NFT.
-        // If zero, no maximum.
         uint96 maximumPrice;
         // An address that receives a portion of the final voting power
         // when the party transitions into governance.
@@ -97,8 +96,7 @@ contract CollectionBuyCrowdfund is BuyCrowdfundBase {
     /// @param callData The calldata to execute.
     /// @param governanceOpts The options used to initialize governance in the
     ///                       `Party` instance created if the buy was successful.
-    /// @param hostIndex If the caller is a host, this is the index of the caller in the
-    ///                  `governanceOpts.hosts` array.
+    /// @param hostIndex This is the index of the caller in the `governanceOpts.hosts` array.
     /// @return party_ Address of the `Party` instance created after its bought.
     function buy(
         uint256 tokenId,
@@ -107,18 +105,30 @@ contract CollectionBuyCrowdfund is BuyCrowdfundBase {
         bytes memory callData,
         FixedGovernanceOpts memory governanceOpts,
         uint256 hostIndex
-    ) external returns (Party party_) {
+    ) external onlyDelegateCall returns (Party party_) {
         // This function is always restricted to hosts.
         _assertIsHost(msg.sender, governanceOpts, hostIndex);
+
+        {
+            // Ensure that the crowdfund is still active.
+            CrowdfundLifecycle lc = getCrowdfundLifecycle();
+            if (lc != CrowdfundLifecycle.Active) {
+                revert WrongLifecycleError(lc);
+            }
+        }
+
+        // Temporarily set to non-zero as a reentrancy guard.
+        settledPrice = type(uint96).max;
+
+        _buy(nftContract, tokenId, callTarget, callValue, callData);
+
         return
-            _buy(
+            _finalize(
                 nftContract,
                 tokenId,
-                callTarget,
                 callValue,
-                callData,
                 governanceOpts,
-                // If _assertIsHost() succeeded, the governance opts were validated.
+                // If `_assertIsHost()` succeeded, the governance opts were validated.
                 true
             );
     }
