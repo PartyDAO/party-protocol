@@ -51,6 +51,8 @@ contract CollectionBatchBuyCrowdfund is BuyCrowdfundBase {
         FixedGovernanceOpts governanceOpts;
     }
 
+    error NothingBoughtError();
+
     /// @notice The contract of NFTs to buy.
     IERC721 public nftContract;
 
@@ -130,6 +132,11 @@ contract CollectionBatchBuyCrowdfund is BuyCrowdfundBase {
             tokens[i] = nftContract_;
             totalEthUsed += callValues[i];
         }
+
+        // This is to prevent this crowdfund from finalizing a loss if nothing
+        // was attempted to be bought (ie. `tokenIds` is empty) or all NFTs were
+        // bought for free.
+        if (totalEthUsed == 0) revert NothingBoughtError();
 
         return
             _finalize(

@@ -122,7 +122,18 @@ contract CollectionBatchBuyCrowdfundTest is Test, TestUtils {
         assertEq(address(party_), address(party));
     }
 
-    function test_batchBuy_gettingNFTsForFreeTriggersLost() public {
+    function test_batchBuy_cannotTriggerLostByNotBuyingAnything() public {
+        // Setup parameters to batch buy.
+        uint256[] memory tokenIds = new uint256[](0);
+        address payable[] memory callTargets = new address payable[](0);
+        uint96[] memory callValues = new uint96[](0);
+        bytes[] memory callDatas = new bytes[](0);
+        // Buy the tokens.
+        vm.expectRevert(CollectionBatchBuyCrowdfund.NothingBoughtError.selector);
+        cf.batchBuy(tokenIds, callTargets, callValues, callDatas, govOpts, 0);
+    }
+
+    function test_batchBuy_cannotTriggerLostByBuyingFreeNFTs() public {
         // Setup parameters to batch buy.
         IERC721[] memory tokens = new IERC721[](3);
         uint256[] memory tokenIds = new uint256[](3);
@@ -136,9 +147,8 @@ contract CollectionBatchBuyCrowdfundTest is Test, TestUtils {
             nftContract.mint(address(cf));
         }
         // Buy the tokens.
+        vm.expectRevert(CollectionBatchBuyCrowdfund.NothingBoughtError.selector);
         Party party_ = cf.batchBuy(tokenIds, callTargets, callValues, callDatas, govOpts, 0);
-        assertEq(address(party_), address(0));
-        assertTrue(cf.getCrowdfundLifecycle() == Crowdfund.CrowdfundLifecycle.Lost);
     }
 
     function test_batchBuy_failedToBuy() public {
