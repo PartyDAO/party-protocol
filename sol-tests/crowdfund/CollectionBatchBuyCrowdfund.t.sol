@@ -193,7 +193,6 @@ contract CollectionBatchBuyCrowdfundTest is Test, TestUtils {
         uint256[] memory tokenIds = new uint256[](3);
         address payable[] memory callTargets = new address payable[](3);
         uint96[] memory callValues = new uint96[](3);
-        callValues[0] = maximumPrice + 1;
         bytes[] memory callDatas = new bytes[](3);
         // Mutate governance options
         govOpts.hosts.push(_randomAddress());
