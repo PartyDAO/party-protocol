@@ -15,16 +15,13 @@ contract FractionalizeProposal {
         IERC721 token;
         // The ERC721 token ID to fractionalize.
         uint256 tokenId;
-        // The starting list price for the fractional vault.
-        uint256 listPrice;
     }
 
     event FractionalV1VaultCreated(
         IERC721 indexed token,
         uint256 indexed tokenId,
         uint256 vaultId,
-        IERC20 vault,
-        uint256 listPrice
+        IERC20 vault
     );
 
     /// @notice Deployment of https://github.com/fractional-company/contracts/blob/master/src/ERC721TokenVault.sol.
@@ -55,7 +52,11 @@ contract FractionalizeProposal {
             data.token,
             data.tokenId,
             supply,
-            data.listPrice,
+            // Since we are distributing the entire supply immediately after
+            // fractionalizing, in practice setting an initial reserve price
+            // does not do anything because it will get reset to 0 after the
+            // distribution is created.
+            0,
             0
         );
         // Get the vault we just created.
@@ -65,7 +66,7 @@ contract FractionalizeProposal {
         assert(vault.balanceOf(address(this)) == supply);
         // Remove ourselves as curator.
         vault.updateCurator(address(0));
-        emit FractionalV1VaultCreated(data.token, data.tokenId, vaultId, vault, data.listPrice);
+        emit FractionalV1VaultCreated(data.token, data.tokenId, vaultId, vault);
         // Create distribution for fractional tokens for party.
         PartyGovernance(address(this)).distribute(
             ITokenDistributor.TokenType.Erc20,
