@@ -147,10 +147,10 @@ abstract contract Crowdfund is Implementation, ERC721Receiver, CrowdfundNFT {
     ///         that should be minted to them if it could not be transferred to
     ///         them with `burn()`.
     mapping(address => Claim) public claims;
-    /// @notice Whether the DAO has emergency powers for this party.
-    bool public emergencyExecuteDisabled;
     // ENS domain options to pass on, if used, when creating the party after crowdfund wins.
     ENS private _ens;
+    /// @notice Whether the DAO has emergency powers for this party.
+    bool public emergencyExecuteDisabled;
 
     // Set the `Globals` contract.
     constructor(IGlobals globals) CrowdfundNFT(globals) {
