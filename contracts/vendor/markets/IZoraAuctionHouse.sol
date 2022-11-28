@@ -34,7 +34,7 @@ interface IZoraAuctionHouse {
         // If set to 0x0, the auction will be run in ETH
         IERC20 auctionCurrency;
     }
-    
+
     event AuctionCreated(
         uint256 indexed auctionId,
         uint256 indexed tokenId,
@@ -56,10 +56,16 @@ interface IZoraAuctionHouse {
         uint8 curatorFeePercentages,
         IERC20 auctionCurrency
     ) external returns (uint256);
+
     function createBid(uint256 auctionId, uint256 amount) external payable;
+
     function endAuction(uint256 auctionId) external;
+
     function cancelAuction(uint256 auctionId) external;
-    function auctions(uint256 auctionId) external view returns(Auction memory auction);
+
+    function auctions(uint256 auctionId) external view returns (Auction memory auction);
+
     function timeBuffer() external view returns (uint256);
+
     function minBidIncrementPercentage() external view returns (uint8);
 }

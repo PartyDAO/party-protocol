@@ -41,7 +41,10 @@ interface IKoansAuctionHouse {
 
     function minBidIncrementPercentage() external view returns (uint8);
 
-    function auction() external view returns (uint256, uint256, uint256, uint256, address payable, bool, address payable);
+    function auction()
+        external
+        view
+        returns (uint256, uint256, uint256, uint256, address payable, bool, address payable);
 
     function settleCurrentAndCreateNewAuction() external;
 
