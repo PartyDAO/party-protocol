@@ -549,12 +549,7 @@ abstract contract Crowdfund is Implementation, ERC721Receiver, CrowdfundNFT {
         IGateKeeper _gateKeeper = gateKeeper;
         if (_gateKeeper != IGateKeeper(address(0))) {
             if (!_gateKeeper.isAllowed(msg.sender, gateKeeperId, gateData)) {
-                revert NotAllowedByGateKeeperError(
-                    msg.sender,
-                    _gateKeeper,
-                    gateKeeperId,
-                    gateData
-                );
+                revert NotAllowedByGateKeeperError(msg.sender, _gateKeeper, gateKeeperId, gateData);
             }
         }
 

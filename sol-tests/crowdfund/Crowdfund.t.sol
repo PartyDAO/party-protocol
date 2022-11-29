@@ -107,10 +107,10 @@ contract CrowdfundTest is Test, TestUtils {
         }
     }
 
-    function _createTokens(address owner, uint256 count)
-        private
-        returns (IERC721[] memory tokens, uint256[] memory tokenIds)
-    {
+    function _createTokens(
+        address owner,
+        uint256 count
+    ) private returns (IERC721[] memory tokens, uint256[] memory tokenIds) {
         tokens = new IERC721[](count);
         tokenIds = new uint256[](count);
         for (uint256 i; i < count; ++i) {
@@ -152,10 +152,10 @@ contract CrowdfundTest is Test, TestUtils {
         );
     }
 
-    function _createCrowdfund(uint256 initialContribution, uint256 customizationPresetId)
-        private
-        returns (TestableCrowdfund cf)
-    {
+    function _createCrowdfund(
+        uint256 initialContribution,
+        uint256 customizationPresetId
+    ) private returns (TestableCrowdfund cf) {
         return
             _createCrowdfund(
                 initialContribution,
@@ -169,11 +169,10 @@ contract CrowdfundTest is Test, TestUtils {
         return _createCrowdfund(initialContribution, address(this), defaultInitialDelegate, 0);
     }
 
-    function _createExpectedPartyOptions(TestableCrowdfund cf, uint256 finalPrice)
-        private
-        view
-        returns (Party.PartyOptions memory opts)
-    {
+    function _createExpectedPartyOptions(
+        TestableCrowdfund cf,
+        uint256 finalPrice
+    ) private view returns (Party.PartyOptions memory opts) {
         Crowdfund.FixedGovernanceOpts memory govOpts = cf.getFixedGovernanceOpts();
         return
             Party.PartyOptions({
@@ -196,11 +195,10 @@ contract CrowdfundTest is Test, TestUtils {
         return (uint256(1e4 - defaultSplitBps) * contribution) / 1e4;
     }
 
-    function _getAmountWithSplit(uint256 contribution, uint256 totalContributions)
-        private
-        view
-        returns (uint256 r)
-    {
+    function _getAmountWithSplit(
+        uint256 contribution,
+        uint256 totalContributions
+    ) private view returns (uint256 r) {
         return
             _getAmountWithoutSplit(contribution) +
             (uint256(defaultSplitBps) * totalContributions + (1e4 - 1)) /
