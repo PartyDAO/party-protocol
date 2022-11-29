@@ -943,7 +943,7 @@ contract CrowdfundTest is Test, TestUtils {
         // Contributor contributes on recipient's behalf
         vm.deal(contributor, 1e18);
         vm.prank(contributor);
-        cf.contributeFor{ value: 1e18 }(recipient, "");
+        cf.contributeFor{ value: 1e18 }(recipient, contributor, "");
         assertEq(cf.getContributionEntriesByContributorCount(contributor), 0);
         assertEq(cf.getContributionEntriesByContributorCount(recipient), 1);
         (uint256 ethContributed, uint256 ethUsed, uint256 ethOwed, uint256 votingPower) = cf
@@ -953,7 +953,7 @@ contract CrowdfundTest is Test, TestUtils {
         assertEq(ethOwed, 0);
         assertEq(votingPower, 0);
         assertEq(uint256(cf.totalContributions()), 1e18);
-        assertEq(cf.delegationsByContributor(recipient), recipient);
+        assertEq(cf.delegationsByContributor(recipient), contributor);
     }
 
     function test_contributeFor_doesNotUpdateExistingDelegation() external {
@@ -968,11 +968,11 @@ contract CrowdfundTest is Test, TestUtils {
         // Contributor contributes on recipient's behalf
         vm.deal(contributor, 1e18);
         vm.prank(contributor);
-        cf.contributeFor{ value: 1e18 }(recipient, "");
+        cf.contributeFor{ value: 1e18 }(recipient, contributor, "");
         assertEq(cf.delegationsByContributor(recipient), delegate);
     }
 
-    function test_contributeFor_gatekeeperAllowsSenderToContributeForOthers() external {
+    function test_contributeFor_withGatekeeper_allowsSenderToContributeForOthers() external {
         address contributor = _randomAddress();
         address recipient = _randomAddress();
         AllowListGateKeeper gk = new AllowListGateKeeper();
@@ -983,7 +983,7 @@ contract CrowdfundTest is Test, TestUtils {
         // Contributor contributes on recipient's behalf (with gatekeeper)
         vm.deal(contributor, 1e18);
         vm.prank(contributor);
-        cf.contributeFor{ value: 1e18 }(recipient, abi.encode(new bytes32[](0)));
+        cf.contributeFor{ value: 1e18 }(recipient, contributor, abi.encode(new bytes32[](0)));
         assertEq(cf.getContributionEntriesByContributorCount(contributor), 0);
         assertEq(cf.getContributionEntriesByContributorCount(recipient), 1);
         (uint256 ethContributed, uint256 ethUsed, uint256 ethOwed, uint256 votingPower) = cf
@@ -993,7 +993,27 @@ contract CrowdfundTest is Test, TestUtils {
         assertEq(ethOwed, 0);
         assertEq(votingPower, 0);
         assertEq(uint256(cf.totalContributions()), 1e18);
-        assertEq(cf.delegationsByContributor(recipient), recipient);
+        assertEq(cf.delegationsByContributor(recipient), contributor);
+    }
+
+    function test_contributeFor_withGatekeeper_recipientNotBlockedFromChangingDelegate() external {
+        address contributor = _randomAddress();
+        address recipient = _randomAddress();
+        AllowListGateKeeper gk = new AllowListGateKeeper();
+        bytes12 gateId = gk.createGate(keccak256(abi.encodePacked(contributor)));
+        gateKeeper = gk;
+        gateKeeperId = gateId;
+        TestableCrowdfund cf = _createCrowdfund(0);
+        // Contributor contributes on recipient's behalf (with gatekeeper)
+        vm.deal(contributor, 1e18);
+        vm.prank(contributor);
+        cf.contributeFor{ value: 1e18 }(recipient, contributor, abi.encode(new bytes32[](0)));
+        assertEq(cf.delegationsByContributor(recipient), contributor);
+        // Recipient changes delegate
+        address delegate = _randomAddress();
+        vm.prank(recipient);
+        cf.contribute(delegate, "");
+        assertEq(cf.delegationsByContributor(recipient), delegate);
     }
 
     function test_canReuseContributionEntry() external {
