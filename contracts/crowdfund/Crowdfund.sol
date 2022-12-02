@@ -102,10 +102,16 @@ abstract contract Crowdfund is Implementation, ERC721Receiver, CrowdfundNFT {
 
     event Burned(address contributor, uint256 ethUsed, uint256 ethOwed, uint256 votingPower);
     event Contributed(
+        address sender,
         address contributor,
         uint256 amount,
-        address delegate,
         uint256 previousTotalContributions
+    );
+    event DelegateUpdated(
+        address sender,
+        address contributor,
+        address oldDelegate,
+        address newDelegate
     );
     event EmergencyExecute(address target, bytes data, uint256 amountEth);
     event EmergencyExecuteDisabled();
@@ -175,16 +181,10 @@ abstract contract Crowdfund is Implementation, ERC721Receiver, CrowdfundNFT {
         // for the initial contribution.
         uint96 initialContribution = msg.value.safeCastUint256ToUint96();
         if (initialContribution > 0) {
+            _setDelegate(opts.initialContributor, opts.initialDelegate);
             // If this contract has ETH, either passed in during deployment or
             // pre-existing, credit it to the `initialContributor`.
-            _contribute(
-                opts.initialContributor,
-                initialContribution,
-                opts.initialDelegate,
-                0,
-                "",
-                false
-            );
+            _contribute(opts.initialContributor, initialContribution, 0, "");
         }
         // Set up gatekeeper after initial contribution (initial always gets in).
         gateKeeper = opts.gateKeeper;
@@ -302,10 +302,11 @@ abstract contract Crowdfund is Implementation, ERC721Receiver, CrowdfundNFT {
     /// @param delegate The address to delegate to for the governance phase.
     /// @param gateData Data to pass to the gatekeeper to prove eligibility.
     function contribute(address delegate, bytes memory gateData) external payable onlyDelegateCall {
+        _setDelegate(msg.sender, delegate);
+
         _contribute(
             msg.sender,
             msg.value.safeCastUint256ToUint96(),
-            delegate,
             // We cannot use `address(this).balance - msg.value` as the previous
             // total contributions in case someone forces (suicides) ETH into this
             // contract. This wouldn't be such a big deal for open crowdfunds
@@ -314,8 +315,7 @@ abstract contract Crowdfund is Implementation, ERC721Receiver, CrowdfundNFT {
             // is unattributed/unclaimable, meaning that party will never be
             // able to reach 100% consensus.
             totalContributions,
-            gateData,
-            false
+            gateData
         );
     }
 
@@ -328,15 +328,9 @@ abstract contract Crowdfund is Implementation, ERC721Receiver, CrowdfundNFT {
         address initialDelegate,
         bytes memory gateData
     ) external payable onlyDelegateCall {
-        _contribute(
-            recipient,
-            msg.value.safeCastUint256ToUint96(),
-            initialDelegate,
-            totalContributions,
-            gateData,
-            // Only set delegate if the recipient hasn't already delegated.
-            delegationsByContributor[recipient] != address(0)
-        );
+        _setDelegate(recipient, initialDelegate);
+
+        _contribute(recipient, msg.value.safeCastUint256ToUint96(), totalContributions, gateData);
     }
 
     /// @inheritdoc EIP165
@@ -544,28 +538,28 @@ abstract contract Crowdfund is Implementation, ERC721Receiver, CrowdfundNFT {
         }
     }
 
+    function _setDelegate(address contributor, address delegate) private {
+        if (delegate == address(0)) revert InvalidDelegateError();
+
+        // Only need to update delegate if there was a change.
+        address oldDelegate = delegationsByContributor[contributor];
+        if (oldDelegate == delegate) return;
+
+        // Only allow setting delegate on another's behalf if the delegate is unset.
+        if (msg.sender != contributor && oldDelegate != address(0)) return;
+
+        // Update delegate.
+        delegationsByContributor[contributor] = delegate;
+
+        emit DelegateUpdated(msg.sender, contributor, oldDelegate, delegate);
+    }
+
     function _contribute(
         address contributor,
         uint96 amount,
-        address delegate,
         uint96 previousTotalContributions,
-        bytes memory gateData,
-        bool skipDelegation
+        bytes memory gateData
     ) private {
-        if (!skipDelegation) {
-            // Require a non-null delegate.
-            if (delegate == address(0)) {
-                revert InvalidDelegateError();
-            }
-
-            // Update delegate.
-            // OK if this happens out of cycle.
-            delegationsByContributor[contributor] = delegate;
-        }
-
-        emit Contributed(contributor, amount, delegate, previousTotalContributions);
-
-        // OK to contribute with zero just to update delegate.
         if (amount == 0) return;
 
         // Must not be blocked by gatekeeper.
@@ -614,6 +608,8 @@ abstract contract Crowdfund is Implementation, ERC721Receiver, CrowdfundNFT {
         if (numContributions == 0) {
             _mint(contributor);
         }
+
+        emit Contributed(msg.sender, contributor, amount, previousTotalContributions);
     }
 
     function _burn(address payable contributor, CrowdfundLifecycle lc, Party party_) private {
