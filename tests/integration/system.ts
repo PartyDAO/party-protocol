@@ -117,7 +117,8 @@ export interface DistributionInfo {
 }
 
 interface OpenSeaProposalInfo {
-  listPrice: BigNumber;
+  startPrice: BigNumber;
+  endPrice: BigNumber;
   duration: number;
   token: string;
   tokenId: BigNumber;
@@ -499,7 +500,7 @@ export function createOpenSeaProposal(
       ethers.utils.hexZeroPad(ethers.utils.hexlify(ProposalType.ListOnOpenSea), 4),
       ethers.utils.defaultAbiCoder.encode(
         [
-          "tuple(uint256 listPrice,uint40 duration,address token,uint256 tokenId,uint256[] fees,address[] feeRecipients,bytes4 domainHashPrefix)",
+          "tuple(uint256 startPrice,uint256 endPrice,uint40 duration,address token,uint256 tokenId,uint256[] fees,address[] feeRecipients,bytes4 domainHashPrefix)",
         ],
         [info],
       ),
