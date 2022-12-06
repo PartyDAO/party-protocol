@@ -384,8 +384,10 @@ abi.encodeWithSelector(
         /* uint256 */ listPrice,
         // How long the listing is valid for.
         /* uint40 */ duration,
+        // The type of the NFT token.
+        /* TokenType */ tokenType;
         // The NFT token contract.
-        /* IERC721 */ token,
+        /* address */ token,
         // the NFT token ID.
         /* uint256 */ tokenId,
         // Fees the taker must pay when filling the listing.

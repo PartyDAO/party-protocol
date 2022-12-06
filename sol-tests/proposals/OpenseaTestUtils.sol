@@ -3,6 +3,7 @@ pragma solidity ^0.8;
 
 import "forge-std/Test.sol";
 
+import "../../contracts/proposals/ListOnOpenseaProposal.sol";
 import "../../contracts/proposals/vendor/IOpenseaExchange.sol";
 import "../../contracts/tokens/IERC721.sol";
 
@@ -16,7 +17,8 @@ contract OpenseaTestUtils is Test {
     struct BuyOpenseaListingParams {
         address payable maker;
         address buyer;
-        IERC721 token;
+        ListOnOpenseaProposal.TokenType tokenType;
+        address token;
         uint256 tokenId;
         uint256 listPrice;
         uint256 startTime;
@@ -75,7 +77,9 @@ contract OpenseaTestUtils is Test {
         IOpenseaExchange.OfferItem[] memory offers = order
             .parameters
             .offer = new IOpenseaExchange.OfferItem[](1);
-        offers[0].itemType = IOpenseaExchange.ItemType.ERC721;
+        offers[0].itemType = params.tokenType == ListOnOpenseaProposal.TokenType.ERC721
+            ? IOpenseaExchange.ItemType.ERC721
+            : IOpenseaExchange.ItemType.ERC1155;
         offers[0].token = address(params.token);
         offers[0].identifierOrCriteria = params.tokenId;
         offers[0].startAmount = offers[0].endAmount = 1;

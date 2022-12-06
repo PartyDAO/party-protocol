@@ -6,11 +6,13 @@ import "forge-std/Test.sol";
 import "../../contracts/proposals/ListOnOpenseaProposal.sol";
 import "../../contracts/proposals/ListOnZoraProposal.sol";
 import "../../contracts/tokens/ERC721Receiver.sol";
+import "../../contracts/tokens/ERC1155Receiver.sol";
 
 contract TestableListOnOpenseaProposal is
     ListOnOpenseaProposal,
     ListOnZoraProposal,
-    ERC721Receiver
+    ERC721Receiver,
+    ERC1155Receiver
 {
     constructor(
         IGlobals globals,
@@ -28,5 +30,13 @@ contract TestableListOnOpenseaProposal is
         IProposalExecutionEngine.ExecuteProposalParams memory params
     ) public returns (bytes memory nextProgressData) {
         return _executeListOnOpensea(params);
+    }
+
+    function supportsInterface(
+        bytes4 interfaceId
+    ) public pure override(ERC721Receiver, ERC1155Receiver) returns (bool) {
+        return
+            ERC721Receiver.supportsInterface(interfaceId) ||
+            ERC1155Receiver.supportsInterface(interfaceId);
     }
 }
