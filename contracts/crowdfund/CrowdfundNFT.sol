@@ -91,7 +91,10 @@ contract CrowdfundNFT is IERC721, EIP165, ReadOnlyDelegateCall {
 
     /// @inheritdoc EIP165
     function supportsInterface(bytes4 interfaceId) public pure virtual override returns (bool) {
-        return super.supportsInterface(interfaceId) || interfaceId == type(IERC721).interfaceId;
+        return
+            super.supportsInterface(interfaceId) ||
+            // ERC721 interface ID
+            interfaceId == 0x80ac58cd;
     }
 
     /// @notice Returns a URI to render the NFT.
