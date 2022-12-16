@@ -9,20 +9,21 @@ import "../renderers/RendererStorage.sol";
 
 import "./Party.sol";
 import "./IPartyFactory.sol";
+import "./PartyList.sol";
 
 /// @notice Factory used to deploy new proxified `Party` instances.
 contract PartyFactory is IPartyFactory {
     error InvalidAuthorityError(address authority);
 
-    /// @inheritdoc IPartyFactory
     IGlobals public immutable GLOBALS;
+    PartyList public immutable PARTY_LIST;
 
     // Set the `Globals` contract.
-    constructor(IGlobals globals) {
+    constructor(IGlobals globals, PartyList partyList) {
         GLOBALS = globals;
+        PARTY_LIST = partyList;
     }
 
-    /// @inheritdoc IPartyFactory
     function createParty(
         address authority,
         Party.PartyOptions memory opts,
@@ -33,6 +34,29 @@ contract PartyFactory is IPartyFactory {
         if (authority == address(0)) {
             revert InvalidAuthorityError(authority);
         }
+        // Create the party.
+        return _createParty(authority, opts, preciousTokens, preciousTokenIds);
+    }
+
+    function createPartyFromList(
+        Party.PartyOptions memory opts,
+        IERC721[] memory preciousTokens,
+        uint256[] memory preciousTokenIds,
+        bytes32 listMerkleRoot
+    ) public returns (Party party) {
+        // Create the party.
+        party = _createParty(address(PARTY_LIST), opts, preciousTokens, preciousTokenIds);
+        // Create the list used to determine the initial list of members and voting
+        // power for each member.
+        PARTY_LIST.createList(party, listMerkleRoot);
+    }
+
+    function _createParty(
+        address authority,
+        Party.PartyOptions memory opts,
+        IERC721[] memory preciousTokens,
+        uint256[] memory preciousTokenIds
+    ) private returns (Party party) {
         // Deploy a new proxified `Party` instance.
         Party.PartyInitData memory initData = Party.PartyInitData({
             options: opts,

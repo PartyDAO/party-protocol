@@ -14,6 +14,7 @@ import "../contracts/gatekeepers/IGateKeeper.sol";
 import "../contracts/globals/Globals.sol";
 import "../contracts/globals/LibGlobals.sol";
 import "../contracts/party/Party.sol";
+import "../contracts/party/PartyList.sol";
 import "../contracts/party/PartyFactory.sol";
 import "../contracts/renderers/CrowdfundNFTRenderer.sol";
 import "../contracts/renderers/PartyNFTRenderer.sol";
@@ -49,6 +50,7 @@ abstract contract Deploy {
     CollectionBuyCrowdfund public collectionBuyCrowdfundImpl;
     CrowdfundFactory public crowdfundFactory;
     Party public partyImpl;
+    PartyList public partyList;
     PartyFactory public partyFactory;
     IOpenseaExchange public seaport;
     ProposalExecutionEngine public proposalEngineImpl;
@@ -121,13 +123,22 @@ abstract contract Deploy {
         _trackDeployerGasAfter();
         console.log("  Deployed - Party implementation", address(partyImpl));
 
+        // DEPLOY_PARTY_LIST
+        console.log("");
+        console.log("### PartyList");
+        console.log("  Deploying - PartyList");
+        _trackDeployerGasBefore();
+        partyList = new PartyList(globals);
+        _trackDeployerGasAfter();
+        console.log("  Deployed - PartyList", address(partyList));
+
         // DEPLOY_PARTY_FACTORY
         console.log("");
         console.log("### PartyFactory");
         console.log("  Deploying - PartyFactory");
         _switchDeployer(DeployerRole.PartyFactory);
         _trackDeployerGasBefore();
-        partyFactory = new PartyFactory(globals);
+        partyFactory = new PartyFactory(globals, partyList);
         _trackDeployerGasAfter();
         console.log("  Deployed - PartyFactory", address(partyFactory));
         _switchDeployer(DeployerRole.Default);
@@ -521,7 +532,7 @@ contract DeployScript is Script, Deploy {
         Deploy.deploy(deployConstants);
         vm.stopBroadcast();
 
-        AddressMapping[] memory addressMapping = new AddressMapping[](20);
+        AddressMapping[] memory addressMapping = new AddressMapping[](21);
         addressMapping[0] = AddressMapping("globals", address(globals));
         addressMapping[1] = AddressMapping("tokenDistributor", address(tokenDistributor));
         addressMapping[2] = AddressMapping("seaportExchange", address(seaport));
@@ -557,6 +568,7 @@ contract DeployScript is Script, Deploy {
             "pixeldroidConsoleFont",
             address(pixeldroidConsoleFont)
         );
+        addressMapping[20] = AddressMapping("partyList", address(partyList));
 
         console.log("");
         console.log("### Deployed addresses");

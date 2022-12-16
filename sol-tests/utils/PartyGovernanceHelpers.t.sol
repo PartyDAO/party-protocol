@@ -5,6 +5,7 @@ import "forge-std/Test.sol";
 import "forge-std/console2.sol";
 
 import "../../contracts/party/PartyFactory.sol";
+import "../../contracts/party/PartyList.sol";
 import "../../contracts/party/Party.sol";
 import "../../contracts/globals/Globals.sol";
 import "../../contracts/renderers/PartyNFTRenderer.sol";
@@ -41,7 +42,7 @@ contract PartyGovernanceHelpersTest is Test, TestUtils {
         nftRenderer = new PartyNFTRenderer(globals, RendererStorage(address(0)), IFont(address(0)));
         globalsAdmin.setGovernanceNftRendererAddress(address(nftRenderer));
 
-        partyFactory = new PartyFactory(globals);
+        partyFactory = new PartyFactory(globals, PartyList(address(0)));
 
         john = new PartyParticipant();
         steve = new PartyParticipant();

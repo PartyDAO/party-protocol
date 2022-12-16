@@ -1,10 +1,9 @@
 // SPDX-License-Identifier: Apache-2.0
 pragma solidity ^0.8;
 
-import "../../contracts/party/IPartyFactory.sol";
 import "./MockParty.sol";
 
-contract MockPartyFactory is IPartyFactory {
+contract MockPartyFactory {
     MockParty public mockParty = new MockParty();
 
     event MockPartyFactoryCreateParty(

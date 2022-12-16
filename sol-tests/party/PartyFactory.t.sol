@@ -4,6 +4,7 @@ pragma solidity ^0.8;
 import "forge-std/Test.sol";
 
 import "../../contracts/party/PartyFactory.sol";
+import "../../contracts/party/PartyList.sol";
 import "../../contracts/globals/Globals.sol";
 import "../TestUtils.sol";
 import "../../contracts/proposals/ProposalExecutionEngine.sol";
@@ -11,7 +12,8 @@ import "../../contracts/proposals/ProposalExecutionEngine.sol";
 contract PartyFactoryTest is Test, TestUtils {
     Globals globals = new Globals(address(this));
     Party partyImpl = new Party(globals);
-    PartyFactory factory = new PartyFactory(globals);
+    PartyList partyList = new PartyList(globals);
+    PartyFactory factory = new PartyFactory(globals, partyList);
     ProposalExecutionEngine eng;
     Party.PartyOptions defaultPartyOptions;
 
@@ -35,6 +37,7 @@ contract PartyFactoryTest is Test, TestUtils {
 
         globals.setAddress(LibGlobals.GLOBAL_PARTY_IMPL, address(partyImpl));
         globals.setAddress(LibGlobals.GLOBAL_PROPOSAL_ENGINE_IMPL, address(eng));
+        globals.setAddress(LibGlobals.GLOBAL_PARTY_FACTORY, address(factory));
     }
 
     function _createPreciouses(
@@ -116,5 +119,26 @@ contract PartyFactoryTest is Test, TestUtils {
             )
         );
         factory.createParty(authority, opts, preciousTokens, preciousTokenIds);
+    }
+
+    function testCreatePartyFromList() external {
+        (IERC721[] memory preciousTokens, uint256[] memory preciousTokenIds) = _createPreciouses(3);
+        address member = _randomAddress();
+        address delegate = _randomAddress();
+        uint96 votingPower = 0.1e18;
+        bytes32 listMerkleRoot = keccak256(abi.encodePacked(member, votingPower));
+        Party party = factory.createPartyFromList(
+            defaultPartyOptions,
+            preciousTokens,
+            preciousTokenIds,
+            listMerkleRoot
+        );
+        assertEq(party.mintAuthority(), address(partyList));
+        assertEq(partyList.listMerkleRoots(party), listMerkleRoot);
+
+        uint256 tokenId = partyList.mint(party, member, votingPower, delegate, new bytes32[](0));
+        assertEq(party.balanceOf(member), 1);
+        assertEq(party.delegationsByVoter(member), delegate);
+        assertEq(party.votingPowerByTokenId(tokenId), votingPower);
     }
 }
