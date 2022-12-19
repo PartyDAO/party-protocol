@@ -4,16 +4,16 @@ pragma solidity 0.8.17;
 import "./IGateKeeper.sol";
 
 /// @notice A gateKeeper that limits the amount that can be contributed per contribution.
-contract ContributionIncrementGateKeeper is IGateKeeper {
+contract ContributionRangeGateKeeper is IGateKeeper {
     uint96 private _lastId;
 
-    struct ContributionIncrement {
+    struct ContributionRange {
         uint96 min;
         uint96 max;
     }
 
     /// @notice Get the merkle root used by a gate identifyied by it's `id`.
-    mapping(uint96 => ContributionIncrement) public contributionIncrements;
+    mapping(uint96 => ContributionRange) public contributionRanges;
 
     /// @inheritdoc IGateKeeper
     function isAllowed(
@@ -22,8 +22,8 @@ contract ContributionIncrementGateKeeper is IGateKeeper {
         bytes12 id,
         bytes memory
     ) external view returns (bool) {
-        ContributionIncrement memory increments = contributionIncrements[uint96(id)];
-        return amount >= increments.min && amount <= increments.max;
+        ContributionRange memory ranges = contributionRanges[uint96(id)];
+        return amount >= ranges.min && amount <= ranges.max;
     }
 
     /// @notice Create a new gate that limits the amount per contribution.
@@ -32,7 +32,7 @@ contract ContributionIncrementGateKeeper is IGateKeeper {
     /// @return id The ID of the new gate.
     function createGate(uint96 minAmount, uint96 maxAmount) external returns (bytes12 id) {
         uint96 id_ = ++_lastId;
-        contributionIncrements[id_] = ContributionIncrement({ min: minAmount, max: maxAmount });
+        contributionRanges[id_] = ContributionRange({ min: minAmount, max: maxAmount });
         id = bytes12(id_);
     }
 }
