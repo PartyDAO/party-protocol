@@ -30,8 +30,9 @@ contract TokenGateKeeper is IGateKeeper {
     /// @inheritdoc IGateKeeper
     function isAllowed(
         address participant,
+        uint96,
         bytes12 id,
-        bytes memory /* userData */
+        bytes memory
     ) external view returns (bool) {
         TokenGate memory _gate = gateInfo[uint96(id)];
         return _gate.token.balanceOf(participant) >= _gate.minimumBalance;

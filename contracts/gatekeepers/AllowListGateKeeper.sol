@@ -13,6 +13,7 @@ contract AllowListGateKeeper is IGateKeeper {
     /// @inheritdoc IGateKeeper
     function isAllowed(
         address participant,
+        uint96,
         bytes12 id,
         bytes memory userData
     ) external view returns (bool) {

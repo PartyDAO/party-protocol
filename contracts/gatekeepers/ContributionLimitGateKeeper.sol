@@ -19,13 +19,13 @@ contract ContributionLimitGateKeeper is IGateKeeper {
     /// @inheritdoc IGateKeeper
     function isAllowed(
         address participant,
+        uint96 amount,
         bytes12 id,
-        bytes memory userData
+        bytes memory
     ) external view returns (bool) {
-        uint96 amount = abi.decode(userData, (uint96));
         ContributionLimit memory limits = contributionLimits[uint96(id)];
         (uint256 ethContributed, , , ) = Crowdfund(msg.sender).getContributorInfo(participant);
-        return amount >= limits.min && ethContributed + amount <= limits.max;
+        return ethContributed + amount >= limits.min && ethContributed + amount <= limits.max;
     }
 
     /// @notice Create a new gate that limits the total amounts that can be contributed.

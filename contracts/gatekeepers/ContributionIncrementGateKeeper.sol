@@ -13,12 +13,16 @@ contract ContributionIncrementGateKeeper is IGateKeeper {
     }
 
     /// @notice Get the merkle root used by a gate identifyied by it's `id`.
-    mapping(uint96 => ContributionIncrement) public contributionLimits;
+    mapping(uint96 => ContributionIncrement) public contributionIncrements;
 
     /// @inheritdoc IGateKeeper
-    function isAllowed(address, bytes12 id, bytes memory userData) external view returns (bool) {
-        uint96 amount = abi.decode(userData, (uint96));
-        ContributionIncrement memory increments = contributionLimits[uint96(id)];
+    function isAllowed(
+        address,
+        uint96 amount,
+        bytes12 id,
+        bytes memory
+    ) external view returns (bool) {
+        ContributionIncrement memory increments = contributionIncrements[uint96(id)];
         return amount >= increments.min && amount <= increments.max;
     }
 
@@ -28,7 +32,7 @@ contract ContributionIncrementGateKeeper is IGateKeeper {
     /// @return id The ID of the new gate.
     function createGate(uint96 minAmount, uint96 maxAmount) external returns (bytes12 id) {
         uint96 id_ = ++_lastId;
-        contributionLimits[id_] = ContributionIncrement({ min: minAmount, max: maxAmount });
+        contributionIncrements[id_] = ContributionIncrement({ min: minAmount, max: maxAmount });
         id = bytes12(id_);
     }
 }
