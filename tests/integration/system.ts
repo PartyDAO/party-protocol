@@ -232,6 +232,7 @@ export class System {
 
     const partyFactory = await deployContract(worker, artifacts.PartyFactory as any, [
       globals.address,
+      NULL_ADDRESS,
     ]);
     await (await globals.setAddress(GlobalKeys.PartyFactory, partyFactory.address)).wait();
 

@@ -445,7 +445,7 @@ contract AuctionCrowdfundTest is Test, TestUtils {
         // Contribute and delegate.
         address payable contributor = _randomAddress();
         _contribute(cf, contributor, 1e18);
-        uint256 bid = market.getMinimumBid(auctionId);
+        market.getMinimumBid(auctionId);
         // Expire the CF.
         skip(defaultDuration);
         _expectEmit0();
