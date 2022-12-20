@@ -7,6 +7,8 @@ import "./IGateKeeper.sol";
 contract ContributionRangeGateKeeper is IGateKeeper {
     uint96 private _lastId;
 
+    error MinGreaterThanMaxError(uint96 min, uint96 max);
+
     struct ContributionRange {
         uint96 min;
         uint96 max;
@@ -31,6 +33,7 @@ contract ContributionRangeGateKeeper is IGateKeeper {
     /// @param maxAmount The maximum amount that can be contributed at a time.
     /// @return id The ID of the new gate.
     function createGate(uint96 minAmount, uint96 maxAmount) external returns (bytes12 id) {
+        if (minAmount > maxAmount) revert MinGreaterThanMaxError(minAmount, maxAmount);
         uint96 id_ = ++_lastId;
         contributionRanges[id_] = ContributionRange({ min: minAmount, max: maxAmount });
         id = bytes12(id_);

@@ -8,6 +8,8 @@ import "./IGateKeeper.sol";
 contract ContributionLimitGateKeeper is IGateKeeper {
     uint96 private _lastId;
 
+    error MinGreaterThanMaxError(uint96 min, uint96 max);
+
     struct ContributionLimit {
         uint96 min;
         uint96 max;
@@ -36,6 +38,8 @@ contract ContributionLimitGateKeeper is IGateKeeper {
         uint96 minContributed,
         uint96 maxContributed
     ) external returns (bytes12 id) {
+        if (minContributed > maxContributed)
+            revert MinGreaterThanMaxError(minContributed, maxContributed);
         uint96 id_ = ++_lastId;
         contributionLimits[id_] = ContributionLimit({ min: minContributed, max: maxContributed });
         id = bytes12(id_);
