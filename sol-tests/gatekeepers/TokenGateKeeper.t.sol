@@ -33,8 +33,8 @@ contract TokenGateKeeperTest is Test, TestUtils {
         dummyERC20.deal(user, MIN_ERC20_BALANCE + 1);
         dummyERC721.mint(user);
         dummyERC721.mint(user);
-        assertTrue(gk.isAllowed(user, ERC20gateId, ""));
-        assertTrue(gk.isAllowed(user, ERC721gateId, ""));
+        assertTrue(gk.isAllowed(user, 0, ERC20gateId, ""));
+        assertTrue(gk.isAllowed(user, 0, ERC721gateId, ""));
     }
 
     function testEqualToMinimumBalance() public {
@@ -43,16 +43,16 @@ contract TokenGateKeeperTest is Test, TestUtils {
         address user = _randomAddress();
         dummyERC20.deal(user, MIN_ERC20_BALANCE);
         dummyERC721.mint(user);
-        assertTrue(gk.isAllowed(user, ERC20gateId, ""));
-        assertTrue(gk.isAllowed(user, ERC721gateId, ""));
+        assertTrue(gk.isAllowed(user, 0, ERC20gateId, ""));
+        assertTrue(gk.isAllowed(user, 0, ERC721gateId, ""));
     }
 
     function testBelowMinimumBalance() public {
         bytes12 ERC20gateId = gk.createGate(Token(address(dummyERC20)), MIN_ERC20_BALANCE);
         bytes12 ERC721gateId = gk.createGate(Token(address(dummyERC721)), MIN_ERC721_BALANCE);
         address user = _randomAddress();
-        assertFalse(gk.isAllowed(user, ERC20gateId, ""));
-        assertFalse(gk.isAllowed(user, ERC721gateId, ""));
+        assertFalse(gk.isAllowed(user, 0, ERC20gateId, ""));
+        assertFalse(gk.isAllowed(user, 0, ERC721gateId, ""));
     }
 
     function testSeparateGateAccess() public {
@@ -62,9 +62,9 @@ contract TokenGateKeeperTest is Test, TestUtils {
         address user2 = _randomAddress();
         dummyERC20.deal(user1, MIN_ERC20_BALANCE);
         dummyERC721.mint(user2);
-        assertTrue(gk.isAllowed(user1, ERC20gateId, ""));
-        assertTrue(gk.isAllowed(user2, ERC721gateId, ""));
-        assertFalse(gk.isAllowed(user1, ERC721gateId, ""));
-        assertFalse(gk.isAllowed(user2, ERC20gateId, ""));
+        assertTrue(gk.isAllowed(user1, 0, ERC20gateId, ""));
+        assertTrue(gk.isAllowed(user2, 0, ERC721gateId, ""));
+        assertFalse(gk.isAllowed(user1, 0, ERC721gateId, ""));
+        assertFalse(gk.isAllowed(user2, 0, ERC20gateId, ""));
     }
 }
