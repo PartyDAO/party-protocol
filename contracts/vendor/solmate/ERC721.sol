@@ -8,11 +8,9 @@ pragma solidity >=0.8.0;
 import "../../tokens/IERC721.sol";
 import "../../utils/EIP165.sol";
 
-
 /// @notice Modern, minimalist, and gas efficient ERC-721 implementation.
 /// @author Solmate (https://github.com/Rari-Capital/solmate/blob/main/src/tokens/ERC721.sol)
 abstract contract ERC721 is IERC721, EIP165 {
-
     /*//////////////////////////////////////////////////////////////
                          METADATA STORAGE/LOGIC
     //////////////////////////////////////////////////////////////*/
@@ -21,7 +19,7 @@ abstract contract ERC721 is IERC721, EIP165 {
 
     string public symbol;
 
-    function tokenURI(uint256 id) public /* view */ virtual returns (string memory);
+    function tokenURI(uint256 id /* view */) public virtual returns (string memory);
 
     /*//////////////////////////////////////////////////////////////
                       ERC721 BALANCE/OWNER STORAGE
@@ -78,17 +76,15 @@ abstract contract ERC721 is IERC721, EIP165 {
         emit ApprovalForAll(msg.sender, operator, approved);
     }
 
-    function transferFrom(
-        address from,
-        address to,
-        uint256 id
-    ) public virtual {
+    function transferFrom(address from, address to, uint256 id) public virtual {
         require(from == _ownerOf[id], "WRONG_FROM");
 
         require(to != address(0), "INVALID_RECIPIENT");
 
         require(
-            msg.sender == from || isApprovedForAll[from][msg.sender] || msg.sender == getApproved[id],
+            msg.sender == from ||
+                isApprovedForAll[from][msg.sender] ||
+                msg.sender == getApproved[id],
             "NOT_AUTHORIZED"
         );
 
@@ -107,11 +103,7 @@ abstract contract ERC721 is IERC721, EIP165 {
         emit Transfer(from, to, id);
     }
 
-    function safeTransferFrom(
-        address from,
-        address to,
-        uint256 id
-    ) public virtual {
+    function safeTransferFrom(address from, address to, uint256 id) public virtual {
         transferFrom(from, to, id);
 
         require(
@@ -144,7 +136,8 @@ abstract contract ERC721 is IERC721, EIP165 {
 
     function supportsInterface(bytes4 interfaceId) public pure virtual override returns (bool) {
         // NOTE: modified from original to call super.
-        return super.supportsInterface(interfaceId) ||
+        return
+            super.supportsInterface(interfaceId) ||
             interfaceId == 0x80ac58cd || // ERC165 Interface ID for ERC721
             interfaceId == 0x5b5e139f; // ERC165 Interface ID for ERC721Metadata
     }
@@ -200,11 +193,7 @@ abstract contract ERC721 is IERC721, EIP165 {
         );
     }
 
-    function _safeMint(
-        address to,
-        uint256 id,
-        bytes memory data
-    ) internal virtual {
+    function _safeMint(address to, uint256 id, bytes memory data) internal virtual {
         _mint(to, id);
 
         require(

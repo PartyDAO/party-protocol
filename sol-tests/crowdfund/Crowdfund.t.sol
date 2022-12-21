@@ -1136,9 +1136,9 @@ contract CrowdfundTest is Test, TestUtils {
 
     function test_supportsInterface() external {
         TestableCrowdfund cf = _createCrowdfund(0);
-        cf.supportsInterface(0x01ffc9a7); // EIP165
-        cf.supportsInterface(0x80ac58cd); // ERC721
-        cf.supportsInterface(0x150b7a02); // ERC721Receiver
+        assertTrue(cf.supportsInterface(0x01ffc9a7)); // EIP165
+        assertTrue(cf.supportsInterface(0x80ac58cd)); // ERC721
+        assertTrue(cf.supportsInterface(0x150b7a02)); // ERC721Receiver
     }
 }
 
