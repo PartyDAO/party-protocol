@@ -2,6 +2,8 @@
 // http://ipfs.io/ipfs/QmbGX2MFCaMAsMNMugRFND6DtYygRkwkvrqEyTKhTdBLo5
 pragma solidity 0.8.17;
 
+import "solmate/utils/MerkleProofLib.sol";
+
 import "../tokens/IERC721.sol";
 import "../party/Party.sol";
 import "../utils/Implementation.sol";
@@ -25,6 +27,9 @@ contract CollectionBatchBuyCrowdfund is BuyCrowdfundBase {
         uint256 customizationPresetId;
         // The ERC721 contract of the NFTs being bought.
         IERC721 nftContract;
+        // The merkle root of the token IDs that can be bought. If null, allow any
+        // token ID in the collection can be bought.
+        bytes32 nftTokenIdsMerkleRoot;
         // How long this crowdfund has to buy the NFTs, in seconds.
         uint40 duration;
         // Maximum amount this crowdfund will pay for an NFT.
@@ -52,9 +57,13 @@ contract CollectionBatchBuyCrowdfund is BuyCrowdfundBase {
     }
 
     error NothingBoughtError();
+    error InvalidTokenIdError();
 
     /// @notice The contract of NFTs to buy.
     IERC721 public nftContract;
+    /// @notice The merkle root of the token IDs that can be bought. If null,
+    ///         allow any token ID in the collection can be bought.
+    bytes32 public nftTokenIdsMerkleRoot;
 
     // Set the `Globals` contract.
     constructor(IGlobals globals) BuyCrowdfundBase(globals) {}
@@ -86,6 +95,7 @@ contract CollectionBatchBuyCrowdfund is BuyCrowdfundBase {
             })
         );
         nftContract = opts.nftContract;
+        nftTokenIdsMerkleRoot = opts.nftTokenIdsMerkleRoot;
     }
 
     /// @notice Execute arbitrary calldata to perform a batch buy, creating a party
@@ -103,6 +113,7 @@ contract CollectionBatchBuyCrowdfund is BuyCrowdfundBase {
         address payable[] memory callTargets,
         uint96[] memory callValues,
         bytes[] memory callDatas,
+        bytes32[][] calldata proofs,
         FixedGovernanceOpts memory governanceOpts,
         uint256 hostIndex
     ) external onlyDelegateCall returns (Party party_) {
@@ -125,7 +136,13 @@ contract CollectionBatchBuyCrowdfund is BuyCrowdfundBase {
         uint96 totalEthUsed;
         // This is needed because `_createParty()` requires an array of tokens.
         IERC721[] memory tokens = new IERC721[](tokenIds.length);
+        bytes32 root = nftTokenIdsMerkleRoot;
         for (uint256 i; i < tokenIds.length; ++i) {
+            // Verify the token ID is in the merkle tree.
+            if (root != bytes32(0)) {
+                _verifyTokenId(tokenIds[i], root, proofs[i]);
+            }
+
             // Execute the call to buy the NFT.
             _buy(nftContract_, tokenIds[i], callTargets[i], callValues[i], callDatas[i]);
 
@@ -147,5 +164,15 @@ contract CollectionBatchBuyCrowdfund is BuyCrowdfundBase {
                 // If `_assertIsHost()` succeeded, the governance opts were validated.
                 true
             );
+    }
+
+    function _verifyTokenId(uint256 tokenId, bytes32 root, bytes32[] calldata proof) private pure {
+        bytes32 leaf;
+        assembly {
+            mstore(0x00, tokenId)
+            leaf := keccak256(0x00, 0x20)
+        }
+
+        if (!MerkleProofLib.verify(proof, root, leaf)) revert InvalidTokenIdError();
     }
 }

@@ -24,15 +24,17 @@ contract CollectionBatchBuyCrowdfundTest is Test, TestUtils {
         uint256[] preciousTokenIds
     );
 
-    CollectionBatchBuyCrowdfund cf;
+    Globals globals;
     DummyERC721 nftContract;
     MockParty party;
 
     uint96 maximumPrice = 100e18;
     Crowdfund.FixedGovernanceOpts govOpts;
 
+    bytes32[][] emptyProofs;
+
     constructor() {
-        Globals globals = new Globals(address(this));
+        globals = new Globals(address(this));
         MockPartyFactory partyFactory = new MockPartyFactory();
         globals.setAddress(LibGlobals.GLOBAL_PARTY_FACTORY, address(partyFactory));
         party = partyFactory.mockParty();
@@ -40,7 +42,11 @@ contract CollectionBatchBuyCrowdfundTest is Test, TestUtils {
         nftContract = new DummyERC721();
 
         govOpts.hosts.push(address(this));
+    }
 
+    function _createCrowdfund(
+        bytes32 nftTokenIdsMerkleRoot
+    ) internal returns (CollectionBatchBuyCrowdfund cf) {
         cf = CollectionBatchBuyCrowdfund(
             payable(
                 address(
@@ -53,6 +59,7 @@ contract CollectionBatchBuyCrowdfundTest is Test, TestUtils {
                                 symbol: "CF",
                                 customizationPresetId: 0,
                                 nftContract: nftContract,
+                                nftTokenIdsMerkleRoot: nftTokenIdsMerkleRoot,
                                 duration: 1 days,
                                 maximumPrice: maximumPrice,
                                 splitRecipient: payable(address(0)),
@@ -70,13 +77,21 @@ contract CollectionBatchBuyCrowdfundTest is Test, TestUtils {
         );
     }
 
+    function _createCrowdfund() internal returns (CollectionBatchBuyCrowdfund cf) {
+        return _createCrowdfund(bytes32(0));
+    }
+
     function test_cannotReinitialize() public {
+        // Create the crowdfund.
+        CollectionBatchBuyCrowdfund cf = _createCrowdfund();
         vm.expectRevert(abi.encodeWithSelector(Implementation.OnlyConstructorError.selector));
         CollectionBatchBuyCrowdfund.CollectionBatchBuyCrowdfundOptions memory opts;
         cf.initialize(opts);
     }
 
     function test_happyPath() public {
+        // Create the crowdfund.
+        CollectionBatchBuyCrowdfund cf = _createCrowdfund();
         // Contribute and delegate.
         address payable contributor = _randomAddress();
         address delegate = _randomAddress();
@@ -118,11 +133,21 @@ contract CollectionBatchBuyCrowdfundTest is Test, TestUtils {
             tokens,
             tokenIds
         );
-        Party party_ = cf.batchBuy(tokenIds, callTargets, callValues, callDatas, govOpts, 0);
+        Party party_ = cf.batchBuy(
+            tokenIds,
+            callTargets,
+            callValues,
+            callDatas,
+            emptyProofs,
+            govOpts,
+            0
+        );
         assertEq(address(party_), address(party));
     }
 
     function test_batchBuy_cannotTriggerLostByNotBuyingAnything() public {
+        // Create the crowdfund.
+        CollectionBatchBuyCrowdfund cf = _createCrowdfund();
         // Setup parameters to batch buy.
         uint256[] memory tokenIds = new uint256[](0);
         address payable[] memory callTargets = new address payable[](0);
@@ -130,10 +155,12 @@ contract CollectionBatchBuyCrowdfundTest is Test, TestUtils {
         bytes[] memory callDatas = new bytes[](0);
         // Buy the tokens.
         vm.expectRevert(CollectionBatchBuyCrowdfund.NothingBoughtError.selector);
-        cf.batchBuy(tokenIds, callTargets, callValues, callDatas, govOpts, 0);
+        cf.batchBuy(tokenIds, callTargets, callValues, callDatas, emptyProofs, govOpts, 0);
     }
 
     function test_batchBuy_cannotTriggerLostByBuyingFreeNFTs() public {
+        // Create the crowdfund.
+        CollectionBatchBuyCrowdfund cf = _createCrowdfund();
         // Setup parameters to batch buy.
         IERC721[] memory tokens = new IERC721[](3);
         uint256[] memory tokenIds = new uint256[](3);
@@ -148,10 +175,12 @@ contract CollectionBatchBuyCrowdfundTest is Test, TestUtils {
         }
         // Buy the tokens.
         vm.expectRevert(CollectionBatchBuyCrowdfund.NothingBoughtError.selector);
-        Party party_ = cf.batchBuy(tokenIds, callTargets, callValues, callDatas, govOpts, 0);
+        cf.batchBuy(tokenIds, callTargets, callValues, callDatas, emptyProofs, govOpts, 0);
     }
 
     function test_batchBuy_failedToBuy() public {
+        // Create the crowdfund.
+        CollectionBatchBuyCrowdfund cf = _createCrowdfund();
         // Setup parameters to batch buy.
         uint256[] memory tokenIds = new uint256[](3);
         address payable[] memory callTargets = new address payable[](3);
@@ -165,10 +194,12 @@ contract CollectionBatchBuyCrowdfundTest is Test, TestUtils {
                 0
             )
         );
-        cf.batchBuy(tokenIds, callTargets, callValues, callDatas, govOpts, 0);
+        cf.batchBuy(tokenIds, callTargets, callValues, callDatas, emptyProofs, govOpts, 0);
     }
 
     function test_batchBuy_aboveMaximumPrice() public {
+        // Create the crowdfund.
+        CollectionBatchBuyCrowdfund cf = _createCrowdfund();
         // Setup parameters to batch buy.
         uint256[] memory tokenIds = new uint256[](3);
         address payable[] memory callTargets = new address payable[](3);
@@ -183,10 +214,12 @@ contract CollectionBatchBuyCrowdfundTest is Test, TestUtils {
                 maximumPrice
             )
         );
-        cf.batchBuy(tokenIds, callTargets, callValues, callDatas, govOpts, 0);
+        cf.batchBuy(tokenIds, callTargets, callValues, callDatas, emptyProofs, govOpts, 0);
     }
 
     function test_batchBuy_onlyHost() public {
+        // Create the crowdfund.
+        CollectionBatchBuyCrowdfund cf = _createCrowdfund();
         // Setup parameters to batch buy.
         uint256[] memory tokenIds = new uint256[](3);
         address payable[] memory callTargets = new address payable[](3);
@@ -195,10 +228,12 @@ contract CollectionBatchBuyCrowdfundTest is Test, TestUtils {
         // Buy the tokens.
         vm.prank(_randomAddress());
         vm.expectRevert(Crowdfund.OnlyPartyHostError.selector);
-        cf.batchBuy(tokenIds, callTargets, callValues, callDatas, govOpts, 0);
+        cf.batchBuy(tokenIds, callTargets, callValues, callDatas, emptyProofs, govOpts, 0);
     }
 
     function test_batchBuy_invalidGovOpts() public {
+        // Create the crowdfund.
+        CollectionBatchBuyCrowdfund cf = _createCrowdfund();
         // Setup parameters to batch buy.
         uint256[] memory tokenIds = new uint256[](3);
         address payable[] memory callTargets = new address payable[](3);
@@ -208,6 +243,58 @@ contract CollectionBatchBuyCrowdfundTest is Test, TestUtils {
         govOpts.hosts.push(_randomAddress());
         // Buy the tokens.
         vm.expectRevert(Crowdfund.InvalidGovernanceOptionsError.selector);
-        cf.batchBuy(tokenIds, callTargets, callValues, callDatas, govOpts, 0);
+        cf.batchBuy(tokenIds, callTargets, callValues, callDatas, emptyProofs, govOpts, 0);
+    }
+
+    function test_batchBuy_withTokenIdsAllowList() public {
+        uint256 tokenId = 1;
+        // Create the crowdfund.
+        CollectionBatchBuyCrowdfund cf = _createCrowdfund(keccak256(abi.encodePacked(tokenId)));
+        // Contribute and delegate.
+        address payable contributor = _randomAddress();
+        vm.deal(contributor, 1e18);
+        vm.prank(contributor);
+        cf.contribute{ value: contributor.balance }(contributor, "");
+        // Setup parameters to batch buy.
+        IERC721[] memory tokens = new IERC721[](1);
+        uint256[] memory tokenIds = new uint256[](1);
+        address payable[] memory callTargets = new address payable[](1);
+        uint96[] memory callValues = new uint96[](1);
+        bytes[] memory callDatas = new bytes[](1);
+        bytes32[][] memory proofs = new bytes32[][](1);
+        tokens[0] = nftContract;
+        tokenIds[0] = tokenId;
+        callTargets[0] = payable(address(nftContract));
+        callValues[0] = 1;
+        callDatas[0] = abi.encodeCall(nftContract.mint, (address(cf)));
+        // Buy the tokens.
+        cf.batchBuy(tokenIds, callTargets, callValues, callDatas, proofs, govOpts, 0);
+    }
+
+    function test_batchBuy_withTokenIdsAllowList_invalidProof() public {
+        uint256 tokenId = 1;
+        // Create the crowdfund.
+        CollectionBatchBuyCrowdfund cf = _createCrowdfund(keccak256(abi.encodePacked(tokenId)));
+        // Contribute and delegate.
+        address payable contributor = _randomAddress();
+        vm.deal(contributor, 1e18);
+        vm.prank(contributor);
+        cf.contribute{ value: contributor.balance }(contributor, "");
+        // Setup parameters to batch buy.
+        IERC721[] memory tokens = new IERC721[](1);
+        uint256[] memory tokenIds = new uint256[](1);
+        address payable[] memory callTargets = new address payable[](1);
+        uint96[] memory callValues = new uint96[](1);
+        bytes[] memory callDatas = new bytes[](1);
+        bytes32[][] memory proofs = new bytes32[][](1);
+        tokens[0] = nftContract;
+        tokenIds[0] = tokenId;
+        callTargets[0] = payable(address(nftContract));
+        callValues[0] = 1;
+        callDatas[0] = abi.encodeCall(nftContract.mint, (address(cf)));
+        proofs[0] = new bytes32[](1);
+        // Buy the tokens.
+        vm.expectRevert(CollectionBatchBuyCrowdfund.InvalidTokenIdError.selector);
+        cf.batchBuy(tokenIds, callTargets, callValues, callDatas, proofs, govOpts, 0);
     }
 }
