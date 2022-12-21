@@ -58,7 +58,10 @@ contract PartyFactoryTest is Test, TestUtils {
     ) internal pure returns (bytes32 h) {
         assembly {
             mstore(0x00, keccak256(add(_preciousTokens, 0x20), mul(mload(_preciousTokens), 0x20)))
-            mstore(0x20, keccak256(add(_preciousTokenIds, 0x20), mul(mload(_preciousTokenIds), 0x20)))
+            mstore(
+                0x20,
+                keccak256(add(_preciousTokenIds, 0x20), mul(mload(_preciousTokenIds), 0x20))
+            )
             h := keccak256(0x00, 0x40)
         }
     }
@@ -150,7 +153,16 @@ contract PartyFactoryTest is Test, TestUtils {
         assertEq(party.delegationsByVoter(initOpts.creator), initOpts.creatorDelegate);
         assertEq(party.votingPowerByTokenId(1), initOpts.creatorVotingPower);
 
-        partyList.mint(party, member, votingPower, nonce, delegate, new bytes32[](0));
+        partyList.mint(
+            PartyList.MintArgs({
+                party: party,
+                member: member,
+                votingPower: votingPower,
+                nonce: nonce,
+                delegate: delegate,
+                proof: new bytes32[](0)
+            })
+        );
         assertEq(party.balanceOf(member), 1);
         assertEq(party.delegationsByVoter(member), delegate);
         assertEq(party.votingPowerByTokenId(2), votingPower);

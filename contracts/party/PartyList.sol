@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0
 pragma solidity 0.8.17;
 
-import "solmate/utils/MerkleProofLib.sol";
+import "openzeppelin/contracts/utils/cryptography/MerkleProof.sol";
 
 import "./Party.sol";
 import "./IPartyFactory.sol";
@@ -9,6 +9,21 @@ import "../utils/LibRawResult.sol";
 
 contract PartyList {
     using LibRawResult for bytes;
+
+    struct MintArgs {
+        // The party from which the token is being minted
+        Party party;
+        // The address of the party member for whom the token is being minted
+        address member;
+        // The voting power of the token
+        uint96 votingPower;
+        // A number used to prevent double-minting
+        uint256 nonce;
+        // The address to delegate voting power to
+        address delegate;
+        // A set of data used to verify the validity of the minting
+        bytes32[] proof;
+    }
 
     event ListCreated(Party party, bytes32 merkleRoot);
 
@@ -65,56 +80,35 @@ contract PartyList {
 
     /**
      * @notice Mints a party card for a member from the party's list.
-     * @param party The party from which the token is being minted
-     * @param member The address of the party member for whom the token is being minted
-     * @param votingPower The voting power of the token
-     * @param nonce A number used to prevent double-minting
-     * @param delegate The address to delegate voting power to
-     * @param proof A set of data used to verify the validity of the minting
-     * @return tokenId The ID of the newly minted token
+     * @param args The arguments for minting a party card.
+     * @return tokenId The ID of the newly minted party card.
      */
-    function mint(
-        Party party,
-        address member,
-        uint96 votingPower,
-        uint256 nonce,
-        address delegate,
-        bytes32[] calldata proof
-    ) public returns (uint256 tokenId) {
-        (bool allowed, bytes32 leaf) = _verify(party, member, votingPower, nonce, proof);
+    function mint(MintArgs memory args) external returns (uint256 tokenId) {
+        (bool allowed, bytes32 leaf) = _verify(
+            args.party,
+            args.member,
+            args.votingPower,
+            args.nonce,
+            args.proof
+        );
 
-        if (!allowed) revert InvalidProofError(proof);
-        if (minted[party][leaf]) revert AlreadyMintedError(leaf);
+        if (!allowed) revert InvalidProofError(args.proof);
+        if (minted[args.party][leaf]) revert AlreadyMintedError(leaf);
 
-        minted[party][leaf] = true;
+        minted[args.party][leaf] = true;
 
-        return party.mint(member, votingPower, delegate);
+        return args.party.mint(args.member, args.votingPower, args.delegate);
     }
 
     /**
      * @notice Mints party cards for members from the party's list.
-     * @param party The party from which the token is being minted
-     * @param members The address of party members for whom the tokens are being minted
-     * @param votingPowers The voting powers of the tokens
-     * @param nonces A numbers used to prevent double-minting
-     * @param delegates The addresses to delegate voting power to
-     * @param proofs A set of data used to verify the validity of the minting
+     * @param args The arguments for minting party cards.
+     * @param revertOnFailure A boolean indicating if the function should revert if a mint fails.
      */
-    function batchMint(
-        Party party,
-        address[] calldata members,
-        uint96[] calldata votingPowers,
-        uint256[] calldata nonces,
-        address[] calldata delegates,
-        bytes32[][] calldata proofs,
-        bool revertOnFailure
-    ) external {
-        for (uint256 i; i < members.length; ++i) {
+    function batchMint(MintArgs[] memory args, bool revertOnFailure) external {
+        for (uint256 i; i < args.length; ++i) {
             (bool s, bytes memory r) = address(this).delegatecall(
-                abi.encodeCall(
-                    this.mint,
-                    (party, members[i], votingPowers[i], nonces[i], delegates[i], proofs[i])
-                )
+                abi.encodeCall(this.mint, (args[i]))
             );
             if (revertOnFailure && !s) {
                 r.rawRevert();
@@ -136,7 +130,7 @@ contract PartyList {
         address member,
         uint96 votingPower,
         uint256 nonce,
-        bytes32[] calldata proof
+        bytes32[] memory proof
     ) public view returns (bool) {
         (bool allowed, bytes32 leaf) = _verify(party, member, votingPower, nonce, proof);
         return allowed && !minted[party][leaf];
@@ -147,7 +141,7 @@ contract PartyList {
         address member,
         uint96 votingPower,
         uint256 nonce,
-        bytes32[] calldata proof
+        bytes32[] memory proof
     ) private view returns (bool allowed, bytes32 leaf) {
         assembly {
             // leaf = keccak256(abi.encodePacked(member, votingPower, nonce))
@@ -157,6 +151,6 @@ contract PartyList {
             leaf := keccak256(0, 64)
         }
 
-        allowed = MerkleProofLib.verify(proof, listMerkleRoots[party], leaf);
+        allowed = MerkleProof.verify(proof, listMerkleRoots[party], leaf);
     }
 }

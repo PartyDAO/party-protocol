@@ -57,12 +57,14 @@ contract PartyListTest is Test, TestUtils {
         bytes32 merkleRoot = keccak256(abi.encodePacked(member, votingPower, nonce));
         partyList.createList(party, merkleRoot, address(0), 0, address(0));
         uint256 tokenId = partyList.mint(
-            party,
-            member,
-            votingPower,
-            nonce,
-            delegate,
-            new bytes32[](0)
+            PartyList.MintArgs({
+                party: party,
+                member: member,
+                votingPower: votingPower,
+                nonce: nonce,
+                delegate: delegate,
+                proof: new bytes32[](0)
+            })
         );
         assertEq(party.ownerOf(tokenId), member);
     }
@@ -74,9 +76,27 @@ contract PartyListTest is Test, TestUtils {
         address delegate = _randomAddress();
         bytes32 merkleRoot = keccak256(abi.encodePacked(member, votingPower, nonce));
         partyList.createList(party, merkleRoot, address(0), 0, address(0));
-        partyList.mint(party, member, votingPower, nonce, delegate, new bytes32[](0));
+        partyList.mint(
+            PartyList.MintArgs({
+                party: party,
+                member: member,
+                votingPower: votingPower,
+                nonce: nonce,
+                delegate: delegate,
+                proof: new bytes32[](0)
+            })
+        );
         vm.expectRevert(abi.encodeWithSelector(PartyList.AlreadyMintedError.selector, merkleRoot));
-        partyList.mint(party, member, votingPower, nonce, delegate, new bytes32[](0));
+        partyList.mint(
+            PartyList.MintArgs({
+                party: party,
+                member: member,
+                votingPower: votingPower,
+                nonce: nonce,
+                delegate: delegate,
+                proof: new bytes32[](0)
+            })
+        );
     }
 
     function test_mint_invalidProof() public {
@@ -88,6 +108,15 @@ contract PartyListTest is Test, TestUtils {
         bytes32[] memory proof = new bytes32[](1);
         partyList.createList(party, merkleRoot, address(0), 0, address(0));
         vm.expectRevert(abi.encodeWithSelector(PartyList.InvalidProofError.selector, proof));
-        partyList.mint(party, member, votingPower, nonce, delegate, proof);
+        partyList.mint(
+            PartyList.MintArgs({
+                party: party,
+                member: member,
+                votingPower: votingPower,
+                nonce: nonce,
+                delegate: delegate,
+                proof: proof
+            })
+        );
     }
 }
