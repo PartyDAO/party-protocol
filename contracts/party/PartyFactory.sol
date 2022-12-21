@@ -39,16 +39,28 @@ contract PartyFactory is IPartyFactory {
     }
 
     function createPartyFromList(
-        Party.PartyOptions memory opts,
-        IERC721[] memory preciousTokens,
-        uint256[] memory preciousTokenIds,
-        bytes32 listMerkleRoot
+        PartyFromListInitOpts memory initOpts
     ) public returns (Party party) {
         // Create the party.
-        party = _createParty(address(PARTY_LIST), opts, preciousTokens, preciousTokenIds);
+        party = _createParty(
+            address(PARTY_LIST),
+            initOpts.opts,
+            initOpts.preciousTokens,
+            initOpts.preciousTokenIds
+        );
         // Create the list used to determine the initial list of members and voting
-        // power for each member.
-        PARTY_LIST.createList(party, listMerkleRoot);
+        // power for each member and mint the party creator their card.
+        PARTY_LIST.createList(
+            party,
+            initOpts.listMerkleRoot,
+            initOpts.creator,
+            initOpts.creatorVotingPower,
+            initOpts.creatorDelegate
+        );
+        // Transfer the tokens to the party.
+        for (uint256 i; i < initOpts.tokens.length; ++i) {
+            initOpts.tokens[i].transferFrom(msg.sender, address(party), initOpts.tokenIds[i]);
+        }
     }
 
     function _createParty(

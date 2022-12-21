@@ -8,6 +8,7 @@ import "../../contracts/party/PartyList.sol";
 import "../../contracts/globals/Globals.sol";
 import "../TestUtils.sol";
 import "../../contracts/proposals/ProposalExecutionEngine.sol";
+import "../DummyERC721.sol";
 
 contract PartyFactoryTest is Test, TestUtils {
     Globals globals = new Globals(address(this));
@@ -16,6 +17,9 @@ contract PartyFactoryTest is Test, TestUtils {
     PartyFactory factory = new PartyFactory(globals, partyList);
     ProposalExecutionEngine eng;
     Party.PartyOptions defaultPartyOptions;
+    IERC721[] preciousTokens;
+    uint256[] preciousTokenIds;
+    bytes32 preciousListHash;
 
     constructor() {
         defaultPartyOptions.name = "PARTY";
@@ -38,26 +42,23 @@ contract PartyFactoryTest is Test, TestUtils {
         globals.setAddress(LibGlobals.GLOBAL_PARTY_IMPL, address(partyImpl));
         globals.setAddress(LibGlobals.GLOBAL_PROPOSAL_ENGINE_IMPL, address(eng));
         globals.setAddress(LibGlobals.GLOBAL_PARTY_FACTORY, address(factory));
-    }
 
-    function _createPreciouses(
-        uint256 count
-    ) private view returns (IERC721[] memory preciousTokens, uint256[] memory preciousTokenIds) {
-        preciousTokens = new IERC721[](count);
-        preciousTokenIds = new uint256[](count);
-        for (uint256 i; i < count; ++i) {
-            preciousTokens[i] = IERC721(_randomAddress());
-            preciousTokenIds[i] = _randomUint256();
+        preciousTokens = new IERC721[](3);
+        preciousTokenIds = new uint256[](3);
+        for (uint256 i; i < 3; ++i) {
+            DummyERC721 t = new DummyERC721();
+            preciousTokens[i] = IERC721(address(t));
+            preciousTokenIds[i] = t.mint(address(this));
         }
     }
 
     function _hashPreciousList(
-        IERC721[] memory preciousTokens,
-        uint256[] memory preciousTokenIds
+        IERC721[] memory _preciousTokens,
+        uint256[] memory _preciousTokenIds
     ) internal pure returns (bytes32 h) {
         assembly {
-            mstore(0x00, keccak256(add(preciousTokens, 0x20), mul(mload(preciousTokens), 0x20)))
-            mstore(0x20, keccak256(add(preciousTokenIds, 0x20), mul(mload(preciousTokenIds), 0x20)))
+            mstore(0x00, keccak256(add(_preciousTokens, 0x20), mul(mload(_preciousTokens), 0x20)))
+            mstore(0x20, keccak256(add(_preciousTokenIds, 0x20), mul(mload(_preciousTokenIds), 0x20)))
             h := keccak256(0x00, 0x40)
         }
     }
@@ -71,7 +72,6 @@ contract PartyFactoryTest is Test, TestUtils {
         vm.assume(randomBps <= 1e4);
 
         address authority = _randomAddress();
-        (IERC721[] memory preciousTokens, uint256[] memory preciousTokenIds) = _createPreciouses(3);
         Party.PartyOptions memory opts = Party.PartyOptions({
             governance: PartyGovernance.GovernanceOpts({
                 hosts: _toAddressArray(_randomAddress()),
@@ -106,7 +106,6 @@ contract PartyFactoryTest is Test, TestUtils {
         vm.assume(passThresholdBps > 1e4 || feeBps > 1e4);
 
         address authority = _randomAddress();
-        (IERC721[] memory preciousTokens, uint256[] memory preciousTokenIds) = _createPreciouses(3);
 
         Party.PartyOptions memory opts = defaultPartyOptions;
         opts.governance.feeBps = feeBps;
@@ -122,23 +121,38 @@ contract PartyFactoryTest is Test, TestUtils {
     }
 
     function testCreatePartyFromList() external {
-        (IERC721[] memory preciousTokens, uint256[] memory preciousTokenIds) = _createPreciouses(3);
         address member = _randomAddress();
         address delegate = _randomAddress();
         uint96 votingPower = 0.1e18;
-        bytes32 listMerkleRoot = keccak256(abi.encodePacked(member, votingPower));
-        Party party = factory.createPartyFromList(
-            defaultPartyOptions,
-            preciousTokens,
-            preciousTokenIds,
-            listMerkleRoot
-        );
-        assertEq(party.mintAuthority(), address(partyList));
-        assertEq(partyList.listMerkleRoots(party), listMerkleRoot);
+        uint256 nonce = _randomUint256();
 
-        uint256 tokenId = partyList.mint(party, member, votingPower, delegate, new bytes32[](0));
+        for (uint256 i; i < 3; ++i) {
+            preciousTokens[i].approve(address(factory), preciousTokenIds[i]);
+        }
+
+        IPartyFactory.PartyFromListInitOpts memory initOpts = IPartyFactory.PartyFromListInitOpts({
+            opts: defaultPartyOptions,
+            tokens: preciousTokens,
+            tokenIds: preciousTokenIds,
+            preciousTokens: preciousTokens,
+            preciousTokenIds: preciousTokenIds,
+            creator: _randomAddress(),
+            creatorVotingPower: 0.3e18,
+            creatorDelegate: _randomAddress(),
+            listMerkleRoot: keccak256(abi.encodePacked(member, votingPower, nonce))
+        });
+
+        Party party = factory.createPartyFromList(initOpts);
+
+        assertEq(party.mintAuthority(), address(partyList));
+        assertEq(partyList.listMerkleRoots(party), initOpts.listMerkleRoot);
+        assertEq(party.balanceOf(initOpts.creator), 1);
+        assertEq(party.delegationsByVoter(initOpts.creator), initOpts.creatorDelegate);
+        assertEq(party.votingPowerByTokenId(1), initOpts.creatorVotingPower);
+
+        partyList.mint(party, member, votingPower, nonce, delegate, new bytes32[](0));
         assertEq(party.balanceOf(member), 1);
         assertEq(party.delegationsByVoter(member), delegate);
-        assertEq(party.votingPowerByTokenId(tokenId), votingPower);
+        assertEq(party.votingPowerByTokenId(2), votingPower);
     }
 }
