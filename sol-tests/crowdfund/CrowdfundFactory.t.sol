@@ -436,6 +436,7 @@ contract CrowdfundFactoryTest is Test, TestUtils {
                 symbol: randomStr,
                 customizationPresetId: 0,
                 nftContract: nftContract,
+                nftTokenIdsMerkleRoot: keccak256(abi.encodePacked(_randomUint256())),
                 // This is to avoid overflows when adding to `block.timestamp`.
                 duration: uint40(_randomRange(1, type(uint40).max - block.timestamp)),
                 maximumPrice: randomUint96,
