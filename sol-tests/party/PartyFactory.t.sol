@@ -126,7 +126,7 @@ contract PartyFactoryTest is Test, TestUtils {
         uint96 votingPower = 0.1e18;
         uint256 nonce = _randomUint256();
 
-        for (uint256 i; i < 3; ++i) {
+        for (uint256 i; i < preciousTokens.length; ++i) {
             preciousTokens[i].approve(address(factory), preciousTokenIds[i]);
         }
 
@@ -154,5 +154,9 @@ contract PartyFactoryTest is Test, TestUtils {
         assertEq(party.balanceOf(member), 1);
         assertEq(party.delegationsByVoter(member), delegate);
         assertEq(party.votingPowerByTokenId(2), votingPower);
+
+        for (uint256 i; i < preciousTokens.length; ++i) {
+            assertEq(preciousTokens[i].ownerOf(preciousTokenIds[i]), address(party));
+        }
     }
 }

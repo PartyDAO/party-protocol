@@ -5,8 +5,13 @@ import "solmate/utils/MerkleProofLib.sol";
 
 import "./Party.sol";
 import "./IPartyFactory.sol";
+import "../utils/LibRawResult.sol";
 
 contract PartyList {
+    using LibRawResult for bytes;
+
+    event ListCreated(Party party, bytes32 merkleRoot);
+
     error ListAlreadyExistsError(Party party, bytes32 merkleRoot);
     error InvalidProofError(bytes32[] proof);
     error AlreadyMintedError(bytes32 leaf);
@@ -54,7 +59,10 @@ contract PartyList {
         if (creator != address(0) && creatorVotingPower > 0) {
             party.mint(creator, creatorVotingPower, creatorDelegate);
         }
+
+        emit ListCreated(party, merkleRoot);
     }
+
     /**
      * @notice Mints a party card for a member from the party's list.
      * @param party The party from which the token is being minted
@@ -91,7 +99,6 @@ contract PartyList {
      * @param nonces A numbers used to prevent double-minting
      * @param delegates The addresses to delegate voting power to
      * @param proofs A set of data used to verify the validity of the minting
-     * @return tokenIds The IDs of the newly minted tokens
      */
     function batchMint(
         Party party,
@@ -99,30 +106,31 @@ contract PartyList {
         uint96[] calldata votingPowers,
         uint256[] calldata nonces,
         address[] calldata delegates,
-        bytes32[][] calldata proofs
-    ) external returns (uint256[] memory tokenIds) {
-        tokenIds = new uint256[](members.length);
+        bytes32[][] calldata proofs,
+        bool revertOnFailure
+    ) external {
         for (uint256 i; i < members.length; ++i) {
-            tokenIds[0] = mint(
-                party,
-                members[i],
-                votingPowers[i],
-                nonces[i],
-                delegates[i],
-                proofs[i]
+            (bool s, bytes memory r) = address(this).delegatecall(
+                abi.encodeCall(
+                    this.mint,
+                    (party, members[i], votingPowers[i], nonces[i], delegates[i], proofs[i])
+                )
             );
+            if (revertOnFailure && !s) {
+                r.rawRevert();
+            }
         }
     }
 
     /**
-    * @notice Checks if a given member is allowed to mint from a party's list.
-    * @param party The party for which the `member` is being checked.
-    * @param member The address of the member to check.
-    * @param votingPower The voting power of the `member` in the `party`.
-    * @param nonce A nonce associated with the mint used to prevent double-minting.
-    * @param proof A set of data used to verify the validity of the minting.
-    * @return allowed A boolean indicating if the `member` is allowed to mint.
-    */
+     * @notice Checks if a given member is allowed to mint from a party's list.
+     * @param party The party for which the `member` is being checked.
+     * @param member The address of the member to check.
+     * @param votingPower The voting power of the `member` in the `party`.
+     * @param nonce A nonce associated with the mint used to prevent double-minting.
+     * @param proof A set of data used to verify the validity of the minting.
+     * @return allowed A boolean indicating if the `member` is allowed to mint.
+     */
     function isAllowed(
         Party party,
         address member,
