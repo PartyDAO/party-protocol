@@ -204,7 +204,7 @@ contract TestablePartyGovernance is PartyGovernance {
         IERC721[] memory preciousTokens,
         uint256[] memory preciousTokenIds
     ) public pure returns (bytes32 h) {
-        h = _hashPreciousList(preciousTokens, preciousTokenIds);
+        h = LibPreciousList.hashPreciousList(preciousTokens, preciousTokenIds);
     }
 }
 
@@ -2266,14 +2266,13 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
             IERC721[] memory preciousTokens,
             uint256[] memory preciousTokenIds
         ) = _createPreciousTokens(2);
-        TestablePartyGovernance gov = _createGovernance(100e18, preciousTokens, preciousTokenIds);
         bytes32 expectedHash = keccak256(
             abi.encode(
                 keccak256(abi.encode(preciousTokens[0], preciousTokens[1])),
                 keccak256(abi.encode(preciousTokenIds[0], preciousTokenIds[1]))
             )
         );
-        bytes32 actualHash = gov.hashPreciousList(preciousTokens, preciousTokenIds);
+        bytes32 actualHash = LibPreciousList.hashPreciousList(preciousTokens, preciousTokenIds);
         assertEq(actualHash, expectedHash);
     }
 

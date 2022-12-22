@@ -52,20 +52,6 @@ contract PartyFactoryTest is Test, TestUtils {
         }
     }
 
-    function _hashPreciousList(
-        IERC721[] memory _preciousTokens,
-        uint256[] memory _preciousTokenIds
-    ) internal pure returns (bytes32 h) {
-        assembly {
-            mstore(0x00, keccak256(add(_preciousTokens, 0x20), mul(mload(_preciousTokens), 0x20)))
-            mstore(
-                0x20,
-                keccak256(add(_preciousTokenIds, 0x20), mul(mload(_preciousTokenIds), 0x20))
-            )
-            h := keccak256(0x00, 0x40)
-        }
-    }
-
     function testCreateParty(
         string memory randomStr,
         uint96 randomUint96,
@@ -101,7 +87,10 @@ contract PartyFactoryTest is Test, TestUtils {
         assertEq(party.feeBps(), opts.governance.feeBps);
         assertEq(party.feeRecipient(), opts.governance.feeRecipient);
         assertEq(address(party.getProposalExecutionEngine()), address(eng));
-        assertEq(party.preciousListHash(), _hashPreciousList(preciousTokens, preciousTokenIds));
+        assertEq(
+            party.preciousListHash(),
+            LibPreciousList.hashPreciousList(preciousTokens, preciousTokenIds)
+        );
     }
 
     function testCreatePartyWithInvalidBps(uint16 passThresholdBps, uint16 feeBps) external {
