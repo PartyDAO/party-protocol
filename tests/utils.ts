@@ -51,6 +51,23 @@ export async function deployContract(
   return cf.deploy(...args, ...[overrides ? [overrides] : []]);
 }
 
+export function hashPreciousList(
+  preciousTokens: Array<{ token: Contract; tokenId: BigNumber }>,
+): string {
+  let abi = ethers.utils.defaultAbiCoder;
+  let tokens = preciousTokens.map(({ token }) => token.address);
+  let tokenIds = preciousTokens.map(({ tokenId }) => tokenId);
+  return ethers.utils.keccak256(
+    abi.encode(
+      ["bytes32", "bytes32"],
+      [
+        ethers.utils.keccak256(abi.encode(Array(tokens.length).fill("address"), tokens)),
+        ethers.utils.keccak256(abi.encode(Array(tokenIds.length).fill("uint256"), tokenIds)),
+      ],
+    ),
+  );
+}
+
 export function describeFork(name: string, body: (forkProvider: MockProvider) => void) {
   let it = global.it;
   if (!ENV.FORK_URL) {

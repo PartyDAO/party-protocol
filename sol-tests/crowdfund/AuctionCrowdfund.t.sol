@@ -17,13 +17,7 @@ import "./MockParty.sol";
 import "./MockMarketWrapper.sol";
 
 contract AuctionCrowdfundTest is Test, TestUtils {
-    event MockPartyFactoryCreateParty(
-        address caller,
-        address authority,
-        Party.PartyOptions opts,
-        IERC721[] preciousTokens,
-        uint256[] preciousTokenIds
-    );
+    event MockPartyFactoryCreateParty(address caller, Party.PartyOpts opts, address authority);
 
     event MockMint(address caller, address owner, uint256 amount, address delegate);
 
@@ -126,14 +120,20 @@ contract AuctionCrowdfundTest is Test, TestUtils {
             );
     }
 
-    function _createExpectedPartyOptions(
+    function _createExpectedPartyOpts(
+        ERC721 preciousToken,
+        uint256 preciousTokenId,
         uint256 finalPrice
-    ) private view returns (Party.PartyOptions memory opts) {
+    ) private view returns (Party.PartyOpts memory opts) {
         return
-            Party.PartyOptions({
+            Party.PartyOpts({
                 name: defaultName,
                 symbol: defaultSymbol,
                 customizationPresetId: 0,
+                preciousListHash: LibPreciousList.hashPreciousList(
+                    _toERC721Array(preciousToken),
+                    _toUint256Array(preciousTokenId)
+                ),
                 governance: PartyGovernance.GovernanceOpts({
                     hosts: defaultGovernanceOpts.hosts,
                     voteDuration: defaultGovernanceOpts.voteDuration,
@@ -167,10 +167,8 @@ contract AuctionCrowdfundTest is Test, TestUtils {
         _expectEmit0();
         emit MockPartyFactoryCreateParty(
             address(cf),
-            address(cf),
-            _createExpectedPartyOptions(1337),
-            _toERC721Array(tokenToBuy),
-            _toUint256Array(tokenId)
+            _createExpectedPartyOpts(ERC721(address(tokenToBuy)), tokenId, 1337),
+            address(cf)
         );
         Party party_ = cf.finalize(defaultGovernanceOpts);
         assertEq(address(party_), address(party));

@@ -20,11 +20,13 @@ contract PartyTest is Test, TestUtils {
     }
 
     function test_cannotReinitialize() external {
-        Party.PartyInitData memory initData;
+        Party.PartyOpts memory opts;
         Party party = Party(
-            payable(address(new Proxy(partyImpl, abi.encodeCall(Party.initialize, initData))))
+            payable(
+                address(new Proxy(partyImpl, abi.encodeCall(Party.initialize, (opts, address(0)))))
+            )
         );
         vm.expectRevert(abi.encodeWithSelector(Implementation.OnlyConstructorError.selector));
-        party.initialize(initData);
+        party.initialize(opts, address(0));
     }
 }

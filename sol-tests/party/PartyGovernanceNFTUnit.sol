@@ -13,24 +13,8 @@ import "../TestUtils.sol";
 contract TestablePartyGovernanceNFT is PartyGovernanceNFT {
     constructor() PartyGovernanceNFT(new Globals(msg.sender)) {}
 
-    function initialize(
-        string memory name_,
-        string memory symbol_,
-        uint256 customizationPresetId,
-        PartyGovernance.GovernanceOpts memory governanceOpts,
-        IERC721[] memory preciousTokens,
-        uint256[] memory preciousTokenIds,
-        address mintAuthority_
-    ) external {
-        _initialize(
-            name_,
-            symbol_,
-            customizationPresetId,
-            governanceOpts,
-            preciousTokens,
-            preciousTokenIds,
-            mintAuthority_
-        );
+    function initialize(Party.PartyOpts memory opts, address authority) external {
+        _initialize(opts, authority);
     }
 
     function getCurrentVotingPower(address voter) external view returns (uint96 vp) {
@@ -49,12 +33,13 @@ contract PartyGovernanceNFTUnitTest is TestUtils {
     function _initGovernance() private {
         defaultGovernanceOpts.totalVotingPower = 1e18;
         nft.initialize(
-            "TEST",
-            "TST",
-            0,
-            defaultGovernanceOpts,
-            new IERC721[](0),
-            new uint256[](0),
+            Party.PartyOpts({
+                name: "TEST",
+                symbol: "TST",
+                customizationPresetId: 0,
+                preciousListHash: bytes32(0),
+                governance: defaultGovernanceOpts
+            }),
             address(this)
         );
     }

@@ -9,6 +9,12 @@ library LibPreciousList {
         uint256[] memory preciousTokenIds
     ) internal pure returns (bytes32 h) {
         assembly {
+            // keccak256(
+            //     abi.encode(
+            //         keccak256(abi.encode(preciousTokens[0], preciousTokens[1], ...)),
+            //         keccak256(abi.encode(preciousTokenIds[0], preciousTokenIds[1], ...))
+            //     )
+            // );
             mstore(0x00, keccak256(add(preciousTokens, 0x20), mul(mload(preciousTokens), 0x20)))
             mstore(0x20, keccak256(add(preciousTokenIds, 0x20), mul(mload(preciousTokenIds), 0x20)))
             h := keccak256(0x00, 0x40)
