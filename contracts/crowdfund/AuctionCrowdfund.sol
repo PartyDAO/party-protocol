@@ -164,14 +164,22 @@ contract AuctionCrowdfund is Crowdfund {
 
     /// @notice Place a bid on the NFT using the funds in this crowdfund,
     ///         placing the minimum possible bid to be the highest bidder, up to
+    ///         `maximumBid`. Only callable by contributors if `onlyHostCanBid`
+    ///         is not enabled.
+    function bid() external {
+        if (onlyHostCanBid) revert OnlyPartyHostError();
+
+        // Bid with the minimum amount to be the highest bidder.
+        _bid(type(uint96).max);
+    }
+
+    /// @notice Place a bid on the NFT using the funds in this crowdfund,
+    ///         placing the minimum possible bid to be the highest bidder, up to
     ///         `maximumBid`.
     /// @param governanceOpts The governance options the crowdfund was created with.
     /// @param hostIndex If the caller is a host, this is the index of the caller in the
     ///                  `governanceOpts.hosts` array.
-    function bid(
-        FixedGovernanceOpts memory governanceOpts,
-        uint256 hostIndex
-    ) external onlyDelegateCall {
+    function bid(FixedGovernanceOpts memory governanceOpts, uint256 hostIndex) external {
         // This function can be optionally restricted in different ways.
         if (onlyHostCanBid) {
             // Only a host can call this function.
@@ -182,6 +190,28 @@ contract AuctionCrowdfund is Crowdfund {
             _assertIsContributor(msg.sender);
         }
 
+        // Bid with the minimum amount to be the highest bidder.
+        _bid(type(uint96).max);
+    }
+
+    /// @notice Place a bid on the NFT using the funds in this crowdfund,
+    ///         placing a bid, up to `maximumBid`. Only host can call this.
+    /// @param amount The amount to bid.
+    /// @param governanceOpts The governance options the crowdfund was created with.
+    /// @param hostIndex If the caller is a host, this is the index of the caller in the
+    ///                  `governanceOpts.hosts` array.
+    function bid(
+        uint96 amount,
+        FixedGovernanceOpts memory governanceOpts,
+        uint256 hostIndex
+    ) external {
+        // Only a host can call specify a custom bid amount.
+        _assertIsHost(msg.sender, governanceOpts, hostIndex);
+
+        _bid(amount);
+    }
+
+    function _bid(uint96 amount) private onlyDelegateCall {
         // Check that the auction is still active.
         {
             CrowdfundLifecycle lc = getCrowdfundLifecycle();
@@ -206,30 +236,33 @@ contract AuctionCrowdfund is Crowdfund {
             revert AlreadyHighestBidderError();
         }
 
-        // Get the minimum necessary bid to be the highest bidder.
-        uint96 bidAmount = market_.getMinimumBid(auctionId_).safeCastUint256ToUint96();
+        if (amount == type(uint96).max) {
+            // Get the minimum necessary bid to be the highest bidder.
+            amount = market_.getMinimumBid(auctionId_).safeCastUint256ToUint96();
+        }
+
         // Prevent unaccounted ETH from being used to inflate the bid and
         // create "ghost shares" in voting power.
         uint96 totalContributions_ = totalContributions;
-        if (bidAmount > totalContributions_) {
-            revert ExceedsTotalContributionsError(bidAmount, totalContributions_);
+        if (amount > totalContributions_) {
+            revert ExceedsTotalContributionsError(amount, totalContributions_);
         }
         // Make sure the bid is less than the maximum bid.
         uint96 maximumBid_ = maximumBid;
-        if (bidAmount > maximumBid_) {
-            revert ExceedsMaximumBidError(bidAmount, maximumBid_);
+        if (amount > maximumBid_) {
+            revert ExceedsMaximumBidError(amount, maximumBid_);
         }
-        lastBid = bidAmount;
+        lastBid = amount;
 
-        // No need to check that we have `bidAmount` since this will attempt to
-        // transfer `bidAmount` ETH to the auction platform.
+        // No need to check that we have `amount` since this will attempt to
+        // transfer `amount` ETH to the auction platform.
         (bool s, bytes memory r) = address(market_).delegatecall(
-            abi.encodeCall(IMarketWrapper.bid, (auctionId_, bidAmount))
+            abi.encodeCall(IMarketWrapper.bid, (auctionId_, amount))
         );
         if (!s) {
             r.rawRevert();
         }
-        emit Bid(bidAmount);
+        emit Bid(amount);
 
         _bidStatus = AuctionCrowdfundStatus.Active;
     }
