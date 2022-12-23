@@ -333,6 +333,33 @@ abstract contract Crowdfund is Implementation, ERC721Receiver, CrowdfundNFT {
         _contribute(recipient, msg.value.safeCastUint256ToUint96(), totalContributions, gateData);
     }
 
+    /// @notice `contributeBur()` in batch form.
+    ///         Will not revert if any individual burn fails.
+    /// @param recipients The addresses to record the contributions under.
+    /// @param initialDelegates The addresses to delegate to for each recipient.
+    /// @param values The ETH to contribute for each recipient.
+    /// @param gateDatas Data to pass to the gatekeeper to prove eligibility.
+    /// @param revertOnFailure If true, revert if any burn fails.
+    function batchContributeFor(
+        address[] memory recipients,
+        address[] memory initialDelegates,
+        uint256[] memory values,
+        bytes[] memory gateDatas,
+        bool revertOnFailure
+    ) external payable {
+        for (uint256 i; i < recipients.length; ++i) {
+            (bool s, bytes memory r) = address(this).call{ value: values[i] }(
+                abi.encodeCall(
+                    this.contributeFor,
+                    (recipients[i], initialDelegates[i], gateDatas[i])
+                )
+            );
+            if (revertOnFailure && !s) {
+                r.rawRevert();
+            }
+        }
+    }
+
     /// @inheritdoc EIP165
     function supportsInterface(
         bytes4 interfaceId
