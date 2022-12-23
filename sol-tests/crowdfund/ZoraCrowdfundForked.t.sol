@@ -60,7 +60,7 @@ contract ZoraCrowdfundForkedTest is TestUtils, ERC721Receiver {
                         pbImpl,
                         abi.encodeCall(
                             AuctionCrowdfund.initialize,
-                            AuctionCrowdfund.AuctionCrowdfundOptions({
+                            AuctionCrowdfundBase.AuctionCrowdfundOptions({
                                 name: "Party",
                                 symbol: "PRTY",
                                 customizationPresetId: 0,

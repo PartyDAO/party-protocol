@@ -19,7 +19,7 @@ contract CrowdfundFactory {
     event BuyCrowdfundCreated(BuyCrowdfund crowdfund, BuyCrowdfund.BuyCrowdfundOptions opts);
     event AuctionCrowdfundCreated(
         AuctionCrowdfund crowdfund,
-        AuctionCrowdfund.AuctionCrowdfundOptions opts
+        AuctionCrowdfundBase.AuctionCrowdfundOptions opts
     );
     event CollectionBuyCrowdfundCreated(
         CollectionBuyCrowdfund crowdfund,
@@ -72,7 +72,7 @@ contract CrowdfundFactory {
     /// @param createGateCallData Encoded calldata used by `createGate()` to create
     ///                           the crowdfund if one is specified in `opts`.
     function createAuctionCrowdfund(
-        AuctionCrowdfund.AuctionCrowdfundOptions memory opts,
+        AuctionCrowdfundBase.AuctionCrowdfundOptions memory opts,
         bytes memory createGateCallData
     ) public payable returns (AuctionCrowdfund inst) {
         opts.gateKeeperId = _prepareGate(opts.gateKeeper, opts.gateKeeperId, createGateCallData);

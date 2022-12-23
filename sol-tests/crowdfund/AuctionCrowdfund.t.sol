@@ -89,7 +89,7 @@ contract AuctionCrowdfundTest is Test, TestUtils {
                         auctionCrowdfundImpl,
                         abi.encodeCall(
                             AuctionCrowdfund.initialize,
-                            AuctionCrowdfund.AuctionCrowdfundOptions({
+                            AuctionCrowdfundBase.AuctionCrowdfundOptions({
                                 name: defaultName,
                                 symbol: defaultSymbol,
                                 customizationPresetId: 0,
@@ -190,11 +190,36 @@ contract AuctionCrowdfundTest is Test, TestUtils {
         assertEq(contributor.balance, 1e18 - 1337);
     }
 
+    function test_canBidWithCustomAmountAsHost() external {
+        // Create a token and auction with min bid of 1337 wei.
+        (uint256 auctionId, uint256 tokenId) = market.createAuction(1337);
+        // Create a AuctionCrowdfund instance.
+        AuctionCrowdfund cf = _createCrowdfund(
+            auctionId,
+            tokenId,
+            0,
+            false,
+            IGateKeeper(address(0)),
+            "",
+            _toAddressArray(address(this))
+        );
+        // Contribute and delegate.
+        address payable contributor = _randomAddress();
+        address delegate = _randomAddress();
+        _contribute(cf, contributor, delegate, 1e18);
+        // Expect revert if not host.
+        vm.expectRevert(Crowdfund.OnlyPartyHostError.selector);
+        vm.prank(_randomAddress());
+        cf.bid(1e18, defaultGovernanceOpts, 0);
+        // Bid on the auction with a custom amount as host.
+        cf.bid(1e18, defaultGovernanceOpts, 0);
+    }
+
     function test_cannotReinitialize() external {
         (uint256 auctionId, uint256 tokenId) = market.createAuction(1337);
         AuctionCrowdfund cf = _createCrowdfund(auctionId, tokenId, 0);
         vm.expectRevert(abi.encodeWithSelector(Implementation.OnlyConstructorError.selector));
-        AuctionCrowdfund.AuctionCrowdfundOptions memory opts;
+        AuctionCrowdfundBase.AuctionCrowdfundOptions memory opts;
         cf.initialize(opts);
     }
 
@@ -492,7 +517,7 @@ contract AuctionCrowdfundTest is Test, TestUtils {
         address payable contributor = _randomAddress();
         _contribute(cf, contributor, 1e18);
         // Set up a callback to reenter bid().
-        market.setCallback(address(cf), abi.encodeCall(cf.bid, (defaultGovernanceOpts, 0)), 0);
+        market.setCallback(address(cf), abi.encodeWithSignature("bid()"), 0);
         // Bid on the auction.
         vm.expectRevert(
             abi.encodeWithSelector(
@@ -724,7 +749,7 @@ contract AuctionCrowdfundTest is Test, TestUtils {
                         auctionCrowdfundImpl,
                         abi.encodeCall(
                             AuctionCrowdfund.initialize,
-                            AuctionCrowdfund.AuctionCrowdfundOptions({
+                            AuctionCrowdfundBase.AuctionCrowdfundOptions({
                                 name: defaultName,
                                 symbol: defaultSymbol,
                                 customizationPresetId: 0,

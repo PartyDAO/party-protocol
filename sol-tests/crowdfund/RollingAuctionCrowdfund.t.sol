@@ -175,7 +175,7 @@ contract RollingAuctionCrowdfundTest is TestUtils, ERC721Receiver {
 
         // Attempt finalizing and setting next auction to the one that just ended
         vm.expectRevert(
-            abi.encodeWithSelector(RollingAuctionCrowdfund.InvalidAuctionIdError.selector)
+            abi.encodeWithSelector(AuctionCrowdfundBase.InvalidAuctionIdError.selector)
         );
         crowdfund.finalizeOrRollOver(tokenId, auctionId, new bytes32[](0), govOpts, 0);
     }

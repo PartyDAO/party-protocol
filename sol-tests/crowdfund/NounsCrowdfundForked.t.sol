@@ -50,7 +50,7 @@ contract NounsCrowdfundForkedTest is TestUtils {
                         pbImpl,
                         abi.encodeCall(
                             AuctionCrowdfund.initialize,
-                            AuctionCrowdfund.AuctionCrowdfundOptions({
+                            AuctionCrowdfundBase.AuctionCrowdfundOptions({
                                 name: "Party",
                                 symbol: "PRTY",
                                 customizationPresetId: 0,

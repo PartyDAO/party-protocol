@@ -4,35 +4,15 @@ pragma solidity 0.8.17;
 
 import "openzeppelin/contracts/utils/cryptography/MerkleProof.sol";
 
-import "../tokens/IERC721.sol";
-import "../party/Party.sol";
-import "../utils/Implementation.sol";
-import "../utils/LibSafeERC721.sol";
-import "../utils/LibRawResult.sol";
-import "../globals/IGlobals.sol";
-import "../gatekeepers/IGateKeeper.sol";
-
-import "../market-wrapper/IMarketWrapper.sol";
-import "./Crowdfund.sol";
+import "./AuctionCrowdfundBase.sol";
 
 /// @notice A crowdfund that can repeatedly bid on auctions for an NFT from a
 ///         specific collection on a specific market (eg. Nouns) and can
 ///         continue bidding on new auctions until it wins.
-contract RollingAuctionCrowdfund is Implementation, Crowdfund {
+contract RollingAuctionCrowdfund is AuctionCrowdfundBase {
     using LibSafeERC721 for IERC721;
     using LibSafeCast for uint256;
     using LibRawResult for bytes;
-
-    enum RollingAuctionCrowdfundStatus {
-        // The crowdfund has been created and contributions can be made and
-        // acquisition functions may be called.
-        Active,
-        // An temporary state set by the contract during complex operations to
-        // act as a reentrancy guard.
-        Busy,
-        // The crowdfund is over and has either won or lost.
-        Finalized
-    }
 
     struct RollingAuctionCrowdfundOptions {
         // The name of the crowdfund.
@@ -84,39 +64,10 @@ contract RollingAuctionCrowdfund is Implementation, Crowdfund {
         FixedGovernanceOpts governanceOpts;
     }
 
-    event Bid(uint256 bidAmount);
-    event Won(uint256 bid, Party party);
     event AuctionUpdated(uint256 nextNftTokenId, uint256 nextAuctionId);
-    event Lost();
 
-    error InvalidAuctionIdError();
-    error AuctionFinalizedError(uint256 auctionId);
-    error AlreadyHighestBidderError();
-    error ExceedsMaximumBidError(uint256 bidAmount, uint256 maximumBid);
-    error NoContributionsError();
-    error AuctionNotExpiredError();
     error BadNextAuctionError();
 
-    /// @notice The NFT contract to buy.
-    IERC721 public nftContract;
-    /// @notice The NFT token ID to buy.
-    uint256 public nftTokenId;
-    /// @notice An adapter for the auction market (Zora, OpenSea, etc).
-    /// @dev This will be delegatecalled into to execute bids.
-    IMarketWrapper public market;
-    /// @notice The auction ID to identify the auction on the `market`.
-    uint256 public auctionId;
-    /// @notice The maximum possible bid this crowdfund can make.
-    uint96 public maximumBid;
-    /// @notice The last successful bid() amount.
-    uint96 public lastBid;
-    /// @notice When this crowdfund expires. If the NFT has not been bought
-    ///         by this time, participants can withdraw their contributions.
-    uint40 public expiry;
-    /// @notice Whether the party is only allowing a host to call `bid()`.
-    bool public onlyHostCanBid;
-    // Track extra status of the crowdfund specific to bids.
-    RollingAuctionCrowdfundStatus private _bidStatus;
     /// @notice Merkle root of list of allowed next auctions that can be rolled
     ///         over to if the current auction loses. Each leaf should be hashed
     ///         as `keccak256(abi.encodePacked(auctionId, tokenId)))` where
@@ -125,7 +76,7 @@ contract RollingAuctionCrowdfund is Implementation, Crowdfund {
     bytes32 public allowedAuctionsMerkleRoot;
 
     // Set the `Globals` contract.
-    constructor(IGlobals globals) Crowdfund(globals) {}
+    constructor(IGlobals globals) AuctionCrowdfundBase(globals) {}
 
     /// @notice Initializer to be delegatecalled by `Proxy` constructor. Will
     ///         revert if called outside the constructor.
@@ -134,105 +85,30 @@ contract RollingAuctionCrowdfund is Implementation, Crowdfund {
     function initialize(
         RollingAuctionCrowdfundOptions memory opts
     ) external payable onlyConstructor {
-        nftContract = opts.nftContract;
-        nftTokenId = opts.nftTokenId;
-        market = opts.market;
-        expiry = uint40(opts.duration + block.timestamp);
-        auctionId = opts.auctionId;
-        maximumBid = opts.maximumBid;
-        allowedAuctionsMerkleRoot = opts.allowedAuctionsMerkleRoot;
-        Crowdfund._initialize(
-            CrowdfundOptions({
+        // Initialize the base contract.
+        AuctionCrowdfundBase._initialize(
+            AuctionCrowdfundBase.AuctionCrowdfundOptions({
                 name: opts.name,
                 symbol: opts.symbol,
                 customizationPresetId: opts.customizationPresetId,
+                auctionId: opts.auctionId,
+                market: opts.market,
+                nftContract: opts.nftContract,
+                nftTokenId: opts.nftTokenId,
+                duration: opts.duration,
+                maximumBid: opts.maximumBid,
                 splitRecipient: opts.splitRecipient,
                 splitBps: opts.splitBps,
                 initialContributor: opts.initialContributor,
                 initialDelegate: opts.initialDelegate,
                 gateKeeper: opts.gateKeeper,
                 gateKeeperId: opts.gateKeeperId,
+                onlyHostCanBid: opts.onlyHostCanBid,
                 governanceOpts: opts.governanceOpts
             })
         );
 
-        // Check that the auction can be bid on and is valid.
-        _validateAuction(opts.market, opts.auctionId, opts.nftContract, opts.nftTokenId);
-    }
-
-    /// @notice Accept naked ETH, e.g., if an auction needs to return ETH to us.
-    receive() external payable {}
-
-    /// @notice Place a bid on the NFT using the funds in this crowdfund,
-    ///         placing the minimum possible bid to be the highest bidder, up to
-    ///         `maximumBid`.
-    /// @param governanceOpts The governance options the crowdfund was created with.
-    /// @param hostIndex If the caller is a host, this is the index of the caller in the
-    ///                  `governanceOpts.hosts` array.
-    function bid(
-        FixedGovernanceOpts memory governanceOpts,
-        uint256 hostIndex
-    ) external onlyDelegateCall {
-        // This function can be optionally restricted in different ways.
-        if (onlyHostCanBid) {
-            // Only a host can call this function.
-            _assertIsHost(msg.sender, governanceOpts, hostIndex);
-        } else if (address(gateKeeper) != address(0)) {
-            // `onlyHostCanBid` is false and we are using a gatekeeper.
-            // Only a contributor can call this function.
-            _assertIsContributor(msg.sender);
-        }
-
-        // Check that the auction is still active.
-        {
-            CrowdfundLifecycle lc = getCrowdfundLifecycle();
-            if (lc != CrowdfundLifecycle.Active) {
-                revert WrongLifecycleError(lc);
-            }
-        }
-
-        // Mark as busy to prevent `burn()`, `bid()`, and `contribute()`
-        // getting called because this will result in a `CrowdfundLifecycle.Busy`.
-        _bidStatus = RollingAuctionCrowdfundStatus.Busy;
-
-        // Make sure the auction is not finalized.
-        IMarketWrapper market_ = market;
-        uint256 auctionId_ = auctionId;
-        if (market_.isFinalized(auctionId_)) {
-            revert AuctionFinalizedError(auctionId_);
-        }
-
-        // Only bid if we are not already the highest bidder.
-        if (market_.getCurrentHighestBidder(auctionId_) == address(this)) {
-            revert AlreadyHighestBidderError();
-        }
-
-        // Get the minimum necessary bid to be the highest bidder.
-        uint96 bidAmount = market_.getMinimumBid(auctionId_).safeCastUint256ToUint96();
-        // Prevent unaccounted ETH from being used to inflate the bid and
-        // create "ghost shares" in voting power.
-        uint96 totalContributions_ = totalContributions;
-        if (bidAmount > totalContributions_) {
-            revert ExceedsTotalContributionsError(bidAmount, totalContributions_);
-        }
-        // Make sure the bid is less than the maximum bid.
-        uint96 maximumBid_ = maximumBid;
-        if (bidAmount > maximumBid_) {
-            revert ExceedsMaximumBidError(bidAmount, maximumBid_);
-        }
-        lastBid = bidAmount;
-
-        // No need to check that we have `bidAmount` since this will attempt to
-        // transfer `bidAmount` ETH to the auction platform.
-        (bool s, bytes memory r) = address(market_).delegatecall(
-            abi.encodeCall(IMarketWrapper.bid, (auctionId_, bidAmount))
-        );
-        if (!s) {
-            r.rawRevert();
-        }
-        emit Bid(bidAmount);
-
-        _bidStatus = RollingAuctionCrowdfundStatus.Active;
+        allowedAuctionsMerkleRoot = opts.allowedAuctionsMerkleRoot;
     }
 
     /// @notice Calls `finalize()` on the market adapter, which will claim the NFT
@@ -285,7 +161,7 @@ contract RollingAuctionCrowdfund is Implementation, Crowdfund {
         }
         // Mark as busy to prevent `burn()`, `bid()`, and `contribute()`
         // getting called because this will result in a `CrowdfundLifecycle.Busy`.
-        _bidStatus = RollingAuctionCrowdfundStatus.Busy;
+        _bidStatus = AuctionCrowdfundStatus.Busy;
         uint96 lastBid_ = lastBid;
         {
             uint256 auctionId_ = auctionId;
@@ -314,7 +190,7 @@ contract RollingAuctionCrowdfund is Implementation, Crowdfund {
             // Create a governance party around the NFT.
             emit Won(lastBid, party_);
 
-            _bidStatus = RollingAuctionCrowdfundStatus.Finalized;
+            _bidStatus = AuctionCrowdfundStatus.Finalized;
         } else if (lc == CrowdfundLifecycle.Expired) {
             // Crowdfund expired without NFT; finalize a loss.
 
@@ -323,7 +199,7 @@ contract RollingAuctionCrowdfund is Implementation, Crowdfund {
             lastBid = 0;
             emit Lost();
 
-            _bidStatus = RollingAuctionCrowdfundStatus.Finalized;
+            _bidStatus = AuctionCrowdfundStatus.Finalized;
         } else {
             // Move on to the next auction if this one has been lost (or, in
             // rare cases, if the NFT was acquired for free and funds remain
@@ -359,43 +235,7 @@ contract RollingAuctionCrowdfund is Implementation, Crowdfund {
             emit AuctionUpdated(nextNftTokenId, nextAuctionId);
 
             // Change back the auction status from `Busy` to `Active`.
-            _bidStatus = RollingAuctionCrowdfundStatus.Active;
-        }
-    }
-
-    /// @inheritdoc Crowdfund
-    function getCrowdfundLifecycle() public view override returns (CrowdfundLifecycle) {
-        // Do not rely on `market.isFinalized()` in case `auctionId` gets reused.
-        RollingAuctionCrowdfundStatus status = _bidStatus;
-        if (status == RollingAuctionCrowdfundStatus.Busy) {
-            // In the midst of finalizing/bidding (trying to reenter).
-            return CrowdfundLifecycle.Busy;
-        }
-        if (status == RollingAuctionCrowdfundStatus.Finalized) {
-            return
-                address(party) != address(0) // If we're fully finalized and we have a party instance then we won.
-                    ? CrowdfundLifecycle.Won // Otherwise we lost.
-                    : CrowdfundLifecycle.Lost;
-        }
-        if (block.timestamp >= expiry) {
-            // Expired. `finalize()` needs to be called.
-            return CrowdfundLifecycle.Expired;
-        }
-        return CrowdfundLifecycle.Active;
-    }
-
-    function _getFinalPrice() internal view override returns (uint256 price) {
-        return lastBid;
-    }
-
-    function _validateAuction(
-        IMarketWrapper market_,
-        uint256 auctionId_,
-        IERC721 nftContract_,
-        uint256 nftTokenId_
-    ) private view {
-        if (!market_.auctionIdMatchesToken(auctionId_, address(nftContract_), nftTokenId_)) {
-            revert InvalidAuctionIdError();
+            _bidStatus = AuctionCrowdfundStatus.Active;
         }
     }
 }
