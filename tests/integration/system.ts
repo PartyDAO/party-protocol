@@ -59,6 +59,7 @@ export enum GlobalKeys {
   RendererStorage = 22,
   ProposalMinCancelDuration = 23,
   RollingAuctionCrowdfundImpl = 24,
+  CollectionBatchBuyCrowdfundImpl = 25,
 }
 
 export enum ProposalType {
