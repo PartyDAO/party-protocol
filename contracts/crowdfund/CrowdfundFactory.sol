@@ -10,6 +10,7 @@ import "./AuctionCrowdfund.sol";
 import "./BuyCrowdfund.sol";
 import "./CollectionBuyCrowdfund.sol";
 import "./RollingAuctionCrowdfund.sol";
+import "./CollectionBatchBuyCrowdfund.sol";
 
 /// @notice Factory used to deploys new proxified `Crowdfund` instances.
 contract CrowdfundFactory {
@@ -27,6 +28,10 @@ contract CrowdfundFactory {
     event RollingAuctionCrowdfundCreated(
         RollingAuctionCrowdfund crowdfund,
         RollingAuctionCrowdfund.RollingAuctionCrowdfundOptions opts
+    );
+    event CollectionBatchBuyCrowdfundCreated(
+        CollectionBatchBuyCrowdfund crowdfund,
+        CollectionBatchBuyCrowdfund.CollectionBatchBuyCrowdfundOptions opts
     );
 
     // The `Globals` contract storing global configuration values. This contract
@@ -124,6 +129,28 @@ contract CrowdfundFactory {
             )
         );
         emit CollectionBuyCrowdfundCreated(inst, opts);
+    }
+
+    /// @notice Create a new crowdfund to purchase multiple NFTs from a collection
+    ///         (i.e. any token ID) from a collection for known prices.
+    /// @param opts Options used to initialize the crowdfund. These are fixed
+    ///             and cannot be changed later.
+    /// @param createGateCallData Encoded calldata used by `createGate()` to create
+    ///                           the crowdfund if one is specified in `opts`.
+    function createCollectionBatchBuyCrowdfund(
+        CollectionBatchBuyCrowdfund.CollectionBatchBuyCrowdfundOptions memory opts,
+        bytes memory createGateCallData
+    ) public payable returns (CollectionBatchBuyCrowdfund inst) {
+        opts.gateKeeperId = _prepareGate(opts.gateKeeper, opts.gateKeeperId, createGateCallData);
+        inst = CollectionBatchBuyCrowdfund(
+            payable(
+                new Proxy{ value: msg.value }(
+                    _GLOBALS.getImplementation(LibGlobals.GLOBAL_COLLECTION_BATCH_BUY_CF_IMPL),
+                    abi.encodeCall(CollectionBatchBuyCrowdfund.initialize, (opts))
+                )
+            )
+        );
+        emit CollectionBatchBuyCrowdfundCreated(inst, opts);
     }
 
     function _prepareGate(

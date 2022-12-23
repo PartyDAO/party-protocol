@@ -27,4 +27,5 @@ library LibGlobals {
     uint256 internal constant GLOBAL_RENDERER_STORAGE = 22;
     uint256 internal constant GLOBAL_PROPOSAL_MIN_CANCEL_DURATION = 23;
     uint256 internal constant GLOBAL_ROLLING_AUCTION_CF_IMPL = 24;
+    uint256 internal constant GLOBAL_COLLECTION_BATCH_BUY_CF_IMPL = 25;
 }
