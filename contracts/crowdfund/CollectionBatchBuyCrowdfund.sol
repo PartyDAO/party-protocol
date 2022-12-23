@@ -10,12 +10,14 @@ import "../utils/Implementation.sol";
 import "../utils/LibSafeERC721.sol";
 import "../globals/IGlobals.sol";
 import "../gatekeepers/IGateKeeper.sol";
+import "openzeppelin/contracts/utils/cryptography/MerkleProof.sol";
 
 import "./BuyCrowdfundBase.sol";
 
 contract CollectionBatchBuyCrowdfund is BuyCrowdfundBase {
     using LibSafeERC721 for IERC721;
     using LibSafeCast for uint256;
+    using LibRawResult for bytes;
 
     struct CollectionBatchBuyCrowdfundOptions {
         // The name of the crowdfund.
@@ -56,8 +58,23 @@ contract CollectionBatchBuyCrowdfund is BuyCrowdfundBase {
         FixedGovernanceOpts governanceOpts;
     }
 
+    struct BatchBuyArgs {
+        uint256[] tokenIds;
+        address payable[] callTargets;
+        uint96[] callValues;
+        bytes[] callDatas;
+        bytes32[][] proofs;
+        uint256 minTokensBought;
+        uint256 minTotalEthUsed;
+        FixedGovernanceOpts governanceOpts;
+        uint256 hostIndex;
+    }
+
     error NothingBoughtError();
+    error InvalidMinTokensBoughtError(uint256 minTokensBought);
     error InvalidTokenIdError();
+    error NotEnoughTokensBoughtError(uint256 tokensBought, uint256 minTokensBought);
+    error NotEnoughEthUsedError(uint256 ethUsed, uint256 minTotalEthUsed);
 
     /// @notice The contract of NFTs to buy.
     IERC721 public nftContract;
@@ -100,25 +117,11 @@ contract CollectionBatchBuyCrowdfund is BuyCrowdfundBase {
 
     /// @notice Execute arbitrary calldata to perform a batch buy, creating a party
     ///         if it successfully buys the NFT. Only a host may call this.
-    /// @param tokenIds The token IDs of the NFTs in the collection to buy.
-    /// @param callTargets The target contracts to call to buy the NFTs.
-    /// @param callValues The amount of ETH to send with each call.
-    /// @param callDatas The calldata to execute for each call.
-    /// @param governanceOpts The options used to initialize governance in the
-    ///                       `Party` instance created if the buy was successful.
-    /// @param hostIndex This is the index of the caller in the `governanceOpts.hosts` array.
+    /// @param args Arguments for the batch buy.
     /// @return party_ Address of the `Party` instance created after its bought.
-    function batchBuy(
-        uint256[] memory tokenIds,
-        address payable[] memory callTargets,
-        uint96[] memory callValues,
-        bytes[] memory callDatas,
-        bytes32[][] calldata proofs,
-        FixedGovernanceOpts memory governanceOpts,
-        uint256 hostIndex
-    ) external onlyDelegateCall returns (Party party_) {
+    function batchBuy(BatchBuyArgs memory args) external onlyDelegateCall returns (Party party_) {
         // This function is restricted to hosts.
-        _assertIsHost(msg.sender, governanceOpts, hostIndex);
+        _assertIsHost(msg.sender, args.governanceOpts, args.hostIndex);
 
         {
             // Ensure that the crowdfund is still active.
@@ -128,26 +131,53 @@ contract CollectionBatchBuyCrowdfund is BuyCrowdfundBase {
             }
         }
 
+        if (args.minTokensBought == 0) {
+            // Must buy at least one token.
+            revert InvalidMinTokensBoughtError(0);
+        }
+
         // Temporarily set to non-zero as a reentrancy guard.
         settledPrice = type(uint96).max;
 
-        IERC721 nftContract_ = nftContract;
-        // Records total amount of ETH used to buy all NFTs.
         uint96 totalEthUsed;
-        // This is needed because `_createParty()` requires an array of tokens.
-        IERC721[] memory tokens = new IERC721[](tokenIds.length);
+        uint256 tokensBought;
+        IERC721[] memory tokens = new IERC721[](args.tokenIds.length);
+        IERC721 token = nftContract;
         bytes32 root = nftTokenIdsMerkleRoot;
-        for (uint256 i; i < tokenIds.length; ++i) {
-            // Verify the token ID is in the merkle tree.
+        for (uint256 i; i < args.tokenIds.length; ++i) {
             if (root != bytes32(0)) {
-                _verifyTokenId(tokenIds[i], root, proofs[i]);
+                // Verify the token ID is in the merkle tree.
+                _verifyTokenId(args.tokenIds[i], root, args.proofs[i]);
             }
 
             // Execute the call to buy the NFT.
-            _buy(nftContract_, tokenIds[i], callTargets[i], callValues[i], callDatas[i]);
+            (bool success, bytes memory revertData) = _buy(
+                token,
+                args.tokenIds[i],
+                args.callTargets[i],
+                args.callValues[i],
+                args.callDatas[i]
+            );
 
-            tokens[i] = nftContract_;
-            totalEthUsed += callValues[i];
+            if (!success) {
+                if (args.minTokensBought >= args.tokenIds.length) {
+                    // If the call failed with revert data, revert with that data.
+                    if (revertData.length > 0) {
+                        revertData.rawRevert();
+                    } else {
+                        revert FailedToBuyNFTError(token, args.tokenIds[i]);
+                    }
+                } else {
+                    // If the call failed, skip this NFT.
+                    continue;
+                }
+            }
+
+            totalEthUsed += args.callValues[i];
+
+            ++tokensBought;
+            tokens[tokensBought - 1] = token;
+            args.tokenIds[tokensBought - 1] = args.tokenIds[i];
         }
 
         // This is to prevent this crowdfund from finalizing a loss if nothing
@@ -155,24 +185,41 @@ contract CollectionBatchBuyCrowdfund is BuyCrowdfundBase {
         // bought for free.
         if (totalEthUsed == 0) revert NothingBoughtError();
 
+        // Check number of tokens bought is not less than the minimum.
+        if (tokensBought < args.minTokensBought) {
+            revert NotEnoughTokensBoughtError(tokensBought, args.minTokensBought);
+        }
+
+        // Check total ETH used is not less than the minimum.
+        if (totalEthUsed < args.minTotalEthUsed) {
+            revert NotEnoughEthUsedError(totalEthUsed, args.minTotalEthUsed);
+        }
+
+        assembly {
+            // Update length of `tokens`
+            mstore(tokens, tokensBought)
+            // Update length of `tokenIds`
+            mstore(0x1A0, tokensBought)
+        }
+
         return
             _finalize(
                 tokens,
-                tokenIds,
+                args.tokenIds,
                 totalEthUsed,
-                governanceOpts,
+                args.governanceOpts,
                 // If `_assertIsHost()` succeeded, the governance opts were validated.
                 true
             );
     }
 
-    function _verifyTokenId(uint256 tokenId, bytes32 root, bytes32[] calldata proof) private pure {
+    function _verifyTokenId(uint256 tokenId, bytes32 root, bytes32[] memory proof) private pure {
         bytes32 leaf;
         assembly {
             mstore(0x00, tokenId)
             leaf := keccak256(0x00, 0x20)
         }
 
-        if (!MerkleProofLib.verify(proof, root, leaf)) revert InvalidTokenIdError();
+        if (!MerkleProof.verify(proof, root, leaf)) revert InvalidTokenIdError();
     }
 }

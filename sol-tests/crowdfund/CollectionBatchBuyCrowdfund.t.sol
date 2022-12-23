@@ -134,15 +134,205 @@ contract CollectionBatchBuyCrowdfundTest is Test, TestUtils {
             tokenIds
         );
         Party party_ = cf.batchBuy(
-            tokenIds,
-            callTargets,
-            callValues,
-            callDatas,
-            emptyProofs,
-            govOpts,
-            0
+            CollectionBatchBuyCrowdfund.BatchBuyArgs({
+                tokenIds: tokenIds,
+                callTargets: callTargets,
+                callValues: callValues,
+                callDatas: callDatas,
+                proofs: emptyProofs,
+                minTokensBought: tokenIds.length,
+                minTotalEthUsed: 0,
+                governanceOpts: govOpts,
+                hostIndex: 0
+            })
         );
         assertEq(address(party_), address(party));
+    }
+
+    function test_batchBuy_belowMinTokensBought() public {
+        // Create the crowdfund.
+        CollectionBatchBuyCrowdfund cf = _createCrowdfund();
+        // Contribute and delegate.
+        address payable contributor = _randomAddress();
+        address delegate = _randomAddress();
+        vm.deal(contributor, 1e18);
+        vm.prank(contributor);
+        cf.contribute{ value: contributor.balance }(delegate, "");
+        // Setup parameters to batch buy.
+        IERC721[] memory tokens = new IERC721[](3);
+        uint256[] memory tokenIds = new uint256[](3);
+        address payable[] memory callTargets = new address payable[](3);
+        uint96[] memory callValues = new uint96[](3);
+        bytes[] memory callDatas = new bytes[](3);
+        for (uint256 i; i < tokenIds.length; i++) {
+            tokens[i] = nftContract;
+            tokenIds[i] = i + 1;
+            callTargets[i] = payable(address(nftContract));
+            callValues[i] = 1;
+            callDatas[i] = abi.encodeCall(nftContract.mint, (address(cf)));
+        }
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                CollectionBatchBuyCrowdfund.NotEnoughTokensBoughtError.selector,
+                3,
+                4
+            )
+        );
+        // Buy the tokens.
+        cf.batchBuy(
+            CollectionBatchBuyCrowdfund.BatchBuyArgs({
+                tokenIds: tokenIds,
+                callTargets: callTargets,
+                callValues: callValues,
+                callDatas: callDatas,
+                proofs: emptyProofs,
+                minTokensBought: tokenIds.length + 1,
+                minTotalEthUsed: 0,
+                governanceOpts: govOpts,
+                hostIndex: 0
+            })
+        );
+    }
+
+    function test_batchBuy_belowMinEthUsed() public {
+        // Create the crowdfund.
+        CollectionBatchBuyCrowdfund cf = _createCrowdfund();
+        // Contribute and delegate.
+        address payable contributor = _randomAddress();
+        address delegate = _randomAddress();
+        vm.deal(contributor, 1e18);
+        vm.prank(contributor);
+        cf.contribute{ value: contributor.balance }(delegate, "");
+        // Setup parameters to batch buy.
+        IERC721[] memory tokens = new IERC721[](3);
+        uint256[] memory tokenIds = new uint256[](3);
+        address payable[] memory callTargets = new address payable[](3);
+        uint96[] memory callValues = new uint96[](3);
+        bytes[] memory callDatas = new bytes[](3);
+        for (uint256 i; i < tokenIds.length; i++) {
+            tokens[i] = nftContract;
+            tokenIds[i] = i + 1;
+            callTargets[i] = payable(address(nftContract));
+            callValues[i] = 1;
+            callDatas[i] = abi.encodeCall(nftContract.mint, (address(cf)));
+        }
+        vm.expectRevert(
+            abi.encodeWithSelector(CollectionBatchBuyCrowdfund.NotEnoughEthUsedError.selector, 3, 4)
+        );
+        // Buy the tokens.
+        cf.batchBuy(
+            CollectionBatchBuyCrowdfund.BatchBuyArgs({
+                tokenIds: tokenIds,
+                callTargets: callTargets,
+                callValues: callValues,
+                callDatas: callDatas,
+                proofs: emptyProofs,
+                minTokensBought: tokenIds.length,
+                minTotalEthUsed: 4,
+                governanceOpts: govOpts,
+                hostIndex: 0
+            })
+        );
+    }
+
+    function test_batchBuy_updatedTokenLength() public {
+        // Create the crowdfund.
+        CollectionBatchBuyCrowdfund cf = _createCrowdfund();
+        // Contribute and delegate.
+        address payable contributor = _randomAddress();
+        address delegate = _randomAddress();
+        vm.deal(contributor, 1e18);
+        vm.prank(contributor);
+        cf.contribute{ value: contributor.balance }(delegate, "");
+        // Setup parameters to batch buy.
+        IERC721[] memory tokens = new IERC721[](3);
+        uint256[] memory tokenIds = new uint256[](3);
+        tokenIds[0] = 1;
+        tokenIds[2] = 2;
+        address payable[] memory callTargets = new address payable[](3);
+        uint96[] memory callValues = new uint96[](3);
+        bytes[] memory callDatas = new bytes[](3);
+        for (uint256 i; i < tokenIds.length; i++) {
+            // Ensure one token will fail to be bought
+            if (i == 1) continue;
+
+            tokens[i] = nftContract;
+            callTargets[i] = payable(address(nftContract));
+            callValues[i] = 1;
+            callDatas[i] = abi.encodeCall(nftContract.mint, (address(cf)));
+        }
+        // Check that token length is updated from 3 to 2 when creating the party
+        IERC721[] memory expectedTokens = new IERC721[](2);
+        uint256[] memory expectedTokenIds = new uint256[](2);
+        for (uint256 i; i < expectedTokenIds.length; i++) {
+            expectedTokens[i] = nftContract;
+            expectedTokenIds[i] = i + 1;
+        }
+        vm.expectEmit(false, false, false, true);
+        emit MockPartyFactoryCreateParty(
+            address(cf),
+            address(cf),
+            Party.PartyOptions({
+                name: "Crowdfund",
+                symbol: "CF",
+                customizationPresetId: 0,
+                governance: PartyGovernance.GovernanceOpts({
+                    hosts: govOpts.hosts,
+                    voteDuration: govOpts.voteDuration,
+                    executionDelay: govOpts.executionDelay,
+                    passThresholdBps: govOpts.passThresholdBps,
+                    totalVotingPower: 2,
+                    feeBps: govOpts.feeBps,
+                    feeRecipient: govOpts.feeRecipient
+                })
+            }),
+            expectedTokens,
+            expectedTokenIds
+        );
+        // Buy the tokens.
+        cf.batchBuy(
+            CollectionBatchBuyCrowdfund.BatchBuyArgs({
+                tokenIds: tokenIds,
+                callTargets: callTargets,
+                callValues: callValues,
+                callDatas: callDatas,
+                proofs: emptyProofs,
+                minTokensBought: tokenIds.length - 1,
+                minTotalEthUsed: 0,
+                governanceOpts: govOpts,
+                hostIndex: 0
+            })
+        );
+    }
+
+    function test_batchBuy_cannotMinTokensBoughtZero() public {
+        // Create the crowdfund.
+        CollectionBatchBuyCrowdfund cf = _createCrowdfund();
+        // Setup parameters to batch buy.
+        uint256[] memory tokenIds = new uint256[](0);
+        address payable[] memory callTargets = new address payable[](0);
+        uint96[] memory callValues = new uint96[](0);
+        bytes[] memory callDatas = new bytes[](0);
+        // Buy the tokens.
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                CollectionBatchBuyCrowdfund.InvalidMinTokensBoughtError.selector,
+                0
+            )
+        );
+        cf.batchBuy(
+            CollectionBatchBuyCrowdfund.BatchBuyArgs({
+                tokenIds: tokenIds,
+                callTargets: callTargets,
+                callValues: callValues,
+                callDatas: callDatas,
+                proofs: emptyProofs,
+                minTokensBought: 0,
+                minTotalEthUsed: 0,
+                governanceOpts: govOpts,
+                hostIndex: 0
+            })
+        );
     }
 
     function test_batchBuy_cannotTriggerLostByNotBuyingAnything() public {
@@ -155,7 +345,19 @@ contract CollectionBatchBuyCrowdfundTest is Test, TestUtils {
         bytes[] memory callDatas = new bytes[](0);
         // Buy the tokens.
         vm.expectRevert(CollectionBatchBuyCrowdfund.NothingBoughtError.selector);
-        cf.batchBuy(tokenIds, callTargets, callValues, callDatas, emptyProofs, govOpts, 0);
+        cf.batchBuy(
+            CollectionBatchBuyCrowdfund.BatchBuyArgs({
+                tokenIds: tokenIds,
+                callTargets: callTargets,
+                callValues: callValues,
+                callDatas: callDatas,
+                proofs: emptyProofs,
+                minTokensBought: 1,
+                minTotalEthUsed: 0,
+                governanceOpts: govOpts,
+                hostIndex: 0
+            })
+        );
     }
 
     function test_batchBuy_cannotTriggerLostByBuyingFreeNFTs() public {
@@ -175,7 +377,19 @@ contract CollectionBatchBuyCrowdfundTest is Test, TestUtils {
         }
         // Buy the tokens.
         vm.expectRevert(CollectionBatchBuyCrowdfund.NothingBoughtError.selector);
-        cf.batchBuy(tokenIds, callTargets, callValues, callDatas, emptyProofs, govOpts, 0);
+        cf.batchBuy(
+            CollectionBatchBuyCrowdfund.BatchBuyArgs({
+                tokenIds: tokenIds,
+                callTargets: callTargets,
+                callValues: callValues,
+                callDatas: callDatas,
+                proofs: emptyProofs,
+                minTokensBought: tokenIds.length,
+                minTotalEthUsed: 0,
+                governanceOpts: govOpts,
+                hostIndex: 0
+            })
+        );
     }
 
     function test_batchBuy_failedToBuy() public {
@@ -194,7 +408,19 @@ contract CollectionBatchBuyCrowdfundTest is Test, TestUtils {
                 0
             )
         );
-        cf.batchBuy(tokenIds, callTargets, callValues, callDatas, emptyProofs, govOpts, 0);
+        cf.batchBuy(
+            CollectionBatchBuyCrowdfund.BatchBuyArgs({
+                tokenIds: tokenIds,
+                callTargets: callTargets,
+                callValues: callValues,
+                callDatas: callDatas,
+                proofs: emptyProofs,
+                minTokensBought: tokenIds.length,
+                minTotalEthUsed: 0,
+                governanceOpts: govOpts,
+                hostIndex: 0
+            })
+        );
     }
 
     function test_batchBuy_aboveMaximumPrice() public {
@@ -214,7 +440,19 @@ contract CollectionBatchBuyCrowdfundTest is Test, TestUtils {
                 maximumPrice
             )
         );
-        cf.batchBuy(tokenIds, callTargets, callValues, callDatas, emptyProofs, govOpts, 0);
+        cf.batchBuy(
+            CollectionBatchBuyCrowdfund.BatchBuyArgs({
+                tokenIds: tokenIds,
+                callTargets: callTargets,
+                callValues: callValues,
+                callDatas: callDatas,
+                proofs: emptyProofs,
+                minTokensBought: tokenIds.length,
+                minTotalEthUsed: 0,
+                governanceOpts: govOpts,
+                hostIndex: 0
+            })
+        );
     }
 
     function test_batchBuy_onlyHost() public {
@@ -228,7 +466,19 @@ contract CollectionBatchBuyCrowdfundTest is Test, TestUtils {
         // Buy the tokens.
         vm.prank(_randomAddress());
         vm.expectRevert(Crowdfund.OnlyPartyHostError.selector);
-        cf.batchBuy(tokenIds, callTargets, callValues, callDatas, emptyProofs, govOpts, 0);
+        cf.batchBuy(
+            CollectionBatchBuyCrowdfund.BatchBuyArgs({
+                tokenIds: tokenIds,
+                callTargets: callTargets,
+                callValues: callValues,
+                callDatas: callDatas,
+                proofs: emptyProofs,
+                minTokensBought: tokenIds.length,
+                minTotalEthUsed: 0,
+                governanceOpts: govOpts,
+                hostIndex: 0
+            })
+        );
     }
 
     function test_batchBuy_invalidGovOpts() public {
@@ -243,7 +493,19 @@ contract CollectionBatchBuyCrowdfundTest is Test, TestUtils {
         govOpts.hosts.push(_randomAddress());
         // Buy the tokens.
         vm.expectRevert(Crowdfund.InvalidGovernanceOptionsError.selector);
-        cf.batchBuy(tokenIds, callTargets, callValues, callDatas, emptyProofs, govOpts, 0);
+        cf.batchBuy(
+            CollectionBatchBuyCrowdfund.BatchBuyArgs({
+                tokenIds: tokenIds,
+                callTargets: callTargets,
+                callValues: callValues,
+                callDatas: callDatas,
+                proofs: emptyProofs,
+                minTokensBought: tokenIds.length,
+                minTotalEthUsed: 0,
+                governanceOpts: govOpts,
+                hostIndex: 0
+            })
+        );
     }
 
     function test_batchBuy_withTokenIdsAllowList() public {
@@ -268,7 +530,19 @@ contract CollectionBatchBuyCrowdfundTest is Test, TestUtils {
         callValues[0] = 1;
         callDatas[0] = abi.encodeCall(nftContract.mint, (address(cf)));
         // Buy the tokens.
-        cf.batchBuy(tokenIds, callTargets, callValues, callDatas, proofs, govOpts, 0);
+        cf.batchBuy(
+            CollectionBatchBuyCrowdfund.BatchBuyArgs({
+                tokenIds: tokenIds,
+                callTargets: callTargets,
+                callValues: callValues,
+                callDatas: callDatas,
+                proofs: proofs,
+                minTokensBought: tokenIds.length,
+                minTotalEthUsed: 0,
+                governanceOpts: govOpts,
+                hostIndex: 0
+            })
+        );
     }
 
     function test_batchBuy_withTokenIdsAllowList_invalidProof() public {
@@ -295,6 +569,18 @@ contract CollectionBatchBuyCrowdfundTest is Test, TestUtils {
         proofs[0] = new bytes32[](1);
         // Buy the tokens.
         vm.expectRevert(CollectionBatchBuyCrowdfund.InvalidTokenIdError.selector);
-        cf.batchBuy(tokenIds, callTargets, callValues, callDatas, proofs, govOpts, 0);
+        cf.batchBuy(
+            CollectionBatchBuyCrowdfund.BatchBuyArgs({
+                tokenIds: tokenIds,
+                callTargets: callTargets,
+                callValues: callValues,
+                callDatas: callDatas,
+                proofs: proofs,
+                minTokensBought: tokenIds.length,
+                minTotalEthUsed: 0,
+                governanceOpts: govOpts,
+                hostIndex: 0
+            })
+        );
     }
 }

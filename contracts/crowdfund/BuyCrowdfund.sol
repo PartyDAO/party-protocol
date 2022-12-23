@@ -14,6 +14,7 @@ import "./BuyCrowdfundBase.sol";
 contract BuyCrowdfund is BuyCrowdfundBase {
     using LibSafeERC721 for IERC721;
     using LibSafeCast for uint256;
+    using LibRawResult for bytes;
 
     struct BuyCrowdfundOptions {
         // The name of the crowdfund.
@@ -135,7 +136,22 @@ contract BuyCrowdfund is BuyCrowdfundBase {
         // Temporarily set to non-zero as a reentrancy guard.
         settledPrice = type(uint96).max;
 
-        _buy(nftContract, nftTokenId, callTarget, callValue, callData);
+        // Buy the NFT and check NFT is owned by the crowdfund.
+        (bool success, bytes memory revertData) = _buy(
+            nftContract,
+            nftTokenId,
+            callTarget,
+            callValue,
+            callData
+        );
+
+        if (!success) {
+            if (revertData.length > 0) {
+                revertData.rawRevert();
+            } else {
+                revert FailedToBuyNFTError(nftContract, nftTokenId);
+            }
+        }
 
         return
             _finalize(
