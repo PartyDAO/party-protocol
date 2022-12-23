@@ -83,7 +83,8 @@ describeFork("Seaport proposals integrations test", provider => {
     }
     const proposal = createOpenSeaProposal(
       {
-        listPrice: LIST_PRICE,
+        startPrice: LIST_PRICE,
+        endPrice: LIST_PRICE,
         duration: ONE_DAY_SECONDS,
         token: party.preciousTokens[0].token.address,
         tokenId: party.preciousTokens[0].tokenId,
@@ -147,7 +148,8 @@ describeFork("Seaport proposals integrations test", provider => {
     }
     const proposal = createOpenSeaProposal(
       {
-        listPrice: LIST_PRICE,
+        startPrice: LIST_PRICE,
+        endPrice: LIST_PRICE,
         duration: ONE_DAY_SECONDS,
         token: party.preciousTokens[0].token.address,
         tokenId: party.preciousTokens[0].tokenId,
