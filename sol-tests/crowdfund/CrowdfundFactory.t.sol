@@ -186,6 +186,7 @@ contract CrowdfundFactoryTest is Test, TestUtils {
             .RollingAuctionCrowdfundOptions({
                 name: randomStr,
                 symbol: randomStr,
+                customizationPresetId: 0,
                 auctionId: auctionId,
                 market: IMarketWrapper(market),
                 nftContract: nftContract,

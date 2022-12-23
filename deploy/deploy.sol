@@ -574,11 +574,11 @@ contract DeployScript is Script, Deploy {
         addressMapping[10] = AddressMapping("partyCrowdfundFactory", address(crowdfundFactory));
         addressMapping[11] = AddressMapping(
             "partyCrowdfundNFTRenderer",
-            address(partyCrowdfundNFTRenderer)
+            address(crowdfundNFTRenderer)
         );
         addressMapping[12] = AddressMapping(
             "partyGovernanceNFTRenderer",
-            address(partyGovernanceNFTRenderer)
+            address(partyNFTRenderer)
         );
         addressMapping[13] = AddressMapping("partyHelpers", address(partyHelpers));
         addressMapping[14] = AddressMapping("allowListGateKeeper", address(allowListGateKeeper));
