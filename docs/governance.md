@@ -455,8 +455,6 @@ abi.encodeWithSelector(
         /* IERC721 */ token;
         // The ERC721 token ID to fractionalize.
         /* uint256 */ tokenId;
-        // The starting reserve price for the fractional vault.
-        /* uint256 */ listPrice;
     )
 );
 ```
@@ -466,7 +464,6 @@ abi.encodeWithSelector(
 This proposal is atomic, completing in 1 step (aka. 1 `execute()` call):
 
 1. Create a new Fractional V1 vault around `token` + `tokenId`.
-   - Reserve price will be set to the proposal's `listPrice`.
    - Curator will be set to `address(0)`.
    - `totalVotingPower` fractional ERC20 tokens will be minted and held by the Party, which can later be claimed through an ERC20 distribution.
 
