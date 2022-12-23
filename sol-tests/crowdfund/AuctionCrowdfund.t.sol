@@ -552,9 +552,10 @@ contract AuctionCrowdfundTest is Test, TestUtils {
         address contributor = _randomAddress();
 
         // Create a AuctionCrowdfund instance with `onlyHost` enabled.
+        (uint256 auctionId, uint256 tokenId) = market.createAuction(0);
         AuctionCrowdfund cf = _createCrowdfund(
-            0,
-            0,
+            auctionId,
+            tokenId,
             0,
             true,
             IGateKeeper(address(0)),
@@ -598,9 +599,10 @@ contract AuctionCrowdfundTest is Test, TestUtils {
         AllowListGateKeeper gateKeeper = new AllowListGateKeeper();
         bytes32 contributorHash = keccak256(abi.encodePacked(contributor));
         bytes12 gateKeeperId = gateKeeper.createGate(contributorHash);
+        (uint256 auctionId, uint256 tokenId) = market.createAuction(0);
         AuctionCrowdfund cf = _createCrowdfund(
-            0,
-            0,
+            auctionId,
+            tokenId,
             0,
             true,
             gateKeeper,
@@ -644,9 +646,10 @@ contract AuctionCrowdfundTest is Test, TestUtils {
         AllowListGateKeeper gateKeeper = new AllowListGateKeeper();
         bytes32 contributorHash = keccak256(abi.encodePacked(contributor));
         bytes12 gateKeeperId = gateKeeper.createGate(contributorHash);
+        (uint256 auctionId, uint256 tokenId) = market.createAuction(0);
         AuctionCrowdfund cf = _createCrowdfund(
-            0,
-            0,
+            auctionId,
+            tokenId,
             0,
             false,
             gateKeeper,
@@ -659,7 +662,7 @@ contract AuctionCrowdfundTest is Test, TestUtils {
         vm.prank(contributor);
         cf.contribute{ value: contributor.balance }(contributor, abi.encode(new bytes32[](0)));
 
-        // Skip past exipry.
+        // Skip past expiry.
         vm.warp(cf.expiry());
 
         // Bid, expect revert because we are not a contributor.

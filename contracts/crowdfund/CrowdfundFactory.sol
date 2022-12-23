@@ -9,6 +9,7 @@ import "../renderers/RendererStorage.sol";
 import "./AuctionCrowdfund.sol";
 import "./BuyCrowdfund.sol";
 import "./CollectionBuyCrowdfund.sol";
+import "./RollingAuctionCrowdfund.sol";
 import "./CollectionBatchBuyCrowdfund.sol";
 
 /// @notice Factory used to deploys new proxified `Crowdfund` instances.
@@ -23,6 +24,10 @@ contract CrowdfundFactory {
     event CollectionBuyCrowdfundCreated(
         CollectionBuyCrowdfund crowdfund,
         CollectionBuyCrowdfund.CollectionBuyCrowdfundOptions opts
+    );
+    event RollingAuctionCrowdfundCreated(
+        RollingAuctionCrowdfund crowdfund,
+        RollingAuctionCrowdfund.RollingAuctionCrowdfundOptions opts
     );
     event CollectionBatchBuyCrowdfundCreated(
         CollectionBatchBuyCrowdfund crowdfund,
@@ -82,7 +87,29 @@ contract CrowdfundFactory {
         emit AuctionCrowdfundCreated(inst, opts);
     }
 
-    /// @notice Create a new crowdfund to purchase any NFT from a collection
+    /// @notice Create a new crowdfund to bid on an auctions for an NFT from a collection
+    ///         on a market (eg. Nouns).
+    /// @param opts Options used to initialize the crowdfund. These are fixed
+    ///             and cannot be changed later.
+    /// @param createGateCallData Encoded calldata used by `createGate()` to create
+    ///                           the crowdfund if one is specified in `opts`.
+    function createRollingAuctionCrowdfund(
+        RollingAuctionCrowdfund.RollingAuctionCrowdfundOptions memory opts,
+        bytes memory createGateCallData
+    ) public payable returns (RollingAuctionCrowdfund inst) {
+        opts.gateKeeperId = _prepareGate(opts.gateKeeper, opts.gateKeeperId, createGateCallData);
+        inst = RollingAuctionCrowdfund(
+            payable(
+                new Proxy{ value: msg.value }(
+                    _GLOBALS.getImplementation(LibGlobals.GLOBAL_ROLLING_AUCTION_CF_IMPL),
+                    abi.encodeCall(RollingAuctionCrowdfund.initialize, (opts))
+                )
+            )
+        );
+        emit RollingAuctionCrowdfundCreated(inst, opts);
+    }
+
+    /// @notice Create a new crowdfund to purchases any NFT from a collection
     ///         (i.e. any token ID) from a collection for a known price.
     /// @param opts Options used to initialize the crowdfund. These are fixed
     ///             and cannot be changed later.
