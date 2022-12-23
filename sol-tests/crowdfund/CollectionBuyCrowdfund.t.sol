@@ -89,6 +89,8 @@ contract CollectionBuyCrowdfundTest is Test, TestUtils {
                                 splitBps: defaultSplitBps,
                                 initialContributor: address(this),
                                 initialDelegate: defaultInitialDelegate,
+                                minContribution: 0,
+                                maxContribution: type(uint96).max,
                                 gateKeeper: defaultGateKeeper,
                                 gateKeeperId: defaultGateKeeperId,
                                 governanceOpts: governanceOpts
@@ -259,6 +261,8 @@ contract CollectionBuyCrowdfundTest is Test, TestUtils {
                                 splitBps: defaultSplitBps,
                                 initialContributor: initialContributor,
                                 initialDelegate: initialDelegate,
+                                minContribution: 0,
+                                maxContribution: type(uint96).max,
                                 gateKeeper: defaultGateKeeper,
                                 gateKeeperId: defaultGateKeeperId,
                                 governanceOpts: defaultGovernanceOpts

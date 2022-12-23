@@ -57,6 +57,8 @@ abstract contract Crowdfund is Implementation, ERC721Receiver, CrowdfundNFT {
         uint16 splitBps;
         address initialContributor;
         address initialDelegate;
+        uint96 minContribution;
+        uint96 maxContribution;
         IGateKeeper gateKeeper;
         bytes12 gateKeeperId;
         FixedGovernanceOpts governanceOpts;
@@ -99,6 +101,8 @@ abstract contract Crowdfund is Implementation, ERC721Receiver, CrowdfundNFT {
     error OnlyPartyDaoError(address notDao);
     error OnlyPartyDaoOrHostError(address notDao);
     error OnlyWhenEmergencyActionsAllowedError();
+    error BelowMinimumContributionsError(uint96 contributions, uint96 minContributions);
+    error AboveMaximumContributionsError(uint96 contributions, uint96 maxContributions);
 
     event Burned(address contributor, uint256 ethUsed, uint256 ethOwed, uint256 votingPower);
     event Contributed(
@@ -152,6 +156,10 @@ abstract contract Crowdfund is Implementation, ERC721Receiver, CrowdfundNFT {
     ///         that should be minted to them if it could not be transferred to
     ///         them with `burn()`.
     mapping(address => Claim) public claims;
+    /// @notice Minimum amount of ETH that can be contributed to this crowdfund per address.
+    uint96 public minContribution;
+    /// @notice Maximum amount of ETH that can be contributed to this crowdfund per address.
+    uint96 public maxContribution;
     /// @notice Whether the DAO has emergency powers for this party.
     bool public emergencyExecuteDisabled;
 
@@ -177,6 +185,9 @@ abstract contract Crowdfund is Implementation, ERC721Receiver, CrowdfundNFT {
         governanceOptsHash = _hashFixedGovernanceOpts(opts.governanceOpts);
         splitRecipient = opts.splitRecipient;
         splitBps = opts.splitBps;
+        // Set the minimum and maximum contribution amounts.
+        minContribution = opts.minContribution;
+        maxContribution = opts.maxContribution;
         // If the deployer passed in some ETH during deployment, credit them
         // for the initial contribution.
         uint96 initialContribution = msg.value.safeCastUint256ToUint96();
@@ -615,6 +626,18 @@ abstract contract Crowdfund is Implementation, ERC721Receiver, CrowdfundNFT {
         // Create contributions entry for this contributor.
         Contribution[] storage contributions = _contributionsByContributor[contributor];
         uint256 numContributions = contributions.length;
+        uint96 ethContributed;
+        for (uint256 i; i < numContributions; ++i) {
+            ethContributed += contributions[i].amount;
+        }
+        // Check contribution is greater than minimum contribution.
+        if (ethContributed + amount < minContribution) {
+            revert BelowMinimumContributionsError(ethContributed + amount, minContribution);
+        }
+        // Check contribution is less than maximum contribution.
+        if (ethContributed + amount > maxContribution) {
+            revert AboveMaximumContributionsError(ethContributed + amount, maxContribution);
+        }
         if (numContributions >= 1) {
             Contribution memory lastContribution = contributions[numContributions - 1];
             // If no one else (other than this contributor) has contributed since,

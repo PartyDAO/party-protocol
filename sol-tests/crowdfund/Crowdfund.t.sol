@@ -147,6 +147,8 @@ contract CrowdfundTest is Test, TestUtils {
                                 splitBps: defaultSplitBps,
                                 initialContributor: initialContributor,
                                 initialDelegate: initialDelegate,
+                                minContribution: 0,
+                                maxContribution: type(uint96).max,
                                 gateKeeper: gateKeeper,
                                 gateKeeperId: gateKeeperId,
                                 governanceOpts: defaultGovernanceOpts
@@ -933,6 +935,8 @@ contract CrowdfundTest is Test, TestUtils {
                                 splitBps: defaultSplitBps,
                                 initialContributor: address(0),
                                 initialDelegate: address(this),
+                                minContribution: 0,
+                                maxContribution: type(uint96).max,
                                 gateKeeper: gateKeeper,
                                 gateKeeperId: gateKeeperId,
                                 governanceOpts: defaultGovernanceOpts

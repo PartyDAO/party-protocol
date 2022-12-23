@@ -71,6 +71,8 @@ contract FoundationCrowdfundForkedTest is TestUtils {
                                 splitBps: 0,
                                 initialContributor: address(this),
                                 initialDelegate: address(0),
+                                minContribution: 0,
+                                maxContribution: type(uint96).max,
                                 gateKeeper: IGateKeeper(address(0)),
                                 gateKeeperId: 0,
                                 onlyHostCanBid: false,

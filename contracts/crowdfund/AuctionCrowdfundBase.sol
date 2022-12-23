@@ -60,6 +60,10 @@ abstract contract AuctionCrowdfundBase is Crowdfund {
         // If there is an initial contribution, this is who they will delegate their
         // voting power to when the crowdfund transitions to governance.
         address initialDelegate;
+        // Minimum amount of ETH that can be contributed to this crowdfund per address.
+        uint96 minContribution;
+        // Maximum amount of ETH that can be contributed to this crowdfund per address.
+        uint96 maxContribution;
         // The gatekeeper contract to use (if non-null) to restrict who can
         // contribute to this crowdfund. If used, only contributors or hosts can
         // call `bid()`.
@@ -133,6 +137,8 @@ abstract contract AuctionCrowdfundBase is Crowdfund {
                 splitBps: opts.splitBps,
                 initialContributor: opts.initialContributor,
                 initialDelegate: opts.initialDelegate,
+                minContribution: opts.minContribution,
+                maxContribution: opts.maxContribution,
                 gateKeeper: opts.gateKeeper,
                 gateKeeperId: opts.gateKeeperId,
                 governanceOpts: opts.governanceOpts
