@@ -58,6 +58,8 @@ export enum GlobalKeys {
   DisablePartyActions = 21,
   RendererStorage = 22,
   ProposalMinCancelDuration = 23,
+  RollingAuctionCrowdfundImpl = 24,
+  CollectionBatchBuyCrowdfundImpl = 25,
 }
 
 export enum ProposalType {
@@ -122,7 +124,8 @@ export interface DistributionInfo {
 }
 
 interface OpenSeaProposalInfo {
-  listPrice: BigNumber;
+  startPrice: BigNumber;
+  endPrice: BigNumber;
   duration: number;
   tokenType: ListOnOpenseaTokenType;
   token: string;
@@ -505,7 +508,7 @@ export function createOpenSeaProposal(
       ethers.utils.hexZeroPad(ethers.utils.hexlify(ProposalType.ListOnOpenSea), 4),
       ethers.utils.defaultAbiCoder.encode(
         [
-          "tuple(uint256 listPrice,uint40 duration,uint8 tokenType,address token,uint256 tokenId,uint256[] fees,address[] feeRecipients,bytes4 domainHashPrefix)",
+          "tuple(uint256 startPrice,uint256 endPrice,uint40 duration,uint8 tokenType,address token,uint256 tokenId,uint256[] fees,address[] feeRecipients,bytes4 domainHashPrefix)",
         ],
         [info],
       ),

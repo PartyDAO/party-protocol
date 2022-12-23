@@ -70,8 +70,7 @@ contract FractionalizeProposalForkedTest is TestUtils {
         IERC721 indexed token,
         uint256 indexed tokenId,
         uint256 vaultId,
-        IERC20 vault,
-        uint256 listPrice
+        IERC20 vault
     );
 
     IFractionalV1VaultFactory VAULT_FACTORY =
@@ -85,11 +84,10 @@ contract FractionalizeProposalForkedTest is TestUtils {
 
     function testForked_canFractionalize() external onlyForked {
         uint256 tokenId = erc721.mint(address(impl));
-        uint256 listPrice = 1337 ether;
         uint256 expectedVaultId = VAULT_FACTORY.vaultCount();
         IFractionalV1Vault expectedVault = _getNextVault();
         _expectEmit2();
-        emit FractionalV1VaultCreated(erc721, tokenId, expectedVaultId, expectedVault, listPrice);
+        emit FractionalV1VaultCreated(erc721, tokenId, expectedVaultId, expectedVault);
         _expectEmit0();
         emit MockCreateDistribution(
             address(impl),
@@ -108,8 +106,7 @@ contract FractionalizeProposalForkedTest is TestUtils {
                 proposalData: abi.encode(
                     FractionalizeProposal.FractionalizeProposalData({
                         token: erc721,
-                        tokenId: tokenId,
-                        listPrice: listPrice
+                        tokenId: tokenId
                     })
                 )
             })
@@ -119,7 +116,6 @@ contract FractionalizeProposalForkedTest is TestUtils {
             expectedVault.balanceOf(address(impl)),
             impl.getGovernanceValues().totalVotingPower
         );
-        assertEq(expectedVault.reservePrice(), listPrice);
         assertEq(expectedVault.curator(), address(0));
     }
 

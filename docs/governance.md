@@ -379,9 +379,12 @@ abi.encodeWithSelector(
     // Prefix identifying this proposal type.
     bytes4(ProposalType.ListOnOpenseaProposal),
     OpenseaProposalData(
-        // The price (in ETH) to sell the NFT.
-        // This is also the reserve bid for the Zora auction.
-        /* uint256 */ listPrice,
+        // The starting price (in ETH) when the listing is created.
+        // This is also the reserve bid for the safety Zora auction.
+        /* uint256 */ startPrice,
+        // The ending price (in ETH) when the listing expires.
+        // Unless listing as a dutch auction, this should be the same as `startPrice` in most cases.
+        /* uint256 */ endPrice,
         // How long the listing is valid for.
         /* uint40 */ duration,
         // The type of the NFT token.
@@ -403,7 +406,7 @@ abi.encodeWithSelector(
 This proposal has between 2-3 steps (aka. 2-3 `execute()` calls), depending on whether the proposal was passed unanimously and whether the lisetd NFT is precious or not:
 
 1. If the proposal did not pass unanimously AND the `token` + `tokenId` is precious, the proposal starts here. Otherwise, if _either_ of those conditions are false, skip to 2b.
-   - Transfer the token to the Zora auction house contract and create an auction with `listPrice` reserve price and `GLOBAL_OS_ZORA_AUCTION_DURATION` auction duration (which starts after someone places a bid).
+   - Transfer the token to the Zora auction house contract and create an auction with a start and end price (which will be the same if it is a normal auction) and `GLOBAL_OS_ZORA_AUCTION_DURATION` auction duration (which starts after someone places a bid).
      - This will emit the next `progressData`:
      ```solidity
      abi.encode(
@@ -422,7 +425,7 @@ This proposal has between 2-3 steps (aka. 2-3 `execute()` calls), depending on w
       - Finalize the auction if someone has bid on it and the auction duration has passed. This will transfer the top bid amount (in ETH) to the Party. It is also possible someone else finalized the auction already, in which case the Party already has the ETH and this step becomes a no-op. _The proposal will be complete at this point with no further steps._
    2. If the proposal passed unanimously, or the `token` + `tokenId` is not precious, or `token` + `tokenId` is precious but no bid was placed during the safety Zora auction period:
       - If the item was listed for safety auction, was never bid on, and `progressData.minExpiry` has passed, cancel the auction. This will also return the NFT to the party.
-      - Grant OpenSea an allowance for the NFT and create a non-custodial OpenSea listing for the NFT with price `listPrice` + any extra `fees` that is valid for `duration` seconds.
+      - Grant OpenSea an allowance for the NFT and create a non-custodial OpenSea listing for the NFT with the start and end price + any extra `fees` that is valid for `duration` seconds. If `startPrice` and `endPrice` differ, `fees` amount will be adjusted such that the start amount and end amount of fees is proportional to the start and end price of the listing.
         - This will emit the next `progressData`:
         ```solidity
         abi.encode(
@@ -457,8 +460,6 @@ abi.encodeWithSelector(
         /* IERC721 */ token;
         // The ERC721 token ID to fractionalize.
         /* uint256 */ tokenId;
-        // The starting reserve price for the fractional vault.
-        /* uint256 */ listPrice;
     )
 );
 ```
@@ -468,7 +469,6 @@ abi.encodeWithSelector(
 This proposal is atomic, completing in 1 step (aka. 1 `execute()` call):
 
 1. Create a new Fractional V1 vault around `token` + `tokenId`.
-   - Reserve price will be set to the proposal's `listPrice`.
    - Curator will be set to `address(0)`.
    - `totalVotingPower` fractional ERC20 tokens will be minted and held by the Party, which can later be claimed through an ERC20 distribution.
 
