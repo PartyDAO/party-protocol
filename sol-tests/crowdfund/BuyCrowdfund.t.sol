@@ -365,14 +365,14 @@ contract BuyCrowdfundTest is Test, TestUtils {
         uint256 tokenId = erc721Vault.mint();
         // Create a BuyCrowdfund instance.
         BuyCrowdfund cf = _createCrowdfund(tokenId, 0);
-        // Contribute and delegate.
+        // Contribute.
         address payable contributor = _randomAddress();
-        address delegate = _randomAddress();
         vm.deal(contributor, 1e18);
         vm.prank(contributor);
-        cf.contribute{ value: contributor.balance }(delegate, "");
-
+        cf.contribute{ value: contributor.balance }(contributor, "");
+        // Transfer ETH to the crowdfund (not through contribution).
         uint96 totalContributions = cf.totalContributions();
+        vm.deal(address(cf), totalContributions + 1);
         vm.expectRevert(
             abi.encodeWithSelector(
                 Crowdfund.ExceedsTotalContributionsError.selector,
