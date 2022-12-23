@@ -68,7 +68,7 @@ contract CrowdfundHelpers is Test, TestUtils {
                         auctionCrowdfundImpl,
                         abi.encodeCall(
                             AuctionCrowdfund.initialize,
-                            AuctionCrowdfund.AuctionCrowdfundOptions({
+                            AuctionCrowdfundBase.AuctionCrowdfundOptions({
                                 name: defaultName,
                                 symbol: defaultSymbol,
                                 customizationPresetId: 0,

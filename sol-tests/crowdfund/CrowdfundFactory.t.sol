@@ -118,7 +118,7 @@ contract CrowdfundFactoryTest is Test, TestUtils {
             bytes memory createGateCallData
         ) = _randomGateKeeper();
 
-        AuctionCrowdfund.AuctionCrowdfundOptions memory opts = AuctionCrowdfund
+        AuctionCrowdfundBase.AuctionCrowdfundOptions memory opts = AuctionCrowdfundBase
             .AuctionCrowdfundOptions({
                 name: randomStr,
                 symbol: randomStr,
@@ -256,7 +256,7 @@ contract CrowdfundFactoryTest is Test, TestUtils {
         (uint256 auctionId, uint256 tokenId) = market.createAuction(0);
         IERC721 nftContract = IERC721(market.nftContract());
 
-        AuctionCrowdfund.AuctionCrowdfundOptions memory opts = AuctionCrowdfund
+        AuctionCrowdfundBase.AuctionCrowdfundOptions memory opts = AuctionCrowdfundBase
             .AuctionCrowdfundOptions({
                 name: "name",
                 symbol: "symbol",
@@ -284,7 +284,7 @@ contract CrowdfundFactoryTest is Test, TestUtils {
                 })
             });
 
-        vm.expectRevert(AuctionCrowdfund.InvalidAuctionIdError.selector);
+        vm.expectRevert(AuctionCrowdfundBase.InvalidAuctionIdError.selector);
         partyCrowdfundFactory.createAuctionCrowdfund(opts, "");
     }
 
@@ -292,7 +292,7 @@ contract CrowdfundFactoryTest is Test, TestUtils {
         // Create an auction.
         (uint256 auctionId, uint256 tokenId) = market.createAuction(0);
 
-        AuctionCrowdfund.AuctionCrowdfundOptions memory opts = AuctionCrowdfund
+        AuctionCrowdfundBase.AuctionCrowdfundOptions memory opts = AuctionCrowdfundBase
             .AuctionCrowdfundOptions({
                 name: "name",
                 symbol: "symbol",
@@ -320,7 +320,7 @@ contract CrowdfundFactoryTest is Test, TestUtils {
                 })
             });
 
-        vm.expectRevert(AuctionCrowdfund.InvalidAuctionIdError.selector);
+        vm.expectRevert(AuctionCrowdfundBase.InvalidAuctionIdError.selector);
         partyCrowdfundFactory.createAuctionCrowdfund(opts, "");
     }
 
@@ -329,7 +329,7 @@ contract CrowdfundFactoryTest is Test, TestUtils {
         (uint256 auctionId, uint256 tokenId) = market.createAuction(0);
         IERC721 nftContract = IERC721(market.nftContract());
 
-        AuctionCrowdfund.AuctionCrowdfundOptions memory opts = AuctionCrowdfund
+        AuctionCrowdfundBase.AuctionCrowdfundOptions memory opts = AuctionCrowdfundBase
             .AuctionCrowdfundOptions({
                 name: "name",
                 symbol: "symbol",
@@ -357,7 +357,7 @@ contract CrowdfundFactoryTest is Test, TestUtils {
                 })
             });
 
-        vm.expectRevert(AuctionCrowdfund.InvalidAuctionIdError.selector);
+        vm.expectRevert(AuctionCrowdfundBase.InvalidAuctionIdError.selector);
         partyCrowdfundFactory.createAuctionCrowdfund(opts, "");
     }
 
@@ -579,7 +579,7 @@ contract CrowdfundFactoryTest is Test, TestUtils {
         (uint256 auctionId, uint256 tokenId) = market.createAuction(0);
         IERC721 nftContract = IERC721(market.nftContract());
 
-        AuctionCrowdfund.AuctionCrowdfundOptions memory opts = AuctionCrowdfund
+        AuctionCrowdfundBase.AuctionCrowdfundOptions memory opts = AuctionCrowdfundBase
             .AuctionCrowdfundOptions({
                 name: "name",
                 symbol: "symbol",
