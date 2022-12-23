@@ -33,10 +33,16 @@ contract AuctionCrowdfundTest is Test, TestUtils {
 
     event Burned(address contributor, uint256 ethUsed, uint256 ethOwed, uint256 votingPower);
     event Contributed(
+        address sender,
         address contributor,
         uint256 amount,
-        address delegate,
         uint256 previousTotalContributions
+    );
+    event DelegateUpdated(
+        address sender,
+        address contributor,
+        address oldDelegate,
+        address newDelegate
     );
     event Won(uint256 bid, Party party);
     event Lost();
@@ -445,7 +451,7 @@ contract AuctionCrowdfundTest is Test, TestUtils {
         // Contribute and delegate.
         address payable contributor = _randomAddress();
         _contribute(cf, contributor, 1e18);
-        uint256 bid = market.getMinimumBid(auctionId);
+        market.getMinimumBid(auctionId);
         // Expire the CF.
         skip(defaultDuration);
         _expectEmit0();
@@ -707,7 +713,7 @@ contract AuctionCrowdfundTest is Test, TestUtils {
         address initialContributor = _randomAddress();
         address initialDelegate = _randomAddress();
         vm.deal(address(this), initialContribution);
-        emit Contributed(initialContributor, initialContribution, initialDelegate, 0);
+        emit Contributed(address(this), initialContributor, initialContribution, 0);
         AuctionCrowdfund(
             payable(
                 address(
@@ -754,10 +760,15 @@ contract AuctionCrowdfundTest is Test, TestUtils {
         uint256 amount
     ) private {
         uint256 previousTotalContributions = cf.totalContributions();
+        address oldDelegate = cf.delegationsByContributor(contributor);
+        if (delegate != oldDelegate) {
+            _expectEmit0();
+            emit DelegateUpdated(contributor, contributor, oldDelegate, delegate);
+        }
+        _expectEmit0();
+        emit Contributed(contributor, contributor, amount, previousTotalContributions);
         vm.deal(contributor, amount);
         vm.prank(contributor);
-        _expectEmit0();
-        emit Contributed(contributor, amount, delegate, previousTotalContributions);
         cf.contribute{ value: amount }(delegate, "");
     }
 

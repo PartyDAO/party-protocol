@@ -27,10 +27,16 @@ contract BuyCrowdfundTest is Test, TestUtils {
     event MockMint(address caller, address owner, uint256 amount, address delegate);
 
     event Contributed(
+        address sender,
         address contributor,
         uint256 amount,
-        address delegate,
         uint256 previousTotalContributions
+    );
+    event DelegateUpdated(
+        address sender,
+        address contributor,
+        address oldDelegate,
+        address newDelegate
     );
     event Lost();
 
@@ -491,8 +497,10 @@ contract BuyCrowdfundTest is Test, TestUtils {
         uint256 initialContribution = _randomRange(1, 1 ether);
         address initialContributor = _randomAddress();
         address initialDelegate = _randomAddress();
-        vm.deal(address(this), initialContribution);
-        emit Contributed(initialContributor, initialContribution, initialDelegate, 0);
+        _expectEmit0();
+        emit DelegateUpdated(address(this), initialContributor, address(0), initialDelegate);
+        _expectEmit0();
+        emit Contributed(address(this), initialContributor, initialContribution, 0);
         BuyCrowdfund(
             payable(
                 address(

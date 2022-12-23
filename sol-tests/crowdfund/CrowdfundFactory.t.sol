@@ -28,10 +28,16 @@ contract CrowdfundFactoryTest is Test, TestUtils {
     TokenGateKeeper tokenGateKeeper = new TokenGateKeeper();
 
     event Contributed(
+        address sender,
         address contributor,
         uint256 amount,
-        address delegate,
         uint256 previousTotalContributions
+    );
+    event DelegateUpdated(
+        address sender,
+        address contributor,
+        address oldDelegate,
+        address newDelegate
     );
 
     constructor() {
