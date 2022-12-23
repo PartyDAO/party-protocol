@@ -205,6 +205,26 @@ contract PartyGovernanceNFTTest is Test, TestUtils {
         party.abdicate();
     }
 
+    function test_supportsInterface() external {
+        (Party party, , ) = partyAdmin.createParty(
+            PartyAdmin.PartyCreationMinimalOptions({
+                host1: address(this),
+                host2: address(0),
+                passThresholdBps: 5100,
+                totalVotingPower: 100,
+                preciousTokenAddress: address(toadz),
+                preciousTokenId: 1,
+                feeBps: 0,
+                feeRecipient: payable(0)
+            })
+        );
+        assertTrue(party.supportsInterface(0x01ffc9a7)); // EIP165
+        assertTrue(party.supportsInterface(0x2a55205a)); // ERC2981
+        assertTrue(party.supportsInterface(0x80ac58cd)); // ERC721
+        assertTrue(party.supportsInterface(0x150b7a02)); // ERC721Receiver
+        assertTrue(party.supportsInterface(0x4e2312e0)); // ERC1155Receiver
+    }
+
     function testGenerateSVG_works() public {
         PartyGovernance.ProposalStatus[4] memory proposalStatuses = [
             PartyGovernance.ProposalStatus.Voting,
