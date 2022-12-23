@@ -9,6 +9,7 @@ import "../../contracts/proposals/vendor/IOpenseaExchange.sol";
 
 import "../TestUtils.sol";
 import "../DummyERC721.sol";
+import "../DummyERC1155.sol";
 import "./TestableListOnOpenseaProposal.sol";
 import "./ZoraTestUtils.sol";
 import "./OpenseaTestUtils.sol";
@@ -17,7 +18,7 @@ contract ListOnOpenseaProposalForkedTest is Test, TestUtils, ZoraTestUtils, Open
     event OpenseaOrderListed(
         IOpenseaExchange.OrderParameters orderParams,
         bytes32 orderHash,
-        IERC721 token,
+        address token,
         uint256 tokenId,
         uint256 startPrice,
         uint256 endPrice,
@@ -25,12 +26,12 @@ contract ListOnOpenseaProposalForkedTest is Test, TestUtils, ZoraTestUtils, Open
     );
     event OpenseaOrderSold(
         bytes32 orderHash,
-        IERC721 token,
+        address token,
         uint256 tokenId,
         uint256 startPrice,
         uint256 endPrice
     );
-    event OpenseaOrderExpired(bytes32 orderHash, IERC721 token, uint256 tokenId, uint256 expiry);
+    event OpenseaOrderExpired(bytes32 orderHash, address token, uint256 tokenId, uint256 expiry);
     event ZoraAuctionCreated(
         uint256 auctionId,
         IERC721 token,
@@ -86,7 +87,8 @@ contract ListOnOpenseaProposalForkedTest is Test, TestUtils, ZoraTestUtils, Open
     }
 
     function _createTestProposal(
-        IERC721 token,
+        ListOnOpenseaProposal.TokenType tokenType,
+        address token,
         uint256 tokenId,
         uint256 startPrice,
         uint256 endPrice,
@@ -105,6 +107,7 @@ contract ListOnOpenseaProposalForkedTest is Test, TestUtils, ZoraTestUtils, Open
             startPrice: startPrice,
             endPrice: endPrice,
             duration: duration,
+            tokenType: tokenType,
             token: token,
             tokenId: tokenId,
             fees: fees,
@@ -139,7 +142,8 @@ contract ListOnOpenseaProposalForkedTest is Test, TestUtils, ZoraTestUtils, Open
     {
         return
             _createTestProposal(
-                token,
+                ListOnOpenseaProposal.TokenType.ERC721,
+                address(token),
                 tokenId,
                 listPrice,
                 listPrice,
@@ -228,8 +232,10 @@ contract ListOnOpenseaProposalForkedTest is Test, TestUtils, ZoraTestUtils, Open
             ListOnOpenseaProposal.OpenseaProposalData memory data,
             IProposalExecutionEngine.ExecuteProposalParams memory params
         ) = _createTestProposal(
-                token,
+                ListOnOpenseaProposal.TokenType.ERC721,
+                address(token),
                 tokenId,
+                listPrice,
                 listPrice,
                 listDuration,
                 new uint256[](0),
@@ -251,7 +257,7 @@ contract ListOnOpenseaProposalForkedTest is Test, TestUtils, ZoraTestUtils, Open
         emit OpenseaOrderListed(
             orderParams,
             orderHash,
-            token,
+            address(token),
             tokenId,
             listPrice,
             listPrice,
@@ -272,7 +278,7 @@ contract ListOnOpenseaProposalForkedTest is Test, TestUtils, ZoraTestUtils, Open
         emit OpenseaOrderListed(
             orderParams,
             orderHash,
-            token,
+            address(token),
             tokenId,
             listPrice,
             listPrice,
@@ -292,8 +298,10 @@ contract ListOnOpenseaProposalForkedTest is Test, TestUtils, ZoraTestUtils, Open
             ,
             IProposalExecutionEngine.ExecuteProposalParams memory executeParams
         ) = _createTestProposal(
-                token,
+                ListOnOpenseaProposal.TokenType.ERC721,
+                address(token),
                 tokenId,
+                listPrice,
                 listPrice,
                 listDuration,
                 new uint256[](0),
@@ -305,7 +313,6 @@ contract ListOnOpenseaProposalForkedTest is Test, TestUtils, ZoraTestUtils, Open
         skip(ZORA_AUCTION_TIMEOUT);
         // Next, retrieve from zora and list on OS.
         uint256 listStartTime = block.timestamp;
-        // TODO: check OpenseaOrderListed event gets emitted.
         executeParams.progressData = impl.executeListOnOpensea(executeParams);
         bytes32 orderHash;
         {
@@ -319,7 +326,8 @@ contract ListOnOpenseaProposalForkedTest is Test, TestUtils, ZoraTestUtils, Open
             BuyOpenseaListingParams({
                 maker: payable(impl),
                 buyer: buyer,
-                token: token,
+                tokenType: ListOnOpenseaProposal.TokenType.ERC721,
+                token: address(token),
                 tokenId: tokenId,
                 listPrice: listPrice,
                 startTime: listStartTime,
@@ -330,11 +338,67 @@ contract ListOnOpenseaProposalForkedTest is Test, TestUtils, ZoraTestUtils, Open
         );
         // Finalize the listing.
         vm.expectEmit(false, false, false, true);
-        emit OpenseaOrderSold(orderHash, token, tokenId, listPrice, listPrice);
+        emit OpenseaOrderSold(orderHash, address(token), tokenId, listPrice, listPrice);
         executeParams.progressData = impl.executeListOnOpensea(executeParams);
         assertEq(executeParams.progressData.length, 0);
         // Buyer should own the NFT.
         assertEq(token.ownerOf(tokenId), buyer);
+        // Proposal contract should have the list price.
+        assertEq(address(impl).balance, LIST_PRICE);
+    }
+
+    function testForked_Execution_OSBought_ListingERC1155() public onlyForked {
+        address buyer = _randomAddress();
+        uint256 listPrice = 1e18;
+        uint40 listDuration = 7 days;
+        DummyERC1155 token = new DummyERC1155();
+        uint256 tokenId = _randomUint256();
+        token.deal(address(impl), tokenId, 1);
+        (
+            ,
+            IProposalExecutionEngine.ExecuteProposalParams memory executeParams
+        ) = _createTestProposal(
+                ListOnOpenseaProposal.TokenType.ERC1155,
+                address(token),
+                tokenId,
+                listPrice,
+                listPrice,
+                listDuration,
+                new uint256[](0),
+                new address payable[](0)
+            );
+        // List on OS
+        uint256 listStartTime = block.timestamp;
+        executeParams.progressData = impl.executeListOnOpensea(executeParams);
+        bytes32 orderHash;
+        {
+            (, orderHash, ) = abi.decode(
+                executeParams.progressData,
+                (ListOnOpenseaProposal.ListOnOpenseaStep, bytes32, uint256)
+            );
+        }
+        // Buy the OS listing.
+        _buyOpenseaListing(
+            BuyOpenseaListingParams({
+                maker: payable(impl),
+                buyer: buyer,
+                tokenType: ListOnOpenseaProposal.TokenType.ERC1155,
+                token: address(token),
+                tokenId: tokenId,
+                listPrice: listPrice,
+                startTime: listStartTime,
+                duration: listDuration,
+                zone: SEAPORT_ZONE,
+                conduitKey: SEAPORT_CONDUIT_KEY
+            })
+        );
+        // Finalize the listing.
+        vm.expectEmit(false, false, false, true);
+        emit OpenseaOrderSold(orderHash, address(token), tokenId, listPrice, listPrice);
+        executeParams.progressData = impl.executeListOnOpensea(executeParams);
+        assertEq(executeParams.progressData.length, 0);
+        // Buyer should own the NFT.
+        assertEq(token.balanceOf(buyer, tokenId), 1);
         // Proposal contract should have the list price.
         assertEq(address(impl).balance, LIST_PRICE);
     }
@@ -353,7 +417,16 @@ contract ListOnOpenseaProposalForkedTest is Test, TestUtils, ZoraTestUtils, Open
         (
             ,
             IProposalExecutionEngine.ExecuteProposalParams memory executeParams
-        ) = _createTestProposal(token, tokenId, listPrice, listDuration, fees, feeRecipients);
+        ) = _createTestProposal(
+                ListOnOpenseaProposal.TokenType.ERC721,
+                address(token),
+                tokenId,
+                listPrice,
+                listPrice,
+                listDuration,
+                fees,
+                feeRecipients
+            );
         // This will list on zora because the proposal was not passed unanimously.
         executeParams.progressData = impl.executeListOnOpensea(executeParams);
         // Time out the zora listing.
@@ -374,7 +447,8 @@ contract ListOnOpenseaProposalForkedTest is Test, TestUtils, ZoraTestUtils, Open
             BuyOpenseaListingParams({
                 maker: payable(impl),
                 buyer: buyer,
-                token: token,
+                tokenType: ListOnOpenseaProposal.TokenType.ERC721,
+                token: address(token),
                 tokenId: tokenId,
                 listPrice: listPrice,
                 startTime: listStartTime,
@@ -387,7 +461,7 @@ contract ListOnOpenseaProposalForkedTest is Test, TestUtils, ZoraTestUtils, Open
         );
         // Finalize the listing.
         vm.expectEmit(false, false, false, true);
-        emit OpenseaOrderSold(orderHash, token, tokenId, listPrice, listPrice);
+        emit OpenseaOrderSold(orderHash, address(token), tokenId, listPrice, listPrice);
         executeParams.progressData = impl.executeListOnOpensea(executeParams);
         assertEq(executeParams.progressData.length, 0);
         // Buyer should own the NFT.
@@ -406,8 +480,10 @@ contract ListOnOpenseaProposalForkedTest is Test, TestUtils, ZoraTestUtils, Open
             ,
             IProposalExecutionEngine.ExecuteProposalParams memory executeParams
         ) = _createTestProposal(
-                token,
+                ListOnOpenseaProposal.TokenType.ERC721,
+                address(token),
                 tokenId,
+                listPrice,
                 listPrice,
                 listDuration,
                 new uint256[](0),
@@ -430,7 +506,8 @@ contract ListOnOpenseaProposalForkedTest is Test, TestUtils, ZoraTestUtils, Open
             BuyOpenseaListingParams({
                 maker: payable(impl),
                 buyer: buyer,
-                token: token,
+                tokenType: ListOnOpenseaProposal.TokenType.ERC721,
+                token: address(token),
                 tokenId: tokenId,
                 listPrice: listPrice,
                 startTime: listStartTime,
@@ -441,7 +518,7 @@ contract ListOnOpenseaProposalForkedTest is Test, TestUtils, ZoraTestUtils, Open
         );
         // Finalize the listing.
         vm.expectEmit(false, false, false, true);
-        emit OpenseaOrderSold(orderHash, token, tokenId, listPrice, listPrice);
+        emit OpenseaOrderSold(orderHash, address(token), tokenId, listPrice, listPrice);
         executeParams.progressData = impl.executeListOnOpensea(executeParams);
         assertEq(executeParams.progressData.length, 0);
         // Buyer should own the NFT.
@@ -464,7 +541,8 @@ contract ListOnOpenseaProposalForkedTest is Test, TestUtils, ZoraTestUtils, Open
             ListOnOpenseaProposal.OpenseaProposalData memory data,
             IProposalExecutionEngine.ExecuteProposalParams memory executeParams
         ) = _createTestProposal(
-                token,
+                ListOnOpenseaProposal.TokenType.ERC721,
+                address(token),
                 tokenId,
                 startPrice,
                 endPrice,
@@ -499,7 +577,7 @@ contract ListOnOpenseaProposalForkedTest is Test, TestUtils, ZoraTestUtils, Open
         );
         // Finalize the listing.
         vm.expectEmit(false, false, false, true);
-        emit OpenseaOrderSold(orderHash, token, tokenId, startPrice, endPrice);
+        emit OpenseaOrderSold(orderHash, address(token), tokenId, startPrice, endPrice);
         executeParams.progressData = impl.executeListOnOpensea(executeParams);
         assertEq(executeParams.progressData.length, 0);
         // Buyer should own the NFT.
@@ -519,8 +597,10 @@ contract ListOnOpenseaProposalForkedTest is Test, TestUtils, ZoraTestUtils, Open
             ,
             IProposalExecutionEngine.ExecuteProposalParams memory executeParams
         ) = _createTestProposal(
-                token,
+                ListOnOpenseaProposal.TokenType.ERC721,
+                address(token),
                 tokenId,
+                listPrice,
                 listPrice,
                 listDuration,
                 new uint256[](0),
@@ -541,7 +621,8 @@ contract ListOnOpenseaProposalForkedTest is Test, TestUtils, ZoraTestUtils, Open
             BuyOpenseaListingParams({
                 maker: payable(impl),
                 buyer: buyer,
-                token: token,
+                tokenType: ListOnOpenseaProposal.TokenType.ERC721,
+                token: address(token),
                 tokenId: tokenId,
                 listPrice: listPrice,
                 startTime: listStartTime,
@@ -552,7 +633,7 @@ contract ListOnOpenseaProposalForkedTest is Test, TestUtils, ZoraTestUtils, Open
         );
         // Finalize the listing.
         vm.expectEmit(false, false, false, true);
-        emit OpenseaOrderSold(orderHash, token, tokenId, listPrice, listPrice);
+        emit OpenseaOrderSold(orderHash, address(token), tokenId, listPrice, listPrice);
         executeParams.progressData = impl.executeListOnOpensea(executeParams);
         assertEq(executeParams.progressData.length, 0);
         // Buyer should own the NFT.
@@ -572,8 +653,10 @@ contract ListOnOpenseaProposalForkedTest is Test, TestUtils, ZoraTestUtils, Open
             ,
             IProposalExecutionEngine.ExecuteProposalParams memory executeParams
         ) = _createTestProposal(
-                token,
+                ListOnOpenseaProposal.TokenType.ERC721,
+                address(token),
                 tokenId,
+                listPrice,
                 listPrice,
                 listDuration,
                 new uint256[](0),
@@ -604,7 +687,8 @@ contract ListOnOpenseaProposalForkedTest is Test, TestUtils, ZoraTestUtils, Open
             BuyOpenseaListingParams({
                 maker: payable(impl),
                 buyer: buyer,
-                token: token,
+                tokenType: ListOnOpenseaProposal.TokenType.ERC721,
+                token: address(token),
                 tokenId: tokenId,
                 listPrice: listPrice,
                 startTime: listStartTime,
@@ -615,7 +699,7 @@ contract ListOnOpenseaProposalForkedTest is Test, TestUtils, ZoraTestUtils, Open
         );
         // Finalize the listing.
         vm.expectEmit(false, false, false, true);
-        emit OpenseaOrderExpired(orderHash, token, tokenId, expiry);
+        emit OpenseaOrderExpired(orderHash, address(token), tokenId, expiry);
         executeParams.progressData = impl.executeListOnOpensea(executeParams);
         assertEq(executeParams.progressData.length, 0);
         // We should still own the NFT.
@@ -634,8 +718,10 @@ contract ListOnOpenseaProposalForkedTest is Test, TestUtils, ZoraTestUtils, Open
             ,
             IProposalExecutionEngine.ExecuteProposalParams memory executeParams
         ) = _createTestProposal(
-                token,
+                ListOnOpenseaProposal.TokenType.ERC721,
+                address(token),
                 tokenId,
+                listPrice,
                 listPrice,
                 listDuration,
                 new uint256[](0),
@@ -704,8 +790,10 @@ contract ListOnOpenseaProposalForkedTest is Test, TestUtils, ZoraTestUtils, Open
             ,
             IProposalExecutionEngine.ExecuteProposalParams memory executeParams
         ) = _createTestProposal(
-                token,
+                ListOnOpenseaProposal.TokenType.ERC721,
+                address(token),
                 tokenId,
+                listPrice,
                 listPrice,
                 listDuration,
                 new uint256[](0),
@@ -766,8 +854,10 @@ contract ListOnOpenseaProposalForkedTest is Test, TestUtils, ZoraTestUtils, Open
             ,
             IProposalExecutionEngine.ExecuteProposalParams memory executeParams
         ) = _createTestProposal(
-                token,
+                ListOnOpenseaProposal.TokenType.ERC721,
+                address(token),
                 tokenId,
+                listPrice,
                 listPrice,
                 listDuration,
                 new uint256[](0),

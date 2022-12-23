@@ -13,6 +13,7 @@ import {
   decodeListOnOpenSeaProgressData,
   ProposalStatus,
   ListOnOpenSeaStep,
+  ListOnOpenseaTokenType,
 } from "./system";
 import { OpenseaOrderParams } from "./seaport";
 import {
@@ -86,6 +87,7 @@ describeFork("Seaport proposals integrations test", provider => {
         startPrice: LIST_PRICE,
         endPrice: LIST_PRICE,
         duration: ONE_DAY_SECONDS,
+        tokenType: ListOnOpenseaTokenType.Erc721,
         token: party.preciousTokens[0].token.address,
         tokenId: party.preciousTokens[0].tokenId,
         fees: [OS_FEE],
@@ -151,6 +153,7 @@ describeFork("Seaport proposals integrations test", provider => {
         startPrice: LIST_PRICE,
         endPrice: LIST_PRICE,
         duration: ONE_DAY_SECONDS,
+        tokenType: ListOnOpenseaTokenType.Erc721,
         token: party.preciousTokens[0].token.address,
         tokenId: party.preciousTokens[0].tokenId,
         fees: [OS_FEE],

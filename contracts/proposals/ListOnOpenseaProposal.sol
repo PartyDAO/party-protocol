@@ -4,6 +4,7 @@ pragma solidity 0.8.17;
 import "../globals/IGlobals.sol";
 import "../globals/LibGlobals.sol";
 import "../tokens/IERC721.sol";
+import "../tokens/IERC1155.sol";
 import "../utils/LibSafeCast.sol";
 
 import "./vendor/IOpenseaExchange.sol";
@@ -28,6 +29,13 @@ abstract contract ListOnOpenseaProposal is ZoraHelpers {
         ListedOnOpenSea
     }
 
+    enum TokenType {
+        // The NFT is an ERC721.
+        ERC721,
+        // The NFT is an ERC1155.
+        ERC1155
+    }
+
     // ABI-encoded `proposalData` passed into execute.
     struct OpenseaProposalData {
         // The starting price (in ETH) when the listing is created.
@@ -38,8 +46,10 @@ abstract contract ListOnOpenseaProposal is ZoraHelpers {
         uint256 endPrice;
         // How long the listing is valid for.
         uint40 duration;
+        // The type of the NFT token.
+        TokenType tokenType;
         // The NFT token contract.
-        IERC721 token;
+        address token;
         // the NFT token ID.
         uint256 tokenId;
         // Fees the taker must pay when filling the listing.
@@ -61,7 +71,7 @@ abstract contract ListOnOpenseaProposal is ZoraHelpers {
 
     error OpenseaOrderStillActiveError(
         bytes32 orderHash,
-        IERC721 token,
+        address token,
         uint256 tokenId,
         uint256 expiry
     );
@@ -70,7 +80,7 @@ abstract contract ListOnOpenseaProposal is ZoraHelpers {
     event OpenseaOrderListed(
         IOpenseaExchange.OrderParameters orderParams,
         bytes32 orderHash,
-        IERC721 token,
+        address token,
         uint256 tokenId,
         uint256 startPrice,
         uint256 endPrice,
@@ -78,12 +88,12 @@ abstract contract ListOnOpenseaProposal is ZoraHelpers {
     );
     event OpenseaOrderSold(
         bytes32 orderHash,
-        IERC721 token,
+        address token,
         uint256 tokenId,
         uint256 startPrice,
         uint256 endPrice
     );
-    event OpenseaOrderExpired(bytes32 orderHash, IERC721 token, uint256 tokenId, uint256 expiry);
+    event OpenseaOrderExpired(bytes32 orderHash, address token, uint256 tokenId, uint256 expiry);
 
     /// @notice The Seaport contract.
     IOpenseaExchange public immutable SEAPORT;
@@ -123,8 +133,9 @@ abstract contract ListOnOpenseaProposal is ZoraHelpers {
             // First time executing the proposal.
             if (
                 !isUnanimous &&
+                data.tokenType == TokenType.ERC721 &&
                 LibProposal.isTokenIdPrecious(
-                    data.token,
+                    IERC721(data.token),
                     data.tokenId,
                     params.preciousTokens,
                     params.preciousTokenIds
@@ -143,7 +154,7 @@ abstract contract ListOnOpenseaProposal is ZoraHelpers {
                         data.startPrice,
                         zoraTimeout,
                         zoraDuration,
-                        data.token,
+                        IERC721(data.token),
                         data.tokenId
                     );
                     // Return the next step and data required to execute that step.
@@ -174,7 +185,7 @@ abstract contract ListOnOpenseaProposal is ZoraHelpers {
             ZoraAuctionStatus statusCode = _settleZoraAuction(
                 zpd.auctionId,
                 zpd.minExpiry,
-                data.token,
+                IERC721(data.token),
                 data.tokenId
             );
             if (statusCode == ZoraAuctionStatus.Sold || statusCode == ZoraAuctionStatus.Cancelled) {
@@ -215,6 +226,7 @@ abstract contract ListOnOpenseaProposal is ZoraHelpers {
             bytes32 orderHash = _listOnOpensea(
                 data.token,
                 data.tokenId,
+                data.tokenType,
                 data.startPrice,
                 data.endPrice,
                 expiry,
@@ -236,6 +248,7 @@ abstract contract ListOnOpenseaProposal is ZoraHelpers {
             opd.expiry,
             data.token,
             data.tokenId,
+            data.tokenType,
             data.startPrice,
             data.endPrice
         );
@@ -245,8 +258,9 @@ abstract contract ListOnOpenseaProposal is ZoraHelpers {
     }
 
     function _listOnOpensea(
-        IERC721 token,
+        address token,
         uint256 tokenId,
+        TokenType tokenType,
         uint256 startPrice,
         uint256 endPrice,
         uint256 expiry,
@@ -270,21 +284,15 @@ abstract contract ListOnOpenseaProposal is ZoraHelpers {
             ? IOpenseaExchange.OrderType.FULL_OPEN
             : IOpenseaExchange.OrderType.FULL_RESTRICTED;
         orderParams.salt = uint256(bytes32(domainHashPrefix));
-        {
-            // Approve OpenSea's conduit to spend our NFT. This should revert if we
-            // do not own the NFT.
-            bytes32 conduitKey = _GLOBALS.getBytes32(LibGlobals.GLOBAL_OPENSEA_CONDUIT_KEY);
-            (address conduit, ) = CONDUIT_CONTROLLER.getConduit(conduitKey);
-            token.approve(conduit, tokenId);
-            orderParams.conduitKey = conduitKey;
-        }
         orderParams.totalOriginalConsiderationItems = 1 + fees.length;
         // What we are selling.
         orderParams.offer = new IOpenseaExchange.OfferItem[](1);
         {
             IOpenseaExchange.OfferItem memory offer = orderParams.offer[0];
-            offer.itemType = IOpenseaExchange.ItemType.ERC721;
-            offer.token = address(token);
+            offer.itemType = tokenType == TokenType.ERC721
+                ? IOpenseaExchange.ItemType.ERC721
+                : IOpenseaExchange.ItemType.ERC1155;
+            offer.token = token;
             offer.identifierOrCriteria = tokenId;
             offer.startAmount = 1;
             offer.endAmount = 1;
@@ -310,6 +318,21 @@ abstract contract ListOnOpenseaProposal is ZoraHelpers {
                 // dutch auctions.
                 cons.endAmount = (fees[i] * endPrice) / startPrice;
                 cons.recipient = feeRecipients[i];
+            }
+        }
+        {
+            // Get the OpenSea conduit key.
+            bytes32 conduitKey = _GLOBALS.getBytes32(LibGlobals.GLOBAL_OPENSEA_CONDUIT_KEY);
+            orderParams.conduitKey = conduitKey;
+        }
+        {
+            // Approve OpenSea's conduit to spend our NFT. This should revert if we
+            // do not own the NFT.
+            (address conduit, ) = CONDUIT_CONTROLLER.getConduit(orderParams.conduitKey);
+            if (tokenType == TokenType.ERC721) {
+                IERC721(token).approve(conduit, tokenId);
+            } else {
+                IERC1155(token).setApprovalForAll(conduit, true);
             }
         }
         orderHash = _getOrderHash(orderParams);
@@ -350,8 +373,9 @@ abstract contract ListOnOpenseaProposal is ZoraHelpers {
     function _cleanUpListing(
         bytes32 orderHash,
         uint256 expiry,
-        IERC721 token,
+        address token,
         uint256 tokenId,
+        TokenType tokenType,
         uint256 startPrice,
         uint256 endPrice
     ) private {
@@ -363,7 +387,13 @@ abstract contract ListOnOpenseaProposal is ZoraHelpers {
         } else if (expiry <= block.timestamp) {
             // The order expired before it was filled. We retain the NFT.
             // Revoke Seaport approval.
-            token.approve(address(0), tokenId);
+            if (tokenType == TokenType.ERC721) {
+                IERC721(token).approve(address(0), tokenId);
+            } else {
+                bytes32 conduitKey = _GLOBALS.getBytes32(LibGlobals.GLOBAL_OPENSEA_CONDUIT_KEY);
+                (address conduit, ) = CONDUIT_CONTROLLER.getConduit(conduitKey);
+                IERC1155(token).setApprovalForAll(conduit, false);
+            }
             emit OpenseaOrderExpired(orderHash, token, tokenId, expiry);
         } else {
             // The order hasn't been bought and is still active.
