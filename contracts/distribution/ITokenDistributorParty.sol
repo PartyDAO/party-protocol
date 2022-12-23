@@ -1,5 +1,4 @@
-// SPDX-License-Identifier: Beta Software
-// http://ipfs.io/ipfs/QmbGX2MFCaMAsMNMugRFND6DtYygRkwkvrqEyTKhTdBLo5
+// SPDX-License-Identifier: GPL-3.0
 pragma solidity 0.8.17;
 
 // Interface the caller of `ITokenDistributor.createDistribution()` must implement.
@@ -8,6 +7,7 @@ interface ITokenDistributorParty {
     /// @param tokenId The token ID to query.
     /// @return owner The owner of `tokenId`.
     function ownerOf(uint256 tokenId) external view returns (address);
+
     /// @notice Return the distribution share of a token. Denominated fractions
     ///         of 1e18. I.e., 1e18 = 100%.
     /// @param tokenId The token ID to query.

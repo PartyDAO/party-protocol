@@ -3,9 +3,7 @@ pragma solidity ^0.8;
 
 import "../DummyERC721.sol";
 
-
 contract TestERC721Vault {
-
     DummyERC721 public token = new DummyERC721();
 
     function mint() external returns (uint256 tokenId) {
@@ -16,7 +14,12 @@ contract TestERC721Vault {
         token.safeTransferFrom(address(this), msg.sender, tokenId, "");
     }
 
-    function onERC721Received(address, address, uint256, bytes memory) external pure returns (bytes4) {
+    function onERC721Received(
+        address,
+        address,
+        uint256,
+        bytes memory
+    ) external pure returns (bytes4) {
         return this.onERC721Received.selector;
     }
 }

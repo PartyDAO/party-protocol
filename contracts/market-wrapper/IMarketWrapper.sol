@@ -56,10 +56,7 @@ interface IMarketWrapper {
      * @dev Called in PartyBid.sol in `bid` at line 241
      * @return highest bidder
      */
-    function getCurrentHighestBidder(uint256 auctionId)
-        external
-        view
-        returns (address);
+    function getCurrentHighestBidder(uint256 auctionId) external view returns (address);
 
     /**
      * @notice Submit bid to Market contract

@@ -1,5 +1,4 @@
-// SPDX-License-Identifier: Beta Software
-// http://ipfs.io/ipfs/QmbGX2MFCaMAsMNMugRFND6DtYygRkwkvrqEyTKhTdBLo5
+// SPDX-License-Identifier: GPL-3.0
 pragma solidity 0.8.17;
 
 import "../tokens/IERC721.sol";
@@ -31,10 +30,7 @@ abstract contract ZoraHelpers {
         uint40 duration,
         IERC721 token,
         uint256 tokenId
-    )
-        internal
-        virtual
-        returns (uint256 auctionId);
+    ) internal virtual returns (uint256 auctionId);
 
     // Either cancel or finalize a Zora auction.
     function _settleZoraAuction(
@@ -42,8 +38,5 @@ abstract contract ZoraHelpers {
         uint40 minExpiry,
         IERC721 token,
         uint256 tokenId
-    )
-        internal
-        virtual
-        returns (ZoraAuctionStatus statusCode);
+    ) internal virtual returns (ZoraAuctionStatus statusCode);
 }

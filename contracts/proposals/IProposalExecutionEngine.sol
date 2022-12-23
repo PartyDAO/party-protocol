@@ -1,5 +1,4 @@
-// SPDX-License-Identifier: Beta Software
-// http://ipfs.io/ipfs/QmbGX2MFCaMAsMNMugRFND6DtYygRkwkvrqEyTKhTdBLo5
+// SPDX-License-Identifier: GPL-3.0
 pragma solidity 0.8.17;
 
 import "../tokens/IERC721.sol";
@@ -27,8 +26,9 @@ interface IProposalExecutionEngine {
     /// @return nextProgressData Bytes to be passed into the next `execute()` call,
     ///         if the proposal execution is incomplete. Otherwise, empty bytes
     ///         to indicate the proposal is complete.
-    function executeProposal(ExecuteProposalParams memory params)
-        external returns (bytes memory nextProgressData);
+    function executeProposal(
+        ExecuteProposalParams memory params
+    ) external returns (bytes memory nextProgressData);
 
     /// @notice Forcibly cancel an incomplete proposal.
     /// @param proposalId The ID of the proposal to cancel.

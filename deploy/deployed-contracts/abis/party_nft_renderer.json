@@ -1,0 +1,143 @@
+[
+  {
+    "inputs": [
+      {
+        "internalType": "contract IGlobals",
+        "name": "globals",
+        "type": "address"
+      },
+      {
+        "internalType": "contract RendererStorage",
+        "name": "rendererStorage",
+        "type": "address"
+      },
+      {
+        "internalType": "contract IFont",
+        "name": "font",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "nonpayable",
+    "type": "constructor"
+  },
+  {
+    "inputs": [],
+    "name": "InvalidTokenIdError",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "contractURI",
+    "outputs": [
+      {
+        "internalType": "string",
+        "name": "",
+        "type": "string"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "string",
+        "name": "partyName",
+        "type": "string"
+      },
+      {
+        "internalType": "string",
+        "name": "votingPowerPercentage",
+        "type": "string"
+      },
+      {
+        "internalType": "enum PartyGovernance.ProposalStatus[4]",
+        "name": "proposalStatuses",
+        "type": "uint8[4]"
+      },
+      {
+        "internalType": "uint256",
+        "name": "latestProposalId",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "tokenId",
+        "type": "uint256"
+      },
+      {
+        "internalType": "bool",
+        "name": "hasUnclaimed",
+        "type": "bool"
+      },
+      {
+        "internalType": "enum RendererBase.Color",
+        "name": "color",
+        "type": "uint8"
+      },
+      {
+        "internalType": "bool",
+        "name": "isDarkMode",
+        "type": "bool"
+      }
+    ],
+    "name": "generateSVG",
+    "outputs": [
+      {
+        "internalType": "string",
+        "name": "",
+        "type": "string"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "name": "royaltyInfo",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "receiver",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "royaltyAmount",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "pure",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "tokenId",
+        "type": "uint256"
+      }
+    ],
+    "name": "tokenURI",
+    "outputs": [
+      {
+        "internalType": "string",
+        "name": "",
+        "type": "string"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  }
+]

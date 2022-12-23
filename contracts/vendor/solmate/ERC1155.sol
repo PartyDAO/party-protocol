@@ -56,8 +56,13 @@ abstract contract ERC1155 is IERC1155 {
         require(
             to.code.length == 0
                 ? to != address(0)
-                : ERC1155TokenReceiverBase(to).onERC1155Received(msg.sender, from, id, amount, data) ==
-                    ERC1155TokenReceiverBase.onERC1155Received.selector,
+                : ERC1155TokenReceiverBase(to).onERC1155Received(
+                    msg.sender,
+                    from,
+                    id,
+                    amount,
+                    data
+                ) == ERC1155TokenReceiverBase.onERC1155Received.selector,
             "UNSAFE_RECIPIENT"
         );
     }
@@ -77,7 +82,7 @@ abstract contract ERC1155 is IERC1155 {
         uint256 id;
         uint256 amount;
 
-        for (uint256 i = 0; i < ids.length; ) {
+        for (uint256 i; i < ids.length; ) {
             id = ids[i];
             amount = amounts[i];
 
@@ -96,18 +101,21 @@ abstract contract ERC1155 is IERC1155 {
         require(
             to.code.length == 0
                 ? to != address(0)
-                : ERC1155TokenReceiverBase(to).onERC1155BatchReceived(msg.sender, from, ids, amounts, data) ==
-                    ERC1155TokenReceiverBase.onERC1155BatchReceived.selector,
+                : ERC1155TokenReceiverBase(to).onERC1155BatchReceived(
+                    msg.sender,
+                    from,
+                    ids,
+                    amounts,
+                    data
+                ) == ERC1155TokenReceiverBase.onERC1155BatchReceived.selector,
             "UNSAFE_RECIPIENT"
         );
     }
 
-    function balanceOfBatch(address[] calldata owners, uint256[] calldata ids)
-        public
-        view
-        virtual
-        returns (uint256[] memory balances)
-    {
+    function balanceOfBatch(
+        address[] calldata owners,
+        uint256[] calldata ids
+    ) public view virtual returns (uint256[] memory balances) {
         require(owners.length == ids.length, "LENGTH_MISMATCH");
 
         balances = new uint256[](owners.length);
@@ -115,7 +123,7 @@ abstract contract ERC1155 is IERC1155 {
         // Unchecked because the only math done is incrementing
         // the array index counter which cannot possibly overflow.
         unchecked {
-            for (uint256 i = 0; i < owners.length; ++i) {
+            for (uint256 i; i < owners.length; ++i) {
                 balances[i] = balanceOf[owners[i]][ids[i]];
             }
         }
@@ -136,12 +144,7 @@ abstract contract ERC1155 is IERC1155 {
                         INTERNAL MINT/BURN LOGIC
     //////////////////////////////////////////////////////////////*/
 
-    function _mint(
-        address to,
-        uint256 id,
-        uint256 amount,
-        bytes memory data
-    ) internal virtual {
+    function _mint(address to, uint256 id, uint256 amount, bytes memory data) internal virtual {
         balanceOf[to][id] += amount;
 
         emit TransferSingle(msg.sender, address(0), to, id, amount);
@@ -149,8 +152,13 @@ abstract contract ERC1155 is IERC1155 {
         require(
             to.code.length == 0
                 ? to != address(0)
-                : ERC1155TokenReceiverBase(to).onERC1155Received(msg.sender, address(0), id, amount, data) ==
-                    ERC1155TokenReceiverBase.onERC1155Received.selector,
+                : ERC1155TokenReceiverBase(to).onERC1155Received(
+                    msg.sender,
+                    address(0),
+                    id,
+                    amount,
+                    data
+                ) == ERC1155TokenReceiverBase.onERC1155Received.selector,
             "UNSAFE_RECIPIENT"
         );
     }
@@ -165,7 +173,7 @@ abstract contract ERC1155 is IERC1155 {
 
         require(idsLength == amounts.length, "LENGTH_MISMATCH");
 
-        for (uint256 i = 0; i < idsLength; ) {
+        for (uint256 i; i < idsLength; ) {
             balanceOf[to][ids[i]] += amounts[i];
 
             // An array can't have a total length
@@ -180,8 +188,13 @@ abstract contract ERC1155 is IERC1155 {
         require(
             to.code.length == 0
                 ? to != address(0)
-                : ERC1155TokenReceiverBase(to).onERC1155BatchReceived(msg.sender, address(0), ids, amounts, data) ==
-                    ERC1155TokenReceiverBase.onERC1155BatchReceived.selector,
+                : ERC1155TokenReceiverBase(to).onERC1155BatchReceived(
+                    msg.sender,
+                    address(0),
+                    ids,
+                    amounts,
+                    data
+                ) == ERC1155TokenReceiverBase.onERC1155BatchReceived.selector,
             "UNSAFE_RECIPIENT"
         );
     }
@@ -195,7 +208,7 @@ abstract contract ERC1155 is IERC1155 {
 
         require(idsLength == amounts.length, "LENGTH_MISMATCH");
 
-        for (uint256 i = 0; i < idsLength; ) {
+        for (uint256 i; i < idsLength; ) {
             balanceOf[from][ids[i]] -= amounts[i];
 
             // An array can't have a total length
@@ -208,11 +221,7 @@ abstract contract ERC1155 is IERC1155 {
         emit TransferBatch(msg.sender, from, address(0), ids, amounts);
     }
 
-    function _burn(
-        address from,
-        uint256 id,
-        uint256 amount
-    ) internal virtual {
+    function _burn(address from, uint256 id, uint256 amount) internal virtual {
         balanceOf[from][id] -= amount;
 
         emit TransferSingle(msg.sender, from, address(0), id, amount);

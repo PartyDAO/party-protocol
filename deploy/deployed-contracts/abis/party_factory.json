@@ -25,7 +25,7 @@
     "anonymous": false,
     "inputs": [
       {
-        "indexed": false,
+        "indexed": true,
         "internalType": "contract Party",
         "name": "party",
         "type": "address"
@@ -83,6 +83,11 @@
             "internalType": "string",
             "name": "symbol",
             "type": "string"
+          },
+          {
+            "internalType": "uint256",
+            "name": "customizationPresetId",
+            "type": "uint256"
           }
         ],
         "indexed": false,
@@ -185,6 +190,11 @@
             "internalType": "string",
             "name": "symbol",
             "type": "string"
+          },
+          {
+            "internalType": "uint256",
+            "name": "customizationPresetId",
+            "type": "uint256"
           }
         ],
         "internalType": "struct Party.PartyOptions",

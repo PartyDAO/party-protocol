@@ -214,28 +214,6 @@
   {
     "inputs": [
       {
-        "internalType": "uint256",
-        "name": "proposalId",
-        "type": "uint256"
-      }
-    ],
-    "name": "ProposalExistsError",
-    "type": "error"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "uint256",
-        "name": "proposalId",
-        "type": "uint256"
-      }
-    ],
-    "name": "ProposalHasNoVotesError",
-    "type": "error"
-  },
-  {
-    "inputs": [
-      {
         "internalType": "contract IERC20",
         "name": "token",
         "type": "address"
@@ -263,6 +241,17 @@
       }
     ],
     "name": "Uint256ToInt192CastOutOfRange",
+    "type": "error"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "v",
+        "type": "uint256"
+      }
+    ],
+    "name": "Uint256ToUint96CastOutOfRange",
     "type": "error"
   },
   {
@@ -338,6 +327,37 @@
       }
     ],
     "name": "DistributionCreated",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": false,
+        "internalType": "address",
+        "name": "target",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "bytes",
+        "name": "data",
+        "type": "bytes"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "amountEth",
+        "type": "uint256"
+      }
+    ],
+    "name": "EmergencyExecute",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [],
+    "name": "EmergencyExecuteDisabled",
     "type": "event"
   },
   {
@@ -1233,6 +1253,11 @@
                 "internalType": "string",
                 "name": "symbol",
                 "type": "string"
+              },
+              {
+                "internalType": "uint256",
+                "name": "customizationPresetId",
+                "type": "uint256"
               }
             ],
             "internalType": "struct Party.PartyOptions",
@@ -1358,6 +1383,19 @@
         "internalType": "address",
         "name": "",
         "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "mintedVotingPower",
+    "outputs": [
+      {
+        "internalType": "uint96",
+        "name": "",
+        "type": "uint96"
       }
     ],
     "stateMutability": "view",
@@ -1696,9 +1734,9 @@
     "name": "tokenCount",
     "outputs": [
       {
-        "internalType": "uint256",
+        "internalType": "uint96",
         "name": "",
-        "type": "uint256"
+        "type": "uint96"
       }
     ],
     "stateMutability": "view",

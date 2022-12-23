@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: Apache-2.0
+// SPDX-License-Identifier: GPL-3.0
 pragma solidity 0.8.17;
 
 library LibSafeCast {
@@ -41,22 +41,14 @@ library LibSafeCast {
         return uint96(uint192(i192));
     }
 
-    function safeCastUint256ToInt128(uint256 x)
-        internal
-        pure
-        returns (int128)
-    {
+    function safeCastUint256ToInt128(uint256 x) internal pure returns (int128) {
         if (x > uint256(uint128(type(int128).max))) {
             revert Uint256ToInt128CastOutOfRangeError(x);
         }
         return int128(uint128(x));
     }
 
-    function safeCastUint256ToUint40(uint256 x)
-        internal
-        pure
-        returns (uint40)
-    {
+    function safeCastUint256ToUint40(uint256 x) internal pure returns (uint40) {
         if (x > uint256(type(uint40).max)) {
             revert Uint256ToUint40CastOutOfRangeError(x);
         }

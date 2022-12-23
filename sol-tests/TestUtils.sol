@@ -9,13 +9,17 @@ contract TestUtils is Test {
     uint256 private immutable _nonce;
 
     constructor() {
-        _nonce = uint256(keccak256(abi.encode(
-            tx.origin,
-            tx.origin.balance,
-            block.number,
-            block.timestamp,
-            block.coinbase
-        )));
+        _nonce = uint256(
+            keccak256(
+                abi.encode(
+                    tx.origin,
+                    tx.origin.balance,
+                    block.number,
+                    block.timestamp,
+                    block.coinbase
+                )
+            )
+        );
     }
 
     modifier skipped() {
@@ -31,11 +35,7 @@ contract TestUtils is Test {
     }
 
     function _randomBytes32() internal view returns (bytes32) {
-        bytes memory seed = abi.encode(
-            _nonce,
-            block.timestamp,
-            gasleft()
-        );
+        bytes memory seed = abi.encode(_nonce, block.timestamp, gasleft());
         return keccak256(seed);
     }
 
@@ -58,7 +58,9 @@ contract TestUtils is Test {
 
     function _toERC721Array(IERC721 v) internal pure returns (IERC721[] memory arr) {
         address[] memory arr_ = _toAddressArray(address(v));
-        assembly { arr := arr_ }
+        assembly {
+            arr := arr_
+        }
     }
 
     function _toUint256Array(uint256 v) internal pure returns (uint256[] memory arr) {

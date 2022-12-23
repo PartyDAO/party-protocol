@@ -13,12 +13,7 @@ import "./TestableListOnOpenseaProposal.sol";
 import "./ZoraTestUtils.sol";
 import "./OpenseaTestUtils.sol";
 
-contract ListOnOpenseaProposalForkedTest is
-    Test,
-    TestUtils,
-    ZoraTestUtils,
-    OpenseaTestUtils
-{
+contract ListOnOpenseaProposalForkedTest is Test, TestUtils, ZoraTestUtils, OpenseaTestUtils {
     event OpenseaOrderListed(
         IOpenseaExchange.OrderParameters orderParams,
         bytes32 orderHash,
@@ -27,18 +22,8 @@ contract ListOnOpenseaProposalForkedTest is
         uint256 listPrice,
         uint256 expiry
     );
-    event OpenseaOrderSold(
-        bytes32 orderHash,
-        IERC721 token,
-        uint256 tokenId,
-        uint256 listPrice
-    );
-    event OpenseaOrderExpired(
-        bytes32 orderHash,
-        IERC721 token,
-        uint256 tokenId,
-        uint256 expiry
-    );
+    event OpenseaOrderSold(bytes32 orderHash, IERC721 token, uint256 tokenId, uint256 listPrice);
+    event OpenseaOrderExpired(bytes32 orderHash, IERC721 token, uint256 tokenId, uint256 expiry);
     event ZoraAuctionCreated(
         uint256 auctionId,
         IERC721 token,
@@ -56,14 +41,13 @@ contract ListOnOpenseaProposalForkedTest is
     uint256 constant LIST_PRICE = 1e18;
     TestableListOnOpenseaProposal impl;
     Globals globals;
-    IOpenseaExchange SEAPORT =
-        IOpenseaExchange(0x00000000006c3852cbEf3e08E8dF289169EdE581);
+    IOpenseaExchange SEAPORT = IOpenseaExchange(0x00000000006c3852cbEf3e08E8dF289169EdE581);
     IOpenseaConduitController CONDUIT_CONTROLLER =
         IOpenseaConduitController(0x00000000F9490004C11Cef243f5400493c00Ad63);
-    IZoraAuctionHouse ZORA =
-        IZoraAuctionHouse(0xE468cE99444174Bd3bBBEd09209577d25D1ad673);
+    IZoraAuctionHouse ZORA = IZoraAuctionHouse(0xE468cE99444174Bd3bBBEd09209577d25D1ad673);
     address SEAPORT_ZONE = 0x004C00500000aD104D7DBd00e3ae0A5C00560C00;
-    bytes32 SEAPORT_CONDUIT_KEY = 0x0000007b02230091a7ed01230072f7006a004d60a8d4e71d599b8104250f0000;
+    bytes32 SEAPORT_CONDUIT_KEY =
+        0x0000007b02230091a7ed01230072f7006a004d60a8d4e71d599b8104250f0000;
     IERC721[] preciousTokens;
     uint256[] preciousTokenIds;
 
@@ -71,46 +55,23 @@ contract ListOnOpenseaProposalForkedTest is
 
     function setUp() public onlyForked {
         globals = new Globals(address(this));
-        globals.setBytes32(
-            LibGlobals.GLOBAL_OPENSEA_CONDUIT_KEY,
-            SEAPORT_CONDUIT_KEY
-        );
-        globals.setAddress(
-            LibGlobals.GLOBAL_OPENSEA_ZONE,
-            SEAPORT_ZONE
-        );
-        globals.setUint256(
-            LibGlobals.GLOBAL_OS_ZORA_AUCTION_TIMEOUT,
-            ZORA_AUCTION_TIMEOUT
-        );
-        globals.setUint256(
-            LibGlobals.GLOBAL_OS_ZORA_AUCTION_DURATION,
-            ZORA_AUCTION_DURATION
-        );
-        globals.setUint256(
-            LibGlobals.GLOBAL_OS_MIN_ORDER_DURATION,
-            1 days
-        );
-        globals.setUint256(
-            LibGlobals.GLOBAL_OS_MAX_ORDER_DURATION,
-            7 days
-        );
-        impl = new TestableListOnOpenseaProposal(
-            globals,
-            SEAPORT,
-            CONDUIT_CONTROLLER,
-            ZORA
-        );
+        globals.setBytes32(LibGlobals.GLOBAL_OPENSEA_CONDUIT_KEY, SEAPORT_CONDUIT_KEY);
+        globals.setAddress(LibGlobals.GLOBAL_OPENSEA_ZONE, SEAPORT_ZONE);
+        globals.setUint256(LibGlobals.GLOBAL_OS_ZORA_AUCTION_TIMEOUT, ZORA_AUCTION_TIMEOUT);
+        globals.setUint256(LibGlobals.GLOBAL_OS_ZORA_AUCTION_DURATION, ZORA_AUCTION_DURATION);
+        globals.setUint256(LibGlobals.GLOBAL_OS_MIN_ORDER_DURATION, 1 days);
+        globals.setUint256(LibGlobals.GLOBAL_OS_MAX_ORDER_DURATION, 7 days);
+        impl = new TestableListOnOpenseaProposal(globals, SEAPORT, CONDUIT_CONTROLLER, ZORA);
         (preciousTokens, preciousTokenIds) = _createPreciousTokens(address(impl), 2);
     }
 
-    function _createPreciousTokens(address owner, uint256 count)
-        private
-        returns (IERC721[] memory tokens, uint256[] memory tokenIds)
-    {
+    function _createPreciousTokens(
+        address owner,
+        uint256 count
+    ) private returns (IERC721[] memory tokens, uint256[] memory tokenIds) {
         tokens = new IERC721[](count);
         tokenIds = new uint256[](count);
-        for (uint256 i = 0; i < count; ++i) {
+        for (uint256 i; i < count; ++i) {
             DummyERC721 t = new DummyERC721();
             tokens[i] = t;
             tokenIds[i] = t.mint(owner);
@@ -132,33 +93,29 @@ contract ListOnOpenseaProposalForkedTest is
             IProposalExecutionEngine.ExecuteProposalParams memory executeParams
         )
     {
-        proposalData =
-            ListOnOpenseaProposal.OpenseaProposalData({
-                listPrice: listPrice,
-                duration: duration,
-                token: token,
-                tokenId: tokenId,
-                fees: fees,
-                feeRecipients: feeRecipients,
-                domainHashPrefix: bytes4(keccak256("partybid"))
-            });
-        executeParams =
-            IProposalExecutionEngine.ExecuteProposalParams({
-                proposalId: _randomUint256(),
-                proposalData: abi.encode(proposalData),
-                progressData: "",
-                extraData: "",
-                flags: 0,
-                preciousTokens: preciousTokens,
-                preciousTokenIds: preciousTokenIds
-            });
+        proposalData = ListOnOpenseaProposal.OpenseaProposalData({
+            listPrice: listPrice,
+            duration: duration,
+            token: token,
+            tokenId: tokenId,
+            fees: fees,
+            feeRecipients: feeRecipients,
+            domainHashPrefix: bytes4(keccak256("partyprotocol"))
+        });
+        executeParams = IProposalExecutionEngine.ExecuteProposalParams({
+            proposalId: _randomUint256(),
+            proposalData: abi.encode(proposalData),
+            progressData: "",
+            extraData: "",
+            flags: 0,
+            preciousTokens: preciousTokens,
+            preciousTokenIds: preciousTokenIds
+        });
     }
 
-    function _generateOrderParams(ListOnOpenseaProposal.OpenseaProposalData memory data)
-        private
-        view
-        returns (IOpenseaExchange.OrderParameters memory orderParams)
-    {
+    function _generateOrderParams(
+        ListOnOpenseaProposal.OpenseaProposalData memory data
+    ) private view returns (IOpenseaExchange.OrderParameters memory orderParams) {
         orderParams.offerer = address(impl);
         orderParams.startTime = block.timestamp;
         orderParams.endTime = block.timestamp + uint256(data.duration);
@@ -188,7 +145,7 @@ contract ListOnOpenseaProposalForkedTest is
             cons.identifierOrCriteria = 0;
             cons.startAmount = cons.endAmount = data.listPrice;
             cons.recipient = payable(address(impl));
-            for (uint256 i = 0; i < data.fees.length; ++i) {
+            for (uint256 i; i < data.fees.length; ++i) {
                 cons = orderParams.consideration[1 + i];
                 cons.itemType = IOpenseaExchange.ItemType.NATIVE;
                 cons.token = address(0);
@@ -199,11 +156,9 @@ contract ListOnOpenseaProposalForkedTest is
         }
     }
 
-    function _getOrderHash(IOpenseaExchange.OrderParameters memory orderParams)
-        private
-        view
-        returns (bytes32 orderHash)
-    {
+    function _getOrderHash(
+        IOpenseaExchange.OrderParameters memory orderParams
+    ) private view returns (bytes32 orderHash) {
         // getOrderHash() wants an OrderComponents struct, which is an OrderParameters
         // struct but with the last field (totalOriginalConsiderationItems)
         // replaced with the maker's nonce. Since we (the maker) never increment
@@ -212,20 +167,17 @@ contract ListOnOpenseaProposalForkedTest is
         // force cast the OrderParameters into a OrderComponents type, call
         // getOrderHash(), and then restore the totalOriginalConsiderationItems
         // field's value before returning.
-        uint256 origTotalOriginalConsiderationItems =
-            orderParams.totalOriginalConsiderationItems;
+        uint256 origTotalOriginalConsiderationItems = orderParams.totalOriginalConsiderationItems;
         orderParams.totalOriginalConsiderationItems = 0;
         IOpenseaExchange.OrderComponents memory orderComps;
-        assembly { orderComps := orderParams }
+        assembly {
+            orderComps := orderParams
+        }
         orderHash = SEAPORT.getOrderHash(orderComps);
         orderParams.totalOriginalConsiderationItems = origTotalOriginalConsiderationItems;
     }
 
-    function _randomPreciousToken()
-        private
-        view
-        returns (IERC721 token, uint256 tokenId)
-    {
+    function _randomPreciousToken() private view returns (IERC721 token, uint256 tokenId) {
         uint256 idx = _randomRange(0, preciousTokens.length);
         return (preciousTokens[idx], preciousTokenIds[idx]);
     }
@@ -238,13 +190,13 @@ contract ListOnOpenseaProposalForkedTest is
             ListOnOpenseaProposal.OpenseaProposalData memory data,
             IProposalExecutionEngine.ExecuteProposalParams memory params
         ) = _createTestProposal(
-            token,
-            tokenId,
-            listPrice,
-            listDuration,
-            new uint256[](0),
-            new address payable[](0)
-        );
+                token,
+                tokenId,
+                listPrice,
+                listDuration,
+                new uint256[](0),
+                new address payable[](0)
+            );
         // Skip to relevant step
         params.progressData = abi.encode(ListOnOpenseaProposal.ListOnOpenseaStep.RetrievedFromZora);
 
@@ -300,13 +252,13 @@ contract ListOnOpenseaProposalForkedTest is
             ,
             IProposalExecutionEngine.ExecuteProposalParams memory executeParams
         ) = _createTestProposal(
-            token,
-            tokenId,
-            listPrice,
-            listDuration,
-            new uint256[](0),
-            new address payable[](0)
-        );
+                token,
+                tokenId,
+                listPrice,
+                listDuration,
+                new uint256[](0),
+                new address payable[](0)
+            );
         // This will list on zora because the proposal was not passed unanimously.
         executeParams.progressData = impl.executeListOnOpensea(executeParams);
         // Time out the zora listing.
@@ -317,24 +269,25 @@ contract ListOnOpenseaProposalForkedTest is
         executeParams.progressData = impl.executeListOnOpensea(executeParams);
         bytes32 orderHash;
         {
-            (, orderHash,) = abi.decode(executeParams.progressData, (
-                ListOnOpenseaProposal.ListOnOpenseaStep,
-                bytes32,
-                uint256
-            ));
+            (, orderHash, ) = abi.decode(
+                executeParams.progressData,
+                (ListOnOpenseaProposal.ListOnOpenseaStep, bytes32, uint256)
+            );
         }
         // Buy the OS listing.
-        _buyOpenseaListing(BuyOpenseaListingParams({
-            maker: payable(impl),
-            buyer: buyer,
-            token: token,
-            tokenId: tokenId,
-            listPrice: listPrice,
-            startTime: listStartTime,
-            duration: listDuration,
-            zone: SEAPORT_ZONE,
-            conduitKey: SEAPORT_CONDUIT_KEY
-        }));
+        _buyOpenseaListing(
+            BuyOpenseaListingParams({
+                maker: payable(impl),
+                buyer: buyer,
+                token: token,
+                tokenId: tokenId,
+                listPrice: listPrice,
+                startTime: listStartTime,
+                duration: listDuration,
+                zone: SEAPORT_ZONE,
+                conduitKey: SEAPORT_CONDUIT_KEY
+            })
+        );
         // Finalize the listing.
         vm.expectEmit(false, false, false, true);
         emit OpenseaOrderSold(orderHash, token, tokenId, listPrice);
@@ -360,14 +313,7 @@ contract ListOnOpenseaProposalForkedTest is
         (
             ,
             IProposalExecutionEngine.ExecuteProposalParams memory executeParams
-        ) = _createTestProposal(
-            token,
-            tokenId,
-            listPrice,
-            listDuration,
-            fees,
-            feeRecipients
-        );
+        ) = _createTestProposal(token, tokenId, listPrice, listDuration, fees, feeRecipients);
         // This will list on zora because the proposal was not passed unanimously.
         executeParams.progressData = impl.executeListOnOpensea(executeParams);
         // Time out the zora listing.
@@ -378,11 +324,10 @@ contract ListOnOpenseaProposalForkedTest is
         executeParams.progressData = impl.executeListOnOpensea(executeParams);
         bytes32 orderHash;
         {
-            (, orderHash,) = abi.decode(executeParams.progressData, (
-                ListOnOpenseaProposal.ListOnOpenseaStep,
-                bytes32,
-                uint256
-            ));
+            (, orderHash, ) = abi.decode(
+                executeParams.progressData,
+                (ListOnOpenseaProposal.ListOnOpenseaStep, bytes32, uint256)
+            );
         }
         // Buy the OS listing.
         _buyOpenseaListing(
@@ -421,13 +366,13 @@ contract ListOnOpenseaProposalForkedTest is
             ,
             IProposalExecutionEngine.ExecuteProposalParams memory executeParams
         ) = _createTestProposal(
-            token,
-            tokenId,
-            listPrice,
-            listDuration,
-            new uint256[](0),
-            new address payable[](0)
-        );
+                token,
+                tokenId,
+                listPrice,
+                listDuration,
+                new uint256[](0),
+                new address payable[](0)
+            );
         executeParams.flags |= LibProposal.PROPOSAL_FLAG_UNANIMOUS;
         // This will skip zora and list directly on OS because the proposal was
         // passed unanimously.
@@ -435,24 +380,25 @@ contract ListOnOpenseaProposalForkedTest is
         executeParams.progressData = impl.executeListOnOpensea(executeParams);
         bytes32 orderHash;
         {
-            (, orderHash,) = abi.decode(executeParams.progressData, (
-                ListOnOpenseaProposal.ListOnOpenseaStep,
-                bytes32,
-                uint256
-            ));
+            (, orderHash, ) = abi.decode(
+                executeParams.progressData,
+                (ListOnOpenseaProposal.ListOnOpenseaStep, bytes32, uint256)
+            );
         }
         // Buy the OS listing.
-        _buyOpenseaListing(BuyOpenseaListingParams({
-            maker: payable(impl),
-            buyer: buyer,
-            token: token,
-            tokenId: tokenId,
-            listPrice: listPrice,
-            startTime: listStartTime,
-            duration: listDuration,
-            zone: SEAPORT_ZONE,
-            conduitKey: SEAPORT_CONDUIT_KEY
-        }));
+        _buyOpenseaListing(
+            BuyOpenseaListingParams({
+                maker: payable(impl),
+                buyer: buyer,
+                token: token,
+                tokenId: tokenId,
+                listPrice: listPrice,
+                startTime: listStartTime,
+                duration: listDuration,
+                zone: SEAPORT_ZONE,
+                conduitKey: SEAPORT_CONDUIT_KEY
+            })
+        );
         // Finalize the listing.
         vm.expectEmit(false, false, false, true);
         emit OpenseaOrderSold(orderHash, token, tokenId, listPrice);
@@ -475,36 +421,37 @@ contract ListOnOpenseaProposalForkedTest is
             ,
             IProposalExecutionEngine.ExecuteProposalParams memory executeParams
         ) = _createTestProposal(
-            token,
-            tokenId,
-            listPrice,
-            listDuration,
-            new uint256[](0),
-            new address payable[](0)
-        );
+                token,
+                tokenId,
+                listPrice,
+                listDuration,
+                new uint256[](0),
+                new address payable[](0)
+            );
         // This will skip zora and list directly on OS because the token is not precious.
         uint256 listStartTime = block.timestamp;
         executeParams.progressData = impl.executeListOnOpensea(executeParams);
         bytes32 orderHash;
         {
-            (, orderHash,) = abi.decode(executeParams.progressData, (
-                ListOnOpenseaProposal.ListOnOpenseaStep,
-                bytes32,
-                uint256
-            ));
+            (, orderHash, ) = abi.decode(
+                executeParams.progressData,
+                (ListOnOpenseaProposal.ListOnOpenseaStep, bytes32, uint256)
+            );
         }
         // Buy the OS listing.
-        _buyOpenseaListing(BuyOpenseaListingParams({
-            maker: payable(impl),
-            buyer: buyer,
-            token: token,
-            tokenId: tokenId,
-            listPrice: listPrice,
-            startTime: listStartTime,
-            duration: listDuration,
-            zone: SEAPORT_ZONE,
-            conduitKey: SEAPORT_CONDUIT_KEY
-        }));
+        _buyOpenseaListing(
+            BuyOpenseaListingParams({
+                maker: payable(impl),
+                buyer: buyer,
+                token: token,
+                tokenId: tokenId,
+                listPrice: listPrice,
+                startTime: listStartTime,
+                duration: listDuration,
+                zone: SEAPORT_ZONE,
+                conduitKey: SEAPORT_CONDUIT_KEY
+            })
+        );
         // Finalize the listing.
         vm.expectEmit(false, false, false, true);
         emit OpenseaOrderSold(orderHash, token, tokenId, listPrice);
@@ -527,13 +474,13 @@ contract ListOnOpenseaProposalForkedTest is
             ,
             IProposalExecutionEngine.ExecuteProposalParams memory executeParams
         ) = _createTestProposal(
-            token,
-            tokenId,
-            listPrice,
-            listDuration,
-            new uint256[](0),
-            new address payable[](0)
-        );
+                token,
+                tokenId,
+                listPrice,
+                listDuration,
+                new uint256[](0),
+                new address payable[](0)
+            );
         // This will list on zora because the proposal was not passed unanimously.
         executeParams.progressData = impl.executeListOnOpensea(executeParams);
         // Timeeout the zora listing.
@@ -546,27 +493,28 @@ contract ListOnOpenseaProposalForkedTest is
         bytes32 orderHash;
         uint256 expiry;
         {
-            (, orderHash, expiry) = abi.decode(executeParams.progressData, (
-                ListOnOpenseaProposal.ListOnOpenseaStep,
-                bytes32,
-                uint256
-            ));
+            (, orderHash, expiry) = abi.decode(
+                executeParams.progressData,
+                (ListOnOpenseaProposal.ListOnOpenseaStep, bytes32, uint256)
+            );
         }
         // Skip past expiration.
         skip(listDuration);
         // Attempt to buy the listing (fail).
         vm.expectRevert(IOpenseaExchange.InvalidTime.selector);
-        _buyOpenseaListing(BuyOpenseaListingParams({
-            maker: payable(impl),
-            buyer: buyer,
-            token: token,
-            tokenId: tokenId,
-            listPrice: listPrice,
-            startTime: listStartTime,
-            duration: listDuration,
-            zone: SEAPORT_ZONE,
-            conduitKey: SEAPORT_CONDUIT_KEY
-        }));
+        _buyOpenseaListing(
+            BuyOpenseaListingParams({
+                maker: payable(impl),
+                buyer: buyer,
+                token: token,
+                tokenId: tokenId,
+                listPrice: listPrice,
+                startTime: listStartTime,
+                duration: listDuration,
+                zone: SEAPORT_ZONE,
+                conduitKey: SEAPORT_CONDUIT_KEY
+            })
+        );
         // Finalize the listing.
         vm.expectEmit(false, false, false, true);
         emit OpenseaOrderExpired(orderHash, token, tokenId, expiry);
@@ -588,13 +536,13 @@ contract ListOnOpenseaProposalForkedTest is
             ,
             IProposalExecutionEngine.ExecuteProposalParams memory executeParams
         ) = _createTestProposal(
-            token,
-            tokenId,
-            listPrice,
-            listDuration,
-            new uint256[](0),
-            new address payable[](0)
-        );
+                token,
+                tokenId,
+                listPrice,
+                listDuration,
+                new uint256[](0),
+                new address payable[](0)
+            );
         // This will list on zora because the proposal was not passed unanimously.
         uint256 auctionId = _getNextZoraAuctionId();
         vm.expectEmit(false, false, false, true);
@@ -608,20 +556,21 @@ contract ListOnOpenseaProposalForkedTest is
         );
         executeParams.progressData = impl.executeListOnOpensea(executeParams);
         {
-            (, ZoraHelpers.ZoraProgressData memory progressData) =
-                abi.decode(executeParams.progressData, (
-                    ListOnOpenseaProposal.ListOnOpenseaStep,
-                    ZoraHelpers.ZoraProgressData
-                ));
+            (, ZoraHelpers.ZoraProgressData memory progressData) = abi.decode(
+                executeParams.progressData,
+                (ListOnOpenseaProposal.ListOnOpenseaStep, ZoraHelpers.ZoraProgressData)
+            );
             assertEq(progressData.auctionId, auctionId);
         }
         // Try to advance the proposal before the zora auction has timed out (fail).
-        skip(ZORA_AUCTION_TIMEOUT- 1);
-        vm.expectRevert(abi.encodeWithSelector(
-            ListOnZoraProposal.ZoraListingNotExpired.selector,
-            auctionId,
-            block.timestamp + 1
-        ));
+        skip(ZORA_AUCTION_TIMEOUT - 1);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                ListOnZoraProposal.ZoraListingNotExpired.selector,
+                auctionId,
+                block.timestamp + 1
+            )
+        );
         impl.executeListOnOpensea(executeParams);
 
         // Bid on the zora auction.
@@ -657,13 +606,13 @@ contract ListOnOpenseaProposalForkedTest is
             ,
             IProposalExecutionEngine.ExecuteProposalParams memory executeParams
         ) = _createTestProposal(
-            token,
-            tokenId,
-            listPrice,
-            listDuration,
-            new uint256[](0),
-            new address payable[](0)
-        );
+                token,
+                tokenId,
+                listPrice,
+                listDuration,
+                new uint256[](0),
+                new address payable[](0)
+            );
         // This will list on zora because the proposal was not passed unanimously.
         uint256 auctionId = _getNextZoraAuctionId();
         vm.expectEmit(false, false, false, true);
@@ -677,20 +626,21 @@ contract ListOnOpenseaProposalForkedTest is
         );
         executeParams.progressData = impl.executeListOnOpensea(executeParams);
         {
-            (, ZoraHelpers.ZoraProgressData memory progressData) =
-                abi.decode(executeParams.progressData, (
-                    ListOnOpenseaProposal.ListOnOpenseaStep,
-                    ZoraHelpers.ZoraProgressData
-                ));
+            (, ZoraHelpers.ZoraProgressData memory progressData) = abi.decode(
+                executeParams.progressData,
+                (ListOnOpenseaProposal.ListOnOpenseaStep, ZoraHelpers.ZoraProgressData)
+            );
             assertEq(progressData.auctionId, auctionId);
         }
         // Try to advance the proposal before the zora auction has timed out (fail).
-        skip(ZORA_AUCTION_TIMEOUT- 1);
-        vm.expectRevert(abi.encodeWithSelector(
-            ListOnZoraProposal.ZoraListingNotExpired.selector,
-            auctionId,
-            block.timestamp + 1
-        ));
+        skip(ZORA_AUCTION_TIMEOUT - 1);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                ListOnZoraProposal.ZoraListingNotExpired.selector,
+                auctionId,
+                block.timestamp + 1
+            )
+        );
         impl.executeListOnOpensea(executeParams);
 
         // Bid on the zora auction.
@@ -718,13 +668,13 @@ contract ListOnOpenseaProposalForkedTest is
             ,
             IProposalExecutionEngine.ExecuteProposalParams memory executeParams
         ) = _createTestProposal(
-            token,
-            tokenId,
-            listPrice,
-            listDuration,
-            new uint256[](0),
-            new address payable[](0)
-        );
+                token,
+                tokenId,
+                listPrice,
+                listDuration,
+                new uint256[](0),
+                new address payable[](0)
+            );
         // This will list on zora because the proposal was not passed unanimously.
         uint256 auctionId = _getNextZoraAuctionId();
         vm.expectEmit(false, false, false, true);
@@ -738,11 +688,10 @@ contract ListOnOpenseaProposalForkedTest is
         );
         executeParams.progressData = impl.executeListOnOpensea(executeParams);
         {
-            (, ZoraHelpers.ZoraProgressData memory progressData) =
-                abi.decode(executeParams.progressData, (
-                    ListOnOpenseaProposal.ListOnOpenseaStep,
-                    ZoraHelpers.ZoraProgressData
-                ));
+            (, ZoraHelpers.ZoraProgressData memory progressData) = abi.decode(
+                executeParams.progressData,
+                (ListOnOpenseaProposal.ListOnOpenseaStep, ZoraHelpers.ZoraProgressData)
+            );
             assertEq(progressData.auctionId, auctionId);
         }
         // Bid on the zora auction.

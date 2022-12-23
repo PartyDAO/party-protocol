@@ -1,5 +1,4 @@
-// SPDX-License-Identifier: Beta Software
-// http://ipfs.io/ipfs/QmbGX2MFCaMAsMNMugRFND6DtYygRkwkvrqEyTKhTdBLo5
+// SPDX-License-Identifier: GPL-3.0
 pragma solidity 0.8.17;
 
 import "../tokens/IERC721.sol";
@@ -24,6 +23,8 @@ contract CollectionBuyCrowdfund is BuyCrowdfundBase {
         string name;
         // The token symbol for both the crowdfund and the governance NFTs.
         string symbol;
+        // Customization preset ID to use for the crowdfund and governance NFTs.
+        uint256 customizationPresetId;
         // The ERC721 contract of the NFT being bought.
         IERC721 nftContract;
         // How long this crowdfund has to bid on the NFT, in seconds.
@@ -63,27 +64,28 @@ contract CollectionBuyCrowdfund is BuyCrowdfundBase {
     ///         revert if called outside the constructor.
     /// @param opts Options used to initialize the crowdfund. These are fixed
     ///             and cannot be changed later.
-    function initialize(CollectionBuyCrowdfundOptions memory opts)
-        external
-        payable
-        onlyConstructor
-    {
+    function initialize(
+        CollectionBuyCrowdfundOptions memory opts
+    ) external payable onlyConstructor {
         if (opts.governanceOpts.hosts.length == 0) {
             revert MissingHostsError();
         }
-        BuyCrowdfundBase._initialize(BuyCrowdfundBaseOptions({
-            name: opts.name,
-            symbol: opts.symbol,
-            duration: opts.duration,
-            maximumPrice: opts.maximumPrice,
-            splitRecipient: opts.splitRecipient,
-            splitBps: opts.splitBps,
-            initialContributor: opts.initialContributor,
-            initialDelegate: opts.initialDelegate,
-            gateKeeper: opts.gateKeeper,
-            gateKeeperId: opts.gateKeeperId,
-            governanceOpts: opts.governanceOpts
-        }));
+        BuyCrowdfundBase._initialize(
+            BuyCrowdfundBaseOptions({
+                name: opts.name,
+                symbol: opts.symbol,
+                customizationPresetId: opts.customizationPresetId,
+                duration: opts.duration,
+                maximumPrice: opts.maximumPrice,
+                splitRecipient: opts.splitRecipient,
+                splitBps: opts.splitBps,
+                initialContributor: opts.initialContributor,
+                initialDelegate: opts.initialDelegate,
+                gateKeeper: opts.gateKeeper,
+                gateKeeperId: opts.gateKeeperId,
+                governanceOpts: opts.governanceOpts
+            })
+        );
         nftContract = opts.nftContract;
     }
 
@@ -102,24 +104,22 @@ contract CollectionBuyCrowdfund is BuyCrowdfundBase {
         uint256 tokenId,
         address payable callTarget,
         uint96 callValue,
-        bytes calldata callData,
+        bytes memory callData,
         FixedGovernanceOpts memory governanceOpts,
         uint256 hostIndex
-    )
-        external
-        returns (Party party_)
-    {
+    ) external returns (Party party_) {
         // This function is always restricted to hosts.
-        bool isValidatedGovernanceOpts =
-                _assertIsHost(msg.sender, governanceOpts, hostIndex);
-        return _buy(
-            nftContract,
-            tokenId,
-            callTarget,
-            callValue,
-            callData,
-            governanceOpts,
-            isValidatedGovernanceOpts
-        );
+        _assertIsHost(msg.sender, governanceOpts, hostIndex);
+        return
+            _buy(
+                nftContract,
+                tokenId,
+                callTarget,
+                callValue,
+                callData,
+                governanceOpts,
+                // If _assertIsHost() succeeded, the governance opts were validated.
+                true
+            );
     }
 }

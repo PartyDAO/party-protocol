@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: Apache-2.0
+// SPDX-License-Identifier: GPL-3.0
 pragma solidity 0.8.17;
 
 // Base contract for all contracts intended to be delegatecalled into.
@@ -8,7 +8,9 @@ abstract contract Implementation {
 
     address public immutable IMPL;
 
-    constructor() { IMPL = address(this); }
+    constructor() {
+        IMPL = address(this);
+    }
 
     // Reverts if the current function context is not inside of a delegatecall.
     modifier onlyDelegateCall() virtual {
@@ -20,9 +22,7 @@ abstract contract Implementation {
 
     // Reverts if the current function context is not inside of a constructor.
     modifier onlyConstructor() {
-        uint256 codeSize;
-        assembly { codeSize := extcodesize(address()) }
-        if (codeSize != 0) {
+        if (address(this).code.length != 0) {
             revert OnlyConstructorError();
         }
         _;

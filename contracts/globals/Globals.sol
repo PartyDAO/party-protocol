@@ -1,18 +1,20 @@
-// SPDX-License-Identifier: Beta Software
-// http://ipfs.io/ipfs/QmbGX2MFCaMAsMNMugRFND6DtYygRkwkvrqEyTKhTdBLo5
+// SPDX-License-Identifier: GPL-3.0
 pragma solidity 0.8.17;
 
+import "../utils/Multicall.sol";
 import "./IGlobals.sol";
 
 /// @notice Contract storing global configuration values.
-contract Globals is IGlobals {
+contract Globals is IGlobals, Multicall {
     address public multiSig;
+    address public pendingMultiSig;
     // key -> word value
     mapping(uint256 => bytes32) private _wordValues;
     // key -> word value -> isIncluded
     mapping(uint256 => mapping(bytes32 => bool)) private _includedWordValues;
 
     error OnlyMultiSigError();
+    error OnlyPendingMultiSigError();
     error InvalidBooleanValueError(uint256 key, uint256 value);
 
     modifier onlyMultisig() {
@@ -22,12 +24,24 @@ contract Globals is IGlobals {
         _;
     }
 
+    modifier onlyPendingMultisig() {
+        if (msg.sender != pendingMultiSig) {
+            revert OnlyPendingMultiSigError();
+        }
+        _;
+    }
+
     constructor(address multiSig_) {
         multiSig = multiSig_;
     }
 
     function transferMultiSig(address newMultiSig) external onlyMultisig {
-        multiSig = newMultiSig;
+        pendingMultiSig = newMultiSig;
+    }
+
+    function acceptMultiSig() external onlyPendingMultisig {
+        multiSig = pendingMultiSig;
+        delete pendingMultiSig;
     }
 
     function getBytes32(uint256 key) external view returns (bytes32) {

@@ -1,11 +1,9 @@
-// SPDX-License-Identifier: Beta Software
-// http://ipfs.io/ipfs/QmbGX2MFCaMAsMNMugRFND6DtYygRkwkvrqEyTKhTdBLo5
+// SPDX-License-Identifier: GPL-3.0
 pragma solidity 0.8.17;
 
 import "../tokens/IERC721.sol";
 import "../party/Party.sol";
 import "../utils/LibSafeERC721.sol";
-import "../utils/LibRawResult.sol";
 import "../globals/IGlobals.sol";
 import "../gatekeepers/IGateKeeper.sol";
 
@@ -23,6 +21,8 @@ contract BuyCrowdfund is BuyCrowdfundBase {
         string name;
         // The token symbol for both the crowdfund and the governance NFTs.
         string symbol;
+        // Customization preset ID to use for the crowdfund and governance NFTs.
+        uint256 customizationPresetId;
         // The ERC721 contract of the NFT being bought.
         IERC721 nftContract;
         // ID of the NFT being bought.
@@ -71,27 +71,26 @@ contract BuyCrowdfund is BuyCrowdfundBase {
     ///         revert if called outside the constructor.
     /// @param opts Options used to initialize the crowdfund. These are fixed
     ///             and cannot be changed later.
-    function initialize(BuyCrowdfundOptions memory opts)
-        external
-        payable
-        onlyConstructor
-    {
+    function initialize(BuyCrowdfundOptions memory opts) external payable onlyConstructor {
         if (opts.onlyHostCanBuy && opts.governanceOpts.hosts.length == 0) {
             revert MissingHostsError();
         }
-        BuyCrowdfundBase._initialize(BuyCrowdfundBaseOptions({
-            name: opts.name,
-            symbol: opts.symbol,
-            duration: opts.duration,
-            maximumPrice: opts.maximumPrice,
-            splitRecipient: opts.splitRecipient,
-            splitBps: opts.splitBps,
-            initialContributor: opts.initialContributor,
-            initialDelegate: opts.initialDelegate,
-            gateKeeper: opts.gateKeeper,
-            gateKeeperId: opts.gateKeeperId,
-            governanceOpts: opts.governanceOpts
-        }));
+        BuyCrowdfundBase._initialize(
+            BuyCrowdfundBaseOptions({
+                name: opts.name,
+                symbol: opts.symbol,
+                customizationPresetId: opts.customizationPresetId,
+                duration: opts.duration,
+                maximumPrice: opts.maximumPrice,
+                splitRecipient: opts.splitRecipient,
+                splitBps: opts.splitBps,
+                initialContributor: opts.initialContributor,
+                initialDelegate: opts.initialDelegate,
+                gateKeeper: opts.gateKeeper,
+                gateKeeperId: opts.gateKeeperId,
+                governanceOpts: opts.governanceOpts
+            })
+        );
         onlyHostCanBuy = opts.onlyHostCanBuy;
         nftTokenId = opts.nftTokenId;
         nftContract = opts.nftContract;
@@ -110,41 +109,32 @@ contract BuyCrowdfund is BuyCrowdfundBase {
     function buy(
         address payable callTarget,
         uint96 callValue,
-        bytes calldata callData,
+        bytes memory callData,
         FixedGovernanceOpts memory governanceOpts,
         uint256 hostIndex
-    )
-        external
-        returns (Party party_)
-    {
+    ) external returns (Party party_) {
         // This function can be optionally restricted in different ways.
         bool isValidatedGovernanceOpts;
         if (onlyHostCanBuy) {
-            if (address(gateKeeper) != address(0)) {
-                // `onlyHostCanBuy` is true and we are using a gatekeeper. Either
-                // the host or a contributor can call this function.
-                isValidatedGovernanceOpts =
-                    _assertIsHostOrContributor(msg.sender, governanceOpts, hostIndex);
-            } else {
-                // `onlyHostCanBuy` is true and we are NOT using a gatekeeper.
-                // Only a host can call this function.
-                isValidatedGovernanceOpts =
-                    _assertIsHost(msg.sender, governanceOpts, hostIndex);
-            }
+            // Only a host can call this function.
+            _assertIsHost(msg.sender, governanceOpts, hostIndex);
+            // If _assertIsHost() succeeded, the governance opts were validated.
+            isValidatedGovernanceOpts = true;
         } else if (address(gateKeeper) != address(0)) {
             // `onlyHostCanBuy` is false and we are using a gatekeeper.
             // Only a contributor can call this function.
             _assertIsContributor(msg.sender);
         }
 
-        return _buy(
-            nftContract,
-            nftTokenId,
-            callTarget,
-            callValue,
-            callData,
-            governanceOpts,
-            isValidatedGovernanceOpts
-        );
+        return
+            _buy(
+                nftContract,
+                nftTokenId,
+                callTarget,
+                callValue,
+                callData,
+                governanceOpts,
+                isValidatedGovernanceOpts
+            );
     }
 }

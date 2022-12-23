@@ -30,12 +30,8 @@ contract FoundationCrowdfundForkedTest is TestUtils {
     Crowdfund.FixedGovernanceOpts defaultGovOpts;
 
     // Initialize Foundation contracts
-    IFoundationMarket foundation = IFoundationMarket(
-        0xcDA72070E455bb31C7690a170224Ce43623d0B6f
-    );
-    IMarketWrapper foundationMarket = IMarketWrapper(
-        0x96e5b0519983f2f984324b926e6d28C3A4Eb92A1
-    );
+    IFoundationMarket foundation = IFoundationMarket(0xcDA72070E455bb31C7690a170224Ce43623d0B6f);
+    IMarketWrapper foundationMarket = IMarketWrapper(0x96e5b0519983f2f984324b926e6d28C3A4Eb92A1);
     FNDMiddleware foundationHelper = FNDMiddleware(0x22B111b81287138038b1b8DA0362B8C2f7A222fC);
     DummyERC721 nftContract = new DummyERC721();
     uint256 tokenId = nftContract.mint(address(this));
@@ -48,34 +44,43 @@ contract FoundationCrowdfundForkedTest is TestUtils {
         // Create a reserve auction on Foundation to bid on
         nftContract.approve(address(foundation), tokenId);
         foundation.createReserveAuction(address(nftContract), tokenId, 1 ether);
-        (, , , , , auctionId, , , ,) =
-            foundationHelper.getNFTDetails(address(nftContract), tokenId);
+        (, , , , , auctionId, , , , ) = foundationHelper.getNFTDetails(
+            address(nftContract),
+            tokenId
+        );
 
         // Create a AuctionCrowdfund crowdfund
-        cf = AuctionCrowdfund(payable(address(new Proxy(
-            pbImpl,
-            abi.encodeCall(
-                AuctionCrowdfund.initialize,
-                AuctionCrowdfund.AuctionCrowdfundOptions({
-                    name: "Party",
-                    symbol: "PRTY",
-                    auctionId: auctionId,
-                    market: foundationMarket,
-                    nftContract: nftContract,
-                    nftTokenId: tokenId,
-                    duration: 1 days,
-                    maximumBid: type(uint96).max,
-                    splitRecipient: payable(address(0)),
-                    splitBps: 0,
-                    initialContributor: address(this),
-                    initialDelegate: address(0),
-                    gateKeeper: IGateKeeper(address(0)),
-                    gateKeeperId: 0,
-                    onlyHostCanBid: false,
-                    governanceOpts: defaultGovOpts
-                })
+        cf = AuctionCrowdfund(
+            payable(
+                address(
+                    new Proxy(
+                        pbImpl,
+                        abi.encodeCall(
+                            AuctionCrowdfund.initialize,
+                            AuctionCrowdfund.AuctionCrowdfundOptions({
+                                name: "Party",
+                                symbol: "PRTY",
+                                customizationPresetId: 0,
+                                auctionId: auctionId,
+                                market: foundationMarket,
+                                nftContract: nftContract,
+                                nftTokenId: tokenId,
+                                duration: 1 days,
+                                maximumBid: type(uint96).max,
+                                splitRecipient: payable(address(0)),
+                                splitBps: 0,
+                                initialContributor: address(this),
+                                initialDelegate: address(0),
+                                gateKeeper: IGateKeeper(address(0)),
+                                gateKeeperId: 0,
+                                onlyHostCanBid: false,
+                                governanceOpts: defaultGovOpts
+                            })
+                        )
+                    )
+                )
             )
-        ))));
+        );
 
         // Contribute ETH used to bid.
         vm.deal(address(this), 1000 ether);
@@ -89,8 +94,18 @@ contract FoundationCrowdfundForkedTest is TestUtils {
 
         // Check that we are highest bidder.
         uint256 lastBid = cf.lastBid();
-        (, , address highestBidder, uint256 endTime, uint256 highestBid, , , , ,) =
-            foundationHelper.getNFTDetails(address(nftContract), tokenId);
+        (
+            ,
+            ,
+            address highestBidder,
+            uint256 endTime,
+            uint256 highestBid,
+            ,
+            ,
+            ,
+            ,
+
+        ) = foundationHelper.getNFTDetails(address(nftContract), tokenId);
         assertEq(lastBid, highestBid);
         assertEq(address(cf), highestBidder);
 
@@ -112,8 +127,18 @@ contract FoundationCrowdfundForkedTest is TestUtils {
 
         // Check that we are highest bidder.
         uint256 lastBid = cf.lastBid();
-        (, , address highestBidder, uint256 endTime, uint256 highestBid, , , , ,) =
-            foundationHelper.getNFTDetails(address(nftContract), tokenId);
+        (
+            ,
+            ,
+            address highestBidder,
+            uint256 endTime,
+            uint256 highestBid,
+            ,
+            ,
+            ,
+            ,
+
+        ) = foundationHelper.getNFTDetails(address(nftContract), tokenId);
         assertEq(lastBid, highestBid);
         assertEq(address(cf), highestBidder);
 
@@ -142,8 +167,10 @@ contract FoundationCrowdfundForkedTest is TestUtils {
         foundation.placeBid{ value: 1001 ether }(auctionId);
 
         // Wait for the auction to end and check that we lost.
-        (, , , uint256 endTime, , , , , ,) =
-            foundationHelper.getNFTDetails(address(nftContract), tokenId);
+        (, , , uint256 endTime, , , , , , ) = foundationHelper.getNFTDetails(
+            address(nftContract),
+            tokenId
+        );
         vm.warp(endTime + 1);
 
         // Finalize the crowdfund.
@@ -163,8 +190,10 @@ contract FoundationCrowdfundForkedTest is TestUtils {
         foundation.placeBid{ value: 1001 ether }(auctionId);
 
         // Wait for the auction to end and check that we lost.
-        (, , , uint256 endTime, , , , , ,) =
-            foundationHelper.getNFTDetails(address(nftContract), tokenId);
+        (, , , uint256 endTime, , , , , , ) = foundationHelper.getNFTDetails(
+            address(nftContract),
+            tokenId
+        );
         vm.warp(endTime + 1);
 
         // Finalize the auction before `finalize()` is called by the crowdfund.
@@ -180,7 +209,10 @@ contract FoundationCrowdfundForkedTest is TestUtils {
 }
 
 interface FNDMiddleware {
-    function getNFTDetails(address nftContract, uint256 tokenId)
+    function getNFTDetails(
+        address nftContract,
+        uint256 tokenId
+    )
         external
         view
         returns (

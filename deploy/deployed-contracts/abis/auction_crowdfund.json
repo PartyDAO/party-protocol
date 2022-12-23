@@ -34,6 +34,22 @@
   {
     "inputs": [
       {
+        "internalType": "address",
+        "name": "owner",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "tokenId",
+        "type": "uint256"
+      }
+    ],
+    "name": "AlreadyMintedError",
+    "type": "error"
+  },
+  {
+    "inputs": [
+      {
         "internalType": "uint256",
         "name": "auctionId",
         "type": "uint256"
@@ -138,6 +154,22 @@
     "type": "error"
   },
   {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "bidAmount",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "maximumBid",
+        "type": "uint256"
+      }
+    ],
+    "name": "MinimumBidExceedsMaximumBidError",
+    "type": "error"
+  },
+  {
     "inputs": [],
     "name": "MissingHostsError",
     "type": "error"
@@ -199,13 +231,35 @@
     "type": "error"
   },
   {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "notDao",
+        "type": "address"
+      }
+    ],
+    "name": "OnlyPartyDaoError",
+    "type": "error"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "notDao",
+        "type": "address"
+      }
+    ],
+    "name": "OnlyPartyDaoOrHostError",
+    "type": "error"
+  },
+  {
     "inputs": [],
     "name": "OnlyPartyHostError",
     "type": "error"
   },
   {
     "inputs": [],
-    "name": "OnlyPartyHostOrContributorError",
+    "name": "OnlyWhenEmergencyActionsAllowedError",
     "type": "error"
   },
   {
@@ -373,6 +427,37 @@
   },
   {
     "anonymous": false,
+    "inputs": [
+      {
+        "indexed": false,
+        "internalType": "address",
+        "name": "target",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "bytes",
+        "name": "data",
+        "type": "bytes"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "amountEth",
+        "type": "uint256"
+      }
+    ],
+    "name": "EmergencyExecute",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [],
+    "name": "EmergencyExecuteDisabled",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
     "inputs": [],
     "name": "Lost",
     "type": "event"
@@ -437,6 +522,19 @@
   {
     "inputs": [
       {
+        "internalType": "address payable",
+        "name": "contributor",
+        "type": "address"
+      }
+    ],
+    "name": "activateOrRefund",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
         "internalType": "address",
         "name": "",
         "type": "address"
@@ -449,7 +547,7 @@
     ],
     "name": "approve",
     "outputs": [],
-    "stateMutability": "nonpayable",
+    "stateMutability": "pure",
     "type": "function"
   },
   {
@@ -490,6 +588,29 @@
         "internalType": "address payable[]",
         "name": "contributors",
         "type": "address[]"
+      },
+      {
+        "internalType": "bool",
+        "name": "revertOnFailure",
+        "type": "bool"
+      }
+    ],
+    "name": "batchActivateOrRefund",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address payable[]",
+        "name": "contributors",
+        "type": "address[]"
+      },
+      {
+        "internalType": "bool",
+        "name": "revertOnFailure",
+        "type": "bool"
       }
     ],
     "name": "batchBurn",
@@ -660,6 +781,92 @@
         "internalType": "address",
         "name": "",
         "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "components": [
+          {
+            "internalType": "address[]",
+            "name": "hosts",
+            "type": "address[]"
+          },
+          {
+            "internalType": "uint40",
+            "name": "voteDuration",
+            "type": "uint40"
+          },
+          {
+            "internalType": "uint40",
+            "name": "executionDelay",
+            "type": "uint40"
+          },
+          {
+            "internalType": "uint16",
+            "name": "passThresholdBps",
+            "type": "uint16"
+          },
+          {
+            "internalType": "uint16",
+            "name": "feeBps",
+            "type": "uint16"
+          },
+          {
+            "internalType": "address payable",
+            "name": "feeRecipient",
+            "type": "address"
+          }
+        ],
+        "internalType": "struct Crowdfund.FixedGovernanceOpts",
+        "name": "governanceOpts",
+        "type": "tuple"
+      },
+      {
+        "internalType": "uint256",
+        "name": "hostIndex",
+        "type": "uint256"
+      }
+    ],
+    "name": "disableEmergencyExecute",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "targetAddress",
+        "type": "address"
+      },
+      {
+        "internalType": "bytes",
+        "name": "targetCallData",
+        "type": "bytes"
+      },
+      {
+        "internalType": "uint256",
+        "name": "amountEth",
+        "type": "uint256"
+      }
+    ],
+    "name": "emergencyExecute",
+    "outputs": [],
+    "stateMutability": "payable",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "emergencyExecuteDisabled",
+    "outputs": [
+      {
+        "internalType": "bool",
+        "name": "",
+        "type": "bool"
       }
     ],
     "stateMutability": "view",
@@ -847,6 +1054,11 @@
             "internalType": "string",
             "name": "symbol",
             "type": "string"
+          },
+          {
+            "internalType": "uint256",
+            "name": "customizationPresetId",
+            "type": "uint256"
           },
           {
             "internalType": "uint256",
@@ -1162,7 +1374,7 @@
     ],
     "name": "safeTransferFrom",
     "outputs": [],
-    "stateMutability": "nonpayable",
+    "stateMutability": "pure",
     "type": "function"
   },
   {
@@ -1190,7 +1402,7 @@
     ],
     "name": "safeTransferFrom",
     "outputs": [],
-    "stateMutability": "nonpayable",
+    "stateMutability": "pure",
     "type": "function"
   },
   {
@@ -1208,7 +1420,7 @@
     ],
     "name": "setApprovalForAll",
     "outputs": [],
-    "stateMutability": "nonpayable",
+    "stateMutability": "pure",
     "type": "function"
   },
   {
@@ -1321,7 +1533,7 @@
     ],
     "name": "transferFrom",
     "outputs": [],
-    "stateMutability": "nonpayable",
+    "stateMutability": "pure",
     "type": "function"
   },
   {

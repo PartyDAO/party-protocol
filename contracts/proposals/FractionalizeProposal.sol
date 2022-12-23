@@ -1,5 +1,4 @@
-// SPDX-License-Identifier: Beta Software
-// http://ipfs.io/ipfs/QmbGX2MFCaMAsMNMugRFND6DtYygRkwkvrqEyTKhTdBLo5
+// SPDX-License-Identifier: GPL-3.0
 pragma solidity 0.8.17;
 
 import "../tokens/IERC721.sol";
@@ -39,17 +38,15 @@ contract FractionalizeProposal {
     // Fractionalize an NFT held by this party on Fractional V1.
     function _executeFractionalize(
         IProposalExecutionEngine.ExecuteProposalParams memory params
-    )
-        internal
-        returns (bytes memory nextProgressData)
-    {
+    ) internal returns (bytes memory nextProgressData) {
         // Decode the proposal data.
-        FractionalizeProposalData memory data =
-            abi.decode(params.proposalData, (FractionalizeProposalData));
+        FractionalizeProposalData memory data = abi.decode(
+            params.proposalData,
+            (FractionalizeProposalData)
+        );
         // The supply of fractional vault ERC20 tokens will be equal to the total
         // voting power of the party.
-        uint256 supply =
-            PartyGovernance(address(this)).getGovernanceValues().totalVotingPower;
+        uint256 supply = PartyGovernance(address(this)).getGovernanceValues().totalVotingPower;
         // Create a vault around the NFT.
         data.token.approve(address(VAULT_FACTORY), data.tokenId);
         uint256 vaultId = VAULT_FACTORY.mint(
@@ -68,13 +65,7 @@ contract FractionalizeProposal {
         assert(vault.balanceOf(address(this)) == supply);
         // Remove ourselves as curator.
         vault.updateCurator(address(0));
-        emit FractionalV1VaultCreated(
-            data.token,
-            data.tokenId,
-            vaultId,
-            vault,
-            data.listPrice
-        );
+        emit FractionalV1VaultCreated(data.token, data.tokenId, vaultId, vault, data.listPrice);
         // Create distribution for fractional tokens for party.
         PartyGovernance(address(this)).distribute(
             ITokenDistributor.TokenType.Erc20,

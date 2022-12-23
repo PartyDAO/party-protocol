@@ -3,9 +3,7 @@ pragma solidity ^0.8;
 
 import "../../contracts/crowdfund/Crowdfund.sol";
 
-
 contract TestableCrowdfund is Crowdfund {
-
     uint256 public finalPrice;
     CrowdfundLifecycle public lifeCycle;
     FixedGovernanceOpts public govOpts;
@@ -16,6 +14,12 @@ contract TestableCrowdfund is Crowdfund {
         lifeCycle = CrowdfundLifecycle.Active;
         govOpts = opts.governanceOpts;
         _initialize(opts);
+    }
+
+    function getContributionEntriesByContributorCount(
+        address contributor
+    ) external view returns (uint256) {
+        return _contributionsByContributor[contributor].length;
     }
 
     function testSetFinalPrice(uint256 finalPrice_) external {
@@ -34,10 +38,7 @@ contract TestableCrowdfund is Crowdfund {
         FixedGovernanceOpts memory govOpts_,
         IERC721[] memory preciousTokens,
         uint256[] memory preciousTokenIds
-    )
-        external
-        returns (Party party)
-    {
+    ) external returns (Party party) {
         return _createParty(govOpts_, false, preciousTokens, preciousTokenIds);
     }
 
@@ -46,34 +47,23 @@ contract TestableCrowdfund is Crowdfund {
         FixedGovernanceOpts memory govOpts_,
         IERC721[] memory preciousTokens,
         uint256[] memory preciousTokenIds
-    )
-        external
-        returns (Party party)
-    {
+    ) external returns (Party party) {
         finalPrice = finalPrice_;
         lifeCycle = CrowdfundLifecycle.Won;
         return _createParty(govOpts_, false, preciousTokens, preciousTokenIds);
     }
 
-    function getCrowdfundLifecycle()
-        public
-        virtual
-        override
-        view
-        returns (CrowdfundLifecycle)
-    {
+    function getCrowdfundLifecycle() public view virtual override returns (CrowdfundLifecycle) {
         return lifeCycle;
     }
 
-    function _getFinalPrice() internal virtual override view returns (uint256) {
+    function _getFinalPrice() internal view virtual override returns (uint256) {
         return finalPrice;
     }
 
-    function hashFixedGovernanceOpts(FixedGovernanceOpts memory opts)
-        public
-        pure
-        returns (bytes32 h)
-    {
+    function hashFixedGovernanceOpts(
+        FixedGovernanceOpts memory opts
+    ) public pure returns (bytes32 h) {
         return _hashFixedGovernanceOpts(opts);
     }
 }

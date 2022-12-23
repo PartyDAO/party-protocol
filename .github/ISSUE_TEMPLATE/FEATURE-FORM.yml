@@ -1,0 +1,20 @@
+name: Feature request
+description: Suggest a feature
+labels: [feature]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Please ensure this feature has not already been suggested.
+
+        Thanks for your help improving the Party Protocol!
+  - type: textarea
+    attributes:
+      label: Describe the feature you would like
+      description: Please also describe what the feature is aiming to solve, if relevant.
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: Additional context
+      description: Add any other context about the feature (eg. screenshots, resources)

@@ -1,5 +1,4 @@
-// SPDX-License-Identifier: Beta Software
-// http://ipfs.io/ipfs/QmbGX2MFCaMAsMNMugRFND6DtYygRkwkvrqEyTKhTdBLo5
+// SPDX-License-Identifier: GPL-3.0
 pragma solidity 0.8.17;
 
 import "../globals/IGlobals.sol";
@@ -72,18 +71,8 @@ abstract contract ListOnOpenseaProposal is ZoraHelpers {
         uint256 listPrice,
         uint256 expiry
     );
-    event OpenseaOrderSold(
-        bytes32 orderHash,
-        IERC721 token,
-        uint256 tokenId,
-        uint256 listPrice
-    );
-    event OpenseaOrderExpired(
-        bytes32 orderHash,
-        IERC721 token,
-        uint256 tokenId,
-        uint256 expiry
-    );
+    event OpenseaOrderSold(bytes32 orderHash, IERC721 token, uint256 tokenId, uint256 listPrice);
+    event OpenseaOrderExpired(bytes32 orderHash, IERC721 token, uint256 tokenId, uint256 expiry);
 
     /// @notice The Seaport contract.
     IOpenseaExchange public immutable SEAPORT;
@@ -98,8 +87,7 @@ abstract contract ListOnOpenseaProposal is ZoraHelpers {
         IGlobals globals,
         IOpenseaExchange seaport,
         IOpenseaConduitController conduitController
-    )
-    {
+    ) {
         SEAPORT = seaport;
         CONDUIT_CONTROLLER = conduitController;
         _GLOBALS = globals;
@@ -111,14 +99,10 @@ abstract contract ListOnOpenseaProposal is ZoraHelpers {
     // calling this function again will cancel the listing.
     function _executeListOnOpensea(
         IProposalExecutionEngine.ExecuteProposalParams memory params
-    )
-        internal
-        returns (bytes memory nextProgressData)
-    {
-        (OpenseaProposalData memory data) =
-            abi.decode(params.proposalData, (OpenseaProposalData));
-        bool isUnanimous = params.flags & LibProposal.PROPOSAL_FLAG_UNANIMOUS
-            == LibProposal.PROPOSAL_FLAG_UNANIMOUS;
+    ) internal returns (bytes memory nextProgressData) {
+        OpenseaProposalData memory data = abi.decode(params.proposalData, (OpenseaProposalData));
+        bool isUnanimous = params.flags & LibProposal.PROPOSAL_FLAG_UNANIMOUS ==
+            LibProposal.PROPOSAL_FLAG_UNANIMOUS;
         // If there is no `progressData` passed in, we're on the first step,
         // otherwise parse the first word of the `progressData` as the current step.
         ListOnOpenseaStep step = params.progressData.length == 0
@@ -137,10 +121,12 @@ abstract contract ListOnOpenseaProposal is ZoraHelpers {
             ) {
                 // Not a unanimous vote and the token is precious, so list on Zora
                 // auction house first.
-                uint40 zoraTimeout =
-                    uint40(_GLOBALS.getUint256(LibGlobals.GLOBAL_OS_ZORA_AUCTION_TIMEOUT));
-                uint40 zoraDuration =
-                    uint40(_GLOBALS.getUint256(LibGlobals.GLOBAL_OS_ZORA_AUCTION_DURATION));
+                uint40 zoraTimeout = uint40(
+                    _GLOBALS.getUint256(LibGlobals.GLOBAL_OS_ZORA_AUCTION_TIMEOUT)
+                );
+                uint40 zoraDuration = uint40(
+                    _GLOBALS.getUint256(LibGlobals.GLOBAL_OS_ZORA_AUCTION_DURATION)
+                );
                 if (zoraTimeout != 0) {
                     uint256 auctionId = _createZoraAuction(
                         data.listPrice,
@@ -150,10 +136,14 @@ abstract contract ListOnOpenseaProposal is ZoraHelpers {
                         data.tokenId
                     );
                     // Return the next step and data required to execute that step.
-                    return abi.encode(ListOnOpenseaStep.ListedOnZora, ZoraProgressData({
-                        auctionId: auctionId,
-                        minExpiry: (block.timestamp + zoraTimeout).safeCastUint256ToUint40()
-                    }));
+                    return
+                        abi.encode(
+                            ListOnOpenseaStep.ListedOnZora,
+                            ZoraProgressData({
+                                auctionId: auctionId,
+                                minExpiry: (block.timestamp + zoraTimeout).safeCastUint256ToUint40()
+                            })
+                        );
                 }
             }
             // Unanimous vote, not a precious, or no Zora duration.
@@ -164,8 +154,10 @@ abstract contract ListOnOpenseaProposal is ZoraHelpers {
         if (step == ListOnOpenseaStep.ListedOnZora) {
             // The last time this proposal was executed, we listed it on Zora.
             // Now retrieve it from Zora.
-            (, ZoraProgressData memory zpd) =
-                abi.decode(params.progressData, (uint8, ZoraProgressData));
+            (, ZoraProgressData memory zpd) = abi.decode(
+                params.progressData,
+                (uint8, ZoraProgressData)
+            );
             // Try to settle the Zora auction. This will revert if the auction
             // is still ongoing.
             ZoraAuctionStatus statusCode = _settleZoraAuction(
@@ -174,10 +166,7 @@ abstract contract ListOnOpenseaProposal is ZoraHelpers {
                 data.token,
                 data.tokenId
             );
-            if (
-                statusCode == ZoraAuctionStatus.Sold ||
-                statusCode == ZoraAuctionStatus.Cancelled
-            ) {
+            if (statusCode == ZoraAuctionStatus.Sold || statusCode == ZoraAuctionStatus.Cancelled) {
                 // Auction sold or was cancelled. If it sold, there is nothing left to do.
                 // If it was cancelled, we cannot safely proceed with the listing. Return
                 // empty progress data to indicate there are no more steps to
@@ -199,8 +188,12 @@ abstract contract ListOnOpenseaProposal is ZoraHelpers {
 
             {
                 // Clamp the order duration to the global minimum and maximum.
-                uint40 minDuration = uint40(_GLOBALS.getUint256(LibGlobals.GLOBAL_OS_MIN_ORDER_DURATION));
-                uint40 maxDuration = uint40(_GLOBALS.getUint256(LibGlobals.GLOBAL_OS_MAX_ORDER_DURATION));
+                uint40 minDuration = uint40(
+                    _GLOBALS.getUint256(LibGlobals.GLOBAL_OS_MIN_ORDER_DURATION)
+                );
+                uint40 maxDuration = uint40(
+                    _GLOBALS.getUint256(LibGlobals.GLOBAL_OS_MAX_ORDER_DURATION)
+                );
                 if (minDuration != 0 && data.duration < minDuration) {
                     data.duration = minDuration;
                 } else if (maxDuration != 0 && data.duration > maxDuration) {
@@ -222,15 +215,11 @@ abstract contract ListOnOpenseaProposal is ZoraHelpers {
         assert(step == ListOnOpenseaStep.ListedOnOpenSea);
         // The last time this proposal was executed, we listed it on OpenSea.
         // Now try to settle the listing (either it has expired or been filled).
-        (, OpenseaProgressData memory opd) =
-            abi.decode(params.progressData, (uint8, OpenseaProgressData));
-        _cleanUpListing(
-            opd.orderHash,
-            opd.expiry,
-            data.token,
-            data.tokenId,
-            data.listPrice
+        (, OpenseaProgressData memory opd) = abi.decode(
+            params.progressData,
+            (uint8, OpenseaProgressData)
         );
+        _cleanUpListing(opd.orderHash, opd.expiry, data.token, data.tokenId, data.listPrice);
         // This is the last possible step so return empty progress data
         // to indicate there are no more steps to execute.
         return "";
@@ -244,17 +233,14 @@ abstract contract ListOnOpenseaProposal is ZoraHelpers {
         uint256[] memory fees,
         address payable[] memory feeRecipients,
         bytes4 domainHashPrefix
-    )
-        private
-        returns (bytes32 orderHash)
-    {
+    ) private returns (bytes32 orderHash) {
         if (fees.length != feeRecipients.length) {
             revert InvalidFeeRecipients();
         }
         // Approve OpenSea's conduit to spend our NFT. This should revert if we
         // do not own the NFT.
         bytes32 conduitKey = _GLOBALS.getBytes32(LibGlobals.GLOBAL_OPENSEA_CONDUIT_KEY);
-        (address conduit,) = CONDUIT_CONTROLLER.getConduit(conduitKey);
+        (address conduit, ) = CONDUIT_CONTROLLER.getConduit(conduitKey);
         token.approve(conduit, tokenId);
 
         // Create a (basic) Seaport 721 sell order.
@@ -290,7 +276,7 @@ abstract contract ListOnOpenseaProposal is ZoraHelpers {
             cons.identifierOrCriteria = 0;
             cons.startAmount = cons.endAmount = listPrice;
             cons.recipient = payable(address(this));
-            for (uint256 i = 0; i < fees.length; ++i) {
+            for (uint256 i; i < fees.length; ++i) {
                 cons = orderParams.consideration[1 + i];
                 cons.itemType = IOpenseaExchange.ItemType.NATIVE;
                 cons.token = address(0);
@@ -302,21 +288,12 @@ abstract contract ListOnOpenseaProposal is ZoraHelpers {
         orderHash = _getOrderHash(orderParams);
         // Validate the order on-chain so no signature is required to fill it.
         assert(SEAPORT.validate(orders));
-        emit OpenseaOrderListed(
-            orderParams,
-            orderHash,
-            token,
-            tokenId,
-            listPrice,
-            expiry
-        );
+        emit OpenseaOrderListed(orderParams, orderHash, token, tokenId, listPrice, expiry);
     }
 
-    function _getOrderHash(IOpenseaExchange.OrderParameters memory orderParams)
-        private
-        view
-        returns (bytes32 orderHash)
-    {
+    function _getOrderHash(
+        IOpenseaExchange.OrderParameters memory orderParams
+    ) private view returns (bytes32 orderHash) {
         // `getOrderHash()` wants an `OrderComponents` struct, which is an `OrderParameters`
         // struct but with the last field (`totalOriginalConsiderationItems`)
         // replaced with the maker's nonce. Since we (the maker) never increment
@@ -325,11 +302,12 @@ abstract contract ListOnOpenseaProposal is ZoraHelpers {
         // force cast the `OrderParameters` into a `OrderComponents` type, call
         // `getOrderHash()`, and then restore the `totalOriginalConsiderationItems`
         // field's value before returning.
-        uint256 origTotalOriginalConsiderationItems =
-            orderParams.totalOriginalConsiderationItems;
+        uint256 origTotalOriginalConsiderationItems = orderParams.totalOriginalConsiderationItems;
         orderParams.totalOriginalConsiderationItems = 0;
         IOpenseaExchange.OrderComponents memory orderComps;
-        assembly { orderComps := orderParams }
+        assembly {
+            orderComps := orderParams
+        }
         orderHash = SEAPORT.getOrderHash(orderComps);
         orderParams.totalOriginalConsiderationItems = origTotalOriginalConsiderationItems;
     }
@@ -340,10 +318,8 @@ abstract contract ListOnOpenseaProposal is ZoraHelpers {
         IERC721 token,
         uint256 tokenId,
         uint256 listPrice
-    )
-        private
-    {
-        (,, uint256 totalFilled,) = SEAPORT.getOrderStatus(orderHash);
+    ) private {
+        (, , uint256 totalFilled, ) = SEAPORT.getOrderStatus(orderHash);
         if (totalFilled != 0) {
             // The order was filled before it expired. We no longer have the NFT
             // and instead we have the ETH it was bought with.

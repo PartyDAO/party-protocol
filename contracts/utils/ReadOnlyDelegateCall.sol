@@ -1,17 +1,15 @@
-// SPDX-License-Identifier: Apache-2.0
+// SPDX-License-Identifier: GPL-3.0
 pragma solidity 0.8.17;
 
 import "./LibRawResult.sol";
 
 interface IReadOnlyDelegateCall {
     // Marked `view` so that `_readOnlyDelegateCall` can be `view` as well.
-    function delegateCallAndRevert(address impl, bytes memory callData)
-        external
-        view;
+    function delegateCallAndRevert(address impl, bytes memory callData) external view;
 }
 
-// Inherited by contracts to performs read-only delegate calls.
-contract ReadOnlyDelegateCall {
+// Inherited by contracts to perform read-only delegate calls.
+abstract contract ReadOnlyDelegateCall {
     using LibRawResult for bytes;
 
     // Delegatecall into implement and revert with the raw result.
@@ -28,8 +26,7 @@ contract ReadOnlyDelegateCall {
         try IReadOnlyDelegateCall(address(this)).delegateCallAndRevert(impl, callData) {
             // Should never happen.
             assert(false);
-        }
-        catch (bytes memory r) {
+        } catch (bytes memory r) {
             (bool success, bytes memory resultData) = abi.decode(r, (bool, bytes));
             if (!success) {
                 resultData.rawRevert();

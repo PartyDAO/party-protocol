@@ -1,5 +1,4 @@
-// SPDX-License-Identifier: Beta Software
-// http://ipfs.io/ipfs/QmbGX2MFCaMAsMNMugRFND6DtYygRkwkvrqEyTKhTdBLo5
+// SPDX-License-Identifier: GPL-3.0
 pragma solidity 0.8.17;
 
 import "../globals/IGlobals.sol";
@@ -56,10 +55,10 @@ contract ListOnZoraProposal is ZoraHelpers {
     event ZoraAuctionFailed(uint256 auctionId);
 
     // keccak256(abi.encodeWithSignature('Error(string)', "Auction hasn't begun"))
-    bytes32 constant internal AUCTION_HASNT_BEGUN_ERROR_HASH =
+    bytes32 internal constant AUCTION_HASNT_BEGUN_ERROR_HASH =
         0x54a53788b7942d79bb6fcd40012c5e867208839fa1607e1f245558ee354e9565;
     // keccak256(abi.encodeWithSignature('Error(string)', "Auction doesn't exit"))
-    bytes32 constant internal AUCTION_DOESNT_EXIST_ERROR_HASH =
+    bytes32 internal constant AUCTION_DOESNT_EXIST_ERROR_HASH =
         0x474ba0184a7cd5de777156a56f3859150719340a6974b6ee50f05c58139f4dc2;
     /// @notice Zora auction house contract.
     IZoraAuctionHouse public immutable ZORA;
@@ -78,11 +77,8 @@ contract ListOnZoraProposal is ZoraHelpers {
     // Calling this the second time will either cancel or finalize the auction.
     function _executeListOnZora(
         IProposalExecutionEngine.ExecuteProposalParams memory params
-    )
-        internal
-        returns (bytes memory nextProgressData)
-    {
-        (ZoraProposalData memory data) = abi.decode(params.proposalData, (ZoraProposalData));
+    ) internal returns (bytes memory nextProgressData) {
+        ZoraProposalData memory data = abi.decode(params.proposalData, (ZoraProposalData));
         // If there is progressData passed in, we're on the first step,
         // otherwise parse the first word of the progressData as the current step.
         ZoraStep step = params.progressData.length == 0
@@ -92,15 +88,21 @@ contract ListOnZoraProposal is ZoraHelpers {
             // Proposal hasn't executed yet.
             {
                 // Clamp the Zora auction duration to the global minimum and maximum.
-                uint40 minDuration = uint40(_GLOBALS.getUint256(LibGlobals.GLOBAL_ZORA_MIN_AUCTION_DURATION));
-                uint40 maxDuration = uint40(_GLOBALS.getUint256(LibGlobals.GLOBAL_ZORA_MAX_AUCTION_DURATION));
+                uint40 minDuration = uint40(
+                    _GLOBALS.getUint256(LibGlobals.GLOBAL_ZORA_MIN_AUCTION_DURATION)
+                );
+                uint40 maxDuration = uint40(
+                    _GLOBALS.getUint256(LibGlobals.GLOBAL_ZORA_MAX_AUCTION_DURATION)
+                );
                 if (minDuration != 0 && data.duration < minDuration) {
                     data.duration = minDuration;
                 } else if (maxDuration != 0 && data.duration > maxDuration) {
                     data.duration = maxDuration;
                 }
                 // Clamp the Zora auction timeout to the global maximum.
-                uint40 maxTimeout = uint40(_GLOBALS.getUint256(LibGlobals.GLOBAL_ZORA_MAX_AUCTION_TIMEOUT));
+                uint40 maxTimeout = uint40(
+                    _GLOBALS.getUint256(LibGlobals.GLOBAL_ZORA_MAX_AUCTION_TIMEOUT)
+                );
                 if (maxTimeout != 0 && data.timeout > maxTimeout) {
                     data.timeout = maxTimeout;
                 }
@@ -113,14 +115,20 @@ contract ListOnZoraProposal is ZoraHelpers {
                 data.token,
                 data.tokenId
             );
-            return abi.encode(ZoraStep.ListedOnZora, ZoraProgressData({
-                auctionId: auctionId,
-                minExpiry: (block.timestamp + data.timeout).safeCastUint256ToUint40()
-            }));
+            return
+                abi.encode(
+                    ZoraStep.ListedOnZora,
+                    ZoraProgressData({
+                        auctionId: auctionId,
+                        minExpiry: (block.timestamp + data.timeout).safeCastUint256ToUint40()
+                    })
+                );
         }
         assert(step == ZoraStep.ListedOnZora);
-        (, ZoraProgressData memory pd) =
-            abi.decode(params.progressData, (ZoraStep, ZoraProgressData));
+        (, ZoraProgressData memory pd) = abi.decode(
+            params.progressData,
+            (ZoraStep, ZoraProgressData)
+        );
         _settleZoraAuction(pd.auctionId, pd.minExpiry, data.token, data.tokenId);
         // Nothing left to do.
         return "";
@@ -136,11 +144,7 @@ contract ListOnZoraProposal is ZoraHelpers {
         uint40 duration,
         IERC721 token,
         uint256 tokenId
-    )
-        internal
-        override
-        returns (uint256 auctionId)
-    {
+    ) internal override returns (uint256 auctionId) {
         token.approve(address(ZORA), tokenId);
         auctionId = ZORA.createAuction(
             tokenId,
@@ -156,7 +160,7 @@ contract ListOnZoraProposal is ZoraHelpers {
             token,
             tokenId,
             listPrice,
-            uint40(duration),
+            duration,
             uint40(block.timestamp + timeout)
         );
     }
@@ -167,11 +171,7 @@ contract ListOnZoraProposal is ZoraHelpers {
         uint40 minExpiry,
         IERC721 token,
         uint256 tokenId
-    )
-        internal
-        override
-        returns (ZoraAuctionStatus statusCode)
-    {
+    ) internal override returns (ZoraAuctionStatus statusCode) {
         // Getting the state of an auction is super expensive so it seems
         // cheaper to just let `endAuction()` fail and react to the error.
         try ZORA.endAuction(auctionId) {

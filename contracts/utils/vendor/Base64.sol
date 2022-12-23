@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: Apache-2.0
+// SPDX-License-Identifier: GPL-3.0
 pragma solidity ^0.8;
 
 /// [MIT License]
@@ -6,7 +6,8 @@ pragma solidity ^0.8;
 /// @notice Provides a function for encoding some bytes in base64
 /// @author Brecht Devos <brecht@loopring.org>
 library Base64 {
-    bytes internal constant TABLE = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+    bytes internal constant TABLE =
+        "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 
     /// @notice Encodes some bytes to the base64 representation
     function encode(bytes memory data) internal pure returns (string memory) {

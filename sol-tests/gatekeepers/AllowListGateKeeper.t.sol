@@ -11,7 +11,7 @@ contract AllowListGateKeeperTest is Test, TestUtils {
 
     // Generates a randomized 4-member allow list.
     function _randomAllowList() private view returns (address[4] memory allowList) {
-        for (uint i = 0; i < 4; i++) {
+        for (uint i = 0; i < 4; ++i) {
             allowList[i] = _randomAddress();
         }
     }
@@ -19,14 +19,8 @@ contract AllowListGateKeeperTest is Test, TestUtils {
     // Constructs a merkle root from the given 4-member allow list.
     function _constructTree(address[4] memory members) private pure returns (bytes32 merkleRoot) {
         merkleRoot = _hashNode(
-            _hashNode(
-                _hashLeaf(members[0]),
-                _hashLeaf(members[1])
-            ),
-            _hashNode(
-                _hashLeaf(members[2]),
-                _hashLeaf(members[3])
-            )
+            _hashNode(_hashLeaf(members[0]), _hashLeaf(members[1])),
+            _hashNode(_hashLeaf(members[2]), _hashLeaf(members[3]))
         );
     }
 

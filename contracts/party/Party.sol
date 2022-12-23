@@ -1,5 +1,4 @@
-// SPDX-License-Identifier: Beta Software
-// http://ipfs.io/ipfs/QmbGX2MFCaMAsMNMugRFND6DtYygRkwkvrqEyTKhTdBLo5
+// SPDX-License-Identifier: GPL-3.0
 pragma solidity 0.8.17;
 
 import "../tokens/IERC721.sol";
@@ -15,6 +14,7 @@ contract Party is PartyGovernanceNFT {
         PartyGovernance.GovernanceOpts governance;
         string name;
         string symbol;
+        uint256 customizationPresetId;
     }
 
     // Arguments used to initialize the `PartyGovernanceNFT`.
@@ -31,13 +31,11 @@ contract Party is PartyGovernanceNFT {
     /// @notice Initializer to be delegatecalled by `Proxy` constructor. Will
     ///         revert if called outside the constructor.
     /// @param initData Options used to initialize the party governance.
-    function initialize(PartyInitData memory initData)
-        external
-        onlyConstructor
-    {
+    function initialize(PartyInitData memory initData) external onlyConstructor {
         PartyGovernanceNFT._initialize(
             initData.options.name,
             initData.options.symbol,
+            initData.options.customizationPresetId,
             initData.options.governance,
             initData.preciousTokens,
             initData.preciousTokenIds,

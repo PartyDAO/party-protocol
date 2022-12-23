@@ -1,0 +1,22 @@
+{
+  "globals": "0x1ca20040ce6ad406bc2a6c89976388829e7fbade",
+  "tokenDistributor": "0x1ca2007a81f8a7491bb6e11d8e357fd810896454",
+  "seaportExchange": "0x00000000006c3852cbef3e08e8df289169ede581",
+  "proposalEngineImpl": "0x88d1f63e80a48711d2a458e1924224435c10beed",
+  "partyImpl": "0x52010e220e5c8ef2217d86cfa58da51da39e8ec4",
+  "partyFactory": "0x1ca2007d4f2bc0ec2a56ecb890e56e05f36182df",
+  "auctionCrowdfundImpl": "0xa23399a573aaf562eec1645096218fecfdc22759",
+  "buyCrowdfundImpl": "0x48ce324bd9ce34217b9c737dda0cec2f28a0626e",
+  "collectionBuyCrowdfundImpl": "0x57dc04a0270e9f9e6a1289c1559c84098ba0fa9c",
+  "partyCrowdfundFactory": "0x1ca2002babed23b91537e2f9c8bb61b97798c806",
+  "partyCrowdfundNFTRenderer": "0x565846D035b2B02D6631d579eD34d8f250584015",
+  "partyGovernanceNFTRenderer": "0xb2d1f3bc26719b2f6bdd53ce6693ae414cbe475e",
+  "partyHelpers": "0xc3b0693388ceb0c93c86814b4c5b4ebca650f93b",
+  "allowListGateKeeper": "0x50c58f8bd97c1845c8e8ff56117dbce8a5b009b2",
+  "tokenGateKeeper": "0x26a7bd6161e4c6ae44620cfc6f7b9c3daf83ad0b",
+  "foundationMarketWrapper": "0x96e5b0519983f2f984324b926e6d28c3a4eb92a1",
+  "nounsMarketWrapper": "0x9319dad8736d752c5c72db229f8e1b280dc80ab1",
+  "zoraMarketWrapper": "0x11c07ce1315a3b92c9755f90cdf40b04b88c5731",
+  "rendererStorage": "0x9a4fe89316bf81a1e4549476b219c456703c3f62",
+  "pixeldroidConsoleFont": "0xe790494430e98ae0c572ba9c11a6e36e6289635e"
+}

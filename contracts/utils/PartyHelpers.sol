@@ -1,5 +1,4 @@
-// SPDX-License-Identifier: Beta Software
-// http://ipfs.io/ipfs/QmbGX2MFCaMAsMNMugRFND6DtYygRkwkvrqEyTKhTdBLo5
+// SPDX-License-Identifier: GPL-3.0
 pragma solidity 0.8.17;
 
 import "../party/Party.sol";
@@ -32,11 +31,10 @@ contract PartyHelpers {
     // Crowdfund helpers //
     ////////////////////////////
 
-    function getCrowdfundType(address globals, address crowdfund)
-        external
-        view
-        returns (CrowdfundType)
-    {
+    function getCrowdfundType(
+        address globals,
+        address crowdfund
+    ) external view returns (CrowdfundType) {
         IGlobals g = IGlobals(globals);
         Implementation cf = Implementation(crowdfund);
         address impl = cf.IMPL();
@@ -55,14 +53,13 @@ contract PartyHelpers {
     /////////////////////////////
 
     /// @notice Get the current delegate for each member in `members`
-    function getCurrentDelegates(address party, address[] calldata members)
-        external
-        view
-        returns (MemberAndDelegate[] memory membersAndDelegates)
-    {
+    function getCurrentDelegates(
+        address party,
+        address[] calldata members
+    ) external view returns (MemberAndDelegate[] memory membersAndDelegates) {
         Party p = Party(payable(party));
         membersAndDelegates = new MemberAndDelegate[](members.length);
-        for (uint256 i = 0; i < members.length; i++) {
+        for (uint256 i; i < members.length; ++i) {
             membersAndDelegates[i] = MemberAndDelegate({
                 member: members[i],
                 delegate: p.delegationsByVoter(members[i])
@@ -76,14 +73,10 @@ contract PartyHelpers {
         address[] calldata voters,
         uint40 timestamp,
         uint256[] calldata indexes
-    )
-        external
-        view
-        returns (MemberAndVotingPower[] memory memberAndVotingPower)
-    {
+    ) external view returns (MemberAndVotingPower[] memory memberAndVotingPower) {
         Party p = Party(payable(party));
         memberAndVotingPower = new MemberAndVotingPower[](voters.length);
-        for (uint256 i = 0; i < voters.length; i++) {
+        for (uint256 i; i < voters.length; ++i) {
             memberAndVotingPower[i] = MemberAndVotingPower({
                 member: voters[i],
                 votingPower: p.getVotingPowerAt(voters[i], timestamp, indexes[i])
@@ -91,17 +84,16 @@ contract PartyHelpers {
         }
     }
 
-
     ////////////////////////////////
     // PartyGovernanceNFT helpers //
     ////////////////////////////////
 
     /// @notice Get the owner and intrinsic voting power of each governance nft in a range
-    function getNftInfos(address party, uint256 startTokenId, uint256 endTokenId)
-        external
-        view
-        returns (NftInfo[] memory nftInfos)
-    {
+    function getNftInfos(
+        address party,
+        uint256 startTokenId,
+        uint256 endTokenId
+    ) external view returns (NftInfo[] memory nftInfos) {
         Party p = Party(payable(party));
         uint256 count = endTokenId - startTokenId + 1;
         {
@@ -113,7 +105,7 @@ contract PartyHelpers {
 
         nftInfos = new NftInfo[](count);
 
-        for (uint256 i = 0; i < count; i++) {
+        for (uint256 i; i < count; ++i) {
             uint256 currIndex = startTokenId + i;
             address owner = p.ownerOf(currIndex);
             uint256 intrinsicVotingPower = p.votingPowerByTokenId(currIndex);

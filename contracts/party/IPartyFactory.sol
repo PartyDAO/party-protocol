@@ -1,5 +1,4 @@
-// SPDX-License-Identifier: Beta Software
-// http://ipfs.io/ipfs/QmbGX2MFCaMAsMNMugRFND6DtYygRkwkvrqEyTKhTdBLo5
+// SPDX-License-Identifier: GPL-3.0
 pragma solidity 0.8.17;
 
 import "../globals/IGlobals.sol";
@@ -10,7 +9,7 @@ import "./Party.sol";
 // Creates generic Party instances.
 interface IPartyFactory {
     event PartyCreated(
-        Party party,
+        Party indexed party,
         Party.PartyOptions opts,
         IERC721[] preciousTokens,
         uint256[] preciousTokenIds,
@@ -34,9 +33,7 @@ interface IPartyFactory {
         Party.PartyOptions calldata opts,
         IERC721[] memory preciousTokens,
         uint256[] memory preciousTokenIds
-    )
-        external
-        returns (Party party);
+    ) external returns (Party party);
 
     /// @notice The `Globals` contract storing global configuration values. This contract
     ///         is immutable and it’s address will never change.

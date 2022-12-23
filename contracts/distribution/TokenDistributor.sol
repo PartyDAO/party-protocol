@@ -1,5 +1,4 @@
-// SPDX-License-Identifier: Beta Software
-// http://ipfs.io/ipfs/QmbGX2MFCaMAsMNMugRFND6DtYygRkwkvrqEyTKhTdBLo5
+// SPDX-License-Identifier: GPL-3.0
 pragma solidity 0.8.17;
 
 import "../globals/IGlobals.sol";
@@ -41,8 +40,9 @@ contract TokenDistributor is ITokenDistributor {
         uint16 feeBps;
     }
 
+    event EmergencyExecute(address target, bytes data);
+
     error OnlyPartyDaoError(address notDao, address partyDao);
-    error OnlyPartyDaoAuthorityError(address notDaoAuthority);
     error InvalidDistributionInfoError(DistributionInfo info);
     error DistributionAlreadyClaimedByPartyTokenError(uint256 distributionId, uint256 partyTokenId);
     error DistributionFeeAlreadyClaimedError(uint256 distributionId);
@@ -69,7 +69,8 @@ contract TokenDistributor is ITokenDistributor {
     /// fussing with allowances.
     mapping(bytes32 => uint256) private _storedBalances;
     // tokenDistributorParty => distributionId => DistributionState
-    mapping(ITokenDistributorParty => mapping(uint256 => DistributionState)) private _distributionStates;
+    mapping(ITokenDistributorParty => mapping(uint256 => DistributionState))
+        private _distributionStates;
 
     // msg.sender == DAO
     modifier onlyPartyDao() {
@@ -101,19 +102,17 @@ contract TokenDistributor is ITokenDistributor {
         ITokenDistributorParty party,
         address payable feeRecipient,
         uint16 feeBps
-    )
-        external
-        payable
-        returns (DistributionInfo memory info)
-    {
-        info = _createDistribution(CreateDistributionArgs({
-            party: party,
-            tokenType: TokenType.Native,
-            token: NATIVE_TOKEN_ADDRESS,
-            currentTokenBalance: address(this).balance,
-            feeRecipient: feeRecipient,
-            feeBps: feeBps
-        }));
+    ) external payable returns (DistributionInfo memory info) {
+        info = _createDistribution(
+            CreateDistributionArgs({
+                party: party,
+                tokenType: TokenType.Native,
+                token: NATIVE_TOKEN_ADDRESS,
+                currentTokenBalance: address(this).balance,
+                feeRecipient: feeRecipient,
+                feeBps: feeBps
+            })
+        );
     }
 
     /// @inheritdoc ITokenDistributor
@@ -122,25 +121,24 @@ contract TokenDistributor is ITokenDistributor {
         ITokenDistributorParty party,
         address payable feeRecipient,
         uint16 feeBps
-    )
-        external
-        returns (DistributionInfo memory info)
-    {
-        info = _createDistribution(CreateDistributionArgs({
-            party: party,
-            tokenType: TokenType.Erc20,
-            token: address(token),
-            currentTokenBalance: token.balanceOf(address(this)),
-            feeRecipient: feeRecipient,
-            feeBps: feeBps
-        }));
+    ) external returns (DistributionInfo memory info) {
+        info = _createDistribution(
+            CreateDistributionArgs({
+                party: party,
+                tokenType: TokenType.Erc20,
+                token: address(token),
+                currentTokenBalance: token.balanceOf(address(this)),
+                feeRecipient: feeRecipient,
+                feeBps: feeBps
+            })
+        );
     }
 
     /// @inheritdoc ITokenDistributor
-    function claim(DistributionInfo calldata info, uint256 partyTokenId)
-        public
-        returns (uint128 amountClaimed)
-    {
+    function claim(
+        DistributionInfo calldata info,
+        uint256 partyTokenId
+    ) public returns (uint128 amountClaimed) {
         // Caller must own the party token.
         {
             address ownerOfPartyToken = info.party.ownerOf(partyTokenId);
@@ -172,12 +170,7 @@ contract TokenDistributor is ITokenDistributor {
         state.remainingMemberSupply = remainingMemberSupply - amountClaimed;
 
         // Transfer tokens owed.
-        _transfer(
-            info.tokenType,
-            info.token,
-            payable(msg.sender),
-            amountClaimed
-        );
+        _transfer(info.tokenType, info.token, payable(msg.sender), amountClaimed);
         emit DistributionClaimedByPartyToken(
             info.party,
             partyTokenId,
@@ -189,9 +182,7 @@ contract TokenDistributor is ITokenDistributor {
     }
 
     /// @inheritdoc ITokenDistributor
-    function claimFee(DistributionInfo calldata info, address payable recipient)
-        public
-    {
+    function claimFee(DistributionInfo calldata info, address payable recipient) public {
         // DistributionInfo must be correct for this distribution ID.
         DistributionState storage state = _distributionStates[info.party][info.distributionId];
         if (state.distributionHash != _getDistributionHash(info)) {
@@ -208,12 +199,7 @@ contract TokenDistributor is ITokenDistributor {
         // Mark the fee as claimed.
         state.wasFeeClaimed = true;
         // Transfer the tokens owed.
-        _transfer(
-            info.tokenType,
-            info.token,
-            recipient,
-            info.fee
-        );
+        _transfer(info.tokenType, info.token, recipient, info.fee);
         emit DistributionFeeClaimed(
             info.party,
             info.feeRecipient,
@@ -224,10 +210,10 @@ contract TokenDistributor is ITokenDistributor {
     }
 
     /// @inheritdoc ITokenDistributor
-    function batchClaim(DistributionInfo[] calldata infos, uint256[] calldata partyTokenIds)
-        external
-        returns (uint128[] memory amountsClaimed)
-    {
+    function batchClaim(
+        DistributionInfo[] calldata infos,
+        uint256[] calldata partyTokenIds
+    ) external returns (uint128[] memory amountsClaimed) {
         amountsClaimed = new uint128[](infos.length);
         for (uint256 i = 0; i < infos.length; ++i) {
             amountsClaimed[i] = claim(infos[i], partyTokenIds[i]);
@@ -235,9 +221,10 @@ contract TokenDistributor is ITokenDistributor {
     }
 
     /// @inheritdoc ITokenDistributor
-    function batchClaimFee(DistributionInfo[] calldata infos, address payable[] calldata recipients)
-        external
-    {
+    function batchClaimFee(
+        DistributionInfo[] calldata infos,
+        address payable[] calldata recipients
+    ) external {
         for (uint256 i = 0; i < infos.length; ++i) {
             claimFee(infos[i], recipients[i]);
         }
@@ -248,30 +235,20 @@ contract TokenDistributor is ITokenDistributor {
         ITokenDistributorParty party,
         uint256 memberSupply,
         uint256 partyTokenId
-    )
-        public
-        view
-        returns (uint128)
-    {
+    ) public view returns (uint128) {
         // getDistributionShareOf() is the fraction of the memberSupply partyTokenId
         // is entitled to, scaled by 1e18.
         // We round up here to prevent dust amounts getting trapped in this contract.
-        return (
-            (
-                uint256(party.getDistributionShareOf(partyTokenId))
-                * memberSupply
-                + (1e18 - 1)
-            )
-            / 1e18
-        ).safeCastUint256ToUint128();
+        return
+            ((uint256(party.getDistributionShareOf(partyTokenId)) * memberSupply + (1e18 - 1)) /
+                1e18).safeCastUint256ToUint128();
     }
 
     /// @inheritdoc ITokenDistributor
-    function wasFeeClaimed(ITokenDistributorParty party, uint256 distributionId)
-        external
-        view
-        returns (bool)
-    {
+    function wasFeeClaimed(
+        ITokenDistributorParty party,
+        uint256 distributionId
+    ) external view returns (bool) {
         return _distributionStates[party][distributionId].wasFeeClaimed;
     }
 
@@ -280,10 +257,7 @@ contract TokenDistributor is ITokenDistributor {
         ITokenDistributorParty party,
         uint256 partyTokenId,
         uint256 distributionId
-    )
-        external
-        view returns (bool)
-    {
+    ) external view returns (bool) {
         return _distributionStates[party][distributionId].hasPartyTokenClaimed[partyTokenId];
     }
 
@@ -291,11 +265,7 @@ contract TokenDistributor is ITokenDistributor {
     function getRemainingMemberSupply(
         ITokenDistributorParty party,
         uint256 distributionId
-    )
-        external
-        view
-        returns (uint128)
-    {
+    ) external view returns (uint128) {
         return _distributionStates[party][distributionId].remainingMemberSupply;
     }
 
@@ -306,21 +276,17 @@ contract TokenDistributor is ITokenDistributor {
     function emergencyExecute(
         address targetAddress,
         bytes calldata targetCallData
-    )
-        external
-        onlyPartyDao
-        onlyIfEmergencyActionsAllowed
-    {
+    ) external onlyPartyDao onlyIfEmergencyActionsAllowed {
         (bool success, bytes memory res) = targetAddress.delegatecall(targetCallData);
         if (!success) {
             res.rawRevert();
         }
+        emit EmergencyExecute(targetAddress, targetCallData);
     }
 
-    function _createDistribution(CreateDistributionArgs memory args)
-        private
-        returns (DistributionInfo memory info)
-    {
+    function _createDistribution(
+        CreateDistributionArgs memory args
+    ) private returns (DistributionInfo memory info) {
         if (args.feeBps > 1e4) {
             revert InvalidFeeBpsError(args.feeBps);
         }
@@ -338,7 +304,7 @@ contract TokenDistributor is ITokenDistributor {
         }
 
         // Create a distribution.
-        uint128 fee = supply * args.feeBps / 1e4;
+        uint128 fee = (supply * args.feeBps) / 1e4;
         uint128 memberSupply = supply - fee;
 
         info = DistributionInfo({
@@ -362,9 +328,7 @@ contract TokenDistributor is ITokenDistributor {
         address token,
         address payable recipient,
         uint256 amount
-    )
-        private
-    {
+    ) private {
         bytes32 balanceId = _getBalanceId(tokenType, token);
         // Reduce stored token balance.
         uint256 storedBalance = _storedBalances[balanceId] - amount;
@@ -387,21 +351,18 @@ contract TokenDistributor is ITokenDistributor {
         _storedBalances[balanceId] = storedBalance;
     }
 
-    function _getDistributionHash(DistributionInfo memory info)
-        internal
-        pure
-        returns (bytes32 hash)
-    {
+    function _getDistributionHash(
+        DistributionInfo memory info
+    ) internal pure returns (bytes32 hash) {
         assembly {
             hash := keccak256(info, 0xe0)
         }
     }
 
-    function _getBalanceId(TokenType tokenType, address token)
-        private
-        pure
-        returns (bytes32 balanceId)
-    {
+    function _getBalanceId(
+        TokenType tokenType,
+        address token
+    ) private pure returns (bytes32 balanceId) {
         if (tokenType == TokenType.Native) {
             return bytes32(uint256(uint160(NATIVE_TOKEN_ADDRESS)));
         }

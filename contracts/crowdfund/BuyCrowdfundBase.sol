@@ -1,5 +1,4 @@
-// SPDX-License-Identifier: Beta Software
-// http://ipfs.io/ipfs/QmbGX2MFCaMAsMNMugRFND6DtYygRkwkvrqEyTKhTdBLo5
+// SPDX-License-Identifier: GPL-3.0
 pragma solidity 0.8.17;
 
 import "../tokens/IERC721.sol";
@@ -24,12 +23,13 @@ abstract contract BuyCrowdfundBase is Crowdfund {
         string name;
         // The token symbol for both the crowdfund and the governance NFTs.
         string symbol;
+        // Customization preset ID to use for the crowdfund and governance NFTs.
+        uint256 customizationPresetId;
         // How long this crowdfund has to bid on the NFT, in seconds.
         uint40 duration;
         // Maximum amount this crowdfund will pay for the NFT.
-        // If zero, no maximum.
         uint96 maximumPrice;
-        // An address that receieves an extra share of the final voting power
+        // An address that receives an extra share of the final voting power
         // when the party transitions into governance.
         address payable splitRecipient;
         // What percentage (in bps) of the final total voting power `splitRecipient`
@@ -56,7 +56,7 @@ abstract contract BuyCrowdfundBase is Crowdfund {
     error MaximumPriceError(uint96 callValue, uint96 maximumPrice);
     error NoContributionsError();
     error FailedToBuyNFTError(IERC721 token, uint256 tokenId);
-    error InvalidCallTargetError(address callTarget);
+    error CallProhibitedError(address target, bytes data);
 
     /// @notice When this crowdfund expires.
     uint40 public expiry;
@@ -69,22 +69,23 @@ abstract contract BuyCrowdfundBase is Crowdfund {
     constructor(IGlobals globals) Crowdfund(globals) {}
 
     // Initialize storage for proxy contracts.
-    function _initialize(BuyCrowdfundBaseOptions memory opts)
-        internal
-    {
+    function _initialize(BuyCrowdfundBaseOptions memory opts) internal {
         expiry = uint40(opts.duration + block.timestamp);
         maximumPrice = opts.maximumPrice;
-        Crowdfund._initialize(CrowdfundOptions({
-            name: opts.name,
-            symbol: opts.symbol,
-            splitRecipient: opts.splitRecipient,
-            splitBps: opts.splitBps,
-            initialContributor: opts.initialContributor,
-            initialDelegate: opts.initialDelegate,
-            gateKeeper: opts.gateKeeper,
-            gateKeeperId: opts.gateKeeperId,
-            governanceOpts: opts.governanceOpts
-        }));
+        Crowdfund._initialize(
+            CrowdfundOptions({
+                name: opts.name,
+                symbol: opts.symbol,
+                customizationPresetId: opts.customizationPresetId,
+                splitRecipient: opts.splitRecipient,
+                splitBps: opts.splitBps,
+                initialContributor: opts.initialContributor,
+                initialDelegate: opts.initialDelegate,
+                gateKeeper: opts.gateKeeper,
+                gateKeeperId: opts.gateKeeperId,
+                governanceOpts: opts.governanceOpts
+            })
+        );
     }
 
     // Execute arbitrary calldata to perform a buy, creating a party
@@ -94,28 +95,26 @@ abstract contract BuyCrowdfundBase is Crowdfund {
         uint256 tokenId,
         address payable callTarget,
         uint96 callValue,
-        bytes calldata callData,
+        bytes memory callData,
         FixedGovernanceOpts memory governanceOpts,
         bool isValidatedGovernanceOpts
-    )
-        internal
-        onlyDelegateCall
-        returns (Party party_)
-    {
-        // Ensure the call target isn't trying to reenter
-        if (callTarget == address(this)) {
-            revert InvalidCallTargetError(callTarget);
+    ) internal onlyDelegateCall returns (Party party_) {
+        // Check that the call is not prohibited.
+        if (!_isCallAllowed(callTarget, callData, token)) {
+            revert CallProhibitedError(callTarget, callData);
         }
         // Check that the crowdfund is still active.
         CrowdfundLifecycle lc = getCrowdfundLifecycle();
         if (lc != CrowdfundLifecycle.Active) {
             revert WrongLifecycleError(lc);
         }
-        uint96 totalContributions_ = totalContributions;
         // Prevent unaccounted ETH from being used to inflate the price and
         // create "ghost shares" in voting power.
-        if (callValue > totalContributions_) {
-            revert ExceedsTotalContributionsError(callValue, totalContributions_);
+        {
+            uint96 totalContributions_ = totalContributions;
+            if (callValue > totalContributions_) {
+                revert ExceedsTotalContributionsError(callValue, totalContributions_);
+            }
         }
         // Check that the call value is under the maximum price.
         {
@@ -126,8 +125,10 @@ abstract contract BuyCrowdfundBase is Crowdfund {
         }
         // Temporarily set to non-zero as a reentrancy guard.
         settledPrice = type(uint96).max;
-        {
-            // Execute the call to buy the NFT.
+
+        // Execute the call to buy the NFT, but only if we have a nonzero callValue
+        // because a zero callValue will cause the CF to lose anyawy.
+        if (callValue != 0) {
             (bool s, bytes memory r) = callTarget.call{ value: callValue }(callData);
             if (!s) {
                 r.rawRevert();
@@ -135,11 +136,12 @@ abstract contract BuyCrowdfundBase is Crowdfund {
         }
         // Make sure we acquired the NFT we want.
         if (token.safeOwnerOf(tokenId) == address(this)) {
-            if (address(this).balance >= totalContributions_) {
+            if (callValue == 0) {
                 // If the purchase was free or the NFT was "gifted" to us,
                 // refund all contributors by declaring we lost.
                 settledPrice = 0;
-                expiry = 0;
+                // Set the expiry to now so people can withdraw their contributions.
+                expiry = uint40(block.timestamp);
                 emit Lost();
             } else {
                 settledPrice = callValue;
@@ -162,14 +164,13 @@ abstract contract BuyCrowdfundBase is Crowdfund {
     }
 
     /// @inheritdoc Crowdfund
-    function getCrowdfundLifecycle() public override view returns (CrowdfundLifecycle) {
+    function getCrowdfundLifecycle() public view override returns (CrowdfundLifecycle) {
         // If there is a settled price then we tried to buy the NFT.
         if (settledPrice != 0) {
-            return address(party) != address(0)
-                // If we have a party, then we succeeded buying the NFT.
-                ? CrowdfundLifecycle.Won
-                // Otherwise we're in the middle of the `buy()`.
-                : CrowdfundLifecycle.Busy;
+            return
+                address(party) != address(0)
+                    ? CrowdfundLifecycle.Won // If we have a party, then we succeeded buying the NFT.
+                    : CrowdfundLifecycle.Busy; // Otherwise we're in the middle of the `buy()`.
         }
         if (block.timestamp >= expiry) {
             // Expired, but nothing to do so skip straight to lost, or NFT was
@@ -179,12 +180,37 @@ abstract contract BuyCrowdfundBase is Crowdfund {
         return CrowdfundLifecycle.Active;
     }
 
-    function _getFinalPrice()
-        internal
-        override
-        view
-        returns (uint256)
-    {
+    function _getFinalPrice() internal view override returns (uint256) {
         return settledPrice;
+    }
+
+    function _isCallAllowed(
+        address payable callTarget,
+        bytes memory callData,
+        IERC721 token
+    ) private view returns (bool isAllowed) {
+        // Ensure the call target isn't trying to reenter
+        if (callTarget == address(this)) {
+            return false;
+        }
+        if (callTarget == address(token) && callData.length >= 4) {
+            // Get the function selector of the call (first 4 bytes of calldata).
+            bytes4 selector;
+            assembly {
+                selector := and(
+                    mload(add(callData, 32)),
+                    0xffffffff00000000000000000000000000000000000000000000000000000000
+                )
+            }
+            // Prevent approving the NFT to be transferred out from the crowdfund.
+            if (
+                selector == IERC721.approve.selector ||
+                selector == IERC721.setApprovalForAll.selector
+            ) {
+                return false;
+            }
+        }
+        // All other calls are allowed.
+        return true;
     }
 }

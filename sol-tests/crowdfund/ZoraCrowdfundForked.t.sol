@@ -30,20 +30,15 @@ contract ZoraCrowdfundForkedTest is TestUtils, ERC721Receiver {
     Crowdfund.FixedGovernanceOpts defaultGovOpts;
 
     // Initialize Zora contracts
-    IZoraAuctionHouse zora =
-        IZoraAuctionHouse(0xE468cE99444174Bd3bBBEd09209577d25D1ad673);
-    IMarketWrapper zoraMarket =
-        IMarketWrapper(0x11c07cE1315a3b92C9755F90cDF40B04b88c5731);
+    IZoraAuctionHouse zora = IZoraAuctionHouse(0xE468cE99444174Bd3bBBEd09209577d25D1ad673);
+    IMarketWrapper zoraMarket = IMarketWrapper(0x11c07cE1315a3b92C9755F90cDF40B04b88c5731);
     DummyERC721 nftContract = new DummyERC721();
     uint256 tokenId = nftContract.mint(address(this));
     uint256 auctionId;
 
     constructor() onlyForked {
         // Initialize PartyFactory for creating parties after a successful crowdfund.
-        globals.setAddress(
-            LibGlobals.GLOBAL_PARTY_FACTORY,
-            address(partyFactory)
-        );
+        globals.setAddress(LibGlobals.GLOBAL_PARTY_FACTORY, address(partyFactory));
 
         // Create a reserve auction on Zora to bid on
         nftContract.approve(address(zora), tokenId);
@@ -68,6 +63,7 @@ contract ZoraCrowdfundForkedTest is TestUtils, ERC721Receiver {
                             AuctionCrowdfund.AuctionCrowdfundOptions({
                                 name: "Party",
                                 symbol: "PRTY",
+                                customizationPresetId: 0,
                                 auctionId: auctionId,
                                 market: zoraMarket,
                                 nftContract: nftContract,
@@ -91,7 +87,7 @@ contract ZoraCrowdfundForkedTest is TestUtils, ERC721Receiver {
 
         // Contribute ETH used to bid.
         vm.deal(address(this), 1000 ether);
-        cf.contribute{value: 1000 ether}(address(this), "");
+        cf.contribute{ value: 1000 ether }(address(this), "");
     }
 
     // Test creating a crowdfund party around a Zora auction + winning the auction
@@ -149,14 +145,8 @@ contract ZoraCrowdfundForkedTest is TestUtils, ERC721Receiver {
 
         // We outbid our own party (sneaky!)
         vm.deal(address(this), 1001 ether);
-        (bool success, bytes memory returnData) = address(zora).call{
-            value: 1001 ether
-        }(
-            abi.encodeWithSignature(
-                "createBid(uint256,uint256)",
-                auctionId,
-                1001 ether
-            )
+        (bool success, bytes memory returnData) = address(zora).call{ value: 1001 ether }(
+            abi.encodeWithSignature("createBid(uint256,uint256)", auctionId, 1001 ether)
         );
         require(success, string(returnData));
 
@@ -177,14 +167,8 @@ contract ZoraCrowdfundForkedTest is TestUtils, ERC721Receiver {
 
         // We outbid our own party (sneaky!)
         vm.deal(address(this), 1001 ether);
-        (bool success, bytes memory returnData) = address(zora).call{
-            value: 1001 ether
-        }(
-            abi.encodeWithSignature(
-                "createBid(uint256,uint256)",
-                auctionId,
-                1001 ether
-            )
+        (bool success, bytes memory returnData) = address(zora).call{ value: 1001 ether }(
+            abi.encodeWithSignature("createBid(uint256,uint256)", auctionId, 1001 ether)
         );
         require(success, string(returnData));
 

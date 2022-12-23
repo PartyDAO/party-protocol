@@ -2,7 +2,6 @@
 pragma solidity ^0.8;
 
 interface IOpenseaExchange {
-
     error InvalidTime();
 
     enum OrderType {
@@ -125,13 +124,26 @@ interface IOpenseaExchange {
     }
 
     function cancel(OrderComponents[] calldata orders) external returns (bool cancelled);
+
     function validate(Order[] calldata orders) external returns (bool validated);
-    function fulfillBasicOrder(BasicOrderParameters calldata parameters) external payable returns (bool fulfilled);
-    function fulfillOrder(Order calldata order, bytes32 fulfillerConduitKey) external payable returns (bool fulfilled);
-    function getOrderStatus(bytes32 orderHash)
+
+    function fulfillBasicOrder(
+        BasicOrderParameters calldata parameters
+    ) external payable returns (bool fulfilled);
+
+    function fulfillOrder(
+        Order calldata order,
+        bytes32 fulfillerConduitKey
+    ) external payable returns (bool fulfilled);
+
+    function getOrderStatus(
+        bytes32 orderHash
+    )
         external
         view
         returns (bool isValidated, bool isCancelled, uint256 totalFilled, uint256 totalSize);
+
     function getOrderHash(OrderComponents calldata order) external view returns (bytes32 orderHash);
+
     function getNonce(address offerer) external view returns (uint256 nonce);
 }

@@ -13,7 +13,11 @@ const RELEVANT_ABIS = [
   "PartyHelpers",
   "ProposalExecutionEngine",
   "TokenDistributor",
-  "TokenGateKeeper"
+  "TokenGateKeeper",
+  "RendererStorage",
+  "PartyNFTRenderer",
+  "CrowdfundNFTRenderer",
+  "Globals",
 ];
 
 // AFileName -> a_file_name
@@ -31,7 +35,7 @@ const saveAbis = async () => {
     [filename: string]: any;
   } = {};
 
-  RELEVANT_ABIS.forEach((filename) => {
+  RELEVANT_ABIS.forEach(filename => {
     const fileLoc = `./out/${filename}.sol/${filename}.json`;
     if (!existsSync(fileLoc)) {
       console.warn(`${fileLoc} does not exist`);
@@ -47,10 +51,10 @@ const saveAbis = async () => {
     output[newFilename] = foundAbi;
   });
 
-  Object.keys(output).forEach((newFilename) => {
+  Object.keys(output).forEach(newFilename => {
     writeFileSync(
       `./deploy/deployed-contracts/abis/${newFilename}.json`,
-      JSON.stringify(output[newFilename], undefined, 2)
+      JSON.stringify(output[newFilename], undefined, 2),
     );
   });
 };

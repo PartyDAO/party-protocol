@@ -1,5 +1,4 @@
-// SPDX-License-Identifier: Beta Software
-// http://ipfs.io/ipfs/QmbGX2MFCaMAsMNMugRFND6DtYygRkwkvrqEyTKhTdBLo5
+// SPDX-License-Identifier: GPL-3.0
 pragma solidity 0.8.17;
 
 import "../tokens/IERC721.sol";
@@ -7,9 +6,11 @@ import "../utils/ReadOnlyDelegateCall.sol";
 import "../utils/EIP165.sol";
 import "../globals/IGlobals.sol";
 import "../globals/LibGlobals.sol";
+import "../renderers/RendererStorage.sol";
 
 /// @notice NFT functionality for crowdfund types. This NFT is soulbound and read-only.
 contract CrowdfundNFT is IERC721, EIP165, ReadOnlyDelegateCall {
+    error AlreadyMintedError(address owner, uint256 tokenId);
     error AlreadyBurnedError(address owner, uint256 tokenId);
     error InvalidTokenError(uint256 tokenId);
     error InvalidAddressError();
@@ -25,10 +26,10 @@ contract CrowdfundNFT is IERC721, EIP165, ReadOnlyDelegateCall {
     ///         the governance party.
     string public symbol;
 
-    mapping (uint256 => address) private _owners;
+    mapping(uint256 => address) private _owners;
 
     modifier alwaysRevert() {
-        revert('ALWAYS FAILING');
+        revert("ALWAYS FAILING");
         _; // Compiler requires this.
     }
 
@@ -38,79 +39,62 @@ contract CrowdfundNFT is IERC721, EIP165, ReadOnlyDelegateCall {
     }
 
     // Initialize name and symbol for crowdfund.
-    function _initialize(string memory name_, string memory symbol_)
-        internal
-        virtual
-    {
+    function _initialize(
+        string memory name_,
+        string memory symbol_,
+        uint256 customizationPresetId
+    ) internal virtual {
         name = name_;
         symbol = symbol_;
+        if (customizationPresetId != 0) {
+            RendererStorage(_GLOBALS.getAddress(LibGlobals.GLOBAL_RENDERER_STORAGE))
+                .useCustomizationPreset(customizationPresetId);
+        }
     }
 
     /// @notice DO NOT CALL. This is a soulbound NFT and cannot be transferred.
     ///         Attempting to call this function will always fail.
-    function transferFrom(address, address, uint256)
-        external
-        alwaysRevert
-    {}
+    function transferFrom(address, address, uint256) external pure alwaysRevert {}
 
     /// @notice DO NOT CALL. This is a soulbound NFT and cannot be transferred.
     ///         Attempting to call this function will always fail.
-    function safeTransferFrom(address, address, uint256)
-        external
-        alwaysRevert
-    {}
+    function safeTransferFrom(address, address, uint256) external pure alwaysRevert {}
 
     /// @notice DO NOT CALL. This is a soulbound NFT and cannot be transferred.
     ///         Attempting to call this function will always fail.
-    function safeTransferFrom(address, address, uint256, bytes calldata)
-        external
-        alwaysRevert
-    {}
+    function safeTransferFrom(
+        address,
+        address,
+        uint256,
+        bytes calldata
+    ) external pure alwaysRevert {}
 
     /// @notice DO NOT CALL. This is a soulbound NFT and cannot be transferred.
     ///         Attempting to call this function will always fail.
-    function approve(address, uint256)
-        external
-        alwaysRevert
-    {}
+    function approve(address, uint256) external pure alwaysRevert {}
 
     /// @notice DO NOT CALL. This is a soulbound NFT and cannot be transferred.
     ///         Attempting to call this function will always fail.
-    function setApprovalForAll(address, bool)
-        external
-        alwaysRevert
-    {}
+    function setApprovalForAll(address, bool) external pure alwaysRevert {}
 
     /// @notice This is a soulbound NFT and cannot be transferred.
     ///         Attempting to call this function will always return null.
-    function getApproved(uint256)
-        external
-        pure
-        returns (address)
-    {
+    function getApproved(uint256) external pure returns (address) {
         return address(0);
     }
 
     /// @notice This is a soulbound NFT and cannot be transferred.
     ///         Attempting to call this function will always return false.
-    function isApprovedForAll(address, address)
-        external
-        pure
-        returns (bool)
-    {
+    function isApprovedForAll(address, address) external pure returns (bool) {
         return false;
     }
 
     /// @inheritdoc EIP165
-    function supportsInterface(bytes4 interfaceId)
-        public
-        virtual
-        override
-        pure
-        returns (bool)
-    {
-        return super.supportsInterface(interfaceId) ||
-            interfaceId == type(IERC721).interfaceId;
+    function supportsInterface(bytes4 interfaceId) public pure virtual override returns (bool) {
+        return
+            super.supportsInterface(interfaceId) ||
+            // ERC721 interface ID
+            interfaceId == 0x80ac58cd;
     }
 
     /// @notice Returns a URI to render the NFT.
@@ -146,6 +130,8 @@ contract CrowdfundNFT is IERC721, EIP165, ReadOnlyDelegateCall {
         if (_owners[tokenId] != owner) {
             _owners[tokenId] = owner;
             emit Transfer(address(0), owner, tokenId);
+        } else {
+            revert AlreadyMintedError(owner, tokenId);
         }
     }
 
