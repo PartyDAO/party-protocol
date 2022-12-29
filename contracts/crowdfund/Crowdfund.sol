@@ -344,7 +344,7 @@ abstract contract Crowdfund is Implementation, ERC721Receiver, CrowdfundNFT {
         _contribute(recipient, msg.value.safeCastUint256ToUint96(), totalContributions, gateData);
     }
 
-    /// @notice `contributeBur()` in batch form.
+    /// @notice `contributeFor()` in batch form.
     ///         Will not revert if any individual burn fails.
     /// @param recipients The addresses to record the contributions under.
     /// @param initialDelegates The addresses to delegate to for each recipient.
