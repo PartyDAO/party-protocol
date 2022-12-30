@@ -674,9 +674,9 @@ contract ListOnOpenseaProposalForkedTest is Test, TestUtils, ZoraTestUtils, Open
         bytes32 orderHash;
         uint256 expiry;
         {
-            (, orderHash, expiry) = abi.decode(
+            (, orderHash, , expiry) = abi.decode(
                 executeParams.progressData,
-                (ListOnOpenseaProposal.ListOnOpenseaStep, bytes32, uint256)
+                (ListOnOpenseaProposal.ListOnOpenseaStep, bytes32, address, uint256)
             );
         }
         // Skip past expiration.
