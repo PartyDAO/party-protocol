@@ -65,6 +65,8 @@ abstract contract ListOnOpenseaProposal is ZoraHelpers {
     struct OpenseaProgressData {
         // Hash of the OS order that was listed.
         bytes32 orderHash;
+        // Conduit approved to spend the NFT.
+        address conduit;
         // Expiration timestamp of the listing.
         uint40 expiry;
     }
@@ -223,18 +225,13 @@ abstract contract ListOnOpenseaProposal is ZoraHelpers {
                 }
             }
             uint256 expiry = block.timestamp + uint256(data.duration);
-            bytes32 orderHash = _listOnOpensea(
+            (address conduit, bytes32 conduitKey) = _approveConduit(
                 data.token,
                 data.tokenId,
-                data.tokenType,
-                data.startPrice,
-                data.endPrice,
-                expiry,
-                data.fees,
-                data.feeRecipients,
-                data.domainHashPrefix
+                data.tokenType
             );
-            return abi.encode(ListOnOpenseaStep.ListedOnOpenSea, orderHash, expiry);
+            bytes32 orderHash = _listOnOpensea(data, conduitKey, expiry);
+            return abi.encode(ListOnOpenseaStep.ListedOnOpenSea, orderHash, conduit, expiry);
         }
         assert(step == ListOnOpenseaStep.ListedOnOpenSea);
         // The last time this proposal was executed, we listed it on OpenSea.
@@ -245,6 +242,7 @@ abstract contract ListOnOpenseaProposal is ZoraHelpers {
         );
         _cleanUpListing(
             opd.orderHash,
+            opd.conduit,
             opd.expiry,
             data.token,
             data.tokenId,
@@ -258,17 +256,11 @@ abstract contract ListOnOpenseaProposal is ZoraHelpers {
     }
 
     function _listOnOpensea(
-        address token,
-        uint256 tokenId,
-        TokenType tokenType,
-        uint256 startPrice,
-        uint256 endPrice,
-        uint256 expiry,
-        uint256[] memory fees,
-        address payable[] memory feeRecipients,
-        bytes4 domainHashPrefix
+        OpenseaProposalData memory data,
+        bytes32 conduitKey,
+        uint256 expiry
     ) private returns (bytes32 orderHash) {
-        if (fees.length != feeRecipients.length) {
+        if (data.fees.length != data.feeRecipients.length) {
             revert InvalidFeeRecipients();
         }
 
@@ -283,57 +275,39 @@ abstract contract ListOnOpenseaProposal is ZoraHelpers {
         orderParams.orderType = orderParams.zone == address(0)
             ? IOpenseaExchange.OrderType.FULL_OPEN
             : IOpenseaExchange.OrderType.FULL_RESTRICTED;
-        orderParams.salt = uint256(bytes32(domainHashPrefix));
-        orderParams.totalOriginalConsiderationItems = 1 + fees.length;
+        orderParams.salt = uint256(bytes32(data.domainHashPrefix));
+        orderParams.conduitKey = conduitKey;
+        orderParams.totalOriginalConsiderationItems = 1 + data.fees.length;
         // What we are selling.
         orderParams.offer = new IOpenseaExchange.OfferItem[](1);
-        {
-            IOpenseaExchange.OfferItem memory offer = orderParams.offer[0];
-            offer.itemType = tokenType == TokenType.ERC721
-                ? IOpenseaExchange.ItemType.ERC721
-                : IOpenseaExchange.ItemType.ERC1155;
-            offer.token = token;
-            offer.identifierOrCriteria = tokenId;
-            offer.startAmount = 1;
-            offer.endAmount = 1;
-        }
+        IOpenseaExchange.OfferItem memory offer = orderParams.offer[0];
+        offer.itemType = data.tokenType == TokenType.ERC721
+            ? IOpenseaExchange.ItemType.ERC721
+            : IOpenseaExchange.ItemType.ERC1155;
+        offer.token = data.token;
+        offer.identifierOrCriteria = data.tokenId;
+        offer.startAmount = 1;
+        offer.endAmount = 1;
         // What we want for it.
-        orderParams.consideration = new IOpenseaExchange.ConsiderationItem[](1 + fees.length);
-        {
-            IOpenseaExchange.ConsiderationItem memory cons = orderParams.consideration[0];
+        orderParams.consideration = new IOpenseaExchange.ConsiderationItem[](1 + data.fees.length);
+        IOpenseaExchange.ConsiderationItem memory cons = orderParams.consideration[0];
+        cons.itemType = IOpenseaExchange.ItemType.NATIVE;
+        cons.token = address(0);
+        cons.identifierOrCriteria = 0;
+        cons.startAmount = data.startPrice;
+        cons.endAmount = data.endPrice;
+        cons.recipient = payable(address(this));
+        for (uint256 i; i < data.fees.length; ++i) {
+            cons = orderParams.consideration[1 + i];
             cons.itemType = IOpenseaExchange.ItemType.NATIVE;
             cons.token = address(0);
             cons.identifierOrCriteria = 0;
-            cons.startAmount = startPrice;
-            cons.endAmount = endPrice;
-            cons.recipient = payable(address(this));
-            for (uint256 i; i < fees.length; ++i) {
-                cons = orderParams.consideration[1 + i];
-                cons.itemType = IOpenseaExchange.ItemType.NATIVE;
-                cons.token = address(0);
-                cons.identifierOrCriteria = 0;
-                cons.startAmount = fees[i];
-                // Adjusted such that the start amount and end amount of fees is
-                // proportional to the start and end price of the listing for
-                // dutch auctions.
-                cons.endAmount = (fees[i] * endPrice) / startPrice;
-                cons.recipient = feeRecipients[i];
-            }
-        }
-        {
-            // Get the OpenSea conduit key.
-            bytes32 conduitKey = _GLOBALS.getBytes32(LibGlobals.GLOBAL_OPENSEA_CONDUIT_KEY);
-            orderParams.conduitKey = conduitKey;
-        }
-        {
-            // Approve OpenSea's conduit to spend our NFT. This should revert if we
-            // do not own the NFT.
-            (address conduit, ) = CONDUIT_CONTROLLER.getConduit(orderParams.conduitKey);
-            if (tokenType == TokenType.ERC721) {
-                IERC721(token).approve(conduit, tokenId);
-            } else {
-                IERC1155(token).setApprovalForAll(conduit, true);
-            }
+            cons.startAmount = data.fees[i];
+            // Adjusted such that the start amount and end amount of fees is
+            // proportional to the start and end price of the listing for
+            // dutch auctions.
+            cons.endAmount = (data.fees[i] * data.endPrice) / data.startPrice;
+            cons.recipient = data.feeRecipients[i];
         }
         orderHash = _getOrderHash(orderParams);
         // Validate the order on-chain so no signature is required to fill it.
@@ -341,12 +315,30 @@ abstract contract ListOnOpenseaProposal is ZoraHelpers {
         emit OpenseaOrderListed(
             orderParams,
             orderHash,
-            token,
-            tokenId,
-            startPrice,
-            endPrice,
+            data.token,
+            data.tokenId,
+            data.startPrice,
+            data.endPrice,
             expiry
         );
+    }
+
+    function _approveConduit(
+        address token,
+        uint256 tokenId,
+        TokenType tokenType
+    ) private returns (address conduit, bytes32 conduitKey) {
+        // Get the OpenSea conduit key.
+        conduitKey = _GLOBALS.getBytes32(LibGlobals.GLOBAL_OPENSEA_CONDUIT_KEY);
+        // Get conduit.
+        (conduit, ) = CONDUIT_CONTROLLER.getConduit(conduitKey);
+        // Approve OpenSea's conduit to spend our NFT. This should revert if we
+        // do not own the NFT.
+        if (tokenType == TokenType.ERC721) {
+            IERC721(token).approve(conduit, tokenId);
+        } else {
+            IERC1155(token).setApprovalForAll(conduit, true);
+        }
     }
 
     function _getOrderHash(
@@ -372,6 +364,7 @@ abstract contract ListOnOpenseaProposal is ZoraHelpers {
 
     function _cleanUpListing(
         bytes32 orderHash,
+        address conduit,
         uint256 expiry,
         address token,
         uint256 tokenId,
@@ -390,8 +383,6 @@ abstract contract ListOnOpenseaProposal is ZoraHelpers {
             if (tokenType == TokenType.ERC721) {
                 IERC721(token).approve(address(0), tokenId);
             } else {
-                bytes32 conduitKey = _GLOBALS.getBytes32(LibGlobals.GLOBAL_OPENSEA_CONDUIT_KEY);
-                (address conduit, ) = CONDUIT_CONTROLLER.getConduit(conduitKey);
                 IERC1155(token).setApprovalForAll(conduit, false);
             }
             emit OpenseaOrderExpired(orderHash, token, tokenId, expiry);
