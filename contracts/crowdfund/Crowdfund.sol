@@ -84,6 +84,7 @@ abstract contract Crowdfund is Implementation, ERC721Receiver, CrowdfundNFT {
     error WrongLifecycleError(CrowdfundLifecycle lc);
     error InvalidGovernanceOptionsError();
     error InvalidDelegateError();
+    error InvalidContributorError();
     error NoPartyError();
     error NotAllowedByGateKeeperError(
         address contributor,
@@ -598,6 +599,8 @@ abstract contract Crowdfund is Implementation, ERC721Receiver, CrowdfundNFT {
         uint96 previousTotalContributions,
         bytes memory gateData
     ) private {
+        if (contributor == address(this)) revert InvalidContributorError();
+
         if (amount == 0) return;
 
         // Must not be blocked by gatekeeper.
