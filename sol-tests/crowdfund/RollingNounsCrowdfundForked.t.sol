@@ -77,7 +77,9 @@ contract RollingNounsCrowdfundForkedTest is RollingAuctionCrowdfundTest {
         override
         returns (uint256 nextAuctionId, uint256 nextTokenId)
     {
-        (nextAuctionId, nextTokenId) = (auctionId + 1, tokenId + 1);
+        // Nouns DAO mints every 10th NFT to the founders.
+        uint256 i = (tokenId + 1) % 10 == 0 ? 2 : 1;
+        (nextAuctionId, nextTokenId) = (auctionId + i, tokenId + i);
     }
 
     function _endAuction() internal override {
