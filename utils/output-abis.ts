@@ -18,6 +18,7 @@ const RELEVANT_ABIS = [
   "PartyNFTRenderer",
   "CrowdfundNFTRenderer",
   "Globals",
+  "PartyList",
 ];
 
 // AFileName -> a_file_name
