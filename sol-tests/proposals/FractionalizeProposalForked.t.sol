@@ -120,7 +120,7 @@ contract FractionalizeProposalForkedTest is TestUtils {
             impl.getGovernanceValues().totalVotingPower
         );
         assertEq(expectedVault.reservePrice(), listPrice);
-        assertEq(expectedVault.curator(), address(0));
+        assertEq(expectedVault.curator(), address(1));
     }
 
     function _getNextVault() private returns (IFractionalV1Vault v) {
