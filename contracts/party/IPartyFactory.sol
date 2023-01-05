@@ -31,7 +31,7 @@ interface IPartyFactory {
         address creatorDelegate;
         // Merkle root of list of initial members and voting power for each member.
         // Each leaf in the list should be encoded as:
-        // `abi.encodePacked(address member, uint96 votingPower)`
+        // `abi.encodePacked(address member, uint96 votingPower, uint256 nonce)`
         bytes32 listMerkleRoot;
     }
 
