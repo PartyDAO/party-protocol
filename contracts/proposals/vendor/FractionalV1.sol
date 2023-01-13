@@ -27,7 +27,25 @@ interface IFractionalV1VaultFactory {
 interface IFractionalV1Vault is IERC20 {
     function curator() external view returns (address curator_);
 
+    function auctionEnd() external view returns (uint256);
+
     function reservePrice() external view returns (uint256);
 
+    function livePrice() external view returns (uint256);
+
+    function winning() external view returns (address);
+
     function updateCurator(address curator_) external;
+
+    function updateUserPrice(uint256) external;
+
+    function start() external payable;
+
+    function bid() external payable;
+
+    function end() external;
+
+    function redeem() external;
+
+    function cash() external;
 }

@@ -6,6 +6,7 @@ import "forge-std/Script.sol";
 import "../contracts/crowdfund/AuctionCrowdfund.sol";
 import "../contracts/crowdfund/BuyCrowdfund.sol";
 import "../contracts/crowdfund/CollectionBuyCrowdfund.sol";
+import "../contracts/crowdfund/CollectionBatchBuyCrowdfund.sol";
 import "../contracts/crowdfund/CrowdfundFactory.sol";
 import "../contracts/distribution/TokenDistributor.sol";
 import "../contracts/gatekeepers/AllowListGateKeeper.sol";
@@ -48,6 +49,7 @@ abstract contract Deploy {
     RollingAuctionCrowdfund public rollingAuctionCrowdfundImpl;
     BuyCrowdfund public buyCrowdfundImpl;
     CollectionBuyCrowdfund public collectionBuyCrowdfundImpl;
+    CollectionBatchBuyCrowdfund public collectionBatchBuyCrowdfundImpl;
     CrowdfundFactory public crowdfundFactory;
     Party public partyImpl;
     PartyFactory public partyFactory;
@@ -178,6 +180,31 @@ abstract contract Deploy {
         console.log(
             "  Globals - successfully set CollectionBuyCrowdfund crowdfund implementation address",
             address(collectionBuyCrowdfundImpl)
+        );
+
+        // DEPLOY_COLLECTION_BATCH_BUY_CF_IMPLEMENTATION
+        console.log("");
+        console.log("### CollectionBatchBuyCrowdfund crowdfund implementation");
+        console.log("  Deploying - CollectionBatchBuyCrowdfund crowdfund implementation");
+        _trackDeployerGasBefore();
+        collectionBatchBuyCrowdfundImpl = new CollectionBatchBuyCrowdfund(globals);
+        _trackDeployerGasAfter();
+        console.log(
+            "  Deployed - CollectionBatchBuyCrowdfund crowdfund implementation",
+            address(collectionBatchBuyCrowdfundImpl)
+        );
+
+        console.log("");
+        console.log(
+            "  Globals - setting CollectionBatchBuyCrowdfund crowdfund implementation address"
+        );
+        globals.setAddress(
+            LibGlobals.GLOBAL_COLLECTION_BATCH_BUY_CF_IMPL,
+            address(collectionBatchBuyCrowdfundImpl)
+        );
+        console.log(
+            "  Globals - successfully set CollectionBatchBuyCrowdfund crowdfund implementation address",
+            address(collectionBatchBuyCrowdfundImpl)
         );
 
         // DEPLOY_ROLLING_AUCTION_CF_IMPLEMENTATION
@@ -346,7 +373,7 @@ abstract contract Deploy {
         // Set Global values and transfer ownership
         {
             console.log("### Configure Globals");
-            bytes[] memory multicallData = new bytes[](23);
+            bytes[] memory multicallData = new bytes[](25);
             uint256 n = 0;
             multicallData[n++] = abi.encodeCall(
                 globals.setAddress,
@@ -429,6 +456,17 @@ abstract contract Deploy {
             multicallData[n++] = abi.encodeCall(
                 globals.setAddress,
                 (LibGlobals.GLOBAL_COLLECTION_BUY_CF_IMPL, address(collectionBuyCrowdfundImpl))
+            );
+            multicallData[n++] = abi.encodeCall(
+                globals.setAddress,
+                (
+                    LibGlobals.GLOBAL_COLLECTION_BATCH_BUY_CF_IMPL,
+                    address(collectionBatchBuyCrowdfundImpl)
+                )
+            );
+            multicallData[n++] = abi.encodeCall(
+                globals.setAddress,
+                (LibGlobals.GLOBAL_ROLLING_AUCTION_CF_IMPL, address(rollingAuctionCrowdfundImpl))
             );
             multicallData[n++] = abi.encodeCall(
                 globals.setAddress,
@@ -554,7 +592,7 @@ contract DeployScript is Script, Deploy {
         Deploy.deploy(deployConstants);
         vm.stopBroadcast();
 
-        AddressMapping[] memory addressMapping = new AddressMapping[](21);
+        AddressMapping[] memory addressMapping = new AddressMapping[](22);
         addressMapping[0] = AddressMapping("globals", address(globals));
         addressMapping[1] = AddressMapping("tokenDistributor", address(tokenDistributor));
         addressMapping[2] = AddressMapping("seaportExchange", address(seaport));
@@ -571,26 +609,30 @@ contract DeployScript is Script, Deploy {
             "collectionBuyCrowdfundImpl",
             address(collectionBuyCrowdfundImpl)
         );
-        addressMapping[10] = AddressMapping("partyCrowdfundFactory", address(crowdfundFactory));
-        addressMapping[11] = AddressMapping(
+        addressMapping[10] = AddressMapping(
+            "collectionBatchBuyCrowdfundImpl",
+            address(collectionBatchBuyCrowdfundImpl)
+        );
+        addressMapping[11] = AddressMapping("partyCrowdfundFactory", address(crowdfundFactory));
+        addressMapping[12] = AddressMapping(
             "partyCrowdfundNFTRenderer",
             address(crowdfundNFTRenderer)
         );
-        addressMapping[12] = AddressMapping(
+        addressMapping[13] = AddressMapping(
             "partyGovernanceNFTRenderer",
             address(partyNFTRenderer)
         );
-        addressMapping[13] = AddressMapping("partyHelpers", address(partyHelpers));
-        addressMapping[14] = AddressMapping("allowListGateKeeper", address(allowListGateKeeper));
-        addressMapping[15] = AddressMapping("tokenGateKeeper", address(tokenGateKeeper));
-        addressMapping[16] = AddressMapping(
+        addressMapping[14] = AddressMapping("partyHelpers", address(partyHelpers));
+        addressMapping[15] = AddressMapping("allowListGateKeeper", address(allowListGateKeeper));
+        addressMapping[16] = AddressMapping("tokenGateKeeper", address(tokenGateKeeper));
+        addressMapping[17] = AddressMapping(
             "foundationMarketWrapper",
             address(foundationMarketWrapper)
         );
-        addressMapping[17] = AddressMapping("nounsMarketWrapper", address(nounsMarketWrapper));
-        addressMapping[18] = AddressMapping("zoraMarketWrapper", address(zoraMarketWrapper));
-        addressMapping[19] = AddressMapping("rendererStorage", address(rendererStorage));
-        addressMapping[20] = AddressMapping(
+        addressMapping[18] = AddressMapping("nounsMarketWrapper", address(nounsMarketWrapper));
+        addressMapping[19] = AddressMapping("zoraMarketWrapper", address(zoraMarketWrapper));
+        addressMapping[20] = AddressMapping("rendererStorage", address(rendererStorage));
+        addressMapping[21] = AddressMapping(
             "pixeldroidConsoleFont",
             address(pixeldroidConsoleFont)
         );

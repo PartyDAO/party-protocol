@@ -64,8 +64,9 @@ contract FractionalizeProposal {
         // Check that we now hold the correct amount of fractional tokens.
         // Should always succeed.
         assert(vault.balanceOf(address(this)) == supply);
-        // Remove ourselves as curator.
-        vault.updateCurator(address(0));
+        // Remove ourselves as curator. Set to `address(1)` to avoid issues with
+        // reverting when minting to `address(0)`.
+        vault.updateCurator(address(1));
         emit FractionalV1VaultCreated(data.token, data.tokenId, vaultId, vault);
         // Create distribution for fractional tokens for party.
         PartyGovernance(address(this)).distribute(
