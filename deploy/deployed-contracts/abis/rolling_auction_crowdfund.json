@@ -43,6 +43,11 @@
     "type": "error"
   },
   {
+    "inputs": [],
+    "name": "AlreadyHighestBidderError",
+    "type": "error"
+  },
+  {
     "inputs": [
       {
         "internalType": "address",
@@ -56,6 +61,27 @@
       }
     ],
     "name": "AlreadyMintedError",
+    "type": "error"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "auctionId",
+        "type": "uint256"
+      }
+    ],
+    "name": "AuctionFinalizedError",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "AuctionNotExpiredError",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "BadNextAuctionError",
     "type": "error"
   },
   {
@@ -78,22 +104,6 @@
     "inputs": [
       {
         "internalType": "address",
-        "name": "target",
-        "type": "address"
-      },
-      {
-        "internalType": "bytes",
-        "name": "data",
-        "type": "bytes"
-      }
-    ],
-    "name": "CallProhibitedError",
-    "type": "error"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "address",
         "name": "receiver",
         "type": "address"
       },
@@ -104,6 +114,22 @@
       }
     ],
     "name": "EthTransferFailed",
+    "type": "error"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "bidAmount",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "maximumBid",
+        "type": "uint256"
+      }
+    ],
+    "name": "ExceedsMaximumBidError",
     "type": "error"
   },
   {
@@ -123,24 +149,13 @@
     "type": "error"
   },
   {
-    "inputs": [
-      {
-        "internalType": "contract IERC721",
-        "name": "token",
-        "type": "address"
-      },
-      {
-        "internalType": "uint256",
-        "name": "tokenId",
-        "type": "uint256"
-      }
-    ],
-    "name": "FailedToBuyNFTError",
+    "inputs": [],
+    "name": "InvalidAddressError",
     "type": "error"
   },
   {
     "inputs": [],
-    "name": "InvalidAddressError",
+    "name": "InvalidAuctionIdError",
     "type": "error"
   },
   {
@@ -183,17 +198,17 @@
   {
     "inputs": [
       {
-        "internalType": "uint96",
-        "name": "callValue",
-        "type": "uint96"
+        "internalType": "uint256",
+        "name": "bidAmount",
+        "type": "uint256"
       },
       {
-        "internalType": "uint96",
-        "name": "maximumPrice",
-        "type": "uint96"
+        "internalType": "uint256",
+        "name": "maximumBid",
+        "type": "uint256"
       }
     ],
-    "name": "MaximumPriceError",
+    "name": "MinimumBidExceedsMaximumBidError",
     "type": "error"
   },
   {
@@ -382,6 +397,38 @@
     "inputs": [
       {
         "indexed": false,
+        "internalType": "uint256",
+        "name": "nextNftTokenId",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "nextAuctionId",
+        "type": "uint256"
+      }
+    ],
+    "name": "AuctionUpdated",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "bidAmount",
+        "type": "uint256"
+      }
+    ],
+    "name": "Bid",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": false,
         "internalType": "address",
         "name": "contributor",
         "type": "address"
@@ -537,27 +584,15 @@
     "inputs": [
       {
         "indexed": false,
+        "internalType": "uint256",
+        "name": "bid",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
         "internalType": "contract Party",
         "name": "party",
         "type": "address"
-      },
-      {
-        "indexed": false,
-        "internalType": "contract IERC721[]",
-        "name": "tokens",
-        "type": "address[]"
-      },
-      {
-        "indexed": false,
-        "internalType": "uint256[]",
-        "name": "tokenIds",
-        "type": "uint256[]"
-      },
-      {
-        "indexed": false,
-        "internalType": "uint256",
-        "name": "settledPrice",
-        "type": "uint256"
       }
     ],
     "name": "Won",
@@ -590,6 +625,19 @@
     "type": "function"
   },
   {
+    "inputs": [],
+    "name": "allowedAuctionsMerkleRoot",
+    "outputs": [
+      {
+        "internalType": "bytes32",
+        "name": "",
+        "type": "bytes32"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
     "inputs": [
       {
         "internalType": "address",
@@ -605,6 +653,19 @@
     "name": "approve",
     "outputs": [],
     "stateMutability": "pure",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "auctionId",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
     "type": "function"
   },
   {
@@ -696,14 +757,8 @@
     "type": "function"
   },
   {
-    "inputs": [
-      {
-        "internalType": "address payable",
-        "name": "contributor",
-        "type": "address"
-      }
-    ],
-    "name": "burn",
+    "inputs": [],
+    "name": "bid",
     "outputs": [],
     "stateMutability": "nonpayable",
     "type": "function"
@@ -711,19 +766,59 @@
   {
     "inputs": [
       {
-        "internalType": "address payable",
-        "name": "callTarget",
-        "type": "address"
+        "components": [
+          {
+            "internalType": "address[]",
+            "name": "hosts",
+            "type": "address[]"
+          },
+          {
+            "internalType": "uint40",
+            "name": "voteDuration",
+            "type": "uint40"
+          },
+          {
+            "internalType": "uint40",
+            "name": "executionDelay",
+            "type": "uint40"
+          },
+          {
+            "internalType": "uint16",
+            "name": "passThresholdBps",
+            "type": "uint16"
+          },
+          {
+            "internalType": "uint16",
+            "name": "feeBps",
+            "type": "uint16"
+          },
+          {
+            "internalType": "address payable",
+            "name": "feeRecipient",
+            "type": "address"
+          }
+        ],
+        "internalType": "struct Crowdfund.FixedGovernanceOpts",
+        "name": "governanceOpts",
+        "type": "tuple"
       },
+      {
+        "internalType": "uint256",
+        "name": "hostIndex",
+        "type": "uint256"
+      }
+    ],
+    "name": "bid",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
       {
         "internalType": "uint96",
-        "name": "callValue",
+        "name": "amount",
         "type": "uint96"
-      },
-      {
-        "internalType": "bytes",
-        "name": "callData",
-        "type": "bytes"
       },
       {
         "components": [
@@ -768,14 +863,21 @@
         "type": "uint256"
       }
     ],
-    "name": "buy",
-    "outputs": [
+    "name": "bid",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
       {
-        "internalType": "contract Party",
-        "name": "party_",
+        "internalType": "address payable",
+        "name": "contributor",
         "type": "address"
       }
     ],
+    "name": "burn",
+    "outputs": [],
     "stateMutability": "nonpayable",
     "type": "function"
   },
@@ -1007,6 +1109,128 @@
     "type": "function"
   },
   {
+    "inputs": [
+      {
+        "components": [
+          {
+            "internalType": "address[]",
+            "name": "hosts",
+            "type": "address[]"
+          },
+          {
+            "internalType": "uint40",
+            "name": "voteDuration",
+            "type": "uint40"
+          },
+          {
+            "internalType": "uint40",
+            "name": "executionDelay",
+            "type": "uint40"
+          },
+          {
+            "internalType": "uint16",
+            "name": "passThresholdBps",
+            "type": "uint16"
+          },
+          {
+            "internalType": "uint16",
+            "name": "feeBps",
+            "type": "uint16"
+          },
+          {
+            "internalType": "address payable",
+            "name": "feeRecipient",
+            "type": "address"
+          }
+        ],
+        "internalType": "struct Crowdfund.FixedGovernanceOpts",
+        "name": "governanceOpts",
+        "type": "tuple"
+      }
+    ],
+    "name": "finalize",
+    "outputs": [
+      {
+        "internalType": "contract Party",
+        "name": "party_",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "nextNftTokenId",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "nextAuctionId",
+        "type": "uint256"
+      },
+      {
+        "internalType": "bytes32[]",
+        "name": "proof",
+        "type": "bytes32[]"
+      },
+      {
+        "components": [
+          {
+            "internalType": "address[]",
+            "name": "hosts",
+            "type": "address[]"
+          },
+          {
+            "internalType": "uint40",
+            "name": "voteDuration",
+            "type": "uint40"
+          },
+          {
+            "internalType": "uint40",
+            "name": "executionDelay",
+            "type": "uint40"
+          },
+          {
+            "internalType": "uint16",
+            "name": "passThresholdBps",
+            "type": "uint16"
+          },
+          {
+            "internalType": "uint16",
+            "name": "feeBps",
+            "type": "uint16"
+          },
+          {
+            "internalType": "address payable",
+            "name": "feeRecipient",
+            "type": "address"
+          }
+        ],
+        "internalType": "struct Crowdfund.FixedGovernanceOpts",
+        "name": "governanceOpts",
+        "type": "tuple"
+      },
+      {
+        "internalType": "uint256",
+        "name": "hostIndex",
+        "type": "uint256"
+      }
+    ],
+    "name": "finalizeOrRollOver",
+    "outputs": [
+      {
+        "internalType": "contract Party",
+        "name": "party_",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
     "inputs": [],
     "name": "gateKeeper",
     "outputs": [
@@ -1131,6 +1355,16 @@
             "type": "uint256"
           },
           {
+            "internalType": "uint256",
+            "name": "auctionId",
+            "type": "uint256"
+          },
+          {
+            "internalType": "contract IMarketWrapper",
+            "name": "market",
+            "type": "address"
+          },
+          {
             "internalType": "contract IERC721",
             "name": "nftContract",
             "type": "address"
@@ -1147,7 +1381,7 @@
           },
           {
             "internalType": "uint96",
-            "name": "maximumPrice",
+            "name": "maximumBid",
             "type": "uint96"
           },
           {
@@ -1192,8 +1426,13 @@
           },
           {
             "internalType": "bool",
-            "name": "onlyHostCanBuy",
+            "name": "onlyHostCanBid",
             "type": "bool"
+          },
+          {
+            "internalType": "bytes32",
+            "name": "allowedAuctionsMerkleRoot",
+            "type": "bytes32"
           },
           {
             "components": [
@@ -1233,7 +1472,7 @@
             "type": "tuple"
           }
         ],
-        "internalType": "struct BuyCrowdfund.BuyCrowdfundOptions",
+        "internalType": "struct RollingAuctionCrowdfund.RollingAuctionCrowdfundOptions",
         "name": "opts",
         "type": "tuple"
       }
@@ -1269,6 +1508,32 @@
   },
   {
     "inputs": [],
+    "name": "lastBid",
+    "outputs": [
+      {
+        "internalType": "uint96",
+        "name": "",
+        "type": "uint96"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "market",
+    "outputs": [
+      {
+        "internalType": "contract IMarketWrapper",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
     "name": "maxContribution",
     "outputs": [
       {
@@ -1282,7 +1547,7 @@
   },
   {
     "inputs": [],
-    "name": "maximumPrice",
+    "name": "maximumBid",
     "outputs": [
       {
         "internalType": "uint96",
@@ -1381,7 +1646,7 @@
   },
   {
     "inputs": [],
-    "name": "onlyHostCanBuy",
+    "name": "onlyHostCanBid",
     "outputs": [
       {
         "internalType": "bool",
@@ -1491,19 +1756,6 @@
     "name": "setApprovalForAll",
     "outputs": [],
     "stateMutability": "pure",
-    "type": "function"
-  },
-  {
-    "inputs": [],
-    "name": "settledPrice",
-    "outputs": [
-      {
-        "internalType": "uint96",
-        "name": "",
-        "type": "uint96"
-      }
-    ],
-    "stateMutability": "view",
     "type": "function"
   },
   {
@@ -1618,5 +1870,9 @@
     "outputs": [],
     "stateMutability": "pure",
     "type": "function"
+  },
+  {
+    "stateMutability": "payable",
+    "type": "receive"
   }
 ]
