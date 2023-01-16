@@ -172,9 +172,12 @@ abstract contract AuctionCrowdfundBase is Crowdfund {
     /// @notice Place a bid on the NFT using the funds in this crowdfund,
     ///         placing the minimum possible bid to be the highest bidder, up to
     ///         `maximumBid`.
-    /// @param governanceOpts The governance options the crowdfund was created with.
+    /// @param governanceOpts The governance options the crowdfund was created
+    ///                       with. Only used for crowdfunds where only a host
+    ///                       can bid to verify the caller is a host.
     /// @param hostIndex If the caller is a host, this is the index of the caller in the
-    ///                  `governanceOpts.hosts` array.
+    ///                  `governanceOpts.hosts` array. Only used for crowdfunds where only
+    ///                  a host can bid to verify the caller is a host.
     function bid(FixedGovernanceOpts memory governanceOpts, uint256 hostIndex) external {
         // This function can be optionally restricted in different ways.
         if (onlyHostCanBid) {
@@ -193,9 +196,10 @@ abstract contract AuctionCrowdfundBase is Crowdfund {
     /// @notice Place a bid on the NFT using the funds in this crowdfund,
     ///         placing a bid, up to `maximumBid`. Only host can call this.
     /// @param amount The amount to bid.
-    /// @param governanceOpts The governance options the crowdfund was created with.
+    /// @param governanceOpts The governance options the crowdfund was created
+    ///                       with. Used to verify the caller is a host.
     /// @param hostIndex If the caller is a host, this is the index of the caller in the
-    ///                  `governanceOpts.hosts` array.
+    ///                  `governanceOpts.hosts` array. Used to verify the caller is a host.
     function bid(
         uint96 amount,
         FixedGovernanceOpts memory governanceOpts,
