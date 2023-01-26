@@ -30,6 +30,7 @@ contract BuyCrowdfundTest is Test, TestUtils {
         address sender,
         address contributor,
         uint256 amount,
+        address delegate,
         uint256 previousTotalContributions
     );
     event DelegateUpdated(
@@ -500,9 +501,13 @@ contract BuyCrowdfundTest is Test, TestUtils {
         address initialContributor = _randomAddress();
         address initialDelegate = _randomAddress();
         _expectEmit0();
-        emit DelegateUpdated(address(this), initialContributor, address(0), initialDelegate);
-        _expectEmit0();
-        emit Contributed(address(this), initialContributor, initialContribution, 0);
+        emit Contributed(
+            address(this),
+            initialContributor,
+            initialContribution,
+            initialDelegate,
+            0
+        );
         BuyCrowdfund(
             payable(
                 address(

@@ -171,7 +171,7 @@ contract FractionalizeProposalForkedTest is TestUtils {
         assertEq(erc721.ownerOf(tokenId), bidder2);
     }
 
-    function testForked_canRedeem() public {
+    function testForked_canRedeem() public onlyForked {
         uint256 tokenId = erc721.mint(address(impl));
         IFractionalV1Vault vault = _getNextVault();
         impl.executeFractionalize(

@@ -110,13 +110,8 @@ abstract contract Crowdfund is Implementation, ERC721Receiver, CrowdfundNFT {
         address sender,
         address contributor,
         uint256 amount,
+        address delegate,
         uint256 previousTotalContributions
-    );
-    event DelegateUpdated(
-        address sender,
-        address contributor,
-        address oldDelegate,
-        address newDelegate
     );
     event EmergencyExecute(address target, bytes data, uint256 amountEth);
     event EmergencyExecuteDisabled();
@@ -196,7 +191,7 @@ abstract contract Crowdfund is Implementation, ERC721Receiver, CrowdfundNFT {
             _setDelegate(opts.initialContributor, opts.initialDelegate);
             // If this contract has ETH, either passed in during deployment or
             // pre-existing, credit it to the `initialContributor`.
-            _contribute(opts.initialContributor, initialContribution, 0, "");
+            _contribute(opts.initialContributor, opts.initialDelegate, initialContribution, 0, "");
         }
         // Set up gatekeeper after initial contribution (initial always gets in).
         gateKeeper = opts.gateKeeper;
@@ -318,6 +313,7 @@ abstract contract Crowdfund is Implementation, ERC721Receiver, CrowdfundNFT {
 
         _contribute(
             msg.sender,
+            delegate,
             msg.value.safeCastUint256ToUint96(),
             // We cannot use `address(this).balance - msg.value` as the previous
             // total contributions in case someone forces (suicides) ETH into this
@@ -342,7 +338,13 @@ abstract contract Crowdfund is Implementation, ERC721Receiver, CrowdfundNFT {
     ) external payable onlyDelegateCall {
         _setDelegate(recipient, initialDelegate);
 
-        _contribute(recipient, msg.value.safeCastUint256ToUint96(), totalContributions, gateData);
+        _contribute(
+            recipient,
+            initialDelegate,
+            msg.value.safeCastUint256ToUint96(),
+            totalContributions,
+            gateData
+        );
     }
 
     /// @notice `contributeFor()` in batch form.
@@ -589,12 +591,15 @@ abstract contract Crowdfund is Implementation, ERC721Receiver, CrowdfundNFT {
 
         // Update delegate.
         delegationsByContributor[contributor] = delegate;
-
-        emit DelegateUpdated(msg.sender, contributor, oldDelegate, delegate);
     }
 
+    /// @dev While it is not necessary to pass in `delegate` to this because the
+    ///      function does not require it, it is here to emit in the
+    ///      `Contribute` event so that the PartyBid frontend can access it more
+    ///      easily.
     function _contribute(
         address contributor,
+        address delegate,
         uint96 amount,
         uint96 previousTotalContributions,
         bytes memory gateData
@@ -662,7 +667,7 @@ abstract contract Crowdfund is Implementation, ERC721Receiver, CrowdfundNFT {
             _mint(contributor);
         }
 
-        emit Contributed(msg.sender, contributor, amount, previousTotalContributions);
+        emit Contributed(msg.sender, contributor, amount, delegate, previousTotalContributions);
     }
 
     function _burn(address payable contributor, CrowdfundLifecycle lc, Party party_) private {

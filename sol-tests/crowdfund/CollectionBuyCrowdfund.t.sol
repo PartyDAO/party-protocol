@@ -30,13 +30,8 @@ contract CollectionBuyCrowdfundTest is Test, TestUtils {
         address sender,
         address contributor,
         uint256 amount,
+        address delegate,
         uint256 previousTotalContributions
-    );
-    event DelegateUpdated(
-        address sender,
-        address contributor,
-        address oldDelegate,
-        address newDelegate
     );
 
     string defaultName = "CollectionBuyCrowdfund";
@@ -240,9 +235,13 @@ contract CollectionBuyCrowdfundTest is Test, TestUtils {
         defaultGovernanceOpts.hosts = _toAddressArray(_randomAddress());
         vm.deal(address(this), initialContribution);
         _expectEmit0();
-        emit DelegateUpdated(address(this), initialContributor, address(0), initialDelegate);
-        _expectEmit0();
-        emit Contributed(address(this), initialContributor, initialContribution, 0);
+        emit Contributed(
+            address(this),
+            initialContributor,
+            initialContribution,
+            initialDelegate,
+            0
+        );
         CollectionBuyCrowdfund(
             payable(
                 address(
