@@ -173,11 +173,27 @@
     "inputs": [
       {
         "internalType": "uint256",
+        "name": "minTokensBought",
+        "type": "uint256"
+      }
+    ],
+    "name": "InvalidMinTokensBoughtError",
+    "type": "error"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
         "name": "tokenId",
         "type": "uint256"
       }
     ],
     "name": "InvalidTokenError",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "InvalidTokenIdError",
     "type": "error"
   },
   {
@@ -235,6 +251,43 @@
       }
     ],
     "name": "NotAllowedByGateKeeperError",
+    "type": "error"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "ethUsed",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "minTotalEthUsed",
+        "type": "uint256"
+      }
+    ],
+    "name": "NotEnoughEthUsedError",
+    "type": "error"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "tokensBought",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "minTokensBought",
+        "type": "uint256"
+      }
+    ],
+    "name": "NotEnoughTokensBoughtError",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "NothingBoughtError",
     "type": "error"
   },
   {
@@ -640,6 +693,104 @@
   {
     "inputs": [
       {
+        "components": [
+          {
+            "internalType": "uint256[]",
+            "name": "tokenIds",
+            "type": "uint256[]"
+          },
+          {
+            "internalType": "address payable[]",
+            "name": "callTargets",
+            "type": "address[]"
+          },
+          {
+            "internalType": "uint96[]",
+            "name": "callValues",
+            "type": "uint96[]"
+          },
+          {
+            "internalType": "bytes[]",
+            "name": "callDatas",
+            "type": "bytes[]"
+          },
+          {
+            "internalType": "bytes32[][]",
+            "name": "proofs",
+            "type": "bytes32[][]"
+          },
+          {
+            "internalType": "uint256",
+            "name": "minTokensBought",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "minTotalEthUsed",
+            "type": "uint256"
+          },
+          {
+            "components": [
+              {
+                "internalType": "address[]",
+                "name": "hosts",
+                "type": "address[]"
+              },
+              {
+                "internalType": "uint40",
+                "name": "voteDuration",
+                "type": "uint40"
+              },
+              {
+                "internalType": "uint40",
+                "name": "executionDelay",
+                "type": "uint40"
+              },
+              {
+                "internalType": "uint16",
+                "name": "passThresholdBps",
+                "type": "uint16"
+              },
+              {
+                "internalType": "uint16",
+                "name": "feeBps",
+                "type": "uint16"
+              },
+              {
+                "internalType": "address payable",
+                "name": "feeRecipient",
+                "type": "address"
+              }
+            ],
+            "internalType": "struct Crowdfund.FixedGovernanceOpts",
+            "name": "governanceOpts",
+            "type": "tuple"
+          },
+          {
+            "internalType": "uint256",
+            "name": "hostIndex",
+            "type": "uint256"
+          }
+        ],
+        "internalType": "struct CollectionBatchBuyCrowdfund.BatchBuyArgs",
+        "name": "args",
+        "type": "tuple"
+      }
+    ],
+    "name": "batchBuy",
+    "outputs": [
+      {
+        "internalType": "contract Party",
+        "name": "party_",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
         "internalType": "address[]",
         "name": "recipients",
         "type": "address[]"
@@ -680,82 +831,6 @@
     ],
     "name": "burn",
     "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "uint256",
-        "name": "tokenId",
-        "type": "uint256"
-      },
-      {
-        "internalType": "address payable",
-        "name": "callTarget",
-        "type": "address"
-      },
-      {
-        "internalType": "uint96",
-        "name": "callValue",
-        "type": "uint96"
-      },
-      {
-        "internalType": "bytes",
-        "name": "callData",
-        "type": "bytes"
-      },
-      {
-        "components": [
-          {
-            "internalType": "address[]",
-            "name": "hosts",
-            "type": "address[]"
-          },
-          {
-            "internalType": "uint40",
-            "name": "voteDuration",
-            "type": "uint40"
-          },
-          {
-            "internalType": "uint40",
-            "name": "executionDelay",
-            "type": "uint40"
-          },
-          {
-            "internalType": "uint16",
-            "name": "passThresholdBps",
-            "type": "uint16"
-          },
-          {
-            "internalType": "uint16",
-            "name": "feeBps",
-            "type": "uint16"
-          },
-          {
-            "internalType": "address payable",
-            "name": "feeRecipient",
-            "type": "address"
-          }
-        ],
-        "internalType": "struct Crowdfund.FixedGovernanceOpts",
-        "name": "governanceOpts",
-        "type": "tuple"
-      },
-      {
-        "internalType": "uint256",
-        "name": "hostIndex",
-        "type": "uint256"
-      }
-    ],
-    "name": "buy",
-    "outputs": [
-      {
-        "internalType": "contract Party",
-        "name": "party_",
-        "type": "address"
-      }
-    ],
     "stateMutability": "nonpayable",
     "type": "function"
   },
@@ -1116,6 +1191,11 @@
             "type": "address"
           },
           {
+            "internalType": "bytes32",
+            "name": "nftTokenIdsMerkleRoot",
+            "type": "bytes32"
+          },
+          {
             "internalType": "uint40",
             "name": "duration",
             "type": "uint40"
@@ -1203,7 +1283,7 @@
             "type": "tuple"
           }
         ],
-        "internalType": "struct CollectionBuyCrowdfund.CollectionBuyCrowdfundOptions",
+        "internalType": "struct CollectionBatchBuyCrowdfund.CollectionBatchBuyCrowdfundOptions",
         "name": "opts",
         "type": "tuple"
       }
@@ -1297,6 +1377,19 @@
         "internalType": "contract IERC721",
         "name": "",
         "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "nftTokenIdsMerkleRoot",
+    "outputs": [
+      {
+        "internalType": "bytes32",
+        "name": "",
+        "type": "bytes32"
       }
     ],
     "stateMutability": "view",
