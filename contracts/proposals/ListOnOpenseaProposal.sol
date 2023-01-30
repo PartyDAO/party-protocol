@@ -135,7 +135,6 @@ abstract contract ListOnOpenseaProposal is ZoraHelpers {
             // First time executing the proposal.
             if (
                 !isUnanimous &&
-                data.tokenType == TokenType.ERC721 &&
                 LibProposal.isTokenIdPrecious(
                     IERC721(data.token),
                     data.tokenId,
