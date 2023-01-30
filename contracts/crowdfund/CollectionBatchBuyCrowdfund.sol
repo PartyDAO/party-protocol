@@ -77,6 +77,7 @@ contract CollectionBatchBuyCrowdfund is BuyCrowdfundBase {
     error NothingBoughtError();
     error InvalidMinTokensBoughtError(uint256 minTokensBought);
     error InvalidTokenIdError();
+    error ContributionsSpentForFailedBuyError();
     error NotEnoughTokensBoughtError(uint256 tokensBought, uint256 minTokensBought);
     error NotEnoughEthUsedError(uint256 ethUsed, uint256 minTotalEthUsed);
 
@@ -156,6 +157,9 @@ contract CollectionBatchBuyCrowdfund is BuyCrowdfundBase {
                 _verifyTokenId(args.tokenIds[i], root, args.proofs[i]);
             }
 
+            // Used to ensure no ETH is spent if the call fails.
+            uint256 balanceBefore = address(this).balance;
+
             // Execute the call to buy the NFT.
             (bool success, bytes memory revertData) = _buy(
                 token,
@@ -174,7 +178,11 @@ contract CollectionBatchBuyCrowdfund is BuyCrowdfundBase {
                         revert FailedToBuyNFTError(token, args.tokenIds[i]);
                     }
                 } else {
-                    // If the call failed, skip this NFT.
+                    // If the call failed, ensure no ETH was spent and skip this NFT.
+                    if (address(this).balance != balanceBefore) {
+                        revert ContributionsSpentForFailedBuyError();
+                    }
+
                     continue;
                 }
             }

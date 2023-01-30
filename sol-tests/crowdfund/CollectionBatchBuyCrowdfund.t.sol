@@ -425,6 +425,38 @@ contract CollectionBatchBuyCrowdfundTest is Test, TestUtils {
         );
     }
 
+    function test_batchBuy_failedBuyCannotUseETH() public {
+        // Create the crowdfund.
+        CollectionBatchBuyCrowdfund cf = _createCrowdfund();
+        // Contribute and delegate.
+        address payable contributor = _randomAddress();
+        address delegate = _randomAddress();
+        vm.deal(contributor, 1e18);
+        vm.prank(contributor);
+        cf.contribute{ value: contributor.balance }(delegate, "");
+        // Setup parameters to batch buy.
+        uint256[] memory tokenIds = new uint256[](2);
+        address payable[] memory callTargets = new address payable[](2);
+        uint96[] memory callValues = new uint96[](2);
+        callValues[0] = 1e18;
+        bytes[] memory callDatas = new bytes[](2);
+        // Buy the tokens.
+        vm.expectRevert(CollectionBatchBuyCrowdfund.ContributionsSpentForFailedBuyError.selector);
+        cf.batchBuy(
+            CollectionBatchBuyCrowdfund.BatchBuyArgs({
+                tokenIds: tokenIds,
+                callTargets: callTargets,
+                callValues: callValues,
+                callDatas: callDatas,
+                proofs: emptyProofs,
+                minTokensBought: 1,
+                minTotalEthUsed: 0,
+                governanceOpts: govOpts,
+                hostIndex: 0
+            })
+        );
+    }
+
     function test_batchBuy_aboveMaximumPrice() public {
         // Create the crowdfund.
         CollectionBatchBuyCrowdfund cf = _createCrowdfund();
