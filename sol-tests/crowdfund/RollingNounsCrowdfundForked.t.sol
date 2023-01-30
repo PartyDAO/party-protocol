@@ -85,6 +85,7 @@ contract RollingNounsCrowdfundForkedTest is RollingAuctionCrowdfundTest {
     function _endAuction() internal override {
         // Skip to end of auction
         skip(1 days);
+        MockMarketWrapper(address(market)).finalize(auctionId);
     }
 
     function _skipToExpiry() internal override {

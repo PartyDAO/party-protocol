@@ -32,7 +32,7 @@ contract RollingAuctionCrowdfund is AuctionCrowdfundBase {
         uint256 nftTokenId;
         // How long this crowdfund has to bid on the NFT, in seconds.
         uint40 duration;
-        // Maximum bid allowed.
+        // Maximum bid allowed per auction.
         uint96 maximumBid;
         // An address that receives a portion of the final voting power
         // when the party transitions into governance.
@@ -68,7 +68,7 @@ contract RollingAuctionCrowdfund is AuctionCrowdfundBase {
         FixedGovernanceOpts governanceOpts;
     }
 
-    event AuctionUpdated(uint256 nextNftTokenId, uint256 nextAuctionId);
+    event AuctionUpdated(uint256 nextNftTokenId, uint256 nextAuctionId, uint256 nextMaximumBid);
 
     error BadNextAuctionError();
 
@@ -130,7 +130,7 @@ contract RollingAuctionCrowdfund is AuctionCrowdfundBase {
         FixedGovernanceOpts memory governanceOpts
     ) external onlyDelegateCall returns (Party party_) {
         // If the crowdfund won, only `governanceOpts` is relevant. The rest are ignored.
-        return finalizeOrRollOver(0, 0, new bytes32[](0), governanceOpts, 0);
+        return finalizeOrRollOver(0, 0, 0, new bytes32[](0), governanceOpts, 0);
     }
 
     /// @notice Calls `finalize()` on the market adapter, which will claim the NFT
@@ -149,6 +149,9 @@ contract RollingAuctionCrowdfund is AuctionCrowdfundBase {
     ///                       current auction.
     /// @param nextAuctionId The `auctionId` of the the next auction. Only
     ///                      used if the crowdfund lost the current auction.
+    /// @param nextMaximumBid The maximum bid the party can place for the next
+    ///                       auction. Only used if the crowdfund lost the
+    ///                       current auction.
     /// @param proof The Merkle proof used to verify that `nextAuctionId` and
     ///              `nextNftTokenId` are allowed. Only used if the crowdfund
     ///              lost the current auction.
@@ -156,6 +159,7 @@ contract RollingAuctionCrowdfund is AuctionCrowdfundBase {
     function finalizeOrRollOver(
         uint256 nextNftTokenId,
         uint256 nextAuctionId,
+        uint96 nextMaximumBid,
         bytes32[] memory proof,
         FixedGovernanceOpts memory governanceOpts,
         uint256 hostIndex
@@ -233,12 +237,19 @@ contract RollingAuctionCrowdfund is AuctionCrowdfundBase {
             // Check that the new auction can be bid on and is valid.
             _validateAuction(market, nextAuctionId, nftContract, nextNftTokenId);
 
+            // Check that the next maximum bid is greater than the auction's minimum bid.
+            uint256 minimumBid = market.getMinimumBid(nextAuctionId);
+            if (nextMaximumBid < minimumBid) {
+                revert MinimumBidExceedsMaximumBidError(minimumBid, nextMaximumBid);
+            }
+
             // Update state for next auction.
             nftTokenId = nextNftTokenId;
             auctionId = nextAuctionId;
+            maximumBid = nextMaximumBid;
             lastBid = 0;
 
-            emit AuctionUpdated(nextNftTokenId, nextAuctionId);
+            emit AuctionUpdated(nextNftTokenId, nextAuctionId, nextMaximumBid);
 
             // Change back the auction status from `Busy` to `Active`.
             _bidStatus = AuctionCrowdfundStatus.Active;
