@@ -29,7 +29,7 @@ contract CollectionBatchBuyCrowdfund is BuyCrowdfundBase {
         uint256 customizationPresetId;
         // The ERC721 contract of the NFTs being bought.
         IERC721 nftContract;
-        // The merkle root of the token IDs that can be bought. If null, allow any
+        // The merkle root of the token IDs that can be bought. If null, any
         // token ID in the collection can be bought.
         bytes32 nftTokenIdsMerkleRoot;
         // How long this crowdfund has to buy the NFTs, in seconds.
