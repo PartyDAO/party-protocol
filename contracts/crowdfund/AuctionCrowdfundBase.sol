@@ -21,7 +21,7 @@ abstract contract AuctionCrowdfundBase is Crowdfund {
         // The crowdfund has been created and contributions can be made and
         // acquisition functions may be called.
         Active,
-        // An temporary state set by the contract during complex operations to
+        // A temporary state set by the contract during complex operations to
         // act as a reentrancy guard.
         Busy,
         // The crowdfund is over and has either won or lost.
