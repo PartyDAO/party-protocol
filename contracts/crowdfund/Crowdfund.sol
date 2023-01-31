@@ -189,8 +189,7 @@ abstract contract Crowdfund is Implementation, ERC721Receiver, CrowdfundNFT {
         uint96 initialContribution = msg.value.safeCastUint256ToUint96();
         if (initialContribution > 0) {
             _setDelegate(opts.initialContributor, opts.initialDelegate);
-            // If this contract has ETH, either passed in during deployment or
-            // pre-existing, credit it to the `initialContributor`.
+            // If this ETH is passed in, credit it to the `initialContributor`.
             _contribute(opts.initialContributor, opts.initialDelegate, initialContribution, 0, "");
         }
         // Set up gatekeeper after initial contribution (initial always gets in).
@@ -348,7 +347,7 @@ abstract contract Crowdfund is Implementation, ERC721Receiver, CrowdfundNFT {
     }
 
     /// @notice `contributeFor()` in batch form.
-    ///         Will not revert if any individual contribution fails.
+    ///         May not revert if any individual contribution fails.
     /// @param recipients The addresses to record the contributions under.
     /// @param initialDelegates The addresses to delegate to for each recipient.
     /// @param values The ETH to contribute for each recipient.

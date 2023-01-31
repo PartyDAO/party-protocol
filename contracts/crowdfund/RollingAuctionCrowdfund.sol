@@ -180,7 +180,6 @@ contract RollingAuctionCrowdfund is AuctionCrowdfundBase {
         if (nftContract_.safeOwnerOf(nftTokenId_) == address(this) && lastBid_ != 0) {
             // Create a governance party around the NFT.
             party_ = _createParty(governanceOpts, false, nftContract, nftTokenId);
-            // Create a governance party around the NFT.
             emit Won(lastBid, party_);
 
             _bidStatus = AuctionCrowdfundStatus.Finalized;

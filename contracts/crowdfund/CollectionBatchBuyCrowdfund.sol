@@ -2,8 +2,6 @@
 // http://ipfs.io/ipfs/QmbGX2MFCaMAsMNMugRFND6DtYygRkwkvrqEyTKhTdBLo5
 pragma solidity 0.8.17;
 
-import "solmate/utils/MerkleProofLib.sol";
-
 import "../tokens/IERC721.sol";
 import "../party/Party.sol";
 import "../utils/Implementation.sol";
