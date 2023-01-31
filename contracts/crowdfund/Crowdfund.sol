@@ -353,7 +353,7 @@ abstract contract Crowdfund is Implementation, ERC721Receiver, CrowdfundNFT {
     /// @param initialDelegates The addresses to delegate to for each recipient.
     /// @param values The ETH to contribute for each recipient.
     /// @param gateDatas Data to pass to the gatekeeper to prove eligibility.
-    /// @param revertOnFailure If true, revert if any burn fails.
+    /// @param revertOnFailure If true, revert if any contribution fails.
     function batchContributeFor(
         address[] memory recipients,
         address[] memory initialDelegates,
