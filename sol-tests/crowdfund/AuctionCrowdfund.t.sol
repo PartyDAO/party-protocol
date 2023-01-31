@@ -427,7 +427,7 @@ contract AuctionCrowdfundTest is Test, TestUtils {
         cf.finalize(defaultGovernanceOpts);
     }
 
-    function test_cannotFinalizeIfExpiredBeforeAuctionEnds_withBid() external {
+    function test_cannotFinalizeIfExpiredBeforeAuctionEndsIfHighestBidder() external {
         // Create a token and auction with min bid of 1337 wei.
         (uint256 auctionId, uint256 tokenId) = market.createAuction(1337);
         // Create a AuctionCrowdfund instance.
@@ -439,10 +439,36 @@ contract AuctionCrowdfundTest is Test, TestUtils {
         cf.bid(defaultGovernanceOpts, 0);
         // Expire the CF.
         skip(defaultDuration);
+        // Check that the CF is highest bidder.
+        assertTrue(market.getCurrentHighestBidder(auctionId) == address(cf));
+        // Check that the CF is expired.
+        assertTrue(cf.getCrowdfundLifecycle() == Crowdfund.CrowdfundLifecycle.Expired);
+        // Finalize the crowdfund.
         vm.expectRevert("AUCTION_NOT_ENDED");
-        // Try to finalize the crowdfund. This will fail because even though the
-        // CF is expired, the auction cannot be finalized.
         cf.finalize(defaultGovernanceOpts);
+    }
+
+    function test_canFinalizeIfExpiredBeforeAuctionEndsIfNotHighestBidder() external {
+        // Create a token and auction with min bid of 1337 wei.
+        (uint256 auctionId, uint256 tokenId) = market.createAuction(1337);
+        // Create a AuctionCrowdfund instance.
+        AuctionCrowdfund cf = _createCrowdfund(auctionId, tokenId, 0);
+        // Contribute and delegate.
+        address payable contributor = _randomAddress();
+        _contribute(cf, contributor, 1e18);
+        // Place a bid.
+        cf.bid(defaultGovernanceOpts, 0);
+        // Get outbid.
+        _outbidExternally(auctionId);
+        // Expire the CF.
+        skip(defaultDuration);
+        // Check that the CF is not highest bidder.
+        assertTrue(market.getCurrentHighestBidder(auctionId) != address(cf));
+        // Check that the CF is expired.
+        assertTrue(cf.getCrowdfundLifecycle() == Crowdfund.CrowdfundLifecycle.Expired);
+        // Finalize the crowdfund.
+        cf.finalize(defaultGovernanceOpts);
+        assertTrue(cf.getCrowdfundLifecycle() == Crowdfund.CrowdfundLifecycle.Lost);
     }
 
     function test_canFinalizeIfExpiredAfterAuctionEnds_withBids() external {

@@ -302,4 +302,35 @@ abstract contract AuctionCrowdfundBase is Crowdfund {
             revert InvalidAuctionIdError();
         }
     }
+
+    function _finalize(
+        CrowdfundLifecycle lc,
+        IMarketWrapper market_,
+        uint256 auctionId_,
+        uint96 lastBid_
+    ) internal {
+        // Mark as busy to prevent `burn()`, `bid()`, and `contribute()`
+        // getting called because this will result in a `CrowdfundLifecycle.Busy`.
+        _bidStatus = AuctionCrowdfundStatus.Busy;
+
+        // If we've bid before or the CF is not expired, finalize the auction.
+        if (lastBid_ != 0 || lc == CrowdfundLifecycle.Active) {
+            if (!market_.isFinalized(auctionId_)) {
+                // If the crowdfund has expired and we are not the highest
+                // bidder, skip finalization because there is no chance of
+                // winning the auction.
+                if (
+                    lc != CrowdfundLifecycle.Expired ||
+                    market_.getCurrentHighestBidder(auctionId_) == address(this)
+                ) {
+                    (bool s, bytes memory r) = address(market_).call(
+                        abi.encodeCall(IMarketWrapper.finalize, auctionId_)
+                    );
+                    if (!s) {
+                        r.rawRevert();
+                    }
+                }
+            }
+        }
+    }
 }

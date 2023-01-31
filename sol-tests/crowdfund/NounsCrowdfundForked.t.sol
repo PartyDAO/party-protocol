@@ -58,7 +58,7 @@ contract NounsCrowdfundForkedTest is TestUtils {
                                 market: nounsMarket,
                                 nftContract: nounsToken,
                                 nftTokenId: tokenId,
-                                duration: 1 days,
+                                duration: type(uint32).max,
                                 maximumBid: type(uint96).max,
                                 splitRecipient: payable(address(0)),
                                 splitBps: 0,

@@ -35,28 +35,11 @@ contract AuctionCrowdfund is AuctionCrowdfundBase {
         if (lc != CrowdfundLifecycle.Active && lc != CrowdfundLifecycle.Expired) {
             revert WrongLifecycleError(lc);
         }
-        // Mark as busy to prevent `burn()`, `bid()`, and `contribute()`
-        // getting called because this will result in a `CrowdfundLifecycle.Busy`.
-        _bidStatus = AuctionCrowdfundStatus.Busy;
+
+        // Finalize the auction if it is not already finalized.
         uint96 lastBid_ = lastBid;
-        {
-            uint256 auctionId_ = auctionId;
-            IMarketWrapper market_ = market;
-            // If we've bid before or the CF is not expired,
-            // finalize the auction.
-            if (lastBid_ != 0 || lc == CrowdfundLifecycle.Active) {
-                if (!market_.isFinalized(auctionId_)) {
-                    // Note that even if this crowdfund has expired but the auction is still
-                    // ongoing, this call can fail and block finalization until the auction ends.
-                    (bool s, bytes memory r) = address(market_).call(
-                        abi.encodeCall(IMarketWrapper.finalize, auctionId_)
-                    );
-                    if (!s) {
-                        r.rawRevert();
-                    }
-                }
-            }
-        }
+        _finalize(lc, market, auctionId, lastBid_);
+
         IERC721 nftContract_ = nftContract;
         uint256 nftTokenId_ = nftTokenId;
         // Are we now in possession of the NFT?
