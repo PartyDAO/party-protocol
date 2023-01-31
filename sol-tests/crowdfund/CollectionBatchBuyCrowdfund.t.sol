@@ -31,8 +31,6 @@ contract CollectionBatchBuyCrowdfundTest is Test, TestUtils {
     uint96 maximumPrice = 100e18;
     Crowdfund.FixedGovernanceOpts govOpts;
 
-    bytes32[][] emptyProofs;
-
     constructor() {
         globals = new Globals(address(this));
         MockPartyFactory partyFactory = new MockPartyFactory();
@@ -106,6 +104,7 @@ contract CollectionBatchBuyCrowdfundTest is Test, TestUtils {
         address payable[] memory callTargets = new address payable[](3);
         uint96[] memory callValues = new uint96[](3);
         bytes[] memory callDatas = new bytes[](3);
+        bytes32[][] memory proofs = new bytes32[][](3);
         for (uint256 i; i < tokenIds.length; i++) {
             tokens[i] = nftContract;
             tokenIds[i] = i + 1;
@@ -141,7 +140,7 @@ contract CollectionBatchBuyCrowdfundTest is Test, TestUtils {
                 callTargets: callTargets,
                 callValues: callValues,
                 callDatas: callDatas,
-                proofs: emptyProofs,
+                proofs: proofs,
                 minTokensBought: tokenIds.length,
                 minTotalEthUsed: 0,
                 governanceOpts: govOpts,
@@ -166,6 +165,7 @@ contract CollectionBatchBuyCrowdfundTest is Test, TestUtils {
         address payable[] memory callTargets = new address payable[](3);
         uint96[] memory callValues = new uint96[](3);
         bytes[] memory callDatas = new bytes[](3);
+        bytes32[][] memory proofs = new bytes32[][](3);
         for (uint256 i; i < tokenIds.length; i++) {
             tokens[i] = nftContract;
             tokenIds[i] = i + 1;
@@ -187,7 +187,7 @@ contract CollectionBatchBuyCrowdfundTest is Test, TestUtils {
                 callTargets: callTargets,
                 callValues: callValues,
                 callDatas: callDatas,
-                proofs: emptyProofs,
+                proofs: proofs,
                 minTokensBought: tokenIds.length + 1,
                 minTotalEthUsed: 0,
                 governanceOpts: govOpts,
@@ -211,6 +211,7 @@ contract CollectionBatchBuyCrowdfundTest is Test, TestUtils {
         address payable[] memory callTargets = new address payable[](3);
         uint96[] memory callValues = new uint96[](3);
         bytes[] memory callDatas = new bytes[](3);
+        bytes32[][] memory proofs = new bytes32[][](3);
         for (uint256 i; i < tokenIds.length; i++) {
             tokens[i] = nftContract;
             tokenIds[i] = i + 1;
@@ -228,7 +229,7 @@ contract CollectionBatchBuyCrowdfundTest is Test, TestUtils {
                 callTargets: callTargets,
                 callValues: callValues,
                 callDatas: callDatas,
-                proofs: emptyProofs,
+                proofs: proofs,
                 minTokensBought: tokenIds.length,
                 minTotalEthUsed: 4,
                 governanceOpts: govOpts,
@@ -254,6 +255,7 @@ contract CollectionBatchBuyCrowdfundTest is Test, TestUtils {
         address payable[] memory callTargets = new address payable[](3);
         uint96[] memory callValues = new uint96[](3);
         bytes[] memory callDatas = new bytes[](3);
+        bytes32[][] memory proofs = new bytes32[][](3);
         for (uint256 i; i < tokenIds.length; i++) {
             // Ensure one token will fail to be bought
             if (i == 1) continue;
@@ -298,7 +300,7 @@ contract CollectionBatchBuyCrowdfundTest is Test, TestUtils {
                 callTargets: callTargets,
                 callValues: callValues,
                 callDatas: callDatas,
-                proofs: emptyProofs,
+                proofs: proofs,
                 minTokensBought: tokenIds.length - 1,
                 minTotalEthUsed: 0,
                 governanceOpts: govOpts,
@@ -315,6 +317,7 @@ contract CollectionBatchBuyCrowdfundTest is Test, TestUtils {
         address payable[] memory callTargets = new address payable[](0);
         uint96[] memory callValues = new uint96[](0);
         bytes[] memory callDatas = new bytes[](0);
+        bytes32[][] memory proofs = new bytes32[][](0);
         // Buy the tokens.
         vm.expectRevert(
             abi.encodeWithSelector(
@@ -328,7 +331,7 @@ contract CollectionBatchBuyCrowdfundTest is Test, TestUtils {
                 callTargets: callTargets,
                 callValues: callValues,
                 callDatas: callDatas,
-                proofs: emptyProofs,
+                proofs: proofs,
                 minTokensBought: 0,
                 minTotalEthUsed: 0,
                 governanceOpts: govOpts,
@@ -345,6 +348,7 @@ contract CollectionBatchBuyCrowdfundTest is Test, TestUtils {
         address payable[] memory callTargets = new address payable[](0);
         uint96[] memory callValues = new uint96[](0);
         bytes[] memory callDatas = new bytes[](0);
+        bytes32[][] memory proofs = new bytes32[][](0);
         // Buy the tokens.
         vm.expectRevert(CollectionBatchBuyCrowdfund.NothingBoughtError.selector);
         cf.batchBuy(
@@ -353,7 +357,7 @@ contract CollectionBatchBuyCrowdfundTest is Test, TestUtils {
                 callTargets: callTargets,
                 callValues: callValues,
                 callDatas: callDatas,
-                proofs: emptyProofs,
+                proofs: proofs,
                 minTokensBought: 1,
                 minTotalEthUsed: 0,
                 governanceOpts: govOpts,
@@ -371,6 +375,7 @@ contract CollectionBatchBuyCrowdfundTest is Test, TestUtils {
         address payable[] memory callTargets = new address payable[](3);
         uint96[] memory callValues = new uint96[](3);
         bytes[] memory callDatas = new bytes[](3);
+        bytes32[][] memory proofs = new bytes32[][](3);
         for (uint256 i; i < tokenIds.length; i++) {
             tokens[i] = nftContract;
             tokenIds[i] = i + 1;
@@ -385,7 +390,7 @@ contract CollectionBatchBuyCrowdfundTest is Test, TestUtils {
                 callTargets: callTargets,
                 callValues: callValues,
                 callDatas: callDatas,
-                proofs: emptyProofs,
+                proofs: proofs,
                 minTokensBought: tokenIds.length,
                 minTotalEthUsed: 0,
                 governanceOpts: govOpts,
@@ -402,6 +407,7 @@ contract CollectionBatchBuyCrowdfundTest is Test, TestUtils {
         address payable[] memory callTargets = new address payable[](3);
         uint96[] memory callValues = new uint96[](3);
         bytes[] memory callDatas = new bytes[](3);
+        bytes32[][] memory proofs = new bytes32[][](3);
         // Buy the tokens.
         vm.expectRevert(
             abi.encodeWithSelector(
@@ -416,7 +422,7 @@ contract CollectionBatchBuyCrowdfundTest is Test, TestUtils {
                 callTargets: callTargets,
                 callValues: callValues,
                 callDatas: callDatas,
-                proofs: emptyProofs,
+                proofs: proofs,
                 minTokensBought: tokenIds.length,
                 minTotalEthUsed: 0,
                 governanceOpts: govOpts,
@@ -440,6 +446,7 @@ contract CollectionBatchBuyCrowdfundTest is Test, TestUtils {
         uint96[] memory callValues = new uint96[](2);
         callValues[0] = 1e18;
         bytes[] memory callDatas = new bytes[](2);
+        bytes32[][] memory proofs = new bytes32[][](2);
         // Buy the tokens.
         vm.expectRevert(CollectionBatchBuyCrowdfund.ContributionsSpentForFailedBuyError.selector);
         cf.batchBuy(
@@ -448,7 +455,7 @@ contract CollectionBatchBuyCrowdfundTest is Test, TestUtils {
                 callTargets: callTargets,
                 callValues: callValues,
                 callDatas: callDatas,
-                proofs: emptyProofs,
+                proofs: proofs,
                 minTokensBought: 1,
                 minTotalEthUsed: 0,
                 governanceOpts: govOpts,
@@ -466,6 +473,7 @@ contract CollectionBatchBuyCrowdfundTest is Test, TestUtils {
         uint96[] memory callValues = new uint96[](3);
         callValues[0] = maximumPrice + 1;
         bytes[] memory callDatas = new bytes[](3);
+        bytes32[][] memory proofs = new bytes32[][](3);
         // Buy the tokens.
         vm.expectRevert(
             abi.encodeWithSelector(
@@ -480,7 +488,7 @@ contract CollectionBatchBuyCrowdfundTest is Test, TestUtils {
                 callTargets: callTargets,
                 callValues: callValues,
                 callDatas: callDatas,
-                proofs: emptyProofs,
+                proofs: proofs,
                 minTokensBought: tokenIds.length,
                 minTotalEthUsed: 0,
                 governanceOpts: govOpts,
@@ -497,6 +505,7 @@ contract CollectionBatchBuyCrowdfundTest is Test, TestUtils {
         address payable[] memory callTargets = new address payable[](3);
         uint96[] memory callValues = new uint96[](3);
         bytes[] memory callDatas = new bytes[](3);
+        bytes32[][] memory proofs = new bytes32[][](3);
         // Buy the tokens.
         vm.prank(_randomAddress());
         vm.expectRevert(Crowdfund.OnlyPartyHostError.selector);
@@ -506,7 +515,7 @@ contract CollectionBatchBuyCrowdfundTest is Test, TestUtils {
                 callTargets: callTargets,
                 callValues: callValues,
                 callDatas: callDatas,
-                proofs: emptyProofs,
+                proofs: proofs,
                 minTokensBought: tokenIds.length,
                 minTotalEthUsed: 0,
                 governanceOpts: govOpts,
@@ -523,6 +532,7 @@ contract CollectionBatchBuyCrowdfundTest is Test, TestUtils {
         address payable[] memory callTargets = new address payable[](3);
         uint96[] memory callValues = new uint96[](3);
         bytes[] memory callDatas = new bytes[](3);
+        bytes32[][] memory proofs = new bytes32[][](3);
         // Mutate governance options
         govOpts.hosts.push(_randomAddress());
         // Buy the tokens.
@@ -533,7 +543,7 @@ contract CollectionBatchBuyCrowdfundTest is Test, TestUtils {
                 callTargets: callTargets,
                 callValues: callValues,
                 callDatas: callDatas,
-                proofs: emptyProofs,
+                proofs: proofs,
                 minTokensBought: tokenIds.length,
                 minTotalEthUsed: 0,
                 governanceOpts: govOpts,

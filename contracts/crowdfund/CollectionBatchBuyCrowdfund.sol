@@ -80,6 +80,7 @@ contract CollectionBatchBuyCrowdfund is BuyCrowdfundBase {
     error ContributionsSpentForFailedBuyError();
     error NotEnoughTokensBoughtError(uint256 tokensBought, uint256 minTokensBought);
     error NotEnoughEthUsedError(uint256 ethUsed, uint256 minTotalEthUsed);
+    error MismatchedCallArgLengthsError();
 
     /// @notice The contract of NFTs to buy.
     IERC721 public nftContract;
@@ -141,6 +142,16 @@ contract CollectionBatchBuyCrowdfund is BuyCrowdfundBase {
         if (args.minTokensBought == 0) {
             // Must buy at least one token.
             revert InvalidMinTokensBoughtError(0);
+        }
+
+        // Check length of all arg arrays.
+        if (
+            args.tokenIds.length != args.callTargets.length ||
+            args.tokenIds.length != args.callValues.length ||
+            args.tokenIds.length != args.callDatas.length ||
+            args.tokenIds.length != args.proofs.length
+        ) {
+            revert MismatchedCallArgLengthsError();
         }
 
         // Temporarily set to non-zero as a reentrancy guard.
