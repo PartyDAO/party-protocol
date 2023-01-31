@@ -146,10 +146,10 @@ abstract contract AuctionCrowdfundBase is Crowdfund {
         );
 
         // Check that the auction can be bid on and is valid.
-        _validateAuction(market, opts.auctionId, opts.nftContract, opts.nftTokenId);
+        _validateAuction(opts.market, opts.auctionId, opts.nftContract, opts.nftTokenId);
 
         // Check that the minimum bid is less than the maximum bid.
-        uint256 minimumBid = market.getMinimumBid(opts.auctionId);
+        uint256 minimumBid = opts.market.getMinimumBid(opts.auctionId);
         if (minimumBid > opts.maximumBid) {
             revert MinimumBidExceedsMaximumBidError(minimumBid, opts.maximumBid);
         }
