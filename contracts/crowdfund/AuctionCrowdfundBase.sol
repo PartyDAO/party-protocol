@@ -205,7 +205,7 @@ abstract contract AuctionCrowdfundBase is Crowdfund {
         FixedGovernanceOpts memory governanceOpts,
         uint256 hostIndex
     ) external {
-        // Only a host can call specify a custom bid amount.
+        // Only a host can specify a custom bid amount.
         _assertIsHost(msg.sender, governanceOpts, hostIndex);
 
         _bid(amount);
