@@ -2,16 +2,15 @@
 pragma solidity 0.8.17;
 
 import "../globals/IGlobals.sol";
-import "../tokens/IERC721.sol";
 
-import "./Party.sol";
+import "./Party.sol"; // todo: make interface
 
 // Creates generic Party instances.
 interface IPartyFactory {
     event PartyCreated(
         Party indexed party,
         Party.PartyOptions opts,
-        IERC721[] preciousTokens,
+        address[] preciousTokens,
         uint256[] preciousTokenIds,
         address creator
     );
@@ -22,8 +21,8 @@ interface IPartyFactory {
     /// @param authority The address that can call `mint()`.
     /// @param opts Options used to initialize the party. These are fixed
     ///             and cannot be changed later.
-    /// @param preciousTokens The tokens that are considered precious by the
-    ///                       party.These are protected assets and are subject
+    /// @param preciousTokens The token addresses that are considered precious by the
+    ///                       party. These are protected assets and are subject
     ///                       to extra restrictions in proposals vs other
     ///                       assets.
     /// @param preciousTokenIds The IDs associated with each token in `preciousTokens`.
@@ -31,7 +30,7 @@ interface IPartyFactory {
     function createParty(
         address authority,
         Party.PartyOptions calldata opts,
-        IERC721[] memory preciousTokens,
+        address[] memory preciousTokens,
         uint256[] memory preciousTokenIds
     ) external returns (Party party);
 

@@ -70,7 +70,7 @@ contract ListOnZoraProposalIntegrationTest is Test, TestUtils, ZoraTestUtils {
 
         (
             Party party,
-            IERC721[] memory preciousTokens,
+            address[] memory preciousTokens,
             uint256[] memory preciousTokenIds
         ) = partyAdmin.createParty(
                 PartyAdmin.PartyCreationMinimalOptions({
@@ -95,7 +95,7 @@ contract ListOnZoraProposalIntegrationTest is Test, TestUtils, ZoraTestUtils {
             listPrice: 1.5 ether,
             timeout: 120,
             duration: 120,
-            token: toadz,
+            token: address(toadz),
             tokenId: 1
         });
 

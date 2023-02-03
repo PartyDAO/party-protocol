@@ -5,6 +5,7 @@ import "forge-std/Test.sol";
 
 import "../../contracts/proposals/ArbitraryCallsProposal.sol";
 import "../../contracts/proposals/vendor/IOpenseaExchange.sol";
+import "../../contracts/utils/LibRawResult.sol";
 
 import "../proposals/OpenseaTestUtils.sol";
 import "../TestUtils.sol";
@@ -65,13 +66,13 @@ contract ArbitraryCallsProposalTest is
     FakeZora zora = new FakeZora();
     TestableArbitraryCallsProposal testContract =
         new TestableArbitraryCallsProposal(IZoraAuctionHouse(address(zora)));
-    IERC721[] preciousTokens;
+    address[] preciousTokens;
     uint256[] preciousTokenIds;
 
     constructor() {
         for (uint256 i; i < 2; ++i) {
             DummyERC721 t = new DummyERC721();
-            preciousTokens.push(t);
+            preciousTokens.push(address(t));
             preciousTokenIds.push(t.mint(address(testContract)));
             // Approve ArbitraryCallTarget so yoink() works.
             testContract.approveTokenSpender(address(target), t, preciousTokenIds[i]);
@@ -94,7 +95,7 @@ contract ArbitraryCallsProposalTest is
 
     function _pickRandomPreciousToken() private view returns (IERC721 token, uint256 tokenId) {
         uint256 idx = _randomRange(0, preciousTokens.length);
-        return (preciousTokens[idx], preciousTokenIds[idx]);
+        return (IERC721(preciousTokens[idx]), preciousTokenIds[idx]);
     }
 
     function _createSimpleCalls(
@@ -501,7 +502,7 @@ contract ArbitraryCallsProposalTest is
                 // The data doesn't matter, it should be reverted.
                 maker: payable(address(0)),
                 buyer: address(0),
-                token: IERC721(address(0)),
+                token: address(address(0)),
                 tokenId: 0,
                 listPrice: 0,
                 startTime: 0,

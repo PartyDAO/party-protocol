@@ -16,7 +16,7 @@ contract OpenseaTestUtils is Test {
     struct BuyOpenseaListingParams {
         address payable maker;
         address buyer;
-        IERC721 token;
+        address token;
         uint256 tokenId;
         uint256 listPrice;
         uint256 startTime;

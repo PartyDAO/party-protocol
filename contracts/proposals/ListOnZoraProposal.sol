@@ -5,7 +5,7 @@ import "../globals/IGlobals.sol";
 import "../globals/LibGlobals.sol";
 import "../tokens/IERC721.sol";
 import "../utils/LibRawResult.sol";
-import "../utils/LibSafeERC721.sol";
+import "../utils/LibSafeNFT.sol";
 import "../utils/LibSafeCast.sol";
 
 import "../vendor/markets/IZoraAuctionHouse.sol";
@@ -16,7 +16,7 @@ import "./ZoraHelpers.sol";
 // This contract will be delegatecall'ed into by `Party` proxy instances.
 contract ListOnZoraProposal is ZoraHelpers {
     using LibRawResult for bytes;
-    using LibSafeERC721 for IERC721;
+    using LibSafeNFT for address;
     using LibSafeCast for uint256;
 
     enum ZoraStep {
@@ -35,16 +35,17 @@ contract ListOnZoraProposal is ZoraHelpers {
         // How long the auction lasts once a person bids on it.
         uint40 duration;
         // The token contract of the NFT being listed.
-        IERC721 token;
+        address token;
         // The token ID of the NFT being listed.
         uint256 tokenId;
     }
 
     error ZoraListingNotExpired(uint256 auctionId, uint40 expiry);
+    error ZoraListingERC1155NotSupported(address token);
 
     event ZoraAuctionCreated(
         uint256 auctionId,
-        IERC721 token,
+        address token,
         uint256 tokenId,
         uint256 startingPrice,
         uint40 duration,
@@ -142,34 +143,39 @@ contract ListOnZoraProposal is ZoraHelpers {
         uint40 timeout,
         // How long the auction will run for once a bid has been placed.
         uint40 duration,
-        IERC721 token,
+        address token,
         uint256 tokenId
     ) internal override returns (uint256 auctionId) {
-        token.approve(address(ZORA), tokenId);
-        auctionId = ZORA.createAuction(
-            tokenId,
-            token,
-            duration,
-            listPrice,
-            payable(address(0)),
-            0,
-            IERC20(address(0)) // Indicates ETH sale
-        );
-        emit ZoraAuctionCreated(
-            auctionId,
-            token,
-            tokenId,
-            listPrice,
-            duration,
-            uint40(block.timestamp + timeout)
-        );
+        try IERC721(token).approve(address(ZORA), tokenId) {
+            auctionId = ZORA.createAuction(
+                tokenId,
+                token,
+                duration,
+                listPrice,
+                payable(address(0)),
+                0,
+                IERC20(address(0)) // Indicates ETH sale
+            );
+            emit ZoraAuctionCreated(
+                auctionId,
+                token,
+                tokenId,
+                listPrice,
+                duration,
+                uint40(block.timestamp + timeout)
+            );
+        } catch {
+            emit ZoraAuctionFailed(0);
+            revert ZoraListingERC1155NotSupported(token);
+        }
+        
     }
 
     // Either cancel or finalize a Zora auction.
     function _settleZoraAuction(
         uint256 auctionId,
         uint40 minExpiry,
-        IERC721 token,
+        address token,
         uint256 tokenId
     ) internal override returns (ZoraAuctionStatus statusCode) {
         // Getting the state of an auction is super expensive so it seems

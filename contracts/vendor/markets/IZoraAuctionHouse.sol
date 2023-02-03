@@ -49,7 +49,7 @@ interface IZoraAuctionHouse {
 
     function createAuction(
         uint256 tokenId,
-        IERC721 tokenContract,
+        address tokenContract,
         uint256 duration,
         uint256 reservePrice,
         address payable curator,

@@ -18,7 +18,7 @@ contract TestablePartyGovernanceNFT is PartyGovernanceNFT {
         string memory symbol_,
         uint256 customizationPresetId,
         PartyGovernance.GovernanceOpts memory governanceOpts,
-        IERC721[] memory preciousTokens,
+        address[] memory preciousTokens,
         uint256[] memory preciousTokenIds,
         address mintAuthority_
     ) external {
@@ -53,7 +53,7 @@ contract PartyGovernanceNFTUnitTest is TestUtils {
             "TST",
             0,
             defaultGovernanceOpts,
-            new IERC721[](0),
+            new address[](0),
             new uint256[](0),
             address(this)
         );

@@ -47,7 +47,7 @@ contract OpenseaFulfillOrderTest is Test, TestUtils, OpenseaTestUtils {
                                 name: "Test",
                                 symbol: "TEST",
                                 customizationPresetId: 0,
-                                nftContract: token,
+                                nftContract: address(token),
                                 nftTokenId: tokenId,
                                 duration: 7 days,
                                 maximumPrice: type(uint96).max,

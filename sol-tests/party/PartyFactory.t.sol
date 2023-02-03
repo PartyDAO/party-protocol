@@ -39,17 +39,17 @@ contract PartyFactoryTest is Test, TestUtils {
 
     function _createPreciouses(
         uint256 count
-    ) private view returns (IERC721[] memory preciousTokens, uint256[] memory preciousTokenIds) {
-        preciousTokens = new IERC721[](count);
+    ) private view returns (address[] memory preciousTokens, uint256[] memory preciousTokenIds) {
+        preciousTokens = new address[](count);
         preciousTokenIds = new uint256[](count);
         for (uint256 i; i < count; ++i) {
-            preciousTokens[i] = IERC721(_randomAddress());
+            preciousTokens[i] = _randomAddress();
             preciousTokenIds[i] = _randomUint256();
         }
     }
 
     function _hashPreciousList(
-        IERC721[] memory preciousTokens,
+        address[] memory preciousTokens,
         uint256[] memory preciousTokenIds
     ) internal pure returns (bytes32 h) {
         assembly {
@@ -68,7 +68,7 @@ contract PartyFactoryTest is Test, TestUtils {
         vm.assume(randomBps <= 1e4);
 
         address authority = _randomAddress();
-        (IERC721[] memory preciousTokens, uint256[] memory preciousTokenIds) = _createPreciouses(3);
+        (address[] memory preciousTokens, uint256[] memory preciousTokenIds) = _createPreciouses(3);
         Party.PartyOptions memory opts = Party.PartyOptions({
             governance: PartyGovernance.GovernanceOpts({
                 hosts: _toAddressArray(_randomAddress()),
@@ -103,7 +103,7 @@ contract PartyFactoryTest is Test, TestUtils {
         vm.assume(passThresholdBps > 1e4 || feeBps > 1e4);
 
         address authority = _randomAddress();
-        (IERC721[] memory preciousTokens, uint256[] memory preciousTokenIds) = _createPreciouses(3);
+        (address[] memory preciousTokens, uint256[] memory preciousTokenIds) = _createPreciouses(3);
 
         Party.PartyOptions memory opts = defaultPartyOptions;
         opts.governance.feeBps = feeBps;

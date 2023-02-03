@@ -103,11 +103,11 @@ contract FractionalizeProposalForkedTest is TestUtils {
                 progressData: "",
                 extraData: "",
                 flags: 0,
-                preciousTokens: new IERC721[](0),
+                preciousTokens: new address[](0),
                 preciousTokenIds: new uint256[](0),
                 proposalData: abi.encode(
                     FractionalizeProposal.FractionalizeProposalData({
-                        token: erc721,
+                        token: address(erc721),
                         tokenId: tokenId,
                         listPrice: listPrice
                     })
@@ -133,11 +133,11 @@ contract FractionalizeProposalForkedTest is TestUtils {
                 progressData: "",
                 extraData: "",
                 flags: 0,
-                preciousTokens: new IERC721[](0),
+                preciousTokens: new address[](0),
                 preciousTokenIds: new uint256[](0),
                 proposalData: abi.encode(
                     FractionalizeProposal.FractionalizeProposalData({
-                        token: erc721,
+                        token: address(erc721),
                         tokenId: tokenId,
                         listPrice: listPrice
                     })
@@ -182,11 +182,11 @@ contract FractionalizeProposalForkedTest is TestUtils {
                 progressData: "",
                 extraData: "",
                 flags: 0,
-                preciousTokens: new IERC721[](0),
+                preciousTokens: new address[](0),
                 preciousTokenIds: new uint256[](0),
                 proposalData: abi.encode(
                     FractionalizeProposal.FractionalizeProposalData({
-                        token: erc721,
+                        token: address(erc721),
                         tokenId: tokenId,
                         listPrice: listPrice
                     })

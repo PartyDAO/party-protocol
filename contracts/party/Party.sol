@@ -20,7 +20,7 @@ contract Party is PartyGovernanceNFT {
     // Arguments used to initialize the `PartyGovernanceNFT`.
     struct PartyInitData {
         PartyOptions options;
-        IERC721[] preciousTokens;
+        address[] preciousTokens;
         uint256[] preciousTokenIds;
         address mintAuthority;
     }

@@ -35,7 +35,7 @@ contract CrowdfundTest is Test, TestUtils {
         address caller,
         address authority,
         Party.PartyOptions opts,
-        IERC721[] preciousTokens,
+        address[] preciousTokens,
         uint256[] preciousTokenIds
     );
 
@@ -110,12 +110,12 @@ contract CrowdfundTest is Test, TestUtils {
     function _createTokens(
         address owner,
         uint256 count
-    ) private returns (IERC721[] memory tokens, uint256[] memory tokenIds) {
-        tokens = new IERC721[](count);
+    ) private returns (address[] memory tokens, uint256[] memory tokenIds) {
+        tokens = new address[](count);
         tokenIds = new uint256[](count);
         for (uint256 i; i < count; ++i) {
             DummyERC721 t = new DummyERC721();
-            tokens[i] = IERC721(t);
+            tokens[i] = address(t);
             tokenIds[i] = t.mint(owner);
         }
     }
@@ -252,7 +252,7 @@ contract CrowdfundTest is Test, TestUtils {
         cf.contribute{ value: contributor1.balance }(delegate1, "");
         assertEq(cf.totalContributions(), 1e18);
         // set up a win using contributor1's total contribution
-        (IERC721[] memory erc721Tokens, uint256[] memory erc721TokenIds) = _createTokens(
+        (address[] memory erc721Tokens, uint256[] memory erc721TokenIds) = _createTokens(
             address(cf),
             2
         );
@@ -291,7 +291,7 @@ contract CrowdfundTest is Test, TestUtils {
         cf.contribute{ value: contributor2.balance }(delegate2, "");
         assertEq(cf.totalContributions(), 1.5e18);
         // set up a win using everyone's total contributions
-        (IERC721[] memory erc721Tokens, uint256[] memory erc721TokenIds) = _createTokens(
+        (address[] memory erc721Tokens, uint256[] memory erc721TokenIds) = _createTokens(
             address(cf),
             2
         );
@@ -335,7 +335,7 @@ contract CrowdfundTest is Test, TestUtils {
         vm.prank(contributor2);
         cf.contribute{ value: contributor2.balance }(delegate2, "");
         // set up a win using half of contributor2's total contributions
-        (IERC721[] memory erc721Tokens, uint256[] memory erc721TokenIds) = _createTokens(
+        (address[] memory erc721Tokens, uint256[] memory erc721TokenIds) = _createTokens(
             address(cf),
             2
         );
@@ -383,7 +383,7 @@ contract CrowdfundTest is Test, TestUtils {
         vm.prank(contributor1);
         cf.contribute{ value: contributor1.balance }(delegate1, "");
         // set up a win using half of contributor2's total contributions
-        (IERC721[] memory erc721Tokens, uint256[] memory erc721TokenIds) = _createTokens(
+        (address[] memory erc721Tokens, uint256[] memory erc721TokenIds) = _createTokens(
             address(cf),
             2
         );
@@ -421,7 +421,7 @@ contract CrowdfundTest is Test, TestUtils {
         cf.contribute{ value: contributor1.balance }(delegate1, "");
         assertEq(cf.totalContributions(), 1e18);
         // set up a win with 0 final price
-        (IERC721[] memory erc721Tokens, uint256[] memory erc721TokenIds) = _createTokens(
+        (address[] memory erc721Tokens, uint256[] memory erc721TokenIds) = _createTokens(
             address(cf),
             2
         );
@@ -486,7 +486,7 @@ contract CrowdfundTest is Test, TestUtils {
         vm.prank(contributor1);
         cf.contribute{ value: contributor1.balance }(delegate1, "");
         // set up a win using contributor1's total contribution
-        (IERC721[] memory erc721Tokens, uint256[] memory erc721TokenIds) = _createTokens(
+        (address[] memory erc721Tokens, uint256[] memory erc721TokenIds) = _createTokens(
             address(cf),
             2
         );
@@ -514,7 +514,7 @@ contract CrowdfundTest is Test, TestUtils {
         vm.prank(contributor1);
         cf.contribute{ value: contributor1.balance }(delegate1, "");
         // set up a win using contributor1's total contribution
-        (IERC721[] memory erc721Tokens, uint256[] memory erc721TokenIds) = _createTokens(
+        (address[] memory erc721Tokens, uint256[] memory erc721TokenIds) = _createTokens(
             address(cf),
             2
         );
@@ -596,7 +596,7 @@ contract CrowdfundTest is Test, TestUtils {
         vm.prank(contributor2);
         cf.contribute{ value: contributor2.balance }(contributor2, "");
         // set up a win using everyone's total contribution
-        (IERC721[] memory erc721Tokens, uint256[] memory erc721TokenIds) = _createTokens(
+        (address[] memory erc721Tokens, uint256[] memory erc721TokenIds) = _createTokens(
             address(cf),
             2
         );
@@ -616,7 +616,7 @@ contract CrowdfundTest is Test, TestUtils {
     function testWin_cannotChangeGovernanceOpts() external {
         TestableCrowdfund cf = _createCrowdfund(0);
         // set up a win using contributor1's total contribution
-        (IERC721[] memory erc721Tokens, uint256[] memory erc721TokenIds) = _createTokens(
+        (address[] memory erc721Tokens, uint256[] memory erc721TokenIds) = _createTokens(
             address(cf),
             2
         );
@@ -650,7 +650,7 @@ contract CrowdfundTest is Test, TestUtils {
         vm.prank(contributor1);
         cf.contribute{ value: contributor1.balance }(delegate1, "");
         // set up a win using half of contributor1's total contribution
-        (IERC721[] memory erc721Tokens, uint256[] memory erc721TokenIds) = _createTokens(
+        (address[] memory erc721Tokens, uint256[] memory erc721TokenIds) = _createTokens(
             address(cf),
             2
         );
@@ -694,7 +694,7 @@ contract CrowdfundTest is Test, TestUtils {
         vm.prank(splitRecipient);
         cf.contribute{ value: splitRecipient.balance }(delegate2, "");
         // set up a win using half of split recipient's total contribution
-        (IERC721[] memory erc721Tokens, uint256[] memory erc721TokenIds) = _createTokens(
+        (address[] memory erc721Tokens, uint256[] memory erc721TokenIds) = _createTokens(
             address(cf),
             2
         );
@@ -741,7 +741,7 @@ contract CrowdfundTest is Test, TestUtils {
         vm.prank(splitRecipient);
         cf.contribute{ value: splitRecipient.balance }(delegate2, "");
         // set up a win using none of split recipient's total contribution
-        (IERC721[] memory erc721Tokens, uint256[] memory erc721TokenIds) = _createTokens(
+        (address[] memory erc721Tokens, uint256[] memory erc721TokenIds) = _createTokens(
             address(cf),
             2
         );
@@ -806,7 +806,7 @@ contract CrowdfundTest is Test, TestUtils {
         cf.contribute{ value: badERC721Receiver.balance }(delegate1, "");
         assertEq(cf.totalContributions(), 1e18);
         // set up a win using badERC721Receiver's total contribution
-        (IERC721[] memory erc721Tokens, uint256[] memory erc721TokenIds) = _createTokens(
+        (address[] memory erc721Tokens, uint256[] memory erc721TokenIds) = _createTokens(
             address(cf),
             2
         );
@@ -859,7 +859,7 @@ contract CrowdfundTest is Test, TestUtils {
         cf.contribute{ value: badETHReceiver.balance }(delegate1, "");
         assertEq(cf.totalContributions(), 2e18);
         // set up a win using badETHReceiver's total contribution
-        (IERC721[] memory erc721Tokens, uint256[] memory erc721TokenIds) = _createTokens(
+        (address[] memory erc721Tokens, uint256[] memory erc721TokenIds) = _createTokens(
             address(cf),
             2
         );

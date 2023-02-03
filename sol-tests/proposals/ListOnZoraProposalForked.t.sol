@@ -17,7 +17,7 @@ contract ListOnZoraProposalForkedTest is ZoraTestUtils, TestUtils {
 
     event ZoraAuctionCreated(
         uint256 auctionId,
-        IERC721 token,
+        address token,
         uint256 tokenId,
         uint256 startingPrice,
         uint40 duration,
@@ -82,7 +82,7 @@ contract ListOnZoraProposalForkedTest is ZoraTestUtils, TestUtils {
             listPrice: _randomUint256() % 1e18,
             timeout: uint40(_randomRange(1 hours, 1 days)),
             duration: uint40(_randomRange(1 hours, 1 days)),
-            token: nftToken,
+            token: address(nftToken),
             tokenId: nftTokenId
         });
         executeParams.proposalData = abi.encode(proposalData);
@@ -138,7 +138,7 @@ contract ListOnZoraProposalForkedTest is ZoraTestUtils, TestUtils {
             uint40(block.timestamp + proposalData.timeout)
         );
         assertTrue(proposal.executeListOnZora(executeParams).length > 0);
-        assertEq(proposalData.token.ownerOf(proposalData.tokenId), address(ZORA));
+        assertEq(IERC721(proposalData.token).ownerOf(proposalData.tokenId), address(ZORA));
     }
 
     function testForked_canBidOnListing() external onlyForked {
@@ -247,7 +247,7 @@ contract ListOnZoraProposalForkedTest is ZoraTestUtils, TestUtils {
         emit ZoraAuctionFailed(auctionId);
         assertTrue(proposal.executeListOnZora(executeParams).length == 0);
         assertEq(address(proposal).balance, 0);
-        assertEq(proposalData.token.ownerOf(proposalData.tokenId), address(proposal));
+        assertEq(IERC721(proposalData.token).ownerOf(proposalData.tokenId), address(proposal));
     }
 }
 

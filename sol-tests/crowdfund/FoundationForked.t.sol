@@ -63,7 +63,7 @@ contract FoundationForkedTest is TestUtils {
                                 customizationPresetId: 0,
                                 auctionId: auctionId,
                                 market: foundationMarket,
-                                nftContract: nftContract,
+                                nftContract: address(nftContract),
                                 nftTokenId: tokenId,
                                 duration: 1 days,
                                 maximumBid: type(uint96).max,

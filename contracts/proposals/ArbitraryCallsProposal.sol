@@ -4,7 +4,7 @@ pragma solidity 0.8.17;
 import "../tokens/IERC721.sol";
 import "../tokens/IERC721Receiver.sol";
 import "../tokens/ERC1155Receiver.sol";
-import "../utils/LibSafeERC721.sol";
+import "../utils/LibSafeNFT.sol";
 import "../utils/LibAddress.sol";
 import "../vendor/markets/IZoraAuctionHouse.sol";
 import "./vendor/IOpenseaExchange.sol";
@@ -15,7 +15,7 @@ import "./IProposalExecutionEngine.sol";
 // Implements arbitrary call proposals. Inherited by the `ProposalExecutionEngine`.
 // This contract will be delegatecall'ed into by `Party` proxy instances.
 contract ArbitraryCallsProposal {
-    using LibSafeERC721 for IERC721;
+    using LibSafeNFT for address;
     using LibAddress for address payable;
 
     struct ArbitraryCall {
@@ -30,7 +30,7 @@ contract ArbitraryCallsProposal {
         bytes32 expectedResultHash;
     }
 
-    error PreciousLostError(IERC721 token, uint256 tokenId);
+    error PreciousLostError(address token, uint256 tokenId);
     error CallProhibitedError(address target, bytes data);
     error ArbitraryCallFailedError(bytes revertData);
     error UnexpectedCallResultHashError(
@@ -109,7 +109,7 @@ contract ArbitraryCallsProposal {
     function _executeSingleArbitraryCall(
         uint256 idx,
         ArbitraryCall[] memory calls,
-        IERC721[] memory preciousTokens,
+        address[] memory preciousTokens,
         uint256[] memory preciousTokenIds,
         bool isUnanimous,
         uint256 ethAvailable
@@ -145,7 +145,7 @@ contract ArbitraryCallsProposal {
 
     // Do we possess the precious?
     function _getHasPrecious(
-        IERC721 preciousToken,
+        address preciousToken,
         uint256 preciousTokenId
     ) private view returns (bool hasPrecious) {
         hasPrecious = preciousToken.safeOwnerOf(preciousTokenId) == address(this);
@@ -156,7 +156,7 @@ contract ArbitraryCallsProposal {
         bool isUnanimous,
         uint256 callIndex,
         uint256 callsCount,
-        IERC721[] memory preciousTokens,
+        address[] memory preciousTokens,
         uint256[] memory preciousTokenIds
     ) private view returns (bool isAllowed) {
         // Cannot call ourselves.
@@ -186,7 +186,7 @@ contract ArbitraryCallsProposal {
                     if (op != address(0)) {
                         return
                             !LibProposal.isTokenIdPrecious(
-                                IERC721(call.target),
+                                call.target,
                                 tokenId,
                                 preciousTokens,
                                 preciousTokenIds
@@ -197,7 +197,7 @@ contract ArbitraryCallsProposal {
                 } else if (selector == IERC721.setApprovalForAll.selector) {
                     (, bool isApproved) = _decodeSetApprovalForAllCallDataArgs(call.data);
                     if (isApproved) {
-                        return !LibProposal.isTokenPrecious(IERC721(call.target), preciousTokens);
+                        return !LibProposal.isTokenPrecious(call.target, preciousTokens);
                     }
                     // Can only call cancelAuction on the zora AH if it's the last call
                     // in the sequence.

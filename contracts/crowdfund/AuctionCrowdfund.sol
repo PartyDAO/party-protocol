@@ -4,7 +4,7 @@ pragma solidity 0.8.17;
 import "../tokens/IERC721.sol";
 import "../party/Party.sol";
 import "../utils/Implementation.sol";
-import "../utils/LibSafeERC721.sol";
+import "../utils/LibSafeNFT.sol";
 import "../utils/LibRawResult.sol";
 import "../globals/IGlobals.sol";
 import "../gatekeepers/IGateKeeper.sol";
@@ -15,7 +15,7 @@ import "./Crowdfund.sol";
 /// @notice A crowdfund that can repeatedly bid on an auction for a specific NFT
 ///         (i.e. with a known token ID) until it wins.
 contract AuctionCrowdfund is Crowdfund {
-    using LibSafeERC721 for IERC721;
+    using LibSafeNFT for address;
     using LibSafeCast for uint256;
     using LibRawResult for bytes;
 
@@ -42,8 +42,8 @@ contract AuctionCrowdfund is Crowdfund {
         uint256 auctionId;
         // IMarketWrapper contract that handles interactions with auction markets.
         IMarketWrapper market;
-        // The ERC721 contract of the NFT being bought.
-        IERC721 nftContract;
+        // The address of the NFT contract of the NFT being bought.
+        address nftContract;
         // ID of the NFT being bought.
         uint256 nftTokenId;
         // How long this crowdfund has to bid on the NFT, in seconds.
@@ -88,7 +88,7 @@ contract AuctionCrowdfund is Crowdfund {
     error AuctionNotExpiredError();
 
     /// @notice The NFT contract to buy.
-    IERC721 public nftContract;
+    address public nftContract;
     /// @notice The NFT token ID to buy.
     uint256 public nftTokenId;
     /// @notice An adapter for the auction market (Zora, OpenSea, etc).
@@ -270,7 +270,7 @@ contract AuctionCrowdfund is Crowdfund {
                 }
             }
         }
-        IERC721 nftContract_ = nftContract;
+        address nftContract_ = nftContract;
         uint256 nftTokenId_ = nftTokenId;
         // Are we now in possession of the NFT?
         if (nftContract_.safeOwnerOf(nftTokenId_) == address(this) && lastBid_ != 0) {

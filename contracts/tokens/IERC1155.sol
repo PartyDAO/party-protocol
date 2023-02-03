@@ -45,4 +45,5 @@ interface IERC1155 {
         address[] calldata owners,
         uint256[] calldata ids
     ) external view returns (uint256[] memory balances);
+
 }

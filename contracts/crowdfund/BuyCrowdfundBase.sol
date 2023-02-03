@@ -2,9 +2,9 @@
 pragma solidity 0.8.17;
 
 import "../tokens/IERC721.sol";
-import "../party/Party.sol";
+import "../party/Party.sol";                // review: should this be an interface for Party?
 import "../utils/Implementation.sol";
-import "../utils/LibSafeERC721.sol";
+import "../utils/LibSafeNFT.sol";
 import "../utils/LibRawResult.sol";
 import "../globals/IGlobals.sol";
 import "../gatekeepers/IGateKeeper.sol";
@@ -13,7 +13,7 @@ import "./Crowdfund.sol";
 
 // Base for BuyCrowdfund and CollectionBuyCrowdfund
 abstract contract BuyCrowdfundBase is Crowdfund {
-    using LibSafeERC721 for IERC721;
+    using LibSafeNFT for address;
     using LibSafeCast for uint256;
     using LibRawResult for bytes;
 
@@ -50,12 +50,12 @@ abstract contract BuyCrowdfundBase is Crowdfund {
         FixedGovernanceOpts governanceOpts;
     }
 
-    event Won(Party party, IERC721 token, uint256 tokenId, uint256 settledPrice);
+    event Won(Party party, address token, uint256 tokenId, uint256 settledPrice);
     event Lost();
 
     error MaximumPriceError(uint96 callValue, uint96 maximumPrice);
     error NoContributionsError();
-    error FailedToBuyNFTError(IERC721 token, uint256 tokenId);
+    error FailedToBuyNFTError(address token, uint256 tokenId);
     error CallProhibitedError(address target, bytes data);
 
     /// @notice When this crowdfund expires.
@@ -91,7 +91,7 @@ abstract contract BuyCrowdfundBase is Crowdfund {
     // Execute arbitrary calldata to perform a buy, creating a party
     // if it successfully buys the NFT.
     function _buy(
-        IERC721 token,
+        address token,
         uint256 tokenId,
         address payable callTarget,
         uint96 callValue,
@@ -187,13 +187,13 @@ abstract contract BuyCrowdfundBase is Crowdfund {
     function _isCallAllowed(
         address payable callTarget,
         bytes memory callData,
-        IERC721 token
+        address token
     ) private view returns (bool isAllowed) {
         // Ensure the call target isn't trying to reenter
         if (callTarget == address(this)) {
             return false;
         }
-        if (callTarget == address(token) && callData.length >= 4) {
+        if (callTarget == token && callData.length >= 4) {
             // Get the function selector of the call (first 4 bytes of calldata).
             bytes4 selector;
             assembly {
@@ -205,7 +205,7 @@ abstract contract BuyCrowdfundBase is Crowdfund {
             // Prevent approving the NFT to be transferred out from the crowdfund.
             if (
                 selector == IERC721.approve.selector ||
-                selector == IERC721.setApprovalForAll.selector
+                selector == IERC721.setApprovalForAll.selector // note: this also covers 1155's approval selector
             ) {
                 return false;
             }

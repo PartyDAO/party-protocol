@@ -52,7 +52,7 @@ contract PartyGovernanceNFT is PartyGovernance, ERC721, IERC2981 {
         string memory symbol_,
         uint256 customizationPresetId,
         PartyGovernance.GovernanceOpts memory governanceOpts,
-        IERC721[] memory preciousTokens,
+        address[] memory preciousTokens,
         uint256[] memory preciousTokenIds,
         address mintAuthority_
     ) internal {

@@ -4,7 +4,8 @@ pragma solidity 0.8.17;
 import "../utils/LibAddress.sol";
 import "../utils/LibRawResult.sol";
 import "../utils/LibSafeCast.sol";
-import "../tokens/ERC721Receiver.sol";
+import "../utils/LibSafeNFT.sol";
+import "../tokens/NFTReceiver.sol";
 import "../party/Party.sol";
 import "../globals/IGlobals.sol";
 import "../gatekeepers/IGateKeeper.sol";
@@ -15,9 +16,10 @@ import "./CrowdfundNFT.sol";
 // Base contract for AuctionCrowdfund/BuyCrowdfund.
 // Holds post-win/loss logic. E.g., burning contribution NFTs and creating a
 // party after winning.
-abstract contract Crowdfund is Implementation, ERC721Receiver, CrowdfundNFT {
+abstract contract Crowdfund is Implementation, NFTReceiver, CrowdfundNFT {
     using LibRawResult for bytes;
     using LibSafeCast for uint256;
+    using LibSafeNFT for address;
     using LibAddress for address payable;
 
     enum CrowdfundLifecycle {
@@ -314,9 +316,9 @@ abstract contract Crowdfund is Implementation, ERC721Receiver, CrowdfundNFT {
     /// @inheritdoc EIP165
     function supportsInterface(
         bytes4 interfaceId
-    ) public pure override(ERC721Receiver, CrowdfundNFT) returns (bool) {
+    ) public pure override(NFTReceiver, CrowdfundNFT) returns (bool) {
         return
-            ERC721Receiver.supportsInterface(interfaceId) ||
+            NFTReceiver.supportsInterface(interfaceId) ||
             CrowdfundNFT.supportsInterface(interfaceId);
     }
 
@@ -401,7 +403,7 @@ abstract contract Crowdfund is Implementation, ERC721Receiver, CrowdfundNFT {
     function _createParty(
         FixedGovernanceOpts memory governanceOpts,
         bool governanceOptsAlreadyValidated,
-        IERC721[] memory preciousTokens,
+        address[] memory preciousTokens,
         uint256[] memory preciousTokenIds
     ) internal returns (Party party_) {
         if (party != Party(payable(0))) {
@@ -435,7 +437,11 @@ abstract contract Crowdfund is Implementation, ERC721Receiver, CrowdfundNFT {
         );
         // Transfer the acquired NFTs to the new party.
         for (uint256 i; i < preciousTokens.length; ++i) {
-            preciousTokens[i].transferFrom(address(this), address(party_), preciousTokenIds[i]);
+            if (preciousTokens[i].isERC1155()) {
+                IERC1155(preciousTokens[i]).safeTransferFrom(address(this), address(party_), preciousTokenIds[i], 1, "");
+            } else {
+                IERC721(preciousTokens[i]).transferFrom(address(this), address(party_), preciousTokenIds[i]);
+            }
         }
     }
 
@@ -443,10 +449,10 @@ abstract contract Crowdfund is Implementation, ERC721Receiver, CrowdfundNFT {
     function _createParty(
         FixedGovernanceOpts memory governanceOpts,
         bool governanceOptsAlreadyValidated,
-        IERC721 preciousToken,
+        address preciousToken,
         uint256 preciousTokenId
     ) internal returns (Party party_) {
-        IERC721[] memory tokens = new IERC721[](1);
+        address[] memory tokens = new address[](1);
         tokens[0] = preciousToken;
         uint256[] memory tokenIds = new uint256[](1);
         tokenIds[0] = preciousTokenId;

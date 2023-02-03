@@ -26,7 +26,7 @@ contract PartyFactory is IPartyFactory {
     function createParty(
         address authority,
         Party.PartyOptions memory opts,
-        IERC721[] memory preciousTokens,
+        address[] memory preciousTokens,
         uint256[] memory preciousTokenIds
     ) external returns (Party party) {
         // Ensure a valid authority is set to mint governance NFTs.

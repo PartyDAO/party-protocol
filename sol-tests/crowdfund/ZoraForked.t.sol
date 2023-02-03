@@ -44,7 +44,7 @@ contract ZoraForkedTest is TestUtils, ERC721Receiver {
         nftContract.approve(address(zora), tokenId);
         auctionId = zora.createAuction(
             tokenId,
-            nftContract,
+            address(nftContract),
             1 days,
             1 ether,
             payable(address(0)),
@@ -66,7 +66,7 @@ contract ZoraForkedTest is TestUtils, ERC721Receiver {
                                 customizationPresetId: 0,
                                 auctionId: auctionId,
                                 market: zoraMarket,
-                                nftContract: nftContract,
+                                nftContract: address(nftContract),
                                 nftTokenId: tokenId,
                                 duration: 1 days,
                                 maximumBid: type(uint96).max,

@@ -28,7 +28,7 @@ abstract contract ZoraHelpers {
         uint40 timeout,
         // How long the auction will run for once a bid has been placed.
         uint40 duration,
-        IERC721 token,
+        address token,
         uint256 tokenId
     ) internal virtual returns (uint256 auctionId);
 
@@ -36,7 +36,7 @@ abstract contract ZoraHelpers {
     function _settleZoraAuction(
         uint256 auctionId,
         uint40 minExpiry,
-        IERC721 token,
+        address token,
         uint256 tokenId
     ) internal virtual returns (ZoraAuctionStatus statusCode);
 }

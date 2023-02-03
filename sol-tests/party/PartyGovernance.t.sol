@@ -51,7 +51,7 @@ contract PartyGovernanceTest is Test, TestUtils {
         // Create party
         (
             Party party,
-            IERC721[] memory preciousTokens,
+            address[] memory preciousTokens,
             uint256[] memory preciousTokenIds
         ) = partyAdmin.createParty(
                 PartyAdmin.PartyCreationMinimalOptions({
@@ -146,7 +146,7 @@ contract PartyGovernanceTest is Test, TestUtils {
         // Create party
         (
             Party party,
-            IERC721[] memory preciousTokens,
+            address[] memory preciousTokens,
             uint256[] memory preciousTokenIds
         ) = partyAdmin.createParty(
                 PartyAdmin.PartyCreationMinimalOptions({
@@ -259,7 +259,7 @@ contract PartyGovernanceTest is Test, TestUtils {
         // Create party
         (
             Party party,
-            IERC721[] memory preciousTokens,
+            address[] memory preciousTokens,
             uint256[] memory preciousTokenIds
         ) = partyAdmin.createParty(
                 PartyAdmin.PartyCreationMinimalOptions({
@@ -363,7 +363,7 @@ contract PartyGovernanceTest is Test, TestUtils {
         // Create party
         (
             Party party,
-            IERC721[] memory preciousTokens,
+            address[] memory preciousTokens,
             uint256[] memory preciousTokenIds
         ) = partyAdmin.createParty(
                 PartyAdmin.PartyCreationMinimalOptions({
@@ -425,7 +425,7 @@ contract PartyGovernanceTest is Test, TestUtils {
         // Create party
         (
             Party party,
-            IERC721[] memory preciousTokens,
+            address[] memory preciousTokens,
             uint256[] memory preciousTokenIds
         ) = partyAdmin.createParty(
                 PartyAdmin.PartyCreationMinimalOptions({

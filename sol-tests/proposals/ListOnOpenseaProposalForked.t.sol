@@ -17,16 +17,16 @@ contract ListOnOpenseaProposalForkedTest is Test, TestUtils, ZoraTestUtils, Open
     event OpenseaOrderListed(
         IOpenseaExchange.OrderParameters orderParams,
         bytes32 orderHash,
-        IERC721 token,
+        address token,
         uint256 tokenId,
         uint256 listPrice,
         uint256 expiry
     );
-    event OpenseaOrderSold(bytes32 orderHash, IERC721 token, uint256 tokenId, uint256 listPrice);
-    event OpenseaOrderExpired(bytes32 orderHash, IERC721 token, uint256 tokenId, uint256 expiry);
+    event OpenseaOrderSold(bytes32 orderHash, address token, uint256 tokenId, uint256 listPrice);
+    event OpenseaOrderExpired(bytes32 orderHash, address token, uint256 tokenId, uint256 expiry);
     event ZoraAuctionCreated(
         uint256 auctionId,
-        IERC721 token,
+        address token,
         uint256 tokenId,
         uint256 startingPrice,
         uint40 expiry,
@@ -48,7 +48,7 @@ contract ListOnOpenseaProposalForkedTest is Test, TestUtils, ZoraTestUtils, Open
     address SEAPORT_ZONE = 0x004C00500000aD104D7DBd00e3ae0A5C00560C00;
     bytes32 SEAPORT_CONDUIT_KEY =
         0x0000007b02230091a7ed01230072f7006a004d60a8d4e71d599b8104250f0000;
-    IERC721[] preciousTokens;
+    address[] preciousTokens;
     uint256[] preciousTokenIds;
 
     constructor() ZoraTestUtils(ZORA) OpenseaTestUtils(SEAPORT) {}
@@ -68,18 +68,18 @@ contract ListOnOpenseaProposalForkedTest is Test, TestUtils, ZoraTestUtils, Open
     function _createPreciousTokens(
         address owner,
         uint256 count
-    ) private returns (IERC721[] memory tokens, uint256[] memory tokenIds) {
-        tokens = new IERC721[](count);
+    ) private returns (address[] memory tokens, uint256[] memory tokenIds) {
+        tokens = new address[](count);
         tokenIds = new uint256[](count);
         for (uint256 i; i < count; ++i) {
             DummyERC721 t = new DummyERC721();
-            tokens[i] = t;
+            tokens[i] = address(t);
             tokenIds[i] = t.mint(owner);
         }
     }
 
     function _createTestProposal(
-        IERC721 token,
+        address token,
         uint256 tokenId,
         uint256 listPrice,
         uint40 duration,
@@ -177,7 +177,7 @@ contract ListOnOpenseaProposalForkedTest is Test, TestUtils, ZoraTestUtils, Open
         orderParams.totalOriginalConsiderationItems = origTotalOriginalConsiderationItems;
     }
 
-    function _randomPreciousToken() private view returns (IERC721 token, uint256 tokenId) {
+    function _randomPreciousToken() private view returns (address token, uint256 tokenId) {
         uint256 idx = _randomRange(0, preciousTokens.length);
         return (preciousTokens[idx], preciousTokenIds[idx]);
     }
@@ -185,7 +185,7 @@ contract ListOnOpenseaProposalForkedTest is Test, TestUtils, ZoraTestUtils, Open
     function testForked_Execution_durationBounds() public onlyForked {
         uint256 listPrice = 1e18;
         uint40 listDuration = 7 days;
-        (IERC721 token, uint256 tokenId) = _randomPreciousToken();
+        (address token, uint256 tokenId) = _randomPreciousToken();
         (
             ListOnOpenseaProposal.OpenseaProposalData memory data,
             IProposalExecutionEngine.ExecuteProposalParams memory params
@@ -247,7 +247,7 @@ contract ListOnOpenseaProposalForkedTest is Test, TestUtils, ZoraTestUtils, Open
         address buyer = _randomAddress();
         uint256 listPrice = 1e18;
         uint40 listDuration = 7 days;
-        (IERC721 token, uint256 tokenId) = _randomPreciousToken();
+        (address token, uint256 tokenId) = _randomPreciousToken();
         (
             ,
             IProposalExecutionEngine.ExecuteProposalParams memory executeParams
@@ -294,7 +294,7 @@ contract ListOnOpenseaProposalForkedTest is Test, TestUtils, ZoraTestUtils, Open
         executeParams.progressData = impl.executeListOnOpensea(executeParams);
         assertEq(executeParams.progressData.length, 0);
         // Buyer should own the NFT.
-        assertEq(token.ownerOf(tokenId), buyer);
+        assertEq(IERC721(token).ownerOf(tokenId), buyer);
         // Proposal contract should have the list price.
         assertEq(address(impl).balance, LIST_PRICE);
     }
@@ -309,7 +309,7 @@ contract ListOnOpenseaProposalForkedTest is Test, TestUtils, ZoraTestUtils, Open
         fees[0] = 0.0123e18;
         address payable[] memory feeRecipients = new address payable[](1);
         feeRecipients[0] = _randomAddress();
-        (IERC721 token, uint256 tokenId) = _randomPreciousToken();
+        (address token, uint256 tokenId) = _randomPreciousToken();
         (
             ,
             IProposalExecutionEngine.ExecuteProposalParams memory executeParams
@@ -351,7 +351,7 @@ contract ListOnOpenseaProposalForkedTest is Test, TestUtils, ZoraTestUtils, Open
         executeParams.progressData = impl.executeListOnOpensea(executeParams);
         assertEq(executeParams.progressData.length, 0);
         // Buyer should own the NFT.
-        assertEq(token.ownerOf(tokenId), buyer);
+        assertEq(IERC721(token).ownerOf(tokenId), buyer);
         // Proposal contract should have the list price.
         assertEq(address(impl).balance, LIST_PRICE);
     }
@@ -361,7 +361,7 @@ contract ListOnOpenseaProposalForkedTest is Test, TestUtils, ZoraTestUtils, Open
         address buyer = _randomAddress();
         uint256 listPrice = 1e18;
         uint40 listDuration = 7 days;
-        (IERC721 token, uint256 tokenId) = _randomPreciousToken();
+        (address token, uint256 tokenId) = _randomPreciousToken();
         (
             ,
             IProposalExecutionEngine.ExecuteProposalParams memory executeParams
@@ -405,7 +405,7 @@ contract ListOnOpenseaProposalForkedTest is Test, TestUtils, ZoraTestUtils, Open
         executeParams.progressData = impl.executeListOnOpensea(executeParams);
         assertEq(executeParams.progressData.length, 0);
         // Buyer should own the NFT.
-        assertEq(token.ownerOf(tokenId), buyer);
+        assertEq(IERC721(token).ownerOf(tokenId), buyer);
         // Proposal contract should have the list price.
         assertEq(address(impl).balance, LIST_PRICE);
     }
@@ -421,7 +421,7 @@ contract ListOnOpenseaProposalForkedTest is Test, TestUtils, ZoraTestUtils, Open
             ,
             IProposalExecutionEngine.ExecuteProposalParams memory executeParams
         ) = _createTestProposal(
-                token,
+                address(token),
                 tokenId,
                 listPrice,
                 listDuration,
@@ -443,7 +443,7 @@ contract ListOnOpenseaProposalForkedTest is Test, TestUtils, ZoraTestUtils, Open
             BuyOpenseaListingParams({
                 maker: payable(impl),
                 buyer: buyer,
-                token: token,
+                token: address(token),
                 tokenId: tokenId,
                 listPrice: listPrice,
                 startTime: listStartTime,
@@ -454,7 +454,7 @@ contract ListOnOpenseaProposalForkedTest is Test, TestUtils, ZoraTestUtils, Open
         );
         // Finalize the listing.
         vm.expectEmit(false, false, false, true);
-        emit OpenseaOrderSold(orderHash, token, tokenId, listPrice);
+        emit OpenseaOrderSold(orderHash, address(token), tokenId, listPrice);
         executeParams.progressData = impl.executeListOnOpensea(executeParams);
         assertEq(executeParams.progressData.length, 0);
         // Buyer should own the NFT.
@@ -469,7 +469,7 @@ contract ListOnOpenseaProposalForkedTest is Test, TestUtils, ZoraTestUtils, Open
         address buyer = _randomAddress();
         uint256 listPrice = 1e18;
         uint40 listDuration = 7 days;
-        (IERC721 token, uint256 tokenId) = _randomPreciousToken();
+        (address token, uint256 tokenId) = _randomPreciousToken();
         (
             ,
             IProposalExecutionEngine.ExecuteProposalParams memory executeParams
@@ -521,9 +521,9 @@ contract ListOnOpenseaProposalForkedTest is Test, TestUtils, ZoraTestUtils, Open
         executeParams.progressData = impl.executeListOnOpensea(executeParams);
         assertEq(executeParams.progressData.length, 0);
         // We should still own the NFT.
-        assertEq(token.ownerOf(tokenId), address(impl));
+        assertEq(IERC721(token).ownerOf(tokenId), address(impl));
         // Seaport should not have an allowance.
-        assertEq(token.getApproved(tokenId), address(0));
+        assertEq(IERC721(token).getApproved(tokenId), address(0));
     }
 
     // Test a proposal where the zora listing is bought.
@@ -531,7 +531,7 @@ contract ListOnOpenseaProposalForkedTest is Test, TestUtils, ZoraTestUtils, Open
         address buyer = _randomAddress();
         uint256 listPrice = 1e18;
         uint40 listDuration = 7 days;
-        (IERC721 token, uint256 tokenId) = _randomPreciousToken();
+        (address token, uint256 tokenId) = _randomPreciousToken();
         (
             ,
             IProposalExecutionEngine.ExecuteProposalParams memory executeParams
@@ -590,7 +590,7 @@ contract ListOnOpenseaProposalForkedTest is Test, TestUtils, ZoraTestUtils, Open
         executeParams.progressData = impl.executeListOnOpensea(executeParams);
         assertEq(executeParams.progressData.length, 0);
         // Buyer should own the NFT.
-        assertEq(token.ownerOf(tokenId), buyer);
+        assertEq(IERC721(token).ownerOf(tokenId), buyer);
         // Proposal contract should have the bid price.
         assertEq(address(impl).balance, LIST_PRICE);
     }
@@ -601,7 +601,7 @@ contract ListOnOpenseaProposalForkedTest is Test, TestUtils, ZoraTestUtils, Open
         address buyer = address(this);
         uint256 listPrice = 1e18;
         uint40 listDuration = 7 days;
-        (IERC721 token, uint256 tokenId) = _randomPreciousToken();
+        (address token, uint256 tokenId) = _randomPreciousToken();
         (
             ,
             IProposalExecutionEngine.ExecuteProposalParams memory executeParams
@@ -663,7 +663,7 @@ contract ListOnOpenseaProposalForkedTest is Test, TestUtils, ZoraTestUtils, Open
         address buyer = _randomAddress();
         uint256 listPrice = 1e18;
         uint40 listDuration = 7 days;
-        (IERC721 token, uint256 tokenId) = _randomPreciousToken();
+        (address token, uint256 tokenId) = _randomPreciousToken();
         (
             ,
             IProposalExecutionEngine.ExecuteProposalParams memory executeParams
@@ -708,7 +708,7 @@ contract ListOnOpenseaProposalForkedTest is Test, TestUtils, ZoraTestUtils, Open
         executeParams.progressData = impl.executeListOnOpensea(executeParams);
         assertEq(executeParams.progressData.length, 0);
         // Buyer should own the NFT.
-        assertEq(token.ownerOf(tokenId), buyer);
+        assertEq(IERC721(token).ownerOf(tokenId), buyer);
         // Proposal contract should have the bid price.
         assertEq(address(impl).balance, LIST_PRICE);
     }

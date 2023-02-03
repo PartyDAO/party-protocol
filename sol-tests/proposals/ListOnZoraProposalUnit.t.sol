@@ -18,7 +18,7 @@ contract ListOnZoraProposalUnitTest is Test, TestUtils {
 
     event ZoraAuctionCreated(
         uint256 auctionId,
-        IERC721 token,
+        address token,
         uint256 tokenId,
         uint256 startingPrice,
         uint40 duration,
@@ -48,7 +48,7 @@ contract ListOnZoraProposalUnitTest is Test, TestUtils {
             listPrice: listPrice,
             timeout: timeout,
             duration: duration,
-            token: token,
+            token: address(token),
             tokenId: tokenId
         });
 
@@ -58,7 +58,7 @@ contract ListOnZoraProposalUnitTest is Test, TestUtils {
             progressData: abi.encode(step),
             extraData: "",
             flags: 0,
-            preciousTokens: new IERC721[](0),
+            preciousTokens: new address[](0),
             preciousTokenIds: new uint256[](0)
         });
     }

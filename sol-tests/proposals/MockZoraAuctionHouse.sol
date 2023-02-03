@@ -13,7 +13,7 @@ contract MockZoraAuctionHouse is IZoraAuctionHouse {
 
     function createAuction(
         uint256,
-        IERC721,
+        address,
         uint256,
         uint256,
         address payable,

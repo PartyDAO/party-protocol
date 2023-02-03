@@ -76,7 +76,7 @@ contract PartyAdmin is Test {
 
     function createParty(
         PartyCreationMinimalOptions calldata opts
-    ) public returns (Party, IERC721[] memory, uint256[] memory) {
+    ) public returns (Party, address[] memory, uint256[] memory) {
         address[] memory hosts = new address[](2);
         hosts[0] = opts.host1;
         hosts[1] = opts.host2;
@@ -96,8 +96,8 @@ contract PartyAdmin is Test {
             symbol: "DOPE",
             customizationPresetId: 0
         });
-        IERC721[] memory preciousTokens = new IERC721[](1);
-        preciousTokens[0] = IERC721(opts.preciousTokenAddress);
+        address[] memory preciousTokens = new address[](1);
+        preciousTokens[0] = opts.preciousTokenAddress;
 
         uint256[] memory preciousTokenIds = new uint256[](1);
         preciousTokenIds[0] = opts.preciousTokenId;
@@ -135,7 +135,7 @@ contract PartyParticipant is ERC721Holder, Test {
     struct ExecutionOptions {
         uint256 proposalId;
         PartyGovernance.Proposal proposal;
-        IERC721[] preciousTokens;
+        address[] preciousTokens;
         uint256[] preciousTokenIds;
         bytes progressData;
     }

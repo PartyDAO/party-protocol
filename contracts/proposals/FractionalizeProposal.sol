@@ -12,7 +12,7 @@ import "./vendor/FractionalV1.sol";
 contract FractionalizeProposal {
     struct FractionalizeProposalData {
         // The ERC721 token contract to fractionalize.
-        IERC721 token;
+        address token;
         // The ERC721 token ID to fractionalize.
         uint256 tokenId;
         // The starting list price for the fractional vault.
@@ -20,7 +20,7 @@ contract FractionalizeProposal {
     }
 
     event FractionalV1VaultCreated(
-        IERC721 indexed token,
+        address indexed token,
         uint256 indexed tokenId,
         uint256 vaultId,
         IERC20 vault,
@@ -48,11 +48,11 @@ contract FractionalizeProposal {
         // voting power of the party.
         uint256 supply = PartyGovernance(address(this)).getGovernanceValues().totalVotingPower;
         // Create a vault around the NFT.
-        data.token.approve(address(VAULT_FACTORY), data.tokenId);
+        IERC721(data.token).approve(address(VAULT_FACTORY), data.tokenId);
         uint256 vaultId = VAULT_FACTORY.mint(
             IERC721(address(this)).name(),
             IERC721(address(this)).symbol(),
-            data.token,
+            IERC721(data.token),
             data.tokenId,
             supply,
             data.listPrice,

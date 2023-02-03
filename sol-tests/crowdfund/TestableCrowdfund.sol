@@ -36,7 +36,7 @@ contract TestableCrowdfund is Crowdfund {
 
     function testCreateParty(
         FixedGovernanceOpts memory govOpts_,
-        IERC721[] memory preciousTokens,
+        address[] memory preciousTokens,
         uint256[] memory preciousTokenIds
     ) external returns (Party party) {
         return _createParty(govOpts_, false, preciousTokens, preciousTokenIds);
@@ -45,7 +45,7 @@ contract TestableCrowdfund is Crowdfund {
     function testSetWon(
         uint256 finalPrice_,
         FixedGovernanceOpts memory govOpts_,
-        IERC721[] memory preciousTokens,
+        address[] memory preciousTokens,
         uint256[] memory preciousTokenIds
     ) external returns (Party party) {
         finalPrice = finalPrice_;

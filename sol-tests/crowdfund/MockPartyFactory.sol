@@ -11,7 +11,7 @@ contract MockPartyFactory is IPartyFactory {
         address caller,
         address authority,
         Party.PartyOptions opts,
-        IERC721[] preciousTokens,
+        address[] preciousTokens,
         uint256[] preciousTokenIds
     );
 
@@ -22,7 +22,7 @@ contract MockPartyFactory is IPartyFactory {
     function createParty(
         address authority,
         Party.PartyOptions memory opts,
-        IERC721[] memory preciousTokens,
+        address[] memory preciousTokens,
         uint256[] memory preciousTokenIds
     ) external returns (Party party) {
         emit MockPartyFactoryCreateParty(

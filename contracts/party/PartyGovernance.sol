@@ -286,7 +286,7 @@ abstract contract PartyGovernance is
     // Initialize storage for proxy contracts and initialize the proposal execution engine.
     function _initialize(
         GovernanceOpts memory opts,
-        IERC721[] memory preciousTokens,
+        address[] memory preciousTokens,
         uint256[] memory preciousTokenIds
     ) internal virtual {
         // Check BPS are valid.
@@ -645,7 +645,7 @@ abstract contract PartyGovernance is
     function execute(
         uint256 proposalId,
         Proposal memory proposal,
-        IERC721[] memory preciousTokens,
+        address[] memory preciousTokens,
         uint256[] memory preciousTokenIds,
         bytes calldata progressData,
         bytes calldata extraData
@@ -797,7 +797,7 @@ abstract contract PartyGovernance is
     function _executeProposal(
         uint256 proposalId,
         Proposal memory proposal,
-        IERC721[] memory preciousTokens,
+        address[] memory preciousTokens,
         uint256[] memory preciousTokenIds,
         uint256 flags,
         bytes memory progressData,
@@ -1045,7 +1045,7 @@ abstract contract PartyGovernance is
     }
 
     function _setPreciousList(
-        IERC721[] memory preciousTokens,
+        address[] memory preciousTokens,
         uint256[] memory preciousTokenIds
     ) private {
         if (preciousTokens.length != preciousTokenIds.length) {
@@ -1055,14 +1055,14 @@ abstract contract PartyGovernance is
     }
 
     function _isPreciousListCorrect(
-        IERC721[] memory preciousTokens,
+        address[] memory preciousTokens,
         uint256[] memory preciousTokenIds
     ) private view returns (bool) {
         return preciousListHash == _hashPreciousList(preciousTokens, preciousTokenIds);
     }
 
     function _hashPreciousList(
-        IERC721[] memory preciousTokens,
+        address[] memory preciousTokens,
         uint256[] memory preciousTokenIds
     ) internal pure returns (bytes32 h) {
         assembly {

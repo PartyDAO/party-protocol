@@ -148,7 +148,7 @@ contract TestablePartyGovernance is PartyGovernance {
     constructor(
         IGlobals globals,
         GovernanceOpts memory opts,
-        IERC721[] memory preciousTokens,
+        address[] memory preciousTokens,
         uint256[] memory preciousTokenIds
     ) PartyGovernance(globals) {
         _initialize(opts, preciousTokens, preciousTokenIds);
@@ -201,7 +201,7 @@ contract TestablePartyGovernance is PartyGovernance {
     }
 
     function hashPreciousList(
-        IERC721[] memory preciousTokens,
+        address[] memory preciousTokens,
         uint256[] memory preciousTokenIds
     ) public pure returns (bytes32 h) {
         h = _hashPreciousList(preciousTokens, preciousTokenIds);
@@ -258,19 +258,19 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
 
     function _createPreciousTokens(
         uint256 count
-    ) private view returns (IERC721[] memory tokens, uint256[] memory tokenIds) {
-        tokens = new IERC721[](count);
+    ) private view returns (address[] memory tokens, uint256[] memory tokenIds) {
+        tokens = new address[](count);
         tokenIds = new uint256[](count);
         for (uint256 i; i < count; ++i) {
             // Doesn't actually have to be real tokens for these tests.
-            tokens[i] = IERC721(_randomAddress());
+            tokens[i] = _randomAddress();
             tokenIds[i] = _randomUint256();
         }
     }
 
     function _createGovernance(
         uint96 totalVotingPower,
-        IERC721[] memory preciousTokens,
+        address[] memory preciousTokens,
         uint256[] memory preciousTokenIds
     ) private returns (TestablePartyGovernance gov) {
         defaultGovernanceOpts.totalVotingPower = totalVotingPower;
@@ -355,7 +355,7 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
     // One step proposal.
     function testProposalLifecycle_oneVoter() external {
         (
-            IERC721[] memory preciousTokens,
+            address[] memory preciousTokens,
             uint256[] memory preciousTokenIds
         ) = _createPreciousTokens(2);
         TestablePartyGovernance gov = _createGovernance(100e18, preciousTokens, preciousTokenIds);
@@ -412,7 +412,7 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
     // Two step proposal.
     function testProposalLifecycle_oneVoter_twoStep() external {
         (
-            IERC721[] memory preciousTokens,
+            address[] memory preciousTokens,
             uint256[] memory preciousTokenIds
         ) = _createPreciousTokens(2);
         TestablePartyGovernance gov = _createGovernance(100e18, preciousTokens, preciousTokenIds);
@@ -491,7 +491,7 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
     // One step proposal.
     function testProposalLifecycle_oneVoterUnanimous() external {
         (
-            IERC721[] memory preciousTokens,
+            address[] memory preciousTokens,
             uint256[] memory preciousTokenIds
         ) = _createPreciousTokens(2);
         TestablePartyGovernance gov = _createGovernance(100e18, preciousTokens, preciousTokenIds);
@@ -542,7 +542,7 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
     // One step proposal.
     function testProposalLifecycle_twoVotersUnanimous() external {
         (
-            IERC721[] memory preciousTokens,
+            address[] memory preciousTokens,
             uint256[] memory preciousTokenIds
         ) = _createPreciousTokens(2);
         TestablePartyGovernance gov = _createGovernance(100e18, preciousTokens, preciousTokenIds);
@@ -599,7 +599,7 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
     // 99.99% acceptance counts as unanimous.
     function testProposalLifecycle_9999BpsIsUnanimous() external {
         (
-            IERC721[] memory preciousTokens,
+            address[] memory preciousTokens,
             uint256[] memory preciousTokenIds
         ) = _createPreciousTokens(2);
         TestablePartyGovernance gov = _createGovernance(100e18, preciousTokens, preciousTokenIds);
@@ -649,7 +649,7 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
     // Try to execute a proposal that hasn't passed.
     function testProposalLifecycle_cannotExecuteWithoutPassing() external {
         (
-            IERC721[] memory preciousTokens,
+            address[] memory preciousTokens,
             uint256[] memory preciousTokenIds
         ) = _createPreciousTokens(2);
         TestablePartyGovernance gov = _createGovernance(100e18, preciousTokens, preciousTokenIds);
@@ -693,7 +693,7 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
     // Try to execute a proposal before the execution delay has passed.
     function testProposalLifecycle_cannotExecuteBeforeExecutionDelay() external {
         (
-            IERC721[] memory preciousTokens,
+            address[] memory preciousTokens,
             uint256[] memory preciousTokenIds
         ) = _createPreciousTokens(2);
         TestablePartyGovernance gov = _createGovernance(100e18, preciousTokens, preciousTokenIds);
@@ -727,7 +727,7 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
     // Try to execute a proposal after its maxExecutableTime.
     function testProposalLifecycle_cannotExecuteAfterExpiration() external {
         (
-            IERC721[] memory preciousTokens,
+            address[] memory preciousTokens,
             uint256[] memory preciousTokenIds
         ) = _createPreciousTokens(2);
         TestablePartyGovernance gov = _createGovernance(100e18, preciousTokens, preciousTokenIds);
@@ -765,7 +765,7 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
     // Try to execute a proposal that has already completed.
     function testProposalLifecycle_cannotExecuteCompletedProposal() external {
         (
-            IERC721[] memory preciousTokens,
+            address[] memory preciousTokens,
             uint256[] memory preciousTokenIds
         ) = _createPreciousTokens(2);
         TestablePartyGovernance gov = _createGovernance(100e18, preciousTokens, preciousTokenIds);
@@ -808,7 +808,7 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
     // Try to execute a proposal that has been modified.
     function testProposalLifecycle_cannotExecuteIfModified() external {
         (
-            IERC721[] memory preciousTokens,
+            address[] memory preciousTokens,
             uint256[] memory preciousTokenIds
         ) = _createPreciousTokens(2);
         TestablePartyGovernance gov = _createGovernance(100e18, preciousTokens, preciousTokenIds);
@@ -847,7 +847,7 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
 
     function testProposalLifecycle_cannotCancelBeforeMinCancelTime() external {
         (
-            IERC721[] memory preciousTokens,
+            address[] memory preciousTokens,
             uint256[] memory preciousTokenIds
         ) = _createPreciousTokens(2);
         TestablePartyGovernance gov = _createGovernance(100e18, preciousTokens, preciousTokenIds);
@@ -886,7 +886,7 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
 
     function testProposalLifecycle_canCancel() external {
         (
-            IERC721[] memory preciousTokens,
+            address[] memory preciousTokens,
             uint256[] memory preciousTokenIds
         ) = _createPreciousTokens(2);
         TestablePartyGovernance gov = _createGovernance(100e18, preciousTokens, preciousTokenIds);
@@ -923,7 +923,7 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
 
     function testProposalLifecycle_boundedByGlobalMaxCancelTime() external {
         (
-            IERC721[] memory preciousTokens,
+            address[] memory preciousTokens,
             uint256[] memory preciousTokenIds
         ) = _createPreciousTokens(2);
         TestablePartyGovernance gov = _createGovernance(100e18, preciousTokens, preciousTokenIds);
@@ -967,7 +967,7 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
     // only host can veto
     function testProposalLifecycle_onlyHostCanVeto() external {
         (
-            IERC721[] memory preciousTokens,
+            address[] memory preciousTokens,
             uint256[] memory preciousTokenIds
         ) = _createPreciousTokens(2);
         TestablePartyGovernance gov = _createGovernance(100e18, preciousTokens, preciousTokenIds);
@@ -995,7 +995,7 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
     // cannot veto invalid proposal
     function testProposalLifecycle_cannotVetoInvalidProposal() external {
         (
-            IERC721[] memory preciousTokens,
+            address[] memory preciousTokens,
             uint256[] memory preciousTokenIds
         ) = _createPreciousTokens(2);
         TestablePartyGovernance gov = _createGovernance(100e18, preciousTokens, preciousTokenIds);
@@ -1018,7 +1018,7 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
     // can veto a proposal that's in vote.
     function testProposalLifecycle_canVetoVotingProposal() external {
         (
-            IERC721[] memory preciousTokens,
+            address[] memory preciousTokens,
             uint256[] memory preciousTokenIds
         ) = _createPreciousTokens(2);
         TestablePartyGovernance gov = _createGovernance(100e18, preciousTokens, preciousTokenIds);
@@ -1063,7 +1063,7 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
     // can veto a proposal that's ready.
     function testProposalLifecycle_canVetoReadyProposal() external {
         (
-            IERC721[] memory preciousTokens,
+            address[] memory preciousTokens,
             uint256[] memory preciousTokenIds
         ) = _createPreciousTokens(2);
         TestablePartyGovernance gov = _createGovernance(100e18, preciousTokens, preciousTokenIds);
@@ -1109,7 +1109,7 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
     // try to veto a proposal that's in progress.
     function testProposalLifecycle_cannotVetoInProgressProposal() external {
         (
-            IERC721[] memory preciousTokens,
+            address[] memory preciousTokens,
             uint256[] memory preciousTokenIds
         ) = _createPreciousTokens(2);
         TestablePartyGovernance gov = _createGovernance(100e18, preciousTokens, preciousTokenIds);
@@ -1150,7 +1150,7 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
     // try to veto a proposal that's completed.
     function testProposalLifecycle_cannotVetoCompleteProposal() external {
         (
-            IERC721[] memory preciousTokens,
+            address[] memory preciousTokens,
             uint256[] memory preciousTokenIds
         ) = _createPreciousTokens(2);
         TestablePartyGovernance gov = _createGovernance(100e18, preciousTokens, preciousTokenIds);
@@ -1191,7 +1191,7 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
     // An InProgress proposal that has expired is still executable.
     function testProposalLifecycle_canStillExecuteExpiredInProgressProposal() external {
         (
-            IERC721[] memory preciousTokens,
+            address[] memory preciousTokens,
             uint256[] memory preciousTokenIds
         ) = _createPreciousTokens(2);
         TestablePartyGovernance gov = _createGovernance(100e18, preciousTokens, preciousTokenIds);
@@ -1232,7 +1232,7 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
     // Try to execute a proposal after the voting window has expired and it has not passed.
     function testProposalLifecycle_cannotExecuteIfVotingWindowExpired() external {
         (
-            IERC721[] memory preciousTokens,
+            address[] memory preciousTokens,
             uint256[] memory preciousTokenIds
         ) = _createPreciousTokens(2);
         defaultGovernanceOpts.executionDelay = 60;
@@ -1273,7 +1273,7 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
     // One delegate with 25/100 intrinsic + 25 delegated VP.
     function testVoting_passing_mixedVotes() external {
         (
-            IERC721[] memory preciousTokens,
+            address[] memory preciousTokens,
             uint256[] memory preciousTokenIds
         ) = _createPreciousTokens(2);
         TestablePartyGovernance gov = _createGovernance(100e18, preciousTokens, preciousTokenIds);
@@ -1322,7 +1322,7 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
     // Combined 10 + 10 + 30 -> 50 < 51 (no pass)
     function testVoting_notPassing_mixedVotes() external {
         (
-            IERC721[] memory preciousTokens,
+            address[] memory preciousTokens,
             uint256[] memory preciousTokenIds
         ) = _createPreciousTokens(2);
         TestablePartyGovernance gov = _createGovernance(100e18, preciousTokens, preciousTokenIds);
@@ -1365,7 +1365,7 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
     // Try to vote outside the voting window.
     function testVoting_cannotVoteOutsideVotingWindow() external {
         (
-            IERC721[] memory preciousTokens,
+            address[] memory preciousTokens,
             uint256[] memory preciousTokenIds
         ) = _createPreciousTokens(2);
         TestablePartyGovernance gov = _createGovernance(100e18, preciousTokens, preciousTokenIds);
@@ -1407,7 +1407,7 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
     // Try to vote twice (undelegated voter)
     function testVoting_cannotVoteTwice() external {
         (
-            IERC721[] memory preciousTokens,
+            address[] memory preciousTokens,
             uint256[] memory preciousTokenIds
         ) = _createPreciousTokens(2);
         TestablePartyGovernance gov = _createGovernance(100e18, preciousTokens, preciousTokenIds);
@@ -1436,7 +1436,7 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
     // Try to vote twice (delegate)
     function testVoting_delegateCannotVoteTwice() external {
         (
-            IERC721[] memory preciousTokens,
+            address[] memory preciousTokens,
             uint256[] memory preciousTokenIds
         ) = _createPreciousTokens(2);
         TestablePartyGovernance gov = _createGovernance(100e18, preciousTokens, preciousTokenIds);
@@ -1466,7 +1466,7 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
     // Try to vote twice (delegated voter)
     function testVoting_delegatedVoterCannotVoteTwice() external {
         (
-            IERC721[] memory preciousTokens,
+            address[] memory preciousTokens,
             uint256[] memory preciousTokenIds
         ) = _createPreciousTokens(2);
         TestablePartyGovernance gov = _createGovernance(100e18, preciousTokens, preciousTokenIds);
@@ -1496,7 +1496,7 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
     // Try to vote on a vetoed proposal.
     function testVoting_cannotVoteAfterVeto() external {
         (
-            IERC721[] memory preciousTokens,
+            address[] memory preciousTokens,
             uint256[] memory preciousTokenIds
         ) = _createPreciousTokens(2);
         TestablePartyGovernance gov = _createGovernance(100e18, preciousTokens, preciousTokenIds);
@@ -1542,7 +1542,7 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
     // Vote using VP from proposal time.
     function testVoting_votingUsesProposalTimeVotingPower() external {
         (
-            IERC721[] memory preciousTokens,
+            address[] memory preciousTokens,
             uint256[] memory preciousTokenIds
         ) = _createPreciousTokens(2);
         TestablePartyGovernance gov = _createGovernance(100e18, preciousTokens, preciousTokenIds);
@@ -1617,7 +1617,7 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
 
     function testVoting_cannotVoteAgainByTransferringVotingCard() external {
         (
-            IERC721[] memory preciousTokens,
+            address[] memory preciousTokens,
             uint256[] memory preciousTokenIds
         ) = _createPreciousTokens(2);
         TestablePartyGovernance gov = _createGovernance(100e18, preciousTokens, preciousTokenIds);
@@ -1648,7 +1648,7 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
     // Circular delegation.
     function testVoting_circularDelegation() external {
         (
-            IERC721[] memory preciousTokens,
+            address[] memory preciousTokens,
             uint256[] memory preciousTokenIds
         ) = _createPreciousTokens(2);
         TestablePartyGovernance gov = _createGovernance(100e18, preciousTokens, preciousTokenIds);
@@ -1686,7 +1686,7 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
     // Cannot adjust voting power below 0.
     function testVotingPower_cannotAdjustVotingPowerBelowZero() external {
         (
-            IERC721[] memory preciousTokens,
+            address[] memory preciousTokens,
             uint256[] memory preciousTokenIds
         ) = _createPreciousTokens(2);
         TestablePartyGovernance gov = _createGovernance(100e18, preciousTokens, preciousTokenIds);
@@ -1703,7 +1703,7 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
 
     function testVotingPower_getVotingPowerWithValidHint() external {
         (
-            IERC721[] memory preciousTokens,
+            address[] memory preciousTokens,
             uint256[] memory preciousTokenIds
         ) = _createPreciousTokens(2);
         TestablePartyGovernance gov = _createGovernance(100e18, preciousTokens, preciousTokenIds);
@@ -1719,7 +1719,7 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
 
     function testVotingPower_getVotingPowerWithInvalidHint() external {
         (
-            IERC721[] memory preciousTokens,
+            address[] memory preciousTokens,
             uint256[] memory preciousTokenIds
         ) = _createPreciousTokens(2);
         TestablePartyGovernance gov = _createGovernance(100e18, preciousTokens, preciousTokenIds);
@@ -1751,7 +1751,7 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
 
     function testVotingPower_getVotingPowerWithHintAboveSnapshotsLength() external {
         (
-            IERC721[] memory preciousTokens,
+            address[] memory preciousTokens,
             uint256[] memory preciousTokenIds
         ) = _createPreciousTokens(2);
         TestablePartyGovernance gov = _createGovernance(100e18, preciousTokens, preciousTokenIds);
@@ -1767,7 +1767,7 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
 
     function testVotingPower_getVotingPowerWithNoSnapshots() external {
         (
-            IERC721[] memory preciousTokens,
+            address[] memory preciousTokens,
             uint256[] memory preciousTokenIds
         ) = _createPreciousTokens(2);
         TestablePartyGovernance gov = _createGovernance(100e18, preciousTokens, preciousTokenIds);
@@ -1783,7 +1783,7 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
 
     function testVotingPower_findVotingPowerSnapshotIndex() external {
         (
-            IERC721[] memory preciousTokens,
+            address[] memory preciousTokens,
             uint256[] memory preciousTokenIds
         ) = _createPreciousTokens(2);
         TestablePartyGovernance gov = _createGovernance(100e18, preciousTokens, preciousTokenIds);
@@ -1821,7 +1821,7 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
     // _adjustVotingPower() updates delegated VP correctly
     function testVotingPower_adjustVotingPowerUpdatesDelegatesCorrectly() external {
         (
-            IERC721[] memory preciousTokens,
+            address[] memory preciousTokens,
             uint256[] memory preciousTokenIds
         ) = _createPreciousTokens(2);
         TestablePartyGovernance gov = _createGovernance(100e18, preciousTokens, preciousTokenIds);
@@ -1887,7 +1887,7 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
     // delegate(self) == delegate(0) if no prior delegate
     function testVotingPower_delegateSelfIsSameAsDelegateZero() external {
         (
-            IERC721[] memory preciousTokens,
+            address[] memory preciousTokens,
             uint256[] memory preciousTokenIds
         ) = _createPreciousTokens(2);
         TestablePartyGovernance gov = _createGovernance(100e18, preciousTokens, preciousTokenIds);
@@ -1915,7 +1915,7 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
     function testHostPower_transferHostStatus() external {
         TestablePartyGovernance gov;
         (
-            IERC721[] memory preciousTokens,
+            address[] memory preciousTokens,
             uint256[] memory preciousTokenIds
         ) = _createPreciousTokens(2);
         gov = _createGovernance(100e18, preciousTokens, preciousTokenIds);
@@ -1939,7 +1939,7 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
     function testHostPower_cannotTransferHostStatusToExistingHost() external {
         TestablePartyGovernance gov;
         (
-            IERC721[] memory preciousTokens,
+            address[] memory preciousTokens,
             uint256[] memory preciousTokenIds
         ) = _createPreciousTokens(2);
         gov = _createGovernance(100e18, preciousTokens, preciousTokenIds);
@@ -1956,7 +1956,7 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
     function testHostPower_cannotTransferHostAsNonHost() external {
         TestablePartyGovernance gov;
         (
-            IERC721[] memory preciousTokens,
+            address[] memory preciousTokens,
             uint256[] memory preciousTokenIds
         ) = _createPreciousTokens(2);
         gov = _createGovernance(100e18, preciousTokens, preciousTokenIds);
@@ -1972,7 +1972,7 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
     // voting power of past member is 0 at current time.
     function testVotingPower_votingPowerOfPastMemberIsZeroAtCurrentTime() external {
         (
-            IERC721[] memory preciousTokens,
+            address[] memory preciousTokens,
             uint256[] memory preciousTokenIds
         ) = _createPreciousTokens(2);
         TestablePartyGovernance gov = _createGovernance(100e18, preciousTokens, preciousTokenIds);
@@ -1989,7 +1989,7 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
     // voting power of never member is 0 at current time.
     function testVotingPower_votingPowerOfNeverMemberIsZeroAtCurrentTime() external {
         (
-            IERC721[] memory preciousTokens,
+            address[] memory preciousTokens,
             uint256[] memory preciousTokenIds
         ) = _createPreciousTokens(2);
         TestablePartyGovernance gov = _createGovernance(100e18, preciousTokens, preciousTokenIds);
@@ -2001,7 +2001,7 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
     // voting power of past member is nonzero at past time.
     function testVotingPower_votingPowerOfPastMemberIsNonZeroInPastTime() external {
         (
-            IERC721[] memory preciousTokens,
+            address[] memory preciousTokens,
             uint256[] memory preciousTokenIds
         ) = _createPreciousTokens(2);
         TestablePartyGovernance gov = _createGovernance(100e18, preciousTokens, preciousTokenIds);
@@ -2022,7 +2022,7 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
         external
     {
         (
-            IERC721[] memory preciousTokens,
+            address[] memory preciousTokens,
             uint256[] memory preciousTokenIds
         ) = _createPreciousTokens(2);
         TestablePartyGovernance gov = _createGovernance(100e18, preciousTokens, preciousTokenIds);
@@ -2073,7 +2073,7 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
         assertTrue(passThresholdBps <= 1e4);
         defaultGovernanceOpts.passThresholdBps = uint16(passThresholdBps);
         (
-            IERC721[] memory preciousTokens,
+            address[] memory preciousTokens,
             uint256[] memory preciousTokenIds
         ) = _createPreciousTokens(2);
         TestablePartyGovernance gov = _createGovernance(
@@ -2112,7 +2112,7 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
     // distribute ETH balance
     function testDistribute_worksWithEth() external {
         (
-            IERC721[] memory preciousTokens,
+            address[] memory preciousTokens,
             uint256[] memory preciousTokenIds
         ) = _createPreciousTokens(2);
         TestablePartyGovernance gov = _createGovernance(100e18, preciousTokens, preciousTokenIds);
@@ -2142,7 +2142,7 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
     // distribute ERC20 balance
     function testDistribute_worksWithErc20() external {
         (
-            IERC721[] memory preciousTokens,
+            address[] memory preciousTokens,
             uint256[] memory preciousTokenIds
         ) = _createPreciousTokens(2);
         TestablePartyGovernance gov = _createGovernance(100e18, preciousTokens, preciousTokenIds);
@@ -2174,7 +2174,7 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
     // try to distribute from a no longer active member.
     function testDistribute_onlyActiveMemberCanDistribute() external {
         (
-            IERC721[] memory preciousTokens,
+            address[] memory preciousTokens,
             uint256[] memory preciousTokenIds
         ) = _createPreciousTokens(2);
         TestablePartyGovernance gov = _createGovernance(100e18, preciousTokens, preciousTokenIds);
@@ -2194,7 +2194,7 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
 
     function test_onlyWhenNotDisabled() external {
         (
-            IERC721[] memory preciousTokens,
+            address[] memory preciousTokens,
             uint256[] memory preciousTokenIds
         ) = _createPreciousTokens(2);
         TestablePartyGovernance gov = _createGovernance(100e18, preciousTokens, preciousTokenIds);
@@ -2217,7 +2217,7 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
 
     function test_canReceive1155Token() external {
         (
-            IERC721[] memory preciousTokens,
+            address[] memory preciousTokens,
             uint256[] memory preciousTokenIds
         ) = _createPreciousTokens(2);
         TestablePartyGovernance gov = _createGovernance(100e18, preciousTokens, preciousTokenIds);
@@ -2231,7 +2231,7 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
 
     function test_canReceive721Token() external {
         (
-            IERC721[] memory preciousTokens,
+            address[] memory preciousTokens,
             uint256[] memory preciousTokenIds
         ) = _createPreciousTokens(2);
         TestablePartyGovernance gov = _createGovernance(100e18, preciousTokens, preciousTokenIds);
@@ -2245,7 +2245,7 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
 
     function test_getProposalHash_isCorrect() external {
         (
-            IERC721[] memory preciousTokens,
+            address[] memory preciousTokens,
             uint256[] memory preciousTokenIds
         ) = _createPreciousTokens(2);
         TestablePartyGovernance gov = _createGovernance(100e18, preciousTokens, preciousTokenIds);
@@ -2263,7 +2263,7 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
 
     function test_hashPreciousList() external {
         (
-            IERC721[] memory preciousTokens,
+            address[] memory preciousTokens,
             uint256[] memory preciousTokenIds
         ) = _createPreciousTokens(2);
         TestablePartyGovernance gov = _createGovernance(100e18, preciousTokens, preciousTokenIds);

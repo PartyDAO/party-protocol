@@ -1,9 +1,10 @@
 // SPDX-License-Identifier: GPL-3.0
 pragma solidity 0.8.17;
 
+/// changed: removed LibSafeERC721 because it is already imported in parent & it's not used here
+
 import "../tokens/IERC721.sol";
 import "../party/Party.sol";
-import "../utils/LibSafeERC721.sol";
 import "../utils/LibRawResult.sol";
 import "../globals/IGlobals.sol";
 import "../gatekeepers/IGateKeeper.sol";
@@ -14,7 +15,6 @@ import "./BuyCrowdfundBase.sol";
 /// token ID) from a collection for a known price. Like `BuyCrowdfund` but allows
 /// any token ID to be bought.
 contract CollectionBuyCrowdfund is BuyCrowdfundBase {
-    using LibSafeERC721 for IERC721;
     using LibSafeCast for uint256;
 
     struct CollectionBuyCrowdfundOptions {
@@ -25,8 +25,8 @@ contract CollectionBuyCrowdfund is BuyCrowdfundBase {
         string symbol;
         // Customization preset ID to use for the crowdfund and governance NFTs.
         uint256 customizationPresetId;
-        // The ERC721 contract of the NFT being bought.
-        IERC721 nftContract;
+        // The address of the NFT contract of the NFT being bought.
+        address nftContract;
         // How long this crowdfund has to bid on the NFT, in seconds.
         uint40 duration;
         // Maximum amount this crowdfund will pay for the NFT.
@@ -55,7 +55,7 @@ contract CollectionBuyCrowdfund is BuyCrowdfundBase {
     }
 
     /// @notice The NFT contract to buy.
-    IERC721 public nftContract;
+    address public nftContract;
 
     // Set the `Globals` contract.
     constructor(IGlobals globals) BuyCrowdfundBase(globals) {}

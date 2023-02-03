@@ -1,9 +1,10 @@
 // SPDX-License-Identifier: GPL-3.0
 pragma solidity 0.8.17;
 
+/// changed: removed LibSafeERC721 because it is already imported in parent & it's not used here
+
 import "../tokens/IERC721.sol";
 import "../party/Party.sol";
-import "../utils/LibSafeERC721.sol";
 import "../globals/IGlobals.sol";
 import "../gatekeepers/IGateKeeper.sol";
 
@@ -12,7 +13,6 @@ import "./BuyCrowdfundBase.sol";
 /// @notice A crowdfund that purchases a specific NFT (i.e., with a known token
 ///         ID) listing for a known price.
 contract BuyCrowdfund is BuyCrowdfundBase {
-    using LibSafeERC721 for IERC721;
     using LibSafeCast for uint256;
 
     struct BuyCrowdfundOptions {
@@ -23,8 +23,8 @@ contract BuyCrowdfund is BuyCrowdfundBase {
         string symbol;
         // Customization preset ID to use for the crowdfund and governance NFTs.
         uint256 customizationPresetId;
-        // The ERC721 contract of the NFT being bought.
-        IERC721 nftContract;
+        // The address of the NFT contract of the NFT being bought.
+        address nftContract;
         // ID of the NFT being bought.
         uint256 nftTokenId;
         // How long this crowdfund has to bid on the NFT, in seconds.
@@ -60,7 +60,7 @@ contract BuyCrowdfund is BuyCrowdfundBase {
     /// @notice The NFT token ID to buy.
     uint256 public nftTokenId;
     /// @notice The NFT contract to buy.
-    IERC721 public nftContract;
+    address public nftContract;
     /// @notice Whether the party is only allowing a host to call `buy()`.
     bool public onlyHostCanBuy;
 

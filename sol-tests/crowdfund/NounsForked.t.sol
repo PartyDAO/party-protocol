@@ -56,7 +56,7 @@ contract NounsForkedTest is TestUtils {
                                 customizationPresetId: 0,
                                 auctionId: tokenId,
                                 market: nounsMarket,
-                                nftContract: nounsToken,
+                                nftContract: address(nounsToken),
                                 nftTokenId: tokenId,
                                 duration: 1 days,
                                 maximumBid: type(uint96).max,
