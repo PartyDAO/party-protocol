@@ -5,7 +5,7 @@ import "../globals/IGlobals.sol";
 import "../globals/LibGlobals.sol";
 import "../tokens/IERC721.sol";
 import "../utils/LibRawResult.sol";
-import "../utils/LibSafeNFT.sol";
+import { LibSafeNFT } from "../utils/LibSafeNFT.sol";
 import "../utils/LibSafeCast.sol";
 
 import "../vendor/markets/IZoraAuctionHouse.sol";

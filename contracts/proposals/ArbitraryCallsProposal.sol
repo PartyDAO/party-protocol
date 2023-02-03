@@ -4,7 +4,7 @@ pragma solidity 0.8.17;
 import "../tokens/IERC721.sol";
 import "../tokens/IERC721Receiver.sol";
 import "../tokens/ERC1155Receiver.sol";
-import "../utils/LibSafeNFT.sol";
+import { LibSafeNFT } from "../utils/LibSafeNFT.sol";
 import "../utils/LibAddress.sol";
 import "../vendor/markets/IZoraAuctionHouse.sol";
 import "./vendor/IOpenseaExchange.sol";

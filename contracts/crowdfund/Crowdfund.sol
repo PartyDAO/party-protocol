@@ -4,7 +4,7 @@ pragma solidity 0.8.17;
 import "../utils/LibAddress.sol";
 import "../utils/LibRawResult.sol";
 import "../utils/LibSafeCast.sol";
-import "../utils/LibSafeNFT.sol";
+import { LibSafeNFT } from "../utils/LibSafeNFT.sol";
 import "../tokens/NFTReceiver.sol";
 import "../party/Party.sol";
 import "../globals/IGlobals.sol";

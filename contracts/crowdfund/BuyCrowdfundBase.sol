@@ -4,7 +4,7 @@ pragma solidity 0.8.17;
 import "../tokens/IERC721.sol";
 import "../party/Party.sol";                // review: should this be an interface for Party?
 import "../utils/Implementation.sol";
-import "../utils/LibSafeNFT.sol";
+import { LibSafeNFT } from "../utils/LibSafeNFT.sol";
 import "../utils/LibRawResult.sol";
 import "../globals/IGlobals.sol";
 import "../gatekeepers/IGateKeeper.sol";
