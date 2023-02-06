@@ -38,7 +38,7 @@ contract AuctionCrowdfund is AuctionCrowdfundBase {
 
         // Finalize the auction if it is not already finalized.
         uint96 lastBid_ = lastBid;
-        _finalize(lc, market, auctionId, lastBid_);
+        _finalizeAuction(lc, market, auctionId, lastBid_);
 
         IERC721 nftContract_ = nftContract;
         uint256 nftTokenId_ = nftTokenId;

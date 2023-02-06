@@ -303,7 +303,7 @@ abstract contract AuctionCrowdfundBase is Crowdfund {
         }
     }
 
-    function _finalize(
+    function _finalizeAuction(
         CrowdfundLifecycle lc,
         IMarketWrapper market_,
         uint256 auctionId_,
@@ -320,15 +320,15 @@ abstract contract AuctionCrowdfundBase is Crowdfund {
                 // bidder, skip finalization because there is no chance of
                 // winning the auction.
                 if (
-                    lc != CrowdfundLifecycle.Expired ||
-                    market_.getCurrentHighestBidder(auctionId_) == address(this)
-                ) {
-                    (bool s, bytes memory r) = address(market_).call(
-                        abi.encodeCall(IMarketWrapper.finalize, auctionId_)
-                    );
-                    if (!s) {
-                        r.rawRevert();
-                    }
+                    lc == CrowdfundLifecycle.Expired &&
+                    market_.getCurrentHighestBidder(auctionId_) != address(this)
+                ) return;
+
+                (bool s, bytes memory r) = address(market_).call(
+                    abi.encodeCall(IMarketWrapper.finalize, auctionId_)
+                );
+                if (!s) {
+                    r.rawRevert();
                 }
             }
         }
