@@ -610,6 +610,8 @@ abstract contract Crowdfund is Implementation, ERC721Receiver, CrowdfundNFT {
         totalContributions -= amountToRefund.safeCastUint256ToUint96();
         // Remove contributions entry for this contributor.
         delete _contributionsByContributor[contributor];
+        //burn crowdfundNFT
+        CrowdfundNFT._burn(contributor);
         //return the contribution amount
         contributor.transferEth(amountToRefund);
         emit ContributorRageQuit(contributor, amountToRefund);
