@@ -149,6 +149,8 @@ abstract contract Crowdfund is Implementation, ERC721Receiver, CrowdfundNFT {
     mapping(address => Claim) public claims;
     /// @notice Whether the DAO has emergency powers for this party.
     bool public emergencyExecuteDisabled;
+    /// @notice The contributions removed when user rage quits
+    uint96 public totalContributionsWithdrawn;
 
     // Set the `Globals` contract.
     constructor(IGlobals globals) CrowdfundNFT(globals) {
@@ -480,13 +482,13 @@ abstract contract Crowdfund is Implementation, ERC721Receiver, CrowdfundNFT {
         }
     }
 
-    function _getCurrentContribution(address contributor) internal view returns (uint256 ethOwed) {
+    function _getCurrentContribution(address contributor) internal view returns (uint256 totalEthContributed) {
         {
     Contribution[] memory contributions = _contributionsByContributor[contributor];
     uint256 numContributions = contributions.length;
     for (uint256 i; i < numContributions; ++i) {
         Contribution memory c = contributions[i];
-        ethOwed += c.amount;
+        totalEthContributed += c.amount;
             }
         }
     }
@@ -500,10 +502,10 @@ abstract contract Crowdfund is Implementation, ERC721Receiver, CrowdfundNFT {
             uint256 numContributions = contributions.length;
             for (uint256 i; i < numContributions; ++i) {
                 Contribution memory c = contributions[i];
-                if (c.previousTotalContributions >= totalEthUsed) {
+                if (c.previousTotalContributions - totalContributionsWithdrawn >= totalEthUsed) {
                     // This entire contribution was not used.
                     ethOwed += c.amount;
-                } else if (c.previousTotalContributions + c.amount <= totalEthUsed) {
+                } else if (c.previousTotalContributions - totalContributionsWithdrawn + c.amount <= totalEthUsed) {
                     // This entire contribution was used.
                     ethUsed += c.amount;
                 } else {
@@ -608,6 +610,8 @@ abstract contract Crowdfund is Implementation, ERC721Receiver, CrowdfundNFT {
         uint256 amountToRefund = _getCurrentContribution(contributor);
         // Decrease total contributions.
         totalContributions -= amountToRefund.safeCastUint256ToUint96();
+        // Add to withdrawn funds
+        totalContributionsWithdrawn += amountToRefund.safeCastUint256ToUint96();
         // Remove contributions entry for this contributor.
         delete _contributionsByContributor[contributor];
         //burn crowdfundNFT
