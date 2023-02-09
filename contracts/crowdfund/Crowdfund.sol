@@ -107,7 +107,7 @@ abstract contract Crowdfund is Implementation, ERC721Receiver, CrowdfundNFT {
         address delegate,
         uint256 previousTotalContributions
     );
-    event ContributorRageQuit(address contributor, uint256 ethReturned);
+    event ContributorRageQuit(address contributor, uint256 ethWithdrawn);
     event EmergencyExecute(address target, bytes data, uint256 amountEth);
     event EmergencyExecuteDisabled();
 
@@ -185,6 +185,8 @@ abstract contract Crowdfund is Implementation, ERC721Receiver, CrowdfundNFT {
         // Set up gatekeeper after initial contribution (initial always gets in).
         gateKeeper = opts.gateKeeper;
         gateKeeperId = opts.gateKeeperId;
+        //Set withdrawn contributions to 0
+        totalContributionsWithdrawn = 0;
     }
 
     /// @notice As the DAO, execute an arbitrary function call from this contract.
@@ -312,6 +314,11 @@ abstract contract Crowdfund is Implementation, ERC721Receiver, CrowdfundNFT {
             totalContributions,
             gateData
         );
+    }
+
+    ///@notice Withdraw the funds of a contributor before a crowdfund is finalized.
+    function rageQuit() public OnlyDelegateCall {
+        _rageQuit(msg.sender);
     }
 
     /// @inheritdoc EIP165
@@ -599,14 +606,14 @@ abstract contract Crowdfund is Implementation, ERC721Receiver, CrowdfundNFT {
         }
     }
 
-    //Allows contributor to rage quit while crowdfund is active
+    //Allows contributor to rage quit before crowdfund is finalized.
     function _rageQuit(address payable contributor) private {
          // Only allow rage quit while the crowdfund is active.
          CrowdfundLifecycle lc = getCrowdfundLifecycle();
             if (lc != CrowdfundLifecycle.Active) {
                     revert WrongLifecycleError(lc);
             }
-        //get the contribution amount
+        //get the contribution amount.
         uint256 amountToRefund = _getCurrentContribution(contributor);
         // Decrease total contributions.
         totalContributions -= amountToRefund.safeCastUint256ToUint96();
@@ -614,9 +621,9 @@ abstract contract Crowdfund is Implementation, ERC721Receiver, CrowdfundNFT {
         totalContributionsWithdrawn += amountToRefund.safeCastUint256ToUint96();
         // Remove contributions entry for this contributor.
         delete _contributionsByContributor[contributor];
-        //burn crowdfundNFT
+        //burn crowdfundNFT.
         CrowdfundNFT._burn(contributor);
-        //return the contribution amount
+        //return the contribution amount.
         contributor.transferEth(amountToRefund);
         emit ContributorRageQuit(contributor, amountToRefund);
     }
