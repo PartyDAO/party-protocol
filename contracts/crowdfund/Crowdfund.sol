@@ -107,6 +107,7 @@ abstract contract Crowdfund is Implementation, ERC721Receiver, CrowdfundNFT {
         address delegate,
         uint256 previousTotalContributions
     );
+    event ContributorRageQuit(address contributor, uint256 ethReturned);
     event EmergencyExecute(address target, bytes data, uint256 amountEth);
     event EmergencyExecuteDisabled();
 
