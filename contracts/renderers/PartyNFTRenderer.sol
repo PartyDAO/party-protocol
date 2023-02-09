@@ -30,29 +30,6 @@ contract PartyNFTRenderer is RendererBase {
         IFont font
     ) RendererBase(globals, rendererStorage, font) {}
 
-    // The renderer is called via delegateCall, so we need to declare the storage layout.
-    // Run `yarn build && yarn layout Party.sol/Party` to generate the current layout.
-    bool emergencyExecuteDisabled;
-    uint16 feeBps;
-    address payable feeRecipient;
-    bytes32 preciousListHash;
-    uint256 lastProposalId;
-    mapping(address => bool) isHost;
-    mapping(address => address) delegationsByVoter;
-    PartyGovernance.GovernanceValues _governanceValues;
-    mapping(uint256 => PartyGovernance.ProposalState) _proposalStateByProposalId;
-    mapping(address => PartyGovernance.VotingPowerSnapshot[]) _votingPowerSnapshotsByVoter;
-    string name;
-    string symbol;
-    mapping(uint256 => address) _ownerOf;
-    mapping(address => uint256) _balanceOf;
-    mapping(uint256 => address) getApproved;
-    mapping(address => mapping(address => bool)) isApprovedForAll;
-    address mintAuthority;
-    uint96 tokenCount;
-    uint96 mintedVotingPower;
-    mapping(uint256 => uint256) votingPowerByTokenId;
-
     function royaltyInfo(
         uint256,
         uint256
@@ -62,7 +39,7 @@ contract PartyNFTRenderer is RendererBase {
     }
 
     function tokenURI(uint256 tokenId) external view returns (string memory) {
-        if (_ownerOf[tokenId] == address(0)) {
+        if (PartyGovernance(address(this)).ownerOf(tokenId) == address(0)) {
             revert InvalidTokenIdError();
         }
 
@@ -78,17 +55,17 @@ contract PartyNFTRenderer is RendererBase {
                         '{"name":"',
                         generateName(tokenId),
                         '", "description":"',
-                        generateDescription(name, tokenId),
+                        generateDescription(PartyGovernanceNFT(address(this)).name(), tokenId),
                         '", "external_url":"',
                         generateExternalURL(),
                         '", "attributes": [',
                         generateAttributes(tokenId),
                         '], "image":"',
                         generateSVG(
-                            name,
+                            PartyGovernanceNFT(address(this)).name(),
                             generateVotingPowerPercentage(tokenId),
                             getLatestProposalStatuses(),
-                            lastProposalId,
+                            PartyGovernance(address(this)).lastProposalId(),
                             tokenId,
                             hasUnclaimedDistribution(tokenId),
                             color,
@@ -134,14 +111,14 @@ contract PartyNFTRenderer is RendererBase {
     }
 
     function generateCollectionName() internal view override returns (string memory) {
-        return string.concat("Party Cards: ", name);
+        return string.concat("Party Cards: ", PartyGovernanceNFT(address(this)).name());
     }
 
     function generateCollectionDescription() internal view override returns (string memory) {
         return
             string.concat(
                 "This collection represents memberships in the following Party: ",
-                name,
+                PartyGovernanceNFT(address(this)).name(),
                 ". Head to ",
                 generateExternalURL(),
                 " to view the Party's latest activity."
@@ -358,7 +335,7 @@ contract PartyNFTRenderer is RendererBase {
         view
         returns (PartyGovernance.ProposalStatus[4] memory proposalStatuses)
     {
-        uint256 latestProposalId = lastProposalId;
+        uint256 latestProposalId = PartyGovernance(address(this)).lastProposalId();
         uint256 numOfProposalsToDisplay = latestProposalId < 4 ? latestProposalId : 4;
         for (uint256 i; i < numOfProposalsToDisplay; ++i) {
             uint256 proposalId = latestProposalId - i;
