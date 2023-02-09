@@ -596,6 +596,24 @@ abstract contract Crowdfund is Implementation, ERC721Receiver, CrowdfundNFT {
         }
     }
 
+    //Allows contributor to rage quit while crowdfund is active
+    function _rageQuit(address payable contributor) private {
+         // Only allow rage quit while the crowdfund is active.
+         CrowdfundLifecycle lc = getCrowdfundLifecycle();
+            if (lc != CrowdfundLifecycle.Active) {
+                    revert WrongLifecycleError(lc);
+            }
+        //get the contribution amount
+        uint256 amountToRefund = _getCurrentContribution(contributor);
+        // Decrease total contributions.
+        totalContributions -= amountToRefund.safeCastUint256ToUint96();
+        // Remove contributions entry for this contributor.
+        delete _contributionsByContributor[contributor];
+        //return the contribution amount
+        contributor.transferEth(amountToRefund);
+        emit ContributorRageQuit(contributor, amountToRefund);
+    }
+
     function _burn(address payable contributor, CrowdfundLifecycle lc, Party party_) private {
         // If the CF has won, a party must have been created prior.
         if (lc == CrowdfundLifecycle.Won) {
