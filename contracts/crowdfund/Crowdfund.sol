@@ -479,6 +479,17 @@ abstract contract Crowdfund is Implementation, ERC721Receiver, CrowdfundNFT {
         }
     }
 
+    function _getCurrentContribution(address contributor) internal view returns (uint256 ethOwed) {
+        {
+    Contribution[] memory contributions = _contributionsByContributor[contributor];
+    uint256 numContributions = contributions.length;
+    for (uint256 i; i < numContributions; ++i) {
+        Contribution memory c = contributions[i];
+        ethOwed += c.amount;
+            }
+        }
+    }
+
     function _getFinalContribution(
         address contributor
     ) internal view returns (uint256 ethUsed, uint256 ethOwed, uint256 votingPower) {
