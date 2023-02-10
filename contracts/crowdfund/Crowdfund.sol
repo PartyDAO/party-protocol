@@ -317,8 +317,9 @@ abstract contract Crowdfund is Implementation, ERC721Receiver, CrowdfundNFT {
     }
 
     ///@notice Withdraw the funds of a contributor before a crowdfund is finalized.
-    function rageQuit() public onlyDelegateCall {
-        _rageQuit(msg.sender);
+    /// @param receiver The address to receive the NFT or refund.
+    function rageQuit(address payable receiver) public onlyDelegateCall {
+        _rageQuit(receiver);
     }
 
     /// @inheritdoc EIP165
@@ -607,7 +608,7 @@ abstract contract Crowdfund is Implementation, ERC721Receiver, CrowdfundNFT {
     }
 
     //Allows contributor to rage quit before crowdfund is finalized.
-    function _rageQuit(address contributor) private {
+    function _rageQuit(address payable contributor) private {
          // Only allow rage quit while the crowdfund is active.
          CrowdfundLifecycle lc = getCrowdfundLifecycle();
             if (lc != CrowdfundLifecycle.Active) {

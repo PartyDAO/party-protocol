@@ -976,19 +976,48 @@ contract CrowdfundTest is Test, TestUtils {
 
     function test_canWithdrawContribution() external {
         TestableCrowdfund cf = _createCrowdfund(0);
-        address contributor = _randomAddress();
-
+        address payable contributor = _randomAddress();
         vm.deal(contributor, 3);
         vm.prank(contributor);
         cf.contribute{ value: 1 }(contributor, "");
         assertEq(cf.totalContributions(), 1);
         assertEq(cf.getContributionEntriesByContributorCount(contributor), 1);
         //rageQuit crowdfund.
-        cf.rageQuit();
-        //check totalContributions was updated correctly
+        cf.rageQuit(contributor);
+        //check totalContributions was updated correctly.
         assertEq(cf.totalContributions(), 0);
         //check that contributor's eth was returned.
         assertEq(contributor.balance, 3);
+    }
+
+    // Two contributions, contributor doesn't recieve extra.
+    function test_doesNotRecieveAdditionalEth() external {
+        TestableCrowdfund cf = _createCrowdfund(0);
+        address payable contributor1 = _randomAddress();
+        address payable contributor2 = _randomAddress();
+        vm.deal(contributor1, 3);
+        vm.deal(contributor2, 10);
+        vm.prank(contributor1);
+        cf.contribute{ value: 1 }(contributor1, "");
+        assertEq(cf.totalContributions(), 1);
+        assertEq(cf.getContributionEntriesByContributorCount(contributor1), 1);
+        //rageQuit crowdfund.
+        cf.rageQuit(contributor1);
+        //check totalContributions was updated correctly.
+        assertEq(cf.totalContributions(), 0);
+        //check that contributor's eth was returned.
+        assertEq(contributor1.balance, 3);
+        //contributor2 contributes
+        vm.prank(contributor2);
+        cf.contribute{ value: 10 }(contributor2, "");
+        assertEq(cf.totalContributions(), 10);
+        //contributor calls ragequit a second time.
+        vm.prank(contributor1);
+        cf.rageQuit(contributor1);
+        //check contributor balance does not increase.
+        assertEq(contributor1.balance, 3);
+        //check total contributions remains the same.
+        assertEq(cf.totalContributions(), 10);
     }
 
     function test_canEmergencyExecute() external {
