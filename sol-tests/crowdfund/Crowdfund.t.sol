@@ -107,10 +107,10 @@ contract CrowdfundTest is Test, TestUtils {
         }
     }
 
-    function _createTokens(
-        address owner,
-        uint256 count
-    ) private returns (IERC721[] memory tokens, uint256[] memory tokenIds) {
+    function _createTokens(address owner, uint256 count)
+        private
+        returns (IERC721[] memory tokens, uint256[] memory tokenIds)
+    {
         tokens = new IERC721[](count);
         tokenIds = new uint256[](count);
         for (uint256 i; i < count; ++i) {
@@ -152,10 +152,10 @@ contract CrowdfundTest is Test, TestUtils {
         );
     }
 
-    function _createCrowdfund(
-        uint256 initialContribution,
-        uint256 customizationPresetId
-    ) private returns (TestableCrowdfund cf) {
+    function _createCrowdfund(uint256 initialContribution, uint256 customizationPresetId)
+        private
+        returns (TestableCrowdfund cf)
+    {
         return
             _createCrowdfund(
                 initialContribution,
@@ -169,10 +169,11 @@ contract CrowdfundTest is Test, TestUtils {
         return _createCrowdfund(initialContribution, address(this), defaultInitialDelegate, 0);
     }
 
-    function _createExpectedPartyOptions(
-        TestableCrowdfund cf,
-        uint256 finalPrice
-    ) private view returns (Party.PartyOptions memory opts) {
+    function _createExpectedPartyOptions(TestableCrowdfund cf, uint256 finalPrice)
+        private
+        view
+        returns (Party.PartyOptions memory opts)
+    {
         Crowdfund.FixedGovernanceOpts memory govOpts = cf.getFixedGovernanceOpts();
         return
             Party.PartyOptions({
@@ -195,10 +196,11 @@ contract CrowdfundTest is Test, TestUtils {
         return (uint256(1e4 - defaultSplitBps) * contribution) / 1e4;
     }
 
-    function _getAmountWithSplit(
-        uint256 contribution,
-        uint256 totalContributions
-    ) private view returns (uint256 r) {
+    function _getAmountWithSplit(uint256 contribution, uint256 totalContributions)
+        private
+        view
+        returns (uint256 r)
+    {
         return
             _getAmountWithoutSplit(contribution) +
             (uint256(defaultSplitBps) * totalContributions + (1e4 - 1)) /
@@ -970,6 +972,23 @@ contract CrowdfundTest is Test, TestUtils {
         cf.contribute{ value: 2 }(contributor1, "");
         assertEq(cf.totalContributions(), 13);
         assertEq(cf.getContributionEntriesByContributorCount(contributor1), 2);
+    }
+
+    function test_canWithdrawContribution() external {
+        TestableCrowdfund cf = _createCrowdfund(0);
+        address contributor = _randomAddress();
+
+        vm.deal(contributor, 3);
+        vm.prank(contributor);
+        cf.contribute{ value: 1 }(contributor, "");
+        assertEq(cf.totalContributions(), 1);
+        assertEq(cf.getContributionEntriesByContributorCount(contributor), 1);
+        //rageQuit crowdfund.
+        cf.rageQuit();
+        //check totalContributions was updated correctly
+        assertEq(cf.totalContributions(), 0);
+        //check that contributor's eth was returned.
+        assertEq(contributor.balance, 3);
     }
 
     function test_canEmergencyExecute() external {

@@ -317,7 +317,7 @@ abstract contract Crowdfund is Implementation, ERC721Receiver, CrowdfundNFT {
     }
 
     ///@notice Withdraw the funds of a contributor before a crowdfund is finalized.
-    function rageQuit() public OnlyDelegateCall {
+    function rageQuit() public onlyDelegateCall {
         _rageQuit(msg.sender);
     }
 
@@ -607,7 +607,7 @@ abstract contract Crowdfund is Implementation, ERC721Receiver, CrowdfundNFT {
     }
 
     //Allows contributor to rage quit before crowdfund is finalized.
-    function _rageQuit(address payable contributor) private {
+    function _rageQuit(address contributor) private {
          // Only allow rage quit while the crowdfund is active.
          CrowdfundLifecycle lc = getCrowdfundLifecycle();
             if (lc != CrowdfundLifecycle.Active) {
@@ -621,10 +621,13 @@ abstract contract Crowdfund is Implementation, ERC721Receiver, CrowdfundNFT {
         totalContributionsWithdrawn += amountToRefund.safeCastUint256ToUint96();
         // Remove contributions entry for this contributor.
         delete _contributionsByContributor[contributor];
-        //burn crowdfundNFT.
-        CrowdfundNFT._burn(contributor);
         //return the contribution amount.
-        contributor.transferEth(amountToRefund);
+        (bool s, ) = contributor.call{ value: amountToRefund }("");
+        if (!s) {
+            // If the transfer fails, the contributor can still come claim it
+            // from the crowdfund.
+            claims[contributor].refund = amountToRefund;
+        }
         emit ContributorRageQuit(contributor, amountToRefund);
     }
 
