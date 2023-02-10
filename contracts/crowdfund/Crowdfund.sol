@@ -18,6 +18,7 @@ import "./CrowdfundNFT.sol";
 abstract contract Crowdfund is Implementation, ERC721Receiver, CrowdfundNFT {
     using LibRawResult for bytes;
     using LibSafeCast for uint256;
+    using LibSafeCast for  uint96;
     using LibAddress for address payable;
 
     enum CrowdfundLifecycle {
@@ -510,7 +511,7 @@ abstract contract Crowdfund is Implementation, ERC721Receiver, CrowdfundNFT {
             uint256 numContributions = contributions.length;
             for (uint256 i; i < numContributions; ++i) {
                 Contribution memory c = contributions[i];
-                if (c.previousTotalContributions >= totalEthUsed) {
+                if ( c.previousTotalContributions.safeCastUint96ToInt192() - totalContributionsWithdrawn.safeCastUint96ToInt192() >= int(totalEthUsed)) {
                     // This entire contribution was not used.
                     ethOwed += c.amount;
                 } else if (c.previousTotalContributions + c.amount <= totalEthUsed) {
@@ -518,9 +519,9 @@ abstract contract Crowdfund is Implementation, ERC721Receiver, CrowdfundNFT {
                     ethUsed += c.amount;
                 } else {
                     // This contribution was partially used.
-                    uint256 partialEthUsed = totalEthUsed - c.previousTotalContributions;
-                    ethUsed += partialEthUsed;
-                    ethOwed = c.amount - partialEthUsed;
+                        uint256 partialEthUsed = totalEthUsed - c.previousTotalContributions;
+                        ethUsed += partialEthUsed;
+                        ethOwed = c.amount - partialEthUsed;           
                 }
             }
         }
@@ -543,6 +544,7 @@ abstract contract Crowdfund is Implementation, ERC721Receiver, CrowdfundNFT {
         uint96 amount,
         address delegate,
         uint96 previousTotalContributions,
+        //previousTotalContributionsWithdrawn,
         bytes memory gateData
     ) private {
         // Require a non-null delegate.

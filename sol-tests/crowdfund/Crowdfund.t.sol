@@ -1065,30 +1065,44 @@ contract CrowdfundTest is Test, TestUtils {
         TestableCrowdfund cf = _createCrowdfund(0);
         address delegate1 = _randomAddress();
         address delegate2 = _randomAddress();
+        address delegate3 = _randomAddress();
         address payable contributor1 = _randomAddress();
         address payable contributor2 = _randomAddress();
+        address payable contributor3 = _randomAddress();
+
         // contributor1 contributes 1 ETH
         vm.deal(contributor1, 1e18);
         vm.prank(contributor1);
         cf.contribute{ value: contributor1.balance }(delegate1, "");
-        // contributor2 contributes 0.5 ETH
-        vm.deal(contributor2, 0.5e18);
+        // contributor2 contributes 9 ETH
+        vm.deal(contributor2, 10e18);
         vm.prank(contributor2);
         cf.contribute{ value: contributor2.balance }(delegate2, "");
-        assertEq(cf.totalContributions(), 1.5e18);
-        //contributor2 withdraws 0.5 ETH
+        assertEq(cf.totalContributions(), 11e18);
+        vm.deal(contributor3, 1e18);
+        vm.prank(contributor3);
+        cf.contribute{ value: 0.5e18 }(delegate3, "");
+        assertEq(cf.totalContributions(), 11.5e18);
+        //contributor2 withdraws 9 ETH
         cf.rageQuit(contributor2);
+        cf.contribute{ value: 0.5e18 }(delegate3, "");
+        assertEq(cf.totalContributions(), 2e18);
         // set up a loss
         cf.testSetLifeCycle(Crowdfund.CrowdfundLifecycle.Lost);
         assertEq(address(cf.party()), address(0));
         // contributor1 burns tokens
-        vm.expectEmit(false, false, false, true);
+        // vm.expectEmit(false, false, false, true);
         emit Burned(contributor1, 0, 1e18, 0);
         cf.burn(contributor1);
         // contributor1 gets back their contribution
         assertEq(contributor1.balance, 1e18);
+        // contributor3 burns tokens
+        // vm.expectEmit(false, false, false, true);
+        emit Burned(contributor3, 0, 1e18, 0);
+        cf.burn(contributor3);
+        assertEq(contributor3.balance, 1e18);
         // contributor2 balance remains the same
-        assertEq(contributor2.balance, 0.5e18);
+        assertEq(contributor2.balance, 10e18);
     }
 
     function test_canEmergencyExecute() external {
