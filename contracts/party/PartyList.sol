@@ -29,12 +29,20 @@ contract PartyList {
 
     error ListAlreadyExistsError(Party party, bytes32 merkleRoot);
     error InvalidProofError(bytes32[] proof);
+    error InvalidDelegationError(address delegate);
     error AlreadyMintedError(bytes32 leaf);
     error UnauthorizedError();
 
-    /// @notice party address => merkle root
-    mapping(Party => bytes32) public listMerkleRoots;
-    /// @notice party address => leaf => minted
+    struct ListData {
+        // The root of the Merkle tree for the list
+        bytes32 merkleRoot;
+        // The address of the party's creator
+        address creator;
+    }
+
+    /// @notice Mapping from a party to data about the party's list.
+    mapping(Party => ListData) public listData;
+    /// @notice Whether a leaf from the Merkle tree has been consumed to mint a party card
     mapping(Party => mapping(bytes32 => bool)) public minted;
 
     IGlobals private immutable _GLOBALS;
@@ -66,13 +74,18 @@ contract PartyList {
         uint96 creatorVotingPower,
         address creatorDelegate
     ) external onlyPartyFactory {
-        bytes32 root = listMerkleRoots[party];
+        ListData storage list = listData[party];
+        bytes32 root = list.merkleRoot;
         if (root != bytes32(0)) revert ListAlreadyExistsError(party, root);
 
-        listMerkleRoots[party] = merkleRoot;
+        list.merkleRoot = merkleRoot;
 
-        if (creator != address(0) && creatorVotingPower > 0) {
-            party.mint(creator, creatorVotingPower, creatorDelegate);
+        if (creator != address(0)) {
+            list.creator = creator;
+
+            if (creatorVotingPower > 0) {
+                party.mint(creator, creatorVotingPower, creatorDelegate);
+            }
         }
 
         emit ListCreated(party, merkleRoot);
@@ -84,8 +97,17 @@ contract PartyList {
      * @return tokenId The ID of the newly minted party card.
      */
     function mint(MintArgs memory args) external returns (uint256 tokenId) {
+        ListData memory list = listData[args.party];
+
+        // If minting on behalf of another member, only allow delegating to the
+        // member or party's creator.
+        if (msg.sender != args.member) {
+            if (args.delegate != args.member && args.delegate != list.creator)
+                revert InvalidDelegationError(args.delegate);
+        }
+
         (bool allowed, bytes32 leaf) = _verify(
-            args.party,
+            list.merkleRoot,
             args.member,
             args.votingPower,
             args.nonce,
@@ -132,17 +154,20 @@ contract PartyList {
         uint256 nonce,
         bytes32[] memory proof
     ) public view returns (bool) {
-        (bool allowed, bytes32 leaf) = _verify(party, member, votingPower, nonce, proof);
+        ListData storage list = listData[party];
+
+        (bool allowed, bytes32 leaf) = _verify(list.merkleRoot, member, votingPower, nonce, proof);
+
         return allowed && !minted[party][leaf];
     }
 
     function _verify(
-        Party party,
+        bytes32 root,
         address member,
         uint96 votingPower,
         uint256 nonce,
         bytes32[] memory proof
-    ) private view returns (bool allowed, bytes32 leaf) {
+    ) private pure returns (bool allowed, bytes32 leaf) {
         assembly {
             // leaf = keccak256(abi.encodePacked(member, votingPower, nonce))
             mstore(0, shl(96, member))
@@ -151,6 +176,6 @@ contract PartyList {
             leaf := keccak256(0, 64)
         }
 
-        allowed = MerkleProof.verify(proof, listMerkleRoots[party], leaf);
+        allowed = MerkleProof.verify(proof, root, leaf);
     }
 }

@@ -24,7 +24,9 @@ contract PartyListTest is Test, TestUtils {
         address creatorDelegate = _randomAddress();
         bytes32 merkleRoot = keccak256(abi.encodePacked(_randomUint256()));
         partyList.createList(party, merkleRoot, creator, creatorVotingPower, creatorDelegate);
-        assertEq(partyList.listMerkleRoots(party), merkleRoot);
+        (bytes32 storedMerkleRoot, address storedCreator) = partyList.listData(party);
+        assertEq(storedMerkleRoot, merkleRoot);
+        assertEq(storedCreator, creator);
     }
 
     function test_createList_onlyPartyFactory() public {
@@ -56,6 +58,7 @@ contract PartyListTest is Test, TestUtils {
         address delegate = _randomAddress();
         bytes32 merkleRoot = keccak256(abi.encodePacked(member, votingPower, nonce));
         partyList.createList(party, merkleRoot, address(0), 0, address(0));
+        vm.prank(member);
         uint256 tokenId = partyList.mint(
             PartyList.MintArgs({
                 party: party,
@@ -67,6 +70,7 @@ contract PartyListTest is Test, TestUtils {
             })
         );
         assertEq(party.ownerOf(tokenId), member);
+        assertEq(party.delegationsByVoter(member), delegate);
     }
 
     function test_mint_cannotMintTwice() public {
@@ -76,6 +80,7 @@ contract PartyListTest is Test, TestUtils {
         address delegate = _randomAddress();
         bytes32 merkleRoot = keccak256(abi.encodePacked(member, votingPower, nonce));
         partyList.createList(party, merkleRoot, address(0), 0, address(0));
+        vm.prank(member);
         partyList.mint(
             PartyList.MintArgs({
                 party: party,
@@ -87,6 +92,7 @@ contract PartyListTest is Test, TestUtils {
             })
         );
         vm.expectRevert(abi.encodeWithSelector(PartyList.AlreadyMintedError.selector, merkleRoot));
+        vm.prank(member);
         partyList.mint(
             PartyList.MintArgs({
                 party: party,
@@ -108,6 +114,7 @@ contract PartyListTest is Test, TestUtils {
         bytes32[] memory proof = new bytes32[](1);
         partyList.createList(party, merkleRoot, address(0), 0, address(0));
         vm.expectRevert(abi.encodeWithSelector(PartyList.InvalidProofError.selector, proof));
+        vm.prank(member);
         partyList.mint(
             PartyList.MintArgs({
                 party: party,
@@ -116,6 +123,70 @@ contract PartyListTest is Test, TestUtils {
                 nonce: nonce,
                 delegate: delegate,
                 proof: proof
+            })
+        );
+    }
+
+    function test_mint_onBehalf_canDelegateToMember() public {
+        address member = _randomAddress();
+        uint96 votingPower = 0.1e18;
+        uint256 nonce = _randomUint256();
+        bytes32 merkleRoot = keccak256(abi.encodePacked(member, votingPower, nonce));
+        partyList.createList(party, merkleRoot, address(0), 0, address(0));
+        // Mint on behalf of another member and delgate to them
+        partyList.mint(
+            PartyList.MintArgs({
+                party: party,
+                member: member,
+                votingPower: votingPower,
+                nonce: nonce,
+                delegate: member,
+                proof: new bytes32[](0)
+            })
+        );
+        assertEq(party.delegationsByVoter(member), member);
+    }
+
+    function test_mint_onBehalf_canDelegateToCreator() public {
+        address creator = _randomAddress();
+        address member = _randomAddress();
+        uint96 votingPower = 0.1e18;
+        uint256 nonce = _randomUint256();
+        bytes32 merkleRoot = keccak256(abi.encodePacked(member, votingPower, nonce));
+        partyList.createList(party, merkleRoot, creator, 0, address(0));
+        // Mint on behalf of another member and delgate to them
+        partyList.mint(
+            PartyList.MintArgs({
+                party: party,
+                member: member,
+                votingPower: votingPower,
+                nonce: nonce,
+                delegate: creator,
+                proof: new bytes32[](0)
+            })
+        );
+        assertEq(party.delegationsByVoter(member), creator);
+    }
+
+    function test_mint_onBehalf_cannotDelegateToRandomAddress() public {
+        address member = _randomAddress();
+        address delegate = _randomAddress();
+        uint96 votingPower = 0.1e18;
+        uint256 nonce = _randomUint256();
+        bytes32 merkleRoot = keccak256(abi.encodePacked(member, votingPower, nonce));
+        partyList.createList(party, merkleRoot, address(0), 0, address(0));
+        // Mint on behalf of another member and delgate to random address
+        vm.expectRevert(
+            abi.encodeWithSelector(PartyList.InvalidDelegationError.selector, delegate)
+        );
+        partyList.mint(
+            PartyList.MintArgs({
+                party: party,
+                member: member,
+                votingPower: votingPower,
+                nonce: nonce,
+                delegate: delegate,
+                proof: new bytes32[](0)
             })
         );
     }

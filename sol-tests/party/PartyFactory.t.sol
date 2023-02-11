@@ -115,7 +115,6 @@ contract PartyFactoryTest is Test, TestUtils {
 
     function testCreatePartyFromList() external {
         address member = _randomAddress();
-        address delegate = _randomAddress();
         uint96 votingPower = 0.1e18;
         uint256 nonce = _randomUint256();
 
@@ -135,8 +134,10 @@ contract PartyFactoryTest is Test, TestUtils {
 
         Party party = factory.createPartyFromList(opts);
 
+        (bytes32 merkleRoot, address creator) = partyList.listData(party);
+        assertEq(merkleRoot, opts.listMerkleRoot);
+        assertEq(creator, opts.creator);
         assertEq(party.mintAuthority(), address(partyList));
-        assertEq(partyList.listMerkleRoots(party), opts.listMerkleRoot);
         assertEq(party.balanceOf(opts.creator), 1);
         assertEq(party.delegationsByVoter(opts.creator), opts.creatorDelegate);
         assertEq(party.votingPowerByTokenId(1), opts.creatorVotingPower);
@@ -147,12 +148,12 @@ contract PartyFactoryTest is Test, TestUtils {
                 member: member,
                 votingPower: votingPower,
                 nonce: nonce,
-                delegate: delegate,
+                delegate: member,
                 proof: new bytes32[](0)
             })
         );
         assertEq(party.balanceOf(member), 1);
-        assertEq(party.delegationsByVoter(member), delegate);
+        assertEq(party.delegationsByVoter(member), member);
         assertEq(party.votingPowerByTokenId(2), votingPower);
 
         for (uint256 i; i < preciousTokens.length; ++i) {

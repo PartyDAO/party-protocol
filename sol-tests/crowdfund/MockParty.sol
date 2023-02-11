@@ -8,6 +8,7 @@ contract MockParty is ERC721("MockParty", "MOCK") {
     event MockMint(address caller, address owner, uint256 amount, address delegate);
 
     uint256 public tokenCount;
+    mapping(address => address) public delegationsByVoter;
 
     function tokenURI(uint256 id) public view override returns (string memory) {}
 
@@ -17,6 +18,7 @@ contract MockParty is ERC721("MockParty", "MOCK") {
         address delegate
     ) external returns (uint256 tokenId) {
         tokenId = ++tokenCount;
+        delegationsByVoter[owner] = delegate;
         _safeMint(owner, tokenId);
         emit MockMint(msg.sender, owner, amount, delegate);
     }
