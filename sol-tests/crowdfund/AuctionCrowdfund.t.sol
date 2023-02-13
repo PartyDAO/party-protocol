@@ -36,7 +36,8 @@ contract AuctionCrowdfundTest is Test, TestUtils {
         address contributor,
         uint256 amount,
         address delegate,
-        uint256 previousTotalContributions
+        uint256 previousTotalContributions,
+        uint256 previousTotalContributionsWithdrawn
     );
     event Won(uint256 bid, Party party);
     event Lost();
@@ -126,9 +127,11 @@ contract AuctionCrowdfundTest is Test, TestUtils {
             );
     }
 
-    function _createExpectedPartyOptions(
-        uint256 finalPrice
-    ) private view returns (Party.PartyOptions memory opts) {
+    function _createExpectedPartyOptions(uint256 finalPrice)
+        private
+        view
+        returns (Party.PartyOptions memory opts)
+    {
         return
             Party.PartyOptions({
                 name: defaultName,
@@ -707,7 +710,7 @@ contract AuctionCrowdfundTest is Test, TestUtils {
         address initialContributor = _randomAddress();
         address initialDelegate = _randomAddress();
         vm.deal(address(this), initialContribution);
-        emit Contributed(initialContributor, initialContribution, initialDelegate, 0);
+        emit Contributed(initialContributor, initialContribution, initialDelegate, 0, 0);
         AuctionCrowdfund(
             payable(
                 address(
@@ -741,7 +744,11 @@ contract AuctionCrowdfundTest is Test, TestUtils {
         );
     }
 
-    function _contribute(AuctionCrowdfund cf, address contributor, uint256 amount) private {
+    function _contribute(
+        AuctionCrowdfund cf,
+        address contributor,
+        uint256 amount
+    ) private {
         vm.deal(contributor, amount);
         vm.prank(contributor);
         cf.contribute{ value: amount }(contributor, "");
@@ -754,10 +761,17 @@ contract AuctionCrowdfundTest is Test, TestUtils {
         uint256 amount
     ) private {
         uint256 previousTotalContributions = cf.totalContributions();
+        uint256 previousTotalContributionsWithdrawn = 0;
         vm.deal(contributor, amount);
         vm.prank(contributor);
         _expectEmit0();
-        emit Contributed(contributor, amount, delegate, previousTotalContributions);
+        emit Contributed(
+            contributor,
+            amount,
+            delegate,
+            previousTotalContributions,
+            previousTotalContributionsWithdrawn
+        );
         cf.contribute{ value: amount }(delegate, "");
     }
 

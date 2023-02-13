@@ -30,7 +30,8 @@ contract CollectionBuyCrowdfundTest is Test, TestUtils {
         address contributor,
         uint256 amount,
         address delegate,
-        uint256 previousTotalContributions
+        uint256 previousTotalContributions,
+        uint256 previousToatalContributionsWithdrawn
     );
 
     string defaultName = "CollectionBuyCrowdfund";
@@ -56,10 +57,7 @@ contract CollectionBuyCrowdfundTest is Test, TestUtils {
         collectionBuyCrowdfundImpl = new CollectionBuyCrowdfund(globals);
     }
 
-    function _createCrowdfund(
-        address[] memory hosts,
-        uint96 initialContribution
-    )
+    function _createCrowdfund(address[] memory hosts, uint96 initialContribution)
         private
         returns (CollectionBuyCrowdfund cf, Crowdfund.FixedGovernanceOpts memory governanceOpts)
     {
@@ -94,10 +92,11 @@ contract CollectionBuyCrowdfundTest is Test, TestUtils {
         );
     }
 
-    function _createExpectedPartyOptions(
-        address[] memory hosts,
-        uint256 finalPrice
-    ) private view returns (Party.PartyOptions memory opts) {
+    function _createExpectedPartyOptions(address[] memory hosts, uint256 finalPrice)
+        private
+        view
+        returns (Party.PartyOptions memory opts)
+    {
         return
             Party.PartyOptions({
                 name: defaultName,
@@ -232,7 +231,7 @@ contract CollectionBuyCrowdfundTest is Test, TestUtils {
         defaultGovernanceOpts.hosts = _toAddressArray(_randomAddress());
         vm.deal(address(this), initialContribution);
         _expectEmit0();
-        emit Contributed(initialContributor, initialContribution, initialDelegate, 0);
+        emit Contributed(initialContributor, initialContribution, initialDelegate, 0, 0);
         CollectionBuyCrowdfund(
             payable(
                 address(

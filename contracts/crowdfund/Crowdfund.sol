@@ -107,7 +107,8 @@ abstract contract Crowdfund is Implementation, ERC721Receiver, CrowdfundNFT {
         address contributor,
         uint256 amount,
         address delegate,
-        uint256 previousTotalContributions
+        uint256 previousTotalContributions,
+        uint256 previousTotalContributionsWithdrawn
     );
     event ContributorRageQuit(address contributor, uint256 ethWithdrawn);
     event EmergencyExecute(address target, bytes data, uint256 amountEth);
@@ -182,7 +183,7 @@ abstract contract Crowdfund is Implementation, ERC721Receiver, CrowdfundNFT {
         if (initialContribution > 0) {
             // If this contract has ETH, either passed in during deployment or
             // pre-existing, credit it to the `initialContributor`.
-            _contribute(opts.initialContributor, initialContribution, opts.initialDelegate, 0, "");
+            _contribute(opts.initialContributor, initialContribution, opts.initialDelegate, 0, 0, "");
         }
         // Set up gatekeeper after initial contribution (initial always gets in).
         gateKeeper = opts.gateKeeper;
@@ -314,6 +315,7 @@ abstract contract Crowdfund is Implementation, ERC721Receiver, CrowdfundNFT {
             // is unattributed/unclaimable, meaning that party will never be
             // able to reach 100% consensus.
             totalContributions,
+            totalContributionsWithdrawn,
             gateData
         );
     }
@@ -545,7 +547,7 @@ abstract contract Crowdfund is Implementation, ERC721Receiver, CrowdfundNFT {
         uint96 amount,
         address delegate,
         uint96 previousTotalContributions,
-        //previousTotalContributionsWithdrawn,
+        uint96 previousTotalContributionsWithdrawn,
         bytes memory gateData
     ) private {
         // Require a non-null delegate.
@@ -568,7 +570,7 @@ abstract contract Crowdfund is Implementation, ERC721Receiver, CrowdfundNFT {
         // Update delegate.
         // OK if this happens out of cycle.
         delegationsByContributor[contributor] = delegate;
-        emit Contributed(contributor, amount, delegate, previousTotalContributions);
+        emit Contributed(contributor, amount, delegate, previousTotalContributions, previousTotalContributionsWithdrawn );
 
         // OK to contribute with zero just to update delegate.
         if (amount != 0) {
@@ -618,7 +620,7 @@ abstract contract Crowdfund is Implementation, ERC721Receiver, CrowdfundNFT {
             if (lc != CrowdfundLifecycle.Active) {
                     revert WrongLifecycleError(lc);
             }
-        //get the contribution amount.
+        //get the user's contribution amount.
         uint256 amountToRefund = _getCurrentContribution(contributor);
         // Add to withdrawn funds
         totalContributionsWithdrawn += amountToRefund.safeCastUint256ToUint96();

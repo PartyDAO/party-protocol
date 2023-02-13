@@ -45,7 +45,8 @@ contract CrowdfundTest is Test, TestUtils {
         address contributor,
         uint256 amount,
         address delegate,
-        uint256 previousTotalContributions
+        uint256 previousTotalContributions,
+        uint256 previousTotalContributionsWithdrawn
     );
     event Burned(address contributor, uint256 ethUsed, uint256 ethOwed, uint256 votingPower);
     event EmergencyExecuteTargetCalled();
@@ -213,7 +214,7 @@ contract CrowdfundTest is Test, TestUtils {
         address initialDelegate = _randomAddress();
         uint256 initialContribution = _randomRange(1, 1 ether);
         vm.deal(address(this), initialContribution);
-        emit Contributed(initialContributor, initialContribution, initialDelegate, 0);
+        emit Contributed(initialContributor, initialContribution, initialDelegate, 0, 0);
         TestableCrowdfund cf = _createCrowdfund(
             initialContribution,
             initialContributor,
