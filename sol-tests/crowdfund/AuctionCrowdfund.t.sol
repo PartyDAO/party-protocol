@@ -127,11 +127,9 @@ contract AuctionCrowdfundTest is Test, TestUtils {
             );
     }
 
-    function _createExpectedPartyOptions(uint256 finalPrice)
-        private
-        view
-        returns (Party.PartyOptions memory opts)
-    {
+    function _createExpectedPartyOptions(
+        uint256 finalPrice
+    ) private view returns (Party.PartyOptions memory opts) {
         return
             Party.PartyOptions({
                 name: defaultName,
@@ -743,12 +741,7 @@ contract AuctionCrowdfundTest is Test, TestUtils {
             )
         );
     }
-
-    function _contribute(
-        AuctionCrowdfund cf,
-        address contributor,
-        uint256 amount
-    ) private {
+ function _contribute(AuctionCrowdfund cf, address contributor, uint256 amount) private {
         vm.deal(contributor, amount);
         vm.prank(contributor);
         cf.contribute{ value: amount }(contributor, "");

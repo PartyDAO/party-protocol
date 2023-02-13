@@ -514,7 +514,7 @@ abstract contract Crowdfund is Implementation, ERC721Receiver, CrowdfundNFT {
             uint256 numContributions = contributions.length;
             for (uint256 i; i < numContributions; ++i) {
                 Contribution memory c = contributions[i];
-                if ( c.previousTotalContributions - c.previousTotalContributionsWithdrawn >= totalEthUsed) {
+                if (c.previousTotalContributions - c.previousTotalContributionsWithdrawn >= totalEthUsed) {
                     // This entire contribution was not used.
                     ethOwed += c.amount;
                 } else if (c.previousTotalContributions - c.previousTotalContributionsWithdrawn + c.amount <= totalEthUsed) {
