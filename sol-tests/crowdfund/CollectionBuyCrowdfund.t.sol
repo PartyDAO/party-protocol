@@ -94,10 +94,10 @@ contract CollectionBuyCrowdfundTest is Test, TestUtils {
         );
     }
 
-       function _createExpectedPartyOptions(
-           address[] memory hosts,
-           uint256 finalPrice
-       ) private view returns (Party.PartyOptions memory opts) {
+    function _createExpectedPartyOptions(
+        address[] memory hosts,
+        uint256 finalPrice
+    ) private view returns (Party.PartyOptions memory opts) {
         return
             Party.PartyOptions({
                 name: defaultName,

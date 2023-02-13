@@ -169,9 +169,9 @@ contract CrowdfundTest is Test, TestUtils {
         return _createCrowdfund(initialContribution, address(this), defaultInitialDelegate, 0);
     }
 
- function _createExpectedPartyOptions(
-     TestableCrowdfund cf,
-     uint256 finalPrice
+    function _createExpectedPartyOptions(
+        TestableCrowdfund cf,
+        uint256 finalPrice
     ) private view returns (Party.PartyOptions memory opts) {
         Crowdfund.FixedGovernanceOpts memory govOpts = cf.getFixedGovernanceOpts();
         return
