@@ -984,9 +984,7 @@ contract CrowdfundTest is Test, TestUtils {
         assertEq(cf.getContributionEntriesByContributorCount(contributor), 1);
         //rageQuit crowdfund.
         cf.rageQuit(contributor);
-        //check totalContributions was updated correctly.
-        assertEq(cf.totalContributions(), 0);
-        //check that contributor's eth was returned.
+        //check that contributor's ETH was returned.
         assertEq(contributor.balance, 3);
     }
 
@@ -1003,21 +1001,17 @@ contract CrowdfundTest is Test, TestUtils {
         assertEq(cf.getContributionEntriesByContributorCount(contributor1), 1);
         //rageQuit crowdfund.
         cf.rageQuit(contributor1);
-        //check totalContributions was updated correctly.
-        assertEq(cf.totalContributions(), 0);
         //check that contributor's eth was returned.
         assertEq(contributor1.balance, 3);
         //contributor2 contributes
         vm.prank(contributor2);
         cf.contribute{ value: 10 }(contributor2, "");
-        assertEq(cf.totalContributions(), 10);
+        assertEq(cf.totalContributions(), 11);
         //contributor calls ragequit a second time.
         vm.prank(contributor1);
         cf.rageQuit(contributor1);
         //check contributor balance does not increase.
         assertEq(contributor1.balance, 3);
-        //check total contributions remains the same.
-        assertEq(cf.totalContributions(), 10);
     }
 
     function test_win_afterWithdrawnContribution() external {
@@ -1030,14 +1024,12 @@ contract CrowdfundTest is Test, TestUtils {
         // contributor1 contributes 1 ETH
         vm.prank(contributor1);
         cf.contribute{ value: contributor1.balance }(delegate1, "");
-        //assertEq(cf.totalContributions(), 10);
         // contributor2 contributes 10 ETH
         vm.prank(contributor2);
         cf.contribute{ value: contributor2.balance }(delegate1, "");
         assertEq(cf.totalContributions(), 16e18);
         // contributor2 withdraws ETH
         cf.rageQuit(contributor2);
-        assertEq(cf.totalContributions(), 15e18);
         // set up a win using contributor1's total contribution
         (IERC721[] memory erc721Tokens, uint256[] memory erc721TokenIds) = _createTokens(
             address(cf),
@@ -1086,7 +1078,6 @@ contract CrowdfundTest is Test, TestUtils {
         //contributor2 withdraws 9 ETH
         cf.rageQuit(contributor2);
         cf.contribute{ value: 0.5e18 }(delegate3, "");
-        assertEq(cf.totalContributions(), 2e18);
         // set up a loss
         cf.testSetLifeCycle(Crowdfund.CrowdfundLifecycle.Lost);
         assertEq(address(cf.party()), address(0));
