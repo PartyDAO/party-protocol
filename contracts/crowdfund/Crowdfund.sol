@@ -654,16 +654,19 @@ abstract contract Crowdfund is Implementation, ERC721Receiver, CrowdfundNFT {
             if (totalContributionsAmountForReuse == previousTotalContributions) {
                 lastContribution.amount += amount;
                 contributions[numContributions - 1] = lastContribution;
-                return;
             }
-        }
-        // Add a new contribution entry.
-        contributions.push(
-            Contribution({ previousTotalContributions: previousTotalContributions, amount: amount })
-        );
-        // Mint a participation NFT if this is their first contribution.
-        if (numContributions == 0) {
-            _mint(contributor);
+        } else {
+            // Add a new contribution entry.
+            contributions.push(
+                Contribution({
+                    previousTotalContributions: previousTotalContributions,
+                    amount: amount
+                })
+            );
+            // Mint a participation NFT if this is their first contribution.
+            if (numContributions == 0) {
+                _mint(contributor);
+            }
         }
 
         emit Contributed(msg.sender, contributor, amount, delegate, previousTotalContributions);
