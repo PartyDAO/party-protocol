@@ -152,7 +152,7 @@ abstract contract Crowdfund is Implementation, ERC721Receiver, CrowdfundNFT {
     mapping(address => Claim) public claims;
     /// @notice Whether the DAO has emergency powers for this party.
     bool public emergencyExecuteDisabled;
-    /// @notice The contributions removed when user rage quits
+    /// @notice The total contributions removed by users rage quitting.
     uint96 public totalContributionsWithdrawn;
 
     // Set the `Globals` contract.
@@ -493,11 +493,11 @@ abstract contract Crowdfund is Implementation, ERC721Receiver, CrowdfundNFT {
     }
 
     function _getCurrentContribution(address contributor) internal view returns (uint256 totalEthContributed) {
-    Contribution[] memory contributions = _contributionsByContributor[contributor];
-    uint256 numContributions = contributions.length;
-    for (uint256 i; i < numContributions; ++i) {
-        Contribution memory c = contributions[i];
-        totalEthContributed += c.amount;
+        Contribution[] memory contributions = _contributionsByContributor[contributor];
+        uint256 numContributions = contributions.length;
+        for (uint256 i; i < numContributions; ++i) {
+            Contribution memory c = contributions[i];
+            totalEthContributed += c.amount;
         }
     }
 
@@ -613,8 +613,8 @@ abstract contract Crowdfund is Implementation, ERC721Receiver, CrowdfundNFT {
 
     //Allows contributor to rage quit before crowdfund is finalized.
     function _rageQuit(address payable contributor) private {
-         // Only allow rage quit while the crowdfund is active.
-         CrowdfundLifecycle lc = getCrowdfundLifecycle();
+        // Only allow rage quit while the crowdfund is active.
+        CrowdfundLifecycle lc = getCrowdfundLifecycle();
             if (lc != CrowdfundLifecycle.Active) {
                     revert WrongLifecycleError(lc);
             }
