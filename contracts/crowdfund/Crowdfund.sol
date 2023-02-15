@@ -319,9 +319,9 @@ abstract contract Crowdfund is Implementation, ERC721Receiver, CrowdfundNFT {
     }
 
     ///@notice Withdraw the funds of a contributor before a crowdfund is finalized.
-    /// @param receiver The address to receive the refund.
-    function rageQuit(address payable receiver) public onlyDelegateCall {
-        _rageQuit(receiver);
+    /// @param contributor The address to receive the refund.
+    function rageQuit(address payable contributor) public onlyDelegateCall {
+        _rageQuit(contributor);
     }
 
     /// @inheritdoc EIP165
@@ -492,12 +492,14 @@ abstract contract Crowdfund is Implementation, ERC721Receiver, CrowdfundNFT {
         }
     }
 
-    function _getCurrentContribution(address contributor) internal view returns (uint256 totalEthContributed) {
-        Contribution[] memory contributions = _contributionsByContributor[contributor];
-        uint256 numContributions = contributions.length;
-        for (uint256 i; i < numContributions; ++i) {
-            Contribution memory c = contributions[i];
-            totalEthContributed += c.amount;
+    function _getCurrentContribution(
+        address contributor
+        ) internal view returns (uint256 totalEthContributed) {
+            Contribution[] memory contributions = _contributionsByContributor[contributor];
+            uint256 numContributions = contributions.length;
+            for (uint256 i; i < numContributions; ++i) {
+                Contribution memory c = contributions[i];
+                totalEthContributed += c.amount;
         }
     }
 
@@ -507,20 +509,24 @@ abstract contract Crowdfund is Implementation, ERC721Receiver, CrowdfundNFT {
         uint256 totalEthUsed = _getFinalPrice();
         {
             Contribution[] memory contributions = _contributionsByContributor[contributor];
-            //variable for previousTotalAmount - totalContributionsWithdrawn
-            //previousTotalWithdrawn - totalWithdrawn(current) = Amount that needs to be subtracted
             uint256 numContributions = contributions.length;
             for (uint256 i; i < numContributions; ++i) {
                 Contribution memory c = contributions[i];
-                if (c.previousTotalContributions - c.previousTotalContributionsWithdrawn >= totalEthUsed) {
+                // if (totalContributionsWithdrawn > c.previousTotalContributions) {
+                //     // This entire contribution was used.
+                //     ethUsed += c.amount;
+                 if (c.previousTotalContributions - c.previousTotalContributionsWithdrawn >= totalEthUsed) {
                     // This entire contribution was not used.
                     ethOwed += c.amount;
                 } else if (c.previousTotalContributions - c.previousTotalContributionsWithdrawn + c.amount <= totalEthUsed) {
                     // This entire contribution was used.
                     ethUsed += c.amount;
+                }  else if (totalContributionsWithdrawn > c.previousTotalContributions) {
+                    // This entire contribution was used.
+                    ethUsed += c.amount;
                 } else {
                     // This contribution was partially used.
-                    uint256 partialEthUsed = totalEthUsed - c.previousTotalContributions - c.previousTotalContributionsWithdrawn;
+                    uint256 partialEthUsed = totalEthUsed - c.previousTotalContributions + c.previousTotalContributionsWithdrawn;
                     ethUsed += partialEthUsed;
                     ethOwed = c.amount - partialEthUsed;
                 }
@@ -622,6 +628,8 @@ abstract contract Crowdfund is Implementation, ERC721Receiver, CrowdfundNFT {
         uint256 amountToRefund = _getCurrentContribution(contributor);
         // Add to withdrawn funds
         totalContributionsWithdrawn += amountToRefund.safeCastUint256ToUint96();
+        // Burn user's participation NFT
+        CrowdfundNFT._burn(contributor);
         // Remove contributions entry for this contributor.
         delete _contributionsByContributor[contributor];
         //return the contribution amount.

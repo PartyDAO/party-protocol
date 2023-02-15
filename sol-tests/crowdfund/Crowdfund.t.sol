@@ -1007,6 +1007,13 @@ contract CrowdfundTest is Test, TestUtils {
         assertEq(cf.totalContributions(), 11);
         //contributor calls ragequit a second time.
         vm.prank(contributor1);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                CrowdfundNFT.AlreadyBurnedError.selector,
+                contributor1,
+                uint256(uint160(address(contributor1)))
+            )
+        );
         cf.rageQuit(contributor1);
         //check contributor balance does not increase.
         assertEq(contributor1.balance, 3);
@@ -1064,7 +1071,7 @@ contract CrowdfundTest is Test, TestUtils {
         vm.deal(contributor1, 1e18);
         vm.prank(contributor1);
         cf.contribute{ value: contributor1.balance }(delegate1, "");
-        // contributor2 contributes 9 ETH
+        // contributor2 contributes 10 ETH
         vm.deal(contributor2, 10e18);
         vm.prank(contributor2);
         cf.contribute{ value: contributor2.balance }(delegate2, "");
@@ -1073,15 +1080,16 @@ contract CrowdfundTest is Test, TestUtils {
         vm.prank(contributor3);
         cf.contribute{ value: 0.5e18 }(delegate3, "");
         assertEq(cf.totalContributions(), 11.5e18);
-        //contributor2 withdraws 9 ETH
+        //contributor2 withdraws 10 ETH
         cf.rageQuit(contributor2);
+        //contributor3 contributes additional .5 ETH
         cf.contribute{ value: 0.5e18 }(delegate3, "");
         // set up a loss
         cf.testSetLifeCycle(Crowdfund.CrowdfundLifecycle.Lost);
         assertEq(address(cf.party()), address(0));
         // contributor1 burns tokens
-        // vm.expectEmit(false, false, false, true);
-        emit Burned(contributor1, 0, 1e18, 0);
+        //vm.expectEmit(false, false, false, true);
+        // emit Burned(contributor1, 0, 1e18, 0);
         cf.burn(contributor1);
         // contributor1 gets back their contribution
         assertEq(contributor1.balance, 1e18);
