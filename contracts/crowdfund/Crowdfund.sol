@@ -188,8 +188,6 @@ abstract contract Crowdfund is Implementation, ERC721Receiver, CrowdfundNFT {
         // Set up gatekeeper after initial contribution (initial always gets in).
         gateKeeper = opts.gateKeeper;
         gateKeeperId = opts.gateKeeperId;
-        //Set withdrawn contributions to 0
-        totalContributionsWithdrawn = 0;
     }
 
     /// @notice As the DAO, execute an arbitrary function call from this contract.
