@@ -44,14 +44,14 @@ abstract contract Deploy {
     // temporary variables to store deployed contract addresses
     Globals public globals;
     IZoraAuctionHouse public zoraAuctionHouse;
-    AuctionCrowdfund public auctionCrowdfundImpl;
-    BuyCrowdfund public buyCrowdfundImpl;
-    CollectionBuyCrowdfund public collectionBuyCrowdfundImpl;
+    AuctionCrowdfund public auctionCrowdfund;
+    BuyCrowdfund public buyCrowdfund;
+    CollectionBuyCrowdfund public collectionBuyCrowdfund;
     CrowdfundFactory public crowdfundFactory;
-    Party public partyImpl;
+    Party public party;
     PartyFactory public partyFactory;
     IOpenseaExchange public seaport;
-    ProposalExecutionEngine public proposalEngineImpl;
+    ProposalExecutionEngine public proposalExecutionEngine;
     TokenDistributor public tokenDistributor;
     RendererStorage public rendererStorage;
     CrowdfundNFTRenderer public crowdfundNFTRenderer;
@@ -102,7 +102,7 @@ abstract contract Deploy {
             deployConstants.fractionalVaultFactory
         );
         _trackDeployerGasBefore();
-        proposalEngineImpl = new ProposalExecutionEngine(
+        proposalExecutionEngine = new ProposalExecutionEngine(
             globals,
             seaport,
             conduitController,
@@ -110,16 +110,16 @@ abstract contract Deploy {
             fractionalVaultFactory
         );
         _trackDeployerGasAfter();
-        console.log("  Deployed - ProposalExecutionEngine", address(proposalEngineImpl));
+        console.log("  Deployed - ProposalExecutionEngine", address(proposalExecutionEngine));
 
         // DEPLOY_PARTY_IMPLEMENTATION
         console.log("");
         console.log("### Party implementation");
         console.log("  Deploying - Party implementation");
         _trackDeployerGasBefore();
-        partyImpl = new Party(globals);
+        party = new Party(globals);
         _trackDeployerGasAfter();
-        console.log("  Deployed - Party implementation", address(partyImpl));
+        console.log("  Deployed - Party implementation", address(party));
 
         // DEPLOY_PARTY_FACTORY
         console.log("");
@@ -137,11 +137,11 @@ abstract contract Deploy {
         console.log("### AuctionCrowdfund crowdfund implementation");
         console.log("  Deploying - AuctionCrowdfund crowdfund implementation");
         _trackDeployerGasBefore();
-        auctionCrowdfundImpl = new AuctionCrowdfund(globals);
+        auctionCrowdfund = new AuctionCrowdfund(globals);
         _trackDeployerGasAfter();
         console.log(
             "  Deployed - AuctionCrowdfund crowdfund implementation",
-            address(auctionCrowdfundImpl)
+            address(auctionCrowdfund)
         );
 
         // DEPLOY_BUY_CF_IMPLEMENTATION
@@ -149,23 +149,20 @@ abstract contract Deploy {
         console.log("### BuyCrowdfund crowdfund implementation");
         console.log("  Deploying - BuyCrowdfund crowdfund implementation");
         _trackDeployerGasBefore();
-        buyCrowdfundImpl = new BuyCrowdfund(globals);
+        buyCrowdfund = new BuyCrowdfund(globals);
         _trackDeployerGasAfter();
-        console.log(
-            "  Deployed - BuyCrowdfund crowdfund implementation",
-            address(buyCrowdfundImpl)
-        );
+        console.log("  Deployed - BuyCrowdfund crowdfund implementation", address(buyCrowdfund));
 
         // DEPLOY_COLLECTION_BUY_CF_IMPLEMENTATION
         console.log("");
         console.log("### CollectionBuyCrowdfund crowdfund implementation");
         console.log("  Deploying - CollectionBuyCrowdfund crowdfund implementation");
         _trackDeployerGasBefore();
-        collectionBuyCrowdfundImpl = new CollectionBuyCrowdfund(globals);
+        collectionBuyCrowdfund = new CollectionBuyCrowdfund(globals);
         _trackDeployerGasAfter();
         console.log(
             "  Deployed - CollectionBuyCrowdfund crowdfund implementation",
-            address(collectionBuyCrowdfundImpl)
+            address(collectionBuyCrowdfund)
         );
 
         // DEPLOY_PARTY_CROWDFUND_FACTORY
@@ -375,11 +372,11 @@ abstract contract Deploy {
             );
             multicallData[n++] = abi.encodeCall(
                 globals.setAddress,
-                (LibGlobals.GLOBAL_PROPOSAL_ENGINE_IMPL, address(proposalEngineImpl))
+                (LibGlobals.GLOBAL_PROPOSAL_ENGINE_IMPL, address(proposalExecutionEngine))
             );
             multicallData[n++] = abi.encodeCall(
                 globals.setAddress,
-                (LibGlobals.GLOBAL_PARTY_IMPL, address(partyImpl))
+                (LibGlobals.GLOBAL_PARTY_IMPL, address(party))
             );
             multicallData[n++] = abi.encodeCall(
                 globals.setAddress,
@@ -387,15 +384,15 @@ abstract contract Deploy {
             );
             multicallData[n++] = abi.encodeCall(
                 globals.setAddress,
-                (LibGlobals.GLOBAL_AUCTION_CF_IMPL, address(auctionCrowdfundImpl))
+                (LibGlobals.GLOBAL_AUCTION_CF_IMPL, address(auctionCrowdfund))
             );
             multicallData[n++] = abi.encodeCall(
                 globals.setAddress,
-                (LibGlobals.GLOBAL_BUY_CF_IMPL, address(buyCrowdfundImpl))
+                (LibGlobals.GLOBAL_BUY_CF_IMPL, address(buyCrowdfund))
             );
             multicallData[n++] = abi.encodeCall(
                 globals.setAddress,
-                (LibGlobals.GLOBAL_COLLECTION_BUY_CF_IMPL, address(collectionBuyCrowdfundImpl))
+                (LibGlobals.GLOBAL_COLLECTION_BUY_CF_IMPL, address(collectionBuyCrowdfund))
             );
             multicallData[n++] = abi.encodeCall(
                 globals.setAddress,
@@ -521,40 +518,30 @@ contract DeployScript is Script, Deploy {
         Deploy.deploy(deployConstants);
         vm.stopBroadcast();
 
-        AddressMapping[] memory addressMapping = new AddressMapping[](20);
-        addressMapping[0] = AddressMapping("globals", address(globals));
-        addressMapping[1] = AddressMapping("tokenDistributor", address(tokenDistributor));
-        addressMapping[2] = AddressMapping("seaportExchange", address(seaport));
-        addressMapping[3] = AddressMapping("proposalEngineImpl", address(proposalEngineImpl));
-        addressMapping[4] = AddressMapping("partyImpl", address(partyImpl));
-        addressMapping[5] = AddressMapping("partyFactory", address(partyFactory));
-        addressMapping[6] = AddressMapping("auctionCrowdfundImpl", address(auctionCrowdfundImpl));
-        addressMapping[7] = AddressMapping("buyCrowdfundImpl", address(buyCrowdfundImpl));
-        addressMapping[8] = AddressMapping(
-            "collectionBuyCrowdfundImpl",
-            address(collectionBuyCrowdfundImpl)
+        AddressMapping[] memory addressMapping = new AddressMapping[](16);
+        addressMapping[0] = AddressMapping("Globals", address(globals));
+        addressMapping[1] = AddressMapping("TokenDistributor", address(tokenDistributor));
+        addressMapping[2] = AddressMapping(
+            "ProposalExecutionEngine",
+            address(proposalExecutionEngine)
         );
-        addressMapping[9] = AddressMapping("partyCrowdfundFactory", address(crowdfundFactory));
-        addressMapping[10] = AddressMapping(
-            "partyCrowdfundNFTRenderer",
-            address(crowdfundNFTRenderer)
+        addressMapping[3] = AddressMapping("Party", address(party));
+        addressMapping[4] = AddressMapping("PartyFactory", address(partyFactory));
+        addressMapping[5] = AddressMapping("AuctionCrowdfund", address(auctionCrowdfund));
+        addressMapping[6] = AddressMapping("BuyCrowdfund", address(buyCrowdfund));
+        addressMapping[7] = AddressMapping(
+            "CollectionBuyCrowdfund",
+            address(collectionBuyCrowdfund)
         );
-        addressMapping[11] = AddressMapping(
-            "partyGovernanceNFTRenderer",
-            address(partyNFTRenderer)
-        );
-        addressMapping[12] = AddressMapping("partyHelpers", address(partyHelpers));
-        addressMapping[13] = AddressMapping("allowListGateKeeper", address(allowListGateKeeper));
-        addressMapping[14] = AddressMapping("tokenGateKeeper", address(tokenGateKeeper));
+        addressMapping[8] = AddressMapping("CrowdfundFactory", address(crowdfundFactory));
+        addressMapping[9] = AddressMapping("CrowdfundNFTRenderer", address(crowdfundNFTRenderer));
+        addressMapping[10] = AddressMapping("PartyNFTRenderer", address(partyNFTRenderer));
+        addressMapping[11] = AddressMapping("PartyHelpers", address(partyHelpers));
+        addressMapping[12] = AddressMapping("AllowListGateKeeper", address(allowListGateKeeper));
+        addressMapping[13] = AddressMapping("TokenGateKeeper", address(tokenGateKeeper));
+        addressMapping[14] = AddressMapping("RendererStorage", address(rendererStorage));
         addressMapping[15] = AddressMapping(
-            "foundationMarketWrapper",
-            address(foundationMarketWrapper)
-        );
-        addressMapping[16] = AddressMapping("nounsMarketWrapper", address(nounsMarketWrapper));
-        addressMapping[17] = AddressMapping("zoraMarketWrapper", address(zoraMarketWrapper));
-        addressMapping[18] = AddressMapping("rendererStorage", address(rendererStorage));
-        addressMapping[19] = AddressMapping(
-            "pixeldroidConsoleFont",
+            "PixeldroidConsoleFont",
             address(pixeldroidConsoleFont)
         );
 
