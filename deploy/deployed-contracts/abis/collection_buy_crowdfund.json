@@ -13,6 +13,22 @@
   {
     "inputs": [
       {
+        "internalType": "uint96",
+        "name": "contributions",
+        "type": "uint96"
+      },
+      {
+        "internalType": "uint96",
+        "name": "maxContributions",
+        "type": "uint96"
+      }
+    ],
+    "name": "AboveMaximumContributionsError",
+    "type": "error"
+  },
+  {
+    "inputs": [
+      {
         "internalType": "address",
         "name": "owner",
         "type": "address"
@@ -40,6 +56,22 @@
       }
     ],
     "name": "AlreadyMintedError",
+    "type": "error"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint96",
+        "name": "contributions",
+        "type": "uint96"
+      },
+      {
+        "internalType": "uint96",
+        "name": "minContributions",
+        "type": "uint96"
+      }
+    ],
+    "name": "BelowMinimumContributionsError",
     "type": "error"
   },
   {
@@ -120,6 +152,11 @@
       }
     ],
     "name": "InvalidBpsError",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "InvalidContributorError",
     "type": "error"
   },
   {
@@ -377,6 +414,12 @@
       {
         "indexed": false,
         "internalType": "address",
+        "name": "sender",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "address",
         "name": "contributor",
         "type": "address"
       },
@@ -475,15 +518,15 @@
       },
       {
         "indexed": false,
-        "internalType": "contract IERC721",
-        "name": "token",
-        "type": "address"
+        "internalType": "contract IERC721[]",
+        "name": "tokens",
+        "type": "address[]"
       },
       {
         "indexed": false,
-        "internalType": "uint256",
-        "name": "tokenId",
-        "type": "uint256"
+        "internalType": "uint256[]",
+        "name": "tokenIds",
+        "type": "uint256[]"
       },
       {
         "indexed": false,
@@ -592,6 +635,39 @@
     "name": "batchBurn",
     "outputs": [],
     "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address[]",
+        "name": "recipients",
+        "type": "address[]"
+      },
+      {
+        "internalType": "address[]",
+        "name": "initialDelegates",
+        "type": "address[]"
+      },
+      {
+        "internalType": "uint256[]",
+        "name": "values",
+        "type": "uint256[]"
+      },
+      {
+        "internalType": "bytes[]",
+        "name": "gateDatas",
+        "type": "bytes[]"
+      },
+      {
+        "internalType": "bool",
+        "name": "revertOnFailure",
+        "type": "bool"
+      }
+    ],
+    "name": "batchContributeFor",
+    "outputs": [],
+    "stateMutability": "payable",
     "type": "function"
   },
   {
@@ -747,6 +823,29 @@
       }
     ],
     "name": "contribute",
+    "outputs": [],
+    "stateMutability": "payable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "recipient",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "initialDelegate",
+        "type": "address"
+      },
+      {
+        "internalType": "bytes",
+        "name": "gateData",
+        "type": "bytes"
+      }
+    ],
+    "name": "contributeFor",
     "outputs": [],
     "stateMutability": "payable",
     "type": "function"
@@ -1047,6 +1146,16 @@
             "type": "address"
           },
           {
+            "internalType": "uint96",
+            "name": "minContribution",
+            "type": "uint96"
+          },
+          {
+            "internalType": "uint96",
+            "name": "maxContribution",
+            "type": "uint96"
+          },
+          {
             "internalType": "contract IGateKeeper",
             "name": "gateKeeper",
             "type": "address"
@@ -1130,7 +1239,33 @@
   },
   {
     "inputs": [],
+    "name": "maxContribution",
+    "outputs": [
+      {
+        "internalType": "uint96",
+        "name": "",
+        "type": "uint96"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
     "name": "maximumPrice",
+    "outputs": [
+      {
+        "internalType": "uint96",
+        "name": "",
+        "type": "uint96"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "minContribution",
     "outputs": [
       {
         "internalType": "uint96",

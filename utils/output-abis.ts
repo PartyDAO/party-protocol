@@ -11,7 +11,6 @@ const RELEVANT_ABIS = [
   "CrowdfundFactory",
   "PartyFactory",
   "PartyGovernance",
-  "PartyGovernanceNFT",
   "PartyHelpers",
   "ProposalExecutionEngine",
   "TokenDistributor",

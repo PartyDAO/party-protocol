@@ -87,6 +87,16 @@
             "type": "address"
           },
           {
+            "internalType": "uint96",
+            "name": "minContribution",
+            "type": "uint96"
+          },
+          {
+            "internalType": "uint96",
+            "name": "maxContribution",
+            "type": "uint96"
+          },
+          {
             "internalType": "contract IGateKeeper",
             "name": "gateKeeper",
             "type": "address"
@@ -140,7 +150,7 @@
           }
         ],
         "indexed": false,
-        "internalType": "struct AuctionCrowdfund.AuctionCrowdfundOptions",
+        "internalType": "struct AuctionCrowdfundBase.AuctionCrowdfundOptions",
         "name": "opts",
         "type": "tuple"
       }
@@ -215,6 +225,16 @@
             "type": "address"
           },
           {
+            "internalType": "uint96",
+            "name": "minContribution",
+            "type": "uint96"
+          },
+          {
+            "internalType": "uint96",
+            "name": "maxContribution",
+            "type": "uint96"
+          },
+          {
             "internalType": "contract IGateKeeper",
             "name": "gateKeeper",
             "type": "address"
@@ -281,6 +301,139 @@
     "inputs": [
       {
         "indexed": false,
+        "internalType": "contract CollectionBatchBuyCrowdfund",
+        "name": "crowdfund",
+        "type": "address"
+      },
+      {
+        "components": [
+          {
+            "internalType": "string",
+            "name": "name",
+            "type": "string"
+          },
+          {
+            "internalType": "string",
+            "name": "symbol",
+            "type": "string"
+          },
+          {
+            "internalType": "uint256",
+            "name": "customizationPresetId",
+            "type": "uint256"
+          },
+          {
+            "internalType": "contract IERC721",
+            "name": "nftContract",
+            "type": "address"
+          },
+          {
+            "internalType": "bytes32",
+            "name": "nftTokenIdsMerkleRoot",
+            "type": "bytes32"
+          },
+          {
+            "internalType": "uint40",
+            "name": "duration",
+            "type": "uint40"
+          },
+          {
+            "internalType": "uint96",
+            "name": "maximumPrice",
+            "type": "uint96"
+          },
+          {
+            "internalType": "address payable",
+            "name": "splitRecipient",
+            "type": "address"
+          },
+          {
+            "internalType": "uint16",
+            "name": "splitBps",
+            "type": "uint16"
+          },
+          {
+            "internalType": "address",
+            "name": "initialContributor",
+            "type": "address"
+          },
+          {
+            "internalType": "address",
+            "name": "initialDelegate",
+            "type": "address"
+          },
+          {
+            "internalType": "uint96",
+            "name": "minContribution",
+            "type": "uint96"
+          },
+          {
+            "internalType": "uint96",
+            "name": "maxContribution",
+            "type": "uint96"
+          },
+          {
+            "internalType": "contract IGateKeeper",
+            "name": "gateKeeper",
+            "type": "address"
+          },
+          {
+            "internalType": "bytes12",
+            "name": "gateKeeperId",
+            "type": "bytes12"
+          },
+          {
+            "components": [
+              {
+                "internalType": "address[]",
+                "name": "hosts",
+                "type": "address[]"
+              },
+              {
+                "internalType": "uint40",
+                "name": "voteDuration",
+                "type": "uint40"
+              },
+              {
+                "internalType": "uint40",
+                "name": "executionDelay",
+                "type": "uint40"
+              },
+              {
+                "internalType": "uint16",
+                "name": "passThresholdBps",
+                "type": "uint16"
+              },
+              {
+                "internalType": "uint16",
+                "name": "feeBps",
+                "type": "uint16"
+              },
+              {
+                "internalType": "address payable",
+                "name": "feeRecipient",
+                "type": "address"
+              }
+            ],
+            "internalType": "struct Crowdfund.FixedGovernanceOpts",
+            "name": "governanceOpts",
+            "type": "tuple"
+          }
+        ],
+        "indexed": false,
+        "internalType": "struct CollectionBatchBuyCrowdfund.CollectionBatchBuyCrowdfundOptions",
+        "name": "opts",
+        "type": "tuple"
+      }
+    ],
+    "name": "CollectionBatchBuyCrowdfundCreated",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": false,
         "internalType": "contract CollectionBuyCrowdfund",
         "name": "crowdfund",
         "type": "address"
@@ -338,6 +491,16 @@
             "type": "address"
           },
           {
+            "internalType": "uint96",
+            "name": "minContribution",
+            "type": "uint96"
+          },
+          {
+            "internalType": "uint96",
+            "name": "maxContribution",
+            "type": "uint96"
+          },
+          {
             "internalType": "contract IGateKeeper",
             "name": "gateKeeper",
             "type": "address"
@@ -392,6 +555,159 @@
       }
     ],
     "name": "CollectionBuyCrowdfundCreated",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": false,
+        "internalType": "contract RollingAuctionCrowdfund",
+        "name": "crowdfund",
+        "type": "address"
+      },
+      {
+        "components": [
+          {
+            "internalType": "string",
+            "name": "name",
+            "type": "string"
+          },
+          {
+            "internalType": "string",
+            "name": "symbol",
+            "type": "string"
+          },
+          {
+            "internalType": "uint256",
+            "name": "customizationPresetId",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "auctionId",
+            "type": "uint256"
+          },
+          {
+            "internalType": "contract IMarketWrapper",
+            "name": "market",
+            "type": "address"
+          },
+          {
+            "internalType": "contract IERC721",
+            "name": "nftContract",
+            "type": "address"
+          },
+          {
+            "internalType": "uint256",
+            "name": "nftTokenId",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint40",
+            "name": "duration",
+            "type": "uint40"
+          },
+          {
+            "internalType": "uint96",
+            "name": "maximumBid",
+            "type": "uint96"
+          },
+          {
+            "internalType": "address payable",
+            "name": "splitRecipient",
+            "type": "address"
+          },
+          {
+            "internalType": "uint16",
+            "name": "splitBps",
+            "type": "uint16"
+          },
+          {
+            "internalType": "address",
+            "name": "initialContributor",
+            "type": "address"
+          },
+          {
+            "internalType": "address",
+            "name": "initialDelegate",
+            "type": "address"
+          },
+          {
+            "internalType": "uint96",
+            "name": "minContribution",
+            "type": "uint96"
+          },
+          {
+            "internalType": "uint96",
+            "name": "maxContribution",
+            "type": "uint96"
+          },
+          {
+            "internalType": "contract IGateKeeper",
+            "name": "gateKeeper",
+            "type": "address"
+          },
+          {
+            "internalType": "bytes12",
+            "name": "gateKeeperId",
+            "type": "bytes12"
+          },
+          {
+            "internalType": "bool",
+            "name": "onlyHostCanBid",
+            "type": "bool"
+          },
+          {
+            "internalType": "bytes32",
+            "name": "allowedAuctionsMerkleRoot",
+            "type": "bytes32"
+          },
+          {
+            "components": [
+              {
+                "internalType": "address[]",
+                "name": "hosts",
+                "type": "address[]"
+              },
+              {
+                "internalType": "uint40",
+                "name": "voteDuration",
+                "type": "uint40"
+              },
+              {
+                "internalType": "uint40",
+                "name": "executionDelay",
+                "type": "uint40"
+              },
+              {
+                "internalType": "uint16",
+                "name": "passThresholdBps",
+                "type": "uint16"
+              },
+              {
+                "internalType": "uint16",
+                "name": "feeBps",
+                "type": "uint16"
+              },
+              {
+                "internalType": "address payable",
+                "name": "feeRecipient",
+                "type": "address"
+              }
+            ],
+            "internalType": "struct Crowdfund.FixedGovernanceOpts",
+            "name": "governanceOpts",
+            "type": "tuple"
+          }
+        ],
+        "indexed": false,
+        "internalType": "struct RollingAuctionCrowdfund.RollingAuctionCrowdfundOptions",
+        "name": "opts",
+        "type": "tuple"
+      }
+    ],
+    "name": "RollingAuctionCrowdfundCreated",
     "type": "event"
   },
   {
@@ -464,6 +780,16 @@
             "type": "address"
           },
           {
+            "internalType": "uint96",
+            "name": "minContribution",
+            "type": "uint96"
+          },
+          {
+            "internalType": "uint96",
+            "name": "maxContribution",
+            "type": "uint96"
+          },
+          {
             "internalType": "contract IGateKeeper",
             "name": "gateKeeper",
             "type": "address"
@@ -516,7 +842,7 @@
             "type": "tuple"
           }
         ],
-        "internalType": "struct AuctionCrowdfund.AuctionCrowdfundOptions",
+        "internalType": "struct AuctionCrowdfundBase.AuctionCrowdfundOptions",
         "name": "opts",
         "type": "tuple"
       },
@@ -595,6 +921,16 @@
             "internalType": "address",
             "name": "initialDelegate",
             "type": "address"
+          },
+          {
+            "internalType": "uint96",
+            "name": "minContribution",
+            "type": "uint96"
+          },
+          {
+            "internalType": "uint96",
+            "name": "maxContribution",
+            "type": "uint96"
           },
           {
             "internalType": "contract IGateKeeper",
@@ -695,6 +1031,11 @@
             "type": "address"
           },
           {
+            "internalType": "bytes32",
+            "name": "nftTokenIdsMerkleRoot",
+            "type": "bytes32"
+          },
+          {
             "internalType": "uint40",
             "name": "duration",
             "type": "uint40"
@@ -723,6 +1064,149 @@
             "internalType": "address",
             "name": "initialDelegate",
             "type": "address"
+          },
+          {
+            "internalType": "uint96",
+            "name": "minContribution",
+            "type": "uint96"
+          },
+          {
+            "internalType": "uint96",
+            "name": "maxContribution",
+            "type": "uint96"
+          },
+          {
+            "internalType": "contract IGateKeeper",
+            "name": "gateKeeper",
+            "type": "address"
+          },
+          {
+            "internalType": "bytes12",
+            "name": "gateKeeperId",
+            "type": "bytes12"
+          },
+          {
+            "components": [
+              {
+                "internalType": "address[]",
+                "name": "hosts",
+                "type": "address[]"
+              },
+              {
+                "internalType": "uint40",
+                "name": "voteDuration",
+                "type": "uint40"
+              },
+              {
+                "internalType": "uint40",
+                "name": "executionDelay",
+                "type": "uint40"
+              },
+              {
+                "internalType": "uint16",
+                "name": "passThresholdBps",
+                "type": "uint16"
+              },
+              {
+                "internalType": "uint16",
+                "name": "feeBps",
+                "type": "uint16"
+              },
+              {
+                "internalType": "address payable",
+                "name": "feeRecipient",
+                "type": "address"
+              }
+            ],
+            "internalType": "struct Crowdfund.FixedGovernanceOpts",
+            "name": "governanceOpts",
+            "type": "tuple"
+          }
+        ],
+        "internalType": "struct CollectionBatchBuyCrowdfund.CollectionBatchBuyCrowdfundOptions",
+        "name": "opts",
+        "type": "tuple"
+      },
+      {
+        "internalType": "bytes",
+        "name": "createGateCallData",
+        "type": "bytes"
+      }
+    ],
+    "name": "createCollectionBatchBuyCrowdfund",
+    "outputs": [
+      {
+        "internalType": "contract CollectionBatchBuyCrowdfund",
+        "name": "inst",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "payable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "components": [
+          {
+            "internalType": "string",
+            "name": "name",
+            "type": "string"
+          },
+          {
+            "internalType": "string",
+            "name": "symbol",
+            "type": "string"
+          },
+          {
+            "internalType": "uint256",
+            "name": "customizationPresetId",
+            "type": "uint256"
+          },
+          {
+            "internalType": "contract IERC721",
+            "name": "nftContract",
+            "type": "address"
+          },
+          {
+            "internalType": "uint40",
+            "name": "duration",
+            "type": "uint40"
+          },
+          {
+            "internalType": "uint96",
+            "name": "maximumPrice",
+            "type": "uint96"
+          },
+          {
+            "internalType": "address payable",
+            "name": "splitRecipient",
+            "type": "address"
+          },
+          {
+            "internalType": "uint16",
+            "name": "splitBps",
+            "type": "uint16"
+          },
+          {
+            "internalType": "address",
+            "name": "initialContributor",
+            "type": "address"
+          },
+          {
+            "internalType": "address",
+            "name": "initialDelegate",
+            "type": "address"
+          },
+          {
+            "internalType": "uint96",
+            "name": "minContribution",
+            "type": "uint96"
+          },
+          {
+            "internalType": "uint96",
+            "name": "maxContribution",
+            "type": "uint96"
           },
           {
             "internalType": "contract IGateKeeper",
@@ -786,6 +1270,164 @@
     "outputs": [
       {
         "internalType": "contract CollectionBuyCrowdfund",
+        "name": "inst",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "payable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "components": [
+          {
+            "internalType": "string",
+            "name": "name",
+            "type": "string"
+          },
+          {
+            "internalType": "string",
+            "name": "symbol",
+            "type": "string"
+          },
+          {
+            "internalType": "uint256",
+            "name": "customizationPresetId",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "auctionId",
+            "type": "uint256"
+          },
+          {
+            "internalType": "contract IMarketWrapper",
+            "name": "market",
+            "type": "address"
+          },
+          {
+            "internalType": "contract IERC721",
+            "name": "nftContract",
+            "type": "address"
+          },
+          {
+            "internalType": "uint256",
+            "name": "nftTokenId",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint40",
+            "name": "duration",
+            "type": "uint40"
+          },
+          {
+            "internalType": "uint96",
+            "name": "maximumBid",
+            "type": "uint96"
+          },
+          {
+            "internalType": "address payable",
+            "name": "splitRecipient",
+            "type": "address"
+          },
+          {
+            "internalType": "uint16",
+            "name": "splitBps",
+            "type": "uint16"
+          },
+          {
+            "internalType": "address",
+            "name": "initialContributor",
+            "type": "address"
+          },
+          {
+            "internalType": "address",
+            "name": "initialDelegate",
+            "type": "address"
+          },
+          {
+            "internalType": "uint96",
+            "name": "minContribution",
+            "type": "uint96"
+          },
+          {
+            "internalType": "uint96",
+            "name": "maxContribution",
+            "type": "uint96"
+          },
+          {
+            "internalType": "contract IGateKeeper",
+            "name": "gateKeeper",
+            "type": "address"
+          },
+          {
+            "internalType": "bytes12",
+            "name": "gateKeeperId",
+            "type": "bytes12"
+          },
+          {
+            "internalType": "bool",
+            "name": "onlyHostCanBid",
+            "type": "bool"
+          },
+          {
+            "internalType": "bytes32",
+            "name": "allowedAuctionsMerkleRoot",
+            "type": "bytes32"
+          },
+          {
+            "components": [
+              {
+                "internalType": "address[]",
+                "name": "hosts",
+                "type": "address[]"
+              },
+              {
+                "internalType": "uint40",
+                "name": "voteDuration",
+                "type": "uint40"
+              },
+              {
+                "internalType": "uint40",
+                "name": "executionDelay",
+                "type": "uint40"
+              },
+              {
+                "internalType": "uint16",
+                "name": "passThresholdBps",
+                "type": "uint16"
+              },
+              {
+                "internalType": "uint16",
+                "name": "feeBps",
+                "type": "uint16"
+              },
+              {
+                "internalType": "address payable",
+                "name": "feeRecipient",
+                "type": "address"
+              }
+            ],
+            "internalType": "struct Crowdfund.FixedGovernanceOpts",
+            "name": "governanceOpts",
+            "type": "tuple"
+          }
+        ],
+        "internalType": "struct RollingAuctionCrowdfund.RollingAuctionCrowdfundOptions",
+        "name": "opts",
+        "type": "tuple"
+      },
+      {
+        "internalType": "bytes",
+        "name": "createGateCallData",
+        "type": "bytes"
+      }
+    ],
+    "name": "createRollingAuctionCrowdfund",
+    "outputs": [
+      {
+        "internalType": "contract RollingAuctionCrowdfund",
         "name": "inst",
         "type": "address"
       }

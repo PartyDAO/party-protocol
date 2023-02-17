@@ -128,7 +128,7 @@
         "type": "bytes32"
       },
       {
-        "internalType": "contract IERC721",
+        "internalType": "address",
         "name": "token",
         "type": "address"
       },
@@ -336,12 +336,6 @@
         "internalType": "contract IERC20",
         "name": "vault",
         "type": "address"
-      },
-      {
-        "indexed": false,
-        "internalType": "uint256",
-        "name": "listPrice",
-        "type": "uint256"
       }
     ],
     "name": "FractionalV1VaultCreated",
@@ -358,7 +352,7 @@
       },
       {
         "indexed": false,
-        "internalType": "contract IERC721",
+        "internalType": "address",
         "name": "token",
         "type": "address"
       },
@@ -511,7 +505,7 @@
       },
       {
         "indexed": false,
-        "internalType": "contract IERC721",
+        "internalType": "address",
         "name": "token",
         "type": "address"
       },
@@ -524,7 +518,13 @@
       {
         "indexed": false,
         "internalType": "uint256",
-        "name": "listPrice",
+        "name": "startPrice",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "endPrice",
         "type": "uint256"
       },
       {
@@ -548,7 +548,7 @@
       },
       {
         "indexed": false,
-        "internalType": "contract IERC721",
+        "internalType": "address",
         "name": "token",
         "type": "address"
       },
@@ -561,7 +561,13 @@
       {
         "indexed": false,
         "internalType": "uint256",
-        "name": "listPrice",
+        "name": "startPrice",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "endPrice",
         "type": "uint256"
       }
     ],

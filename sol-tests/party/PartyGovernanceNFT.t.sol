@@ -418,7 +418,7 @@ contract DummyParty is ReadOnlyDelegateCall {
     mapping(address => PartyGovernance.VotingPowerSnapshot[]) private _votingPowerSnapshotsByVoter;
     string public name;
     string public symbol;
-    mapping(uint256 => address) internal _ownerOf;
+    mapping(uint256 => address) public ownerOf;
     mapping(address => uint256) internal _balanceOf;
     mapping(uint256 => address) public getApproved;
     mapping(address => mapping(address => bool)) public isApprovedForAll;
@@ -450,7 +450,7 @@ contract DummyParty is ReadOnlyDelegateCall {
 
     function mint(uint256 tokenId) external {
         _balanceOf[msg.sender]++;
-        _ownerOf[tokenId] = msg.sender;
+        ownerOf[tokenId] = msg.sender;
     }
 
     function createMockProposal(PartyGovernance.ProposalStatus status) external {
