@@ -645,6 +645,9 @@ abstract contract Crowdfund is Implementation, ERC721Receiver, CrowdfundNFT {
         if (ethContributed + amount > maxContribution) {
             revert AboveMaximumContributionsError(ethContributed + amount, maxContribution);
         }
+
+        emit Contributed(msg.sender, contributor, amount, delegate, previousTotalContributions);
+
         if (numContributions >= 1) {
             Contribution memory lastContribution = contributions[numContributions - 1];
             // If no one else (other than this contributor) has contributed since,
@@ -654,22 +657,17 @@ abstract contract Crowdfund is Implementation, ERC721Receiver, CrowdfundNFT {
             if (totalContributionsAmountForReuse == previousTotalContributions) {
                 lastContribution.amount += amount;
                 contributions[numContributions - 1] = lastContribution;
-            }
-        } else {
-            // Add a new contribution entry.
-            contributions.push(
-                Contribution({
-                    previousTotalContributions: previousTotalContributions,
-                    amount: amount
-                })
-            );
-            // Mint a participation NFT if this is their first contribution.
-            if (numContributions == 0) {
-                _mint(contributor);
+                return;
             }
         }
-
-        emit Contributed(msg.sender, contributor, amount, delegate, previousTotalContributions);
+        // Add a new contribution entry.
+        contributions.push(
+            Contribution({ previousTotalContributions: previousTotalContributions, amount: amount })
+        );
+        // Mint a participation NFT if this is their first contribution.
+        if (numContributions == 0) {
+            _mint(contributor);
+        }
     }
 
     function _burn(address payable contributor, CrowdfundLifecycle lc, Party party_) private {
