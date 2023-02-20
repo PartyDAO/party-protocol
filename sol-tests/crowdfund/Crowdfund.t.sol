@@ -982,8 +982,12 @@ contract CrowdfundTest is Test, TestUtils {
         assertEq(cf.getContributionEntriesByContributorCount(contributor1), 1);
         //rageQuit crowdfund.
         cf.rageQuit(contributor1);
+        //check cf.totalContributions is correct.
+        assertEq(cf.totalContributions(), 1);
         //check that contributor's ETH was returned.
         assertEq(contributor1.balance, 3);
+        //check that contributions associated with contributor have been reset.
+        assertEq(cf.getContributionEntriesByContributorCount(contributor1), 0);
     }
 
     //Two contributions, contributor doesn't recieve extra ETH on second withdraw.
