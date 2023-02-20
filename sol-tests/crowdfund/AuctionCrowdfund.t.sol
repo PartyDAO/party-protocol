@@ -36,8 +36,7 @@ contract AuctionCrowdfundTest is Test, TestUtils {
         address contributor,
         uint256 amount,
         address delegate,
-        uint256 previousTotalContributions,
-        uint256 previousTotalContributionsWithdrawn
+        uint256 previousTotalContributions
     );
     event Won(uint256 bid, Party party);
     event Lost();
@@ -708,7 +707,7 @@ contract AuctionCrowdfundTest is Test, TestUtils {
         address initialContributor = _randomAddress();
         address initialDelegate = _randomAddress();
         vm.deal(address(this), initialContribution);
-        emit Contributed(initialContributor, initialContribution, initialDelegate, 0, 0);
+        emit Contributed(initialContributor, initialContribution, initialDelegate, 0);
         AuctionCrowdfund(
             payable(
                 address(
@@ -754,7 +753,6 @@ contract AuctionCrowdfundTest is Test, TestUtils {
         uint256 amount
     ) private {
         uint256 previousTotalContributions = cf.totalContributions();
-        uint256 previousTotalContributionsWithdrawn = 0;
         vm.deal(contributor, amount);
         vm.prank(contributor);
         _expectEmit0();
@@ -762,8 +760,7 @@ contract AuctionCrowdfundTest is Test, TestUtils {
             contributor,
             amount,
             delegate,
-            previousTotalContributions,
-            previousTotalContributionsWithdrawn
+            previousTotalContributions
         );
         cf.contribute{ value: amount }(delegate, "");
     }

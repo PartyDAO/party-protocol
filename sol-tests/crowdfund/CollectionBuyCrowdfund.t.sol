@@ -30,8 +30,7 @@ contract CollectionBuyCrowdfundTest is Test, TestUtils {
         address contributor,
         uint256 amount,
         address delegate,
-        uint256 previousTotalContributions,
-        uint256 previousToatalContributionsWithdrawn
+        uint256 previousTotalContributions
     );
 
     string defaultName = "CollectionBuyCrowdfund";
@@ -232,7 +231,7 @@ contract CollectionBuyCrowdfundTest is Test, TestUtils {
         defaultGovernanceOpts.hosts = _toAddressArray(_randomAddress());
         vm.deal(address(this), initialContribution);
         _expectEmit0();
-        emit Contributed(initialContributor, initialContribution, initialDelegate, 0, 0);
+        emit Contributed(initialContributor, initialContribution, initialDelegate, 0);
         CollectionBuyCrowdfund(
             payable(
                 address(

@@ -69,8 +69,6 @@ abstract contract Crowdfund is Implementation, ERC721Receiver, CrowdfundNFT {
         uint96 previousTotalContributions;
         // How much was this contribution.
         uint96 amount;
-        // The value of contributions withdrawn when users rage quit (withdraw their contribution).
-        uint96 previousTotalContributionsWithdrawn;
     }
 
     // A record of the refund and governance NFT owed to a contributor if it
@@ -107,8 +105,7 @@ abstract contract Crowdfund is Implementation, ERC721Receiver, CrowdfundNFT {
         address contributor,
         uint256 amount,
         address delegate,
-        uint256 previousTotalContributions,
-        uint256 previousTotalContributionsWithdrawn
+        uint256 previousTotalContributions
     );
     event ContributorRageQuit(address contributor, uint256 ethWithdrawn);
     event EmergencyExecute(address target, bytes data, uint256 amountEth);
@@ -183,7 +180,7 @@ abstract contract Crowdfund is Implementation, ERC721Receiver, CrowdfundNFT {
         if (initialContribution > 0) {
             // If this contract has ETH, either passed in during deployment or
             // pre-existing, credit it to the `initialContributor`.
-            _contribute(opts.initialContributor, initialContribution, opts.initialDelegate, 0, 0, "");
+            _contribute(opts.initialContributor, initialContribution, opts.initialDelegate, 0, "");
         }
         // Set up gatekeeper after initial contribution (initial always gets in).
         gateKeeper = opts.gateKeeper;
@@ -313,15 +310,38 @@ abstract contract Crowdfund is Implementation, ERC721Receiver, CrowdfundNFT {
             // is unattributed/unclaimable, meaning that party will never be
             // able to reach 100% consensus.
             totalContributions,
-            totalContributionsWithdrawn,
             gateData
         );
     }
 
     ///@notice Withdraw the funds of a contributor before a crowdfund is finalized.
-    /// @param contributor The address to receive the refund.
-    function rageQuit(address payable contributor) public onlyDelegateCall {
+    //Allows contributor to rage quit before crowdfund is finalized.
+
+    function rageQuit(address payable contributor) public {
         _rageQuit(contributor);
+    } 
+    function _rageQuit(address payable contributor) private {
+        // Only allow rage quit while the crowdfund is active.
+        CrowdfundLifecycle lc = getCrowdfundLifecycle();
+            if (lc != CrowdfundLifecycle.Active) {
+                    revert WrongLifecycleError(lc);
+            }
+        //get the user's contribution amount.
+        uint256 amountToRefund = _getCurrentContribution(contributor);
+        // Add to withdrawn funds
+        totalContributionsWithdrawn += amountToRefund.safeCastUint256ToUint96();
+        // Burn user's participation NFT
+        CrowdfundNFT._burn(contributor);
+        // Remove contributions entry for this contributor.
+        delete _contributionsByContributor[contributor];
+        //return the contribution amount.
+        (bool s, ) = contributor.call{ value: amountToRefund }("");
+        if (!s) {
+            // If the transfer fails, the contributor can still come claim it
+            // from the crowdfund.
+            claims[contributor].refund = amountToRefund;
+        }
+        emit ContributorRageQuit(contributor, amountToRefund);
     }
 
     /// @inheritdoc EIP165
@@ -510,15 +530,22 @@ abstract contract Crowdfund is Implementation, ERC721Receiver, CrowdfundNFT {
         {
             Contribution[] memory contributions = _contributionsByContributor[contributor];
             uint256 numContributions = contributions.length;
+            CrowdfundLifecycle lc = getCrowdfundLifecycle();
+
             for (uint256 i; i < numContributions; ++i) {
                 Contribution memory c = contributions[i];
-                // if (totalContributionsWithdrawn > c.previousTotalContributions) {
-                //     // This entire contribution was used.
-                //     ethUsed += c.amount;
-                 if (c.previousTotalContributions - c.previousTotalContributionsWithdrawn >= totalEthUsed) {
+                if (totalContributionsWithdrawn > c.previousTotalContributions) {
+                    // If crowd fund was lost, entire contribution was not used. 
+                    if (lc == CrowdfundLifecycle.Lost) {
+                        ethOwed += c.amount;
+                    } else {
+                        // This entire contribution was used.
+                        ethUsed += c.amount;
+                    }
+                } else if (c.previousTotalContributions - totalContributionsWithdrawn>= totalEthUsed) {
                     // This entire contribution was not used.
                     ethOwed += c.amount;
-                } else if (c.previousTotalContributions - c.previousTotalContributionsWithdrawn + c.amount <= totalEthUsed) {
+                } else if (c.previousTotalContributions - totalContributionsWithdrawn + c.amount <= totalEthUsed) {
                     // This entire contribution was used.
                     ethUsed += c.amount;
                 }  else if (totalContributionsWithdrawn > c.previousTotalContributions) {
@@ -526,7 +553,7 @@ abstract contract Crowdfund is Implementation, ERC721Receiver, CrowdfundNFT {
                     ethUsed += c.amount;
                 } else {
                     // This contribution was partially used.
-                    uint256 partialEthUsed = totalEthUsed - c.previousTotalContributions + c.previousTotalContributionsWithdrawn;
+                    uint256 partialEthUsed = totalEthUsed - c.previousTotalContributions + totalContributionsWithdrawn;
                     ethUsed += partialEthUsed;
                     ethOwed = c.amount - partialEthUsed;
                 }
@@ -551,7 +578,6 @@ abstract contract Crowdfund is Implementation, ERC721Receiver, CrowdfundNFT {
         uint96 amount,
         address delegate,
         uint96 previousTotalContributions,
-        uint96 previousTotalContributionsWithdrawn,
         bytes memory gateData
     ) private {
         // Require a non-null delegate.
@@ -574,7 +600,7 @@ abstract contract Crowdfund is Implementation, ERC721Receiver, CrowdfundNFT {
         // Update delegate.
         // OK if this happens out of cycle.
         delegationsByContributor[contributor] = delegate;
-        emit Contributed(contributor, amount, delegate, previousTotalContributions, previousTotalContributionsWithdrawn );
+        emit Contributed(contributor, amount, delegate, previousTotalContributions);
 
         // OK to contribute with zero just to update delegate.
         if (amount != 0) {
@@ -606,8 +632,7 @@ abstract contract Crowdfund is Implementation, ERC721Receiver, CrowdfundNFT {
             contributions.push(
                 Contribution({
                     previousTotalContributions: previousTotalContributions,
-                    amount: amount,
-                    previousTotalContributionsWithdrawn: totalContributionsWithdrawn
+                    amount: amount
                 })
             );
             // Mint a participation NFT if this is their first contribution.
@@ -615,31 +640,6 @@ abstract contract Crowdfund is Implementation, ERC721Receiver, CrowdfundNFT {
                 _mint(contributor);
             }
         }
-    }
-
-    //Allows contributor to rage quit before crowdfund is finalized.
-    function _rageQuit(address payable contributor) private {
-        // Only allow rage quit while the crowdfund is active.
-        CrowdfundLifecycle lc = getCrowdfundLifecycle();
-            if (lc != CrowdfundLifecycle.Active) {
-                    revert WrongLifecycleError(lc);
-            }
-        //get the user's contribution amount.
-        uint256 amountToRefund = _getCurrentContribution(contributor);
-        // Add to withdrawn funds
-        totalContributionsWithdrawn += amountToRefund.safeCastUint256ToUint96();
-        // Burn user's participation NFT
-        CrowdfundNFT._burn(contributor);
-        // Remove contributions entry for this contributor.
-        delete _contributionsByContributor[contributor];
-        //return the contribution amount.
-        (bool s, ) = contributor.call{ value: amountToRefund }("");
-        if (!s) {
-            // If the transfer fails, the contributor can still come claim it
-            // from the crowdfund.
-            claims[contributor].refund = amountToRefund;
-        }
-        emit ContributorRageQuit(contributor, amountToRefund);
     }
 
     function _burn(address payable contributor, CrowdfundLifecycle lc, Party party_) private {
