@@ -316,12 +316,9 @@ abstract contract Crowdfund is Implementation, ERC721Receiver, CrowdfundNFT {
 
     ///@notice Withdraw the funds of a contributor before a crowdfund is finalized.
     //Allows contributor to rage quit before crowdfund is finalized.
-
-    function rageQuit(address payable contributor) public {
-        _rageQuit(contributor);
-    } 
-    function _rageQuit(address payable contributor) private {
+    function rageQuit() public onlyDelegateCall {
         // Only allow rage quit while the crowdfund is active.
+        address payable contributor = payable(msg.sender);
         CrowdfundLifecycle lc = getCrowdfundLifecycle();
             if (lc != CrowdfundLifecycle.Active) {
                     revert WrongLifecycleError(lc);

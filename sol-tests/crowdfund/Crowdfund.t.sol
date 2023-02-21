@@ -981,7 +981,8 @@ contract CrowdfundTest is Test, TestUtils {
         assertEq(cf.totalContributions(), 1);
         assertEq(cf.getContributionEntriesByContributorCount(contributor1), 1);
         //rageQuit crowdfund.
-        cf.rageQuit(contributor1);
+        vm.prank(contributor1);
+        cf.rageQuit();
         //check cf.totalContributions is correct.
         assertEq(cf.totalContributions(), 1);
         //check that contributor's ETH was returned.
@@ -1002,7 +1003,8 @@ contract CrowdfundTest is Test, TestUtils {
         assertEq(cf.totalContributions(), 1);
         assertEq(cf.getContributionEntriesByContributorCount(contributor1), 1);
         //rageQuit crowdfund.
-        cf.rageQuit(contributor1);
+        vm.prank(contributor1);
+        cf.rageQuit();
         //check that contributor's eth was returned.
         assertEq(contributor1.balance, 3);
         //contributor2 contributes
@@ -1018,7 +1020,7 @@ contract CrowdfundTest is Test, TestUtils {
                 uint256(uint160(address(contributor1)))
             )
         );
-        cf.rageQuit(contributor1);
+        cf.rageQuit();
         //check contributor balance does not increase.
         assertEq(contributor1.balance, 3);
     }
@@ -1038,7 +1040,8 @@ contract CrowdfundTest is Test, TestUtils {
         cf.contribute{ value: contributor2.balance }(delegate1, "");
         assertEq(cf.totalContributions(), 16e18);
         // contributor2 withdraws ETH
-        cf.rageQuit(contributor2);
+        vm.prank(contributor2);
+        cf.rageQuit();
         assertEq(contributor2.balance, 1e18);
         // set up a win using contributor1's total contribution
         (IERC721[] memory erc721Tokens, uint256[] memory erc721TokenIds) = _createTokens(
@@ -1088,7 +1091,7 @@ contract CrowdfundTest is Test, TestUtils {
         //contributor2 withdraws 10 ETH
         vm.prank(contributor2);
         // emit ContributorRageQuit(contributor2, 10e18);
-        cf.rageQuit(contributor2);
+        cf.rageQuit();
         vm.prank(contributor3);
         //contributor3 contributes additional .5 ETH
         cf.contribute{ value: 0.5e18 }(delegate3, "");
