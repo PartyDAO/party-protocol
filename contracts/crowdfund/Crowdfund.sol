@@ -107,6 +107,7 @@ abstract contract Crowdfund is Implementation, ERC721Receiver, CrowdfundNFT {
         address delegate,
         uint256 previousTotalContributions
     );
+    event ContributorRageQuit(address contributor, uint256 ethWithdrawn);
     event EmergencyExecute(address target, bytes data, uint256 amountEth);
     event EmergencyExecuteDisabled();
 
@@ -148,6 +149,8 @@ abstract contract Crowdfund is Implementation, ERC721Receiver, CrowdfundNFT {
     mapping(address => Claim) public claims;
     /// @notice Whether the DAO has emergency powers for this party.
     bool public emergencyExecuteDisabled;
+    /// @notice The total contributions removed by users rage quitting.
+    uint96 public totalContributionsWithdrawn;
 
     // Set the `Globals` contract.
     constructor(IGlobals globals) CrowdfundNFT(globals) {
@@ -309,6 +312,33 @@ abstract contract Crowdfund is Implementation, ERC721Receiver, CrowdfundNFT {
             totalContributions,
             gateData
         );
+    }
+
+    ///@notice Withdraw the funds of a contributor before a crowdfund is finalized.
+    //Allows contributor to rage quit before crowdfund is finalized.
+    function rageQuit() public onlyDelegateCall {
+        // Only allow rage quit while the crowdfund is active.
+        address payable contributor = payable(msg.sender);
+        CrowdfundLifecycle lc = getCrowdfundLifecycle();
+            if (lc != CrowdfundLifecycle.Active) {
+                    revert WrongLifecycleError(lc);
+            }
+        //get the user's contribution amount.
+        uint256 amountToRefund = _getCurrentContribution(contributor);
+        // Add to withdrawn funds
+        totalContributionsWithdrawn += amountToRefund.safeCastUint256ToUint96();
+        // Burn user's participation NFT
+        CrowdfundNFT._burn(contributor);
+        // Remove contributions entry for this contributor.
+        delete _contributionsByContributor[contributor];
+        //return the contribution amount.
+        (bool s, ) = contributor.call{ value: amountToRefund }("");
+        if (!s) {
+            // If the transfer fails, the contributor can still come claim it
+            // from the crowdfund.
+            claims[contributor].refund = amountToRefund;
+        }
+        emit ContributorRageQuit(contributor, amountToRefund);
     }
 
     /// @inheritdoc EIP165
@@ -479,6 +509,17 @@ abstract contract Crowdfund is Implementation, ERC721Receiver, CrowdfundNFT {
         }
     }
 
+    function _getCurrentContribution(
+        address contributor
+        ) internal view returns (uint256 totalEthContributed) {
+            Contribution[] memory contributions = _contributionsByContributor[contributor];
+            uint256 numContributions = contributions.length;
+            for (uint256 i; i < numContributions; ++i) {
+                Contribution memory c = contributions[i];
+                totalEthContributed += c.amount;
+        }
+    }
+
     function _getFinalContribution(
         address contributor
     ) internal view returns (uint256 ethUsed, uint256 ethOwed, uint256 votingPower) {
@@ -486,17 +527,30 @@ abstract contract Crowdfund is Implementation, ERC721Receiver, CrowdfundNFT {
         {
             Contribution[] memory contributions = _contributionsByContributor[contributor];
             uint256 numContributions = contributions.length;
+            CrowdfundLifecycle lc = getCrowdfundLifecycle();
+
             for (uint256 i; i < numContributions; ++i) {
                 Contribution memory c = contributions[i];
-                if (c.previousTotalContributions >= totalEthUsed) {
+                if (totalContributionsWithdrawn > c.previousTotalContributions) {
+                    // If crowd fund was lost, entire contribution was not used. 
+                    if (lc == CrowdfundLifecycle.Lost) {
+                        ethOwed += c.amount;
+                    } else {
+                        // This entire contribution was used.
+                        ethUsed += c.amount;
+                    }
+                } else if (c.previousTotalContributions - totalContributionsWithdrawn>= totalEthUsed) {
                     // This entire contribution was not used.
                     ethOwed += c.amount;
-                } else if (c.previousTotalContributions + c.amount <= totalEthUsed) {
+                } else if (c.previousTotalContributions - totalContributionsWithdrawn + c.amount <= totalEthUsed) {
+                    // This entire contribution was used.
+                    ethUsed += c.amount;
+                }  else if (totalContributionsWithdrawn > c.previousTotalContributions) {
                     // This entire contribution was used.
                     ethUsed += c.amount;
                 } else {
                     // This contribution was partially used.
-                    uint256 partialEthUsed = totalEthUsed - c.previousTotalContributions;
+                    uint256 partialEthUsed = totalEthUsed - c.previousTotalContributions + totalContributionsWithdrawn;
                     ethUsed += partialEthUsed;
                     ethOwed = c.amount - partialEthUsed;
                 }

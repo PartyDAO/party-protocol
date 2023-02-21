@@ -106,7 +106,6 @@ contract CrowdfundTest is Test, TestUtils {
             );
         }
     }
-
     function _createTokens(
         address owner,
         uint256 count
@@ -970,6 +969,148 @@ contract CrowdfundTest is Test, TestUtils {
         cf.contribute{ value: 2 }(contributor1, "");
         assertEq(cf.totalContributions(), 13);
         assertEq(cf.getContributionEntriesByContributorCount(contributor1), 2);
+    }
+
+    function test_canWithdrawContribution() external {
+        TestableCrowdfund cf = _createCrowdfund(0);
+        address delegate1 = _randomAddress();
+        address payable contributor1 = _randomAddress();
+        vm.deal(contributor1, 3);
+        vm.prank(contributor1);
+        cf.contribute{ value: 1 }(delegate1, "");
+        assertEq(cf.totalContributions(), 1);
+        assertEq(cf.getContributionEntriesByContributorCount(contributor1), 1);
+        //rageQuit crowdfund.
+        vm.prank(contributor1);
+        cf.rageQuit();
+        //check cf.totalContributions is correct.
+        assertEq(cf.totalContributions(), 1);
+        //check that contributor's ETH was returned.
+        assertEq(contributor1.balance, 3);
+        //check that contributions associated with contributor have been reset.
+        assertEq(cf.getContributionEntriesByContributorCount(contributor1), 0);
+    }
+
+    //Two contributions, contributor doesn't recieve extra ETH on second withdraw.
+    function test_doesNotRecieveAdditionalEth() external {
+        TestableCrowdfund cf = _createCrowdfund(0);
+        address payable contributor1 = _randomAddress();
+        address payable contributor2 = _randomAddress();
+        vm.deal(contributor1, 3);
+        vm.deal(contributor2, 10);
+        vm.prank(contributor1);
+        cf.contribute{ value: 1 }(contributor1, "");
+        assertEq(cf.totalContributions(), 1);
+        assertEq(cf.getContributionEntriesByContributorCount(contributor1), 1);
+        //rageQuit crowdfund.
+        vm.prank(contributor1);
+        cf.rageQuit();
+        //check that contributor's eth was returned.
+        assertEq(contributor1.balance, 3);
+        //contributor2 contributes
+        vm.prank(contributor2);
+        cf.contribute{ value: 10 }(contributor2, "");
+        assertEq(cf.totalContributions(), 11);
+        //contributor calls ragequit a second time.
+        vm.prank(contributor1);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                CrowdfundNFT.AlreadyBurnedError.selector,
+                contributor1,
+                uint256(uint160(address(contributor1)))
+            )
+        );
+        cf.rageQuit();
+        //check contributor balance does not increase.
+        assertEq(contributor1.balance, 3);
+    }
+
+    function testWin_afterWithdrawnContribution() external {
+        TestableCrowdfund cf = _createCrowdfund(0);
+        address delegate1 = _randomAddress();
+        address payable contributor1 = _randomAddress();
+        address payable contributor2 = _randomAddress();
+        vm.deal(contributor1, 15e18);
+        vm.deal(contributor2, 1e18);
+        // contributor1 contributes 1 ETH
+        vm.prank(contributor1);
+        cf.contribute{ value: contributor1.balance }(delegate1, "");
+        // contributor2 contributes 10 ETH
+        vm.prank(contributor2);
+        cf.contribute{ value: contributor2.balance }(delegate1, "");
+        assertEq(cf.totalContributions(), 16e18);
+        // contributor2 withdraws ETH
+        vm.prank(contributor2);
+        cf.rageQuit();
+        assertEq(contributor2.balance, 1e18);
+        // set up a win using contributor1's total contribution
+        (IERC721[] memory erc721Tokens, uint256[] memory erc721TokenIds) = _createTokens(
+            address(cf),
+            2
+        );
+        vm.expectEmit(false, false, false, true);
+        emit MockPartyFactoryCreateParty(
+            address(cf),
+            address(cf),
+            _createExpectedPartyOptions(cf, 15e18),
+            erc721Tokens,
+            erc721TokenIds
+        );
+        Party party_ = cf.testSetWon(15e18, defaultGovernanceOpts, erc721Tokens, erc721TokenIds);
+        assertEq(address(party_), address(party));
+        // contributor1 burns tokens
+        vm.expectEmit(false, false, false, true);
+        emit MockMint(address(cf), contributor1, 15e18, delegate1);
+        cf.burn(contributor1);
+        // contributor1 gets back none of their contribution
+        assertEq(contributor1.balance, 0);
+    }
+
+    function testLoss_afterWithdrawnContribution() external {
+        TestableCrowdfund cf = _createCrowdfund(0);
+        address delegate1 = _randomAddress();
+        address delegate2 = _randomAddress();
+        address delegate3 = _randomAddress();
+        address payable contributor1 = _randomAddress();
+        address payable contributor2 = _randomAddress();
+        address payable contributor3 = _randomAddress();
+
+        // contributor1 contributes 1 ETH
+        vm.deal(contributor1, 1e18);
+        vm.prank(contributor1);
+        cf.contribute{ value: contributor1.balance }(delegate1, "");
+        // contributor2 contributes 10 ETH
+        vm.deal(contributor2, 10e18);
+        vm.prank(contributor2);
+        cf.contribute{ value: contributor2.balance }(delegate2, "");
+        assertEq(cf.totalContributions(), 11e18);
+        vm.deal(contributor3, 1e18);
+        vm.prank(contributor3);
+        cf.contribute{ value: 0.5e18 }(delegate3, "");
+        assertEq(cf.totalContributions(), 11.5e18);
+        //contributor2 withdraws 10 ETH
+        vm.prank(contributor2);
+        // emit ContributorRageQuit(contributor2, 10e18);
+        cf.rageQuit();
+        vm.prank(contributor3);
+        //contributor3 contributes additional .5 ETH
+        cf.contribute{ value: 0.5e18 }(delegate3, "");
+        // set up a loss
+        cf.testSetLifeCycle(Crowdfund.CrowdfundLifecycle.Lost);
+        assertEq(address(cf.party()), address(0));
+        // contributor1 burns tokens
+        vm.expectEmit(false, false, false, true);
+        emit Burned(contributor1, 0, 1e18, 0);
+        cf.burn(contributor1);
+        // contributor1 gets back their contribution
+        assertEq(contributor1.balance, 1e18);
+        // contributor3 burns tokens
+        vm.expectEmit(false, false, false, true);
+        emit Burned(contributor3, 0, 1e18, 0);
+        cf.burn(contributor3);
+        assertEq(contributor3.balance, 1e18);
+        // contributor2 balance remains the same
+        assertEq(contributor2.balance, 10e18);
     }
 
     function test_canEmergencyExecute() external {
