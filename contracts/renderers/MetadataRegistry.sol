@@ -19,6 +19,7 @@ struct TokenMetadata {
 }
 
 contract MetadataRegistry {
+    error MetadataAlreadySetError();
     error OnlyAllowedHostsError();
     error OnlyMultisigError();
     error InvalidCrowdfundError();
@@ -68,6 +69,16 @@ contract MetadataRegistry {
             revert InvalidCrowdfundError();
         }
 
+        // Prevent setting the metadata if it has already been set
+        TokenMetadata memory _metadata = customPartyTokenURIByCrowdfund[crowdfund];
+        if (
+            bytes(_metadata.name).length > 0 ||
+            bytes(_metadata.description).length > 0 ||
+            bytes(_metadata.image).length > 0
+        ) {
+            revert MetadataAlreadySetError();
+        }
+
         customPartyTokenURIByCrowdfund[crowdfund] = metadata;
     }
 
@@ -80,6 +91,17 @@ contract MetadataRegistry {
     ) external onlyAllowedHosts {
         if (address(crowdfund) == address(0)) {
             revert InvalidCrowdfundError();
+        }
+
+        // Prevent setting the metadata if it has already been set
+        ContractMetadata memory _metadata = customPartyContractURIByCrowdfund[crowdfund];
+        if (
+            bytes(_metadata.name).length > 0 ||
+            bytes(_metadata.description).length > 0 ||
+            bytes(_metadata.image).length > 0 ||
+            bytes(_metadata.banner).length > 0
+        ) {
+            revert MetadataAlreadySetError();
         }
 
         customPartyContractURIByCrowdfund[crowdfund] = metadata;
