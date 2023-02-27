@@ -57,6 +57,8 @@ abstract contract Crowdfund is Implementation, ERC721Receiver, CrowdfundNFT {
         uint16 splitBps;
         address initialContributor;
         address initialDelegate;
+        uint96 minContribution;
+        uint96 maxContribution;
         IGateKeeper gateKeeper;
         bytes12 gateKeeperId;
         FixedGovernanceOpts governanceOpts;
@@ -82,6 +84,7 @@ abstract contract Crowdfund is Implementation, ERC721Receiver, CrowdfundNFT {
     error WrongLifecycleError(CrowdfundLifecycle lc);
     error InvalidGovernanceOptionsError();
     error InvalidDelegateError();
+    error InvalidContributorError();
     error NoPartyError();
     error NotAllowedByGateKeeperError(
         address contributor,
@@ -99,9 +102,12 @@ abstract contract Crowdfund is Implementation, ERC721Receiver, CrowdfundNFT {
     error OnlyPartyDaoError(address notDao);
     error OnlyPartyDaoOrHostError(address notDao);
     error OnlyWhenEmergencyActionsAllowedError();
+    error BelowMinimumContributionsError(uint96 contributions, uint96 minContributions);
+    error AboveMaximumContributionsError(uint96 contributions, uint96 maxContributions);
 
     event Burned(address contributor, uint256 ethUsed, uint256 ethOwed, uint256 votingPower);
     event Contributed(
+        address sender,
         address contributor,
         uint256 amount,
         address delegate,
@@ -146,6 +152,10 @@ abstract contract Crowdfund is Implementation, ERC721Receiver, CrowdfundNFT {
     ///         that should be minted to them if it could not be transferred to
     ///         them with `burn()`.
     mapping(address => Claim) public claims;
+    /// @notice Minimum amount of ETH that can be contributed to this crowdfund per address.
+    uint96 public minContribution;
+    /// @notice Maximum amount of ETH that can be contributed to this crowdfund per address.
+    uint96 public maxContribution;
     /// @notice Whether the DAO has emergency powers for this party.
     bool public emergencyExecuteDisabled;
 
@@ -171,13 +181,16 @@ abstract contract Crowdfund is Implementation, ERC721Receiver, CrowdfundNFT {
         governanceOptsHash = _hashFixedGovernanceOpts(opts.governanceOpts);
         splitRecipient = opts.splitRecipient;
         splitBps = opts.splitBps;
+        // Set the minimum and maximum contribution amounts.
+        minContribution = opts.minContribution;
+        maxContribution = opts.maxContribution;
         // If the deployer passed in some ETH during deployment, credit them
         // for the initial contribution.
         uint96 initialContribution = msg.value.safeCastUint256ToUint96();
         if (initialContribution > 0) {
-            // If this contract has ETH, either passed in during deployment or
-            // pre-existing, credit it to the `initialContributor`.
-            _contribute(opts.initialContributor, initialContribution, opts.initialDelegate, 0, "");
+            _setDelegate(opts.initialContributor, opts.initialDelegate);
+            // If this ETH is passed in, credit it to the `initialContributor`.
+            _contribute(opts.initialContributor, opts.initialDelegate, initialContribution, 0, "");
         }
         // Set up gatekeeper after initial contribution (initial always gets in).
         gateKeeper = opts.gateKeeper;
@@ -294,11 +307,13 @@ abstract contract Crowdfund is Implementation, ERC721Receiver, CrowdfundNFT {
     ///         membership to the gatekeeper.
     /// @param delegate The address to delegate to for the governance phase.
     /// @param gateData Data to pass to the gatekeeper to prove eligibility.
-    function contribute(address delegate, bytes memory gateData) public payable onlyDelegateCall {
+    function contribute(address delegate, bytes memory gateData) external payable onlyDelegateCall {
+        _setDelegate(msg.sender, delegate);
+
         _contribute(
             msg.sender,
-            msg.value.safeCastUint256ToUint96(),
             delegate,
+            msg.value.safeCastUint256ToUint96(),
             // We cannot use `address(this).balance - msg.value` as the previous
             // total contributions in case someone forces (suicides) ETH into this
             // contract. This wouldn't be such a big deal for open crowdfunds
@@ -309,6 +324,53 @@ abstract contract Crowdfund is Implementation, ERC721Receiver, CrowdfundNFT {
             totalContributions,
             gateData
         );
+    }
+
+    /// @notice Contribute to this crowdfund on behalf of another address.
+    /// @param recipient The address to record the contribution under.
+    /// @param initialDelegate The address to delegate to for the governance phase if recipient hasn't delegated.
+    /// @param gateData Data to pass to the gatekeeper to prove eligibility.
+    function contributeFor(
+        address recipient,
+        address initialDelegate,
+        bytes memory gateData
+    ) external payable onlyDelegateCall {
+        _setDelegate(recipient, initialDelegate);
+
+        _contribute(
+            recipient,
+            initialDelegate,
+            msg.value.safeCastUint256ToUint96(),
+            totalContributions,
+            gateData
+        );
+    }
+
+    /// @notice `contributeFor()` in batch form.
+    ///         May not revert if any individual contribution fails.
+    /// @param recipients The addresses to record the contributions under.
+    /// @param initialDelegates The addresses to delegate to for each recipient.
+    /// @param values The ETH to contribute for each recipient.
+    /// @param gateDatas Data to pass to the gatekeeper to prove eligibility.
+    /// @param revertOnFailure If true, revert if any contribution fails.
+    function batchContributeFor(
+        address[] memory recipients,
+        address[] memory initialDelegates,
+        uint256[] memory values,
+        bytes[] memory gateDatas,
+        bool revertOnFailure
+    ) external payable {
+        for (uint256 i; i < recipients.length; ++i) {
+            (bool s, bytes memory r) = address(this).call{ value: values[i] }(
+                abi.encodeCall(
+                    this.contributeFor,
+                    (recipients[i], initialDelegates[i], gateDatas[i])
+                )
+            );
+            if (revertOnFailure && !s) {
+                r.rawRevert();
+            }
+        }
     }
 
     /// @inheritdoc EIP165
@@ -516,72 +578,95 @@ abstract contract Crowdfund is Implementation, ERC721Receiver, CrowdfundNFT {
         }
     }
 
+    function _setDelegate(address contributor, address delegate) private {
+        if (delegate == address(0)) revert InvalidDelegateError();
+
+        // Only need to update delegate if there was a change.
+        address oldDelegate = delegationsByContributor[contributor];
+        if (oldDelegate == delegate) return;
+
+        // Only allow setting delegate on another's behalf if the delegate is unset.
+        if (msg.sender != contributor && oldDelegate != address(0)) return;
+
+        // Update delegate.
+        delegationsByContributor[contributor] = delegate;
+    }
+
+    /// @dev While it is not necessary to pass in `delegate` to this because the
+    ///      function does not require it, it is here to emit in the
+    ///      `Contribute` event so that the PartyBid frontend can access it more
+    ///      easily.
     function _contribute(
         address contributor,
-        uint96 amount,
         address delegate,
+        uint96 amount,
         uint96 previousTotalContributions,
         bytes memory gateData
     ) private {
-        // Require a non-null delegate.
-        if (delegate == address(0)) {
-            revert InvalidDelegateError();
-        }
+        if (contributor == address(this)) revert InvalidContributorError();
+
+        if (amount == 0) return;
+
         // Must not be blocked by gatekeeper.
-        IGateKeeper _gateKeeper = gateKeeper;
-        if (_gateKeeper != IGateKeeper(address(0))) {
-            if (!_gateKeeper.isAllowed(contributor, gateKeeperId, gateData)) {
-                revert NotAllowedByGateKeeperError(
-                    contributor,
-                    _gateKeeper,
-                    gateKeeperId,
-                    gateData
-                );
+        {
+            IGateKeeper _gateKeeper = gateKeeper;
+            if (_gateKeeper != IGateKeeper(address(0))) {
+                if (!_gateKeeper.isAllowed(msg.sender, gateKeeperId, gateData)) {
+                    revert NotAllowedByGateKeeperError(
+                        msg.sender,
+                        _gateKeeper,
+                        gateKeeperId,
+                        gateData
+                    );
+                }
             }
         }
+        // Only allow contributions while the crowdfund is active.
+        {
+            CrowdfundLifecycle lc = getCrowdfundLifecycle();
+            if (lc != CrowdfundLifecycle.Active) {
+                revert WrongLifecycleError(lc);
+            }
+        }
+        // Increase total contributions.
+        totalContributions += amount;
+        // Create contributions entry for this contributor.
+        Contribution[] storage contributions = _contributionsByContributor[contributor];
+        uint256 numContributions = contributions.length;
+        uint96 ethContributed;
+        for (uint256 i; i < numContributions; ++i) {
+            ethContributed += contributions[i].amount;
+        }
+        // Check contribution is greater than minimum contribution.
+        if (ethContributed + amount < minContribution) {
+            revert BelowMinimumContributionsError(ethContributed + amount, minContribution);
+        }
+        // Check contribution is less than maximum contribution.
+        if (ethContributed + amount > maxContribution) {
+            revert AboveMaximumContributionsError(ethContributed + amount, maxContribution);
+        }
 
-        // Update delegate.
-        // OK if this happens out of cycle.
-        delegationsByContributor[contributor] = delegate;
-        emit Contributed(contributor, amount, delegate, previousTotalContributions);
+        emit Contributed(msg.sender, contributor, amount, delegate, previousTotalContributions);
 
-        // OK to contribute with zero just to update delegate.
-        if (amount != 0) {
-            // Only allow contributions while the crowdfund is active.
-            {
-                CrowdfundLifecycle lc = getCrowdfundLifecycle();
-                if (lc != CrowdfundLifecycle.Active) {
-                    revert WrongLifecycleError(lc);
-                }
+        if (numContributions >= 1) {
+            Contribution memory lastContribution = contributions[numContributions - 1];
+            // If no one else (other than this contributor) has contributed since,
+            // we can just reuse this contributor's last entry.
+            uint256 totalContributionsAmountForReuse = lastContribution.previousTotalContributions +
+                lastContribution.amount;
+            if (totalContributionsAmountForReuse == previousTotalContributions) {
+                lastContribution.amount += amount;
+                contributions[numContributions - 1] = lastContribution;
+                return;
             }
-            // Increase total contributions.
-            totalContributions += amount;
-            // Create contributions entry for this contributor.
-            Contribution[] storage contributions = _contributionsByContributor[contributor];
-            uint256 numContributions = contributions.length;
-            if (numContributions >= 1) {
-                Contribution memory lastContribution = contributions[numContributions - 1];
-                // If no one else (other than this contributor) has contributed since,
-                // we can just reuse this contributor's last entry.
-                uint256 totalContributionsAmountForReuse = lastContribution
-                    .previousTotalContributions + lastContribution.amount;
-                if (totalContributionsAmountForReuse == previousTotalContributions) {
-                    lastContribution.amount += amount;
-                    contributions[numContributions - 1] = lastContribution;
-                    return;
-                }
-            }
-            // Add a new contribution entry.
-            contributions.push(
-                Contribution({
-                    previousTotalContributions: previousTotalContributions,
-                    amount: amount
-                })
-            );
-            // Mint a participation NFT if this is their first contribution.
-            if (numContributions == 0) {
-                _mint(contributor);
-            }
+        }
+        // Add a new contribution entry.
+        contributions.push(
+            Contribution({ previousTotalContributions: previousTotalContributions, amount: amount })
+        );
+        // Mint a participation NFT if this is their first contribution.
+        if (numContributions == 0) {
+            _mint(contributor);
         }
     }
 

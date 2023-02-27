@@ -11,11 +11,12 @@ import "../gatekeepers/IGateKeeper.sol";
 import "./BuyCrowdfundBase.sol";
 
 /// @notice A crowdfund that purchases any NFT from a collection (i.e., any
-/// token ID) from a collection for a known price. Like `BuyCrowdfund` but allows
-/// any token ID to be bought.
+///         token ID) from a collection for a known price. Like `BuyCrowdfund`
+///         but allows any token ID to be bought.
 contract CollectionBuyCrowdfund is BuyCrowdfundBase {
     using LibSafeERC721 for IERC721;
     using LibSafeCast for uint256;
+    using LibRawResult for bytes;
 
     struct CollectionBuyCrowdfundOptions {
         // The name of the crowdfund.
@@ -27,10 +28,9 @@ contract CollectionBuyCrowdfund is BuyCrowdfundBase {
         uint256 customizationPresetId;
         // The ERC721 contract of the NFT being bought.
         IERC721 nftContract;
-        // How long this crowdfund has to bid on the NFT, in seconds.
+        // How long this crowdfund has to buy the NFT, in seconds.
         uint40 duration;
         // Maximum amount this crowdfund will pay for the NFT.
-        // If zero, no maximum.
         uint96 maximumPrice;
         // An address that receives a portion of the final voting power
         // when the party transitions into governance.
@@ -44,6 +44,10 @@ contract CollectionBuyCrowdfund is BuyCrowdfundBase {
         // If there is an initial contribution, this is who they will delegate their
         // voting power to when the crowdfund transitions to governance.
         address initialDelegate;
+        // Minimum amount of ETH that can be contributed to this crowdfund per address.
+        uint96 minContribution;
+        // Maximum amount of ETH that can be contributed to this crowdfund per address.
+        uint96 maxContribution;
         // The gatekeeper contract to use (if non-null) to restrict who can
         // contribute to this crowdfund.
         IGateKeeper gateKeeper;
@@ -81,6 +85,8 @@ contract CollectionBuyCrowdfund is BuyCrowdfundBase {
                 splitBps: opts.splitBps,
                 initialContributor: opts.initialContributor,
                 initialDelegate: opts.initialDelegate,
+                minContribution: opts.minContribution,
+                maxContribution: opts.maxContribution,
                 gateKeeper: opts.gateKeeper,
                 gateKeeperId: opts.gateKeeperId,
                 governanceOpts: opts.governanceOpts
@@ -97,8 +103,7 @@ contract CollectionBuyCrowdfund is BuyCrowdfundBase {
     /// @param callData The calldata to execute.
     /// @param governanceOpts The options used to initialize governance in the
     ///                       `Party` instance created if the buy was successful.
-    /// @param hostIndex If the caller is a host, this is the index of the caller in the
-    ///                  `governanceOpts.hosts` array.
+    /// @param hostIndex This is the index of the caller in the `governanceOpts.hosts` array.
     /// @return party_ Address of the `Party` instance created after its bought.
     function buy(
         uint256 tokenId,
@@ -107,18 +112,45 @@ contract CollectionBuyCrowdfund is BuyCrowdfundBase {
         bytes memory callData,
         FixedGovernanceOpts memory governanceOpts,
         uint256 hostIndex
-    ) external returns (Party party_) {
+    ) external onlyDelegateCall returns (Party party_) {
         // This function is always restricted to hosts.
         _assertIsHost(msg.sender, governanceOpts, hostIndex);
+
+        {
+            // Ensure that the crowdfund is still active.
+            CrowdfundLifecycle lc = getCrowdfundLifecycle();
+            if (lc != CrowdfundLifecycle.Active) {
+                revert WrongLifecycleError(lc);
+            }
+        }
+
+        // Temporarily set to non-zero as a reentrancy guard.
+        settledPrice = type(uint96).max;
+
+        // Buy the NFT and check NFT is owned by the crowdfund.
+        (bool success, bytes memory revertData) = _buy(
+            nftContract,
+            tokenId,
+            callTarget,
+            callValue,
+            callData
+        );
+
+        if (!success) {
+            if (revertData.length > 0) {
+                revertData.rawRevert();
+            } else {
+                revert FailedToBuyNFTError(nftContract, tokenId);
+            }
+        }
+
         return
-            _buy(
+            _finalize(
                 nftContract,
                 tokenId,
-                callTarget,
                 callValue,
-                callData,
                 governanceOpts,
-                // If _assertIsHost() succeeded, the governance opts were validated.
+                // If `_assertIsHost()` succeeded, the governance opts were validated.
                 true
             );
     }

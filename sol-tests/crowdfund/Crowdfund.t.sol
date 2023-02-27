@@ -42,6 +42,7 @@ contract CrowdfundTest is Test, TestUtils {
     event MockMint(address caller, address owner, uint256 amount, address delegate);
 
     event Contributed(
+        address sender,
         address contributor,
         uint256 amount,
         address delegate,
@@ -59,8 +60,8 @@ contract CrowdfundTest is Test, TestUtils {
     address payable defaultSplitRecipient = payable(0);
     uint16 defaultSplitBps = 0.1e4;
     address defaultInitialDelegate;
-    IGateKeeper defaultGateKeeper;
-    bytes12 defaultGateKeeperId;
+    IGateKeeper gateKeeper;
+    bytes12 gateKeeperId;
     Crowdfund.FixedGovernanceOpts defaultGovernanceOpts;
     address dao;
     EmergencyExecuteTarget emergencyExecuteTarget = new EmergencyExecuteTarget();
@@ -141,8 +142,10 @@ contract CrowdfundTest is Test, TestUtils {
                                 splitBps: defaultSplitBps,
                                 initialContributor: initialContributor,
                                 initialDelegate: initialDelegate,
-                                gateKeeper: defaultGateKeeper,
-                                gateKeeperId: defaultGateKeeperId,
+                                minContribution: 0,
+                                maxContribution: type(uint96).max,
+                                gateKeeper: gateKeeper,
+                                gateKeeperId: gateKeeperId,
                                 governanceOpts: defaultGovernanceOpts
                             })
                         )
@@ -206,12 +209,18 @@ contract CrowdfundTest is Test, TestUtils {
     }
 
     function test_creation_initialContribution_withDelegate() external {
-        _expectEmit0();
         address initialContributor = _randomAddress();
         address initialDelegate = _randomAddress();
         uint256 initialContribution = _randomRange(1, 1 ether);
         vm.deal(address(this), initialContribution);
-        emit Contributed(initialContributor, initialContribution, initialDelegate, 0);
+        _expectEmit0();
+        emit Contributed(
+            address(this),
+            initialContributor,
+            initialContribution,
+            initialDelegate,
+            0
+        );
         TestableCrowdfund cf = _createCrowdfund(
             initialContribution,
             initialContributor,
@@ -772,8 +781,8 @@ contract CrowdfundTest is Test, TestUtils {
 
         AllowListGateKeeper gk = new AllowListGateKeeper();
         bytes12 gateId = gk.createGate(keccak256(abi.encodePacked(contributor1)));
-        defaultGateKeeper = gk;
-        defaultGateKeeperId = gateId;
+        gateKeeper = gk;
+        gateKeeperId = gateId;
         TestableCrowdfund cf = _createCrowdfund(0);
 
         // contributor1 contributes 1 ETH
@@ -788,7 +797,7 @@ contract CrowdfundTest is Test, TestUtils {
             abi.encodeWithSelector(
                 Crowdfund.NotAllowedByGateKeeperError.selector,
                 contributor2,
-                defaultGateKeeper,
+                gateKeeper,
                 gateId,
                 abi.encode(new bytes32[](0))
             )
@@ -925,14 +934,166 @@ contract CrowdfundTest is Test, TestUtils {
                                 splitBps: defaultSplitBps,
                                 initialContributor: address(0),
                                 initialDelegate: address(this),
-                                gateKeeper: defaultGateKeeper,
-                                gateKeeperId: defaultGateKeeperId,
+                                minContribution: 0,
+                                maxContribution: type(uint96).max,
+                                gateKeeper: gateKeeper,
+                                gateKeeperId: gateKeeperId,
                                 governanceOpts: defaultGovernanceOpts
                             })
                         )
                     )
                 )
             )
+        );
+    }
+
+    function test_contributeFor() external {
+        TestableCrowdfund cf = _createCrowdfund(0);
+        address contributor = _randomAddress();
+        address recipient = _randomAddress();
+        // Contributor contributes on recipient's behalf
+        vm.deal(contributor, 1e18);
+        vm.prank(contributor);
+        cf.contributeFor{ value: 1e18 }(recipient, contributor, "");
+        assertEq(cf.getContributionEntriesByContributorCount(contributor), 0);
+        assertEq(cf.getContributionEntriesByContributorCount(recipient), 1);
+        (uint256 ethContributed, uint256 ethUsed, uint256 ethOwed, uint256 votingPower) = cf
+            .getContributorInfo(recipient);
+        assertEq(ethContributed, 1e18);
+        assertEq(ethUsed, 0);
+        assertEq(ethOwed, 0);
+        assertEq(votingPower, 0);
+        assertEq(uint256(cf.totalContributions()), 1e18);
+        assertEq(cf.delegationsByContributor(recipient), contributor);
+    }
+
+    function test_contributeFor_doesNotUpdateExistingDelegation() external {
+        TestableCrowdfund cf = _createCrowdfund(0);
+        address contributor = _randomAddress();
+        address recipient = _randomAddress();
+        address delegate = _randomAddress();
+        // Recipient delegates to delegate
+        vm.prank(recipient);
+        cf.contribute(delegate, "");
+        assertEq(cf.delegationsByContributor(recipient), delegate);
+        // Contributor contributes on recipient's behalf
+        vm.deal(contributor, 1e18);
+        vm.prank(contributor);
+        cf.contributeFor{ value: 1e18 }(recipient, contributor, "");
+        assertEq(cf.delegationsByContributor(recipient), delegate);
+    }
+
+    function test_contributeFor_withGatekeeper_allowsSenderToContributeForOthers() external {
+        address contributor = _randomAddress();
+        address recipient = _randomAddress();
+        AllowListGateKeeper gk = new AllowListGateKeeper();
+        bytes12 gateId = gk.createGate(keccak256(abi.encodePacked(contributor)));
+        gateKeeper = gk;
+        gateKeeperId = gateId;
+        TestableCrowdfund cf = _createCrowdfund(0);
+        // Contributor contributes on recipient's behalf (with gatekeeper)
+        vm.deal(contributor, 1e18);
+        vm.prank(contributor);
+        cf.contributeFor{ value: 1e18 }(recipient, contributor, abi.encode(new bytes32[](0)));
+        assertEq(cf.getContributionEntriesByContributorCount(contributor), 0);
+        assertEq(cf.getContributionEntriesByContributorCount(recipient), 1);
+        (uint256 ethContributed, uint256 ethUsed, uint256 ethOwed, uint256 votingPower) = cf
+            .getContributorInfo(recipient);
+        assertEq(ethContributed, 1e18);
+        assertEq(ethUsed, 0);
+        assertEq(ethOwed, 0);
+        assertEq(votingPower, 0);
+        assertEq(uint256(cf.totalContributions()), 1e18);
+        assertEq(cf.delegationsByContributor(recipient), contributor);
+    }
+
+    function test_contributeFor_withGatekeeper_recipientNotBlockedFromChangingDelegate() external {
+        address contributor = _randomAddress();
+        address recipient = _randomAddress();
+        AllowListGateKeeper gk = new AllowListGateKeeper();
+        bytes12 gateId = gk.createGate(keccak256(abi.encodePacked(contributor)));
+        gateKeeper = gk;
+        gateKeeperId = gateId;
+        TestableCrowdfund cf = _createCrowdfund(0);
+        // Contributor contributes on recipient's behalf (with gatekeeper)
+        vm.deal(contributor, 1e18);
+        vm.prank(contributor);
+        cf.contributeFor{ value: 1e18 }(recipient, contributor, abi.encode(new bytes32[](0)));
+        assertEq(cf.delegationsByContributor(recipient), contributor);
+        // Recipient changes delegate
+        address delegate = _randomAddress();
+        vm.prank(recipient);
+        cf.contribute(delegate, "");
+        assertEq(cf.delegationsByContributor(recipient), delegate);
+    }
+
+    function test_batchContributeFor() external {
+        TestableCrowdfund cf = _createCrowdfund(0);
+        address contributor = _randomAddress();
+        address[] memory recipients = new address[](3);
+        address[] memory initialDelegates = new address[](3);
+        uint256[] memory values = new uint256[](3);
+        bytes[] memory gateDatas = new bytes[](3);
+        for (uint256 i; i < 3; ++i) {
+            recipients[i] = _randomAddress();
+            initialDelegates[i] = _randomAddress();
+            values[i] = 1e18;
+            gateDatas[i] = "";
+        }
+        // Contributor contributes on recipient's behalf
+        vm.deal(contributor, 3e18);
+        vm.prank(contributor);
+        cf.batchContributeFor{ value: contributor.balance }(
+            recipients,
+            initialDelegates,
+            values,
+            gateDatas,
+            true
+        );
+        for (uint256 i; i < 3; ++i) {
+            assertEq(cf.getContributionEntriesByContributorCount(contributor), 0);
+            assertEq(cf.getContributionEntriesByContributorCount(recipients[i]), 1);
+            (uint256 ethContributed, uint256 ethUsed, uint256 ethOwed, uint256 votingPower) = cf
+                .getContributorInfo(recipients[i]);
+            assertEq(ethContributed, 1e18);
+            assertEq(ethUsed, 0);
+            assertEq(ethOwed, 0);
+            assertEq(votingPower, 0);
+            assertEq(cf.delegationsByContributor(recipients[i]), initialDelegates[i]);
+        }
+    }
+
+    function test_batchContributeFor_doesNotRevertOnFailure() external {
+        TestableCrowdfund cf = _createCrowdfund(0);
+        address contributor = _randomAddress();
+        address[] memory recipients = new address[](4);
+        address[] memory initialDelegates = new address[](4);
+        uint256[] memory values = new uint256[](4);
+        bytes[] memory gateDatas = new bytes[](4);
+        for (uint256 i; i < 3; ++i) {
+            recipients[i] = _randomAddress();
+            initialDelegates[i] = _randomAddress();
+            values[i] = 1e18;
+            gateDatas[i] = "";
+        }
+        vm.deal(contributor, 3e18);
+        vm.prank(contributor);
+        // Contributor contributes on recipient's behalf and expect fail
+        vm.expectRevert(Crowdfund.InvalidDelegateError.selector);
+        cf.batchContributeFor{ value: contributor.balance }(
+            recipients,
+            initialDelegates,
+            values,
+            gateDatas,
+            true
+        );
+        // Contributor contributes on recipient's behalf and do not revert on fail
+        cf.batchContributeFor{ value: contributor.balance }(
+            recipients,
+            initialDelegates,
+            values,
+            gateDatas,
+            false
         );
     }
 

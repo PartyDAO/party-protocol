@@ -6,6 +6,7 @@ import "forge-std/Script.sol";
 import "../contracts/crowdfund/AuctionCrowdfund.sol";
 import "../contracts/crowdfund/BuyCrowdfund.sol";
 import "../contracts/crowdfund/CollectionBuyCrowdfund.sol";
+import "../contracts/crowdfund/CollectionBatchBuyCrowdfund.sol";
 import "../contracts/crowdfund/CrowdfundFactory.sol";
 import "../contracts/distribution/TokenDistributor.sol";
 import "../contracts/gatekeepers/AllowListGateKeeper.sol";
@@ -45,8 +46,10 @@ abstract contract Deploy {
     Globals public globals;
     IZoraAuctionHouse public zoraAuctionHouse;
     AuctionCrowdfund public auctionCrowdfund;
+    RollingAuctionCrowdfund public rollingAuctionCrowdfund;
     BuyCrowdfund public buyCrowdfund;
     CollectionBuyCrowdfund public collectionBuyCrowdfund;
+    CollectionBatchBuyCrowdfund public collectionBatchBuyCrowdfund;
     CrowdfundFactory public crowdfundFactory;
     Party public party;
     PartyFactory public partyFactory;
@@ -163,6 +166,63 @@ abstract contract Deploy {
         console.log(
             "  Deployed - CollectionBuyCrowdfund crowdfund implementation",
             address(collectionBuyCrowdfund)
+        );
+
+        console.log("");
+        console.log("  Globals - setting CollectionBuyCrowdfund crowdfund implementation address");
+        globals.setAddress(
+            LibGlobals.GLOBAL_COLLECTION_BUY_CF_IMPL,
+            address(collectionBuyCrowdfund)
+        );
+        console.log(
+            "  Globals - successfully set CollectionBuyCrowdfund crowdfund implementation address",
+            address(collectionBuyCrowdfund)
+        );
+
+        // DEPLOY_COLLECTION_BATCH_BUY_CF_IMPLEMENTATION
+        console.log("");
+        console.log("### CollectionBatchBuyCrowdfund crowdfund implementation");
+        console.log("  Deploying - CollectionBatchBuyCrowdfund crowdfund implementation");
+        _trackDeployerGasBefore();
+        collectionBatchBuyCrowdfund = new CollectionBatchBuyCrowdfund(globals);
+        _trackDeployerGasAfter();
+        console.log(
+            "  Deployed - CollectionBatchBuyCrowdfund crowdfund implementation",
+            address(collectionBatchBuyCrowdfund)
+        );
+
+        console.log("");
+        console.log(
+            "  Globals - setting CollectionBatchBuyCrowdfund crowdfund implementation address"
+        );
+        globals.setAddress(
+            LibGlobals.GLOBAL_COLLECTION_BATCH_BUY_CF_IMPL,
+            address(collectionBatchBuyCrowdfund)
+        );
+        console.log(
+            "  Globals - successfully set CollectionBatchBuyCrowdfund crowdfund implementation address",
+            address(collectionBatchBuyCrowdfund)
+        );
+
+        // DEPLOY_ROLLING_AUCTION_CF_IMPLEMENTATION
+        console.log("");
+        console.log("### RollingAuctionCrowdfund crowdfund implementation");
+        console.log("  Deploying - RollingAuctionCrowdfund crowdfund implementation");
+        rollingAuctionCrowdfund = new RollingAuctionCrowdfund(globals);
+        console.log(
+            "  Deployed - RollingAuctionCrowdfund crowdfund implementation",
+            address(rollingAuctionCrowdfund)
+        );
+
+        console.log("");
+        console.log("  Globals - setting RollingAuctionCrowdfund crowdfund implementation address");
+        globals.setAddress(
+            LibGlobals.GLOBAL_ROLLING_AUCTION_CF_IMPL,
+            address(rollingAuctionCrowdfund)
+        );
+        console.log(
+            "  Globals - successfully set RollingAuctionCrowdfund crowdfund implementation address",
+            address(rollingAuctionCrowdfund)
         );
 
         // DEPLOY_PARTY_CROWDFUND_FACTORY
@@ -310,7 +370,7 @@ abstract contract Deploy {
         // Set Global values and transfer ownership
         {
             console.log("### Configure Globals");
-            bytes[] memory multicallData = new bytes[](23);
+            bytes[] memory multicallData = new bytes[](25);
             uint256 n = 0;
             multicallData[n++] = abi.encodeCall(
                 globals.setAddress,
@@ -393,6 +453,17 @@ abstract contract Deploy {
             multicallData[n++] = abi.encodeCall(
                 globals.setAddress,
                 (LibGlobals.GLOBAL_COLLECTION_BUY_CF_IMPL, address(collectionBuyCrowdfund))
+            );
+            multicallData[n++] = abi.encodeCall(
+                globals.setAddress,
+                (
+                    LibGlobals.GLOBAL_COLLECTION_BATCH_BUY_CF_IMPL,
+                    address(collectionBatchBuyCrowdfund)
+                )
+            );
+            multicallData[n++] = abi.encodeCall(
+                globals.setAddress,
+                (LibGlobals.GLOBAL_ROLLING_AUCTION_CF_IMPL, address(rollingAuctionCrowdfund))
             );
             multicallData[n++] = abi.encodeCall(
                 globals.setAddress,
@@ -518,7 +589,7 @@ contract DeployScript is Script, Deploy {
         Deploy.deploy(deployConstants);
         vm.stopBroadcast();
 
-        AddressMapping[] memory addressMapping = new AddressMapping[](16);
+        AddressMapping[] memory addressMapping = new AddressMapping[](18);
         addressMapping[0] = AddressMapping("Globals", address(globals));
         addressMapping[1] = AddressMapping("TokenDistributor", address(tokenDistributor));
         addressMapping[2] = AddressMapping(
@@ -528,19 +599,27 @@ contract DeployScript is Script, Deploy {
         addressMapping[3] = AddressMapping("Party", address(party));
         addressMapping[4] = AddressMapping("PartyFactory", address(partyFactory));
         addressMapping[5] = AddressMapping("AuctionCrowdfund", address(auctionCrowdfund));
-        addressMapping[6] = AddressMapping("BuyCrowdfund", address(buyCrowdfund));
-        addressMapping[7] = AddressMapping(
+        addressMapping[6] = AddressMapping(
+            "RollingAuctionCrowdfund",
+            address(rollingAuctionCrowdfund)
+        );
+        addressMapping[7] = AddressMapping("BuyCrowdfund", address(buyCrowdfund));
+        addressMapping[8] = AddressMapping(
             "CollectionBuyCrowdfund",
             address(collectionBuyCrowdfund)
         );
-        addressMapping[8] = AddressMapping("CrowdfundFactory", address(crowdfundFactory));
-        addressMapping[9] = AddressMapping("CrowdfundNFTRenderer", address(crowdfundNFTRenderer));
-        addressMapping[10] = AddressMapping("PartyNFTRenderer", address(partyNFTRenderer));
-        addressMapping[11] = AddressMapping("PartyHelpers", address(partyHelpers));
-        addressMapping[12] = AddressMapping("AllowListGateKeeper", address(allowListGateKeeper));
-        addressMapping[13] = AddressMapping("TokenGateKeeper", address(tokenGateKeeper));
-        addressMapping[14] = AddressMapping("RendererStorage", address(rendererStorage));
-        addressMapping[15] = AddressMapping(
+        addressMapping[9] = AddressMapping(
+            "CollectionBatchBuyCrowdfund",
+            address(collectionBatchBuyCrowdfund)
+        );
+        addressMapping[10] = AddressMapping("CrowdfundFactory", address(crowdfundFactory));
+        addressMapping[11] = AddressMapping("CrowdfundNFTRenderer", address(crowdfundNFTRenderer));
+        addressMapping[12] = AddressMapping("PartyNFTRenderer", address(partyNFTRenderer));
+        addressMapping[13] = AddressMapping("PartyHelpers", address(partyHelpers));
+        addressMapping[14] = AddressMapping("AllowListGateKeeper", address(allowListGateKeeper));
+        addressMapping[15] = AddressMapping("TokenGateKeeper", address(tokenGateKeeper));
+        addressMapping[16] = AddressMapping("RendererStorage", address(rendererStorage));
+        addressMapping[17] = AddressMapping(
             "PixeldroidConsoleFont",
             address(pixeldroidConsoleFont)
         );

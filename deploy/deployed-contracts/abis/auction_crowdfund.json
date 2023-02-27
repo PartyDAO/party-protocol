@@ -13,6 +13,22 @@
   {
     "inputs": [
       {
+        "internalType": "uint96",
+        "name": "contributions",
+        "type": "uint96"
+      },
+      {
+        "internalType": "uint96",
+        "name": "maxContributions",
+        "type": "uint96"
+      }
+    ],
+    "name": "AboveMaximumContributionsError",
+    "type": "error"
+  },
+  {
+    "inputs": [
+      {
         "internalType": "address",
         "name": "owner",
         "type": "address"
@@ -61,6 +77,22 @@
   {
     "inputs": [],
     "name": "AuctionNotExpiredError",
+    "type": "error"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint96",
+        "name": "contributions",
+        "type": "uint96"
+      },
+      {
+        "internalType": "uint96",
+        "name": "minContributions",
+        "type": "uint96"
+      }
+    ],
+    "name": "BelowMinimumContributionsError",
     "type": "error"
   },
   {
@@ -130,6 +162,11 @@
       }
     ],
     "name": "InvalidBpsError",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "InvalidContributorError",
     "type": "error"
   },
   {
@@ -400,6 +437,12 @@
       {
         "indexed": false,
         "internalType": "address",
+        "name": "sender",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "address",
         "name": "contributor",
         "type": "address"
       },
@@ -621,6 +664,101 @@
   {
     "inputs": [
       {
+        "internalType": "address[]",
+        "name": "recipients",
+        "type": "address[]"
+      },
+      {
+        "internalType": "address[]",
+        "name": "initialDelegates",
+        "type": "address[]"
+      },
+      {
+        "internalType": "uint256[]",
+        "name": "values",
+        "type": "uint256[]"
+      },
+      {
+        "internalType": "bytes[]",
+        "name": "gateDatas",
+        "type": "bytes[]"
+      },
+      {
+        "internalType": "bool",
+        "name": "revertOnFailure",
+        "type": "bool"
+      }
+    ],
+    "name": "batchContributeFor",
+    "outputs": [],
+    "stateMutability": "payable",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "bid",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "components": [
+          {
+            "internalType": "address[]",
+            "name": "hosts",
+            "type": "address[]"
+          },
+          {
+            "internalType": "uint40",
+            "name": "voteDuration",
+            "type": "uint40"
+          },
+          {
+            "internalType": "uint40",
+            "name": "executionDelay",
+            "type": "uint40"
+          },
+          {
+            "internalType": "uint16",
+            "name": "passThresholdBps",
+            "type": "uint16"
+          },
+          {
+            "internalType": "uint16",
+            "name": "feeBps",
+            "type": "uint16"
+          },
+          {
+            "internalType": "address payable",
+            "name": "feeRecipient",
+            "type": "address"
+          }
+        ],
+        "internalType": "struct Crowdfund.FixedGovernanceOpts",
+        "name": "governanceOpts",
+        "type": "tuple"
+      },
+      {
+        "internalType": "uint256",
+        "name": "hostIndex",
+        "type": "uint256"
+      }
+    ],
+    "name": "bid",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint96",
+        "name": "amount",
+        "type": "uint96"
+      },
+      {
         "components": [
           {
             "internalType": "address[]",
@@ -745,6 +883,29 @@
       }
     ],
     "name": "contribute",
+    "outputs": [],
+    "stateMutability": "payable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "recipient",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "initialDelegate",
+        "type": "address"
+      },
+      {
+        "internalType": "bytes",
+        "name": "gateData",
+        "type": "bytes"
+      }
+    ],
+    "name": "contributeFor",
     "outputs": [],
     "stateMutability": "payable",
     "type": "function"
@@ -1111,6 +1272,16 @@
             "type": "address"
           },
           {
+            "internalType": "uint96",
+            "name": "minContribution",
+            "type": "uint96"
+          },
+          {
+            "internalType": "uint96",
+            "name": "maxContribution",
+            "type": "uint96"
+          },
+          {
             "internalType": "contract IGateKeeper",
             "name": "gateKeeper",
             "type": "address"
@@ -1163,7 +1334,7 @@
             "type": "tuple"
           }
         ],
-        "internalType": "struct AuctionCrowdfund.AuctionCrowdfundOptions",
+        "internalType": "struct AuctionCrowdfundBase.AuctionCrowdfundOptions",
         "name": "opts",
         "type": "tuple"
       }
@@ -1225,7 +1396,33 @@
   },
   {
     "inputs": [],
+    "name": "maxContribution",
+    "outputs": [
+      {
+        "internalType": "uint96",
+        "name": "",
+        "type": "uint96"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
     "name": "maximumBid",
+    "outputs": [
+      {
+        "internalType": "uint96",
+        "name": "",
+        "type": "uint96"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "minContribution",
     "outputs": [
       {
         "internalType": "uint96",

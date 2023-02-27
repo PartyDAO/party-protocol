@@ -9,6 +9,8 @@ import "../renderers/RendererStorage.sol";
 import "./AuctionCrowdfund.sol";
 import "./BuyCrowdfund.sol";
 import "./CollectionBuyCrowdfund.sol";
+import "./RollingAuctionCrowdfund.sol";
+import "./CollectionBatchBuyCrowdfund.sol";
 
 /// @notice Factory used to deploys new proxified `Crowdfund` instances.
 contract CrowdfundFactory {
@@ -17,11 +19,19 @@ contract CrowdfundFactory {
     event BuyCrowdfundCreated(BuyCrowdfund crowdfund, BuyCrowdfund.BuyCrowdfundOptions opts);
     event AuctionCrowdfundCreated(
         AuctionCrowdfund crowdfund,
-        AuctionCrowdfund.AuctionCrowdfundOptions opts
+        AuctionCrowdfundBase.AuctionCrowdfundOptions opts
     );
     event CollectionBuyCrowdfundCreated(
         CollectionBuyCrowdfund crowdfund,
         CollectionBuyCrowdfund.CollectionBuyCrowdfundOptions opts
+    );
+    event RollingAuctionCrowdfundCreated(
+        RollingAuctionCrowdfund crowdfund,
+        RollingAuctionCrowdfund.RollingAuctionCrowdfundOptions opts
+    );
+    event CollectionBatchBuyCrowdfundCreated(
+        CollectionBatchBuyCrowdfund crowdfund,
+        CollectionBatchBuyCrowdfund.CollectionBatchBuyCrowdfundOptions opts
     );
 
     // The `Globals` contract storing global configuration values. This contract
@@ -62,7 +72,7 @@ contract CrowdfundFactory {
     /// @param createGateCallData Encoded calldata used by `createGate()` to create
     ///                           the crowdfund if one is specified in `opts`.
     function createAuctionCrowdfund(
-        AuctionCrowdfund.AuctionCrowdfundOptions memory opts,
+        AuctionCrowdfundBase.AuctionCrowdfundOptions memory opts,
         bytes memory createGateCallData
     ) public payable returns (AuctionCrowdfund inst) {
         opts.gateKeeperId = _prepareGate(opts.gateKeeper, opts.gateKeeperId, createGateCallData);
@@ -77,7 +87,29 @@ contract CrowdfundFactory {
         emit AuctionCrowdfundCreated(inst, opts);
     }
 
-    /// @notice Create a new crowdfund to purchase any NFT from a collection
+    /// @notice Create a new crowdfund to bid on an auctions for an NFT from a collection
+    ///         on a market (eg. Nouns).
+    /// @param opts Options used to initialize the crowdfund. These are fixed
+    ///             and cannot be changed later.
+    /// @param createGateCallData Encoded calldata used by `createGate()` to create
+    ///                           the crowdfund if one is specified in `opts`.
+    function createRollingAuctionCrowdfund(
+        RollingAuctionCrowdfund.RollingAuctionCrowdfundOptions memory opts,
+        bytes memory createGateCallData
+    ) public payable returns (RollingAuctionCrowdfund inst) {
+        opts.gateKeeperId = _prepareGate(opts.gateKeeper, opts.gateKeeperId, createGateCallData);
+        inst = RollingAuctionCrowdfund(
+            payable(
+                new Proxy{ value: msg.value }(
+                    _GLOBALS.getImplementation(LibGlobals.GLOBAL_ROLLING_AUCTION_CF_IMPL),
+                    abi.encodeCall(RollingAuctionCrowdfund.initialize, (opts))
+                )
+            )
+        );
+        emit RollingAuctionCrowdfundCreated(inst, opts);
+    }
+
+    /// @notice Create a new crowdfund to purchases any NFT from a collection
     ///         (i.e. any token ID) from a collection for a known price.
     /// @param opts Options used to initialize the crowdfund. These are fixed
     ///             and cannot be changed later.
@@ -97,6 +129,28 @@ contract CrowdfundFactory {
             )
         );
         emit CollectionBuyCrowdfundCreated(inst, opts);
+    }
+
+    /// @notice Create a new crowdfund to purchase multiple NFTs from a collection
+    ///         (i.e. any token ID) from a collection for known prices.
+    /// @param opts Options used to initialize the crowdfund. These are fixed
+    ///             and cannot be changed later.
+    /// @param createGateCallData Encoded calldata used by `createGate()` to create
+    ///                           the crowdfund if one is specified in `opts`.
+    function createCollectionBatchBuyCrowdfund(
+        CollectionBatchBuyCrowdfund.CollectionBatchBuyCrowdfundOptions memory opts,
+        bytes memory createGateCallData
+    ) public payable returns (CollectionBatchBuyCrowdfund inst) {
+        opts.gateKeeperId = _prepareGate(opts.gateKeeper, opts.gateKeeperId, createGateCallData);
+        inst = CollectionBatchBuyCrowdfund(
+            payable(
+                new Proxy{ value: msg.value }(
+                    _GLOBALS.getImplementation(LibGlobals.GLOBAL_COLLECTION_BATCH_BUY_CF_IMPL),
+                    abi.encodeCall(CollectionBatchBuyCrowdfund.initialize, (opts))
+                )
+            )
+        );
+        emit CollectionBatchBuyCrowdfundCreated(inst, opts);
     }
 
     function _prepareGate(
