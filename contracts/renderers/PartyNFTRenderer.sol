@@ -6,6 +6,7 @@ import "../utils/vendor/Strings.sol";
 import "../utils/vendor/Base64.sol";
 
 import "./RendererBase.sol";
+import "./MetadataRegistry.sol";
 import "../party/PartyGovernance.sol";
 import "../party/PartyGovernanceNFT.sol";
 import "../distribution/TokenDistributor.sol";
@@ -38,9 +39,116 @@ contract PartyNFTRenderer is RendererBase {
         royaltyAmount = 0;
     }
 
+    function contractURI() external view override returns (string memory) {
+        // Check if party has a custom token URI set.
+        {
+            MetadataRegistry metadataRegistry = MetadataRegistry(
+                _GLOBALS.getAddress(LibGlobals.GLOBAL_METADATA_REGISTRY)
+            );
+
+            (
+                string memory name,
+                string memory description,
+                string memory image,
+                string memory banner
+            ) = metadataRegistry.customPartyContractURIByCrowdfund(
+                    // Get the crowdfund that created this party.
+                    Crowdfund(PartyGovernanceNFT(address(this)).mintAuthority())
+                );
+
+            // If the party has a custom token URI set, return it.
+            if (
+                bytes(name).length > 0 &&
+                bytes(description).length > 0 &&
+                bytes(image).length > 0 &&
+                bytes(banner).length > 0
+            ) {
+                return
+                    string.concat(
+                        "data:application/json;base64,",
+                        Base64.encode(
+                            abi.encodePacked(
+                                '{"name":"',
+                                name,
+                                '", "description":"',
+                                description,
+                                '", "image":"',
+                                image,
+                                '", "banner":"',
+                                banner,
+                                '"}'
+                            )
+                        )
+                    );
+            }
+        }
+
+        (bool isDarkMode, Color color) = getCustomizationChoices();
+        (string memory image, string memory banner) = getCollectionImageAndBanner(
+            color,
+            isDarkMode
+        );
+
+        return
+            string.concat(
+                "data:application/json;base64,",
+                Base64.encode(
+                    abi.encodePacked(
+                        '{"name":"',
+                        generateCollectionName(),
+                        '", "description":"',
+                        generateCollectionDescription(),
+                        '", "external_url":"',
+                        "https://www.partybid.app/"
+                        '", "image":"',
+                        image,
+                        '", "banner":"',
+                        banner,
+                        '"}'
+                    )
+                )
+            );
+    }
+
     function tokenURI(uint256 tokenId) external view returns (string memory) {
         if (PartyGovernance(address(this)).ownerOf(tokenId) == address(0)) {
             revert InvalidTokenIdError();
+        }
+
+        // Check if party has a custom token URI set.
+        {
+            MetadataRegistry metadataRegistry = MetadataRegistry(
+                _GLOBALS.getAddress(LibGlobals.GLOBAL_METADATA_REGISTRY)
+            );
+
+            (string memory name, string memory description, string memory image) = metadataRegistry
+                .customPartyTokenURIByCrowdfund(
+                    // Get the crowdfund that created this party.
+                    Crowdfund(PartyGovernanceNFT(address(this)).mintAuthority())
+                );
+
+            // If the party has a custom token URI set, return it.
+            if (
+                bytes(name).length > 0 && bytes(description).length > 0 && bytes(image).length > 0
+            ) {
+                return
+                    string.concat(
+                        "data:application/json;base64,",
+                        Base64.encode(
+                            abi.encodePacked(
+                                '{"name":"',
+                                name,
+                                '", "description":"',
+                                description,
+                                '", "attributes": [',
+                                generateAttributes(tokenId),
+                                '], "image":"',
+                                image,
+                                '"}'
+                            )
+                        )
+                    );
+            }
         }
 
         // Get the customization data for this crowdfund.
@@ -110,11 +218,11 @@ contract PartyNFTRenderer is RendererBase {
             );
     }
 
-    function generateCollectionName() internal view override returns (string memory) {
+    function generateCollectionName() internal view returns (string memory) {
         return string.concat("Party Cards: ", PartyGovernanceNFT(address(this)).name());
     }
 
-    function generateCollectionDescription() internal view override returns (string memory) {
+    function generateCollectionDescription() internal view returns (string memory) {
         return
             string.concat(
                 "This collection represents memberships in the following Party: ",

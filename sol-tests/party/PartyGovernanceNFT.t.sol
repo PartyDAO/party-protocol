@@ -9,6 +9,7 @@ import "../../contracts/party/Party.sol";
 import "../../contracts/globals/Globals.sol";
 import "../../contracts/renderers/PartyNFTRenderer.sol";
 import "../../contracts/renderers/RendererStorage.sol";
+import "../../contracts/renderers/MetadataRegistry.sol";
 import "../../contracts/renderers/fonts/PixeldroidConsoleFont.sol";
 import "../proposals/DummySimpleProposalEngineImpl.sol";
 import "../proposals/DummyProposalEngineImpl.sol";
@@ -22,6 +23,7 @@ contract PartyGovernanceNFTTest is Test, TestUtils {
     DummySimpleProposalEngineImpl eng;
     PartyNFTRenderer nftRenderer;
     RendererStorage nftRendererStorage;
+    MetadataRegistry metadataRegistry;
     TestTokenDistributor tokenDistributor;
     Globals globals;
     PartyParticipant john;
@@ -33,8 +35,10 @@ contract PartyGovernanceNFTTest is Test, TestUtils {
         GlobalsAdmin globalsAdmin = new GlobalsAdmin();
         globals = globalsAdmin.globals();
         Party partyImpl = new Party(globals);
+        metadataRegistry = new MetadataRegistry(globals, _toAddressArray(address(this)));
         globalsAdmin.setPartyImpl(address(partyImpl));
         globalsAdmin.setGlobalDaoWallet(globalDaoWalletAddress);
+        globalsAdmin.setMetadataRegistry(address(metadataRegistry));
 
         tokenDistributor = new TestTokenDistributor();
         globalsAdmin.setTokenDistributor(address(tokenDistributor));
@@ -354,6 +358,36 @@ contract PartyGovernanceNFTTest is Test, TestUtils {
         assertTrue(bytes(tokenURI).length > 0);
     }
 
+    function testTokenURI_customMetadata() public {
+        // Create party
+        DummyParty party = new DummyParty(address(globals), "Party of the Living Dead");
+
+        // Create random crowdfund address to use as mint authority.
+        Crowdfund crowdfund = Crowdfund(_randomAddress());
+        party.setMintAuthority(address(crowdfund));
+
+        TokenMetadata memory metadata = TokenMetadata({
+            name: "NAME",
+            description: "DESCRIPTION",
+            image: "IMAGE"
+        });
+
+        // Set custom metadata
+        metadataRegistry.setCustomTokenURI(crowdfund, metadata);
+
+        // Mint governance NFT
+        uint256 tokenId = 396;
+        party.mint(tokenId);
+
+        string memory tokenURI = party.tokenURI(tokenId);
+
+        assertEq(
+            tokenURI,
+            // Expected: {"name":"NAME", "description":"DESCRIPTION", "attributes": [{"trait_type":"Voting Power", "value":&lt;0.01, "max_value":100}], "image":"IMAGE"}
+            "data:application/json;base64,eyJuYW1lIjoiTkFNRSIsICJkZXNjcmlwdGlvbiI6IkRFU0NSSVBUSU9OIiwgImF0dHJpYnV0ZXMiOiBbeyJ0cmFpdF90eXBlIjoiVm90aW5nIFBvd2VyIiwgInZhbHVlIjombHQ7MC4wMSwgIm1heF92YWx1ZSI6MTAwfV0sICJpbWFnZSI6IklNQUdFIn0="
+        );
+    }
+
     function testContractURI() external {
         // Create party
         DummyParty party = new DummyParty(address(globals), "Party of the Living Dead");
@@ -395,6 +429,33 @@ contract PartyGovernanceNFTTest is Test, TestUtils {
         );
 
         party.createMockProposal(status);
+    }
+
+    function testContractURI_customMetadata() public {
+        // Create party
+        DummyParty party = new DummyParty(address(globals), "Party of the Living Dead");
+
+        // Create random crowdfund address to use as mint authority.
+        Crowdfund crowdfund = Crowdfund(_randomAddress());
+        party.setMintAuthority(address(crowdfund));
+
+        ContractMetadata memory metadata = ContractMetadata({
+            name: "NAME",
+            description: "DESCRIPTION",
+            image: "IMAGE",
+            banner: "BANNER"
+        });
+
+        // Set custom metadata
+        metadataRegistry.setCustomContractURI(crowdfund, metadata);
+
+        string memory contractURI = party.contractURI();
+
+        assertEq(
+            contractURI,
+            // Expected: {"name":"NAME", "description":"DESCRIPTION", "image":"IMAGE", "banner":"BANNER"}
+            "data:application/json;base64,eyJuYW1lIjoiTkFNRSIsICJkZXNjcmlwdGlvbiI6IkRFU0NSSVBUSU9OIiwgImltYWdlIjoiSU1BR0UiLCAiYmFubmVyIjoiQkFOTkVSIn0="
+        );
     }
 }
 
@@ -473,6 +534,10 @@ contract DummyParty is ReadOnlyDelegateCall {
 
     function setVotingPowerPercentage(uint256 vp) external {
         votingPowerPercentage = vp;
+    }
+
+    function setMintAuthority(address authority) external {
+        mintAuthority = authority;
     }
 
     function getDistributionShareOf(uint256) external view returns (uint256) {

@@ -42,42 +42,12 @@ abstract contract RendererBase is IERC721Renderer {
         _font = font;
     }
 
-    function contractURI() external view returns (string memory) {
-        (bool isDarkMode, Color color) = getCustomizationChoices();
-        (string memory image, string memory banner) = getCollectionImageAndBanner(
-            color,
-            isDarkMode
-        );
-
-        return
-            string.concat(
-                "data:application/json;base64,",
-                Base64.encode(
-                    abi.encodePacked(
-                        '{"name":"',
-                        generateCollectionName(),
-                        '", "description":"',
-                        generateCollectionDescription(),
-                        '", "external_url":"',
-                        "https://www.partybid.app/"
-                        '", "image":"',
-                        image,
-                        '", "banner":"',
-                        banner,
-                        '"}'
-                    )
-                )
-            );
-    }
-
-    function generateCollectionName() internal view virtual returns (string memory);
-
-    function generateCollectionDescription() internal view virtual returns (string memory);
+    function contractURI() external view virtual returns (string memory);
 
     function getCollectionImageAndBanner(
         Color color,
         bool isDarkMode
-    ) private pure returns (string memory image, string memory banner) {
+    ) internal pure returns (string memory image, string memory banner) {
         if (isDarkMode) {
             if (color == Color.GREEN) {
                 image = "QmdcjXrxj7EimjuNTLQp1uKM2zYhuF1WVkVjF6TpfNNXrf";
