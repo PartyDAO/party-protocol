@@ -46,7 +46,7 @@ contract CrowdfundNFTRenderer is RendererBase {
                         '", "description":"',
                         generateCollectionDescription(),
                         '", "external_url":"',
-                        "https://www.partybid.app/"
+                        generateExternalURL(),
                         '", "image":"',
                         image,
                         '", "banner":"',

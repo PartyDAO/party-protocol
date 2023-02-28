@@ -47,21 +47,21 @@ contract PartyNFTRenderer is RendererBase {
             );
 
             (
-                string memory name,
-                string memory description,
-                string memory image,
-                string memory banner
-            ) = metadataRegistry.customPartyContractURIByCrowdfund(
+                string memory customName,
+                string memory customDescription,
+                string memory customImage,
+                string memory customBanner
+            ) = metadataRegistry.customPartyCollectionMetadataByCrowdfund(
                     // Get the crowdfund that created this party.
                     Crowdfund(PartyGovernanceNFT(address(this)).mintAuthority())
                 );
 
             // If the party has a custom token URI set, return it.
             if (
-                bytes(name).length > 0 &&
-                bytes(description).length > 0 &&
-                bytes(image).length > 0 &&
-                bytes(banner).length > 0
+                bytes(customName).length > 0 &&
+                bytes(customDescription).length > 0 &&
+                bytes(customImage).length > 0 &&
+                bytes(customBanner).length > 0
             ) {
                 return
                     string.concat(
@@ -69,13 +69,15 @@ contract PartyNFTRenderer is RendererBase {
                         Base64.encode(
                             abi.encodePacked(
                                 '{"name":"',
-                                name,
+                                customName,
                                 '", "description":"',
-                                description,
+                                customDescription,
+                                '", "external_url":"',
+                                generateExternalURL(),
                                 '", "image":"',
-                                image,
+                                customImage,
                                 '", "banner":"',
-                                banner,
+                                customBanner,
                                 '"}'
                             )
                         )
@@ -99,7 +101,7 @@ contract PartyNFTRenderer is RendererBase {
                         '", "description":"',
                         generateCollectionDescription(),
                         '", "external_url":"',
-                        "https://www.partybid.app/"
+                        generateExternalURL(),
                         '", "image":"',
                         image,
                         '", "banner":"',
@@ -121,15 +123,17 @@ contract PartyNFTRenderer is RendererBase {
                 _GLOBALS.getAddress(LibGlobals.GLOBAL_METADATA_REGISTRY)
             );
 
-            (string memory name, string memory description, string memory image) = metadataRegistry
-                .customPartyTokenURIByCrowdfund(
+            (string memory customName, string memory customDescription, string memory customImage) = metadataRegistry
+                .customPartyMetadataByCrowdfund(
                     // Get the crowdfund that created this party.
                     Crowdfund(PartyGovernanceNFT(address(this)).mintAuthority())
                 );
 
             // If the party has a custom token URI set, return it.
             if (
-                bytes(name).length > 0 && bytes(description).length > 0 && bytes(image).length > 0
+                bytes(customName).length > 0 &&
+                bytes(customDescription).length > 0 &&
+                bytes(customImage).length > 0
             ) {
                 return
                     string.concat(
@@ -137,13 +141,15 @@ contract PartyNFTRenderer is RendererBase {
                         Base64.encode(
                             abi.encodePacked(
                                 '{"name":"',
-                                name,
+                                string.concat(customName, " #", tokenId.toString()),
                                 '", "description":"',
-                                description,
+                                customDescription,
+                                '", "external_url":"',
+                                generateExternalURL(),
                                 '", "attributes": [',
                                 generateAttributes(tokenId),
                                 '], "image":"',
-                                image,
+                                customImage,
                                 '"}'
                             )
                         )

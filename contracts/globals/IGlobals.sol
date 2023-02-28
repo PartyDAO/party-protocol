@@ -6,6 +6,8 @@ import "../utils/Implementation.sol";
 // Single registry of global values controlled by multisig.
 // See `LibGlobals` for all valid keys.
 interface IGlobals {
+    function multiSig() external view returns (address);
+
     function getBytes32(uint256 key) external view returns (bytes32);
 
     function getUint256(uint256 key) external view returns (uint256);

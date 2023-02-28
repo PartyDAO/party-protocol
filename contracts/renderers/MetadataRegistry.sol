@@ -5,7 +5,7 @@ import "../globals/Globals.sol";
 import "../crowdfund/Crowdfund.sol";
 import "../party/Party.sol";
 
-struct ContractMetadata {
+struct CollectionMetadata {
     string name;
     string description;
     string image;
@@ -19,30 +19,42 @@ struct TokenMetadata {
 }
 
 contract MetadataRegistry {
-    error MetadataAlreadySetError();
+    event CustomPartyMetadataSet(Crowdfund indexed crowdfund, TokenMetadata metadata);
+    event CustomPartyCollectionMetadataSet(
+        Crowdfund indexed crowdfund,
+        CollectionMetadata metadata
+    );
+    event AllowedHostSet(address indexed host, bool allowed);
+    event AllowAnyHostEnabled();
+
+    error HostNotFoundError(uint256 hostIndex, address[] hosts);
+    error InvalidGovernanceOptionsError();
     error OnlyAllowedHostsError();
     error OnlyMultisigError();
     error InvalidCrowdfundError();
+    error CannotSetMetadataForCrowdfundWithContributionsError();
 
-    Globals private immutable _GLOBALS;
+    IGlobals private immutable _GLOBALS;
 
-    /// @notice The address of the host that is allowed to set custom token URIs
-    mapping(address => bool) public allowedHosts;
-    /// @notice The custom token URI metadata for the party created by a given crowdfund
-    mapping(Crowdfund => TokenMetadata) public customPartyTokenURIByCrowdfund;
-    /// @notice The custom contract URI metadata for the party created by a given crowdfund
-    mapping(Crowdfund => ContractMetadata) public customPartyContractURIByCrowdfund;
-
-    constructor(Globals global, address[] memory _allowedHosts) {
-        _GLOBALS = global;
+    constructor(IGlobals globals, address[] memory _allowedHosts) {
+        _GLOBALS = globals;
 
         for (uint256 i; i < _allowedHosts.length; i++) {
             allowedHosts[_allowedHosts[i]] = true;
         }
     }
 
-    modifier onlyAllowedHosts() {
-        if (!allowedHosts[msg.sender]) revert OnlyAllowedHostsError();
+    /// @notice Whether any host is allowed to set custom token URIs or only allowed hosts.
+    bool public allowAnyHost;
+    /// @notice The address of the host that is allowed to set custom token URIs.
+    mapping(address => bool) public allowedHosts;
+    /// @notice The custom token URI metadata for the party created by a given crowdfund.
+    mapping(Crowdfund => TokenMetadata) public customPartyMetadataByCrowdfund;
+    /// @notice The custom contract URI metadata for the party created by a given crowdfund.
+    mapping(Crowdfund => CollectionMetadata) public customPartyCollectionMetadataByCrowdfund;
+
+    modifier onlyAllowedHostsIfSet() {
+        if (!allowAnyHost && !allowedHosts[msg.sender]) revert OnlyAllowedHostsError();
         _;
     }
 
@@ -51,59 +63,104 @@ contract MetadataRegistry {
         _;
     }
 
+    modifier onlyHost(
+        Crowdfund crowdfund,
+        Crowdfund.FixedGovernanceOpts memory governanceOpts,
+        uint256 hostIndex
+    ) {
+        if (
+            hostIndex < governanceOpts.hosts.length && msg.sender == governanceOpts.hosts[hostIndex]
+        ) {
+            // Validate governance opts if the host was found.
+            if (crowdfund.governanceOptsHash() != _hashFixedGovernanceOpts(governanceOpts)) {
+                revert InvalidGovernanceOptionsError();
+            }
+        } else {
+            revert HostNotFoundError(hostIndex, governanceOpts.hosts);
+        }
+
+        _;
+    }
+
+    /// @notice Enable allowing any host to set custom metadata
+    function enableAllowAnyHost() external onlyMultisig {
+        allowAnyHost = true;
+
+        emit AllowAnyHostEnabled();
+    }
+
     /// @notice Set the status of a host as allowed to set custom token URIs or not
     /// @param host The host to set the status of
     /// @param allowed Whether the host is allowed or not
-    function setAllowedHosts(address host, bool allowed) external onlyMultisig {
+    function setAllowedHost(address host, bool allowed) external onlyMultisig {
         allowedHosts[host] = allowed;
+
+        emit AllowedHostSet(host, allowed);
     }
 
-    /// @notice Set the custom token URI for a party created by a given crowdfund
-    /// @param crowdfund The crowdfund that created the party
-    /// @param metadata The metadata for the custom token URI to set for the party's token
-    function setCustomTokenURI(
+    /// @notice Set the custom token URI for a party created by a given crowdfund.
+    /// @param crowdfund The crowdfund that created the party.
+    /// @param metadata The metadata for the custom token URI to set for the party's token.
+    function setCustomMetadata(
         Crowdfund crowdfund,
+        Crowdfund.FixedGovernanceOpts memory governanceOpts,
+        uint256 hostIndex,
         TokenMetadata memory metadata
-    ) external onlyAllowedHosts {
+    ) external onlyHost(crowdfund, governanceOpts, hostIndex) onlyAllowedHostsIfSet {
         if (address(crowdfund) == address(0)) {
             revert InvalidCrowdfundError();
         }
 
-        // Prevent setting the metadata if it has already been set
-        TokenMetadata memory _metadata = customPartyTokenURIByCrowdfund[crowdfund];
-        if (
-            bytes(_metadata.name).length > 0 ||
-            bytes(_metadata.description).length > 0 ||
-            bytes(_metadata.image).length > 0
-        ) {
-            revert MetadataAlreadySetError();
+        // Only allow setting the metadata before anyone has contributed to the
+        // crowdfund.
+        if (crowdfund.totalContributions() != 0) {
+            revert CannotSetMetadataForCrowdfundWithContributionsError();
         }
 
-        customPartyTokenURIByCrowdfund[crowdfund] = metadata;
+        customPartyMetadataByCrowdfund[crowdfund] = metadata;
+
+        emit CustomPartyMetadataSet(crowdfund, metadata);
     }
 
-    /// @notice Set the custom contract URI for a party created by a given crowdfund
-    /// @param crowdfund The crowdfund that created the party
-    /// @param metadata The metadata for the custom contract URI to set for the party's contract
-    function setCustomContractURI(
+    /// @notice Set the custom contract URI for a party created by a given crowdfund.
+    /// @param crowdfund The crowdfund that created the party.
+    /// @param metadata The metadata for the custom contract URI to set for the party's contract.
+    function setCustomCollectionMetadata(
         Crowdfund crowdfund,
-        ContractMetadata memory metadata
-    ) external onlyAllowedHosts {
+        Crowdfund.FixedGovernanceOpts memory governanceOpts,
+        uint256 hostIndex,
+        CollectionMetadata memory metadata
+    ) external onlyHost(crowdfund, governanceOpts, hostIndex) onlyAllowedHostsIfSet {
         if (address(crowdfund) == address(0)) {
             revert InvalidCrowdfundError();
         }
 
-        // Prevent setting the metadata if it has already been set
-        ContractMetadata memory _metadata = customPartyContractURIByCrowdfund[crowdfund];
-        if (
-            bytes(_metadata.name).length > 0 ||
-            bytes(_metadata.description).length > 0 ||
-            bytes(_metadata.image).length > 0 ||
-            bytes(_metadata.banner).length > 0
-        ) {
-            revert MetadataAlreadySetError();
+        // Only allow setting the metadata before anyone has contributed to the
+        // crowdfund.
+        if (crowdfund.totalContributions() != 0) {
+            revert CannotSetMetadataForCrowdfundWithContributionsError();
         }
 
-        customPartyContractURIByCrowdfund[crowdfund] = metadata;
+        customPartyCollectionMetadataByCrowdfund[crowdfund] = metadata;
+
+        emit CustomPartyCollectionMetadataSet(crowdfund, metadata);
+    }
+
+    function _hashFixedGovernanceOpts(
+        Crowdfund.FixedGovernanceOpts memory opts
+    ) private pure returns (bytes32 h) {
+        // Hash in place.
+        assembly {
+            // Replace the address[] hosts field with its hash temporarily.
+            let oldHostsFieldValue := mload(opts)
+            mstore(
+                opts,
+                keccak256(add(oldHostsFieldValue, 0x20), mul(mload(oldHostsFieldValue), 32))
+            )
+            // Hash the entire struct.
+            h := keccak256(opts, 0xC0)
+            // Restore old hosts field value.
+            mstore(opts, oldHostsFieldValue)
+        }
     }
 }
