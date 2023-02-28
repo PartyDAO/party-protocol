@@ -12,9 +12,9 @@
   "CrowdfundFactory": "0x1cA200B6fa768d0CBe4b1C52B67dAEcad94838A6",
   "CrowdfundNFTRenderer": "0x565846D035b2B02D6631d579eD34d8f250584015",
   "PartyNFTRenderer": "0xe3211390292300848428640bbc2F324D36a25857",
-  "PartyHelpers": "0xbfd98b48f999a89d8ac2ec7d4acae570d772fa13",
+  "PartyHelpers": "0xc3B0693388ceb0c93C86814B4c5B4Ebca650F93b",
   "AllowListGateKeeper": "0x50c58f8bD97C1845C8E8ff56117DbCE8a5B009b2",
   "TokenGateKeeper": "0x26A7bd6161e4C6aE44620CFC6f7b9C3Daf83AD0b",
   "RendererStorage": "0x9A4fe89316bf81a1e4549476b219c456703C3F62",
-  "PixeldroidConsoleFont": "0x144537588c3bda1fd5a7d7ffdcd5e0ad0c0dc0d2"
+  "PixeldroidConsoleFont": "0xe790494430E98AE0C572BA9C11a6e36e6289635e"
 }
