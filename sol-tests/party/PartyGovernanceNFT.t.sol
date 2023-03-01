@@ -475,24 +475,6 @@ contract DummyCrowdfund {
     function setGovernanceOptsHash(Crowdfund.FixedGovernanceOpts memory opts) external {
         governanceOptsHash = _hashFixedGovernanceOpts(opts);
     }
-
-    function _hashFixedGovernanceOpts(
-        Crowdfund.FixedGovernanceOpts memory opts
-    ) private pure returns (bytes32 h) {
-        // Hash in place.
-        assembly {
-            // Replace the address[] hosts field with its hash temporarily.
-            let oldHostsFieldValue := mload(opts)
-            mstore(
-                opts,
-                keccak256(add(oldHostsFieldValue, 0x20), mul(mload(oldHostsFieldValue), 32))
-            )
-            // Hash the entire struct.
-            h := keccak256(opts, 0xC0)
-            // Restore old hosts field value.
-            mstore(opts, oldHostsFieldValue)
-        }
-    }
 }
 
 contract DummyParty is ReadOnlyDelegateCall {

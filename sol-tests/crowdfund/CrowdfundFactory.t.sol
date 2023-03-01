@@ -58,21 +58,6 @@ contract CrowdfundFactoryTest is Test, TestUtils {
         );
     }
 
-    function _hashFixedGovernanceOpts(
-        Crowdfund.FixedGovernanceOpts memory opts
-    ) internal pure returns (bytes32 h) {
-        // Hash in place.
-        assembly {
-            // Replace the address[] hosts field with its hash temporarily.
-            let oldHostsFieldValue := mload(opts)
-            mstore(opts, keccak256(add(mload(opts), 0x20), mul(mload(mload(opts)), 32)))
-            // Hash the entire struct.
-            h := keccak256(opts, 0xC0)
-            // Restore old hosts field value.
-            mstore(opts, oldHostsFieldValue)
-        }
-    }
-
     function _randomGateKeeper()
         internal
         view
