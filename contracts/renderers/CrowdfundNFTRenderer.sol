@@ -29,6 +29,34 @@ contract CrowdfundNFTRenderer is RendererBase {
         IFont font
     ) RendererBase(globals, rendererStorage, font) {}
 
+    function contractURI() external view override returns (string memory) {
+        (bool isDarkMode, Color color) = getCustomizationChoices();
+        (string memory image, string memory banner) = getCollectionImageAndBanner(
+            color,
+            isDarkMode
+        );
+
+        return
+            string.concat(
+                "data:application/json;base64,",
+                Base64.encode(
+                    abi.encodePacked(
+                        '{"name":"',
+                        generateCollectionName(),
+                        '", "description":"',
+                        generateCollectionDescription(),
+                        '", "external_url":"',
+                        generateExternalURL(),
+                        '", "image":"',
+                        image,
+                        '", "banner":"',
+                        banner,
+                        '"}'
+                    )
+                )
+            );
+    }
+
     function tokenURI(uint256 tokenId) external view returns (string memory) {
         address owner = Crowdfund(address(this)).ownerOf(tokenId);
         if (owner == address(0)) {
@@ -110,11 +138,11 @@ contract CrowdfundNFTRenderer is RendererBase {
         }
     }
 
-    function generateCollectionName() internal view override returns (string memory) {
+    function generateCollectionName() internal view returns (string memory) {
         return string.concat("Party Contributions: ", Crowdfund(address(this)).name());
     }
 
-    function generateCollectionDescription() internal view override returns (string memory) {
+    function generateCollectionDescription() internal view returns (string memory) {
         return
             string.concat(
                 "Party Cards in this collection represent contributions to the ",

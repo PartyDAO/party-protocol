@@ -523,24 +523,6 @@ abstract contract Crowdfund is Implementation, ERC721Receiver, CrowdfundNFT {
         }
     }
 
-    function _hashFixedGovernanceOpts(
-        FixedGovernanceOpts memory opts
-    ) internal pure returns (bytes32 h) {
-        // Hash in place.
-        assembly {
-            // Replace the address[] hosts field with its hash temporarily.
-            let oldHostsFieldValue := mload(opts)
-            mstore(
-                opts,
-                keccak256(add(oldHostsFieldValue, 0x20), mul(mload(oldHostsFieldValue), 32))
-            )
-            // Hash the entire struct.
-            h := keccak256(opts, 0xC0)
-            // Restore old hosts field value.
-            mstore(opts, oldHostsFieldValue)
-        }
-    }
-
     function _getFinalContribution(
         address contributor
     ) internal view returns (uint256 ethUsed, uint256 ethOwed, uint256 votingPower) {
@@ -729,5 +711,20 @@ abstract contract Crowdfund is Implementation, ERC721Receiver, CrowdfundNFT {
 
     function _getPartyFactory() internal view returns (IPartyFactory) {
         return IPartyFactory(_GLOBALS.getAddress(LibGlobals.GLOBAL_PARTY_FACTORY));
+    }
+}
+
+function _hashFixedGovernanceOpts(
+    Crowdfund.FixedGovernanceOpts memory opts
+) pure returns (bytes32 h) {
+    // Hash in place.
+    assembly {
+        // Replace the address[] hosts field with its hash temporarily.
+        let oldHostsFieldValue := mload(opts)
+        mstore(opts, keccak256(add(oldHostsFieldValue, 0x20), mul(mload(oldHostsFieldValue), 32)))
+        // Hash the entire struct.
+        h := keccak256(opts, 0xC0)
+        // Restore old hosts field value.
+        mstore(opts, oldHostsFieldValue)
     }
 }
