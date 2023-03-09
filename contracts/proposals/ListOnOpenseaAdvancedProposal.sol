@@ -84,13 +84,22 @@ abstract contract ListOnOpenseaAdvancedProposal is OpenseaHelpers, ZoraHelpers {
     event OpenseaOrderListed(
         IOpenseaExchange.OrderParameters orderParams,
         bytes32 orderHash,
+        IERC721 token,
+        uint256 tokenId,
+        uint256 listPrice,
+        uint256 expiry
+    );
+    event OpenseaAdvancedOrderListed(
+        IOpenseaExchange.OrderParameters orderParams,
+        bytes32 orderHash,
         address token,
         uint256 tokenId,
         uint256 startPrice,
         uint256 endPrice,
         uint256 expiry
     );
-    event OpenseaOrderSold(
+    event OpenseaOrderSold(bytes32 orderHash, IERC721 token, uint256 tokenId, uint256 listPrice);
+    event OpenseaAdvancedOrderSold(
         bytes32 orderHash,
         address token,
         uint256 tokenId,
@@ -324,15 +333,27 @@ abstract contract ListOnOpenseaAdvancedProposal is OpenseaHelpers, ZoraHelpers {
         orderHash = _getOrderHash(orderParams);
         // Validate the order on-chain so no signature is required to fill it.
         assert(SEAPORT.validate(orders));
-        emit OpenseaOrderListed(
-            orderParams,
-            orderHash,
-            data.token,
-            data.tokenId,
-            data.startPrice,
-            data.endPrice,
-            expiry
-        );
+        // Emit an event based on the type of listing.
+        if (data.tokenType == TokenType.ERC721 && data.startPrice == data.endPrice) {
+            emit OpenseaOrderListed(
+                orderParams,
+                orderHash,
+                IERC721(data.token),
+                data.tokenId,
+                data.startPrice,
+                expiry
+            );
+        } else {
+            emit OpenseaAdvancedOrderListed(
+                orderParams,
+                orderHash,
+                data.token,
+                data.tokenId,
+                data.startPrice,
+                data.endPrice,
+                expiry
+            );
+        }
     }
 
     function _approveConduit(
@@ -388,7 +409,13 @@ abstract contract ListOnOpenseaAdvancedProposal is OpenseaHelpers, ZoraHelpers {
         if (totalFilled != 0) {
             // The order was filled before it expired. We no longer have the NFT
             // and instead we have the ETH it was bought with.
-            emit OpenseaOrderSold(orderHash, token, tokenId, startPrice, endPrice);
+
+            // Emit an event based on the type of listing.
+            if (tokenType == TokenType.ERC721 && startPrice == endPrice) {
+                emit OpenseaOrderSold(orderHash, IERC721(token), tokenId, startPrice);
+            } else {
+                emit OpenseaAdvancedOrderSold(orderHash, token, tokenId, startPrice, endPrice);
+            }
         } else if (expiry <= block.timestamp) {
             // The order expired before it was filled. We retain the NFT.
             // Revoke Seaport approval.

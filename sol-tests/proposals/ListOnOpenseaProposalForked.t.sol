@@ -18,13 +18,22 @@ contract ListOnOpenseaProposalForkedTest is Test, TestUtils, ZoraTestUtils, Open
     event OpenseaOrderListed(
         IOpenseaExchange.OrderParameters orderParams,
         bytes32 orderHash,
+        IERC721 token,
+        uint256 tokenId,
+        uint256 listPrice,
+        uint256 expiry
+    );
+    event OpenseaAdvancedOrderListed(
+        IOpenseaExchange.OrderParameters orderParams,
+        bytes32 orderHash,
         address token,
         uint256 tokenId,
         uint256 startPrice,
         uint256 endPrice,
         uint256 expiry
     );
-    event OpenseaOrderSold(
+    event OpenseaOrderSold(bytes32 orderHash, IERC721 token, uint256 tokenId, uint256 listPrice);
+    event OpenseaAdvancedOrderSold(
         bytes32 orderHash,
         address token,
         uint256 tokenId,
@@ -283,9 +292,8 @@ contract ListOnOpenseaProposalForkedTest is Test, TestUtils, ZoraTestUtils, Open
         emit OpenseaOrderListed(
             orderParams,
             orderHash,
-            address(token),
+            token,
             tokenId,
-            listPrice,
             listPrice,
             uint40(block.timestamp) + minDuration
         );
@@ -304,9 +312,8 @@ contract ListOnOpenseaProposalForkedTest is Test, TestUtils, ZoraTestUtils, Open
         emit OpenseaOrderListed(
             orderParams,
             orderHash,
-            address(token),
+            token,
             tokenId,
-            listPrice,
             listPrice,
             uint40(block.timestamp) + maxDuration
         );
@@ -359,7 +366,7 @@ contract ListOnOpenseaProposalForkedTest is Test, TestUtils, ZoraTestUtils, Open
         );
         // Finalize the listing.
         vm.expectEmit(false, false, false, true);
-        emit OpenseaOrderSold(orderHash, address(token), tokenId, listPrice, listPrice);
+        emit OpenseaOrderSold(orderHash, token, tokenId, listPrice);
         executeParams.progressData = impl.executeListOnOpensea(executeParams);
         assertEq(executeParams.progressData.length, 0);
         // Buyer should own the NFT.
@@ -415,7 +422,7 @@ contract ListOnOpenseaProposalForkedTest is Test, TestUtils, ZoraTestUtils, Open
         );
         // Finalize the listing.
         vm.expectEmit(false, false, false, true);
-        emit OpenseaOrderSold(orderHash, address(token), tokenId, listPrice, listPrice);
+        emit OpenseaAdvancedOrderSold(orderHash, address(token), tokenId, listPrice, listPrice);
         executeParams.progressData = impl.executeListOnOpenseaAdvanced(executeParams);
         assertEq(executeParams.progressData.length, 0);
         // Buyer should own the NFT.
@@ -449,7 +456,6 @@ contract ListOnOpenseaProposalForkedTest is Test, TestUtils, ZoraTestUtils, Open
         skip(ZORA_AUCTION_TIMEOUT);
         // Next, retrieve from zora and list on OS.
         uint256 listStartTime = block.timestamp;
-        // TODO: check OpenseaOrderListed event gets emitted.
         executeParams.progressData = impl.executeListOnOpensea(executeParams);
         bytes32 orderHash;
         {
@@ -477,7 +483,7 @@ contract ListOnOpenseaProposalForkedTest is Test, TestUtils, ZoraTestUtils, Open
         );
         // Finalize the listing.
         vm.expectEmit(false, false, false, true);
-        emit OpenseaOrderSold(orderHash, address(token), tokenId, listPrice, listPrice);
+        emit OpenseaOrderSold(orderHash, token, tokenId, listPrice);
         executeParams.progressData = impl.executeListOnOpensea(executeParams);
         assertEq(executeParams.progressData.length, 0);
         // Buyer should own the NFT.
@@ -529,7 +535,7 @@ contract ListOnOpenseaProposalForkedTest is Test, TestUtils, ZoraTestUtils, Open
         );
         // Finalize the listing.
         vm.expectEmit(false, false, false, true);
-        emit OpenseaOrderSold(orderHash, address(token), tokenId, listPrice, listPrice);
+        emit OpenseaOrderSold(orderHash, token, tokenId, listPrice);
         executeParams.progressData = impl.executeListOnOpensea(executeParams);
         assertEq(executeParams.progressData.length, 0);
         // Buyer should own the NFT.
@@ -588,7 +594,7 @@ contract ListOnOpenseaProposalForkedTest is Test, TestUtils, ZoraTestUtils, Open
         );
         // Finalize the listing.
         vm.expectEmit(false, false, false, true);
-        emit OpenseaOrderSold(orderHash, address(token), tokenId, startPrice, endPrice);
+        emit OpenseaAdvancedOrderSold(orderHash, address(token), tokenId, startPrice, endPrice);
         executeParams.progressData = impl.executeListOnOpenseaAdvanced(executeParams);
         assertEq(executeParams.progressData.length, 0);
         // Buyer should own the NFT.
@@ -639,7 +645,7 @@ contract ListOnOpenseaProposalForkedTest is Test, TestUtils, ZoraTestUtils, Open
         );
         // Finalize the listing.
         vm.expectEmit(false, false, false, true);
-        emit OpenseaOrderSold(orderHash, address(token), tokenId, listPrice, listPrice);
+        emit OpenseaOrderSold(orderHash, token, tokenId, listPrice);
         executeParams.progressData = impl.executeListOnOpensea(executeParams);
         assertEq(executeParams.progressData.length, 0);
         // Buyer should own the NFT.
