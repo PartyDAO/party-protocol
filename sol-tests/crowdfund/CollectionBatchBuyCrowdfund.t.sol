@@ -26,6 +26,7 @@ contract CollectionBatchBuyCrowdfundTest is Test, TestUtils {
 
     Globals globals;
     DummyERC721 nftContract;
+    DummyBatchMinter batchMinter;
     MockParty party;
 
     uint96 maximumPrice = 100e18;
@@ -38,6 +39,7 @@ contract CollectionBatchBuyCrowdfundTest is Test, TestUtils {
         party = partyFactory.mockParty();
 
         nftContract = new DummyERC721();
+        batchMinter = new DummyBatchMinter();
 
         govOpts.hosts.push(address(this));
     }
@@ -101,16 +103,22 @@ contract CollectionBatchBuyCrowdfundTest is Test, TestUtils {
         // Setup parameters to batch buy.
         IERC721[] memory tokens = new IERC721[](3);
         uint256[] memory tokenIds = new uint256[](3);
-        address payable[] memory callTargets = new address payable[](3);
-        uint96[] memory callValues = new uint96[](3);
-        bytes[] memory callDatas = new bytes[](3);
-        bytes32[][] memory proofs = new bytes32[][](3);
-        for (uint256 i; i < tokenIds.length; i++) {
+        CollectionBatchBuyCrowdfund.BuyCall[]
+            memory calls = new CollectionBatchBuyCrowdfund.BuyCall[](3);
+        for (uint256 i; i < calls.length; ++i) {
             tokens[i] = nftContract;
             tokenIds[i] = i + 1;
-            callTargets[i] = payable(address(nftContract));
-            callValues[i] = 1;
-            callDatas[i] = abi.encodeCall(nftContract.mint, (address(cf)));
+
+            CollectionBatchBuyCrowdfund.TokenToBuy[]
+                memory tokensToBuy = new CollectionBatchBuyCrowdfund.TokenToBuy[](1);
+            tokensToBuy[0].tokenId = i + 1;
+            tokensToBuy[0].price = 1;
+
+            calls[i] = CollectionBatchBuyCrowdfund.BuyCall({
+                target: payable(address(nftContract)),
+                data: abi.encodeCall(nftContract.mint, (address(cf))),
+                tokensToBuy: tokensToBuy
+            });
         }
         // Buy the tokens.
         vm.expectEmit(false, false, false, true);
@@ -136,12 +144,9 @@ contract CollectionBatchBuyCrowdfundTest is Test, TestUtils {
         );
         Party party_ = cf.batchBuy(
             CollectionBatchBuyCrowdfund.BatchBuyArgs({
-                tokenIds: tokenIds,
-                callTargets: callTargets,
-                callValues: callValues,
-                callDatas: callDatas,
-                proofs: proofs,
+                calls: calls,
                 minTokensBought: tokenIds.length,
+                maxTokensBought: tokenIds.length,
                 minTotalEthUsed: 0,
                 governanceOpts: govOpts,
                 hostIndex: 0
@@ -161,34 +166,103 @@ contract CollectionBatchBuyCrowdfundTest is Test, TestUtils {
         cf.contribute{ value: contributor.balance }(delegate, "");
         // Setup parameters to batch buy.
         IERC721[] memory tokens = new IERC721[](3);
-        uint256[] memory tokenIds = new uint256[](3);
-        address payable[] memory callTargets = new address payable[](3);
-        uint96[] memory callValues = new uint96[](3);
-        bytes[] memory callDatas = new bytes[](3);
-        bytes32[][] memory proofs = new bytes32[][](3);
-        for (uint256 i; i < tokenIds.length; i++) {
+        CollectionBatchBuyCrowdfund.BuyCall[]
+            memory calls = new CollectionBatchBuyCrowdfund.BuyCall[](3);
+        for (uint256 i; i < calls.length; ++i) {
             tokens[i] = nftContract;
-            tokenIds[i] = i + 1;
-            callTargets[i] = payable(address(nftContract));
-            callValues[i] = 1;
-            callDatas[i] = abi.encodeCall(nftContract.mint, (address(cf)));
+
+            CollectionBatchBuyCrowdfund.TokenToBuy[]
+                memory tokensToBuy = new CollectionBatchBuyCrowdfund.TokenToBuy[](1);
+            tokensToBuy[0].tokenId = i + 1;
+            tokensToBuy[0].price = 1;
+
+            // Ensure the last call will fail to buy a token.
+            if (i != calls.length - 1) {
+                calls[i] = CollectionBatchBuyCrowdfund.BuyCall({
+                    target: payable(address(nftContract)),
+                    data: abi.encodeCall(nftContract.mint, (address(cf))),
+                    tokensToBuy: tokensToBuy
+                });
+            }
         }
         vm.expectRevert(
             abi.encodeWithSelector(
                 CollectionBatchBuyCrowdfund.NotEnoughTokensBoughtError.selector,
-                3,
-                4
+                2,
+                3
             )
         );
         // Buy the tokens.
         cf.batchBuy(
             CollectionBatchBuyCrowdfund.BatchBuyArgs({
-                tokenIds: tokenIds,
-                callTargets: callTargets,
-                callValues: callValues,
-                callDatas: callDatas,
-                proofs: proofs,
-                minTokensBought: tokenIds.length + 1,
+                calls: calls,
+                minTokensBought: tokens.length,
+                maxTokensBought: tokens.length,
+                minTotalEthUsed: 0,
+                governanceOpts: govOpts,
+                hostIndex: 0
+            })
+        );
+    }
+
+    function test_batchBuy_aboveMaxTokensBought() public {
+        // Create the crowdfund.
+        CollectionBatchBuyCrowdfund cf = _createCrowdfund();
+        // Contribute and delegate.
+        address payable contributor = _randomAddress();
+        address delegate = _randomAddress();
+        vm.deal(contributor, 1e18);
+        vm.prank(contributor);
+        cf.contribute{ value: contributor.balance }(delegate, "");
+        // Setup parameters to batch buy.
+        IERC721[] memory tokens = new IERC721[](2);
+        uint256[] memory tokenIds = new uint256[](2);
+        CollectionBatchBuyCrowdfund.BuyCall[]
+            memory calls = new CollectionBatchBuyCrowdfund.BuyCall[](3);
+        for (uint256 i; i < calls.length; ++i) {
+            if (i < 2) {
+                tokens[i] = nftContract;
+                tokenIds[i] = i + 1;
+            }
+
+            CollectionBatchBuyCrowdfund.TokenToBuy[]
+                memory tokensToBuy = new CollectionBatchBuyCrowdfund.TokenToBuy[](1);
+            tokensToBuy[0].tokenId = i + 1;
+            tokensToBuy[0].price = 1;
+
+            calls[i] = CollectionBatchBuyCrowdfund.BuyCall({
+                target: payable(address(nftContract)),
+                data: abi.encodeCall(nftContract.mint, (address(cf))),
+                tokensToBuy: tokensToBuy
+            });
+        }
+        // Buy the tokens.
+        vm.expectEmit(false, false, false, true);
+        emit MockPartyFactoryCreateParty(
+            address(cf),
+            address(cf),
+            Party.PartyOptions({
+                name: "Crowdfund",
+                symbol: "CF",
+                customizationPresetId: 0,
+                governance: PartyGovernance.GovernanceOpts({
+                    hosts: govOpts.hosts,
+                    voteDuration: govOpts.voteDuration,
+                    executionDelay: govOpts.executionDelay,
+                    passThresholdBps: govOpts.passThresholdBps,
+                    totalVotingPower: 2,
+                    feeBps: govOpts.feeBps,
+                    feeRecipient: govOpts.feeRecipient
+                })
+            }),
+            tokens,
+            tokenIds
+        );
+        cf.batchBuy(
+            CollectionBatchBuyCrowdfund.BatchBuyArgs({
+                calls: calls,
+                minTokensBought: 2,
+                maxTokensBought: 2,
                 minTotalEthUsed: 0,
                 governanceOpts: govOpts,
                 hostIndex: 0
@@ -207,30 +281,31 @@ contract CollectionBatchBuyCrowdfundTest is Test, TestUtils {
         cf.contribute{ value: contributor.balance }(delegate, "");
         // Setup parameters to batch buy.
         IERC721[] memory tokens = new IERC721[](3);
-        uint256[] memory tokenIds = new uint256[](3);
-        address payable[] memory callTargets = new address payable[](3);
-        uint96[] memory callValues = new uint96[](3);
-        bytes[] memory callDatas = new bytes[](3);
-        bytes32[][] memory proofs = new bytes32[][](3);
-        for (uint256 i; i < tokenIds.length; i++) {
+        CollectionBatchBuyCrowdfund.BuyCall[]
+            memory calls = new CollectionBatchBuyCrowdfund.BuyCall[](3);
+        for (uint256 i; i < calls.length; ++i) {
             tokens[i] = nftContract;
-            tokenIds[i] = i + 1;
-            callTargets[i] = payable(address(nftContract));
-            callValues[i] = 1;
-            callDatas[i] = abi.encodeCall(nftContract.mint, (address(cf)));
+
+            CollectionBatchBuyCrowdfund.TokenToBuy[]
+                memory tokensToBuy = new CollectionBatchBuyCrowdfund.TokenToBuy[](1);
+            tokensToBuy[0].tokenId = i + 1;
+            tokensToBuy[0].price = 1;
+
+            calls[i] = CollectionBatchBuyCrowdfund.BuyCall({
+                target: payable(address(nftContract)),
+                data: abi.encodeCall(nftContract.mint, (address(cf))),
+                tokensToBuy: tokensToBuy
+            });
         }
+        // Buy the tokens.
         vm.expectRevert(
             abi.encodeWithSelector(CollectionBatchBuyCrowdfund.NotEnoughEthUsedError.selector, 3, 4)
         );
-        // Buy the tokens.
         cf.batchBuy(
             CollectionBatchBuyCrowdfund.BatchBuyArgs({
-                tokenIds: tokenIds,
-                callTargets: callTargets,
-                callValues: callValues,
-                callDatas: callDatas,
-                proofs: proofs,
-                minTokensBought: tokenIds.length,
+                calls: calls,
+                minTokensBought: tokens.length,
+                maxTokensBought: tokens.length,
                 minTotalEthUsed: 4,
                 governanceOpts: govOpts,
                 hostIndex: 0
@@ -248,29 +323,29 @@ contract CollectionBatchBuyCrowdfundTest is Test, TestUtils {
         vm.prank(contributor);
         cf.contribute{ value: contributor.balance }(delegate, "");
         // Setup parameters to batch buy.
-        IERC721[] memory tokens = new IERC721[](3);
-        uint256[] memory tokenIds = new uint256[](3);
-        tokenIds[0] = 1;
-        tokenIds[2] = 2;
-        address payable[] memory callTargets = new address payable[](3);
-        uint96[] memory callValues = new uint96[](3);
-        bytes[] memory callDatas = new bytes[](3);
-        bytes32[][] memory proofs = new bytes32[][](3);
-        for (uint256 i; i < tokenIds.length; i++) {
+        CollectionBatchBuyCrowdfund.BuyCall[]
+            memory calls = new CollectionBatchBuyCrowdfund.BuyCall[](3);
+        for (uint256 i; i < calls.length; ++i) {
             // Ensure one token will fail to be bought
             if (i == 1) continue;
 
-            tokens[i] = nftContract;
-            callTargets[i] = payable(address(nftContract));
-            callValues[i] = 1;
-            callDatas[i] = abi.encodeCall(nftContract.mint, (address(cf)));
+            CollectionBatchBuyCrowdfund.TokenToBuy[]
+                memory tokensToBuy = new CollectionBatchBuyCrowdfund.TokenToBuy[](1);
+            tokensToBuy[0].tokenId = i == 0 ? 1 : 2;
+            tokensToBuy[0].price = 1;
+
+            calls[i] = CollectionBatchBuyCrowdfund.BuyCall({
+                target: payable(address(nftContract)),
+                data: abi.encodeCall(nftContract.mint, (address(cf))),
+                tokensToBuy: tokensToBuy
+            });
         }
         // Check that token length is updated from 3 to 2 when creating the party
-        IERC721[] memory expectedTokens = new IERC721[](2);
-        uint256[] memory expectedTokenIds = new uint256[](2);
-        for (uint256 i; i < expectedTokenIds.length; i++) {
-            expectedTokens[i] = nftContract;
-            expectedTokenIds[i] = i + 1;
+        IERC721[] memory tokens = new IERC721[](2);
+        uint256[] memory tokenIds = new uint256[](2);
+        for (uint256 i; i < tokenIds.length; i++) {
+            tokens[i] = nftContract;
+            tokenIds[i] = i + 1;
         }
         vm.expectEmit(false, false, false, true);
         emit MockPartyFactoryCreateParty(
@@ -290,18 +365,15 @@ contract CollectionBatchBuyCrowdfundTest is Test, TestUtils {
                     feeRecipient: govOpts.feeRecipient
                 })
             }),
-            expectedTokens,
-            expectedTokenIds
+            tokens,
+            tokenIds
         );
         // Buy the tokens.
         cf.batchBuy(
             CollectionBatchBuyCrowdfund.BatchBuyArgs({
-                tokenIds: tokenIds,
-                callTargets: callTargets,
-                callValues: callValues,
-                callDatas: callDatas,
-                proofs: proofs,
+                calls: calls,
                 minTokensBought: tokenIds.length - 1,
+                maxTokensBought: tokenIds.length,
                 minTotalEthUsed: 0,
                 governanceOpts: govOpts,
                 hostIndex: 0
@@ -312,12 +384,6 @@ contract CollectionBatchBuyCrowdfundTest is Test, TestUtils {
     function test_batchBuy_cannotMinTokensBoughtZero() public {
         // Create the crowdfund.
         CollectionBatchBuyCrowdfund cf = _createCrowdfund();
-        // Setup parameters to batch buy.
-        uint256[] memory tokenIds = new uint256[](0);
-        address payable[] memory callTargets = new address payable[](0);
-        uint96[] memory callValues = new uint96[](0);
-        bytes[] memory callDatas = new bytes[](0);
-        bytes32[][] memory proofs = new bytes32[][](0);
         // Buy the tokens.
         vm.expectRevert(
             abi.encodeWithSelector(
@@ -327,12 +393,9 @@ contract CollectionBatchBuyCrowdfundTest is Test, TestUtils {
         );
         cf.batchBuy(
             CollectionBatchBuyCrowdfund.BatchBuyArgs({
-                tokenIds: tokenIds,
-                callTargets: callTargets,
-                callValues: callValues,
-                callDatas: callDatas,
-                proofs: proofs,
+                calls: new CollectionBatchBuyCrowdfund.BuyCall[](0),
                 minTokensBought: 0,
+                maxTokensBought: 0,
                 minTotalEthUsed: 0,
                 governanceOpts: govOpts,
                 hostIndex: 0
@@ -343,22 +406,13 @@ contract CollectionBatchBuyCrowdfundTest is Test, TestUtils {
     function test_batchBuy_cannotTriggerLostByNotBuyingAnything() public {
         // Create the crowdfund.
         CollectionBatchBuyCrowdfund cf = _createCrowdfund();
-        // Setup parameters to batch buy.
-        uint256[] memory tokenIds = new uint256[](0);
-        address payable[] memory callTargets = new address payable[](0);
-        uint96[] memory callValues = new uint96[](0);
-        bytes[] memory callDatas = new bytes[](0);
-        bytes32[][] memory proofs = new bytes32[][](0);
         // Buy the tokens.
         vm.expectRevert(CollectionBatchBuyCrowdfund.NothingBoughtError.selector);
         cf.batchBuy(
             CollectionBatchBuyCrowdfund.BatchBuyArgs({
-                tokenIds: tokenIds,
-                callTargets: callTargets,
-                callValues: callValues,
-                callDatas: callDatas,
-                proofs: proofs,
+                calls: new CollectionBatchBuyCrowdfund.BuyCall[](0),
                 minTokensBought: 1,
+                maxTokensBought: 1,
                 minTotalEthUsed: 0,
                 governanceOpts: govOpts,
                 hostIndex: 0
@@ -370,15 +424,15 @@ contract CollectionBatchBuyCrowdfundTest is Test, TestUtils {
         // Create the crowdfund.
         CollectionBatchBuyCrowdfund cf = _createCrowdfund();
         // Setup parameters to batch buy.
-        IERC721[] memory tokens = new IERC721[](3);
-        uint256[] memory tokenIds = new uint256[](3);
-        address payable[] memory callTargets = new address payable[](3);
-        uint96[] memory callValues = new uint96[](3);
-        bytes[] memory callDatas = new bytes[](3);
-        bytes32[][] memory proofs = new bytes32[][](3);
-        for (uint256 i; i < tokenIds.length; i++) {
-            tokens[i] = nftContract;
-            tokenIds[i] = i + 1;
+        CollectionBatchBuyCrowdfund.BuyCall[]
+            memory calls = new CollectionBatchBuyCrowdfund.BuyCall[](3);
+        for (uint256 i; i < calls.length; ++i) {
+            CollectionBatchBuyCrowdfund.TokenToBuy[]
+                memory tokensToBuy = new CollectionBatchBuyCrowdfund.TokenToBuy[](1);
+            tokensToBuy[0].tokenId = i + 1;
+
+            calls[i].tokensToBuy = tokensToBuy;
+
             // Mint tokens to crowdfund for free.
             nftContract.mint(address(cf));
         }
@@ -386,44 +440,9 @@ contract CollectionBatchBuyCrowdfundTest is Test, TestUtils {
         vm.expectRevert(CollectionBatchBuyCrowdfund.NothingBoughtError.selector);
         cf.batchBuy(
             CollectionBatchBuyCrowdfund.BatchBuyArgs({
-                tokenIds: tokenIds,
-                callTargets: callTargets,
-                callValues: callValues,
-                callDatas: callDatas,
-                proofs: proofs,
-                minTokensBought: tokenIds.length,
-                minTotalEthUsed: 0,
-                governanceOpts: govOpts,
-                hostIndex: 0
-            })
-        );
-    }
-
-    function test_batchBuy_failedToBuy() public {
-        // Create the crowdfund.
-        CollectionBatchBuyCrowdfund cf = _createCrowdfund();
-        // Setup parameters to batch buy.
-        uint256[] memory tokenIds = new uint256[](3);
-        address payable[] memory callTargets = new address payable[](3);
-        uint96[] memory callValues = new uint96[](3);
-        bytes[] memory callDatas = new bytes[](3);
-        bytes32[][] memory proofs = new bytes32[][](3);
-        // Buy the tokens.
-        vm.expectRevert(
-            abi.encodeWithSelector(
-                BuyCrowdfundBase.FailedToBuyNFTError.selector,
-                address(nftContract),
-                0
-            )
-        );
-        cf.batchBuy(
-            CollectionBatchBuyCrowdfund.BatchBuyArgs({
-                tokenIds: tokenIds,
-                callTargets: callTargets,
-                callValues: callValues,
-                callDatas: callDatas,
-                proofs: proofs,
-                minTokensBought: tokenIds.length,
+                calls: calls,
+                minTokensBought: 3,
+                maxTokensBought: 3,
                 minTotalEthUsed: 0,
                 governanceOpts: govOpts,
                 hostIndex: 0
@@ -441,22 +460,28 @@ contract CollectionBatchBuyCrowdfundTest is Test, TestUtils {
         vm.prank(contributor);
         cf.contribute{ value: contributor.balance }(delegate, "");
         // Setup parameters to batch buy.
-        uint256[] memory tokenIds = new uint256[](2);
-        address payable[] memory callTargets = new address payable[](2);
-        uint96[] memory callValues = new uint96[](2);
-        callValues[0] = 1e18;
-        bytes[] memory callDatas = new bytes[](2);
-        bytes32[][] memory proofs = new bytes32[][](2);
+        CollectionBatchBuyCrowdfund.BuyCall[]
+            memory calls = new CollectionBatchBuyCrowdfund.BuyCall[](2);
+        for (uint256 i; i < calls.length; ++i) {
+            CollectionBatchBuyCrowdfund.TokenToBuy[]
+                memory tokensToBuy = new CollectionBatchBuyCrowdfund.TokenToBuy[](1);
+            // Spend ETH on this failed buy.
+            tokensToBuy[0].price = 1e18;
+            calls[i].tokensToBuy = tokensToBuy;
+        }
         // Buy the tokens.
-        vm.expectRevert(CollectionBatchBuyCrowdfund.ContributionsSpentForFailedBuyError.selector);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                CollectionBatchBuyCrowdfund.EthUsedForFailedBuyError.selector,
+                0,
+                1e18
+            )
+        );
         cf.batchBuy(
             CollectionBatchBuyCrowdfund.BatchBuyArgs({
-                tokenIds: tokenIds,
-                callTargets: callTargets,
-                callValues: callValues,
-                callDatas: callDatas,
-                proofs: proofs,
+                calls: calls,
                 minTokensBought: 1,
+                maxTokensBought: 2,
                 minTotalEthUsed: 0,
                 governanceOpts: govOpts,
                 hostIndex: 0
@@ -468,12 +493,18 @@ contract CollectionBatchBuyCrowdfundTest is Test, TestUtils {
         // Create the crowdfund.
         CollectionBatchBuyCrowdfund cf = _createCrowdfund();
         // Setup parameters to batch buy.
-        uint256[] memory tokenIds = new uint256[](3);
-        address payable[] memory callTargets = new address payable[](3);
-        uint96[] memory callValues = new uint96[](3);
-        callValues[0] = maximumPrice + 1;
-        bytes[] memory callDatas = new bytes[](3);
-        bytes32[][] memory proofs = new bytes32[][](3);
+        CollectionBatchBuyCrowdfund.BuyCall[]
+            memory calls = new CollectionBatchBuyCrowdfund.BuyCall[](1);
+        CollectionBatchBuyCrowdfund.TokenToBuy[]
+            memory tokensToBuy = new CollectionBatchBuyCrowdfund.TokenToBuy[](1);
+        tokensToBuy[0].tokenId = 1;
+        // Set the price to be above the maximum price.
+        tokensToBuy[0].price = maximumPrice + 1;
+        calls[0] = CollectionBatchBuyCrowdfund.BuyCall({
+            target: payable(address(nftContract)),
+            data: abi.encodeCall(nftContract.mint, (address(cf))),
+            tokensToBuy: tokensToBuy
+        });
         // Buy the tokens.
         vm.expectRevert(
             abi.encodeWithSelector(
@@ -484,12 +515,9 @@ contract CollectionBatchBuyCrowdfundTest is Test, TestUtils {
         );
         cf.batchBuy(
             CollectionBatchBuyCrowdfund.BatchBuyArgs({
-                tokenIds: tokenIds,
-                callTargets: callTargets,
-                callValues: callValues,
-                callDatas: callDatas,
-                proofs: proofs,
-                minTokensBought: tokenIds.length,
+                calls: calls,
+                minTokensBought: 1,
+                maxTokensBought: 1,
                 minTotalEthUsed: 0,
                 governanceOpts: govOpts,
                 hostIndex: 0
@@ -501,22 +529,26 @@ contract CollectionBatchBuyCrowdfundTest is Test, TestUtils {
         // Create the crowdfund.
         CollectionBatchBuyCrowdfund cf = _createCrowdfund();
         // Setup parameters to batch buy.
-        uint256[] memory tokenIds = new uint256[](3);
-        address payable[] memory callTargets = new address payable[](3);
-        uint96[] memory callValues = new uint96[](3);
-        bytes[] memory callDatas = new bytes[](3);
-        bytes32[][] memory proofs = new bytes32[][](3);
+        CollectionBatchBuyCrowdfund.BuyCall[]
+            memory calls = new CollectionBatchBuyCrowdfund.BuyCall[](3);
+        for (uint256 i; i < calls.length; ++i) {
+            CollectionBatchBuyCrowdfund.TokenToBuy[]
+                memory tokensToBuy = new CollectionBatchBuyCrowdfund.TokenToBuy[](1);
+            tokensToBuy[0].tokenId = i + 1;
+            calls[i] = CollectionBatchBuyCrowdfund.BuyCall({
+                target: payable(address(nftContract)),
+                data: abi.encodeCall(nftContract.mint, (address(cf))),
+                tokensToBuy: tokensToBuy
+            });
+        }
         // Buy the tokens.
         vm.prank(_randomAddress());
         vm.expectRevert(Crowdfund.OnlyPartyHostError.selector);
         cf.batchBuy(
             CollectionBatchBuyCrowdfund.BatchBuyArgs({
-                tokenIds: tokenIds,
-                callTargets: callTargets,
-                callValues: callValues,
-                callDatas: callDatas,
-                proofs: proofs,
-                minTokensBought: tokenIds.length,
+                calls: calls,
+                minTokensBought: 3,
+                maxTokensBought: 3,
                 minTotalEthUsed: 0,
                 governanceOpts: govOpts,
                 hostIndex: 0
@@ -528,23 +560,28 @@ contract CollectionBatchBuyCrowdfundTest is Test, TestUtils {
         // Create the crowdfund.
         CollectionBatchBuyCrowdfund cf = _createCrowdfund();
         // Setup parameters to batch buy.
-        uint256[] memory tokenIds = new uint256[](3);
-        address payable[] memory callTargets = new address payable[](3);
-        uint96[] memory callValues = new uint96[](3);
-        bytes[] memory callDatas = new bytes[](3);
-        bytes32[][] memory proofs = new bytes32[][](3);
+        CollectionBatchBuyCrowdfund.BuyCall[]
+            memory calls = new CollectionBatchBuyCrowdfund.BuyCall[](3);
+        for (uint256 i; i < calls.length; ++i) {
+            CollectionBatchBuyCrowdfund.TokenToBuy[]
+                memory tokensToBuy = new CollectionBatchBuyCrowdfund.TokenToBuy[](1);
+            tokensToBuy[0].tokenId = i + 1;
+            tokensToBuy[0].price = 0;
+            calls[i] = CollectionBatchBuyCrowdfund.BuyCall({
+                target: payable(address(nftContract)),
+                data: abi.encodeCall(nftContract.mint, (address(cf))),
+                tokensToBuy: tokensToBuy
+            });
+        }
         // Mutate governance options
         govOpts.hosts.push(_randomAddress());
         // Buy the tokens.
         vm.expectRevert(Crowdfund.InvalidGovernanceOptionsError.selector);
         cf.batchBuy(
             CollectionBatchBuyCrowdfund.BatchBuyArgs({
-                tokenIds: tokenIds,
-                callTargets: callTargets,
-                callValues: callValues,
-                callDatas: callDatas,
-                proofs: proofs,
-                minTokensBought: tokenIds.length,
+                calls: calls,
+                minTokensBought: 3,
+                maxTokensBought: 3,
                 minTotalEthUsed: 0,
                 governanceOpts: govOpts,
                 hostIndex: 0
@@ -562,26 +599,23 @@ contract CollectionBatchBuyCrowdfundTest is Test, TestUtils {
         vm.prank(contributor);
         cf.contribute{ value: contributor.balance }(contributor, "");
         // Setup parameters to batch buy.
-        IERC721[] memory tokens = new IERC721[](1);
-        uint256[] memory tokenIds = new uint256[](1);
-        address payable[] memory callTargets = new address payable[](1);
-        uint96[] memory callValues = new uint96[](1);
-        bytes[] memory callDatas = new bytes[](1);
-        bytes32[][] memory proofs = new bytes32[][](1);
-        tokens[0] = nftContract;
-        tokenIds[0] = tokenId;
-        callTargets[0] = payable(address(nftContract));
-        callValues[0] = 1;
-        callDatas[0] = abi.encodeCall(nftContract.mint, (address(cf)));
+        CollectionBatchBuyCrowdfund.BuyCall[]
+            memory calls = new CollectionBatchBuyCrowdfund.BuyCall[](1);
+        CollectionBatchBuyCrowdfund.TokenToBuy[]
+            memory tokensToBuy = new CollectionBatchBuyCrowdfund.TokenToBuy[](1);
+        tokensToBuy[0].tokenId = tokenId;
+        tokensToBuy[0].price = 1;
+        calls[0] = CollectionBatchBuyCrowdfund.BuyCall({
+            target: payable(address(nftContract)),
+            data: abi.encodeCall(nftContract.mint, (address(cf))),
+            tokensToBuy: tokensToBuy
+        });
         // Buy the tokens.
         cf.batchBuy(
             CollectionBatchBuyCrowdfund.BatchBuyArgs({
-                tokenIds: tokenIds,
-                callTargets: callTargets,
-                callValues: callValues,
-                callDatas: callDatas,
-                proofs: proofs,
-                minTokensBought: tokenIds.length,
+                calls: calls,
+                minTokensBought: 1,
+                maxTokensBought: 1,
                 minTotalEthUsed: 0,
                 governanceOpts: govOpts,
                 hostIndex: 0
@@ -599,32 +633,100 @@ contract CollectionBatchBuyCrowdfundTest is Test, TestUtils {
         vm.prank(contributor);
         cf.contribute{ value: contributor.balance }(contributor, "");
         // Setup parameters to batch buy.
-        IERC721[] memory tokens = new IERC721[](1);
-        uint256[] memory tokenIds = new uint256[](1);
-        address payable[] memory callTargets = new address payable[](1);
-        uint96[] memory callValues = new uint96[](1);
-        bytes[] memory callDatas = new bytes[](1);
-        bytes32[][] memory proofs = new bytes32[][](1);
-        tokens[0] = nftContract;
-        tokenIds[0] = tokenId;
-        callTargets[0] = payable(address(nftContract));
-        callValues[0] = 1;
-        callDatas[0] = abi.encodeCall(nftContract.mint, (address(cf)));
-        proofs[0] = new bytes32[](1);
+        CollectionBatchBuyCrowdfund.BuyCall[]
+            memory calls = new CollectionBatchBuyCrowdfund.BuyCall[](1);
+        CollectionBatchBuyCrowdfund.TokenToBuy[]
+            memory tokensToBuy = new CollectionBatchBuyCrowdfund.TokenToBuy[](1);
+        tokensToBuy[0].tokenId = tokenId;
+        tokensToBuy[0].price = 1;
+        tokensToBuy[0].proof = new bytes32[](1);
+        calls[0] = CollectionBatchBuyCrowdfund.BuyCall({
+            target: payable(address(nftContract)),
+            data: abi.encodeCall(nftContract.mint, (address(cf))),
+            tokensToBuy: tokensToBuy
+        });
         // Buy the tokens.
         vm.expectRevert(CollectionBatchBuyCrowdfund.InvalidTokenIdError.selector);
         cf.batchBuy(
             CollectionBatchBuyCrowdfund.BatchBuyArgs({
-                tokenIds: tokenIds,
-                callTargets: callTargets,
-                callValues: callValues,
-                callDatas: callDatas,
-                proofs: proofs,
-                minTokensBought: tokenIds.length,
+                calls: calls,
+                minTokensBought: 1,
+                maxTokensBought: 1,
                 minTotalEthUsed: 0,
                 governanceOpts: govOpts,
                 hostIndex: 0
             })
         );
+    }
+
+    function test_batchBuy_multipleTokensBoughtPerCall() public {
+        // Create the crowdfund.
+        CollectionBatchBuyCrowdfund cf = _createCrowdfund();
+        // Contribute and delegate.
+        address payable contributor = _randomAddress();
+        address delegate = _randomAddress();
+        vm.deal(contributor, 1e18);
+        vm.prank(contributor);
+        cf.contribute{ value: contributor.balance }(delegate, "");
+        // Setup parameters to batch buy.
+        IERC721[] memory tokens = new IERC721[](6);
+        uint256[] memory tokenIds = new uint256[](6);
+        CollectionBatchBuyCrowdfund.BuyCall[]
+            memory calls = new CollectionBatchBuyCrowdfund.BuyCall[](2);
+        for (uint256 i = 0; i < calls.length; ++i) {
+            CollectionBatchBuyCrowdfund.TokenToBuy[]
+                memory tokensToBuy = new CollectionBatchBuyCrowdfund.TokenToBuy[](3);
+            for (uint256 j = 0; j < tokensToBuy.length; ++j) {
+                uint256 tokenId = i * tokensToBuy.length + j + 1;
+                tokens[tokenId - 1] = nftContract;
+                tokensToBuy[j].tokenId = tokenIds[tokenId - 1] = tokenId;
+                tokensToBuy[j].price = 1;
+            }
+            calls[i] = CollectionBatchBuyCrowdfund.BuyCall({
+                target: payable(address(batchMinter)),
+                data: abi.encodeCall(batchMinter.batchMint, (nftContract, 3)),
+                tokensToBuy: tokensToBuy
+            });
+        }
+        vm.expectEmit(false, false, false, true);
+        emit MockPartyFactoryCreateParty(
+            address(cf),
+            address(cf),
+            Party.PartyOptions({
+                name: "Crowdfund",
+                symbol: "CF",
+                customizationPresetId: 0,
+                governance: PartyGovernance.GovernanceOpts({
+                    hosts: govOpts.hosts,
+                    voteDuration: govOpts.voteDuration,
+                    executionDelay: govOpts.executionDelay,
+                    passThresholdBps: govOpts.passThresholdBps,
+                    totalVotingPower: 6,
+                    feeBps: govOpts.feeBps,
+                    feeRecipient: govOpts.feeRecipient
+                })
+            }),
+            tokens,
+            tokenIds
+        );
+        // Buy the tokens.
+        cf.batchBuy(
+            CollectionBatchBuyCrowdfund.BatchBuyArgs({
+                calls: calls,
+                minTokensBought: 6,
+                maxTokensBought: 6,
+                minTotalEthUsed: 0,
+                governanceOpts: govOpts,
+                hostIndex: 0
+            })
+        );
+    }
+}
+
+contract DummyBatchMinter {
+    function batchMint(DummyERC721 nftContract, uint256 tokensToMint) public payable {
+        for (uint256 i; i < tokensToMint; ++i) {
+            nftContract.mint(msg.sender);
+        }
     }
 }

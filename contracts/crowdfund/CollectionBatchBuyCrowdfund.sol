@@ -60,25 +60,54 @@ contract CollectionBatchBuyCrowdfund is BuyCrowdfundBase {
         FixedGovernanceOpts governanceOpts;
     }
 
+    struct TokenToBuy {
+        // The token ID of the NFT to buy.
+        uint256 tokenId;
+        // The price of the token. This cannot be greater than `maximumPrice`.
+        uint96 price;
+        // The proof needed to verify that the token ID is included in the
+        // `nftTokenIdsMerkleRoot` (if it is not null).
+        bytes32[] proof;
+    }
+
+    struct BuyCall {
+        // The contract to call to buy the NFTs in `tokensToBuy`.
+        address payable target;
+        // The calldata to call `target` with to buy the NFTs in `tokensToBuy`.
+        bytes data;
+        // The tokens to try buying with this call.
+        TokenToBuy[] tokensToBuy;
+    }
+
     struct BatchBuyArgs {
-        uint256[] tokenIds;
-        address payable[] callTargets;
-        uint96[] callValues;
-        bytes[] callDatas;
-        bytes32[][] proofs;
+        // The calls made to buy the NFTs. Each call has a target, data, and
+        // the tokens to buy in that call.
+        BuyCall[] calls;
+        // Minimum number of tokens that must be purchased. If this limit is
+        // not reached, the batch buy will fail.
         uint256 minTokensBought;
+        // Maximum number of tokens that can be purchased. If this limit is
+        // reached, the batch buy will end prematurely.
+        uint256 maxTokensBought;
+        // Minimum amount of ETH that must be used to buy the tokens. If this
+        // amount is not reached, the batch buy will fail.
         uint256 minTotalEthUsed;
+        // These are the governance options that will be used to create the
+        // governance `Party` if the crowdfund is successful. Additionally, they
+        // are used to verify that the caller is a host.
         FixedGovernanceOpts governanceOpts;
+        // The index of the host in `governanceOpts.hosts` that is making this
+        // batch buy. This is used to verify that the caller is a host.
         uint256 hostIndex;
     }
 
     error NothingBoughtError();
     error InvalidMinTokensBoughtError(uint256 minTokensBought);
     error InvalidTokenIdError();
-    error ContributionsSpentForFailedBuyError();
+    error EthUsedForFailedBuyError(uint256 expectedEthUsed, uint256 actualEthUsed);
     error NotEnoughTokensBoughtError(uint256 tokensBought, uint256 minTokensBought);
     error NotEnoughEthUsedError(uint256 ethUsed, uint256 minTotalEthUsed);
-    error MismatchedCallArgLengthsError();
+    error MinGreaterThanMaxError(uint256 min, uint256 max);
 
     /// @notice The contract of NFTs to buy.
     IERC721 public nftContract;
@@ -142,65 +171,80 @@ contract CollectionBatchBuyCrowdfund is BuyCrowdfundBase {
             revert InvalidMinTokensBoughtError(0);
         }
 
-        // Check length of all arg arrays.
-        if (
-            args.tokenIds.length != args.callTargets.length ||
-            args.tokenIds.length != args.callValues.length ||
-            args.tokenIds.length != args.callDatas.length ||
-            args.tokenIds.length != args.proofs.length
-        ) {
-            revert MismatchedCallArgLengthsError();
+        if (args.maxTokensBought < args.minTokensBought) {
+            revert MinGreaterThanMaxError(args.minTokensBought, args.maxTokensBought);
         }
 
         // Temporarily set to non-zero as a reentrancy guard.
         settledPrice = type(uint96).max;
 
-        uint96 totalEthUsed;
-        uint256 tokensBought;
-        IERC721[] memory tokens = new IERC721[](args.tokenIds.length);
+        // Lengths of arrays are set to max value and updated at the end.
+        IERC721[] memory tokens = new IERC721[](args.maxTokensBought);
+        uint256[] memory tokenIds = new uint256[](args.maxTokensBought);
+
         IERC721 token = nftContract;
         bytes32 root = nftTokenIdsMerkleRoot;
-        for (uint256 i; i < args.tokenIds.length; ++i) {
-            if (root != bytes32(0)) {
-                // Verify the token ID is in the merkle tree.
-                _verifyTokenId(args.tokenIds[i], root, args.proofs[i]);
-            }
+        uint96 maxPrice = maximumPrice;
+        uint96 totalEthUsed;
+        uint256 tokensBought;
+        for (uint256 i; i < args.calls.length; ++i) {
+            BuyCall memory call = args.calls[i];
 
-            // Used to ensure no ETH is spent if the call fails.
-            uint256 balanceBefore = address(this).balance;
+            uint96 callValue;
+            for (uint256 j; j < call.tokensToBuy.length; ++j) {
+                TokenToBuy memory tokenToBuy = call.tokensToBuy[j];
 
-            // Execute the call to buy the NFT.
-            (bool success, bytes memory revertData) = _buy(
-                token,
-                args.tokenIds[i],
-                args.callTargets[i],
-                args.callValues[i],
-                args.callDatas[i]
-            );
-
-            if (!success) {
-                if (args.minTokensBought >= args.tokenIds.length) {
-                    // If the call failed with revert data, revert with that data.
-                    if (revertData.length > 0) {
-                        revertData.rawRevert();
-                    } else {
-                        revert FailedToBuyNFTError(token, args.tokenIds[i]);
-                    }
-                } else {
-                    // If the call failed, ensure no ETH was spent and skip this NFT.
-                    if (address(this).balance != balanceBefore) {
-                        revert ContributionsSpentForFailedBuyError();
-                    }
-
-                    continue;
+                if (root != bytes32(0)) {
+                    // Verify the token ID is in the merkle tree.
+                    _verifyTokenId(tokenToBuy.tokenId, root, tokenToBuy.proof);
                 }
+
+                // Check that the call value is under the maximum price.
+                uint96 price = tokenToBuy.price;
+                if (price > maxPrice) {
+                    revert MaximumPriceError(price, maxPrice);
+                }
+
+                // Add the price to the total value used for the call.
+                callValue += price;
             }
 
-            totalEthUsed += args.callValues[i];
+            uint256 balanceBefore = address(this).balance;
+            {
+                // Execute the call to buy the NFT.
+                (bool success, ) = _buy(token, call.target, callValue, call.data);
 
-            ++tokensBought;
-            tokens[tokensBought - 1] = token;
-            args.tokenIds[tokensBought - 1] = args.tokenIds[i];
+                if (!success) continue;
+            }
+
+            {
+                uint96 ethUsed;
+                for (uint256 j; j < call.tokensToBuy.length; ++j) {
+                    uint256 tokenId = call.tokensToBuy[j].tokenId;
+                    uint96 price = call.tokensToBuy[j].price;
+
+                    // Check whether the NFT was successfully bought.
+                    if (token.safeOwnerOf(tokenId) == address(this)) {
+                        ethUsed += price;
+                        ++tokensBought;
+
+                        // Add the token to the list of tokens to finalize.
+                        tokens[tokensBought - 1] = token;
+                        tokenIds[tokensBought - 1] = tokenId;
+                    }
+                }
+
+                // Check ETH spent for call is what was expected.
+                uint256 actualEthUsed = balanceBefore - address(this).balance;
+                if (ethUsed != actualEthUsed) {
+                    revert EthUsedForFailedBuyError(ethUsed, actualEthUsed);
+                }
+
+                totalEthUsed += ethUsed;
+            }
+
+            // Check if number of tokens bought has reached maximum.
+            if (tokensBought == args.maxTokensBought) break;
         }
 
         // This is to prevent this crowdfund from finalizing a loss if nothing
@@ -222,13 +266,13 @@ contract CollectionBatchBuyCrowdfund is BuyCrowdfundBase {
             // Update length of `tokens`
             mstore(tokens, tokensBought)
             // Update length of `tokenIds`
-            mstore(0x1A0, tokensBought)
+            mstore(tokenIds, tokensBought)
         }
 
         return
             _finalize(
                 tokens,
-                args.tokenIds,
+                tokenIds,
                 totalEthUsed,
                 args.governanceOpts,
                 // If `_assertIsHost()` succeeded, the governance opts were validated.

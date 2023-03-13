@@ -15,6 +15,7 @@ import "./Crowdfund.sol";
 abstract contract BuyCrowdfundBase is Crowdfund {
     using LibSafeERC721 for IERC721;
     using LibSafeCast for uint256;
+    using LibRawResult for bytes;
 
     struct BuyCrowdfundBaseOptions {
         // The name of the crowdfund.
@@ -97,7 +98,6 @@ abstract contract BuyCrowdfundBase is Crowdfund {
     // if it successfully buys the NFT.
     function _buy(
         IERC721 token,
-        uint256 tokenId,
         address payable callTarget,
         uint96 callValue,
         bytes memory callData
@@ -106,20 +106,9 @@ abstract contract BuyCrowdfundBase is Crowdfund {
         if (!_isCallAllowed(callTarget, callData, token)) {
             revert CallProhibitedError(callTarget, callData);
         }
-        // Check that the call value is under the maximum price.
-        {
-            uint96 maximumPrice_ = maximumPrice;
-            if (callValue > maximumPrice_) {
-                revert MaximumPriceError(callValue, maximumPrice_);
-            }
-        }
+
         // Execute the call to buy the NFT.
-        (bool s, bytes memory r) = callTarget.call{ value: callValue }(callData);
-        if (!s) {
-            return (false, r);
-        }
-        // Return whether the NFT was successfully bought.
-        return (token.safeOwnerOf(tokenId) == address(this), "");
+        (success, revertData) = callTarget.call{ value: callValue }(callData);
     }
 
     function _finalize(

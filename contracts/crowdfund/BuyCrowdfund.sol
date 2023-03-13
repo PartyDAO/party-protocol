@@ -139,17 +139,29 @@ contract BuyCrowdfund is BuyCrowdfundBase {
             }
         }
 
+        // Check that the call value is under the maximum price.
+        {
+            uint96 maximumPrice_ = maximumPrice;
+            if (callValue > maximumPrice_) {
+                revert MaximumPriceError(callValue, maximumPrice_);
+            }
+        }
+
         // Temporarily set to non-zero as a reentrancy guard.
         settledPrice = type(uint96).max;
 
         // Buy the NFT and check NFT is owned by the crowdfund.
         (bool success, bytes memory revertData) = _buy(
             nftContract,
-            nftTokenId,
             callTarget,
             callValue,
             callData
         );
+
+        // Check that the NFT was bought.
+        if (nftContract.safeOwnerOf(nftTokenId) != address(this)) {
+            success = false;
+        }
 
         if (!success) {
             if (revertData.length > 0) {
