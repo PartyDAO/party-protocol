@@ -145,8 +145,8 @@ contract CollectionBatchBuyCrowdfundTest is Test, TestUtils {
         Party party_ = cf.batchBuy(
             CollectionBatchBuyCrowdfund.BatchBuyArgs({
                 calls: calls,
+                numOfTokens: tokenIds.length,
                 minTokensBought: tokenIds.length,
-                maxTokensBought: tokenIds.length,
                 minTotalEthUsed: 0,
                 governanceOpts: govOpts,
                 hostIndex: 0
@@ -196,73 +196,8 @@ contract CollectionBatchBuyCrowdfundTest is Test, TestUtils {
         cf.batchBuy(
             CollectionBatchBuyCrowdfund.BatchBuyArgs({
                 calls: calls,
+                numOfTokens: tokens.length,
                 minTokensBought: tokens.length,
-                maxTokensBought: tokens.length,
-                minTotalEthUsed: 0,
-                governanceOpts: govOpts,
-                hostIndex: 0
-            })
-        );
-    }
-
-    function test_batchBuy_aboveMaxTokensBought() public {
-        // Create the crowdfund.
-        CollectionBatchBuyCrowdfund cf = _createCrowdfund();
-        // Contribute and delegate.
-        address payable contributor = _randomAddress();
-        address delegate = _randomAddress();
-        vm.deal(contributor, 1e18);
-        vm.prank(contributor);
-        cf.contribute{ value: contributor.balance }(delegate, "");
-        // Setup parameters to batch buy.
-        IERC721[] memory tokens = new IERC721[](2);
-        uint256[] memory tokenIds = new uint256[](2);
-        CollectionBatchBuyCrowdfund.BuyCall[]
-            memory calls = new CollectionBatchBuyCrowdfund.BuyCall[](3);
-        for (uint256 i; i < calls.length; ++i) {
-            if (i < 2) {
-                tokens[i] = nftContract;
-                tokenIds[i] = i + 1;
-            }
-
-            CollectionBatchBuyCrowdfund.TokenToBuy[]
-                memory tokensToBuy = new CollectionBatchBuyCrowdfund.TokenToBuy[](1);
-            tokensToBuy[0].tokenId = i + 1;
-            tokensToBuy[0].price = 1;
-
-            calls[i] = CollectionBatchBuyCrowdfund.BuyCall({
-                target: payable(address(nftContract)),
-                data: abi.encodeCall(nftContract.mint, (address(cf))),
-                tokensToBuy: tokensToBuy
-            });
-        }
-        // Buy the tokens.
-        vm.expectEmit(false, false, false, true);
-        emit MockPartyFactoryCreateParty(
-            address(cf),
-            address(cf),
-            Party.PartyOptions({
-                name: "Crowdfund",
-                symbol: "CF",
-                customizationPresetId: 0,
-                governance: PartyGovernance.GovernanceOpts({
-                    hosts: govOpts.hosts,
-                    voteDuration: govOpts.voteDuration,
-                    executionDelay: govOpts.executionDelay,
-                    passThresholdBps: govOpts.passThresholdBps,
-                    totalVotingPower: 2,
-                    feeBps: govOpts.feeBps,
-                    feeRecipient: govOpts.feeRecipient
-                })
-            }),
-            tokens,
-            tokenIds
-        );
-        cf.batchBuy(
-            CollectionBatchBuyCrowdfund.BatchBuyArgs({
-                calls: calls,
-                minTokensBought: 2,
-                maxTokensBought: 2,
                 minTotalEthUsed: 0,
                 governanceOpts: govOpts,
                 hostIndex: 0
@@ -304,8 +239,8 @@ contract CollectionBatchBuyCrowdfundTest is Test, TestUtils {
         cf.batchBuy(
             CollectionBatchBuyCrowdfund.BatchBuyArgs({
                 calls: calls,
+                numOfTokens: tokens.length,
                 minTokensBought: tokens.length,
-                maxTokensBought: tokens.length,
                 minTotalEthUsed: 4,
                 governanceOpts: govOpts,
                 hostIndex: 0
@@ -372,8 +307,8 @@ contract CollectionBatchBuyCrowdfundTest is Test, TestUtils {
         cf.batchBuy(
             CollectionBatchBuyCrowdfund.BatchBuyArgs({
                 calls: calls,
+                numOfTokens: 2,
                 minTokensBought: tokenIds.length - 1,
-                maxTokensBought: tokenIds.length,
                 minTotalEthUsed: 0,
                 governanceOpts: govOpts,
                 hostIndex: 0
@@ -394,8 +329,8 @@ contract CollectionBatchBuyCrowdfundTest is Test, TestUtils {
         cf.batchBuy(
             CollectionBatchBuyCrowdfund.BatchBuyArgs({
                 calls: new CollectionBatchBuyCrowdfund.BuyCall[](0),
+                numOfTokens: 0,
                 minTokensBought: 0,
-                maxTokensBought: 0,
                 minTotalEthUsed: 0,
                 governanceOpts: govOpts,
                 hostIndex: 0
@@ -411,8 +346,8 @@ contract CollectionBatchBuyCrowdfundTest is Test, TestUtils {
         cf.batchBuy(
             CollectionBatchBuyCrowdfund.BatchBuyArgs({
                 calls: new CollectionBatchBuyCrowdfund.BuyCall[](0),
+                numOfTokens: 1,
                 minTokensBought: 1,
-                maxTokensBought: 1,
                 minTotalEthUsed: 0,
                 governanceOpts: govOpts,
                 hostIndex: 0
@@ -441,8 +376,8 @@ contract CollectionBatchBuyCrowdfundTest is Test, TestUtils {
         cf.batchBuy(
             CollectionBatchBuyCrowdfund.BatchBuyArgs({
                 calls: calls,
+                numOfTokens: 3,
                 minTokensBought: 3,
-                maxTokensBought: 3,
                 minTotalEthUsed: 0,
                 governanceOpts: govOpts,
                 hostIndex: 0
@@ -480,8 +415,8 @@ contract CollectionBatchBuyCrowdfundTest is Test, TestUtils {
         cf.batchBuy(
             CollectionBatchBuyCrowdfund.BatchBuyArgs({
                 calls: calls,
+                numOfTokens: 2,
                 minTokensBought: 1,
-                maxTokensBought: 2,
                 minTotalEthUsed: 0,
                 governanceOpts: govOpts,
                 hostIndex: 0
@@ -516,8 +451,8 @@ contract CollectionBatchBuyCrowdfundTest is Test, TestUtils {
         cf.batchBuy(
             CollectionBatchBuyCrowdfund.BatchBuyArgs({
                 calls: calls,
+                numOfTokens: 1,
                 minTokensBought: 1,
-                maxTokensBought: 1,
                 minTotalEthUsed: 0,
                 governanceOpts: govOpts,
                 hostIndex: 0
@@ -547,8 +482,8 @@ contract CollectionBatchBuyCrowdfundTest is Test, TestUtils {
         cf.batchBuy(
             CollectionBatchBuyCrowdfund.BatchBuyArgs({
                 calls: calls,
+                numOfTokens: 3,
                 minTokensBought: 3,
-                maxTokensBought: 3,
                 minTotalEthUsed: 0,
                 governanceOpts: govOpts,
                 hostIndex: 0
@@ -580,8 +515,8 @@ contract CollectionBatchBuyCrowdfundTest is Test, TestUtils {
         cf.batchBuy(
             CollectionBatchBuyCrowdfund.BatchBuyArgs({
                 calls: calls,
+                numOfTokens: 3,
                 minTokensBought: 3,
-                maxTokensBought: 3,
                 minTotalEthUsed: 0,
                 governanceOpts: govOpts,
                 hostIndex: 0
@@ -614,8 +549,8 @@ contract CollectionBatchBuyCrowdfundTest is Test, TestUtils {
         cf.batchBuy(
             CollectionBatchBuyCrowdfund.BatchBuyArgs({
                 calls: calls,
+                numOfTokens: 1,
                 minTokensBought: 1,
-                maxTokensBought: 1,
                 minTotalEthUsed: 0,
                 governanceOpts: govOpts,
                 hostIndex: 0
@@ -650,8 +585,8 @@ contract CollectionBatchBuyCrowdfundTest is Test, TestUtils {
         cf.batchBuy(
             CollectionBatchBuyCrowdfund.BatchBuyArgs({
                 calls: calls,
+                numOfTokens: 1,
                 minTokensBought: 1,
-                maxTokensBought: 1,
                 minTotalEthUsed: 0,
                 governanceOpts: govOpts,
                 hostIndex: 0
@@ -713,8 +648,8 @@ contract CollectionBatchBuyCrowdfundTest is Test, TestUtils {
         cf.batchBuy(
             CollectionBatchBuyCrowdfund.BatchBuyArgs({
                 calls: calls,
+                numOfTokens: 6,
                 minTokensBought: 6,
-                maxTokensBought: 6,
                 minTotalEthUsed: 0,
                 governanceOpts: govOpts,
                 hostIndex: 0

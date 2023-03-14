@@ -83,12 +83,12 @@ contract CollectionBatchBuyCrowdfund is BuyCrowdfundBase {
         // The calls made to buy the NFTs. Each call has a target, data, and
         // the tokens to buy in that call.
         BuyCall[] calls;
+        // The total number of tokens that can be bought in this batch buy. This
+        // should be equal to the sum of the each `tokensToBuy` in `calls`.
+        uint256 numOfTokens;
         // Minimum number of tokens that must be purchased. If this limit is
         // not reached, the batch buy will fail.
         uint256 minTokensBought;
-        // Maximum number of tokens that can be purchased. If this limit is
-        // reached, the batch buy will end prematurely.
-        uint256 maxTokensBought;
         // Minimum amount of ETH that must be used to buy the tokens. If this
         // amount is not reached, the batch buy will fail.
         uint256 minTotalEthUsed;
@@ -107,7 +107,7 @@ contract CollectionBatchBuyCrowdfund is BuyCrowdfundBase {
     error EthUsedForFailedBuyError(uint256 expectedEthUsed, uint256 actualEthUsed);
     error NotEnoughTokensBoughtError(uint256 tokensBought, uint256 minTokensBought);
     error NotEnoughEthUsedError(uint256 ethUsed, uint256 minTotalEthUsed);
-    error MinGreaterThanMaxError(uint256 min, uint256 max);
+    error NumOfTokensCannotBeLessThanMin(uint256 numOfTokens, uint256 min);
 
     /// @notice The contract of NFTs to buy.
     IERC721 public nftContract;
@@ -171,16 +171,18 @@ contract CollectionBatchBuyCrowdfund is BuyCrowdfundBase {
             revert InvalidMinTokensBoughtError(0);
         }
 
-        if (args.maxTokensBought < args.minTokensBought) {
-            revert MinGreaterThanMaxError(args.minTokensBought, args.maxTokensBought);
+        if (args.numOfTokens < args.minTokensBought) {
+            // The number of tokens to buy must be greater than or equal to the
+            // minimum number of tokens to buy.
+            revert NumOfTokensCannotBeLessThanMin(args.numOfTokens, args.minTokensBought);
         }
 
         // Temporarily set to non-zero as a reentrancy guard.
         settledPrice = type(uint96).max;
 
-        // Lengths of arrays are set to max value and updated at the end.
-        IERC721[] memory tokens = new IERC721[](args.maxTokensBought);
-        uint256[] memory tokenIds = new uint256[](args.maxTokensBought);
+        // Lengths of arrays are updated at the end.
+        IERC721[] memory tokens = new IERC721[](args.numOfTokens);
+        uint256[] memory tokenIds = new uint256[](args.numOfTokens);
 
         IERC721 token = nftContract;
         bytes32 root = nftTokenIdsMerkleRoot;
@@ -242,9 +244,6 @@ contract CollectionBatchBuyCrowdfund is BuyCrowdfundBase {
 
                 totalEthUsed += ethUsed;
             }
-
-            // Check if number of tokens bought has reached maximum.
-            if (tokensBought == args.maxTokensBought) break;
         }
 
         // This is to prevent this crowdfund from finalizing a loss if nothing
