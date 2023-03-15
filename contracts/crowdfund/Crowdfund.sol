@@ -527,16 +527,13 @@ abstract contract Crowdfund is Implementation, ERC721Receiver, CrowdfundNFT {
         {
             Contribution[] memory contributions = _contributionsByContributor[contributor];
             uint256 numContributions = contributions.length;
-            CrowdfundLifecycle lc = getCrowdfundLifecycle();
-
             for (uint256 i; i < numContributions; ++i) {
                 Contribution memory c = contributions[i];
                 if (totalContributionsWithdrawn > c.previousTotalContributions) {
-                    // If crowd fund was lost, entire contribution was not used. 
-                    if (lc == CrowdfundLifecycle.Lost) {
-                        ethOwed += c.amount;
+                    if(totalEthUsed < c.amount ) {
+                        ethUsed += totalEthUsed;
+                        ethOwed += c.amount - totalEthUsed;
                     } else {
-                        // This entire contribution was used.
                         ethUsed += c.amount;
                     }
                 } else if (c.previousTotalContributions - totalContributionsWithdrawn>= totalEthUsed) {
@@ -545,14 +542,15 @@ abstract contract Crowdfund is Implementation, ERC721Receiver, CrowdfundNFT {
                 } else if (c.previousTotalContributions - totalContributionsWithdrawn + c.amount <= totalEthUsed) {
                     // This entire contribution was used.
                     ethUsed += c.amount;
-                }  else if (totalContributionsWithdrawn > c.previousTotalContributions) {
-                    // This entire contribution was used.
-                    ethUsed += c.amount;
-                } else {
+                }  else {
                     // This contribution was partially used.
-                    uint256 partialEthUsed = totalEthUsed - c.previousTotalContributions + totalContributionsWithdrawn;
+                    if(totalEthUsed - (c.previousTotalContributions - totalContributionsWithdrawn) > c.amount) {
+                        ethUsed += c.amount;
+                    } else {
+                    uint256 partialEthUsed = totalEthUsed - (c.previousTotalContributions - totalContributionsWithdrawn);
                     ethUsed += partialEthUsed;
-                    ethOwed = c.amount - partialEthUsed;
+                    ethOwed += c.amount - partialEthUsed;
+                    }
                 }
             }
         }
