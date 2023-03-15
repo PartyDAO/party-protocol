@@ -1066,6 +1066,57 @@ contract CrowdfundTest is Test, TestUtils {
         assertEq(contributor1.balance, 0);
     }
 
+    function testWin_afterWithdrawnContributionThreeContributors() external {
+        TestableCrowdfund cf = _createCrowdfund(0);
+        address delegate1 = _randomAddress();
+        address payable Alice = _randomAddress();
+        address payable Bob = _randomAddress();
+        address payable Charlie = _randomAddress();
+        vm.deal(Alice, 10e18);
+        vm.deal(Bob, 5e18);
+        vm.deal(Charlie, 3e18);
+        //Alice contributes
+        vm.prank(Alice);
+        cf.contribute{ value: 10e18 }(delegate1, "");
+        assertEq(cf.totalContributions(), 10e18);
+        assertEq(cf.getContributionEntriesByContributorCount(Alice), 1);
+        //Bob Contributes
+        vm.prank(Bob);
+        cf.contribute{ value: 5e18 }(delegate1, "");
+        assertEq(cf.totalContributions(), 15e18);
+        assertEq(cf.getContributionEntriesByContributorCount(Bob), 1);
+        //Charlie contributes
+        vm.prank(Charlie);
+        cf.contribute{ value: 3e18 }(delegate1, "");
+        assertEq(cf.totalContributions(), 18e18);
+        assertEq(cf.getContributionEntriesByContributorCount(Charlie), 1);
+        //rageQuit crowdfund.
+        vm.prank(Alice);
+        cf.rageQuit();
+        //check that contributor's eth was returned.
+        assertEq(Alice.balance, 10e18);
+        (IERC721[] memory erc721Tokens, uint256[] memory erc721TokenIds) = _createTokens(
+            address(cf),
+            2
+        );
+        vm.expectEmit(false, false, false, true);
+        emit MockPartyFactoryCreateParty(
+            address(cf),
+            address(cf),
+            _createExpectedPartyOptions(cf, 7e18),
+            erc721Tokens,
+            erc721TokenIds
+        );
+        Party party_ = cf.testSetWon(7e18, defaultGovernanceOpts, erc721Tokens, erc721TokenIds);
+        assertEq(address(party_), address(party));
+        // Bob burns tokens
+        vm.expectEmit(false, false, false, true);
+        emit MockMint(address(cf), Bob, 5e18, delegate1);
+        cf.burn(Bob);
+        // Bob gets back none of their contribution
+        assertEq(Bob.balance, 0);
+    }
+
     function testLoss_afterWithdrawnContribution() external {
         TestableCrowdfund cf = _createCrowdfund(0);
         address delegate1 = _randomAddress();
