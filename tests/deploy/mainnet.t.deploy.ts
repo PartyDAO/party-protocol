@@ -625,7 +625,7 @@ describeFork("Mainnet deployment fork smoke tests", provider => {
       preciousTokenId,
       progressData,
     );
-    const { tokenId: soldTokenId } = findEvent(r, "OpenseaOrderSold", party.address).args;
+    const { tokenId: soldTokenId } = findEvent(r, "OpenseaAdvancedOrderSold", party.address).args;
     expect(soldTokenId).to.eq(tokenId);
 
     await runDistributionTest(party, null, members);

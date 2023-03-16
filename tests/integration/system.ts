@@ -94,11 +94,6 @@ export enum DistributionTokenType {
   Erc20 = 1,
 }
 
-export enum ListOnOpenseaTokenType {
-  Erc721 = 0,
-  Erc1155 = 1,
-}
-
 export interface Proposal {
   maxExecutableTime: number;
   cancelDelay: number;
@@ -124,10 +119,8 @@ export interface DistributionInfo {
 }
 
 interface OpenSeaProposalInfo {
-  startPrice: BigNumber;
-  endPrice: BigNumber;
+  listPrice: BigNumber;
   duration: number;
-  tokenType: ListOnOpenseaTokenType;
   token: string;
   tokenId: BigNumber;
   fees: BigNumber[];
@@ -508,7 +501,7 @@ export function createOpenSeaProposal(
       ethers.utils.hexZeroPad(ethers.utils.hexlify(ProposalType.ListOnOpenSea), 4),
       ethers.utils.defaultAbiCoder.encode(
         [
-          "tuple(uint256 startPrice,uint256 endPrice,uint40 duration,uint8 tokenType,address token,uint256 tokenId,uint256[] fees,address[] feeRecipients,bytes4 domainHashPrefix)",
+          "tuple(uint256 listPrice,uint40 duration,address token,uint256 tokenId,uint256[] fees,address[] feeRecipients,bytes4 domainHashPrefix)",
         ],
         [info],
       ),
