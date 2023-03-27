@@ -1069,32 +1069,33 @@ contract CrowdfundTest is Test, TestUtils {
     function testWin_afterWithdrawnContributionThreeContributors() external {
         TestableCrowdfund cf = _createCrowdfund(0);
         address delegate1 = _randomAddress();
-        address payable Alice = _randomAddress();
-        address payable Bob = _randomAddress();
-        address payable Charlie = _randomAddress();
-        vm.deal(Alice, 10e18);
-        vm.deal(Bob, 5e18);
-        vm.deal(Charlie, 3e18);
+        address payable alice = _randomAddress();
+        address payable bob = _randomAddress();
+        address payable charlie = _randomAddress();
+        vm.deal(alice, 10e18);
+        vm.deal(bob, 5e18);
+        vm.deal(charlie, 3e18);
         //Alice contributes
-        vm.prank(Alice);
+        vm.prank(alice);
         cf.contribute{ value: 10e18 }(delegate1, "");
         assertEq(cf.totalContributions(), 10e18);
-        assertEq(cf.getContributionEntriesByContributorCount(Alice), 1);
+        assertEq(cf.getContributionEntriesByContributorCount(alice), 1);
         //Bob Contributes
-        vm.prank(Bob);
+        vm.prank(bob);
         cf.contribute{ value: 5e18 }(delegate1, "");
         assertEq(cf.totalContributions(), 15e18);
-        assertEq(cf.getContributionEntriesByContributorCount(Bob), 1);
+        assertEq(cf.getContributionEntriesByContributorCount(bob), 1);
         //Charlie contributes
-        vm.prank(Charlie);
+        vm.prank(charlie);
         cf.contribute{ value: 3e18 }(delegate1, "");
         assertEq(cf.totalContributions(), 18e18);
-        assertEq(cf.getContributionEntriesByContributorCount(Charlie), 1);
+        assertEq(cf.getContributionEntriesByContributorCount(charlie), 1);
         //rageQuit crowdfund.
-        vm.prank(Alice);
+        vm.prank(alice);
         cf.rageQuit();
         //check that contributor's eth was returned.
-        assertEq(Alice.balance, 10e18);
+        assertEq(alice.balance, 10e18);
+        assertEq(cf.totalContributionsWithdrawn(), 10e18);
         (IERC721[] memory erc721Tokens, uint256[] memory erc721TokenIds) = _createTokens(
             address(cf),
             2
@@ -1111,10 +1112,25 @@ contract CrowdfundTest is Test, TestUtils {
         assertEq(address(party_), address(party));
         // Bob burns tokens
         vm.expectEmit(false, false, false, true);
-        emit MockMint(address(cf), Bob, 5e18, delegate1);
-        cf.burn(Bob);
+        emit MockMint(address(cf), bob, 5e18, delegate1);
+        cf.burn(bob);
         // Bob gets back none of their contribution
-        assertEq(Bob.balance, 0);
+        assertEq(bob.balance, 0);
+        //Charlie burns tokens
+        vm.expectEmit(false, false, false, true);
+        emit MockMint(address(cf), charlie, 2e18, delegate1);
+        cf.burn(charlie);
+        // Charlie gets back 1 ETH of their contribution
+        assertEq(charlie.balance, 1e18);
+        // check that Alice can not burn tokens
+         vm.expectRevert(
+            abi.encodeWithSelector(
+                CrowdfundNFT.AlreadyBurnedError.selector,
+                alice,
+                uint256(uint160(address(alice)))
+            )
+        );
+        cf.burn(alice);
     }
 
     function testLoss_afterWithdrawnContribution() external {
