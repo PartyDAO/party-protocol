@@ -740,7 +740,8 @@ contract AuctionCrowdfundTest is Test, TestUtils {
             )
         );
     }
- function _contribute(AuctionCrowdfund cf, address contributor, uint256 amount) private {
+
+    function _contribute(AuctionCrowdfund cf, address contributor, uint256 amount) private {
         vm.deal(contributor, amount);
         vm.prank(contributor);
         cf.contribute{ value: amount }(contributor, "");
@@ -756,12 +757,7 @@ contract AuctionCrowdfundTest is Test, TestUtils {
         vm.deal(contributor, amount);
         vm.prank(contributor);
         _expectEmit0();
-        emit Contributed(
-            contributor,
-            amount,
-            delegate,
-            previousTotalContributions
-        );
+        emit Contributed(contributor, amount, delegate, previousTotalContributions);
         cf.contribute{ value: amount }(delegate, "");
     }
 

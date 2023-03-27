@@ -55,6 +55,7 @@ contract CollectionBuyCrowdfundTest is Test, TestUtils {
         party = partyFactory.mockParty();
         collectionBuyCrowdfundImpl = new CollectionBuyCrowdfund(globals);
     }
+
     function _createCrowdfund(
         address[] memory hosts,
         uint96 initialContribution

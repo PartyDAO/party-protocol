@@ -320,9 +320,9 @@ abstract contract Crowdfund is Implementation, ERC721Receiver, CrowdfundNFT {
         // Only allow rage quit while the crowdfund is active.
         address payable contributor = payable(msg.sender);
         CrowdfundLifecycle lc = getCrowdfundLifecycle();
-            if (lc != CrowdfundLifecycle.Active) {
-                    revert WrongLifecycleError(lc);
-            }
+        if (lc != CrowdfundLifecycle.Active) {
+            revert WrongLifecycleError(lc);
+        }
         //get the user's contribution amount.
         uint256 amountToRefund = _getCurrentContribution(contributor);
         // Add to withdrawn funds
@@ -511,12 +511,12 @@ abstract contract Crowdfund is Implementation, ERC721Receiver, CrowdfundNFT {
 
     function _getCurrentContribution(
         address contributor
-        ) internal view returns (uint256 totalEthContributed) {
-            Contribution[] memory contributions = _contributionsByContributor[contributor];
-            uint256 numContributions = contributions.length;
-            for (uint256 i; i < numContributions; ++i) {
-                Contribution memory c = contributions[i];
-                totalEthContributed += c.amount;
+    ) internal view returns (uint256 totalEthContributed) {
+        Contribution[] memory contributions = _contributionsByContributor[contributor];
+        uint256 numContributions = contributions.length;
+        for (uint256 i; i < numContributions; ++i) {
+            Contribution memory c = contributions[i];
+            totalEthContributed += c.amount;
         }
     }
 
@@ -530,27 +530,37 @@ abstract contract Crowdfund is Implementation, ERC721Receiver, CrowdfundNFT {
             for (uint256 i; i < numContributions; ++i) {
                 Contribution memory c = contributions[i];
                 if (totalContributionsWithdrawn > c.previousTotalContributions) {
-                    if(totalEthUsed < c.amount ) {
+                    if (totalEthUsed < c.amount) {
                         ethUsed += totalEthUsed;
                         ethOwed += c.amount - totalEthUsed;
                     } else {
                         // This entire contribution was used.
                         ethUsed += c.amount;
                     }
-                } else if (c.previousTotalContributions - totalContributionsWithdrawn>= totalEthUsed) {
+                } else if (
+                    c.previousTotalContributions - totalContributionsWithdrawn >= totalEthUsed
+                ) {
                     // This entire contribution was not used.
                     ethOwed += c.amount;
-                } else if (c.previousTotalContributions - totalContributionsWithdrawn + c.amount <= totalEthUsed) {
+                } else if (
+                    c.previousTotalContributions - totalContributionsWithdrawn + c.amount <=
+                    totalEthUsed
+                ) {
                     // This entire contribution was used.
                     ethUsed += c.amount;
-                }  else {
+                } else {
                     // This contribution was partially used.
-                    if(totalEthUsed - (c.previousTotalContributions - totalContributionsWithdrawn) > c.amount) {
+                    if (
+                        totalEthUsed -
+                            (c.previousTotalContributions - totalContributionsWithdrawn) >
+                        c.amount
+                    ) {
                         ethUsed += c.amount;
                     } else {
-                    uint256 partialEthUsed = totalEthUsed - (c.previousTotalContributions - totalContributionsWithdrawn);
-                    ethUsed += partialEthUsed;
-                    ethOwed += c.amount - partialEthUsed;
+                        uint256 partialEthUsed = totalEthUsed -
+                            (c.previousTotalContributions - totalContributionsWithdrawn);
+                        ethUsed += partialEthUsed;
+                        ethOwed += c.amount - partialEthUsed;
                     }
                 }
             }

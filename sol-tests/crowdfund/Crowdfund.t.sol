@@ -106,6 +106,7 @@ contract CrowdfundTest is Test, TestUtils {
             );
         }
     }
+
     function _createTokens(
         address owner,
         uint256 count
@@ -1123,7 +1124,7 @@ contract CrowdfundTest is Test, TestUtils {
         // Charlie gets back 1 ETH of their contribution
         assertEq(charlie.balance, 1e18);
         // check that Alice can not burn tokens
-         vm.expectRevert(
+        vm.expectRevert(
             abi.encodeWithSelector(
                 CrowdfundNFT.AlreadyBurnedError.selector,
                 alice,

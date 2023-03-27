@@ -26,7 +26,8 @@ contract ZoraMarketWrapper is IMarketWrapper {
 
     constructor(address _zoraAuctionHouse) {
         market = IZoraAuctionHouse(_zoraAuctionHouse);
-        minBidIncrementPercentage = IZoraAuctionHouse(_zoraAuctionHouse).minBidIncrementPercentage();
+        minBidIncrementPercentage = IZoraAuctionHouse(_zoraAuctionHouse)
+            .minBidIncrementPercentage();
     }
 
     // ======== External Functions =========
