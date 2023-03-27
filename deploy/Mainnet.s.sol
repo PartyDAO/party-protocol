@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 pragma solidity ^0.8;
 
-import "./deploy.sol";
+import "./Deploy.s.sol";
 import "./LibDeployConstants.sol";
 
 contract MainnetDeploy is DeployScript {

@@ -44,7 +44,6 @@ abstract contract Deploy {
 
     // temporary variables to store deployed contract addresses
     Globals public globals;
-    IZoraAuctionHouse public zoraAuctionHouse;
     AuctionCrowdfund public auctionCrowdfund;
     RollingAuctionCrowdfund public rollingAuctionCrowdfund;
     BuyCrowdfund public buyCrowdfund;
@@ -53,7 +52,6 @@ abstract contract Deploy {
     CrowdfundFactory public crowdfundFactory;
     Party public party;
     PartyFactory public partyFactory;
-    IOpenseaExchange public seaport;
     ProposalExecutionEngine public proposalExecutionEngine;
     TokenDistributor public tokenDistributor;
     RendererStorage public rendererStorage;
@@ -70,7 +68,7 @@ abstract contract Deploy {
     function deploy(LibDeployConstants.DeployConstants memory deployConstants) public virtual {
         _switchDeployer(DeployerRole.Default);
 
-        seaport = IOpenseaExchange(deployConstants.seaportExchangeAddress);
+        IOpenseaExchange seaport = IOpenseaExchange(deployConstants.seaportExchangeAddress);
 
         // DEPLOY_GLOBALS
         console.log("");
@@ -97,7 +95,7 @@ abstract contract Deploy {
         console.log("");
         console.log("### ProposalExecutionEngine");
         console.log("  Deploying - ProposalExecutionEngine");
-        zoraAuctionHouse = IZoraAuctionHouse(deployConstants.zoraAuctionHouse);
+        IZoraAuctionHouse zoraAuctionHouse = IZoraAuctionHouse(deployConstants.zoraAuctionHouse);
         IOpenseaConduitController conduitController = IOpenseaConduitController(
             deployConstants.osConduitController
         );
@@ -542,6 +540,8 @@ contract DeployScript is Script, Deploy {
     address[] private _deployersUsed;
 
     function run() external {
+        vm.startBroadcast();
+
         _run();
 
         {
