@@ -205,7 +205,7 @@ For each `bid()` call, the amount to bid will be the minimum winning amount dete
 
 After the auction has ended, someone must call `finalize()`, regardless of whether the crowdfund has placed a bid or not. This will settle the auction (if necessary), possibly returning bidded ETH to the party or acquiring the auctioned NFT. It is possible to call `finalize()` even after the crowdfund has Expired and the crowdfund may even still win in this scenario. If the NFT was acquired, it will then proceed with creating a governance party.
 
-If the `onlyHostCanBid` option is set, then only a host will be able to call `bid()`.
+If the `onlyHostCanBid` option is set, then only a host will be able to call `finalize()`.
 
 ### Creating a Governance Party
 
