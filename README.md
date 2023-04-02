@@ -60,35 +60,14 @@ docs/ # Start here
 contracts/
 │   # Used during the crowdfund phase
 ├── crowdfund/
-│   ├── AuctionCrowdfund.sol
-│   ├── BuyCrowdfund.sol
-│   ├── CollectionBuyCrowdfund.sol
-│   ├── CrowdfundFactory.sol
-│   ├── Crowdfund.sol
-│   └── CrowdfundNFT.sol
 ├── gatekeepers/
-│   ├── AllowListGateKeeper.sol
-│   └── TokenGateKeeper.sol
 ├── globals/
-│   └── Globals.sol
 │   # Used during the governance phase
 ├── party/
-│   ├── Party.sol
-│   ├── PartyFactory.sol
-│   ├── PartyGovernance.sol
-│   └── PartyGovernanceNFT.sol
 ├── proposals/
-│   ├── ProposalExecutionEngine.sol
-│   ├── ArbitraryCallsProposal.sol
-│   ├── FractionalizeProposal.sol
-│   ├── ListOnOpenseaProposal.sol
-│   └── ListOnZoraProposal.sol
 ├── distribution/
-│   └── TokenDistributor.sol
 |   # Used to render crowdfund and governance NFTs
 └── renderers/
-    ├── CrowdfundNFTRenderer.sol
-    └── PartyNFTRenderer.sol
 sol-tests/ # Foundry tests
 tests/ # TS tests
 ```
