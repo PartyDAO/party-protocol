@@ -16,6 +16,7 @@ import "../contracts/globals/Globals.sol";
 import "../contracts/globals/LibGlobals.sol";
 import "../contracts/party/Party.sol";
 import "../contracts/party/PartyFactory.sol";
+import "../contracts/proposals/VetoProposal.sol";
 import "../contracts/renderers/CrowdfundNFTRenderer.sol";
 import "../contracts/renderers/PartyNFTRenderer.sol";
 import "../contracts/renderers/fonts/PixeldroidConsoleFont.sol";
@@ -53,6 +54,7 @@ abstract contract Deploy {
     Party public party;
     PartyFactory public partyFactory;
     ProposalExecutionEngine public proposalExecutionEngine;
+    VetoProposal public vetoProposal;
     TokenDistributor public tokenDistributor;
     RendererStorage public rendererStorage;
     CrowdfundNFTRenderer public crowdfundNFTRenderer;
@@ -132,6 +134,15 @@ abstract contract Deploy {
         _trackDeployerGasAfter();
         console.log("  Deployed - PartyFactory", address(partyFactory));
         _switchDeployer(DeployerRole.Default);
+
+        // DEPLOY_VETO_PROPOSAL
+        console.log("");
+        console.log("### VetoProposal");
+        console.log("  Deploying - VetoProposal");
+        _trackDeployerGasBefore();
+        vetoProposal = new VetoProposal();
+        _trackDeployerGasAfter();
+        console.log("  Deployed - VetoProposal", address(vetoProposal));
 
         // DEPLOY_AUCTION_CF_IMPLEMENTATION
         console.log("");
@@ -554,7 +565,7 @@ contract DeployScript is Script, Deploy {
         Deploy.deploy(deployConstants);
         vm.stopBroadcast();
 
-        AddressMapping[] memory addressMapping = new AddressMapping[](18);
+        AddressMapping[] memory addressMapping = new AddressMapping[](19);
         addressMapping[0] = AddressMapping("Globals", address(globals));
         addressMapping[1] = AddressMapping("TokenDistributor", address(tokenDistributor));
         addressMapping[2] = AddressMapping(
@@ -588,6 +599,7 @@ contract DeployScript is Script, Deploy {
             "PixeldroidConsoleFont",
             address(pixeldroidConsoleFont)
         );
+        addressMapping[18] = AddressMapping("VetoProposal", address(vetoProposal));
 
         console.log("");
         console.log("### Deployed addresses");
