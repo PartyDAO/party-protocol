@@ -166,17 +166,6 @@ abstract contract Deploy {
             address(collectionBuyCrowdfund)
         );
 
-        console.log("");
-        console.log("  Globals - setting CollectionBuyCrowdfund crowdfund implementation address");
-        globals.setAddress(
-            LibGlobals.GLOBAL_COLLECTION_BUY_CF_IMPL,
-            address(collectionBuyCrowdfund)
-        );
-        console.log(
-            "  Globals - successfully set CollectionBuyCrowdfund crowdfund implementation address",
-            address(collectionBuyCrowdfund)
-        );
-
         // DEPLOY_COLLECTION_BATCH_BUY_CF_IMPLEMENTATION
         console.log("");
         console.log("### CollectionBatchBuyCrowdfund crowdfund implementation");
@@ -189,19 +178,6 @@ abstract contract Deploy {
             address(collectionBatchBuyCrowdfund)
         );
 
-        console.log("");
-        console.log(
-            "  Globals - setting CollectionBatchBuyCrowdfund crowdfund implementation address"
-        );
-        globals.setAddress(
-            LibGlobals.GLOBAL_COLLECTION_BATCH_BUY_CF_IMPL,
-            address(collectionBatchBuyCrowdfund)
-        );
-        console.log(
-            "  Globals - successfully set CollectionBatchBuyCrowdfund crowdfund implementation address",
-            address(collectionBatchBuyCrowdfund)
-        );
-
         // DEPLOY_ROLLING_AUCTION_CF_IMPLEMENTATION
         console.log("");
         console.log("### RollingAuctionCrowdfund crowdfund implementation");
@@ -209,17 +185,6 @@ abstract contract Deploy {
         rollingAuctionCrowdfund = new RollingAuctionCrowdfund(globals);
         console.log(
             "  Deployed - RollingAuctionCrowdfund crowdfund implementation",
-            address(rollingAuctionCrowdfund)
-        );
-
-        console.log("");
-        console.log("  Globals - setting RollingAuctionCrowdfund crowdfund implementation address");
-        globals.setAddress(
-            LibGlobals.GLOBAL_ROLLING_AUCTION_CF_IMPL,
-            address(rollingAuctionCrowdfund)
-        );
-        console.log(
-            "  Globals - successfully set RollingAuctionCrowdfund crowdfund implementation address",
             address(rollingAuctionCrowdfund)
         );
 
