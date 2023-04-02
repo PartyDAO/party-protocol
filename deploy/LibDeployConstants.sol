@@ -32,7 +32,7 @@ library LibDeployConstants {
 
     function rinkeby(address multisig) internal pure returns (DeployConstants memory) {
         DeployConstants memory deployConstants = DeployConstants({
-            seaportExchangeAddress: 0x00000000006c3852cbEf3e08E8dF289169EdE581,
+            seaportExchangeAddress: 0x00000000000001ad428e4906aE43D8F9852d0dD6,
             osZoraAuctionDuration: 2 minutes,
             osZoraAuctionTimeout: 2 minutes,
             osMinOrderDuration: 2 minutes,
@@ -62,7 +62,7 @@ library LibDeployConstants {
 
     function goerli(address multisig) internal pure returns (DeployConstants memory) {
         DeployConstants memory deployConstants = DeployConstants({
-            seaportExchangeAddress: 0x00000000006c3852cbEf3e08E8dF289169EdE581,
+            seaportExchangeAddress: 0x00000000000001ad428e4906aE43D8F9852d0dD6,
             osZoraAuctionDuration: 2 minutes,
             osZoraAuctionTimeout: 2 minutes,
             osMinOrderDuration: 2 minutes,
@@ -92,7 +92,7 @@ library LibDeployConstants {
 
     function mainnet() internal pure returns (DeployConstants memory) {
         DeployConstants memory deployConstants = DeployConstants({
-            seaportExchangeAddress: 0x00000000006c3852cbEf3e08E8dF289169EdE581,
+            seaportExchangeAddress: 0x00000000000001ad428e4906aE43D8F9852d0dD6,
             osZoraAuctionDuration: 1 days,
             osZoraAuctionTimeout: 1 days,
             osMinOrderDuration: 1 hours,

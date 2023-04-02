@@ -5,7 +5,7 @@ import { Contract, BigNumber, Wallet } from "ethers";
 import { MockProvider, solidity } from "ethereum-waffle";
 import * as ethers from "ethers";
 
-import DEPLOY_ARTIFACT from "../../out/deploy.sol/DeployFork.json";
+import DEPLOY_ARTIFACT from "../../out/Deploy.s.sol/DeployFork.json";
 import CF_FACTORY_ARTIFACT from "../../out/CrowdfundFactory.sol/CrowdfundFactory.json";
 import PARTY_FACTORY_ARTIFACT from "../../out/PartyFactory.sol/PartyFactory.json";
 import DUMMY_ERC721_ARTIFACT from "../../out/DummyERC721.sol/DummyERC721.json";
@@ -28,7 +28,7 @@ import {
   Proposal,
   ProposalStatus,
   ProposalType,
-  TokenType,
+  DistributionTokenType,
 } from "../integration/system";
 import { OpenseaOrderParams, OpenseaOrderType, OpenseaItemType } from "../integration/seaport";
 import {
@@ -568,11 +568,12 @@ describeFork("Mainnet deployment fork smoke tests", provider => {
     const proposal = buildProposal(
       ProposalType.ListOnOpenSea,
       ethers.utils.defaultAbiCoder.encode(
-        ["tuple(uint256, uint40, address, uint256, uint256[], address[], bytes4)"],
+        ["tuple(uint256, uint40, uint8, address, uint256, uint256[], address[], bytes4)"],
         [
           [
             sellerPrice,
             duration,
+            0,
             dummyERC721Contract.address,
             tokenId,
             [openseaFee],
@@ -624,7 +625,7 @@ describeFork("Mainnet deployment fork smoke tests", provider => {
       preciousTokenId,
       progressData,
     );
-    const { tokenId: soldTokenId } = findEvent(r, "OpenseaOrderSold", party.address).args;
+    const { tokenId: soldTokenId } = findEvent(r, "OpenseaAdvancedOrderSold", party.address).args;
     expect(soldTokenId).to.eq(tokenId);
 
     await runDistributionTest(party, null, members);
@@ -699,7 +700,7 @@ describeFork("Mainnet deployment fork smoke tests", provider => {
         party
           .connect(members[0].wallet)
           .distribute(
-            erc20 ? TokenType.Erc20 : TokenType.Native,
+            erc20 ? DistributionTokenType.Erc20 : DistributionTokenType.Native,
             erc20 ? erc20.address : NULL_ADDRESS,
             0,
           ),

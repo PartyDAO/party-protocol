@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: UNLICENSED
+// SPDX-License-Identifier: Apache-2.0
 pragma solidity ^0.8;
 
 import "forge-std/Test.sol";
@@ -8,15 +8,14 @@ import "../../contracts/crowdfund/Crowdfund.sol";
 import "../../contracts/globals/Globals.sol";
 import "../../contracts/globals/LibGlobals.sol";
 import "../../contracts/utils/Proxy.sol";
-import "../../contracts/vendor/markets/IZoraAuctionHouse.sol";
+import "../../contracts/vendor/markets/INounsAuctionHouse.sol";
 
 import "./MockPartyFactory.sol";
 import "./MockParty.sol";
-import "../DummyERC721.sol";
 
 import "../TestUtils.sol";
 
-contract ZoraForkedTest is TestUtils, ERC721Receiver {
+contract NounsCrowdfundForkedTest is TestUtils {
     event Won(uint256 bid, Party party);
     event Lost();
 
@@ -29,28 +28,19 @@ contract ZoraForkedTest is TestUtils, ERC721Receiver {
 
     Crowdfund.FixedGovernanceOpts defaultGovOpts;
 
-    // Initialize Zora contracts
-    IZoraAuctionHouse zora = IZoraAuctionHouse(0xE468cE99444174Bd3bBBEd09209577d25D1ad673);
-    IMarketWrapper zoraMarket = IMarketWrapper(0x11c07cE1315a3b92C9755F90cDF40B04b88c5731);
-    DummyERC721 nftContract = new DummyERC721();
-    uint256 tokenId = nftContract.mint(address(this));
-    uint256 auctionId;
+    // Initialize nouns contracts
+    INounsAuctionHouse nounsAuctionHouse =
+        INounsAuctionHouse(0x830BD73E4184ceF73443C15111a1DF14e495C706);
+    IMarketWrapper nounsMarket = IMarketWrapper(0x9319DAd8736D752C5c72DB229f8e1b280DC80ab1);
+    IERC721 nounsToken;
+    uint256 tokenId;
 
     constructor() onlyForked {
         // Initialize PartyFactory for creating parties after a successful crowdfund.
         globals.setAddress(LibGlobals.GLOBAL_PARTY_FACTORY, address(partyFactory));
 
-        // Create a reserve auction on Zora to bid on
-        nftContract.approve(address(zora), tokenId);
-        auctionId = zora.createAuction(
-            tokenId,
-            nftContract,
-            1 days,
-            1 ether,
-            payable(address(0)),
-            0,
-            IERC20(address(0)) // Indicates ETH sale
-        );
+        nounsToken = nounsAuctionHouse.nouns();
+        (tokenId, , , , , ) = nounsAuctionHouse.auction();
 
         // Create a AuctionCrowdfund crowdfund
         cf = AuctionCrowdfund(
@@ -60,20 +50,22 @@ contract ZoraForkedTest is TestUtils, ERC721Receiver {
                         pbImpl,
                         abi.encodeCall(
                             AuctionCrowdfund.initialize,
-                            AuctionCrowdfund.AuctionCrowdfundOptions({
+                            AuctionCrowdfundBase.AuctionCrowdfundOptions({
                                 name: "Party",
                                 symbol: "PRTY",
                                 customizationPresetId: 0,
-                                auctionId: auctionId,
-                                market: zoraMarket,
-                                nftContract: nftContract,
+                                auctionId: tokenId,
+                                market: nounsMarket,
+                                nftContract: nounsToken,
                                 nftTokenId: tokenId,
-                                duration: 1 days,
+                                duration: type(uint32).max,
                                 maximumBid: type(uint96).max,
                                 splitRecipient: payable(address(0)),
                                 splitBps: 0,
                                 initialContributor: address(this),
                                 initialDelegate: address(0),
+                                minContribution: 0,
+                                maxContribution: type(uint96).max,
                                 gateKeeper: IGateKeeper(address(0)),
                                 gateKeeperId: 0,
                                 onlyHostCanBid: false,
@@ -90,16 +82,16 @@ contract ZoraForkedTest is TestUtils, ERC721Receiver {
         cf.contribute{ value: 1000 ether }(address(this), "");
     }
 
-    // Test creating a crowdfund party around a Zora auction + winning the auction
-    function testForked_WinningZoraAuction() external onlyForked {
-        // Bid on current Zora auction.
+    // Test creating a crowdfund party around a Noun + winning the auction
+    function testForked_WinningNounAuction() external onlyForked {
+        // Bid on current Noun auction.
         cf.bid(defaultGovOpts, 0);
 
         // Check that we are highest bidder.
         uint256 lastBid = cf.lastBid();
-        IZoraAuctionHouse.Auction memory auction = zora.auctions(auctionId);
-        assertEq(lastBid, auction.amount);
-        assertEq(address(payable(cf)), auction.bidder);
+        (, uint256 highestBid, , , address payable highestBidder, ) = nounsAuctionHouse.auction();
+        assertEq(lastBid, highestBid);
+        assertEq(address(cf), highestBidder);
 
         // Wait for the auction to end and check that we won.
         skip(1 days);
@@ -108,47 +100,44 @@ contract ZoraForkedTest is TestUtils, ERC721Receiver {
         _expectEmit0();
         emit Won(lastBid, Party(payable(address(party))));
         cf.finalize(defaultGovOpts);
-        assertEq(nftContract.ownerOf(tokenId), address(party));
+        assertEq(nounsToken.ownerOf(tokenId), address(party));
         assertEq(address(cf.party()), address(party));
-        assertTrue(zoraMarket.isFinalized(tokenId));
+        assertTrue(nounsMarket.isFinalized(tokenId));
     }
 
-    function testForked_WinningZoraAuction_finalizeBefore() external onlyForked {
-        // Bid on current Zora auction.
+    function testForked_WinningNounsAuction_finalizedBefore() external onlyForked {
+        // Bid on current Noun auction.
         cf.bid(defaultGovOpts, 0);
 
         // Check that we are highest bidder.
         uint256 lastBid = cf.lastBid();
-        IZoraAuctionHouse.Auction memory auction = zora.auctions(auctionId);
-        assertEq(lastBid, auction.amount);
-        assertEq(address(payable(cf)), auction.bidder);
+        (, uint256 highestBid, , , address payable highestBidder, ) = nounsAuctionHouse.auction();
+        assertEq(lastBid, highestBid);
+        assertEq(address(cf), highestBidder);
 
         // Wait for the auction to end and check that we won.
         skip(1 days);
 
         // Finalize the auction before `finalize()` is called by the crowdfund.
-        zoraMarket.finalize(auctionId);
+        nounsMarket.finalize(tokenId);
 
         // Finalize the crowdfund.
         _expectEmit0();
         emit Won(lastBid, Party(payable(address(party))));
         cf.finalize(defaultGovOpts);
-        assertEq(nftContract.ownerOf(tokenId), address(party));
+        assertEq(nounsToken.ownerOf(tokenId), address(party));
         assertEq(address(cf.party()), address(party));
-        assertTrue(zoraMarket.isFinalized(tokenId));
+        assertTrue(nounsMarket.isFinalized(tokenId));
     }
 
-    // Test creating a crowdfund party around a Zora auction + losing the auction
-    function testForked_LosingZoraAuction() external onlyForked {
-        // Bid on current Zora auction.
+    // Test creating a crowdfund party around a Noun + losing the auction
+    function testForked_LosingNounAuction() external onlyForked {
+        // Bid on current Noun auction.
         cf.bid(defaultGovOpts, 0);
 
         // We outbid our own party (sneaky!)
         vm.deal(address(this), 1001 ether);
-        (bool success, bytes memory returnData) = address(zora).call{ value: 1001 ether }(
-            abi.encodeWithSignature("createBid(uint256,uint256)", auctionId, 1001 ether)
-        );
-        require(success, string(returnData));
+        nounsAuctionHouse.createBid{ value: 1001 ether }(tokenId);
 
         // Wait for the auction to end and check that we lost.
         skip(1 days);
@@ -158,31 +147,28 @@ contract ZoraForkedTest is TestUtils, ERC721Receiver {
         emit Lost();
         cf.finalize(defaultGovOpts);
         assertEq(address(cf.party()), address(0));
-        assertTrue(zoraMarket.isFinalized(tokenId));
+        assertTrue(nounsMarket.isFinalized(tokenId));
     }
 
-    function testForked_LosingZoraAuction_finalizeBefore() external onlyForked {
-        // Bid on current Zora auction.
+    function testForked_LosingNounAuction_finalizeBefore() external onlyForked {
+        // Bid on current Noun auction.
         cf.bid(defaultGovOpts, 0);
 
         // We outbid our own party (sneaky!)
         vm.deal(address(this), 1001 ether);
-        (bool success, bytes memory returnData) = address(zora).call{ value: 1001 ether }(
-            abi.encodeWithSignature("createBid(uint256,uint256)", auctionId, 1001 ether)
-        );
-        require(success, string(returnData));
+        nounsAuctionHouse.createBid{ value: 1001 ether }(tokenId);
 
         // Wait for the auction to end and check that we lost.
         skip(1 days);
 
         // Finalize the auction before `finalize()` is called by the crowdfund.
-        zoraMarket.finalize(auctionId);
+        nounsMarket.finalize(tokenId);
 
         // Finalize the crowdfund.
         _expectEmit0();
         emit Lost();
         cf.finalize(defaultGovOpts);
         assertEq(address(cf.party()), address(0));
-        assertTrue(zoraMarket.isFinalized(tokenId));
+        assertTrue(nounsMarket.isFinalized(tokenId));
     }
 }

@@ -46,7 +46,7 @@ contract DummyERC721 is IERC721 {
         return false;
     }
 
-    function mint(address owner) external returns (uint256 id) {
+    function mint(address owner) external payable returns (uint256 id) {
         id = ++_lastId;
         _ownerOf[id] = owner;
         ++balanceOf[owner];

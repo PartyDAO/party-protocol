@@ -58,6 +58,8 @@ export enum GlobalKeys {
   DisablePartyActions = 21,
   RendererStorage = 22,
   ProposalMinCancelDuration = 23,
+  RollingAuctionCrowdfundImpl = 24,
+  CollectionBatchBuyCrowdfundImpl = 25,
 }
 
 export enum ProposalType {
@@ -87,7 +89,7 @@ export enum ListOnOpenSeaStep {
   ListedOnOpenSea = 3,
 }
 
-export enum TokenType {
+export enum DistributionTokenType {
   Native = 0,
   Erc20 = 1,
 }
@@ -107,7 +109,7 @@ export interface ArbitraryCall {
 }
 
 export interface DistributionInfo {
-  tokenType: TokenType;
+  tokenType: DistributionTokenType;
   distributionId: BigNumber;
   party: string;
   feeRecipient: string;

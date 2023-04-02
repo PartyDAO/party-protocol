@@ -29,25 +29,36 @@ contract CrowdfundNFTRenderer is RendererBase {
         IFont font
     ) RendererBase(globals, rendererStorage, font) {}
 
-    // The renderer is called via delegateCall, so we need to declare the storage layout.
-    // Run `yarn build && yarn layout Crowdfund.sol/Crowdfund` to generate the current layout.
-    string name;
-    string symbol;
-    mapping(uint256 => address) _owners;
-    Party party;
-    uint96 totalContributions;
-    IGateKeeper gateKeeper;
-    bytes12 gateKeeperId;
-    address payable splitRecipient;
-    uint16 splitBps;
-    bool _splitRecipientHasBurned;
-    bytes32 governanceOptsHash;
-    mapping(address => address) delegationsByContributor;
-    mapping(address => Crowdfund.Contribution[]) _contributionsByContributor;
-    mapping(address => Crowdfund.Claim) claims;
+    function contractURI() external view override returns (string memory) {
+        (bool isDarkMode, Color color) = getCustomizationChoices();
+        (string memory image, string memory banner) = getCollectionImageAndBanner(
+            color,
+            isDarkMode
+        );
+
+        return
+            string.concat(
+                "data:application/json;base64,",
+                Base64.encode(
+                    abi.encodePacked(
+                        '{"name":"',
+                        generateCollectionName(),
+                        '", "description":"',
+                        generateCollectionDescription(),
+                        '", "external_url":"',
+                        generateExternalURL(),
+                        '", "image":"',
+                        image,
+                        '", "banner":"',
+                        banner,
+                        '"}'
+                    )
+                )
+            );
+    }
 
     function tokenURI(uint256 tokenId) external view returns (string memory) {
-        address owner = _owners[tokenId];
+        address owner = Crowdfund(address(this)).ownerOf(tokenId);
         if (owner == address(0)) {
             revert InvalidTokenIdError();
         }
@@ -64,12 +75,12 @@ contract CrowdfundNFTRenderer is RendererBase {
                         '{"name":"',
                         generateName(owner),
                         '", "description":"',
-                        generateDescription(name, owner),
+                        generateDescription(Crowdfund(address(this)).name(), owner),
                         '", "external_url":"',
                         generateExternalURL(),
                         '", "image":"',
                         generateSVG(
-                            name,
+                            Crowdfund(address(this)).name(),
                             getContribution(owner),
                             getCrowdfundStatus(),
                             color,
@@ -127,15 +138,15 @@ contract CrowdfundNFTRenderer is RendererBase {
         }
     }
 
-    function generateCollectionName() internal view override returns (string memory) {
-        return string.concat("Party Contributions: ", name);
+    function generateCollectionName() internal view returns (string memory) {
+        return string.concat("Party Contributions: ", Crowdfund(address(this)).name());
     }
 
-    function generateCollectionDescription() internal view override returns (string memory) {
+    function generateCollectionDescription() internal view returns (string memory) {
         return
             string.concat(
                 "Party Cards in this collection represent contributions to the ",
-                name,
+                Crowdfund(address(this)).name(),
                 " crowdfund. When the crowdfund concludes, Party Cards can be used to claim ETH or activate membership in the Party. During the crowdfund, Party Cards are non-transferable. Head to ",
                 generateExternalURL(),
                 " to learn more about this Party."

@@ -37,6 +37,8 @@ interface IFractionalV1Vault is IERC20 {
 
     function updateCurator(address curator_) external;
 
+    function updateUserPrice(uint256) external;
+
     function start() external payable;
 
     function bid() external payable;

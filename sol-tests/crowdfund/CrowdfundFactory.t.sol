@@ -20,16 +20,25 @@ contract CrowdfundFactoryTest is Test, TestUtils {
     CrowdfundFactory partyCrowdfundFactory = new CrowdfundFactory(globals);
     MockMarketWrapper market = new MockMarketWrapper();
     AuctionCrowdfund auctionCrowdfund = new AuctionCrowdfund(globals);
+    RollingAuctionCrowdfund rollingAuctionCrowdfund = new RollingAuctionCrowdfund(globals);
     BuyCrowdfund buyCrowdfund = new BuyCrowdfund(globals);
     CollectionBuyCrowdfund collectionBuyCrowdfund = new CollectionBuyCrowdfund(globals);
+    CollectionBatchBuyCrowdfund collectionBatchBuyCrowdfund =
+        new CollectionBatchBuyCrowdfund(globals);
     AllowListGateKeeper allowListGateKeeper = new AllowListGateKeeper();
     TokenGateKeeper tokenGateKeeper = new TokenGateKeeper();
 
     event Contributed(
+        address sender,
         address contributor,
         uint256 amount,
-        address delegate,
         uint256 previousTotalContributions
+    );
+    event DelegateUpdated(
+        address sender,
+        address contributor,
+        address oldDelegate,
+        address newDelegate
     );
 
     constructor() {
@@ -39,21 +48,14 @@ contract CrowdfundFactoryTest is Test, TestUtils {
             LibGlobals.GLOBAL_COLLECTION_BUY_CF_IMPL,
             address(collectionBuyCrowdfund)
         );
-    }
-
-    function _hashFixedGovernanceOpts(
-        Crowdfund.FixedGovernanceOpts memory opts
-    ) internal pure returns (bytes32 h) {
-        // Hash in place.
-        assembly {
-            // Replace the address[] hosts field with its hash temporarily.
-            let oldHostsFieldValue := mload(opts)
-            mstore(opts, keccak256(add(mload(opts), 0x20), mul(mload(mload(opts)), 32)))
-            // Hash the entire struct.
-            h := keccak256(opts, 0xC0)
-            // Restore old hosts field value.
-            mstore(opts, oldHostsFieldValue)
-        }
+        globals.setAddress(
+            LibGlobals.GLOBAL_ROLLING_AUCTION_CF_IMPL,
+            address(rollingAuctionCrowdfund)
+        );
+        globals.setAddress(
+            LibGlobals.GLOBAL_COLLECTION_BATCH_BUY_CF_IMPL,
+            address(collectionBatchBuyCrowdfund)
+        );
     }
 
     function _randomGateKeeper()
@@ -101,7 +103,7 @@ contract CrowdfundFactoryTest is Test, TestUtils {
             bytes memory createGateCallData
         ) = _randomGateKeeper();
 
-        AuctionCrowdfund.AuctionCrowdfundOptions memory opts = AuctionCrowdfund
+        AuctionCrowdfundBase.AuctionCrowdfundOptions memory opts = AuctionCrowdfundBase
             .AuctionCrowdfundOptions({
                 name: randomStr,
                 symbol: randomStr,
@@ -117,6 +119,8 @@ contract CrowdfundFactoryTest is Test, TestUtils {
                 splitBps: randomBps,
                 initialContributor: _randomAddress(),
                 initialDelegate: _randomAddress(),
+                minContribution: 0,
+                maxContribution: type(uint96).max,
                 gateKeeper: gateKeeper,
                 gateKeeperId: gateKeeperId,
                 onlyHostCanBid: false,
@@ -158,12 +162,90 @@ contract CrowdfundFactoryTest is Test, TestUtils {
         assertEq(inst.governanceOptsHash(), _hashFixedGovernanceOpts(opts.governanceOpts));
     }
 
+    function testCreateRollingAuctionCrowdfund(
+        string memory randomStr,
+        uint96 randomUint96,
+        uint40 randomUint40,
+        uint16 randomBps
+    ) external {
+        vm.assume(randomBps <= 1e4);
+
+        // Create an auction.
+        (uint256 auctionId, uint256 tokenId) = market.createAuction(0);
+        IERC721 nftContract = IERC721(market.nftContract());
+
+        // Generate random gatekeeper.
+        (
+            IGateKeeper gateKeeper,
+            bytes12 gateKeeperId,
+            bytes memory createGateCallData
+        ) = _randomGateKeeper();
+
+        RollingAuctionCrowdfund.RollingAuctionCrowdfundOptions memory opts = RollingAuctionCrowdfund
+            .RollingAuctionCrowdfundOptions({
+                name: randomStr,
+                symbol: randomStr,
+                customizationPresetId: 0,
+                auctionId: auctionId,
+                market: IMarketWrapper(market),
+                nftContract: nftContract,
+                nftTokenId: tokenId,
+                // This is to avoid overflows when adding to `block.timestamp`.
+                duration: uint40(_randomRange(1, type(uint40).max - block.timestamp)),
+                maximumBid: randomUint96,
+                splitRecipient: payable(_randomAddress()),
+                splitBps: randomBps,
+                initialContributor: _randomAddress(),
+                initialDelegate: _randomAddress(),
+                minContribution: 0,
+                maxContribution: type(uint96).max,
+                gateKeeper: gateKeeper,
+                gateKeeperId: gateKeeperId,
+                onlyHostCanBid: false,
+                allowedAuctionsMerkleRoot: _randomBytes32(),
+                governanceOpts: Crowdfund.FixedGovernanceOpts({
+                    hosts: _toAddressArray(_randomAddress()),
+                    voteDuration: randomUint40,
+                    executionDelay: randomUint40,
+                    passThresholdBps: randomBps,
+                    feeBps: randomBps,
+                    feeRecipient: payable(_randomAddress())
+                })
+            });
+
+        vm.deal(address(this), randomUint40);
+        RollingAuctionCrowdfund inst = partyCrowdfundFactory.createRollingAuctionCrowdfund{
+            value: randomUint40
+        }(opts, createGateCallData);
+
+        // Check that value are initialized to what we expect.
+        assertEq(inst.name(), opts.name);
+        assertEq(inst.symbol(), opts.symbol);
+        assertEq(inst.auctionId(), opts.auctionId);
+        assertEq(address(inst.market()), address(opts.market));
+        assertEq(address(inst.nftContract()), address(opts.nftContract));
+        assertEq(inst.nftTokenId(), opts.nftTokenId);
+        assertEq(inst.expiry(), uint40(block.timestamp + opts.duration));
+        assertEq(inst.maximumBid(), opts.maximumBid);
+        assertEq(inst.splitRecipient(), opts.splitRecipient);
+        assertEq(inst.splitBps(), opts.splitBps);
+        assertEq(inst.totalContributions(), uint96(randomUint40));
+        (uint256 ethContributed, , , ) = inst.getContributorInfo(opts.initialContributor);
+        assertEq(ethContributed, randomUint40);
+        assertEq(address(inst.gateKeeper()), address(opts.gateKeeper));
+        assertEq(
+            inst.gateKeeperId(),
+            address(opts.gateKeeper) == address(0) ? gateKeeperId : bytes12(uint96(1))
+        );
+        assertEq(inst.governanceOptsHash(), _hashFixedGovernanceOpts(opts.governanceOpts));
+    }
+
     function testCreateAuctionCrowdfundWithInvalidAuctionId() external {
         // Create an auction.
         (uint256 auctionId, uint256 tokenId) = market.createAuction(0);
         IERC721 nftContract = IERC721(market.nftContract());
 
-        AuctionCrowdfund.AuctionCrowdfundOptions memory opts = AuctionCrowdfund
+        AuctionCrowdfundBase.AuctionCrowdfundOptions memory opts = AuctionCrowdfundBase
             .AuctionCrowdfundOptions({
                 name: "name",
                 symbol: "symbol",
@@ -178,6 +260,8 @@ contract CrowdfundFactoryTest is Test, TestUtils {
                 splitBps: 0,
                 initialContributor: address(0),
                 initialDelegate: address(0),
+                minContribution: 0,
+                maxContribution: type(uint96).max,
                 gateKeeper: IGateKeeper(address(0)),
                 gateKeeperId: 0,
                 onlyHostCanBid: false,
@@ -191,7 +275,7 @@ contract CrowdfundFactoryTest is Test, TestUtils {
                 })
             });
 
-        vm.expectRevert(AuctionCrowdfund.InvalidAuctionIdError.selector);
+        vm.expectRevert(AuctionCrowdfundBase.InvalidAuctionIdError.selector);
         partyCrowdfundFactory.createAuctionCrowdfund(opts, "");
     }
 
@@ -199,7 +283,7 @@ contract CrowdfundFactoryTest is Test, TestUtils {
         // Create an auction.
         (uint256 auctionId, uint256 tokenId) = market.createAuction(0);
 
-        AuctionCrowdfund.AuctionCrowdfundOptions memory opts = AuctionCrowdfund
+        AuctionCrowdfundBase.AuctionCrowdfundOptions memory opts = AuctionCrowdfundBase
             .AuctionCrowdfundOptions({
                 name: "name",
                 symbol: "symbol",
@@ -214,6 +298,8 @@ contract CrowdfundFactoryTest is Test, TestUtils {
                 splitBps: 0,
                 initialContributor: address(0),
                 initialDelegate: address(0),
+                minContribution: 0,
+                maxContribution: type(uint96).max,
                 gateKeeper: IGateKeeper(address(0)),
                 gateKeeperId: 0,
                 onlyHostCanBid: false,
@@ -227,7 +313,7 @@ contract CrowdfundFactoryTest is Test, TestUtils {
                 })
             });
 
-        vm.expectRevert(AuctionCrowdfund.InvalidAuctionIdError.selector);
+        vm.expectRevert(AuctionCrowdfundBase.InvalidAuctionIdError.selector);
         partyCrowdfundFactory.createAuctionCrowdfund(opts, "");
     }
 
@@ -236,7 +322,7 @@ contract CrowdfundFactoryTest is Test, TestUtils {
         (uint256 auctionId, uint256 tokenId) = market.createAuction(0);
         IERC721 nftContract = IERC721(market.nftContract());
 
-        AuctionCrowdfund.AuctionCrowdfundOptions memory opts = AuctionCrowdfund
+        AuctionCrowdfundBase.AuctionCrowdfundOptions memory opts = AuctionCrowdfundBase
             .AuctionCrowdfundOptions({
                 name: "name",
                 symbol: "symbol",
@@ -251,6 +337,8 @@ contract CrowdfundFactoryTest is Test, TestUtils {
                 splitBps: 0,
                 initialContributor: address(0),
                 initialDelegate: address(0),
+                minContribution: 0,
+                maxContribution: type(uint96).max,
                 gateKeeper: IGateKeeper(address(0)),
                 gateKeeperId: 0,
                 onlyHostCanBid: false,
@@ -264,7 +352,7 @@ contract CrowdfundFactoryTest is Test, TestUtils {
                 })
             });
 
-        vm.expectRevert(AuctionCrowdfund.InvalidAuctionIdError.selector);
+        vm.expectRevert(AuctionCrowdfundBase.InvalidAuctionIdError.selector);
         partyCrowdfundFactory.createAuctionCrowdfund(opts, "");
     }
 
@@ -300,6 +388,8 @@ contract CrowdfundFactoryTest is Test, TestUtils {
             splitBps: randomBps,
             initialContributor: _randomAddress(),
             initialDelegate: _randomAddress(),
+            minContribution: 0,
+            maxContribution: type(uint96).max,
             gateKeeper: gateKeeper,
             gateKeeperId: gateKeeperId,
             onlyHostCanBuy: false,
@@ -370,6 +460,8 @@ contract CrowdfundFactoryTest is Test, TestUtils {
                 splitBps: randomBps,
                 initialContributor: _randomAddress(),
                 initialDelegate: _randomAddress(),
+                minContribution: 0,
+                maxContribution: type(uint96).max,
                 gateKeeper: gateKeeper,
                 gateKeeperId: gateKeeperId,
                 governanceOpts: Crowdfund.FixedGovernanceOpts({
@@ -406,6 +498,76 @@ contract CrowdfundFactoryTest is Test, TestUtils {
         assertEq(inst.governanceOptsHash(), _hashFixedGovernanceOpts(opts.governanceOpts));
     }
 
+    function testCreateCollectionBatchBuyCrowdfund(
+        string memory randomStr,
+        uint96 randomUint96,
+        uint40 randomUint40,
+        uint16 randomBps
+    ) external {
+        vm.assume(randomBps <= 1e4);
+
+        // Create an NFT.
+        DummyERC721 nftContract = new DummyERC721();
+
+        // Generate random gatekeeper.
+        (
+            IGateKeeper gateKeeper,
+            bytes12 gateKeeperId,
+            bytes memory createGateCallData
+        ) = _randomGateKeeper();
+
+        CollectionBatchBuyCrowdfund.CollectionBatchBuyCrowdfundOptions memory opts = CollectionBatchBuyCrowdfund
+            .CollectionBatchBuyCrowdfundOptions({
+                name: randomStr,
+                symbol: randomStr,
+                customizationPresetId: 0,
+                nftContract: nftContract,
+                nftTokenIdsMerkleRoot: keccak256(abi.encodePacked(_randomUint256())),
+                // This is to avoid overflows when adding to `block.timestamp`.
+                duration: uint40(_randomRange(1, type(uint40).max - block.timestamp)),
+                maximumPrice: randomUint96,
+                splitRecipient: payable(_randomAddress()),
+                splitBps: randomBps,
+                initialContributor: _randomAddress(),
+                initialDelegate: _randomAddress(),
+                minContribution: 0,
+                maxContribution: type(uint96).max,
+                gateKeeper: gateKeeper,
+                gateKeeperId: gateKeeperId,
+                governanceOpts: Crowdfund.FixedGovernanceOpts({
+                    hosts: _toAddressArray(_randomAddress()),
+                    voteDuration: randomUint40,
+                    executionDelay: randomUint40,
+                    passThresholdBps: randomBps,
+                    feeBps: randomBps,
+                    feeRecipient: payable(_randomAddress())
+                })
+            });
+
+        vm.deal(address(this), randomUint40);
+        CollectionBatchBuyCrowdfund inst = partyCrowdfundFactory.createCollectionBatchBuyCrowdfund{
+            value: randomUint40
+        }(opts, createGateCallData);
+
+        // Check that value are initialized to what we expect.
+        assertEq(inst.name(), opts.name);
+        assertEq(inst.symbol(), opts.symbol);
+        assertEq(address(inst.nftContract()), address(opts.nftContract));
+        assertEq(inst.expiry(), uint40(block.timestamp + opts.duration));
+        assertEq(inst.maximumPrice(), opts.maximumPrice);
+        assertEq(inst.splitRecipient(), opts.splitRecipient);
+        assertEq(inst.splitBps(), opts.splitBps);
+        assertEq(inst.totalContributions(), uint96(randomUint40));
+        (uint256 ethContributed, , , ) = inst.getContributorInfo(opts.initialContributor);
+        assertEq(ethContributed, randomUint40);
+        assertEq(address(inst.gateKeeper()), address(opts.gateKeeper));
+        assertEq(
+            inst.gateKeeperId(),
+            address(opts.gateKeeper) == address(0) ? gateKeeperId : bytes12(uint96(1))
+        );
+        assertEq(inst.governanceOptsHash(), _hashFixedGovernanceOpts(opts.governanceOpts));
+    }
+
     function testCreatePartyWithInvalidBps(
         uint16 splitBps,
         uint16 passThresholdBps,
@@ -418,7 +580,7 @@ contract CrowdfundFactoryTest is Test, TestUtils {
         (uint256 auctionId, uint256 tokenId) = market.createAuction(0);
         IERC721 nftContract = IERC721(market.nftContract());
 
-        AuctionCrowdfund.AuctionCrowdfundOptions memory opts = AuctionCrowdfund
+        AuctionCrowdfundBase.AuctionCrowdfundOptions memory opts = AuctionCrowdfundBase
             .AuctionCrowdfundOptions({
                 name: "name",
                 symbol: "symbol",
@@ -433,6 +595,8 @@ contract CrowdfundFactoryTest is Test, TestUtils {
                 splitBps: splitBps,
                 initialContributor: address(0),
                 initialDelegate: address(0),
+                minContribution: 0,
+                maxContribution: type(uint96).max,
                 gateKeeper: IGateKeeper(address(0)),
                 gateKeeperId: 0,
                 onlyHostCanBid: false,

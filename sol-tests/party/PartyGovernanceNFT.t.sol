@@ -9,6 +9,7 @@ import "../../contracts/party/Party.sol";
 import "../../contracts/globals/Globals.sol";
 import "../../contracts/renderers/PartyNFTRenderer.sol";
 import "../../contracts/renderers/RendererStorage.sol";
+import "../../contracts/renderers/MetadataRegistry.sol";
 import "../../contracts/renderers/fonts/PixeldroidConsoleFont.sol";
 import "../proposals/DummySimpleProposalEngineImpl.sol";
 import "../proposals/DummyProposalEngineImpl.sol";
@@ -22,6 +23,7 @@ contract PartyGovernanceNFTTest is Test, TestUtils {
     DummySimpleProposalEngineImpl eng;
     PartyNFTRenderer nftRenderer;
     RendererStorage nftRendererStorage;
+    MetadataRegistry metadataRegistry;
     TestTokenDistributor tokenDistributor;
     Globals globals;
     PartyParticipant john;
@@ -33,8 +35,10 @@ contract PartyGovernanceNFTTest is Test, TestUtils {
         GlobalsAdmin globalsAdmin = new GlobalsAdmin();
         globals = globalsAdmin.globals();
         Party partyImpl = new Party(globals);
+        metadataRegistry = new MetadataRegistry(globals, _toAddressArray(address(this)));
         globalsAdmin.setPartyImpl(address(partyImpl));
         globalsAdmin.setGlobalDaoWallet(globalDaoWalletAddress);
+        globalsAdmin.setMetadataRegistry(address(metadataRegistry));
 
         tokenDistributor = new TestTokenDistributor();
         globalsAdmin.setTokenDistributor(address(tokenDistributor));
@@ -354,12 +358,78 @@ contract PartyGovernanceNFTTest is Test, TestUtils {
         assertTrue(bytes(tokenURI).length > 0);
     }
 
+    function testTokenURI_customMetadata() public {
+        // Create party
+        DummyParty party = new DummyParty(address(globals), "Party of the Living Dead");
+
+        // Create dummy crowdfund address to use as mint authority.
+        DummyCrowdfund crowdfund = new DummyCrowdfund();
+        Crowdfund.FixedGovernanceOpts memory opts;
+        opts.hosts = _toAddressArray(address(this));
+        crowdfund.setGovernanceOptsHash(opts);
+        party.setMintAuthority(address(crowdfund));
+
+        TokenMetadata memory metadata = TokenMetadata({
+            name: "NAME",
+            description: "DESCRIPTION",
+            image: "IMAGE"
+        });
+
+        // Set custom metadata
+        metadataRegistry.setCustomMetadata(Crowdfund(address(crowdfund)), opts, 0, metadata);
+
+        // Mint governance NFT
+        uint256 tokenId = 396;
+        party.mint(tokenId);
+
+        string memory tokenURI = party.tokenURI(tokenId);
+
+        // Uncomment for testing rendering:
+        console.log(tokenURI);
+
+        assertTrue(bytes(tokenURI).length > 0);
+    }
+
     function testContractURI() external {
         // Create party
         DummyParty party = new DummyParty(address(globals), "Party of the Living Dead");
 
         // Set customization option
         party.useCustomizationPreset(1);
+
+        string memory contractURI = party.contractURI();
+
+        // Uncomment for testing rendering:
+        // console.log(contractURI);
+
+        assertTrue(bytes(contractURI).length > 0);
+    }
+
+    function testContractURI_customMetadata() public {
+        // Create party
+        DummyParty party = new DummyParty(address(globals), "Party of the Living Dead");
+
+        // Create dummy crowdfund address to use as mint authority.
+        DummyCrowdfund crowdfund = new DummyCrowdfund();
+        Crowdfund.FixedGovernanceOpts memory opts;
+        opts.hosts = _toAddressArray(address(this));
+        crowdfund.setGovernanceOptsHash(opts);
+        party.setMintAuthority(address(crowdfund));
+
+        CollectionMetadata memory metadata = CollectionMetadata({
+            name: "NAME",
+            description: "DESCRIPTION",
+            image: "IMAGE",
+            banner: "BANNER"
+        });
+
+        // Set custom metadata
+        metadataRegistry.setCustomCollectionMetadata(
+            Crowdfund(address(crowdfund)),
+            opts,
+            0,
+            metadata
+        );
 
         string memory contractURI = party.contractURI();
 
@@ -398,6 +468,15 @@ contract PartyGovernanceNFTTest is Test, TestUtils {
     }
 }
 
+contract DummyCrowdfund {
+    uint256 public totalContributions;
+    bytes32 public governanceOptsHash;
+
+    function setGovernanceOptsHash(Crowdfund.FixedGovernanceOpts memory opts) external {
+        governanceOptsHash = _hashFixedGovernanceOpts(opts);
+    }
+}
+
 contract DummyParty is ReadOnlyDelegateCall {
     Globals immutable GLOBALS;
 
@@ -418,7 +497,7 @@ contract DummyParty is ReadOnlyDelegateCall {
     mapping(address => PartyGovernance.VotingPowerSnapshot[]) private _votingPowerSnapshotsByVoter;
     string public name;
     string public symbol;
-    mapping(uint256 => address) internal _ownerOf;
+    mapping(uint256 => address) public ownerOf;
     mapping(address => uint256) internal _balanceOf;
     mapping(uint256 => address) public getApproved;
     mapping(address => mapping(address => bool)) public isApprovedForAll;
@@ -450,7 +529,7 @@ contract DummyParty is ReadOnlyDelegateCall {
 
     function mint(uint256 tokenId) external {
         _balanceOf[msg.sender]++;
-        _ownerOf[tokenId] = msg.sender;
+        ownerOf[tokenId] = msg.sender;
     }
 
     function createMockProposal(PartyGovernance.ProposalStatus status) external {
@@ -473,6 +552,10 @@ contract DummyParty is ReadOnlyDelegateCall {
 
     function setVotingPowerPercentage(uint256 vp) external {
         votingPowerPercentage = vp;
+    }
+
+    function setMintAuthority(address authority) external {
+        mintAuthority = authority;
     }
 
     function getDistributionShareOf(uint256) external view returns (uint256) {
