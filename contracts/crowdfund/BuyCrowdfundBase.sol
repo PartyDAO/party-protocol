@@ -149,6 +149,10 @@ abstract contract BuyCrowdfundBase is Crowdfund {
             expiry = uint40(block.timestamp);
             emit Lost();
         }
+
+        // Notify third-party platforms that the crowdfund NFT metadata has
+        // updated for all tokens.
+        emit BatchMetadataUpdate(0, type(uint256).max);
     }
 
     function _finalize(

@@ -14,6 +14,7 @@ contract RollingAuctionCrowdfundTest is TestUtils, ERC721Receiver {
     event Won(uint256 bid, Party party);
     event Lost();
     event AuctionUpdated(uint256 nextNftTokenId, uint256 nextAuctionId, uint256 nextMaximumBid);
+    event BatchMetadataUpdate(uint256 _fromTokenId, uint256 _toTokenId);
 
     bool onlyRunIfForked;
 
@@ -163,6 +164,8 @@ contract RollingAuctionCrowdfundTest is TestUtils, ERC721Receiver {
         // Finalize and win new auction
         _expectEmit0();
         emit Won(crowdfund.lastBid(), Party(payable(address(partyFactory.mockParty()))));
+        _expectEmit0();
+        emit BatchMetadataUpdate(0, type(uint256).max);
         Party party = crowdfund.finalizeOrRollOver(
             tokenId,
             auctionId,
@@ -268,6 +271,8 @@ contract RollingAuctionCrowdfundTest is TestUtils, ERC721Receiver {
 
         _expectEmit0();
         emit Lost();
+        _expectEmit0();
+        emit BatchMetadataUpdate(0, type(uint256).max);
         vm.prank(_randomAddress());
         crowdfund.finalizeOrRollOver(
             tokenId,
@@ -291,6 +296,8 @@ contract RollingAuctionCrowdfundTest is TestUtils, ERC721Receiver {
         // Finalize and win auction (with bad `auctionId` and `tokenId`)
         _expectEmit0();
         emit Won(crowdfund.lastBid(), Party(payable(address(partyFactory.mockParty()))));
+        _expectEmit0();
+        emit BatchMetadataUpdate(0, type(uint256).max);
         Party party = crowdfund.finalizeOrRollOver(
             _randomUint256(),
             _randomUint256(),
@@ -315,6 +322,8 @@ contract RollingAuctionCrowdfundTest is TestUtils, ERC721Receiver {
 
         _expectEmit0();
         emit Won(crowdfund.lastBid(), Party(payable(address(partyFactory.mockParty()))));
+        _expectEmit0();
+        emit BatchMetadataUpdate(0, type(uint256).max);
         vm.prank(_randomAddress());
         crowdfund.finalizeOrRollOver(
             tokenId,

@@ -630,6 +630,9 @@ abstract contract Crowdfund is Implementation, ERC721Receiver, CrowdfundNFT {
 
         emit Contributed(msg.sender, contributor, amount, delegate, previousTotalContributions);
 
+        // Notify third-party platforms that the crowdfund NFT metadata has updated.
+        emit MetadataUpdate(uint256(uint160(contributor)));
+
         if (numContributions >= 1) {
             Contribution memory lastContribution = contributions[numContributions - 1];
             // If no one else (other than this contributor) has contributed since,

@@ -234,6 +234,7 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
         uint256 amount,
         uint256 id
     );
+    event BatchMetadataUpdate(uint256 _fromTokenId, uint256 _toTokenId);
 
     address constant ETH_ADDRESS = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
 
@@ -343,6 +344,11 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
         emit HostStatusTransferred(oldHost, newHost);
     }
 
+    function _expectBatchMetadataUpdateEvent() private {
+        _expectEmit0();
+        emit BatchMetadataUpdate(0, type(uint256).max);
+    }
+
     function _assertProposalStatusEq(
         TestablePartyGovernance gov,
         uint256 proposalId,
@@ -377,6 +383,7 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
         _expectProposalAcceptedEvent(proposalId, undelegatedVoter, 51e18);
         // Voter has majority VP so it also passes immediately.
         _expectProposalPassedEvent(proposalId);
+        _expectBatchMetadataUpdateEvent();
         vm.prank(undelegatedVoter);
         assertEq(gov.propose(proposal, 0), proposalId);
 
@@ -402,6 +409,7 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
             })
         );
         _expectCompletedProposalExecutedEvent(proposalId, undelegatedVoter);
+        _expectBatchMetadataUpdateEvent();
         vm.prank(undelegatedVoter);
         gov.execute(proposalId, proposal, preciousTokens, preciousTokenIds, "", bytes("foo"));
 
@@ -432,6 +440,7 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
         _expectProposalAcceptedEvent(proposalId, undelegatedVoter, 51e18);
         // Voter has majority VP so it also passes immediately.
         _expectProposalPassedEvent(proposalId);
+        _expectBatchMetadataUpdateEvent();
         vm.prank(undelegatedVoter);
         assertEq(gov.propose(proposal, 0), proposalId);
 
@@ -453,6 +462,7 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
             })
         );
         _expectProposalExecutedEvent(proposalId, undelegatedVoter, abi.encode(1));
+        _expectBatchMetadataUpdateEvent();
         vm.prank(undelegatedVoter);
         gov.execute(proposalId, proposal, preciousTokens, preciousTokenIds, "", bytes("foo"));
 
@@ -474,6 +484,7 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
             })
         );
         _expectCompletedProposalExecutedEvent(proposalId, undelegatedVoter);
+        _expectBatchMetadataUpdateEvent();
         vm.prank(undelegatedVoter);
         gov.execute(
             proposalId,
@@ -511,6 +522,7 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
         _expectProposalAcceptedEvent(proposalId, undelegatedVoter, 100e18);
         // Voter has majority VP so it also passes immediately.
         _expectProposalPassedEvent(proposalId);
+        _expectBatchMetadataUpdateEvent();
         vm.prank(undelegatedVoter);
         assertEq(gov.propose(proposal, 0), proposalId);
         // The vote was unanimous so the proposal should be executable as well.
@@ -533,6 +545,7 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
             })
         );
         _expectCompletedProposalExecutedEvent(proposalId, undelegatedVoter);
+        _expectBatchMetadataUpdateEvent();
         vm.prank(undelegatedVoter);
         gov.execute(proposalId, proposal, preciousTokens, preciousTokenIds, "", "");
     }
@@ -565,6 +578,7 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
         _expectProposalAcceptedEvent(proposalId, undelegatedVoter1, 75e18);
         // Voter has majority VP so it also passes immediately.
         _expectProposalPassedEvent(proposalId);
+        _expectBatchMetadataUpdateEvent();
         vm.prank(undelegatedVoter1);
         assertEq(gov.propose(proposal, 0), proposalId);
 
@@ -592,6 +606,7 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
             })
         );
         _expectCompletedProposalExecutedEvent(proposalId, undelegatedVoter1);
+        _expectBatchMetadataUpdateEvent();
         vm.prank(undelegatedVoter1);
         gov.execute(proposalId, proposal, preciousTokens, preciousTokenIds, "", "");
     }
@@ -620,6 +635,7 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
         _expectProposalAcceptedEvent(proposalId, undelegatedVoter, vp);
         // Voter has majority VP so it also passes immediately.
         _expectProposalPassedEvent(proposalId);
+        _expectBatchMetadataUpdateEvent();
         vm.prank(undelegatedVoter);
         assertEq(gov.propose(proposal, 0), proposalId);
         // The vote was unanimous so the proposal should be executable as well.
@@ -642,6 +658,7 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
             })
         );
         _expectCompletedProposalExecutedEvent(proposalId, undelegatedVoter);
+        _expectBatchMetadataUpdateEvent();
         vm.prank(undelegatedVoter);
         gov.execute(proposalId, proposal, preciousTokens, preciousTokenIds, "", "");
     }
@@ -663,6 +680,8 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
 
         // Skip because `accept()` will query voting power at `proposedTime - 1`
         skip(1);
+
+        _expectBatchMetadataUpdateEvent();
         // Undelegated voter submits proposal.
         vm.prank(undelegatedVoter);
         assertEq(gov.propose(proposal, 0), proposalId);
@@ -710,6 +729,7 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
         // Undelegated voter submits proposal.
         // Voter has majority VP so it also passes immediately.
         _expectProposalPassedEvent(proposalId);
+        _expectBatchMetadataUpdateEvent();
         vm.prank(undelegatedVoter);
         assertEq(gov.propose(proposal, 0), proposalId);
 
@@ -744,6 +764,7 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
         // Undelegated voter submits proposal.
         // Voter has majority VP so it also passes immediately.
         _expectProposalPassedEvent(proposalId);
+        _expectBatchMetadataUpdateEvent();
         vm.prank(undelegatedVoter);
         assertEq(gov.propose(proposal, 0), proposalId);
 
@@ -782,6 +803,7 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
         // Undelegated voter submits proposal.
         // Voter has majority VP so it also passes immediately.
         _expectProposalPassedEvent(proposalId);
+        _expectBatchMetadataUpdateEvent();
         vm.prank(undelegatedVoter);
         assertEq(gov.propose(proposal, 0), proposalId);
 
@@ -825,6 +847,7 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
         // Undelegated voter submits proposal.
         // Voter has majority VP so it also passes immediately.
         _expectProposalPassedEvent(proposalId);
+        _expectBatchMetadataUpdateEvent();
         vm.prank(undelegatedVoter);
         assertEq(gov.propose(proposal, 0), proposalId);
 
@@ -861,6 +884,7 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
         PartyGovernance.Proposal memory proposal = _createProposal(2);
         uint256 proposalId = gov.getNextProposalId();
         // Propose and pass it.
+        _expectBatchMetadataUpdateEvent();
         vm.prank(voter);
         assertEq(gov.propose(proposal, 0), proposalId);
 
@@ -900,6 +924,7 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
         PartyGovernance.Proposal memory proposal = _createProposal(2);
         uint256 proposalId = gov.getNextProposalId();
         // Propose and pass it.
+        _expectBatchMetadataUpdateEvent();
         vm.prank(voter);
         assertEq(gov.propose(proposal, 0), proposalId);
 
@@ -937,6 +962,7 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
         PartyGovernance.Proposal memory proposal = _createProposal(2);
         uint256 proposalId = gov.getNextProposalId();
         // Propose and pass it.
+        _expectBatchMetadataUpdateEvent();
         vm.prank(voter);
         assertEq(gov.propose(proposal, 0), proposalId);
 
@@ -983,6 +1009,7 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
         skip(1);
         // Undelegated voter submits proposal and votes, but does not have enough
         // to pass on their own.
+        _expectBatchMetadataUpdateEvent();
         vm.prank(undelegatedVoter);
         assertEq(gov.propose(proposal, 0), proposalId);
 
@@ -1034,6 +1061,7 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
         skip(1);
         // Undelegated voter submits proposal and votes, but does not have enough
         // to pass on their own.
+        _expectBatchMetadataUpdateEvent();
         vm.prank(undelegatedVoter);
         assertEq(gov.propose(proposal, 0), proposalId);
 
@@ -1080,6 +1108,7 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
         // Undelegated voter submits proposal.
         // Voter has majority VP so it also passes immediately.
         _expectProposalPassedEvent(proposalId);
+        _expectBatchMetadataUpdateEvent();
         vm.prank(undelegatedVoter);
         assertEq(gov.propose(proposal, 0), proposalId);
 
@@ -1126,6 +1155,7 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
         // Undelegated voter submits proposal.
         // Voter has majority VP so it also passes immediately.
         _expectProposalPassedEvent(proposalId);
+        _expectBatchMetadataUpdateEvent();
         vm.prank(undelegatedVoter);
         assertEq(gov.propose(proposal, 0), proposalId);
 
@@ -1167,6 +1197,7 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
         // Undelegated voter submits proposal.
         // Voter has majority VP so it also passes immediately.
         _expectProposalPassedEvent(proposalId);
+        _expectBatchMetadataUpdateEvent();
         vm.prank(undelegatedVoter);
         assertEq(gov.propose(proposal, 0), proposalId);
 
@@ -1209,6 +1240,7 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
         // Undelegated voter submits proposal.
         // Voter has majority VP so it also passes immediately.
         _expectProposalPassedEvent(proposalId);
+        _expectBatchMetadataUpdateEvent();
         vm.prank(undelegatedVoter);
         assertEq(gov.propose(proposal, 0), proposalId);
 
@@ -1249,6 +1281,7 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
         // Skip because `accept()` will query voting power at `proposedTime - 1`
         skip(1);
         // Undelegated voter submits proposal.
+        _expectBatchMetadataUpdateEvent();
         vm.prank(undelegatedVoter);
         assertEq(gov.propose(proposal, 0), proposalId);
 
@@ -1296,6 +1329,7 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
         // Delegated voter submits proposal.
         // No intrinsic or delegated votes so no vote cast during proposal.
         _expectProposalAcceptedEvent(proposalId, delegatedVoter, 0);
+        _expectBatchMetadataUpdateEvent();
         vm.prank(delegatedVoter);
         assertEq(gov.propose(proposal, 0), proposalId);
 
@@ -1345,6 +1379,7 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
         // Delegated voter submits proposal.
         // No intrinsic or delegated votes so no vote cast during proposal.
         emit ProposalAccepted(proposalId, delegatedVoter, 0);
+        _expectBatchMetadataUpdateEvent();
         vm.prank(delegatedVoter);
         assertEq(gov.propose(proposal, 0), proposalId);
 
@@ -1383,6 +1418,7 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
         // Skip because `accept()` will query voting power at `proposedTime - 1`
         skip(1);
         // Undelegated voter 1 submits proposal (and votes).
+        _expectBatchMetadataUpdateEvent();
         vm.prank(undelegatedVoter1);
         assertEq(gov.propose(proposal, 0), proposalId);
 
@@ -1422,6 +1458,7 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
         // Skip because `accept()` will query voting power at `proposedTime - 1`
         skip(1);
         // Undelegated voter submits proposal (and votes).
+        _expectBatchMetadataUpdateEvent();
         vm.prank(undelegatedVoter);
         assertEq(gov.propose(proposal, 0), proposalId);
 
@@ -1452,6 +1489,7 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
         // Skip because `accept()` will query voting power at `proposedTime - 1`
         skip(1);
         // Delegate submits proposal (and votes).
+        _expectBatchMetadataUpdateEvent();
         vm.prank(delegate);
         assertEq(gov.propose(proposal, 0), proposalId);
 
@@ -1482,6 +1520,7 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
         // Skip because `accept()` will query voting power at `proposedTime - 1`
         skip(1);
         // Delegated voter submits proposal (and votes).
+        _expectBatchMetadataUpdateEvent();
         vm.prank(delegatedVoter);
         assertEq(gov.propose(proposal, 0), proposalId);
 
@@ -1514,6 +1553,7 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
         // Skip because `accept()` will query voting power at `proposedTime - 1`
         skip(1);
         // Undelegated voter 1 submits proposal (and votes).
+        _expectBatchMetadataUpdateEvent();
         vm.prank(undelegatedVoter1);
         assertEq(gov.propose(proposal, 0), proposalId);
 
@@ -1523,6 +1563,7 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
         address host = _getRandomDefaultHost();
         _expectEmit1();
         emit ProposalVetoed(proposalId, host);
+        _expectBatchMetadataUpdateEvent();
         vm.prank(host);
         gov.veto(proposalId);
 
@@ -1569,6 +1610,7 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
         // Propose it from proposer, locking in the proposal time
         // and not casting any votes because proposer has delegated to
         // someone else.
+        _expectBatchMetadataUpdateEvent();
         vm.prank(proposer);
         assertEq(gov.propose(proposal, 0), proposalId);
 
@@ -1631,6 +1673,7 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
         // Skip because `accept()` will query voting power at `proposedTime - 1`
         skip(1);
         _expectProposalAcceptedEvent(proposalId, voter, 30e18);
+        _expectBatchMetadataUpdateEvent();
         vm.prank(voter);
         gov.propose(proposal, 0);
 
@@ -1668,6 +1711,7 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
         skip(1);
         // delegate2 proposes and votes with their 1 effective VP.
         _expectProposalAcceptedEvent(proposalId, delegate2, 1e18);
+        _expectBatchMetadataUpdateEvent();
         vm.prank(delegate2);
         gov.propose(proposal, 0);
 
@@ -2099,6 +2143,7 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
         // Skip because `accept()` will query voting power at `proposedTime - 1`
         skip(1);
         // voter1 proposes and votes.
+        _expectBatchMetadataUpdateEvent();
         vm.prank(voter1);
         gov.propose(proposal, 0);
         _assertProposalStatusEq(gov, proposalId, PartyGovernance.ProposalStatus.Voting);
@@ -2123,6 +2168,7 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
 
         // Create a distribution.
         vm.deal(address(gov), 1337e18);
+        _expectBatchMetadataUpdateEvent();
         _expectEmit0();
         emit DummyTokenDistributor_createDistributionCalled(
             gov,
@@ -2155,6 +2201,7 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
         erc20.deal(address(gov), 1337e18);
 
         // Create a distribution.
+        _expectBatchMetadataUpdateEvent();
         _expectEmit0();
         emit DummyTokenDistributor_createDistributionCalled(
             gov,

@@ -227,6 +227,7 @@ contract PartyGovernanceNFTTest is Test, TestUtils {
         assertTrue(party.supportsInterface(0x80ac58cd)); // ERC721
         assertTrue(party.supportsInterface(0x150b7a02)); // ERC721Receiver
         assertTrue(party.supportsInterface(0x4e2312e0)); // ERC1155Receiver
+        assertTrue(party.supportsInterface(0x49064906)); // ERC4906
     }
 
     function testGenerateSVG_works() public {
@@ -385,7 +386,7 @@ contract PartyGovernanceNFTTest is Test, TestUtils {
         string memory tokenURI = party.tokenURI(tokenId);
 
         // Uncomment for testing rendering:
-        console.log(tokenURI);
+        // console.log(tokenURI);
 
         assertTrue(bytes(tokenURI).length > 0);
     }

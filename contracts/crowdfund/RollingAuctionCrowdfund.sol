@@ -180,7 +180,11 @@ contract RollingAuctionCrowdfund is AuctionCrowdfundBase {
         if (nftContract_.safeOwnerOf(nftTokenId_) == address(this) && lastBid_ != 0) {
             // Create a governance party around the NFT.
             party_ = _createParty(governanceOpts, false, nftContract, nftTokenId);
+
             emit Won(lastBid, party_);
+            // Notify third-party platforms that the crowdfund NFT metadata has
+            // updated for all tokens.
+            emit BatchMetadataUpdate(0, type(uint256).max);
 
             _bidStatus = AuctionCrowdfundStatus.Finalized;
         } else if (lc == CrowdfundLifecycle.Expired) {
@@ -190,6 +194,9 @@ contract RollingAuctionCrowdfund is AuctionCrowdfundBase {
             // full contributions when they burn their participation NFTs.
             lastBid = 0;
             emit Lost();
+            // Notify third-party platforms that the crowdfund NFT metadata has
+            // updated for all tokens.
+            emit BatchMetadataUpdate(0, type(uint256).max);
 
             _bidStatus = AuctionCrowdfundStatus.Finalized;
         } else {
