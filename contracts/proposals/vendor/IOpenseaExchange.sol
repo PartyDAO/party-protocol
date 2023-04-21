@@ -2,7 +2,7 @@
 pragma solidity ^0.8;
 
 interface IOpenseaExchange {
-    error InvalidTime();
+    error InvalidTime(uint256 startTime, uint256 endTime);
 
     enum OrderType {
         FULL_OPEN,
@@ -146,4 +146,9 @@ interface IOpenseaExchange {
     function getOrderHash(OrderComponents calldata order) external view returns (bytes32 orderHash);
 
     function getNonce(address offerer) external view returns (uint256 nonce);
+
+    function information()
+        external
+        view
+        returns (string memory version, bytes32 domainSeparator, address conduitController);
 }
