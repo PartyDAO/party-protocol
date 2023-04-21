@@ -21,6 +21,7 @@ contract CollectionBuyCrowdfundTest is Test, TestUtils {
     event MockMint(address caller, address owner, uint256 amount, address delegate);
 
     event Contributed(
+        address sender,
         address contributor,
         uint256 amount,
         address delegate,
@@ -77,6 +78,8 @@ contract CollectionBuyCrowdfundTest is Test, TestUtils {
                                 splitBps: defaultSplitBps,
                                 initialContributor: address(this),
                                 initialDelegate: defaultInitialDelegate,
+                                minContribution: 0,
+                                maxContribution: type(uint96).max,
                                 gateKeeper: defaultGateKeeper,
                                 gateKeeperId: defaultGateKeeperId,
                                 governanceOpts: governanceOpts
@@ -235,7 +238,13 @@ contract CollectionBuyCrowdfundTest is Test, TestUtils {
         defaultGovernanceOpts.hosts = _toAddressArray(_randomAddress());
         vm.deal(address(this), initialContribution);
         _expectEmit0();
-        emit Contributed(initialContributor, initialContribution, initialDelegate, 0);
+        emit Contributed(
+            address(this),
+            initialContributor,
+            initialContribution,
+            initialDelegate,
+            0
+        );
         CollectionBuyCrowdfund(
             payable(
                 address(
@@ -254,6 +263,8 @@ contract CollectionBuyCrowdfundTest is Test, TestUtils {
                                 splitBps: defaultSplitBps,
                                 initialContributor: initialContributor,
                                 initialDelegate: initialDelegate,
+                                minContribution: 0,
+                                maxContribution: type(uint96).max,
                                 gateKeeper: defaultGateKeeper,
                                 gateKeeperId: defaultGateKeeperId,
                                 governanceOpts: defaultGovernanceOpts

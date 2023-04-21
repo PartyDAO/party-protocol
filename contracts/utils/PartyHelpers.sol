@@ -8,7 +8,8 @@ contract PartyHelpers {
     enum CrowdfundType {
         Bid,
         Buy,
-        CollectionBuy
+        CollectionBuy,
+        CollectionBatchBuy
     }
 
     struct MemberAndDelegate {
@@ -44,6 +45,10 @@ contract PartyHelpers {
             return CrowdfundType.Buy;
         } else if (impl == g.getImplementation(LibGlobals.GLOBAL_COLLECTION_BUY_CF_IMPL).IMPL()) {
             return CrowdfundType.CollectionBuy;
+        } else if (
+            impl == g.getImplementation(LibGlobals.GLOBAL_COLLECTION_BATCH_BUY_CF_IMPL).IMPL()
+        ) {
+            return CrowdfundType.CollectionBatchBuy;
         }
         revert("PartyHelpers::Unknown CrowdfundType");
     }

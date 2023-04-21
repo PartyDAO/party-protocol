@@ -21,10 +21,17 @@ contract BuyCrowdfundTest is Test, TestUtils {
     event MockMint(address caller, address owner, uint256 amount, address delegate);
 
     event Contributed(
+        address sender,
         address contributor,
         uint256 amount,
         address delegate,
         uint256 previousTotalContributions
+    );
+    event DelegateUpdated(
+        address sender,
+        address contributor,
+        address oldDelegate,
+        address newDelegate
     );
     event Lost();
 
@@ -81,6 +88,8 @@ contract BuyCrowdfundTest is Test, TestUtils {
                                 splitBps: defaultSplitBps,
                                 initialContributor: address(this),
                                 initialDelegate: defaultInitialDelegate,
+                                minContribution: 0,
+                                maxContribution: type(uint96).max,
                                 gateKeeper: gateKeeper,
                                 gateKeeperId: gateKeeperId,
                                 onlyHostCanBuy: onlyHostCanBuy,
@@ -363,14 +372,14 @@ contract BuyCrowdfundTest is Test, TestUtils {
         uint256 tokenId = erc721Vault.mint();
         // Create a BuyCrowdfund instance.
         BuyCrowdfund cf = _createCrowdfund(tokenId, 0);
-        // Contribute and delegate.
+        // Contribute.
         address payable contributor = _randomAddress();
-        address delegate = _randomAddress();
         vm.deal(contributor, 1e18);
         vm.prank(contributor);
-        cf.contribute{ value: contributor.balance }(delegate, "");
-
+        cf.contribute{ value: contributor.balance }(contributor, "");
+        // Transfer ETH to the crowdfund (not through contribution).
         uint96 totalContributions = cf.totalContributions();
+        vm.deal(address(cf), totalContributions + 1);
         vm.expectRevert(
             abi.encodeWithSelector(
                 Crowdfund.ExceedsTotalContributionsError.selector,
@@ -489,8 +498,14 @@ contract BuyCrowdfundTest is Test, TestUtils {
         uint256 initialContribution = _randomRange(1, 1 ether);
         address initialContributor = _randomAddress();
         address initialDelegate = _randomAddress();
-        vm.deal(address(this), initialContribution);
-        emit Contributed(initialContributor, initialContribution, initialDelegate, 0);
+        _expectEmit0();
+        emit Contributed(
+            address(this),
+            initialContributor,
+            initialContribution,
+            initialDelegate,
+            0
+        );
         BuyCrowdfund(
             payable(
                 address(
@@ -510,6 +525,8 @@ contract BuyCrowdfundTest is Test, TestUtils {
                                 splitBps: defaultSplitBps,
                                 initialContributor: initialContributor,
                                 initialDelegate: initialDelegate,
+                                minContribution: 0,
+                                maxContribution: type(uint96).max,
                                 gateKeeper: defaultGateKeeper,
                                 gateKeeperId: defaultGateKeeperId,
                                 onlyHostCanBuy: false,

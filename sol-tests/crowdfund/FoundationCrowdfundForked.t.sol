@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: Apache-2.0
+// SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8;
 
 import "forge-std/Test.sol";
@@ -8,14 +8,15 @@ import "../../contracts/crowdfund/Crowdfund.sol";
 import "../../contracts/globals/Globals.sol";
 import "../../contracts/globals/LibGlobals.sol";
 import "../../contracts/utils/Proxy.sol";
-import "../../contracts/vendor/markets/INounsAuctionHouse.sol";
+import "../../contracts/vendor/markets/IFoundationMarket.sol";
 
 import "./MockPartyFactory.sol";
 import "./MockParty.sol";
+import "../DummyERC721.sol";
 
 import "../TestUtils.sol";
 
-contract NounsForkedTest is TestUtils {
+contract FoundationCrowdfundForkedTest is TestUtils {
     event Won(uint256 bid, Party party);
     event Lost();
 
@@ -28,19 +29,25 @@ contract NounsForkedTest is TestUtils {
 
     Crowdfund.FixedGovernanceOpts defaultGovOpts;
 
-    // Initialize nouns contracts
-    INounsAuctionHouse nounsAuctionHouse =
-        INounsAuctionHouse(0x830BD73E4184ceF73443C15111a1DF14e495C706);
-    IMarketWrapper nounsMarket = IMarketWrapper(0x9319DAd8736D752C5c72DB229f8e1b280DC80ab1);
-    IERC721 nounsToken;
-    uint256 tokenId;
+    // Initialize Foundation contracts
+    IFoundationMarket foundation = IFoundationMarket(0xcDA72070E455bb31C7690a170224Ce43623d0B6f);
+    IMarketWrapper foundationMarket = IMarketWrapper(0x96e5b0519983f2f984324b926e6d28C3A4Eb92A1);
+    FNDMiddleware foundationHelper = FNDMiddleware(0x22B111b81287138038b1b8DA0362B8C2f7A222fC);
+    DummyERC721 nftContract = new DummyERC721();
+    uint256 tokenId = nftContract.mint(address(this));
+    uint256 auctionId;
 
     constructor() onlyForked {
         // Initialize PartyFactory for creating parties after a successful crowdfund.
         globals.setAddress(LibGlobals.GLOBAL_PARTY_FACTORY, address(partyFactory));
 
-        nounsToken = nounsAuctionHouse.nouns();
-        (tokenId, , , , , ) = nounsAuctionHouse.auction();
+        // Create a reserve auction on Foundation to bid on
+        nftContract.approve(address(foundation), tokenId);
+        foundation.createReserveAuction(address(nftContract), tokenId, 1 ether);
+        (, , , , , auctionId, , , , ) = foundationHelper.getNFTDetails(
+            address(nftContract),
+            tokenId
+        );
 
         // Create a AuctionCrowdfund crowdfund
         cf = AuctionCrowdfund(
@@ -50,13 +57,13 @@ contract NounsForkedTest is TestUtils {
                         pbImpl,
                         abi.encodeCall(
                             AuctionCrowdfund.initialize,
-                            AuctionCrowdfund.AuctionCrowdfundOptions({
+                            AuctionCrowdfundBase.AuctionCrowdfundOptions({
                                 name: "Party",
                                 symbol: "PRTY",
                                 customizationPresetId: 0,
-                                auctionId: tokenId,
-                                market: nounsMarket,
-                                nftContract: nounsToken,
+                                auctionId: auctionId,
+                                market: foundationMarket,
+                                nftContract: nftContract,
                                 nftTokenId: tokenId,
                                 duration: 1 days,
                                 maximumBid: type(uint96).max,
@@ -64,6 +71,8 @@ contract NounsForkedTest is TestUtils {
                                 splitBps: 0,
                                 initialContributor: address(this),
                                 initialDelegate: address(0),
+                                minContribution: 0,
+                                maxContribution: type(uint96).max,
                                 gateKeeper: IGateKeeper(address(0)),
                                 gateKeeperId: 0,
                                 onlyHostCanBid: false,
@@ -80,93 +89,144 @@ contract NounsForkedTest is TestUtils {
         cf.contribute{ value: 1000 ether }(address(this), "");
     }
 
-    // Test creating a crowdfund party around a Noun + winning the auction
-    function testForked_WinningNounAuction() external onlyForked {
-        // Bid on current Noun auction.
+    // Test creating a crowdfund party around a Foundation auction + winning the auction
+    function testForked_WinningFoundationAuction() external onlyForked {
+        // Bid on current Foundation auction.
         cf.bid(defaultGovOpts, 0);
 
         // Check that we are highest bidder.
         uint256 lastBid = cf.lastBid();
-        (, uint256 highestBid, , , address payable highestBidder, ) = nounsAuctionHouse.auction();
+        (
+            ,
+            ,
+            address highestBidder,
+            uint256 endTime,
+            uint256 highestBid,
+            ,
+            ,
+            ,
+            ,
+
+        ) = foundationHelper.getNFTDetails(address(nftContract), tokenId);
         assertEq(lastBid, highestBid);
         assertEq(address(cf), highestBidder);
 
         // Wait for the auction to end and check that we won.
-        skip(1 days);
+        vm.warp(endTime + 1);
 
         // Finalize the crowdfund.
         _expectEmit0();
         emit Won(lastBid, Party(payable(address(party))));
         cf.finalize(defaultGovOpts);
-        assertEq(nounsToken.ownerOf(tokenId), address(party));
+        assertEq(nftContract.ownerOf(tokenId), address(party));
         assertEq(address(cf.party()), address(party));
-        assertTrue(nounsMarket.isFinalized(tokenId));
+        assertTrue(foundationMarket.isFinalized(tokenId));
     }
 
-    function testForked_WinningNounsAuction_finalizedBefore() external onlyForked {
-        // Bid on current Noun auction.
+    function testForked_WinningFoundationAuction_finalizedBefore() external onlyForked {
+        // Bid on current Foundation auction.
         cf.bid(defaultGovOpts, 0);
 
         // Check that we are highest bidder.
         uint256 lastBid = cf.lastBid();
-        (, uint256 highestBid, , , address payable highestBidder, ) = nounsAuctionHouse.auction();
+        (
+            ,
+            ,
+            address highestBidder,
+            uint256 endTime,
+            uint256 highestBid,
+            ,
+            ,
+            ,
+            ,
+
+        ) = foundationHelper.getNFTDetails(address(nftContract), tokenId);
         assertEq(lastBid, highestBid);
         assertEq(address(cf), highestBidder);
 
         // Wait for the auction to end and check that we won.
-        skip(1 days);
+        vm.warp(endTime + 1);
 
         // Finalize the auction before `finalize()` is called by the crowdfund.
-        nounsMarket.finalize(tokenId);
+        foundationMarket.finalize(auctionId);
 
         // Finalize the crowdfund.
         _expectEmit0();
         emit Won(lastBid, Party(payable(address(party))));
         cf.finalize(defaultGovOpts);
-        assertEq(nounsToken.ownerOf(tokenId), address(party));
+        assertEq(nftContract.ownerOf(tokenId), address(party));
         assertEq(address(cf.party()), address(party));
-        assertTrue(nounsMarket.isFinalized(tokenId));
+        assertTrue(foundationMarket.isFinalized(tokenId));
     }
 
-    // Test creating a crowdfund party around a Noun + losing the auction
-    function testForked_LosingNounAuction() external onlyForked {
-        // Bid on current Noun auction.
+    // Test creating a crowdfund party around a Foundation auction + losing the auction
+    function testForked_LosingFoundationAuction() external onlyForked {
+        // Bid on current Foundation auction.
         cf.bid(defaultGovOpts, 0);
 
         // We outbid our own party (sneaky!)
         vm.deal(address(this), 1001 ether);
-        nounsAuctionHouse.createBid{ value: 1001 ether }(tokenId);
+        foundation.placeBid{ value: 1001 ether }(auctionId);
 
         // Wait for the auction to end and check that we lost.
-        skip(1 days);
+        (, , , uint256 endTime, , , , , , ) = foundationHelper.getNFTDetails(
+            address(nftContract),
+            tokenId
+        );
+        vm.warp(endTime + 1);
 
         // Finalize the crowdfund.
         _expectEmit0();
         emit Lost();
         cf.finalize(defaultGovOpts);
         assertEq(address(cf.party()), address(0));
-        assertTrue(nounsMarket.isFinalized(tokenId));
+        assertTrue(foundationMarket.isFinalized(tokenId));
     }
 
-    function testForked_LosingNounAuction_finalizeBefore() external onlyForked {
-        // Bid on current Noun auction.
+    function testForked_LosingFoundationAuction_finalizedBefore() external onlyForked {
+        // Bid on current Foundation auction.
         cf.bid(defaultGovOpts, 0);
 
         // We outbid our own party (sneaky!)
         vm.deal(address(this), 1001 ether);
-        nounsAuctionHouse.createBid{ value: 1001 ether }(tokenId);
+        foundation.placeBid{ value: 1001 ether }(auctionId);
 
         // Wait for the auction to end and check that we lost.
-        skip(1 days);
+        (, , , uint256 endTime, , , , , , ) = foundationHelper.getNFTDetails(
+            address(nftContract),
+            tokenId
+        );
+        vm.warp(endTime + 1);
 
         // Finalize the auction before `finalize()` is called by the crowdfund.
-        nounsMarket.finalize(tokenId);
+        foundationMarket.finalize(auctionId);
 
         // Finalize the crowdfund.
         _expectEmit0();
         emit Lost();
         cf.finalize(defaultGovOpts);
         assertEq(address(cf.party()), address(0));
-        assertTrue(nounsMarket.isFinalized(tokenId));
+        assertTrue(foundationMarket.isFinalized(tokenId));
     }
+}
+
+interface FNDMiddleware {
+    function getNFTDetails(
+        address nftContract,
+        uint256 tokenId
+    )
+        external
+        view
+        returns (
+            address owner,
+            bool isInEscrow,
+            address auctionBidder,
+            uint256 auctionEndTime,
+            uint256 auctionPrice,
+            uint256 auctionId,
+            uint256 buyPrice,
+            uint256 offerAmount,
+            address offerBuyer,
+            uint256 offerExpiration
+        );
 }

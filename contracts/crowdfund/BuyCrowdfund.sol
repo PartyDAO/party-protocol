@@ -14,6 +14,7 @@ import "./BuyCrowdfundBase.sol";
 contract BuyCrowdfund is BuyCrowdfundBase {
     using LibSafeERC721 for IERC721;
     using LibSafeCast for uint256;
+    using LibRawResult for bytes;
 
     struct BuyCrowdfundOptions {
         // The name of the crowdfund.
@@ -27,10 +28,9 @@ contract BuyCrowdfund is BuyCrowdfundBase {
         IERC721 nftContract;
         // ID of the NFT being bought.
         uint256 nftTokenId;
-        // How long this crowdfund has to bid on the NFT, in seconds.
+        // How long this crowdfund has to buy the NFT, in seconds.
         uint40 duration;
         // Maximum amount this crowdfund will pay for the NFT.
-        // If zero, no maximum.
         uint96 maximumPrice;
         // An address that receives a portion of the final voting power
         // when the party transitions into governance.
@@ -44,6 +44,10 @@ contract BuyCrowdfund is BuyCrowdfundBase {
         // If there is an initial contribution, this is who they will delegate their
         // voting power to when the crowdfund transitions to governance.
         address initialDelegate;
+        // Minimum amount of ETH that can be contributed to this crowdfund per address.
+        uint96 minContribution;
+        // Maximum amount of ETH that can be contributed to this crowdfund per address.
+        uint96 maxContribution;
         // The gatekeeper contract to use (if non-null) to restrict who can
         // contribute to this crowdfund. If used, only contributors or hosts can
         // call `buy()`.
@@ -86,6 +90,8 @@ contract BuyCrowdfund is BuyCrowdfundBase {
                 splitBps: opts.splitBps,
                 initialContributor: opts.initialContributor,
                 initialDelegate: opts.initialDelegate,
+                minContribution: opts.minContribution,
+                maxContribution: opts.maxContribution,
                 gateKeeper: opts.gateKeeper,
                 gateKeeperId: opts.gateKeeperId,
                 governanceOpts: opts.governanceOpts
@@ -112,7 +118,7 @@ contract BuyCrowdfund is BuyCrowdfundBase {
         bytes memory callData,
         FixedGovernanceOpts memory governanceOpts,
         uint256 hostIndex
-    ) external returns (Party party_) {
+    ) external onlyDelegateCall returns (Party party_) {
         // This function can be optionally restricted in different ways.
         bool isValidatedGovernanceOpts;
         if (onlyHostCanBuy) {
@@ -125,14 +131,39 @@ contract BuyCrowdfund is BuyCrowdfundBase {
             // Only a contributor can call this function.
             _assertIsContributor(msg.sender);
         }
+        {
+            // Ensure that the crowdfund is still active.
+            CrowdfundLifecycle lc = getCrowdfundLifecycle();
+            if (lc != CrowdfundLifecycle.Active) {
+                revert WrongLifecycleError(lc);
+            }
+        }
+
+        // Temporarily set to non-zero as a reentrancy guard.
+        settledPrice = type(uint96).max;
+
+        // Buy the NFT and check NFT is owned by the crowdfund.
+        (bool success, bytes memory revertData) = _buy(
+            nftContract,
+            nftTokenId,
+            callTarget,
+            callValue,
+            callData
+        );
+
+        if (!success) {
+            if (revertData.length > 0) {
+                revertData.rawRevert();
+            } else {
+                revert FailedToBuyNFTError(nftContract, nftTokenId);
+            }
+        }
 
         return
-            _buy(
+            _finalize(
                 nftContract,
                 nftTokenId,
-                callTarget,
                 callValue,
-                callData,
                 governanceOpts,
                 isValidatedGovernanceOpts
             );

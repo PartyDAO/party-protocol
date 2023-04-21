@@ -50,6 +50,10 @@ contract GlobalsAdmin is Test {
     function setRendererStorage(address rendererStorage) public {
         globals.setAddress(LibGlobals.GLOBAL_RENDERER_STORAGE, rendererStorage);
     }
+
+    function setMetadataRegistry(address metadataRegistry) public {
+        globals.setAddress(LibGlobals.GLOBAL_METADATA_REGISTRY, metadataRegistry);
+    }
 }
 
 contract PartyAdmin is Test {

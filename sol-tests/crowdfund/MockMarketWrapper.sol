@@ -105,7 +105,10 @@ contract MockMarketWrapper is IMarketWrapper, Test {
         uint256 tokenId
     ) external view returns (bool) {
         MockAuction storage auc = _auctionByAuctionId[auctionId];
-        return auc.tokenId == tokenId && IERC721(nftContract_) == nftContract;
+        return
+            auc.tokenId == tokenId &&
+            IERC721(nftContract_) == nftContract &&
+            auc.state == AuctionState.Active;
     }
 
     function getMinimumBid(uint256 auctionId) public view returns (uint256) {

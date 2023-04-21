@@ -68,7 +68,7 @@ contract CrowdfundHelpers is Test, TestUtils {
                         auctionCrowdfundImpl,
                         abi.encodeCall(
                             AuctionCrowdfund.initialize,
-                            AuctionCrowdfund.AuctionCrowdfundOptions({
+                            AuctionCrowdfundBase.AuctionCrowdfundOptions({
                                 name: defaultName,
                                 symbol: defaultSymbol,
                                 customizationPresetId: 0,
@@ -82,6 +82,8 @@ contract CrowdfundHelpers is Test, TestUtils {
                                 splitBps: defaultSplitBps,
                                 initialContributor: address(this),
                                 initialDelegate: defaultInitialDelegate,
+                                minContribution: 0,
+                                maxContribution: type(uint96).max,
                                 gateKeeper: defaultGateKeeper,
                                 gateKeeperId: defaultGateKeeperId,
                                 onlyHostCanBid: false,
@@ -116,6 +118,8 @@ contract CrowdfundHelpers is Test, TestUtils {
                                 splitBps: defaultSplitBps,
                                 initialContributor: address(this),
                                 initialDelegate: defaultInitialDelegate,
+                                minContribution: 0,
+                                maxContribution: type(uint96).max,
                                 gateKeeper: defaultGateKeeper,
                                 gateKeeperId: defaultGateKeeperId,
                                 onlyHostCanBuy: false,
@@ -150,6 +154,8 @@ contract CrowdfundHelpers is Test, TestUtils {
                                 splitBps: defaultSplitBps,
                                 initialContributor: address(this),
                                 initialDelegate: defaultInitialDelegate,
+                                minContribution: 0,
+                                maxContribution: type(uint96).max,
                                 gateKeeper: defaultGateKeeper,
                                 gateKeeperId: defaultGateKeeperId,
                                 governanceOpts: defaultGovernanceOpts

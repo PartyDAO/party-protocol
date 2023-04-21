@@ -70,8 +70,7 @@ contract FractionalizeProposalForkedTest is TestUtils {
         IERC721 indexed token,
         uint256 indexed tokenId,
         uint256 vaultId,
-        IERC20 vault,
-        uint256 listPrice
+        IERC20 vault
     );
 
     IFractionalV1VaultFactory VAULT_FACTORY =
@@ -85,11 +84,10 @@ contract FractionalizeProposalForkedTest is TestUtils {
 
     function testForked_canFractionalize() external onlyForked {
         uint256 tokenId = erc721.mint(address(impl));
-        uint256 listPrice = 1337 ether;
         uint256 expectedVaultId = VAULT_FACTORY.vaultCount();
         IFractionalV1Vault expectedVault = _getNextVault();
         _expectEmit2();
-        emit FractionalV1VaultCreated(erc721, tokenId, expectedVaultId, expectedVault, listPrice);
+        emit FractionalV1VaultCreated(erc721, tokenId, expectedVaultId, expectedVault);
         _expectEmit0();
         emit MockCreateDistribution(
             address(impl),
@@ -108,8 +106,7 @@ contract FractionalizeProposalForkedTest is TestUtils {
                 proposalData: abi.encode(
                     FractionalizeProposal.FractionalizeProposalData({
                         token: erc721,
-                        tokenId: tokenId,
-                        listPrice: listPrice
+                        tokenId: tokenId
                     })
                 )
             })
@@ -119,8 +116,93 @@ contract FractionalizeProposalForkedTest is TestUtils {
             expectedVault.balanceOf(address(impl)),
             impl.getGovernanceValues().totalVotingPower
         );
-        assertEq(expectedVault.reservePrice(), listPrice);
-        assertEq(expectedVault.curator(), address(0));
+        assertEq(expectedVault.curator(), address(1));
+    }
+
+    function testForked_canBuyout() external onlyForked {
+        uint256 tokenId = erc721.mint(address(impl));
+        uint256 listPrice = 1337 ether;
+        IFractionalV1Vault vault = _getNextVault();
+        impl.executeFractionalize(
+            IProposalExecutionEngine.ExecuteProposalParams({
+                proposalId: _randomUint256(),
+                progressData: "",
+                extraData: "",
+                flags: 0,
+                preciousTokens: new IERC721[](0),
+                preciousTokenIds: new uint256[](0),
+                proposalData: abi.encode(
+                    FractionalizeProposal.FractionalizeProposalData({
+                        token: erc721,
+                        tokenId: tokenId
+                    })
+                )
+            })
+        );
+
+        // Set desired buyout price
+        vm.prank(address(impl));
+        vault.updateUserPrice(listPrice);
+
+        address payable bidder1 = _randomAddress();
+        address payable bidder2 = _randomAddress();
+
+        // Start the auction
+        vm.prank(bidder1);
+        vm.deal(bidder1, listPrice);
+        vault.start{ value: listPrice }();
+
+        assertEq(vault.livePrice(), listPrice);
+        assertEq(vault.winning(), bidder1);
+
+        // Bid on the auction
+        uint256 bidAmount = listPrice * 2;
+        vm.prank(bidder2);
+        vm.deal(bidder2, bidAmount);
+        vault.bid{ value: bidAmount }();
+
+        assertEq(vault.livePrice(), bidAmount);
+        assertEq(vault.winning(), bidder2);
+
+        // End the auction
+        vm.warp(vault.auctionEnd());
+        vault.end();
+
+        assertEq(erc721.ownerOf(tokenId), bidder2);
+    }
+
+    function testForked_canRedeem() public onlyForked {
+        uint256 tokenId = erc721.mint(address(impl));
+        IFractionalV1Vault vault = _getNextVault();
+        impl.executeFractionalize(
+            IProposalExecutionEngine.ExecuteProposalParams({
+                proposalId: _randomUint256(),
+                progressData: "",
+                extraData: "",
+                flags: 0,
+                preciousTokens: new IERC721[](0),
+                preciousTokenIds: new uint256[](0),
+                proposalData: abi.encode(
+                    FractionalizeProposal.FractionalizeProposalData({
+                        token: erc721,
+                        tokenId: tokenId
+                    })
+                )
+            })
+        );
+
+        address redeemer = _randomAddress();
+
+        // Transfer all ERC20 fractions to redeemer to redeem for ERC721
+        uint256 totalBalance = impl.getGovernanceValues().totalVotingPower;
+        vm.prank(address(impl));
+        vault.transfer(redeemer, totalBalance);
+
+        // Redeem for ERC721
+        vm.prank(redeemer);
+        vault.redeem();
+
+        assertEq(erc721.ownerOf(tokenId), redeemer);
     }
 
     function _getNextVault() private returns (IFractionalV1Vault v) {

@@ -27,6 +27,7 @@ contract AuctionCrowdfundTest is Test, TestUtils {
 
     event Burned(address contributor, uint256 ethUsed, uint256 ethOwed, uint256 votingPower);
     event Contributed(
+        address sender,
         address contributor,
         uint256 amount,
         address delegate,
@@ -77,7 +78,7 @@ contract AuctionCrowdfundTest is Test, TestUtils {
                         auctionCrowdfundImpl,
                         abi.encodeCall(
                             AuctionCrowdfund.initialize,
-                            AuctionCrowdfund.AuctionCrowdfundOptions({
+                            AuctionCrowdfundBase.AuctionCrowdfundOptions({
                                 name: defaultName,
                                 symbol: defaultSymbol,
                                 customizationPresetId: 0,
@@ -91,6 +92,8 @@ contract AuctionCrowdfundTest is Test, TestUtils {
                                 splitBps: defaultSplitBps,
                                 initialContributor: address(this),
                                 initialDelegate: defaultInitialDelegate,
+                                minContribution: 0,
+                                maxContribution: type(uint96).max,
                                 gateKeeper: gateKeeper,
                                 gateKeeperId: gateKeeperId,
                                 onlyHostCanBid: onlyHostCanBid,
@@ -182,11 +185,36 @@ contract AuctionCrowdfundTest is Test, TestUtils {
         assertEq(contributor.balance, 1e18 - 1337);
     }
 
+    function test_canBidWithCustomAmountAsHost() external {
+        // Create a token and auction with min bid of 1337 wei.
+        (uint256 auctionId, uint256 tokenId) = market.createAuction(1337);
+        // Create a AuctionCrowdfund instance.
+        AuctionCrowdfund cf = _createCrowdfund(
+            auctionId,
+            tokenId,
+            0,
+            false,
+            IGateKeeper(address(0)),
+            "",
+            _toAddressArray(address(this))
+        );
+        // Contribute and delegate.
+        address payable contributor = _randomAddress();
+        address delegate = _randomAddress();
+        _contribute(cf, contributor, delegate, 1e18);
+        // Expect revert if not host.
+        vm.expectRevert(Crowdfund.OnlyPartyHostError.selector);
+        vm.prank(_randomAddress());
+        cf.bid(1e18, defaultGovernanceOpts, 0);
+        // Bid on the auction with a custom amount as host.
+        cf.bid(1e18, defaultGovernanceOpts, 0);
+    }
+
     function test_cannotReinitialize() external {
         (uint256 auctionId, uint256 tokenId) = market.createAuction(1337);
         AuctionCrowdfund cf = _createCrowdfund(auctionId, tokenId, 0);
         vm.expectRevert(abi.encodeWithSelector(Implementation.OnlyConstructorError.selector));
-        AuctionCrowdfund.AuctionCrowdfundOptions memory opts;
+        AuctionCrowdfundBase.AuctionCrowdfundOptions memory opts;
         cf.initialize(opts);
     }
 
@@ -397,7 +425,7 @@ contract AuctionCrowdfundTest is Test, TestUtils {
         cf.finalize(defaultGovernanceOpts);
     }
 
-    function test_cannotFinalizeIfExpiredBeforeAuctionEnds_withBid() external {
+    function test_cannotFinalizeIfExpiredBeforeAuctionEndsIfHighestBidder() external {
         // Create a token and auction with min bid of 1337 wei.
         (uint256 auctionId, uint256 tokenId) = market.createAuction(1337);
         // Create a AuctionCrowdfund instance.
@@ -409,10 +437,36 @@ contract AuctionCrowdfundTest is Test, TestUtils {
         cf.bid(defaultGovernanceOpts, 0);
         // Expire the CF.
         skip(defaultDuration);
+        // Check that the CF is highest bidder.
+        assertTrue(market.getCurrentHighestBidder(auctionId) == address(cf));
+        // Check that the CF is expired.
+        assertTrue(cf.getCrowdfundLifecycle() == Crowdfund.CrowdfundLifecycle.Expired);
+        // Finalize the crowdfund.
         vm.expectRevert("AUCTION_NOT_ENDED");
-        // Try to finalize the crowdfund. This will fail because even though the
-        // CF is expired, the auction cannot be finalized.
         cf.finalize(defaultGovernanceOpts);
+    }
+
+    function test_canFinalizeIfExpiredBeforeAuctionEndsIfNotHighestBidder() external {
+        // Create a token and auction with min bid of 1337 wei.
+        (uint256 auctionId, uint256 tokenId) = market.createAuction(1337);
+        // Create a AuctionCrowdfund instance.
+        AuctionCrowdfund cf = _createCrowdfund(auctionId, tokenId, 0);
+        // Contribute and delegate.
+        address payable contributor = _randomAddress();
+        _contribute(cf, contributor, 1e18);
+        // Place a bid.
+        cf.bid(defaultGovernanceOpts, 0);
+        // Get outbid.
+        _outbidExternally(auctionId);
+        // Expire the CF.
+        skip(defaultDuration);
+        // Check that the CF is not highest bidder.
+        assertTrue(market.getCurrentHighestBidder(auctionId) != address(cf));
+        // Check that the CF is expired.
+        assertTrue(cf.getCrowdfundLifecycle() == Crowdfund.CrowdfundLifecycle.Expired);
+        // Finalize the crowdfund.
+        cf.finalize(defaultGovernanceOpts);
+        assertTrue(cf.getCrowdfundLifecycle() == Crowdfund.CrowdfundLifecycle.Lost);
     }
 
     function test_canFinalizeIfExpiredAfterAuctionEnds_withBids() external {
@@ -484,7 +538,7 @@ contract AuctionCrowdfundTest is Test, TestUtils {
         address payable contributor = _randomAddress();
         _contribute(cf, contributor, 1e18);
         // Set up a callback to reenter bid().
-        market.setCallback(address(cf), abi.encodeCall(cf.bid, (defaultGovernanceOpts, 0)), 0);
+        market.setCallback(address(cf), abi.encodeWithSignature("bid()"), 0);
         // Bid on the auction.
         vm.expectRevert(
             abi.encodeWithSelector(
@@ -544,9 +598,10 @@ contract AuctionCrowdfundTest is Test, TestUtils {
         address contributor = _randomAddress();
 
         // Create a AuctionCrowdfund instance with `onlyHost` enabled.
+        (uint256 auctionId, uint256 tokenId) = market.createAuction(0);
         AuctionCrowdfund cf = _createCrowdfund(
-            0,
-            0,
+            auctionId,
+            tokenId,
             0,
             true,
             IGateKeeper(address(0)),
@@ -590,9 +645,10 @@ contract AuctionCrowdfundTest is Test, TestUtils {
         AllowListGateKeeper gateKeeper = new AllowListGateKeeper();
         bytes32 contributorHash = keccak256(abi.encodePacked(contributor));
         bytes12 gateKeeperId = gateKeeper.createGate(contributorHash);
+        (uint256 auctionId, uint256 tokenId) = market.createAuction(0);
         AuctionCrowdfund cf = _createCrowdfund(
-            0,
-            0,
+            auctionId,
+            tokenId,
             0,
             true,
             gateKeeper,
@@ -636,9 +692,10 @@ contract AuctionCrowdfundTest is Test, TestUtils {
         AllowListGateKeeper gateKeeper = new AllowListGateKeeper();
         bytes32 contributorHash = keccak256(abi.encodePacked(contributor));
         bytes12 gateKeeperId = gateKeeper.createGate(contributorHash);
+        (uint256 auctionId, uint256 tokenId) = market.createAuction(0);
         AuctionCrowdfund cf = _createCrowdfund(
-            0,
-            0,
+            auctionId,
+            tokenId,
             0,
             false,
             gateKeeper,
@@ -651,7 +708,7 @@ contract AuctionCrowdfundTest is Test, TestUtils {
         vm.prank(contributor);
         cf.contribute{ value: contributor.balance }(contributor, abi.encode(new bytes32[](0)));
 
-        // Skip past exipry.
+        // Skip past expiry.
         vm.warp(cf.expiry());
 
         // Bid, expect revert because we are not a contributor.
@@ -705,7 +762,13 @@ contract AuctionCrowdfundTest is Test, TestUtils {
         address initialContributor = _randomAddress();
         address initialDelegate = _randomAddress();
         vm.deal(address(this), initialContribution);
-        emit Contributed(initialContributor, initialContribution, initialDelegate, 0);
+        emit Contributed(
+            address(this),
+            initialContributor,
+            initialContribution,
+            initialDelegate,
+            0
+        );
         AuctionCrowdfund(
             payable(
                 address(
@@ -713,7 +776,7 @@ contract AuctionCrowdfundTest is Test, TestUtils {
                         auctionCrowdfundImpl,
                         abi.encodeCall(
                             AuctionCrowdfund.initialize,
-                            AuctionCrowdfund.AuctionCrowdfundOptions({
+                            AuctionCrowdfundBase.AuctionCrowdfundOptions({
                                 name: defaultName,
                                 symbol: defaultSymbol,
                                 customizationPresetId: 0,
@@ -727,6 +790,8 @@ contract AuctionCrowdfundTest is Test, TestUtils {
                                 splitBps: defaultSplitBps,
                                 initialContributor: initialContributor,
                                 initialDelegate: initialDelegate,
+                                minContribution: 0,
+                                maxContribution: type(uint96).max,
                                 gateKeeper: defaultGateKeeper,
                                 gateKeeperId: defaultGateKeeperId,
                                 onlyHostCanBid: false,
@@ -752,10 +817,10 @@ contract AuctionCrowdfundTest is Test, TestUtils {
         uint256 amount
     ) private {
         uint256 previousTotalContributions = cf.totalContributions();
+        _expectEmit0();
+        emit Contributed(contributor, contributor, amount, delegate, previousTotalContributions);
         vm.deal(contributor, amount);
         vm.prank(contributor);
-        _expectEmit0();
-        emit Contributed(contributor, amount, delegate, previousTotalContributions);
         cf.contribute{ value: amount }(delegate, "");
     }
 
