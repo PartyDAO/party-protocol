@@ -501,7 +501,7 @@ contract ArbitraryCallsProposalTest is
                 // The data doesn't matter, it should be reverted.
                 maker: payable(address(0)),
                 buyer: address(0),
-                tokenType: ListOnOpenseaProposal.TokenType.ERC721,
+                tokenType: ListOnOpenseaAdvancedProposal.TokenType.ERC721,
                 token: address(0),
                 tokenId: 0,
                 listPrice: 0,

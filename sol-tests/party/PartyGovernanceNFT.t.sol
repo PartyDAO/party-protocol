@@ -385,7 +385,7 @@ contract PartyGovernanceNFTTest is Test, TestUtils {
         string memory tokenURI = party.tokenURI(tokenId);
 
         // Uncomment for testing rendering:
-        console.log(tokenURI);
+        // console.log(tokenURI);
 
         assertTrue(bytes(tokenURI).length > 0);
     }

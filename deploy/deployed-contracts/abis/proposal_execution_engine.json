@@ -345,6 +345,208 @@
     "anonymous": false,
     "inputs": [
       {
+        "components": [
+          {
+            "internalType": "address",
+            "name": "offerer",
+            "type": "address"
+          },
+          {
+            "internalType": "address",
+            "name": "zone",
+            "type": "address"
+          },
+          {
+            "components": [
+              {
+                "internalType": "enum IOpenseaExchange.ItemType",
+                "name": "itemType",
+                "type": "uint8"
+              },
+              {
+                "internalType": "address",
+                "name": "token",
+                "type": "address"
+              },
+              {
+                "internalType": "uint256",
+                "name": "identifierOrCriteria",
+                "type": "uint256"
+              },
+              {
+                "internalType": "uint256",
+                "name": "startAmount",
+                "type": "uint256"
+              },
+              {
+                "internalType": "uint256",
+                "name": "endAmount",
+                "type": "uint256"
+              }
+            ],
+            "internalType": "struct IOpenseaExchange.OfferItem[]",
+            "name": "offer",
+            "type": "tuple[]"
+          },
+          {
+            "components": [
+              {
+                "internalType": "enum IOpenseaExchange.ItemType",
+                "name": "itemType",
+                "type": "uint8"
+              },
+              {
+                "internalType": "address",
+                "name": "token",
+                "type": "address"
+              },
+              {
+                "internalType": "uint256",
+                "name": "identifierOrCriteria",
+                "type": "uint256"
+              },
+              {
+                "internalType": "uint256",
+                "name": "startAmount",
+                "type": "uint256"
+              },
+              {
+                "internalType": "uint256",
+                "name": "endAmount",
+                "type": "uint256"
+              },
+              {
+                "internalType": "address payable",
+                "name": "recipient",
+                "type": "address"
+              }
+            ],
+            "internalType": "struct IOpenseaExchange.ConsiderationItem[]",
+            "name": "consideration",
+            "type": "tuple[]"
+          },
+          {
+            "internalType": "enum IOpenseaExchange.OrderType",
+            "name": "orderType",
+            "type": "uint8"
+          },
+          {
+            "internalType": "uint256",
+            "name": "startTime",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "endTime",
+            "type": "uint256"
+          },
+          {
+            "internalType": "bytes32",
+            "name": "zoneHash",
+            "type": "bytes32"
+          },
+          {
+            "internalType": "uint256",
+            "name": "salt",
+            "type": "uint256"
+          },
+          {
+            "internalType": "bytes32",
+            "name": "conduitKey",
+            "type": "bytes32"
+          },
+          {
+            "internalType": "uint256",
+            "name": "totalOriginalConsiderationItems",
+            "type": "uint256"
+          }
+        ],
+        "indexed": false,
+        "internalType": "struct IOpenseaExchange.OrderParameters",
+        "name": "orderParams",
+        "type": "tuple"
+      },
+      {
+        "indexed": false,
+        "internalType": "bytes32",
+        "name": "orderHash",
+        "type": "bytes32"
+      },
+      {
+        "indexed": false,
+        "internalType": "address",
+        "name": "token",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "tokenId",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "startPrice",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "endPrice",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "expiry",
+        "type": "uint256"
+      }
+    ],
+    "name": "OpenseaAdvancedOrderListed",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": false,
+        "internalType": "bytes32",
+        "name": "orderHash",
+        "type": "bytes32"
+      },
+      {
+        "indexed": false,
+        "internalType": "address",
+        "name": "token",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "tokenId",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "startPrice",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "endPrice",
+        "type": "uint256"
+      }
+    ],
+    "name": "OpenseaAdvancedOrderSold",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
         "indexed": false,
         "internalType": "bytes32",
         "name": "orderHash",
@@ -505,7 +707,7 @@
       },
       {
         "indexed": false,
-        "internalType": "address",
+        "internalType": "contract IERC721",
         "name": "token",
         "type": "address"
       },
@@ -518,13 +720,7 @@
       {
         "indexed": false,
         "internalType": "uint256",
-        "name": "startPrice",
-        "type": "uint256"
-      },
-      {
-        "indexed": false,
-        "internalType": "uint256",
-        "name": "endPrice",
+        "name": "listPrice",
         "type": "uint256"
       },
       {
@@ -548,7 +744,7 @@
       },
       {
         "indexed": false,
-        "internalType": "address",
+        "internalType": "contract IERC721",
         "name": "token",
         "type": "address"
       },
@@ -561,13 +757,7 @@
       {
         "indexed": false,
         "internalType": "uint256",
-        "name": "startPrice",
-        "type": "uint256"
-      },
-      {
-        "indexed": false,
-        "internalType": "uint256",
-        "name": "endPrice",
+        "name": "listPrice",
         "type": "uint256"
       }
     ],

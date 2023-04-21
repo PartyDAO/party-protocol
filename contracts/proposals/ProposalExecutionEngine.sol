@@ -7,6 +7,7 @@ import "../globals/IGlobals.sol";
 
 import "./IProposalExecutionEngine.sol";
 import "./ListOnOpenseaProposal.sol";
+import "./ListOnOpenseaAdvancedProposal.sol";
 import "./ListOnZoraProposal.sol";
 import "./FractionalizeProposal.sol";
 import "./ArbitraryCallsProposal.sol";
@@ -19,6 +20,7 @@ contract ProposalExecutionEngine is
     Implementation,
     ProposalStorage,
     ListOnOpenseaProposal,
+    ListOnOpenseaAdvancedProposal,
     ListOnZoraProposal,
     FractionalizeProposal,
     ArbitraryCallsProposal
@@ -37,7 +39,8 @@ contract ProposalExecutionEngine is
         ListOnZora,
         Fractionalize,
         ArbitraryCalls,
-        UpgradeProposalEngineImpl
+        UpgradeProposalEngineImpl,
+        ListOnOpenseaAdvanced
     }
 
     // Explicit storage bucket for "private" state owned by the `ProposalExecutionEngine`.
@@ -90,7 +93,7 @@ contract ProposalExecutionEngine is
         IZoraAuctionHouse zoraAuctionHouse,
         IFractionalV1VaultFactory fractionalVaultFactory
     )
-        ListOnOpenseaProposal(globals, seaport, seaportConduitController)
+        ListOnOpenseaAdvancedProposal(globals, seaport, seaportConduitController)
         ListOnZoraProposal(globals, zoraAuctionHouse)
         FractionalizeProposal(fractionalVaultFactory)
         ArbitraryCallsProposal(zoraAuctionHouse)
@@ -200,6 +203,8 @@ contract ProposalExecutionEngine is
     ) internal virtual returns (bytes memory nextProgressData) {
         if (pt == ProposalType.ListOnOpensea) {
             nextProgressData = _executeListOnOpensea(params);
+        } else if (pt == ProposalType.ListOnOpenseaAdvanced) {
+            nextProgressData = _executeListOnOpenseaAdvanced(params);
         } else if (pt == ProposalType.ListOnZora) {
             nextProgressData = _executeListOnZora(params);
         } else if (pt == ProposalType.Fractionalize) {

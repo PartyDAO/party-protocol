@@ -5,7 +5,7 @@ import { Contract, BigNumber, Wallet } from "ethers";
 import { MockProvider, solidity } from "ethereum-waffle";
 import * as ethers from "ethers";
 
-import DEPLOY_ARTIFACT from "../../out/deploy.sol/DeployFork.json";
+import DEPLOY_ARTIFACT from "../../out/Deploy.s.sol/DeployFork.json";
 import CF_FACTORY_ARTIFACT from "../../out/CrowdfundFactory.sol/CrowdfundFactory.json";
 import PARTY_FACTORY_ARTIFACT from "../../out/PartyFactory.sol/PartyFactory.json";
 import DUMMY_ERC721_ARTIFACT from "../../out/DummyERC721.sol/DummyERC721.json";
@@ -625,7 +625,7 @@ describeFork("Mainnet deployment fork smoke tests", provider => {
       preciousTokenId,
       progressData,
     );
-    const { tokenId: soldTokenId } = findEvent(r, "OpenseaOrderSold", party.address).args;
+    const { tokenId: soldTokenId } = findEvent(r, "OpenseaAdvancedOrderSold", party.address).args;
     expect(soldTokenId).to.eq(tokenId);
 
     await runDistributionTest(party, null, members);

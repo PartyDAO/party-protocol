@@ -44,7 +44,6 @@ abstract contract Deploy {
 
     // temporary variables to store deployed contract addresses
     Globals public globals;
-    IZoraAuctionHouse public zoraAuctionHouse;
     AuctionCrowdfund public auctionCrowdfund;
     RollingAuctionCrowdfund public rollingAuctionCrowdfund;
     BuyCrowdfund public buyCrowdfund;
@@ -53,7 +52,6 @@ abstract contract Deploy {
     CrowdfundFactory public crowdfundFactory;
     Party public party;
     PartyFactory public partyFactory;
-    IOpenseaExchange public seaport;
     ProposalExecutionEngine public proposalExecutionEngine;
     TokenDistributor public tokenDistributor;
     RendererStorage public rendererStorage;
@@ -70,7 +68,7 @@ abstract contract Deploy {
     function deploy(LibDeployConstants.DeployConstants memory deployConstants) public virtual {
         _switchDeployer(DeployerRole.Default);
 
-        seaport = IOpenseaExchange(deployConstants.seaportExchangeAddress);
+        IOpenseaExchange seaport = IOpenseaExchange(deployConstants.seaportExchangeAddress);
 
         // DEPLOY_GLOBALS
         console.log("");
@@ -97,7 +95,7 @@ abstract contract Deploy {
         console.log("");
         console.log("### ProposalExecutionEngine");
         console.log("  Deploying - ProposalExecutionEngine");
-        zoraAuctionHouse = IZoraAuctionHouse(deployConstants.zoraAuctionHouse);
+        IZoraAuctionHouse zoraAuctionHouse = IZoraAuctionHouse(deployConstants.zoraAuctionHouse);
         IOpenseaConduitController conduitController = IOpenseaConduitController(
             deployConstants.osConduitController
         );
@@ -168,17 +166,6 @@ abstract contract Deploy {
             address(collectionBuyCrowdfund)
         );
 
-        console.log("");
-        console.log("  Globals - setting CollectionBuyCrowdfund crowdfund implementation address");
-        globals.setAddress(
-            LibGlobals.GLOBAL_COLLECTION_BUY_CF_IMPL,
-            address(collectionBuyCrowdfund)
-        );
-        console.log(
-            "  Globals - successfully set CollectionBuyCrowdfund crowdfund implementation address",
-            address(collectionBuyCrowdfund)
-        );
-
         // DEPLOY_COLLECTION_BATCH_BUY_CF_IMPLEMENTATION
         console.log("");
         console.log("### CollectionBatchBuyCrowdfund crowdfund implementation");
@@ -191,19 +178,6 @@ abstract contract Deploy {
             address(collectionBatchBuyCrowdfund)
         );
 
-        console.log("");
-        console.log(
-            "  Globals - setting CollectionBatchBuyCrowdfund crowdfund implementation address"
-        );
-        globals.setAddress(
-            LibGlobals.GLOBAL_COLLECTION_BATCH_BUY_CF_IMPL,
-            address(collectionBatchBuyCrowdfund)
-        );
-        console.log(
-            "  Globals - successfully set CollectionBatchBuyCrowdfund crowdfund implementation address",
-            address(collectionBatchBuyCrowdfund)
-        );
-
         // DEPLOY_ROLLING_AUCTION_CF_IMPLEMENTATION
         console.log("");
         console.log("### RollingAuctionCrowdfund crowdfund implementation");
@@ -211,17 +185,6 @@ abstract contract Deploy {
         rollingAuctionCrowdfund = new RollingAuctionCrowdfund(globals);
         console.log(
             "  Deployed - RollingAuctionCrowdfund crowdfund implementation",
-            address(rollingAuctionCrowdfund)
-        );
-
-        console.log("");
-        console.log("  Globals - setting RollingAuctionCrowdfund crowdfund implementation address");
-        globals.setAddress(
-            LibGlobals.GLOBAL_ROLLING_AUCTION_CF_IMPL,
-            address(rollingAuctionCrowdfund)
-        );
-        console.log(
-            "  Globals - successfully set RollingAuctionCrowdfund crowdfund implementation address",
             address(rollingAuctionCrowdfund)
         );
 
@@ -542,6 +505,8 @@ contract DeployScript is Script, Deploy {
     address[] private _deployersUsed;
 
     function run() external {
+        vm.startBroadcast();
+
         _run();
 
         {
