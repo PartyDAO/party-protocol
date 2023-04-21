@@ -21,7 +21,7 @@ contract OpenseaFulfillOrderTest is Test, TestUtils, OpenseaTestUtils {
     uint256 sellerPrivateKey = 0xDEADBEEF;
     address payable seller = payable(vm.addr(sellerPrivateKey));
 
-    IOpenseaExchange SEAPORT = IOpenseaExchange(0x00000000006c3852cbEf3e08E8dF289169EdE581);
+    IOpenseaExchange SEAPORT = IOpenseaExchange(0x00000000000001ad428e4906aE43D8F9852d0dD6);
 
     constructor() OpenseaTestUtils(SEAPORT) {
         token = new DummyERC721();
@@ -109,7 +109,7 @@ contract OpenseaFulfillOrderTest is Test, TestUtils, OpenseaTestUtils {
         );
 
         // Generate signature for order
-        bytes32 domainSeparator = 0xb50c8913581289bd2e066aeef89fceb9615d490d673131fd1a7047436706834e;
+        (, bytes32 domainSeparator, ) = SEAPORT.information();
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(
             sellerPrivateKey,
             keccak256(abi.encodePacked(bytes2(0x1901), domainSeparator, orderHash))
