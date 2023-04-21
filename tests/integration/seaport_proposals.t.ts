@@ -32,10 +32,9 @@ import {
 use(solidity);
 
 describeFork("Seaport proposals integrations test", provider => {
-  const SEAPORT_ADDRESS = "0x00000000006c3852cbEf3e08E8dF289169EdE581";
+  const SEAPORT_ADDRESS = "0x00000000000001ad428e4906aE43D8F9852d0dD6";
   const SEAPORT_CONDUIT_CONTROLLER_ADDRESS = "0x00000000F9490004C11Cef243f5400493c00Ad63";
   const SEAPORT_CONDUIT_KEY = "0x0000007b02230091a7ed01230072f7006a004d60a8d4e71d599b8104250f0000";
-  const SEAPORT_ZONE_ADDRESS = "0x004C00500000aD104D7DBd00e3ae0A5C00560C00";
   const LIST_PRICE = ethers.utils.parseEther("0.01");
   // OS fee is 2.5% of total considerations (incl OS fee)
   const OS_FEE_RATE_BPS = 0.025e4;
@@ -54,7 +53,7 @@ describeFork("Seaport proposals integrations test", provider => {
       seaportAddress: SEAPORT_ADDRESS,
       seaportConduitController: SEAPORT_CONDUIT_CONTROLLER_ADDRESS,
       seaportConduitKey: SEAPORT_CONDUIT_KEY,
-      seaportZoneAddress: SEAPORT_ZONE_ADDRESS,
+      seaportZoneAddress: NULL_ADDRESS,
       zoraAuctionHouseV2Address: ZORA2_ADDRESS,
       forcedZoraAuctionTimeout: ONE_DAY_SECONDS,
       forcedZoraAuctionDuration: ONE_DAY_SECONDS / 2,

@@ -58,11 +58,10 @@ contract ListOnOpenseaProposalForkedTest is Test, TestUtils, ZoraTestUtils, Open
     uint256 constant LIST_PRICE = 1e18;
     TestableListOnOpenseaProposal impl;
     Globals globals;
-    IOpenseaExchange SEAPORT = IOpenseaExchange(0x00000000006c3852cbEf3e08E8dF289169EdE581);
+    IOpenseaExchange SEAPORT = IOpenseaExchange(0x00000000000001ad428e4906aE43D8F9852d0dD6);
     IOpenseaConduitController CONDUIT_CONTROLLER =
         IOpenseaConduitController(0x00000000F9490004C11Cef243f5400493c00Ad63);
     IZoraAuctionHouse ZORA = IZoraAuctionHouse(0xE468cE99444174Bd3bBBEd09209577d25D1ad673);
-    address SEAPORT_ZONE = 0x004C00500000aD104D7DBd00e3ae0A5C00560C00;
     bytes32 SEAPORT_CONDUIT_KEY =
         0x0000007b02230091a7ed01230072f7006a004d60a8d4e71d599b8104250f0000;
     IERC721[] preciousTokens;
@@ -73,7 +72,6 @@ contract ListOnOpenseaProposalForkedTest is Test, TestUtils, ZoraTestUtils, Open
     function setUp() public onlyForked {
         globals = new Globals(address(this));
         globals.setBytes32(LibGlobals.GLOBAL_OPENSEA_CONDUIT_KEY, SEAPORT_CONDUIT_KEY);
-        globals.setAddress(LibGlobals.GLOBAL_OPENSEA_ZONE, SEAPORT_ZONE);
         globals.setUint256(LibGlobals.GLOBAL_OS_ZORA_AUCTION_TIMEOUT, ZORA_AUCTION_TIMEOUT);
         globals.setUint256(LibGlobals.GLOBAL_OS_ZORA_AUCTION_DURATION, ZORA_AUCTION_DURATION);
         globals.setUint256(LibGlobals.GLOBAL_OS_MIN_ORDER_DURATION, 1 days);
@@ -360,7 +358,7 @@ contract ListOnOpenseaProposalForkedTest is Test, TestUtils, ZoraTestUtils, Open
                 listPrice: listPrice,
                 startTime: listStartTime,
                 duration: listDuration,
-                zone: SEAPORT_ZONE,
+                zone: address(0),
                 conduitKey: SEAPORT_CONDUIT_KEY
             })
         );
@@ -416,7 +414,7 @@ contract ListOnOpenseaProposalForkedTest is Test, TestUtils, ZoraTestUtils, Open
                 listPrice: listPrice,
                 startTime: listStartTime,
                 duration: listDuration,
-                zone: SEAPORT_ZONE,
+                zone: address(0),
                 conduitKey: SEAPORT_CONDUIT_KEY
             })
         );
@@ -475,7 +473,7 @@ contract ListOnOpenseaProposalForkedTest is Test, TestUtils, ZoraTestUtils, Open
                 listPrice: listPrice,
                 startTime: listStartTime,
                 duration: listDuration,
-                zone: SEAPORT_ZONE,
+                zone: address(0),
                 conduitKey: SEAPORT_CONDUIT_KEY
             }),
             fees,
@@ -529,7 +527,7 @@ contract ListOnOpenseaProposalForkedTest is Test, TestUtils, ZoraTestUtils, Open
                 listPrice: listPrice,
                 startTime: listStartTime,
                 duration: listDuration,
-                zone: SEAPORT_ZONE,
+                zone: address(0),
                 conduitKey: SEAPORT_CONDUIT_KEY
             })
         );
@@ -639,7 +637,7 @@ contract ListOnOpenseaProposalForkedTest is Test, TestUtils, ZoraTestUtils, Open
                 listPrice: listPrice,
                 startTime: listStartTime,
                 duration: listDuration,
-                zone: SEAPORT_ZONE,
+                zone: address(0),
                 conduitKey: SEAPORT_CONDUIT_KEY
             })
         );
@@ -689,7 +687,9 @@ contract ListOnOpenseaProposalForkedTest is Test, TestUtils, ZoraTestUtils, Open
         // Skip past expiration.
         skip(listDuration);
         // Attempt to buy the listing (fail).
-        vm.expectRevert(IOpenseaExchange.InvalidTime.selector);
+        vm.expectRevert(
+            abi.encodeWithSelector(IOpenseaExchange.InvalidTime.selector, listStartTime, expiry)
+        );
         _buyOpenseaListing(
             BuyOpenseaListingParams({
                 maker: payable(impl),
@@ -700,7 +700,7 @@ contract ListOnOpenseaProposalForkedTest is Test, TestUtils, ZoraTestUtils, Open
                 listPrice: listPrice,
                 startTime: listStartTime,
                 duration: listDuration,
-                zone: SEAPORT_ZONE,
+                zone: address(0),
                 conduitKey: SEAPORT_CONDUIT_KEY
             })
         );
