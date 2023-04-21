@@ -213,7 +213,7 @@ contract CollectionBatchBuyCrowdfund is BuyCrowdfundBase {
 
             uint256 balanceBefore = address(this).balance;
             {
-                // Execute the call to buy the NFT.
+                // Execute the call to buy the NFTs.
                 (bool success, ) = _buy(token, call.target, callValue, call.data);
 
                 if (!success) continue;
