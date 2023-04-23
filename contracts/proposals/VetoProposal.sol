@@ -30,8 +30,11 @@ contract VetoProposal {
             PartyGovernance.ProposalStatus proposalStatus,
             PartyGovernance.ProposalStateValues memory proposalValues
         ) = party.getProposalStateInfo(proposalId);
-        if (proposalStatus != PartyGovernance.ProposalStatus.Voting)
-            revert ProposalNotActiveError(proposalId);
+        if (
+            proposalStatus != PartyGovernance.ProposalStatus.Voting &&
+            proposalStatus != PartyGovernance.ProposalStatus.Passed &&
+            proposalStatus != PartyGovernance.ProposalStatus.Ready
+        ) revert ProposalNotActiveError(proposalId);
 
         // Increase the veto vote count
         uint96 votingPower = party.getVotingPowerAt(
