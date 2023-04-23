@@ -8,9 +8,13 @@ import "../party/Party.sol";
 contract VetoProposal {
     error NotPartyHostError();
     error ProposalNotActiveError(uint256 proposalId);
+    error AlreadyVotedError();
 
     /// @notice Mapping from party to proposal ID to votes to veto the proposal.
     mapping(Party => mapping(uint256 => uint96)) public vetoVotes;
+    /// @notice Mapping from party to proposal ID to mapping from voter to
+    ///         whether they have voted.
+    mapping(Party => mapping(uint256 => mapping(address => bool))) public hasVoted;
 
     /// @notice Vote to veto a proposal.
     /// @param party The party to vote on.
@@ -35,6 +39,11 @@ contract VetoProposal {
             proposalStatus != PartyGovernance.ProposalStatus.Passed &&
             proposalStatus != PartyGovernance.ProposalStatus.Ready
         ) revert ProposalNotActiveError(proposalId);
+
+        if (hasVoted[party][proposalId][msg.sender]) revert AlreadyVotedError();
+
+        // Mark the sender as having voted
+        hasVoted[party][proposalId][msg.sender] = true;
 
         // Increase the veto vote count
         uint96 votingPower = party.getVotingPowerAt(

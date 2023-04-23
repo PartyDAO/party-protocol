@@ -103,6 +103,17 @@ contract VetoProposalTest is Test, TestUtils {
         vm.expectRevert(abi.encodeWithSelector(VetoProposal.NotPartyHostError.selector));
         vetoProposal.voteToVeto(invalidParty, proposalId, 1);
     }
+
+    function test_cannotVetoTwice() public {
+        // Vote to veto
+        vm.prank(voter1);
+        vetoProposal.voteToVeto(party, proposalId, 0);
+
+        // Vote to veto again
+        vm.prank(voter1);
+        vm.expectRevert(abi.encodeWithSelector(VetoProposal.AlreadyVotedError.selector));
+        vetoProposal.voteToVeto(party, proposalId, 0);
+    }
 }
 
 contract InvalidParty {
