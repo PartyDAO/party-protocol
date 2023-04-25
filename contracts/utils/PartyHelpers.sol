@@ -124,7 +124,7 @@ contract PartyHelpers {
 
 
     /// @notice Get the owner and intrinsic voting power of each governance nft in a list
-    function getNftInfosRange(
+    function getNftInfosBatch(
         address party,
         uint256[] memory tokenIds
     ) external view returns (NftInfo[] memory nftInfos) {
