@@ -183,6 +183,22 @@ contract PartyGovernanceHelpersTest is Test, TestUtils {
         partyAdmin.mintGovNft(party, address(lawrence), 20, address(lawrence));
         partyAdmin.mintGovNft(party, address(anna), 35, address(anna));
 
+        // test getNftInfosRange
+        uint256[] memory items = new uint256[](3);
+        items[0] = 3;
+        items[1] = 2;
+        items[2] = 1;
+        PartyHelpers.NftInfo[] memory nftInfos0 = ph.getNftInfosRange(address(party), items);
+        assertTrue(nftInfos0[0].tokenId == 3);
+        assertTrue(nftInfos0[0].owner == address(lawrence));
+        assertTrue(nftInfos0[0].intrinsicVotingPower == 20);
+        assertTrue(nftInfos0[1].tokenId == 2);
+        assertTrue(nftInfos0[1].owner == address(steve));
+        assertTrue(nftInfos0[1].intrinsicVotingPower == 15);
+        assertTrue(nftInfos0[2].tokenId == 1);
+        assertTrue(nftInfos0[2].owner == address(john));
+        assertTrue(nftInfos0[2].intrinsicVotingPower == 30);
+
         // test endIndex > tokenCount
         PartyHelpers.NftInfo[] memory nftInfos = ph.getNftInfos(address(party), 1, 6);
         assertTrue(nftInfos.length == 4);

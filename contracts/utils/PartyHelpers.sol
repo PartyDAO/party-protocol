@@ -121,4 +121,26 @@ contract PartyHelpers {
             });
         }
     }
+
+
+    /// @notice Get the owner and intrinsic voting power of each governance nft in a list
+    function getNftInfosRange(
+        address party,
+        uint256[] memory tokenIds
+    ) external view returns (NftInfo[] memory nftInfos) {
+        Party p = Party(payable(party));
+        uint256 numTokens = tokenIds.length;
+        nftInfos = new NftInfo[](numTokens);
+
+        for (uint256 i; i < numTokens; ++i) {
+            uint256 currItem = tokenIds[i];
+            address owner = p.ownerOf(currItem);
+            uint256 intrinsicVotingPower = p.votingPowerByTokenId(currItem);
+            nftInfos[i] = NftInfo({
+                intrinsicVotingPower: intrinsicVotingPower,
+                owner: owner,
+                tokenId: currItem
+            });
+        }
+    }
 }
