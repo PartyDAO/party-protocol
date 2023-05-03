@@ -26,6 +26,8 @@ The main contracts involved in this phase are:
   - A crowdfund that purchases a specific NFT (i.e., with a known token ID) below a maximum price.
 - `CollectionBuyCrowdfund` ([code](../contracts/crowdfund/CollectionBuyCrowdfund.sol))
   - A crowdfund that purchases any NFT from a collection (i.e., any token ID) from a collection below a maximum price. Like `BuyCrowdfund` but allows any token ID in a collection to be bought.
+- `CollectionBatchBuyCrowdfund` ([code](../contracts/crowdfund/CollectionBatchBuyCrowdfund.sol))
+  - A crowdfund that purchases multiple NFTs with any token ID from a collection below a maximum price. Like `CollectionBuyCrowdfund`, but allows the acquisition of several eligible NFTs in a single batch transaction.
 - `AuctionCrowdfund` ([code](../contracts/crowdfund/AuctionCrowdfund.sol))
   - A crowdfund that can repeatedly bid in an auction for a specific NFT (i.e., with a known token ID) until the auction ends.
 - `IMarketWrapper` ([code](../contracts/crowdfund/IMarketWrapper.sol))
@@ -77,6 +79,21 @@ The `CrowdfundFactory` contract is the canonical contract for creating crowdfund
 
 - `IERC721 nftContract`: The ERC721 contract of the NFT being bought.
 - `uint40 duration`: How long this crowdfund has to bid on an NFT, in seconds.
+- `uint96 maximumPrice`: Maximum amount of ETH this crowdfund will pay for an NFT. If zero, no maximum.
+
+### CollectionBatchBuyCrowdfund Crowdfunds
+
+`CollectionBatchBuyCrowdfund`s are created via the `createCollectionBatchBuyCrowdfund()` function. `CollectionBatchBuyCrowdfund`s:
+
+- Are trying to buy multiple NFTs of _any_ token ID on an ERC721 contract.
+- While active, users can contribute ETH.
+- Succeeds if the host executes an arbitrary call with values through `batchBuy()` which successfully acquires eligible NFTs.
+- Fails if the `expiry` time passes before acquiring an eligible NFT.
+
+#### Crowdfund Specific Creation Options
+
+- `IERC721 nftContract`: The ERC721 contract of the NFT being bought.
+- `bytes32 nftTokenIdsMerkleRoot`: The merkle root of the token IDs that can be bought. If null, any token ID in the collection can be bought.
 - `uint96 maximumPrice`: Maximum amount of ETH this crowdfund will pay for an NFT. If zero, no maximum.
 
 ### AuctionCrowdfund Crowdfunds
@@ -192,6 +209,10 @@ The `buy()` function will perform an arbitrary call with value of ETH (up to `ma
 ### CollectionBuyCrowdfund
 
 `CollectionBuyCrowdfund` wins if a _host_ successfully calls `buy()` before the crowdfund expires. The `buy()` function will perform an arbitrary call with value (up to `maximumPrice`) to attempt to acquire _any_ NFT token ID from the predetermined ERC721. The NFT must be held by the party after the arbitrary call successfully returns. It will then proceed with creating a governance Party, unless the NFT was acquired for free (or "gifted"). In this case, it will refund all contributors for their original contribution amounts and declare a loss.
+
+### CollectionBatchBuyCrowdfund
+
+`CollectionBatchBuyCrowdfund` wins if a _host_ successfully calls `batchBuy()` before the crowdfund expires. The `batchBuy()` function will perform multiple arbitrary calls with value (up to `maximumPrice` for each NFT) to attempt to acquire multiple NFTs with any token ID from the predetermined ERC721 collection. The NFTs must be held by the crowdfund, and the total value of ETH used in the purchase must meet the specified minimum requirements. Additionally, the number of NFTs bought must not be less than the `minTokensBought` parameter. It will then proceed with creating a governance Party, unless all the NFTs were acquired for free (or "gifted"). In this case, it will refund all contributors for their original contribution amounts and declare a loss.
 
 ### AuctionCrowdfund
 
