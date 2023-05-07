@@ -70,7 +70,7 @@ contract VetoProposalTest is Test, TestUtils {
         assertTrue(status == expectedStatus);
     }
 
-    function test_happyPath() public {
+    function test_canVetoWhenProposalStatusVoting() public {
         _assertProposalStatus(PartyGovernance.ProposalStatus.Voting);
 
         // Vote to veto
@@ -88,7 +88,52 @@ contract VetoProposalTest is Test, TestUtils {
         assertEq(vetoProposal.vetoVotes(party, proposalId), 0); // Cleared after proposal is vetoed
     }
 
-    function test_cannotVetoIfWrongProposalStatus() public {
+    function test_canVetoWhenProposalStatusPassed() public {
+        vm.prank(voter2);
+        party.accept(proposalId, 0);
+
+        _assertProposalStatus(PartyGovernance.ProposalStatus.Passed);
+
+        // Vote to veto
+        vm.prank(voter1);
+        vetoProposal.voteToVeto(party, proposalId, 0);
+
+        _assertProposalStatus(PartyGovernance.ProposalStatus.Passed);
+        assertEq(vetoProposal.vetoVotes(party, proposalId), 1e18);
+
+        // Vote to veto (passes threshold)
+        vm.prank(voter2);
+        vetoProposal.voteToVeto(party, proposalId, 0);
+
+        _assertProposalStatus(PartyGovernance.ProposalStatus.Defeated);
+        assertEq(vetoProposal.vetoVotes(party, proposalId), 0); // Cleared after proposal is vetoed
+    }
+
+    function test_canVetoWhenProposalStatusReady() public {
+        vm.prank(voter2);
+        party.accept(proposalId, 0);
+
+        vm.prank(voter3);
+        party.accept(proposalId, 0);
+
+        _assertProposalStatus(PartyGovernance.ProposalStatus.Ready);
+
+        // Vote to veto
+        vm.prank(voter1);
+        vetoProposal.voteToVeto(party, proposalId, 0);
+
+        _assertProposalStatus(PartyGovernance.ProposalStatus.Ready);
+        assertEq(vetoProposal.vetoVotes(party, proposalId), 1e18);
+
+        // Vote to veto (passes threshold)
+        vm.prank(voter2);
+        vetoProposal.voteToVeto(party, proposalId, 0);
+
+        _assertProposalStatus(PartyGovernance.ProposalStatus.Defeated);
+        assertEq(vetoProposal.vetoVotes(party, proposalId), 0); // Cleared after proposal is vetoed
+    }
+
+    function test_cannotVetoProposalStatusWrong() public {
         // Vote to veto a proposal that does not exist
         vm.prank(voter1);
         vm.expectRevert(
