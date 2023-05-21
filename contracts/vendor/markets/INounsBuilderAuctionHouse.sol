@@ -2,8 +2,11 @@
 pragma solidity ^0.8;
 
 import "../../tokens/IERC721.sol";
-import "../../tokens/IERC20.sol";
 
+/**
+ * Nouns Builder auctions are similar to Nouns auctions, but some function signatures differ, 
+ * so a new auction house is needed to account for them 
+ */
 interface INounsBuilderAuctionHouse {
     function createBid(uint256 tokenId) external payable;
 
@@ -15,6 +18,8 @@ interface INounsBuilderAuctionHouse {
         uint40 endTime, 
         bool settled
     );
+
+    function token() external view returns (IERC721);
 
     function reservePrice() external view returns (uint256);
 

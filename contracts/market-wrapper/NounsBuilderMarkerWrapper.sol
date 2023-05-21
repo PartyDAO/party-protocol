@@ -7,14 +7,16 @@ import { INounsBuilderAuctionHouse } from "../vendor/markets/INounsBuilderAuctio
 // ============ Internal Imports ============
 import { IMarketWrapper } from "./IMarketWrapper.sol";
 import "../tokens/IERC721.sol";
-import "../tokens/IERC20.sol";
 
 /**
  * @title NounsBuilderMarketWrapper
  * @author Yiwen Gao
  * @notice MarketWrapper contract implementing IMarketWrapper interface
  * according to the logic of Zora's Nouns Builder Auction House
- * Original Nouns Builder Auction House code: https://github.com/ourzora/nouns-protocol/blob/main/src/auction/Auction.sol 
+ * Nouns Builder Auction House code: https://github.com/ourzora/nouns-protocol/blob/main/src/auction/Auction.sol 
+ * 
+ * Nouns Builder auctions are similar to Nouns auctions, but some function signatures differ, 
+ * so a new market wrapper is needed to account for them 
  */
 contract NounsBuilderMarketWrapper is IMarketWrapper {
     struct AuctionState {
@@ -60,30 +62,42 @@ contract NounsBuilderMarketWrapper is IMarketWrapper {
     // ======== External Functions =========
 
     /**
+     * @notice Determine whether there is an existing, active auction for this token. 
+     * In the Nouns Builder auction house, the current auction id is the token id, which increments sequentially, forever 
+     * @return TRUE if the auction exists
+     */
+    function auctionExists(uint256 tokenId, AuctionState memory state) public view returns (bool) {
+        return tokenId == state.tokenId && block.timestamp < state.endTime;
+    }
+
+    /**
      * @notice Determine whether the current auction is valid
-     * Parameters auctionId and nftContract are unused because there's at most one ongoing auction for Nouns Builder DAOs
      * @return TRUE if the tokenId matches the current token for sale, and the auction is neither settled nor paused
      */
     function auctionIdMatchesToken(
-        uint256, // auctionId
-        address, // nftContract
+        uint256 auctionId,
+        address nftContract,
         uint256 tokenId
     ) public view override returns (bool) {
         AuctionState memory state = _getAuctionState();
         return (
-            state.tokenId == tokenId
-            && !state.settled
-            && !market.paused() 
+            auctionId == tokenId
+            && auctionExists(tokenId, state)
+            && market.token() == IERC721(nftContract)
         );
     }
 
     /**
      * @notice Calculate the minimum next bid for this auction
-     * Parameter auctionId is unused because there's at most one ongoing auction for Nouns Builder DAOs
      * @return minimum bid amount
      */
-    function getMinimumBid(uint256) external view override returns (uint256) {
+    function getMinimumBid(uint256 tokenId) external view override returns (uint256) {
         AuctionState memory state = _getAuctionState();
+        require(
+            auctionExists(tokenId, state), 
+            "NounsBuilderMarketWrapper::getMinimumBid: Auction not active"
+        );
+
         if (state.highestBidder == address(0)) {
             // if there are NO bids, the minimum bid is the reserve price
             return reservePrice;
@@ -95,31 +109,38 @@ contract NounsBuilderMarketWrapper is IMarketWrapper {
 
     /**
      * @notice Query the current highest bidder for this auction
-     * Parameter auctionId is unused because there's at most one ongoing auction for Nouns Builder DAOs
      * @return highest bidder
      */
-    function getCurrentHighestBidder(uint256) external view override returns (address) {
+    function getCurrentHighestBidder(uint256 tokenId) external view override returns (address) {
         AuctionState memory state = _getAuctionState();
+        require(
+            auctionExists(tokenId, state), 
+            "NounsBuilderMarketWrapper::getCurrentHighestBidder: Auction not active"
+        );
         return state.highestBidder;
     }
 
     /**
      * @notice Submit bid to Market contract
-     * Parameter auctionId is unused because there's at most one ongoing auction for Nouns Builder DAOs
      */
-    function bid(uint256, uint256 bidAmount) external override {
+    function bid(uint256 tokenId, uint256 bidAmount) external override {
         AuctionState memory state = _getAuctionState();
+        require(
+            auctionExists(tokenId, state), 
+            "NounsBuilderMarketWrapper::bid: Auction not active"
+        );
         market.createBid{ value: bidAmount }(state.tokenId);
     }
 
     /**
      * @notice Determine whether the auction has been finalized
-     * Parameter auctionId is unused because there's at most one ongoing auction for Nouns Builder DAOs
      * @return TRUE if the auction has been finalized
      */
-    function isFinalized(uint256) external view override returns (bool) {
+    function isFinalized(uint256 tokenId) external view override returns (bool) {
         AuctionState memory state = _getAuctionState();
-        return state.settled;
+        // if the given token id isn't the current token id, then it's for a past token
+        // and the corresponding auction must've been settled already
+        return tokenId != state.tokenId || state.settled;
     }
 
     /**
@@ -127,6 +148,10 @@ contract NounsBuilderMarketWrapper is IMarketWrapper {
      * Parameter auctionId is unused because there's at most one ongoing auction for Nouns Builder DAOs
      */
     function finalize(uint256) external override {
-        market.settleAuction();
+        if (market.paused()) {
+            market.settleAuction();
+        } else {
+            market.settleCurrentAndCreateNewAuction();
+        }
     }
 }
