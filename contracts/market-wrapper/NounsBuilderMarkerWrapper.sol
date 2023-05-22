@@ -31,15 +31,11 @@ contract NounsBuilderMarketWrapper is IMarketWrapper {
     // ============ Internal Immutables ============
 
     INounsBuilderAuctionHouse internal immutable market;
-    uint256 internal immutable reservePrice;
-    uint256 internal immutable minBidIncrement;
 
     // ======== Constructor =========
 
     constructor(address _auctionHouse) {
         market = INounsBuilderAuctionHouse(_auctionHouse);
-        reservePrice = market.reservePrice();
-        minBidIncrement = market.minBidIncrement();
     }
 
     // ======== Private Functions =========
@@ -100,10 +96,10 @@ contract NounsBuilderMarketWrapper is IMarketWrapper {
 
         if (state.highestBidder == address(0)) {
             // if there are NO bids, the minimum bid is the reserve price
-            return reservePrice;
+            return market.reservePrice();
         } else {
             // if there ARE bids, the minimum bid is the current bid plus the increment buffer
-            return state.highestBid + (state.highestBid * minBidIncrement / 100);
+            return state.highestBid + (state.highestBid * market.minBidIncrement() / 100);
         }
     }
 
