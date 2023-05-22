@@ -63,7 +63,7 @@ contract ListOnOpenseaProposalForkedTest is Test, TestUtils, ZoraTestUtils, Open
         IOpenseaConduitController(0x00000000F9490004C11Cef243f5400493c00Ad63);
     IZoraAuctionHouse ZORA = IZoraAuctionHouse(0xE468cE99444174Bd3bBBEd09209577d25D1ad673);
     bytes32 SEAPORT_CONDUIT_KEY =
-        0x0000007b02230091a7ed01230072f7006a004d60a8d4e71d599b8104250f0000;
+        0xf984c55ca75735630c1c27d3d06969c1aa6af1df86d22ddc0e3a978ad6138e9f;
     IERC721[] preciousTokens;
     uint256[] preciousTokenIds;
 

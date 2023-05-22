@@ -163,10 +163,10 @@ contract AuctionCrowdfundTest is Test, TestUtils {
         emit MockMarketWrapperBid(address(cf), auctionId, 1337);
         cf.bid(defaultGovernanceOpts, 0);
         // End the auction.
-        _expectEmit0();
-        emit MockMarketWrapperFinalize(address(cf), address(cf), 1337);
         market.endAuction(auctionId);
         // Finalize the crowdfund.
+        _expectEmit0();
+        emit MockMarketWrapperFinalize(address(cf), address(cf), 1337);
         _expectEmit0();
         emit MockPartyFactoryCreateParty(
             address(cf),

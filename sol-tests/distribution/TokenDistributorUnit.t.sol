@@ -158,6 +158,7 @@ contract TokenDistributorUnitTest is Test, TestUtils {
 
     function test_createErc20Distribution_works() external {
         uint256 supply = _randomUint256() % 1e18;
+        erc20.deal(address(distributor), supply);
         _expectEmit1();
         emit DistributionCreated(
             party,
@@ -171,7 +172,6 @@ contract TokenDistributorUnitTest is Test, TestUtils {
                 feeRecipient: DEFAULT_FEE_RECIPIENT
             })
         );
-        erc20.deal(address(distributor), supply);
         vm.prank(address(party));
         distributor.createErc20Distribution(erc20, party, DEFAULT_FEE_RECIPIENT, DEFAULT_FEE_BPS);
     }

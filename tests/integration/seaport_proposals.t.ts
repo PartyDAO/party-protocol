@@ -34,7 +34,7 @@ use(solidity);
 describeFork("Seaport proposals integrations test", provider => {
   const SEAPORT_ADDRESS = "0x00000000000001ad428e4906aE43D8F9852d0dD6";
   const SEAPORT_CONDUIT_CONTROLLER_ADDRESS = "0x00000000F9490004C11Cef243f5400493c00Ad63";
-  const SEAPORT_CONDUIT_KEY = "0x0000007b02230091a7ed01230072f7006a004d60a8d4e71d599b8104250f0000";
+  const SEAPORT_CONDUIT_KEY = "0xf984c55ca75735630c1c27d3d06969c1aa6af1df86d22ddc0e3a978ad6138e9f";
   const LIST_PRICE = ethers.utils.parseEther("0.01");
   // OS fee is 2.5% of total considerations (incl OS fee)
   const OS_FEE_RATE_BPS = 0.025e4;
