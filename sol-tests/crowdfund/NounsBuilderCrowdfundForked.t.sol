@@ -9,6 +9,7 @@ import "../../contracts/globals/Globals.sol";
 import "../../contracts/globals/LibGlobals.sol";
 import "../../contracts/utils/Proxy.sol";
 import "../../contracts/vendor/markets/INounsBuilderAuctionHouse.sol";
+import "../../contracts/market-wrapper/NounsBuilderMarketWrapper.sol";
 
 import "./MockPartyFactory.sol";
 import "./MockParty.sol";
@@ -30,8 +31,8 @@ contract NounsBuilderCrowdfundForkedTest is TestUtils, ERC721Receiver {
     Crowdfund.FixedGovernanceOpts defaultGovOpts;
 
     // Initialize Nouns Builder contracts
-    INounsBuilderAuctionHouse nounsBuilder = INounsBuilderAuctionHouse(0xE468cE99444174Bd3bBBEd09209577d25D1ad673);
-    IMarketWrapper nounsBuilderMarket = IMarketWrapper(0x11c07cE1315a3b92C9755F90cDF40B04b88c5731);
+    INounsBuilderAuctionHouse nounsBuilder = INounsBuilderAuctionHouse(0x43790fe6bd46b210eb27F01306C1D3546AEB8C1b);
+    IMarketWrapper nounsBuilderMarket = IMarketWrapper(new NounsBuilderMarketWrapper(0x43790fe6bd46b210eb27F01306C1D3546AEB8C1b));
     IERC721 token;
     uint256 tokenId;
 
@@ -58,7 +59,7 @@ contract NounsBuilderCrowdfundForkedTest is TestUtils, ERC721Receiver {
                                 market: nounsBuilderMarket,
                                 nftContract: token,
                                 nftTokenId: tokenId,
-                                duration: 1 days,
+                                duration: type(uint32).max,
                                 maximumBid: type(uint96).max,
                                 splitRecipient: payable(address(0)),
                                 splitBps: 0,
@@ -111,7 +112,7 @@ contract NounsBuilderCrowdfundForkedTest is TestUtils, ERC721Receiver {
 
         // Check that we are highest bidder.
         uint256 lastBid = cf.lastBid();
-        (, uint256 highestBid, address highestBidder, , , , ) = nounsBuilder.auction();
+        (, uint256 highestBid, address highestBidder, , , ) = nounsBuilder.auction();
         assertEq(lastBid, highestBid);
         assertEq(address(cf), highestBidder);
 
@@ -119,7 +120,7 @@ contract NounsBuilderCrowdfundForkedTest is TestUtils, ERC721Receiver {
         skip(1 days);
 
         // Finalize the auction before `finalize()` is called by the crowdfund.
-        nounsBuilder.finalize(tokenId);
+        nounsBuilderMarket.finalize(tokenId);
 
         // Finalize the crowdfund.
         _expectEmit0();
