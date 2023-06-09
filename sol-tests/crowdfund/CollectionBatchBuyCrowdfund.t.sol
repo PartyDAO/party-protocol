@@ -16,13 +16,7 @@ import "./MockParty.sol";
 import "./TestERC721Vault.sol";
 
 contract CollectionBatchBuyCrowdfundTest is Test, TestUtils {
-    event MockPartyFactoryCreateParty(
-        address caller,
-        address authority,
-        Party.PartyOptions opts,
-        IERC721[] preciousTokens,
-        uint256[] preciousTokenIds
-    );
+    event MockPartyFactoryCreateParty(address caller, Party.PartyOpts opts, address authority);
 
     Globals globals;
     DummyERC721 nftContract;
@@ -116,11 +110,11 @@ contract CollectionBatchBuyCrowdfundTest is Test, TestUtils {
         vm.expectEmit(false, false, false, true);
         emit MockPartyFactoryCreateParty(
             address(cf),
-            address(cf),
-            Party.PartyOptions({
+            Party.PartyOpts({
                 name: "Crowdfund",
                 symbol: "CF",
                 customizationPresetId: 0,
+                preciousListHash: LibPreciousList.hashPreciousList(tokens, tokenIds),
                 governance: PartyGovernance.GovernanceOpts({
                     hosts: govOpts.hosts,
                     voteDuration: govOpts.voteDuration,
@@ -131,8 +125,7 @@ contract CollectionBatchBuyCrowdfundTest is Test, TestUtils {
                     feeRecipient: govOpts.feeRecipient
                 })
             }),
-            tokens,
-            tokenIds
+            address(cf)
         );
         Party party_ = cf.batchBuy(
             CollectionBatchBuyCrowdfund.BatchBuyArgs({
@@ -275,11 +268,14 @@ contract CollectionBatchBuyCrowdfundTest is Test, TestUtils {
         vm.expectEmit(false, false, false, true);
         emit MockPartyFactoryCreateParty(
             address(cf),
-            address(cf),
-            Party.PartyOptions({
+            Party.PartyOpts({
                 name: "Crowdfund",
                 symbol: "CF",
                 customizationPresetId: 0,
+                preciousListHash: LibPreciousList.hashPreciousList(
+                    expectedTokens,
+                    expectedTokenIds
+                ),
                 governance: PartyGovernance.GovernanceOpts({
                     hosts: govOpts.hosts,
                     voteDuration: govOpts.voteDuration,
@@ -290,8 +286,7 @@ contract CollectionBatchBuyCrowdfundTest is Test, TestUtils {
                     feeRecipient: govOpts.feeRecipient
                 })
             }),
-            expectedTokens,
-            expectedTokenIds
+            address(cf)
         );
         // Buy the tokens.
         cf.batchBuy(

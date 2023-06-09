@@ -222,7 +222,7 @@ contract CollectionBatchBuyCrowdfund is BuyCrowdfundBase {
             // Update length of `tokens`
             mstore(tokens, tokensBought)
             // Update length of `tokenIds`
-            mstore(0x1A0, tokensBought)
+            mstore(mload(args), tokensBought)
         }
 
         return

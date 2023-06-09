@@ -31,13 +31,7 @@ contract BadERC721Receiver {
 }
 
 contract CrowdfundTest is Test, TestUtils {
-    event MockPartyFactoryCreateParty(
-        address caller,
-        address authority,
-        Party.PartyOptions opts,
-        IERC721[] preciousTokens,
-        uint256[] preciousTokenIds
-    );
+    event MockPartyFactoryCreateParty(address caller, Party.PartyOpts opts, address authority);
 
     event MockMint(address caller, address owner, uint256 amount, address delegate);
 
@@ -172,16 +166,22 @@ contract CrowdfundTest is Test, TestUtils {
         return _createCrowdfund(initialContribution, address(this), defaultInitialDelegate, 0);
     }
 
-    function _createExpectedPartyOptions(
+    function _createExpectedPartyOpts(
         TestableCrowdfund cf,
+        IERC721[] memory preciousTokens,
+        uint256[] memory preciousTokenIds,
         uint256 finalPrice
-    ) private view returns (Party.PartyOptions memory opts) {
+    ) private view returns (Party.PartyOpts memory opts) {
         Crowdfund.FixedGovernanceOpts memory govOpts = cf.getFixedGovernanceOpts();
         return
-            Party.PartyOptions({
+            Party.PartyOpts({
                 name: defaultName,
                 symbol: defaultSymbol,
                 customizationPresetId: 0,
+                preciousListHash: LibPreciousList.hashPreciousList(
+                    preciousTokens,
+                    preciousTokenIds
+                ),
                 governance: PartyGovernance.GovernanceOpts({
                     hosts: govOpts.hosts,
                     voteDuration: govOpts.voteDuration,
@@ -268,10 +268,8 @@ contract CrowdfundTest is Test, TestUtils {
         vm.expectEmit(false, false, false, true);
         emit MockPartyFactoryCreateParty(
             address(cf),
-            address(cf),
-            _createExpectedPartyOptions(cf, 1e18),
-            erc721Tokens,
-            erc721TokenIds
+            _createExpectedPartyOpts(cf, erc721Tokens, erc721TokenIds, 1e18),
+            address(cf)
         );
         Party party_ = cf.testSetWon(1e18, defaultGovernanceOpts, erc721Tokens, erc721TokenIds);
         assertEq(address(party_), address(party));
@@ -307,10 +305,8 @@ contract CrowdfundTest is Test, TestUtils {
         vm.expectEmit(false, false, false, true);
         emit MockPartyFactoryCreateParty(
             address(cf),
-            address(cf),
-            _createExpectedPartyOptions(cf, 1.5e18),
-            erc721Tokens,
-            erc721TokenIds
+            _createExpectedPartyOpts(cf, erc721Tokens, erc721TokenIds, 1.5e18),
+            address(cf)
         );
         Party party_ = cf.testSetWon(1.5e18, defaultGovernanceOpts, erc721Tokens, erc721TokenIds);
         assertEq(address(party_), address(party));
@@ -351,10 +347,8 @@ contract CrowdfundTest is Test, TestUtils {
         vm.expectEmit(false, false, false, true);
         emit MockPartyFactoryCreateParty(
             address(cf),
-            address(cf),
-            _createExpectedPartyOptions(cf, 1.25e18),
-            erc721Tokens,
-            erc721TokenIds
+            _createExpectedPartyOpts(cf, erc721Tokens, erc721TokenIds, 1.25e18),
+            address(cf)
         );
         cf.testSetWon(1.25e18, defaultGovernanceOpts, erc721Tokens, erc721TokenIds);
         // contributor1 burns tokens
@@ -399,10 +393,8 @@ contract CrowdfundTest is Test, TestUtils {
         vm.expectEmit(false, false, false, true);
         emit MockPartyFactoryCreateParty(
             address(cf),
-            address(cf),
-            _createExpectedPartyOptions(cf, 1.65e18),
-            erc721Tokens,
-            erc721TokenIds
+            _createExpectedPartyOpts(cf, erc721Tokens, erc721TokenIds, 1.65e18),
+            address(cf)
         );
         cf.testSetWon(1.65e18, defaultGovernanceOpts, erc721Tokens, erc721TokenIds);
         // contributor1 burns tokens
@@ -437,10 +429,8 @@ contract CrowdfundTest is Test, TestUtils {
         vm.expectEmit(false, false, false, true);
         emit MockPartyFactoryCreateParty(
             address(cf),
-            address(cf),
-            _createExpectedPartyOptions(cf, 0),
-            erc721Tokens,
-            erc721TokenIds
+            _createExpectedPartyOpts(cf, erc721Tokens, erc721TokenIds, 0),
+            address(cf)
         );
         Party party_ = cf.testSetWon(0, defaultGovernanceOpts, erc721Tokens, erc721TokenIds);
         assertEq(address(party_), address(party));
@@ -822,10 +812,8 @@ contract CrowdfundTest is Test, TestUtils {
         vm.expectEmit(false, false, false, true);
         emit MockPartyFactoryCreateParty(
             address(cf),
-            address(cf),
-            _createExpectedPartyOptions(cf, 1e18),
-            erc721Tokens,
-            erc721TokenIds
+            _createExpectedPartyOpts(cf, erc721Tokens, erc721TokenIds, 1e18),
+            address(cf)
         );
         Party party_ = cf.testSetWon(1e18, defaultGovernanceOpts, erc721Tokens, erc721TokenIds);
         assertEq(address(party_), address(party));
@@ -875,10 +863,8 @@ contract CrowdfundTest is Test, TestUtils {
         vm.expectEmit(false, false, false, true);
         emit MockPartyFactoryCreateParty(
             address(cf),
-            address(cf),
-            _createExpectedPartyOptions(cf, 1e18),
-            erc721Tokens,
-            erc721TokenIds
+            _createExpectedPartyOpts(cf, erc721Tokens, erc721TokenIds, 1e18),
+            address(cf)
         );
         Party party_ = cf.testSetWon(1e18, defaultGovernanceOpts, erc721Tokens, erc721TokenIds);
         assertEq(address(party_), address(party));

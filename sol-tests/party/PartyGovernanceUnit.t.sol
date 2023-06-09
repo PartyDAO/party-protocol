@@ -148,10 +148,9 @@ contract TestablePartyGovernance is PartyGovernance {
     constructor(
         IGlobals globals,
         GovernanceOpts memory opts,
-        IERC721[] memory preciousTokens,
-        uint256[] memory preciousTokenIds
+        bytes32 preciousListHash
     ) PartyGovernance(globals) {
-        _initialize(opts, preciousTokens, preciousTokenIds);
+        _initialize(opts, preciousListHash);
     }
 
     function rawAdjustVotingPower(
@@ -198,13 +197,6 @@ contract TestablePartyGovernance is PartyGovernance {
         // actually temporary. Don't compile with optimizer plz.
         h = getProposalHash(proposal);
         h = getProposalHash(proposal);
-    }
-
-    function hashPreciousList(
-        IERC721[] memory preciousTokens,
-        uint256[] memory preciousTokenIds
-    ) public pure returns (bytes32 h) {
-        h = _hashPreciousList(preciousTokens, preciousTokenIds);
     }
 }
 
@@ -270,17 +262,10 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
 
     function _createGovernance(
         uint96 totalVotingPower,
-        IERC721[] memory preciousTokens,
-        uint256[] memory preciousTokenIds
+        bytes32 preciousListHash
     ) private returns (TestablePartyGovernance gov) {
         defaultGovernanceOpts.totalVotingPower = totalVotingPower;
-        return
-            new TestablePartyGovernance(
-                globals,
-                defaultGovernanceOpts,
-                preciousTokens,
-                preciousTokenIds
-            );
+        return new TestablePartyGovernance(globals, defaultGovernanceOpts, preciousListHash);
     }
 
     function _createProposal(
@@ -358,7 +343,10 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
             IERC721[] memory preciousTokens,
             uint256[] memory preciousTokenIds
         ) = _createPreciousTokens(2);
-        TestablePartyGovernance gov = _createGovernance(100e18, preciousTokens, preciousTokenIds);
+        TestablePartyGovernance gov = _createGovernance(
+            100e18,
+            LibPreciousList.hashPreciousList(preciousTokens, preciousTokenIds)
+        );
         address undelegatedVoter = _randomAddress();
         // undelegatedVoter has 51/100 intrinsic VP (delegated to no one/self)
         gov.rawAdjustVotingPower(undelegatedVoter, 51e18, address(0));
@@ -415,7 +403,10 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
             IERC721[] memory preciousTokens,
             uint256[] memory preciousTokenIds
         ) = _createPreciousTokens(2);
-        TestablePartyGovernance gov = _createGovernance(100e18, preciousTokens, preciousTokenIds);
+        TestablePartyGovernance gov = _createGovernance(
+            100e18,
+            LibPreciousList.hashPreciousList(preciousTokens, preciousTokenIds)
+        );
         address undelegatedVoter = _randomAddress();
         // undelegatedVoter has 51/100 intrinsic VP (delegated to no one/self)
         gov.rawAdjustVotingPower(undelegatedVoter, 51e18, address(0));
@@ -494,7 +485,10 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
             IERC721[] memory preciousTokens,
             uint256[] memory preciousTokenIds
         ) = _createPreciousTokens(2);
-        TestablePartyGovernance gov = _createGovernance(100e18, preciousTokens, preciousTokenIds);
+        TestablePartyGovernance gov = _createGovernance(
+            100e18,
+            LibPreciousList.hashPreciousList(preciousTokens, preciousTokenIds)
+        );
         address undelegatedVoter = _randomAddress();
         // undelegatedVoter has 100/100 intrinsic VP (delegated to no one/self)
         gov.rawAdjustVotingPower(undelegatedVoter, 100e18, address(0));
@@ -545,7 +539,10 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
             IERC721[] memory preciousTokens,
             uint256[] memory preciousTokenIds
         ) = _createPreciousTokens(2);
-        TestablePartyGovernance gov = _createGovernance(100e18, preciousTokens, preciousTokenIds);
+        TestablePartyGovernance gov = _createGovernance(
+            100e18,
+            LibPreciousList.hashPreciousList(preciousTokens, preciousTokenIds)
+        );
         address undelegatedVoter1 = _randomAddress();
         address undelegatedVoter2 = _randomAddress();
         // undelegatedVoter1 has 75/100 intrinsic VP (delegated to no one/self)
@@ -602,7 +599,10 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
             IERC721[] memory preciousTokens,
             uint256[] memory preciousTokenIds
         ) = _createPreciousTokens(2);
-        TestablePartyGovernance gov = _createGovernance(100e18, preciousTokens, preciousTokenIds);
+        TestablePartyGovernance gov = _createGovernance(
+            100e18,
+            LibPreciousList.hashPreciousList(preciousTokens, preciousTokenIds)
+        );
         address undelegatedVoter = _randomAddress();
         // undelegatedVoter has 99.99% of total voting supply.
         uint256 vp = (100e18 * 0.9999e4) / 1e4;
@@ -652,7 +652,10 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
             IERC721[] memory preciousTokens,
             uint256[] memory preciousTokenIds
         ) = _createPreciousTokens(2);
-        TestablePartyGovernance gov = _createGovernance(100e18, preciousTokens, preciousTokenIds);
+        TestablePartyGovernance gov = _createGovernance(
+            100e18,
+            LibPreciousList.hashPreciousList(preciousTokens, preciousTokenIds)
+        );
         address undelegatedVoter = _randomAddress();
         // undelegatedVoter has 50/100 intrinsic VP (delegated to no one/self)
         gov.rawAdjustVotingPower(undelegatedVoter, 50e18, address(0));
@@ -696,7 +699,10 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
             IERC721[] memory preciousTokens,
             uint256[] memory preciousTokenIds
         ) = _createPreciousTokens(2);
-        TestablePartyGovernance gov = _createGovernance(100e18, preciousTokens, preciousTokenIds);
+        TestablePartyGovernance gov = _createGovernance(
+            100e18,
+            LibPreciousList.hashPreciousList(preciousTokens, preciousTokenIds)
+        );
         address undelegatedVoter = _randomAddress();
         // undelegatedVoter has 51/100 intrinsic VP (delegated to no one/self)
         gov.rawAdjustVotingPower(undelegatedVoter, 51e18, address(0));
@@ -730,7 +736,10 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
             IERC721[] memory preciousTokens,
             uint256[] memory preciousTokenIds
         ) = _createPreciousTokens(2);
-        TestablePartyGovernance gov = _createGovernance(100e18, preciousTokens, preciousTokenIds);
+        TestablePartyGovernance gov = _createGovernance(
+            100e18,
+            LibPreciousList.hashPreciousList(preciousTokens, preciousTokenIds)
+        );
         address undelegatedVoter = _randomAddress();
         // undelegatedVoter has 51/100 intrinsic VP (delegated to no one/self)
         gov.rawAdjustVotingPower(undelegatedVoter, 51e18, address(0));
@@ -768,7 +777,10 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
             IERC721[] memory preciousTokens,
             uint256[] memory preciousTokenIds
         ) = _createPreciousTokens(2);
-        TestablePartyGovernance gov = _createGovernance(100e18, preciousTokens, preciousTokenIds);
+        TestablePartyGovernance gov = _createGovernance(
+            100e18,
+            LibPreciousList.hashPreciousList(preciousTokens, preciousTokenIds)
+        );
         address undelegatedVoter = _randomAddress();
         // undelegatedVoter has 51/100 intrinsic VP (delegated to no one/self)
         gov.rawAdjustVotingPower(undelegatedVoter, 51e18, address(0));
@@ -811,7 +823,10 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
             IERC721[] memory preciousTokens,
             uint256[] memory preciousTokenIds
         ) = _createPreciousTokens(2);
-        TestablePartyGovernance gov = _createGovernance(100e18, preciousTokens, preciousTokenIds);
+        TestablePartyGovernance gov = _createGovernance(
+            100e18,
+            LibPreciousList.hashPreciousList(preciousTokens, preciousTokenIds)
+        );
         address undelegatedVoter = _randomAddress();
         // undelegatedVoter has 51/100 intrinsic VP (delegated to no one/self)
         gov.rawAdjustVotingPower(undelegatedVoter, 51e18, address(0));
@@ -850,7 +865,10 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
             IERC721[] memory preciousTokens,
             uint256[] memory preciousTokenIds
         ) = _createPreciousTokens(2);
-        TestablePartyGovernance gov = _createGovernance(100e18, preciousTokens, preciousTokenIds);
+        TestablePartyGovernance gov = _createGovernance(
+            100e18,
+            LibPreciousList.hashPreciousList(preciousTokens, preciousTokenIds)
+        );
         address voter = _randomAddress();
         // voter has 100% intrinsic VP (delegated to no one/self)
         gov.rawAdjustVotingPower(voter, 100e18, address(0));
@@ -889,7 +907,10 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
             IERC721[] memory preciousTokens,
             uint256[] memory preciousTokenIds
         ) = _createPreciousTokens(2);
-        TestablePartyGovernance gov = _createGovernance(100e18, preciousTokens, preciousTokenIds);
+        TestablePartyGovernance gov = _createGovernance(
+            100e18,
+            LibPreciousList.hashPreciousList(preciousTokens, preciousTokenIds)
+        );
         address voter = _randomAddress();
         // voter has 100% intrinsic VP (delegated to no one/self)
         gov.rawAdjustVotingPower(voter, 100e18, address(0));
@@ -926,7 +947,10 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
             IERC721[] memory preciousTokens,
             uint256[] memory preciousTokenIds
         ) = _createPreciousTokens(2);
-        TestablePartyGovernance gov = _createGovernance(100e18, preciousTokens, preciousTokenIds);
+        TestablePartyGovernance gov = _createGovernance(
+            100e18,
+            LibPreciousList.hashPreciousList(preciousTokens, preciousTokenIds)
+        );
         address voter = _randomAddress();
         // voter has 100% intrinsic VP (delegated to no one/self)
         gov.rawAdjustVotingPower(voter, 100e18, address(0));
@@ -970,7 +994,10 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
             IERC721[] memory preciousTokens,
             uint256[] memory preciousTokenIds
         ) = _createPreciousTokens(2);
-        TestablePartyGovernance gov = _createGovernance(100e18, preciousTokens, preciousTokenIds);
+        TestablePartyGovernance gov = _createGovernance(
+            100e18,
+            LibPreciousList.hashPreciousList(preciousTokens, preciousTokenIds)
+        );
         address undelegatedVoter = _randomAddress();
         // undelegatedVoter has 50/100 intrinsic VP (delegated to no one/self)
         gov.rawAdjustVotingPower(undelegatedVoter, 50e18, address(0));
@@ -998,7 +1025,10 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
             IERC721[] memory preciousTokens,
             uint256[] memory preciousTokenIds
         ) = _createPreciousTokens(2);
-        TestablePartyGovernance gov = _createGovernance(100e18, preciousTokens, preciousTokenIds);
+        TestablePartyGovernance gov = _createGovernance(
+            100e18,
+            LibPreciousList.hashPreciousList(preciousTokens, preciousTokenIds)
+        );
         address undelegatedVoter = _randomAddress();
         // undelegatedVoter has 50/100 intrinsic VP (delegated to no one/self)
         gov.rawAdjustVotingPower(undelegatedVoter, 50e18, address(0));
@@ -1021,7 +1051,10 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
             IERC721[] memory preciousTokens,
             uint256[] memory preciousTokenIds
         ) = _createPreciousTokens(2);
-        TestablePartyGovernance gov = _createGovernance(100e18, preciousTokens, preciousTokenIds);
+        TestablePartyGovernance gov = _createGovernance(
+            100e18,
+            LibPreciousList.hashPreciousList(preciousTokens, preciousTokenIds)
+        );
         address undelegatedVoter = _randomAddress();
         // undelegatedVoter has 50/100 intrinsic VP (delegated to no one/self)
         gov.rawAdjustVotingPower(undelegatedVoter, 50e18, address(0));
@@ -1066,7 +1099,10 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
             IERC721[] memory preciousTokens,
             uint256[] memory preciousTokenIds
         ) = _createPreciousTokens(2);
-        TestablePartyGovernance gov = _createGovernance(100e18, preciousTokens, preciousTokenIds);
+        TestablePartyGovernance gov = _createGovernance(
+            100e18,
+            LibPreciousList.hashPreciousList(preciousTokens, preciousTokenIds)
+        );
         address undelegatedVoter = _randomAddress();
         // undelegatedVoter has 51/100 intrinsic VP (delegated to no one/self)
         gov.rawAdjustVotingPower(undelegatedVoter, 51e18, address(0));
@@ -1112,7 +1148,10 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
             IERC721[] memory preciousTokens,
             uint256[] memory preciousTokenIds
         ) = _createPreciousTokens(2);
-        TestablePartyGovernance gov = _createGovernance(100e18, preciousTokens, preciousTokenIds);
+        TestablePartyGovernance gov = _createGovernance(
+            100e18,
+            LibPreciousList.hashPreciousList(preciousTokens, preciousTokenIds)
+        );
         address undelegatedVoter = _randomAddress();
         // undelegatedVoter has 51/100 intrinsic VP (delegated to no one/self)
         gov.rawAdjustVotingPower(undelegatedVoter, 51e18, address(0));
@@ -1153,7 +1192,10 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
             IERC721[] memory preciousTokens,
             uint256[] memory preciousTokenIds
         ) = _createPreciousTokens(2);
-        TestablePartyGovernance gov = _createGovernance(100e18, preciousTokens, preciousTokenIds);
+        TestablePartyGovernance gov = _createGovernance(
+            100e18,
+            LibPreciousList.hashPreciousList(preciousTokens, preciousTokenIds)
+        );
         address undelegatedVoter = _randomAddress();
         // undelegatedVoter has 51/100 intrinsic VP (delegated to no one/self)
         gov.rawAdjustVotingPower(undelegatedVoter, 51e18, address(0));
@@ -1194,7 +1236,10 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
             IERC721[] memory preciousTokens,
             uint256[] memory preciousTokenIds
         ) = _createPreciousTokens(2);
-        TestablePartyGovernance gov = _createGovernance(100e18, preciousTokens, preciousTokenIds);
+        TestablePartyGovernance gov = _createGovernance(
+            100e18,
+            LibPreciousList.hashPreciousList(preciousTokens, preciousTokenIds)
+        );
         address undelegatedVoter = _randomAddress();
         // undelegatedVoter has 51/100 intrinsic VP (delegated to no one/self)
         gov.rawAdjustVotingPower(undelegatedVoter, 51e18, address(0));
@@ -1237,7 +1282,10 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
         ) = _createPreciousTokens(2);
         defaultGovernanceOpts.executionDelay = 60;
         defaultGovernanceOpts.voteDuration = 61;
-        TestablePartyGovernance gov = _createGovernance(100e18, preciousTokens, preciousTokenIds);
+        TestablePartyGovernance gov = _createGovernance(
+            100e18,
+            LibPreciousList.hashPreciousList(preciousTokens, preciousTokenIds)
+        );
         address undelegatedVoter = _randomAddress();
         // undelegatedVoter has 50/100 intrinsic VP (delegated to no one/self)
         gov.rawAdjustVotingPower(undelegatedVoter, 50e18, address(0));
@@ -1276,7 +1324,10 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
             IERC721[] memory preciousTokens,
             uint256[] memory preciousTokenIds
         ) = _createPreciousTokens(2);
-        TestablePartyGovernance gov = _createGovernance(100e18, preciousTokens, preciousTokenIds);
+        TestablePartyGovernance gov = _createGovernance(
+            100e18,
+            LibPreciousList.hashPreciousList(preciousTokens, preciousTokenIds)
+        );
         address delegate = _randomAddress();
         address delegatedVoter = _randomAddress();
         address undelegatedVoter = _randomAddress();
@@ -1325,7 +1376,10 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
             IERC721[] memory preciousTokens,
             uint256[] memory preciousTokenIds
         ) = _createPreciousTokens(2);
-        TestablePartyGovernance gov = _createGovernance(100e18, preciousTokens, preciousTokenIds);
+        TestablePartyGovernance gov = _createGovernance(
+            100e18,
+            LibPreciousList.hashPreciousList(preciousTokens, preciousTokenIds)
+        );
         address delegate = _randomAddress();
         address delegatedVoter = _randomAddress();
         address undelegatedVoter = _randomAddress();
@@ -1368,7 +1422,10 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
             IERC721[] memory preciousTokens,
             uint256[] memory preciousTokenIds
         ) = _createPreciousTokens(2);
-        TestablePartyGovernance gov = _createGovernance(100e18, preciousTokens, preciousTokenIds);
+        TestablePartyGovernance gov = _createGovernance(
+            100e18,
+            LibPreciousList.hashPreciousList(preciousTokens, preciousTokenIds)
+        );
         address undelegatedVoter1 = _randomAddress();
         address undelegatedVoter2 = _randomAddress();
         // undelegatedVoter1 has 50/100 intrinsic VP (delegated to no one/self)
@@ -1410,7 +1467,10 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
             IERC721[] memory preciousTokens,
             uint256[] memory preciousTokenIds
         ) = _createPreciousTokens(2);
-        TestablePartyGovernance gov = _createGovernance(100e18, preciousTokens, preciousTokenIds);
+        TestablePartyGovernance gov = _createGovernance(
+            100e18,
+            LibPreciousList.hashPreciousList(preciousTokens, preciousTokenIds)
+        );
         address undelegatedVoter = _randomAddress();
         // undelegatedVoter has 50/100 intrinsic VP (delegated to no one/self)
         gov.rawAdjustVotingPower(undelegatedVoter, 50e18, address(0));
@@ -1439,7 +1499,10 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
             IERC721[] memory preciousTokens,
             uint256[] memory preciousTokenIds
         ) = _createPreciousTokens(2);
-        TestablePartyGovernance gov = _createGovernance(100e18, preciousTokens, preciousTokenIds);
+        TestablePartyGovernance gov = _createGovernance(
+            100e18,
+            LibPreciousList.hashPreciousList(preciousTokens, preciousTokenIds)
+        );
         address delegate = _randomAddress();
         address delegatedVoter = _randomAddress();
         // delegatedVoter has 50/100 intrinsic VP (delegated to no one/self)
@@ -1469,7 +1532,10 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
             IERC721[] memory preciousTokens,
             uint256[] memory preciousTokenIds
         ) = _createPreciousTokens(2);
-        TestablePartyGovernance gov = _createGovernance(100e18, preciousTokens, preciousTokenIds);
+        TestablePartyGovernance gov = _createGovernance(
+            100e18,
+            LibPreciousList.hashPreciousList(preciousTokens, preciousTokenIds)
+        );
         address delegate = _randomAddress();
         address delegatedVoter = _randomAddress();
         // delegatedVoter has 50/100 intrinsic VP (delegated to no one/self)
@@ -1499,7 +1565,10 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
             IERC721[] memory preciousTokens,
             uint256[] memory preciousTokenIds
         ) = _createPreciousTokens(2);
-        TestablePartyGovernance gov = _createGovernance(100e18, preciousTokens, preciousTokenIds);
+        TestablePartyGovernance gov = _createGovernance(
+            100e18,
+            LibPreciousList.hashPreciousList(preciousTokens, preciousTokenIds)
+        );
         address undelegatedVoter1 = _randomAddress();
         address undelegatedVoter2 = _randomAddress();
         // undelegatedVoter1 has 50/100 intrinsic VP (delegated to no one/self)
@@ -1545,7 +1614,10 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
             IERC721[] memory preciousTokens,
             uint256[] memory preciousTokenIds
         ) = _createPreciousTokens(2);
-        TestablePartyGovernance gov = _createGovernance(100e18, preciousTokens, preciousTokenIds);
+        TestablePartyGovernance gov = _createGovernance(
+            100e18,
+            LibPreciousList.hashPreciousList(preciousTokens, preciousTokenIds)
+        );
         address delegate = _randomAddress();
         address undelegatedVoter = _randomAddress();
         address delegatedVoter = _randomAddress();
@@ -1620,7 +1692,10 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
             IERC721[] memory preciousTokens,
             uint256[] memory preciousTokenIds
         ) = _createPreciousTokens(2);
-        TestablePartyGovernance gov = _createGovernance(100e18, preciousTokens, preciousTokenIds);
+        TestablePartyGovernance gov = _createGovernance(
+            100e18,
+            LibPreciousList.hashPreciousList(preciousTokens, preciousTokenIds)
+        );
         // Give voter 30 intrinsic VP.
         address voter = _randomAddress();
         gov.rawAdjustVotingPower(voter, 30e18, address(0));
@@ -1651,7 +1726,10 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
             IERC721[] memory preciousTokens,
             uint256[] memory preciousTokenIds
         ) = _createPreciousTokens(2);
-        TestablePartyGovernance gov = _createGovernance(100e18, preciousTokens, preciousTokenIds);
+        TestablePartyGovernance gov = _createGovernance(
+            100e18,
+            LibPreciousList.hashPreciousList(preciousTokens, preciousTokenIds)
+        );
         address delegate1 = _randomAddress();
         address delegate2 = _randomAddress();
         // Set up circular delegation just to be extra tricky.
@@ -1689,7 +1767,10 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
             IERC721[] memory preciousTokens,
             uint256[] memory preciousTokenIds
         ) = _createPreciousTokens(2);
-        TestablePartyGovernance gov = _createGovernance(100e18, preciousTokens, preciousTokenIds);
+        TestablePartyGovernance gov = _createGovernance(
+            100e18,
+            LibPreciousList.hashPreciousList(preciousTokens, preciousTokenIds)
+        );
         address undelegatedVoter = _randomAddress();
         // undelegatedVoter has 51 intrinsic VP
         gov.rawAdjustVotingPower(undelegatedVoter, 51e18, address(0));
@@ -1706,7 +1787,10 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
             IERC721[] memory preciousTokens,
             uint256[] memory preciousTokenIds
         ) = _createPreciousTokens(2);
-        TestablePartyGovernance gov = _createGovernance(100e18, preciousTokens, preciousTokenIds);
+        TestablePartyGovernance gov = _createGovernance(
+            100e18,
+            LibPreciousList.hashPreciousList(preciousTokens, preciousTokenIds)
+        );
         address voter = _randomAddress();
 
         // voter has 50 intrinsic VP at snapshot index 0
@@ -1722,7 +1806,10 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
             IERC721[] memory preciousTokens,
             uint256[] memory preciousTokenIds
         ) = _createPreciousTokens(2);
-        TestablePartyGovernance gov = _createGovernance(100e18, preciousTokens, preciousTokenIds);
+        TestablePartyGovernance gov = _createGovernance(
+            100e18,
+            LibPreciousList.hashPreciousList(preciousTokens, preciousTokenIds)
+        );
         address voter = _randomAddress();
         // voter has 50 intrinsic VP at snapshot index 0
         gov.rawAdjustVotingPower(voter, 50e18, address(0));
@@ -1754,7 +1841,10 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
             IERC721[] memory preciousTokens,
             uint256[] memory preciousTokenIds
         ) = _createPreciousTokens(2);
-        TestablePartyGovernance gov = _createGovernance(100e18, preciousTokens, preciousTokenIds);
+        TestablePartyGovernance gov = _createGovernance(
+            100e18,
+            LibPreciousList.hashPreciousList(preciousTokens, preciousTokenIds)
+        );
         address voter = _randomAddress();
 
         // voter has 50 intrinsic VP at snapshot index 0
@@ -1770,7 +1860,10 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
             IERC721[] memory preciousTokens,
             uint256[] memory preciousTokenIds
         ) = _createPreciousTokens(2);
-        TestablePartyGovernance gov = _createGovernance(100e18, preciousTokens, preciousTokenIds);
+        TestablePartyGovernance gov = _createGovernance(
+            100e18,
+            LibPreciousList.hashPreciousList(preciousTokens, preciousTokenIds)
+        );
         address voter = _randomAddress();
 
         // no snapshots, should return 0 voting power
@@ -1786,7 +1879,10 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
             IERC721[] memory preciousTokens,
             uint256[] memory preciousTokenIds
         ) = _createPreciousTokens(2);
-        TestablePartyGovernance gov = _createGovernance(100e18, preciousTokens, preciousTokenIds);
+        TestablePartyGovernance gov = _createGovernance(
+            100e18,
+            LibPreciousList.hashPreciousList(preciousTokens, preciousTokenIds)
+        );
         address voter = _randomAddress();
 
         // voter has no voting power snapshots
@@ -1824,7 +1920,10 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
             IERC721[] memory preciousTokens,
             uint256[] memory preciousTokenIds
         ) = _createPreciousTokens(2);
-        TestablePartyGovernance gov = _createGovernance(100e18, preciousTokens, preciousTokenIds);
+        TestablePartyGovernance gov = _createGovernance(
+            100e18,
+            LibPreciousList.hashPreciousList(preciousTokens, preciousTokenIds)
+        );
         address delegate1 = _randomAddress();
         address delegate2 = _randomAddress();
         address voter = _randomAddress();
@@ -1890,7 +1989,10 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
             IERC721[] memory preciousTokens,
             uint256[] memory preciousTokenIds
         ) = _createPreciousTokens(2);
-        TestablePartyGovernance gov = _createGovernance(100e18, preciousTokens, preciousTokenIds);
+        TestablePartyGovernance gov = _createGovernance(
+            100e18,
+            LibPreciousList.hashPreciousList(preciousTokens, preciousTokenIds)
+        );
         address voter1 = _randomAddress();
         address voter2 = _randomAddress();
         // voter has 50 intrinsic VP, delegated to zero.
@@ -1918,7 +2020,10 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
             IERC721[] memory preciousTokens,
             uint256[] memory preciousTokenIds
         ) = _createPreciousTokens(2);
-        gov = _createGovernance(100e18, preciousTokens, preciousTokenIds);
+        gov = _createGovernance(
+            100e18,
+            LibPreciousList.hashPreciousList(preciousTokens, preciousTokenIds)
+        );
 
         address newHost = _randomAddress();
 
@@ -1942,7 +2047,10 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
             IERC721[] memory preciousTokens,
             uint256[] memory preciousTokenIds
         ) = _createPreciousTokens(2);
-        gov = _createGovernance(100e18, preciousTokens, preciousTokenIds);
+        gov = _createGovernance(
+            100e18,
+            LibPreciousList.hashPreciousList(preciousTokens, preciousTokenIds)
+        );
 
         address host = _getRandomDefaultHost();
 
@@ -1959,7 +2067,10 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
             IERC721[] memory preciousTokens,
             uint256[] memory preciousTokenIds
         ) = _createPreciousTokens(2);
-        gov = _createGovernance(100e18, preciousTokens, preciousTokenIds);
+        gov = _createGovernance(
+            100e18,
+            LibPreciousList.hashPreciousList(preciousTokens, preciousTokenIds)
+        );
 
         address nonHost = _randomAddress();
         address nonHost2 = _randomAddress();
@@ -1975,7 +2086,10 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
             IERC721[] memory preciousTokens,
             uint256[] memory preciousTokenIds
         ) = _createPreciousTokens(2);
-        TestablePartyGovernance gov = _createGovernance(100e18, preciousTokens, preciousTokenIds);
+        TestablePartyGovernance gov = _createGovernance(
+            100e18,
+            LibPreciousList.hashPreciousList(preciousTokens, preciousTokenIds)
+        );
         address pastMember = _randomAddress();
         // Used to have VP.
         gov.rawAdjustVotingPower(pastMember, 50e18, address(0));
@@ -1992,7 +2106,10 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
             IERC721[] memory preciousTokens,
             uint256[] memory preciousTokenIds
         ) = _createPreciousTokens(2);
-        TestablePartyGovernance gov = _createGovernance(100e18, preciousTokens, preciousTokenIds);
+        TestablePartyGovernance gov = _createGovernance(
+            100e18,
+            LibPreciousList.hashPreciousList(preciousTokens, preciousTokenIds)
+        );
         skip(1);
         address nonMember = _randomAddress();
         assertEq(gov.getVotingPowerAt(nonMember, uint40(block.timestamp), 1), 0);
@@ -2004,7 +2121,10 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
             IERC721[] memory preciousTokens,
             uint256[] memory preciousTokenIds
         ) = _createPreciousTokens(2);
-        TestablePartyGovernance gov = _createGovernance(100e18, preciousTokens, preciousTokenIds);
+        TestablePartyGovernance gov = _createGovernance(
+            100e18,
+            LibPreciousList.hashPreciousList(preciousTokens, preciousTokenIds)
+        );
         address pastMember = _randomAddress();
         // Uesd to have VP.
         gov.rawAdjustVotingPower(pastMember, 50e18, address(0));
@@ -2025,7 +2145,10 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
             IERC721[] memory preciousTokens,
             uint256[] memory preciousTokenIds
         ) = _createPreciousTokens(2);
-        TestablePartyGovernance gov = _createGovernance(100e18, preciousTokens, preciousTokenIds);
+        TestablePartyGovernance gov = _createGovernance(
+            100e18,
+            LibPreciousList.hashPreciousList(preciousTokens, preciousTokenIds)
+        );
         address voter1 = _randomAddress();
         address voter2 = _randomAddress();
 
@@ -2078,8 +2201,7 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
         ) = _createPreciousTokens(2);
         TestablePartyGovernance gov = _createGovernance(
             uint96(totalVotingPower),
-            preciousTokens,
-            preciousTokenIds
+            LibPreciousList.hashPreciousList(preciousTokens, preciousTokenIds)
         );
 
         address voter1 = _randomAddress();
@@ -2115,7 +2237,10 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
             IERC721[] memory preciousTokens,
             uint256[] memory preciousTokenIds
         ) = _createPreciousTokens(2);
-        TestablePartyGovernance gov = _createGovernance(100e18, preciousTokens, preciousTokenIds);
+        TestablePartyGovernance gov = _createGovernance(
+            100e18,
+            LibPreciousList.hashPreciousList(preciousTokens, preciousTokenIds)
+        );
 
         // Only a member with VP can call distribute().
         address member = _randomAddress();
@@ -2145,7 +2270,10 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
             IERC721[] memory preciousTokens,
             uint256[] memory preciousTokenIds
         ) = _createPreciousTokens(2);
-        TestablePartyGovernance gov = _createGovernance(100e18, preciousTokens, preciousTokenIds);
+        TestablePartyGovernance gov = _createGovernance(
+            100e18,
+            LibPreciousList.hashPreciousList(preciousTokens, preciousTokenIds)
+        );
 
         // Only a member with VP can call distribute().
         address member = _randomAddress();
@@ -2177,7 +2305,10 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
             IERC721[] memory preciousTokens,
             uint256[] memory preciousTokenIds
         ) = _createPreciousTokens(2);
-        TestablePartyGovernance gov = _createGovernance(100e18, preciousTokens, preciousTokenIds);
+        TestablePartyGovernance gov = _createGovernance(
+            100e18,
+            LibPreciousList.hashPreciousList(preciousTokens, preciousTokenIds)
+        );
 
         address member = _randomAddress();
         gov.rawAdjustVotingPower(member, 1e18, member);
@@ -2197,7 +2328,10 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
             IERC721[] memory preciousTokens,
             uint256[] memory preciousTokenIds
         ) = _createPreciousTokens(2);
-        TestablePartyGovernance gov = _createGovernance(100e18, preciousTokens, preciousTokenIds);
+        TestablePartyGovernance gov = _createGovernance(
+            100e18,
+            LibPreciousList.hashPreciousList(preciousTokens, preciousTokenIds)
+        );
         address member = _randomAddress();
         gov.rawAdjustVotingPower(member, 1, address(0));
 
@@ -2220,7 +2354,10 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
             IERC721[] memory preciousTokens,
             uint256[] memory preciousTokenIds
         ) = _createPreciousTokens(2);
-        TestablePartyGovernance gov = _createGovernance(100e18, preciousTokens, preciousTokenIds);
+        TestablePartyGovernance gov = _createGovernance(
+            100e18,
+            LibPreciousList.hashPreciousList(preciousTokens, preciousTokenIds)
+        );
 
         address owner = _randomAddress();
         DummyERC1155 erc1155 = new DummyERC1155();
@@ -2234,7 +2371,10 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
             IERC721[] memory preciousTokens,
             uint256[] memory preciousTokenIds
         ) = _createPreciousTokens(2);
-        TestablePartyGovernance gov = _createGovernance(100e18, preciousTokens, preciousTokenIds);
+        TestablePartyGovernance gov = _createGovernance(
+            100e18,
+            LibPreciousList.hashPreciousList(preciousTokens, preciousTokenIds)
+        );
 
         address owner = _randomAddress();
         DummyERC721 erc721 = new DummyERC721();
@@ -2244,11 +2384,7 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
     }
 
     function test_getProposalHash_isCorrect() external {
-        (
-            IERC721[] memory preciousTokens,
-            uint256[] memory preciousTokenIds
-        ) = _createPreciousTokens(2);
-        TestablePartyGovernance gov = _createGovernance(100e18, preciousTokens, preciousTokenIds);
+        TestablePartyGovernance gov = _createGovernance(100e18, bytes32(0));
         PartyGovernance.Proposal memory proposal = _createProposal(1);
         bytes32 expectedHash = keccak256(
             abi.encode(
@@ -2266,14 +2402,13 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
             IERC721[] memory preciousTokens,
             uint256[] memory preciousTokenIds
         ) = _createPreciousTokens(2);
-        TestablePartyGovernance gov = _createGovernance(100e18, preciousTokens, preciousTokenIds);
         bytes32 expectedHash = keccak256(
             abi.encode(
                 keccak256(abi.encode(preciousTokens[0], preciousTokens[1])),
                 keccak256(abi.encode(preciousTokenIds[0], preciousTokenIds[1]))
             )
         );
-        bytes32 actualHash = gov.hashPreciousList(preciousTokens, preciousTokenIds);
+        bytes32 actualHash = LibPreciousList.hashPreciousList(preciousTokens, preciousTokenIds);
         assertEq(actualHash, expectedHash);
     }
 }

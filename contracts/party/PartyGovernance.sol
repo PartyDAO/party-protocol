@@ -12,6 +12,7 @@ import "../tokens/ERC1155Receiver.sol";
 import "../utils/LibERC20Compat.sol";
 import "../utils/LibRawResult.sol";
 import "../utils/LibSafeCast.sol";
+import "../utils/LibPreciousList.sol";
 import "../globals/IGlobals.sol";
 import "../globals/LibGlobals.sol";
 import "../proposals/IProposalExecutionEngine.sol";
@@ -165,7 +166,6 @@ abstract contract PartyGovernance is
     event HostStatusTransferred(address oldHost, address newHost);
     event EmergencyExecuteDisabled();
 
-    error MismatchedPreciousListLengths();
     error BadProposalStatusError(ProposalStatus status);
     error BadProposalHashError(bytes32 proposalHash, bytes32 actualHash);
     error ExecutionTimeExceededError(uint40 maxExecutableTime, uint40 timestamp);
@@ -284,11 +284,7 @@ abstract contract PartyGovernance is
     }
 
     // Initialize storage for proxy contracts and initialize the proposal execution engine.
-    function _initialize(
-        GovernanceOpts memory opts,
-        IERC721[] memory preciousTokens,
-        uint256[] memory preciousTokenIds
-    ) internal virtual {
+    function _initialize(GovernanceOpts memory opts, bytes32 preciousListHash_) internal virtual {
         // Check BPS are valid.
         if (opts.feeBps > 1e4) {
             revert InvalidBpsError(opts.feeBps);
@@ -312,7 +308,7 @@ abstract contract PartyGovernance is
         feeBps = opts.feeBps;
         feeRecipient = opts.feeRecipient;
         // Set the precious list.
-        _setPreciousList(preciousTokens, preciousTokenIds);
+        preciousListHash = preciousListHash_;
         // Set the party hosts.
         for (uint256 i = 0; i < opts.hosts.length; ++i) {
             isHost[opts.hosts[i]] = true;
@@ -1044,32 +1040,12 @@ abstract contract PartyGovernance is
         return (uint256(voteCount) * 1e4) / uint256(totalVotingPower) >= uint256(passThresholdBps);
     }
 
-    function _setPreciousList(
-        IERC721[] memory preciousTokens,
-        uint256[] memory preciousTokenIds
-    ) private {
-        if (preciousTokens.length != preciousTokenIds.length) {
-            revert MismatchedPreciousListLengths();
-        }
-        preciousListHash = _hashPreciousList(preciousTokens, preciousTokenIds);
-    }
-
     function _isPreciousListCorrect(
         IERC721[] memory preciousTokens,
         uint256[] memory preciousTokenIds
     ) private view returns (bool) {
-        return preciousListHash == _hashPreciousList(preciousTokens, preciousTokenIds);
-    }
-
-    function _hashPreciousList(
-        IERC721[] memory preciousTokens,
-        uint256[] memory preciousTokenIds
-    ) internal pure returns (bytes32 h) {
-        assembly {
-            mstore(0x00, keccak256(add(preciousTokens, 0x20), mul(mload(preciousTokens), 0x20)))
-            mstore(0x20, keccak256(add(preciousTokenIds, 0x20), mul(mload(preciousTokenIds), 0x20)))
-            h := keccak256(0x00, 0x40)
-        }
+        return
+            preciousListHash == LibPreciousList.hashPreciousList(preciousTokens, preciousTokenIds);
     }
 
     // Assert that the hash of a proposal matches expectedHash.

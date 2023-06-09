@@ -15,6 +15,7 @@ import "../contracts/gatekeepers/IGateKeeper.sol";
 import "../contracts/globals/Globals.sol";
 import "../contracts/globals/LibGlobals.sol";
 import "../contracts/party/Party.sol";
+import "../contracts/party/PartyList.sol";
 import "../contracts/party/PartyFactory.sol";
 import "../contracts/renderers/CrowdfundNFTRenderer.sol";
 import "../contracts/renderers/PartyNFTRenderer.sol";
@@ -51,6 +52,7 @@ abstract contract Deploy {
     CollectionBatchBuyCrowdfund public collectionBatchBuyCrowdfund;
     CrowdfundFactory public crowdfundFactory;
     Party public party;
+    PartyList public partyList;
     PartyFactory public partyFactory;
     ProposalExecutionEngine public proposalExecutionEngine;
     TokenDistributor public tokenDistributor;
@@ -122,13 +124,22 @@ abstract contract Deploy {
         _trackDeployerGasAfter();
         console.log("  Deployed - Party implementation", address(party));
 
+        // DEPLOY_PARTY_LIST
+        console.log("");
+        console.log("### PartyList");
+        console.log("  Deploying - PartyList");
+        _trackDeployerGasBefore();
+        partyList = new PartyList(globals);
+        _trackDeployerGasAfter();
+        console.log("  Deployed - PartyList", address(partyList));
+
         // DEPLOY_PARTY_FACTORY
         console.log("");
         console.log("### PartyFactory");
         console.log("  Deploying - PartyFactory");
         _switchDeployer(DeployerRole.PartyFactory);
         _trackDeployerGasBefore();
-        partyFactory = new PartyFactory(globals);
+        partyFactory = new PartyFactory(globals, partyList);
         _trackDeployerGasAfter();
         console.log("  Deployed - PartyFactory", address(partyFactory));
         _switchDeployer(DeployerRole.Default);
@@ -554,7 +565,7 @@ contract DeployScript is Script, Deploy {
         Deploy.deploy(deployConstants);
         vm.stopBroadcast();
 
-        AddressMapping[] memory addressMapping = new AddressMapping[](18);
+        AddressMapping[] memory addressMapping = new AddressMapping[](19);
         addressMapping[0] = AddressMapping("Globals", address(globals));
         addressMapping[1] = AddressMapping("TokenDistributor", address(tokenDistributor));
         addressMapping[2] = AddressMapping(
@@ -588,6 +599,7 @@ contract DeployScript is Script, Deploy {
             "PixeldroidConsoleFont",
             address(pixeldroidConsoleFont)
         );
+        addressMapping[18] = AddressMapping("PartyList", address(partyList));
 
         console.log("");
         console.log("### Deployed addresses");

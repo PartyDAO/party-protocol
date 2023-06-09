@@ -4,6 +4,7 @@ pragma solidity 0.8.17;
 import "../utils/LibAddress.sol";
 import "../utils/LibRawResult.sol";
 import "../utils/LibSafeCast.sol";
+import "../utils/LibPreciousList.sol";
 import "../tokens/ERC721Receiver.sol";
 import "../party/Party.sol";
 import "../globals/IGlobals.sol";
@@ -99,6 +100,7 @@ abstract contract Crowdfund is Implementation, ERC721Receiver, CrowdfundNFT {
     error OnlyPartyHostError();
     error OnlyContributorError();
     error MissingHostsError();
+    error MismatchedPreciousListLengths();
     error OnlyPartyDaoError(address notDao);
     error OnlyPartyDaoOrHostError(address notDao);
     error OnlyWhenEmergencyActionsAllowedError();
@@ -476,12 +478,14 @@ abstract contract Crowdfund is Implementation, ERC721Receiver, CrowdfundNFT {
         }
         // Create a party.
         party = party_ = _getPartyFactory().createParty(
-            address(this),
-            Party.PartyOptions({
+            Party.PartyOpts({
                 name: name,
                 symbol: symbol,
-                // Indicates to the party to use the same customization preset as the crowdfund.
+                // ID of 0 typically not a valid option, but here it indicates
+                // to the party to use the same customization preset as the
+                // crowdfund.
                 customizationPresetId: 0,
+                preciousListHash: _hashPreciousList(preciousTokens, preciousTokenIds),
                 governance: PartyGovernance.GovernanceOpts({
                     hosts: governanceOpts.hosts,
                     voteDuration: governanceOpts.voteDuration,
@@ -492,8 +496,7 @@ abstract contract Crowdfund is Implementation, ERC721Receiver, CrowdfundNFT {
                     feeRecipient: governanceOpts.feeRecipient
                 })
             }),
-            preciousTokens,
-            preciousTokenIds
+            address(this)
         );
         // Transfer the acquired NFTs to the new party.
         for (uint256 i; i < preciousTokens.length; ++i) {
@@ -521,6 +524,16 @@ abstract contract Crowdfund is Implementation, ERC721Receiver, CrowdfundNFT {
         if (governanceOptsHash_ != governanceOptsHash) {
             revert InvalidGovernanceOptionsError();
         }
+    }
+
+    function _hashPreciousList(
+        IERC721[] memory preciousTokens,
+        uint256[] memory preciousTokenIds
+    ) private pure returns (bytes32 preciousListHash) {
+        if (preciousTokens.length != preciousTokenIds.length) {
+            revert MismatchedPreciousListLengths();
+        }
+        preciousListHash = LibPreciousList.hashPreciousList(preciousTokens, preciousTokenIds);
     }
 
     function _getFinalContribution(

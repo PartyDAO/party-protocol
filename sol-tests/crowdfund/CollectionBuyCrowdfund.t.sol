@@ -16,13 +16,7 @@ import "./MockParty.sol";
 import "./TestERC721Vault.sol";
 
 contract CollectionBuyCrowdfundTest is Test, TestUtils {
-    event MockPartyFactoryCreateParty(
-        address caller,
-        address authority,
-        Party.PartyOptions opts,
-        IERC721[] preciousTokens,
-        uint256[] preciousTokenIds
-    );
+    event MockPartyFactoryCreateParty(address caller, Party.PartyOpts opts, address authority);
 
     event MockMint(address caller, address owner, uint256 amount, address delegate);
 
@@ -97,15 +91,21 @@ contract CollectionBuyCrowdfundTest is Test, TestUtils {
         );
     }
 
-    function _createExpectedPartyOptions(
+    function _createExpectedPartyOpts(
         address[] memory hosts,
+        ERC721 preciousToken,
+        uint256 preciousTokenId,
         uint256 finalPrice
-    ) private view returns (Party.PartyOptions memory opts) {
+    ) private view returns (Party.PartyOpts memory opts) {
         return
-            Party.PartyOptions({
+            Party.PartyOpts({
                 name: defaultName,
                 symbol: defaultSymbol,
                 customizationPresetId: 0,
+                preciousListHash: LibPreciousList.hashPreciousList(
+                    _toERC721Array(preciousToken),
+                    _toUint256Array(preciousTokenId)
+                ),
                 governance: PartyGovernance.GovernanceOpts({
                     hosts: hosts,
                     voteDuration: defaultGovernanceOpts.voteDuration,
@@ -136,10 +136,13 @@ contract CollectionBuyCrowdfundTest is Test, TestUtils {
         vm.expectEmit(false, false, false, true);
         emit MockPartyFactoryCreateParty(
             address(cf),
-            address(cf),
-            _createExpectedPartyOptions(_toAddressArray(host), 0.5e18),
-            _toERC721Array(erc721Vault.token()),
-            _toUint256Array(tokenId)
+            _createExpectedPartyOpts(
+                _toAddressArray(host),
+                ERC721(address(erc721Vault.token())),
+                tokenId,
+                0.5e18
+            ),
+            address(cf)
         );
         vm.prank(host);
         Party party_ = cf.buy(

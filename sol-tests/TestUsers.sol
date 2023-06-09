@@ -85,6 +85,12 @@ contract PartyAdmin is Test {
         hosts[0] = opts.host1;
         hosts[1] = opts.host2;
 
+        IERC721[] memory preciousTokens = new IERC721[](1);
+        preciousTokens[0] = IERC721(opts.preciousTokenAddress);
+
+        uint256[] memory preciousTokenIds = new uint256[](1);
+        preciousTokenIds[0] = opts.preciousTokenId;
+
         PartyGovernance.GovernanceOpts memory govOpts = PartyGovernance.GovernanceOpts({
             hosts: hosts,
             voteDuration: 99,
@@ -94,24 +100,15 @@ contract PartyAdmin is Test {
             feeRecipient: opts.feeRecipient,
             feeBps: opts.feeBps
         });
-        Party.PartyOptions memory po = Party.PartyOptions({
-            governance: govOpts,
+        Party.PartyOpts memory po = Party.PartyOpts({
             name: "Dope party",
             symbol: "DOPE",
-            customizationPresetId: 0
+            customizationPresetId: 0,
+            preciousListHash: LibPreciousList.hashPreciousList(preciousTokens, preciousTokenIds),
+            governance: govOpts
         });
-        IERC721[] memory preciousTokens = new IERC721[](1);
-        preciousTokens[0] = IERC721(opts.preciousTokenAddress);
 
-        uint256[] memory preciousTokenIds = new uint256[](1);
-        preciousTokenIds[0] = opts.preciousTokenId;
-
-        Party party = _partyFactory.createParty(
-            address(this),
-            po,
-            preciousTokens,
-            preciousTokenIds
-        );
+        Party party = _partyFactory.createParty(po, address(this));
         return (party, preciousTokens, preciousTokenIds);
     }
 

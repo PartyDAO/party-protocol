@@ -6,6 +6,7 @@ import "forge-std/Test.sol";
 import "../../contracts/globals/Globals.sol";
 import "../../contracts/globals/LibGlobals.sol";
 import "../../contracts/proposals/ProposalExecutionEngine.sol";
+import "../../contracts/party/PartyList.sol";
 import "../../contracts/distribution/TokenDistributor.sol";
 
 import "../TestUtils.sol";
@@ -51,7 +52,7 @@ contract ListOnZoraProposalIntegrationTest is Test, TestUtils, ZoraTestUtils {
         );
         globalsAdmin.setProposalEng(address(pe));
 
-        partyFactory = new PartyFactory(globals);
+        partyFactory = new PartyFactory(globals, PartyList(address(0)));
     }
 
     function testForked_simpleZora() public onlyForked {

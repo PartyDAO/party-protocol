@@ -4,26 +4,31 @@ pragma solidity ^0.8;
 import "forge-std/Test.sol";
 
 import "../../contracts/party/PartyFactory.sol";
+import "../../contracts/party/PartyList.sol";
 import "../../contracts/globals/Globals.sol";
 import "../TestUtils.sol";
 import "../../contracts/proposals/ProposalExecutionEngine.sol";
+import "../DummyERC721.sol";
 
 contract PartyFactoryTest is Test, TestUtils {
     Globals globals = new Globals(address(this));
     Party partyImpl = new Party(globals);
-    PartyFactory factory = new PartyFactory(globals);
+    PartyList partyList = new PartyList(globals);
+    PartyFactory factory = new PartyFactory(globals, partyList);
     ProposalExecutionEngine eng;
-    Party.PartyOptions defaultPartyOptions;
+    Party.PartyOpts defaultPartyOpts;
+    IERC721[] preciousTokens;
+    uint256[] preciousTokenIds;
 
     constructor() {
-        defaultPartyOptions.name = "PARTY";
-        defaultPartyOptions.symbol = "PR-T";
-        defaultPartyOptions.governance.hosts.push(_randomAddress());
-        defaultPartyOptions.governance.hosts.push(_randomAddress());
-        defaultPartyOptions.governance.voteDuration = 1 days;
-        defaultPartyOptions.governance.executionDelay = 8 hours;
-        defaultPartyOptions.governance.passThresholdBps = 0.51e4;
-        defaultPartyOptions.governance.totalVotingPower = 100e18;
+        defaultPartyOpts.name = "PARTY";
+        defaultPartyOpts.symbol = "PR-T";
+        defaultPartyOpts.governance.hosts.push(_randomAddress());
+        defaultPartyOpts.governance.hosts.push(_randomAddress());
+        defaultPartyOpts.governance.voteDuration = 1 days;
+        defaultPartyOpts.governance.executionDelay = 8 hours;
+        defaultPartyOpts.governance.passThresholdBps = 0.51e4;
+        defaultPartyOpts.governance.totalVotingPower = 100e18;
 
         eng = new ProposalExecutionEngine(
             globals,
@@ -35,27 +40,14 @@ contract PartyFactoryTest is Test, TestUtils {
 
         globals.setAddress(LibGlobals.GLOBAL_PARTY_IMPL, address(partyImpl));
         globals.setAddress(LibGlobals.GLOBAL_PROPOSAL_ENGINE_IMPL, address(eng));
-    }
+        globals.setAddress(LibGlobals.GLOBAL_PARTY_FACTORY, address(factory));
 
-    function _createPreciouses(
-        uint256 count
-    ) private view returns (IERC721[] memory preciousTokens, uint256[] memory preciousTokenIds) {
-        preciousTokens = new IERC721[](count);
-        preciousTokenIds = new uint256[](count);
-        for (uint256 i; i < count; ++i) {
-            preciousTokens[i] = IERC721(_randomAddress());
-            preciousTokenIds[i] = _randomUint256();
-        }
-    }
-
-    function _hashPreciousList(
-        IERC721[] memory preciousTokens,
-        uint256[] memory preciousTokenIds
-    ) internal pure returns (bytes32 h) {
-        assembly {
-            mstore(0x00, keccak256(add(preciousTokens, 0x20), mul(mload(preciousTokens), 0x20)))
-            mstore(0x20, keccak256(add(preciousTokenIds, 0x20), mul(mload(preciousTokenIds), 0x20)))
-            h := keccak256(0x00, 0x40)
+        preciousTokens = new IERC721[](3);
+        preciousTokenIds = new uint256[](3);
+        for (uint256 i; i < 3; ++i) {
+            DummyERC721 t = new DummyERC721();
+            preciousTokens[i] = IERC721(address(t));
+            preciousTokenIds[i] = t.mint(address(this));
         }
     }
 
@@ -68,8 +60,15 @@ contract PartyFactoryTest is Test, TestUtils {
         vm.assume(randomBps <= 1e4);
 
         address authority = _randomAddress();
-        (IERC721[] memory preciousTokens, uint256[] memory preciousTokenIds) = _createPreciouses(3);
-        Party.PartyOptions memory opts = Party.PartyOptions({
+        bytes32 preciousListHash = LibPreciousList.hashPreciousList(
+            preciousTokens,
+            preciousTokenIds
+        );
+        Party.PartyOpts memory opts = Party.PartyOpts({
+            name: randomStr,
+            symbol: randomStr,
+            customizationPresetId: 0,
+            preciousListHash: preciousListHash,
             governance: PartyGovernance.GovernanceOpts({
                 hosts: _toAddressArray(_randomAddress()),
                 voteDuration: randomUint40,
@@ -78,12 +77,9 @@ contract PartyFactoryTest is Test, TestUtils {
                 totalVotingPower: randomUint96,
                 feeBps: randomBps,
                 feeRecipient: payable(_randomAddress())
-            }),
-            name: randomStr,
-            symbol: randomStr,
-            customizationPresetId: 0
+            })
         });
-        Party party = factory.createParty(authority, opts, preciousTokens, preciousTokenIds);
+        Party party = factory.createParty(opts, authority);
         assertEq(party.name(), opts.name);
         assertEq(party.symbol(), opts.symbol);
         assertEq(party.mintAuthority(), authority);
@@ -95,7 +91,7 @@ contract PartyFactoryTest is Test, TestUtils {
         assertEq(party.feeBps(), opts.governance.feeBps);
         assertEq(party.feeRecipient(), opts.governance.feeRecipient);
         assertEq(address(party.getProposalExecutionEngine()), address(eng));
-        assertEq(party.preciousListHash(), _hashPreciousList(preciousTokens, preciousTokenIds));
+        assertEq(party.preciousListHash(), preciousListHash);
     }
 
     function testCreatePartyWithInvalidBps(uint16 passThresholdBps, uint16 feeBps) external {
@@ -103,9 +99,8 @@ contract PartyFactoryTest is Test, TestUtils {
         vm.assume(passThresholdBps > 1e4 || feeBps > 1e4);
 
         address authority = _randomAddress();
-        (IERC721[] memory preciousTokens, uint256[] memory preciousTokenIds) = _createPreciouses(3);
 
-        Party.PartyOptions memory opts = defaultPartyOptions;
+        Party.PartyOpts memory opts = defaultPartyOpts;
         opts.governance.feeBps = feeBps;
         opts.governance.passThresholdBps = passThresholdBps;
 
@@ -115,6 +110,54 @@ contract PartyFactoryTest is Test, TestUtils {
                 feeBps > 1e4 ? feeBps : passThresholdBps
             )
         );
-        factory.createParty(authority, opts, preciousTokens, preciousTokenIds);
+        factory.createParty(opts, authority);
+    }
+
+    function testCreatePartyFromList() external {
+        address member = _randomAddress();
+        uint96 votingPower = 0.1e18;
+        uint256 nonce = _randomUint256();
+
+        for (uint256 i; i < preciousTokens.length; ++i) {
+            preciousTokens[i].approve(address(factory), preciousTokenIds[i]);
+        }
+
+        IPartyFactory.PartyFromListOpts memory opts = IPartyFactory.PartyFromListOpts({
+            partyOpts: defaultPartyOpts,
+            tokens: preciousTokens,
+            tokenIds: preciousTokenIds,
+            creator: _randomAddress(),
+            creatorVotingPower: 0.3e18,
+            creatorDelegate: _randomAddress(),
+            listMerkleRoot: keccak256(abi.encodePacked(member, votingPower, nonce))
+        });
+
+        Party party = factory.createPartyFromList(opts);
+
+        (bytes32 merkleRoot, address creator) = partyList.listData(party);
+        assertEq(merkleRoot, opts.listMerkleRoot);
+        assertEq(creator, opts.creator);
+        assertEq(party.mintAuthority(), address(partyList));
+        assertEq(party.balanceOf(opts.creator), 1);
+        assertEq(party.delegationsByVoter(opts.creator), opts.creatorDelegate);
+        assertEq(party.votingPowerByTokenId(1), opts.creatorVotingPower);
+
+        partyList.mint(
+            PartyList.MintArgs({
+                party: party,
+                member: member,
+                votingPower: votingPower,
+                nonce: nonce,
+                delegate: member,
+                proof: new bytes32[](0)
+            })
+        );
+        assertEq(party.balanceOf(member), 1);
+        assertEq(party.delegationsByVoter(member), member);
+        assertEq(party.votingPowerByTokenId(2), votingPower);
+
+        for (uint256 i; i < preciousTokens.length; ++i) {
+            assertEq(preciousTokens[i].ownerOf(preciousTokenIds[i]), address(party));
+        }
     }
 }

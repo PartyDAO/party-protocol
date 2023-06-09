@@ -1,6 +1,6 @@
 import { Contract, BigNumber, Wallet } from "ethers";
 import * as ethers from "ethers";
-import { deployContract, NULL_ADDRESS, NULL_BYTES, NULL_HASH } from "../utils";
+import { deployContract, hashPreciousList, NULL_ADDRESS, NULL_BYTES, NULL_HASH } from "../utils";
 
 import GLOBALS_ARTIFACT from "../../out/Globals.sol/Globals.json";
 import PARTY_FACTORY_ARTIFACT from "../../out/PartyFactory.sol/PartyFactory.json";
@@ -234,6 +234,7 @@ export class System {
 
     const partyFactory = await deployContract(worker, artifacts.PartyFactory as any, [
       globals.address,
+      NULL_ADDRESS,
     ]);
     await (await globals.setAddress(GlobalKeys.PartyFactory, partyFactory.address)).wait();
 
@@ -285,11 +286,11 @@ export class Party {
     const partyFactory = opts.sys.partyFactory.connect(opts.worker);
     const tx = await (
       await partyFactory.createParty(
-        opts.worker.address,
         {
           name: opts.name,
           symbol: opts.symbol,
           customizationPresetId: 0,
+          preciousListHash: hashPreciousList(preciousTokens),
           governance: {
             hosts: opts.hostAddresses,
             voteDuration: opts.voteDuration,
@@ -300,8 +301,7 @@ export class Party {
             feeRecipient: opts.feeRecipient || NULL_ADDRESS,
           },
         },
-        preciousTokens.map(({ token }) => token.address),
-        preciousTokens.map(({ tokenId }) => tokenId),
+        opts.worker.address,
       )
     ).wait();
     const partyAddress = tx.events.find((e: any) => e.event === "PartyCreated").args[0];

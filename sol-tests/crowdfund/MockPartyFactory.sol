@@ -1,37 +1,23 @@
 // SPDX-License-Identifier: Apache-2.0
 pragma solidity ^0.8;
 
-import "../../contracts/party/IPartyFactory.sol";
+import "contracts/party/Party.sol";
 import "./MockParty.sol";
 
-contract MockPartyFactory is IPartyFactory {
+contract MockPartyFactory {
     MockParty public mockParty = new MockParty();
 
-    event MockPartyFactoryCreateParty(
-        address caller,
-        address authority,
-        Party.PartyOptions opts,
-        IERC721[] preciousTokens,
-        uint256[] preciousTokenIds
-    );
+    event MockPartyFactoryCreateParty(address caller, Party.PartyOpts opts, address authority);
 
     function GLOBALS() external pure returns (IGlobals g) {}
 
     function abdicate(Party) external {}
 
     function createParty(
-        address authority,
-        Party.PartyOptions memory opts,
-        IERC721[] memory preciousTokens,
-        uint256[] memory preciousTokenIds
+        Party.PartyOpts memory opts,
+        address authority
     ) external returns (Party party) {
-        emit MockPartyFactoryCreateParty(
-            msg.sender,
-            authority,
-            opts,
-            preciousTokens,
-            preciousTokenIds
-        );
+        emit MockPartyFactoryCreateParty(msg.sender, opts, authority);
         return Party(payable(address(mockParty)));
     }
 }
