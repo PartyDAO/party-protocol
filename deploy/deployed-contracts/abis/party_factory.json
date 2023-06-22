@@ -1,24 +1,7 @@
 [
   {
-    "inputs": [
-      {
-        "internalType": "contract IGlobals",
-        "name": "globals",
-        "type": "address"
-      }
-    ],
-    "stateMutability": "nonpayable",
-    "type": "constructor"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "address",
-        "name": "authority",
-        "type": "address"
-      }
-    ],
-    "name": "InvalidAuthorityError",
+    "inputs": [],
+    "name": "NoAuthorityError",
     "type": "error"
   },
   {
@@ -75,6 +58,33 @@
             "type": "tuple"
           },
           {
+            "components": [
+              {
+                "internalType": "bool",
+                "name": "enableAddAuthorityProposal",
+                "type": "bool"
+              },
+              {
+                "internalType": "bool",
+                "name": "allowArbCallsToSpendPartyEth",
+                "type": "bool"
+              },
+              {
+                "internalType": "bool",
+                "name": "allowOperatorsToSpendPartyEth",
+                "type": "bool"
+              },
+              {
+                "internalType": "bool",
+                "name": "distributionsRequireVote",
+                "type": "bool"
+              }
+            ],
+            "internalType": "struct ProposalStorage.ProposalEngineOpts",
+            "name": "proposalEngine",
+            "type": "tuple"
+          },
+          {
             "internalType": "string",
             "name": "name",
             "type": "string"
@@ -118,24 +128,16 @@
     "type": "event"
   },
   {
-    "inputs": [],
-    "name": "GLOBALS",
-    "outputs": [
-      {
-        "internalType": "contract IGlobals",
-        "name": "",
-        "type": "address"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
     "inputs": [
       {
-        "internalType": "address",
-        "name": "authority",
+        "internalType": "contract Party",
+        "name": "partyImpl",
         "type": "address"
+      },
+      {
+        "internalType": "address[]",
+        "name": "authorities",
+        "type": "address[]"
       },
       {
         "components": [
@@ -182,6 +184,33 @@
             "type": "tuple"
           },
           {
+            "components": [
+              {
+                "internalType": "bool",
+                "name": "enableAddAuthorityProposal",
+                "type": "bool"
+              },
+              {
+                "internalType": "bool",
+                "name": "allowArbCallsToSpendPartyEth",
+                "type": "bool"
+              },
+              {
+                "internalType": "bool",
+                "name": "allowOperatorsToSpendPartyEth",
+                "type": "bool"
+              },
+              {
+                "internalType": "bool",
+                "name": "distributionsRequireVote",
+                "type": "bool"
+              }
+            ],
+            "internalType": "struct ProposalStorage.ProposalEngineOpts",
+            "name": "proposalEngine",
+            "type": "tuple"
+          },
+          {
             "internalType": "string",
             "name": "name",
             "type": "string"
@@ -210,6 +239,11 @@
         "internalType": "uint256[]",
         "name": "preciousTokenIds",
         "type": "uint256[]"
+      },
+      {
+        "internalType": "uint40",
+        "name": "rageQuitTimestamp",
+        "type": "uint40"
       }
     ],
     "name": "createParty",

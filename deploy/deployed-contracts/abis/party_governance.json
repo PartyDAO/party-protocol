@@ -43,6 +43,16 @@
     "type": "error"
   },
   {
+    "inputs": [],
+    "name": "CannotRageQuitAndAcceptError",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "DistributionsRequireVoteError",
+    "type": "error"
+  },
+  {
     "inputs": [
       {
         "internalType": "uint40",
@@ -166,6 +176,11 @@
   {
     "inputs": [],
     "name": "OnlyWhenEnabledError",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "PartyNotStartedError",
     "type": "error"
   },
   {
@@ -461,7 +476,7 @@
         "type": "address"
       }
     ],
-    "name": "abdicate",
+    "name": "abdicateHost",
     "outputs": [],
     "stateMutability": "nonpayable",
     "type": "function"
@@ -585,6 +600,11 @@
   {
     "inputs": [
       {
+        "internalType": "uint256",
+        "name": "amount",
+        "type": "uint256"
+      },
+      {
         "internalType": "enum ITokenDistributor.TokenType",
         "name": "tokenType",
         "type": "uint8"
@@ -615,7 +635,7 @@
             "type": "uint256"
           },
           {
-            "internalType": "contract ITokenDistributorParty",
+            "internalType": "contract Party",
             "name": "party",
             "type": "address"
           },
@@ -638,6 +658,11 @@
             "internalType": "uint128",
             "name": "fee",
             "type": "uint128"
+          },
+          {
+            "internalType": "uint96",
+            "name": "totalShares",
+            "type": "uint96"
           }
         ],
         "internalType": "struct ITokenDistributor.DistributionInfo",
@@ -790,25 +815,6 @@
     "type": "function"
   },
   {
-    "inputs": [
-      {
-        "internalType": "uint256",
-        "name": "tokenId",
-        "type": "uint256"
-      }
-    ],
-    "name": "getDistributionShareOf",
-    "outputs": [
-      {
-        "internalType": "uint256",
-        "name": "",
-        "type": "uint256"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
     "inputs": [],
     "name": "getGovernanceValues",
     "outputs": [
@@ -837,6 +843,41 @@
         ],
         "internalType": "struct PartyGovernance.GovernanceValues",
         "name": "gv",
+        "type": "tuple"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "getProposalEngineOpts",
+    "outputs": [
+      {
+        "components": [
+          {
+            "internalType": "bool",
+            "name": "enableAddAuthorityProposal",
+            "type": "bool"
+          },
+          {
+            "internalType": "bool",
+            "name": "allowArbCallsToSpendPartyEth",
+            "type": "bool"
+          },
+          {
+            "internalType": "bool",
+            "name": "allowOperatorsToSpendPartyEth",
+            "type": "bool"
+          },
+          {
+            "internalType": "bool",
+            "name": "distributionsRequireVote",
+            "type": "bool"
+          }
+        ],
+        "internalType": "struct ProposalStorage.ProposalEngineOpts",
+        "name": "",
         "type": "tuple"
       }
     ],
@@ -933,6 +974,11 @@
             "internalType": "uint96",
             "name": "votes",
             "type": "uint96"
+          },
+          {
+            "internalType": "uint96",
+            "name": "totalVotingPower",
+            "type": "uint96"
           }
         ],
         "internalType": "struct PartyGovernance.ProposalStateValues",
@@ -1023,6 +1069,19 @@
         "internalType": "uint256",
         "name": "",
         "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "lastRageQuitTimestamp",
+    "outputs": [
+      {
+        "internalType": "uint40",
+        "name": "",
+        "type": "uint40"
       }
     ],
     "stateMutability": "view",
@@ -1138,25 +1197,6 @@
       }
     ],
     "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "uint256",
-        "name": "tokenId",
-        "type": "uint256"
-      }
-    ],
-    "name": "ownerOf",
-    "outputs": [
-      {
-        "internalType": "address",
-        "name": "",
-        "type": "address"
-      }
-    ],
-    "stateMutability": "view",
     "type": "function"
   },
   {

@@ -10,7 +10,7 @@ interface IKoansAuctionHouse {
         // The time that the auction started
         uint256 startTime;
         // The time that the auction is scheduled to end
-        uint256 endTime;
+        uint256 expiry;
         // The address of the current highest bid
         address payable bidder;
         // Whether or not the auction has been settled
@@ -19,11 +19,11 @@ interface IKoansAuctionHouse {
         address payable payoutAddress;
     }
 
-    event AuctionCreated(uint256 indexed koanId, uint256 startTime, uint256 endTime);
+    event AuctionCreated(uint256 indexed koanId, uint256 startTime, uint256 expiry);
 
     event AuctionBid(uint256 indexed koanId, address sender, uint256 value, bool extended);
 
-    event AuctionExtended(uint256 indexed koanId, uint256 endTime);
+    event AuctionExtended(uint256 indexed koanId, uint256 expiry);
 
     event AuctionSettled(uint256 indexed koanId, address winner, uint256 amount);
 

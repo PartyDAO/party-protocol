@@ -78,7 +78,7 @@
             "type": "uint256"
           },
           {
-            "internalType": "contract ITokenDistributorParty",
+            "internalType": "contract Party",
             "name": "party",
             "type": "address"
           },
@@ -101,6 +101,11 @@
             "internalType": "uint128",
             "name": "fee",
             "type": "uint128"
+          },
+          {
+            "internalType": "uint96",
+            "name": "totalShares",
+            "type": "uint96"
           }
         ],
         "internalType": "struct ITokenDistributor.DistributionInfo",
@@ -234,7 +239,7 @@
     "inputs": [
       {
         "indexed": true,
-        "internalType": "contract ITokenDistributorParty",
+        "internalType": "contract Party",
         "name": "party",
         "type": "address"
       },
@@ -277,7 +282,7 @@
     "inputs": [
       {
         "indexed": true,
-        "internalType": "contract ITokenDistributorParty",
+        "internalType": "contract Party",
         "name": "party",
         "type": "address"
       },
@@ -294,7 +299,7 @@
             "type": "uint256"
           },
           {
-            "internalType": "contract ITokenDistributorParty",
+            "internalType": "contract Party",
             "name": "party",
             "type": "address"
           },
@@ -317,6 +322,11 @@
             "internalType": "uint128",
             "name": "fee",
             "type": "uint128"
+          },
+          {
+            "internalType": "uint96",
+            "name": "totalShares",
+            "type": "uint96"
           }
         ],
         "indexed": false,
@@ -333,7 +343,7 @@
     "inputs": [
       {
         "indexed": true,
-        "internalType": "contract ITokenDistributorParty",
+        "internalType": "contract Party",
         "name": "party",
         "type": "address"
       },
@@ -425,7 +435,7 @@
             "type": "uint256"
           },
           {
-            "internalType": "contract ITokenDistributorParty",
+            "internalType": "contract Party",
             "name": "party",
             "type": "address"
           },
@@ -448,6 +458,11 @@
             "internalType": "uint128",
             "name": "fee",
             "type": "uint128"
+          },
+          {
+            "internalType": "uint96",
+            "name": "totalShares",
+            "type": "uint96"
           }
         ],
         "internalType": "struct ITokenDistributor.DistributionInfo[]",
@@ -486,7 +501,7 @@
             "type": "uint256"
           },
           {
-            "internalType": "contract ITokenDistributorParty",
+            "internalType": "contract Party",
             "name": "party",
             "type": "address"
           },
@@ -509,6 +524,11 @@
             "internalType": "uint128",
             "name": "fee",
             "type": "uint128"
+          },
+          {
+            "internalType": "uint96",
+            "name": "totalShares",
+            "type": "uint96"
           }
         ],
         "internalType": "struct ITokenDistributor.DistributionInfo[]",
@@ -541,7 +561,7 @@
             "type": "uint256"
           },
           {
-            "internalType": "contract ITokenDistributorParty",
+            "internalType": "contract Party",
             "name": "party",
             "type": "address"
           },
@@ -564,6 +584,11 @@
             "internalType": "uint128",
             "name": "fee",
             "type": "uint128"
+          },
+          {
+            "internalType": "uint96",
+            "name": "totalShares",
+            "type": "uint96"
           }
         ],
         "internalType": "struct ITokenDistributor.DistributionInfo",
@@ -602,7 +627,7 @@
             "type": "uint256"
           },
           {
-            "internalType": "contract ITokenDistributorParty",
+            "internalType": "contract Party",
             "name": "party",
             "type": "address"
           },
@@ -625,6 +650,11 @@
             "internalType": "uint128",
             "name": "fee",
             "type": "uint128"
+          },
+          {
+            "internalType": "uint96",
+            "name": "totalShares",
+            "type": "uint96"
           }
         ],
         "internalType": "struct ITokenDistributor.DistributionInfo",
@@ -650,7 +680,7 @@
         "type": "address"
       },
       {
-        "internalType": "contract ITokenDistributorParty",
+        "internalType": "contract Party",
         "name": "party",
         "type": "address"
       },
@@ -680,7 +710,7 @@
             "type": "uint256"
           },
           {
-            "internalType": "contract ITokenDistributorParty",
+            "internalType": "contract Party",
             "name": "party",
             "type": "address"
           },
@@ -703,6 +733,11 @@
             "internalType": "uint128",
             "name": "fee",
             "type": "uint128"
+          },
+          {
+            "internalType": "uint96",
+            "name": "totalShares",
+            "type": "uint96"
           }
         ],
         "internalType": "struct ITokenDistributor.DistributionInfo",
@@ -716,7 +751,7 @@
   {
     "inputs": [
       {
-        "internalType": "contract ITokenDistributorParty",
+        "internalType": "contract Party",
         "name": "party",
         "type": "address"
       },
@@ -746,7 +781,7 @@
             "type": "uint256"
           },
           {
-            "internalType": "contract ITokenDistributorParty",
+            "internalType": "contract Party",
             "name": "party",
             "type": "address"
           },
@@ -769,6 +804,11 @@
             "internalType": "uint128",
             "name": "fee",
             "type": "uint128"
+          },
+          {
+            "internalType": "uint96",
+            "name": "totalShares",
+            "type": "uint96"
           }
         ],
         "internalType": "struct ITokenDistributor.DistributionInfo",
@@ -800,14 +840,51 @@
   {
     "inputs": [
       {
-        "internalType": "contract ITokenDistributorParty",
-        "name": "party",
-        "type": "address"
-      },
-      {
-        "internalType": "uint256",
-        "name": "memberSupply",
-        "type": "uint256"
+        "components": [
+          {
+            "internalType": "enum ITokenDistributor.TokenType",
+            "name": "tokenType",
+            "type": "uint8"
+          },
+          {
+            "internalType": "uint256",
+            "name": "distributionId",
+            "type": "uint256"
+          },
+          {
+            "internalType": "contract Party",
+            "name": "party",
+            "type": "address"
+          },
+          {
+            "internalType": "address payable",
+            "name": "feeRecipient",
+            "type": "address"
+          },
+          {
+            "internalType": "address",
+            "name": "token",
+            "type": "address"
+          },
+          {
+            "internalType": "uint128",
+            "name": "memberSupply",
+            "type": "uint128"
+          },
+          {
+            "internalType": "uint128",
+            "name": "fee",
+            "type": "uint128"
+          },
+          {
+            "internalType": "uint96",
+            "name": "totalShares",
+            "type": "uint96"
+          }
+        ],
+        "internalType": "struct ITokenDistributor.DistributionInfo",
+        "name": "info",
+        "type": "tuple"
       },
       {
         "internalType": "uint256",
@@ -829,7 +906,7 @@
   {
     "inputs": [
       {
-        "internalType": "contract ITokenDistributorParty",
+        "internalType": "contract Party",
         "name": "party",
         "type": "address"
       },
@@ -853,7 +930,7 @@
   {
     "inputs": [
       {
-        "internalType": "contract ITokenDistributorParty",
+        "internalType": "contract Party",
         "name": "party",
         "type": "address"
       },
@@ -882,7 +959,7 @@
   {
     "inputs": [
       {
-        "internalType": "contract ITokenDistributorParty",
+        "internalType": "contract Party",
         "name": "",
         "type": "address"
       }
@@ -901,7 +978,7 @@
   {
     "inputs": [
       {
-        "internalType": "contract ITokenDistributorParty",
+        "internalType": "contract Party",
         "name": "party",
         "type": "address"
       },

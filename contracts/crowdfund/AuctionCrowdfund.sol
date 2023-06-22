@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0
-pragma solidity 0.8.17;
+pragma solidity 0.8.20;
 
 import "./AuctionCrowdfundBase.sol";
 
@@ -22,13 +22,17 @@ contract AuctionCrowdfund is AuctionCrowdfundBase {
     }
 
     /// @notice Calls `finalize()` on the market adapter, which will claim the NFT
-    ///         (if necessary) if we won, or recover our bid (if necessary)
-    ///         if we lost. If we won, a governance party will also be created.
+    ///         (if necessary) if the crowdfund won, or recover the bid (if
+    ///         necessary) if lost. If won, a party will also be created.
     /// @param governanceOpts The options used to initialize governance in the
     ///                       `Party` instance created if the crowdfund wins.
+    /// @param proposalEngineOpts The options used to initialize the proposal
+    ///                           engine in the `Party` instance created if the
+    ///                           crowdfund wins.
     /// @return party_ Address of the `Party` instance created if successful.
     function finalize(
-        FixedGovernanceOpts memory governanceOpts
+        FixedGovernanceOpts memory governanceOpts,
+        ProposalStorage.ProposalEngineOpts memory proposalEngineOpts
     ) external onlyDelegateCall returns (Party party_) {
         // Check that the auction is still active and has not passed the `expiry` time.
         CrowdfundLifecycle lc = getCrowdfundLifecycle();
@@ -46,7 +50,13 @@ contract AuctionCrowdfund is AuctionCrowdfundBase {
         if (nftContract_.safeOwnerOf(nftTokenId_) == address(this) && lastBid_ != 0) {
             // If we placed a bid before then consider it won for that price.
             // Create a governance party around the NFT.
-            party_ = _createParty(governanceOpts, false, nftContract_, nftTokenId_);
+            party_ = _createParty(
+                governanceOpts,
+                proposalEngineOpts,
+                false,
+                nftContract_,
+                nftTokenId_
+            );
             emit Won(lastBid_, party_);
         } else {
             // Otherwise we lost the auction or the NFT was gifted to us.

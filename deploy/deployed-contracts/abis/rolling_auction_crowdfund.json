@@ -749,6 +749,16 @@
       {
         "components": [
           {
+            "internalType": "contract Party",
+            "name": "partyImpl",
+            "type": "address"
+          },
+          {
+            "internalType": "contract IPartyFactory",
+            "name": "partyFactory",
+            "type": "address"
+          },
+          {
             "internalType": "address[]",
             "name": "hosts",
             "type": "address[]"
@@ -784,6 +794,33 @@
         "type": "tuple"
       },
       {
+        "components": [
+          {
+            "internalType": "bool",
+            "name": "enableAddAuthorityProposal",
+            "type": "bool"
+          },
+          {
+            "internalType": "bool",
+            "name": "allowArbCallsToSpendPartyEth",
+            "type": "bool"
+          },
+          {
+            "internalType": "bool",
+            "name": "allowOperatorsToSpendPartyEth",
+            "type": "bool"
+          },
+          {
+            "internalType": "bool",
+            "name": "distributionsRequireVote",
+            "type": "bool"
+          }
+        ],
+        "internalType": "struct ProposalStorage.ProposalEngineOpts",
+        "name": "proposalEngineOpts",
+        "type": "tuple"
+      },
+      {
         "internalType": "uint256",
         "name": "hostIndex",
         "type": "uint256"
@@ -803,6 +840,16 @@
       },
       {
         "components": [
+          {
+            "internalType": "contract Party",
+            "name": "partyImpl",
+            "type": "address"
+          },
+          {
+            "internalType": "contract IPartyFactory",
+            "name": "partyFactory",
+            "type": "address"
+          },
           {
             "internalType": "address[]",
             "name": "hosts",
@@ -836,6 +883,33 @@
         ],
         "internalType": "struct Crowdfund.FixedGovernanceOpts",
         "name": "governanceOpts",
+        "type": "tuple"
+      },
+      {
+        "components": [
+          {
+            "internalType": "bool",
+            "name": "enableAddAuthorityProposal",
+            "type": "bool"
+          },
+          {
+            "internalType": "bool",
+            "name": "allowArbCallsToSpendPartyEth",
+            "type": "bool"
+          },
+          {
+            "internalType": "bool",
+            "name": "allowOperatorsToSpendPartyEth",
+            "type": "bool"
+          },
+          {
+            "internalType": "bool",
+            "name": "distributionsRequireVote",
+            "type": "bool"
+          }
+        ],
+        "internalType": "struct ProposalStorage.ProposalEngineOpts",
+        "name": "proposalEngineOpts",
         "type": "tuple"
       },
       {
@@ -995,6 +1069,16 @@
       {
         "components": [
           {
+            "internalType": "contract Party",
+            "name": "partyImpl",
+            "type": "address"
+          },
+          {
+            "internalType": "contract IPartyFactory",
+            "name": "partyFactory",
+            "type": "address"
+          },
+          {
             "internalType": "address[]",
             "name": "hosts",
             "type": "address[]"
@@ -1027,6 +1111,33 @@
         ],
         "internalType": "struct Crowdfund.FixedGovernanceOpts",
         "name": "governanceOpts",
+        "type": "tuple"
+      },
+      {
+        "components": [
+          {
+            "internalType": "bool",
+            "name": "enableAddAuthorityProposal",
+            "type": "bool"
+          },
+          {
+            "internalType": "bool",
+            "name": "allowArbCallsToSpendPartyEth",
+            "type": "bool"
+          },
+          {
+            "internalType": "bool",
+            "name": "allowOperatorsToSpendPartyEth",
+            "type": "bool"
+          },
+          {
+            "internalType": "bool",
+            "name": "distributionsRequireVote",
+            "type": "bool"
+          }
+        ],
+        "internalType": "struct ProposalStorage.ProposalEngineOpts",
+        "name": "proposalEngineOpts",
         "type": "tuple"
       },
       {
@@ -1094,6 +1205,16 @@
       {
         "components": [
           {
+            "internalType": "contract Party",
+            "name": "partyImpl",
+            "type": "address"
+          },
+          {
+            "internalType": "contract IPartyFactory",
+            "name": "partyFactory",
+            "type": "address"
+          },
+          {
             "internalType": "address[]",
             "name": "hosts",
             "type": "address[]"
@@ -1126,6 +1247,33 @@
         ],
         "internalType": "struct Crowdfund.FixedGovernanceOpts",
         "name": "governanceOpts",
+        "type": "tuple"
+      },
+      {
+        "components": [
+          {
+            "internalType": "bool",
+            "name": "enableAddAuthorityProposal",
+            "type": "bool"
+          },
+          {
+            "internalType": "bool",
+            "name": "allowArbCallsToSpendPartyEth",
+            "type": "bool"
+          },
+          {
+            "internalType": "bool",
+            "name": "allowOperatorsToSpendPartyEth",
+            "type": "bool"
+          },
+          {
+            "internalType": "bool",
+            "name": "distributionsRequireVote",
+            "type": "bool"
+          }
+        ],
+        "internalType": "struct ProposalStorage.ProposalEngineOpts",
+        "name": "proposalEngineOpts",
         "type": "tuple"
       }
     ],
@@ -1143,27 +1291,49 @@
   {
     "inputs": [
       {
-        "internalType": "uint256",
-        "name": "nextNftTokenId",
-        "type": "uint256"
-      },
-      {
-        "internalType": "uint256",
-        "name": "nextAuctionId",
-        "type": "uint256"
-      },
-      {
-        "internalType": "uint96",
-        "name": "nextMaximumBid",
-        "type": "uint96"
-      },
-      {
-        "internalType": "bytes32[]",
-        "name": "proof",
-        "type": "bytes32[]"
+        "components": [
+          {
+            "internalType": "uint256",
+            "name": "nextNftTokenId",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "nextAuctionId",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint96",
+            "name": "nextMaximumBid",
+            "type": "uint96"
+          },
+          {
+            "internalType": "bytes32[]",
+            "name": "proof",
+            "type": "bytes32[]"
+          },
+          {
+            "internalType": "uint256",
+            "name": "hostIndex",
+            "type": "uint256"
+          }
+        ],
+        "internalType": "struct RollingAuctionCrowdfund.RollOverArgs",
+        "name": "args",
+        "type": "tuple"
       },
       {
         "components": [
+          {
+            "internalType": "contract Party",
+            "name": "partyImpl",
+            "type": "address"
+          },
+          {
+            "internalType": "contract IPartyFactory",
+            "name": "partyFactory",
+            "type": "address"
+          },
           {
             "internalType": "address[]",
             "name": "hosts",
@@ -1200,9 +1370,31 @@
         "type": "tuple"
       },
       {
-        "internalType": "uint256",
-        "name": "hostIndex",
-        "type": "uint256"
+        "components": [
+          {
+            "internalType": "bool",
+            "name": "enableAddAuthorityProposal",
+            "type": "bool"
+          },
+          {
+            "internalType": "bool",
+            "name": "allowArbCallsToSpendPartyEth",
+            "type": "bool"
+          },
+          {
+            "internalType": "bool",
+            "name": "allowOperatorsToSpendPartyEth",
+            "type": "bool"
+          },
+          {
+            "internalType": "bool",
+            "name": "distributionsRequireVote",
+            "type": "bool"
+          }
+        ],
+        "internalType": "struct ProposalStorage.ProposalEngineOpts",
+        "name": "proposalEngineOpts",
+        "type": "tuple"
       }
     ],
     "name": "finalizeOrRollOver",
@@ -1309,19 +1501,6 @@
     "type": "function"
   },
   {
-    "inputs": [],
-    "name": "governanceOptsHash",
-    "outputs": [
-      {
-        "internalType": "bytes32",
-        "name": "",
-        "type": "bytes32"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
     "inputs": [
       {
         "components": [
@@ -1416,12 +1595,17 @@
             "type": "bool"
           },
           {
-            "internalType": "bytes32",
-            "name": "allowedAuctionsMerkleRoot",
-            "type": "bytes32"
-          },
-          {
             "components": [
+              {
+                "internalType": "contract Party",
+                "name": "partyImpl",
+                "type": "address"
+              },
+              {
+                "internalType": "contract IPartyFactory",
+                "name": "partyFactory",
+                "type": "address"
+              },
               {
                 "internalType": "address[]",
                 "name": "hosts",
@@ -1456,11 +1640,43 @@
             "internalType": "struct Crowdfund.FixedGovernanceOpts",
             "name": "governanceOpts",
             "type": "tuple"
+          },
+          {
+            "components": [
+              {
+                "internalType": "bool",
+                "name": "enableAddAuthorityProposal",
+                "type": "bool"
+              },
+              {
+                "internalType": "bool",
+                "name": "allowArbCallsToSpendPartyEth",
+                "type": "bool"
+              },
+              {
+                "internalType": "bool",
+                "name": "allowOperatorsToSpendPartyEth",
+                "type": "bool"
+              },
+              {
+                "internalType": "bool",
+                "name": "distributionsRequireVote",
+                "type": "bool"
+              }
+            ],
+            "internalType": "struct ProposalStorage.ProposalEngineOpts",
+            "name": "proposalEngineOpts",
+            "type": "tuple"
           }
         ],
-        "internalType": "struct RollingAuctionCrowdfund.RollingAuctionCrowdfundOptions",
+        "internalType": "struct AuctionCrowdfundBase.AuctionCrowdfundOptions",
         "name": "opts",
         "type": "tuple"
+      },
+      {
+        "internalType": "bytes32",
+        "name": "allowedAuctionsMerkleRoot_",
+        "type": "bytes32"
       }
     ],
     "name": "initialize",
@@ -1670,6 +1886,19 @@
         "internalType": "contract Party",
         "name": "",
         "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "partyOptsHash",
+    "outputs": [
+      {
+        "internalType": "bytes32",
+        "name": "",
+        "type": "bytes32"
       }
     ],
     "stateMutability": "view",

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0
-pragma solidity 0.8.17;
+pragma solidity 0.8.20;
 
 import "../tokens/IERC721.sol";
 import "../party/Party.sol";
@@ -56,6 +56,9 @@ contract CollectionBuyCrowdfund is BuyCrowdfundBase {
         // Fixed governance options (i.e. cannot be changed) that the governance
         // `Party` will be created with if the crowdfund succeeds.
         FixedGovernanceOpts governanceOpts;
+        // Options for the proposal engine that the governance `Party` will be
+        // created with if the crowdfund succeeds.
+        ProposalStorage.ProposalEngineOpts proposalEngineOpts;
     }
 
     /// @notice The NFT contract to buy.
@@ -89,7 +92,8 @@ contract CollectionBuyCrowdfund is BuyCrowdfundBase {
                 maxContribution: opts.maxContribution,
                 gateKeeper: opts.gateKeeper,
                 gateKeeperId: opts.gateKeeperId,
-                governanceOpts: opts.governanceOpts
+                governanceOpts: opts.governanceOpts,
+                proposalEngineOpts: opts.proposalEngineOpts
             })
         );
         nftContract = opts.nftContract;
@@ -103,6 +107,9 @@ contract CollectionBuyCrowdfund is BuyCrowdfundBase {
     /// @param callData The calldata to execute.
     /// @param governanceOpts The options used to initialize governance in the
     ///                       `Party` instance created if the buy was successful.
+    /// @param proposalEngineOpts The options used to initialize the proposal
+    ///                           engine in the `Party` instance created if the
+    ///                           crowdfund wins.
     /// @param hostIndex This is the index of the caller in the `governanceOpts.hosts` array.
     /// @return party_ Address of the `Party` instance created after its bought.
     function buy(
@@ -111,10 +118,11 @@ contract CollectionBuyCrowdfund is BuyCrowdfundBase {
         uint96 callValue,
         bytes memory callData,
         FixedGovernanceOpts memory governanceOpts,
+        ProposalStorage.ProposalEngineOpts memory proposalEngineOpts,
         uint256 hostIndex
     ) external onlyDelegateCall returns (Party party_) {
         // This function is always restricted to hosts.
-        _assertIsHost(msg.sender, governanceOpts, hostIndex);
+        _assertIsHost(msg.sender, governanceOpts, proposalEngineOpts, hostIndex);
 
         {
             // Ensure that the crowdfund is still active.
@@ -150,6 +158,7 @@ contract CollectionBuyCrowdfund is BuyCrowdfundBase {
                 tokenId,
                 callValue,
                 governanceOpts,
+                proposalEngineOpts,
                 // If `_assertIsHost()` succeeded, the governance opts were validated.
                 true
             );

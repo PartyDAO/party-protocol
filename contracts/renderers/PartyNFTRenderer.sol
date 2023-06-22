@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: GPL-3.0
-pragma solidity 0.8.17;
+pragma solidity 0.8.20;
 
 import "../utils/LibSafeCast.sol";
 import "../utils/vendor/Strings.sol";
 import "../utils/vendor/Base64.sol";
 
 import "./RendererBase.sol";
-import "./MetadataRegistry.sol";
+import "./IMetadataRegistry1_1.sol";
 import "../party/PartyGovernance.sol";
 import "../party/PartyGovernanceNFT.sol";
 import "../distribution/TokenDistributor.sol";
@@ -25,6 +25,11 @@ contract PartyNFTRenderer is RendererBase {
 
     uint256 constant PARTY_CARD_DATA = 1;
 
+    IMetadataRegistry1_1 constant OLD_METADATA_REGISTRY =
+        IMetadataRegistry1_1(0x175487875F0318EdbAB54BBA442fF53b36e96015);
+    address constant PARTYSTAR_PARTY_ADDRESS = 0x118928CCAc2035B578ae2D35FBFc2c120B6c4B82;
+    address constant PARTYSTAR_CROWDFUND_ADDRESS = 0x0Bf08f7b6474C2aCCB9b9e325acb6FbcC682dE82;
+
     constructor(
         IGlobals globals,
         RendererStorage rendererStorage,
@@ -40,51 +45,6 @@ contract PartyNFTRenderer is RendererBase {
     }
 
     function contractURI() external view override returns (string memory) {
-        // Check if party has a custom token URI set.
-        {
-            MetadataRegistry metadataRegistry = MetadataRegistry(
-                _GLOBALS.getAddress(LibGlobals.GLOBAL_METADATA_REGISTRY)
-            );
-
-            (
-                string memory customName,
-                string memory customDescription,
-                string memory customImage,
-                string memory customBanner
-            ) = metadataRegistry.customPartyCollectionMetadataByCrowdfund(
-                    // Get the crowdfund that created this party.
-                    Crowdfund(PartyGovernanceNFT(address(this)).mintAuthority())
-                );
-
-            // If the party has a custom token URI set, return it.
-            if (
-                bytes(customName).length > 0 &&
-                bytes(customDescription).length > 0 &&
-                bytes(customImage).length > 0 &&
-                bytes(customBanner).length > 0
-            ) {
-                return
-                    string.concat(
-                        "data:application/json;base64,",
-                        Base64.encode(
-                            abi.encodePacked(
-                                '{"name":"',
-                                customName,
-                                '", "description":"',
-                                customDescription,
-                                '", "external_url":"',
-                                generateExternalURL(),
-                                '", "image":"',
-                                customImage,
-                                '", "banner":"',
-                                customBanner,
-                                '"}'
-                            )
-                        )
-                    );
-            }
-        }
-
         (bool isDarkMode, Color color) = getCustomizationChoices();
         (string memory image, string memory banner) = getCollectionImageAndBanner(
             color,
@@ -113,119 +73,161 @@ contract PartyNFTRenderer is RendererBase {
     }
 
     function tokenURI(uint256 tokenId) external view returns (string memory) {
-        if (PartyGovernance(address(this)).ownerOf(tokenId) == address(0)) {
+        if (PartyGovernanceNFT(address(this)).ownerOf(tokenId) == address(0)) {
             revert InvalidTokenIdError();
         }
 
-        // Check if party has a custom token URI set.
-        {
-            MetadataRegistry metadataRegistry = MetadataRegistry(
-                _GLOBALS.getAddress(LibGlobals.GLOBAL_METADATA_REGISTRY)
-            );
+        // Add backward compatibility for rendering custom metadata for
+        // Partystar party using old `MetadataRegistry` contract.
+        if (address(this) == PARTYSTAR_PARTY_ADDRESS) {
+            (
+                string memory customName,
+                string memory customDescription,
+                string memory customImage
+            ) = OLD_METADATA_REGISTRY.customPartyMetadataByCrowdfund(PARTYSTAR_CROWDFUND_ADDRESS);
 
-            (string memory customName, string memory customDescription, string memory customImage) = metadataRegistry
-                .customPartyMetadataByCrowdfund(
-                    // Get the crowdfund that created this party.
-                    Crowdfund(PartyGovernanceNFT(address(this)).mintAuthority())
-                );
-
-            // If the party has a custom token URI set, return it.
-            if (
-                bytes(customName).length > 0 &&
-                bytes(customDescription).length > 0 &&
-                bytes(customImage).length > 0
-            ) {
-                return
-                    string.concat(
-                        "data:application/json;base64,",
-                        Base64.encode(
-                            abi.encodePacked(
-                                '{"name":"',
-                                string.concat(customName, " #", tokenId.toString()),
-                                '", "description":"',
-                                customDescription,
-                                '", "external_url":"',
-                                generateExternalURL(),
-                                '", "attributes": [',
-                                generateAttributes(tokenId),
-                                '], "image":"',
-                                customImage,
-                                '"}'
-                            )
+            return
+                string.concat(
+                    "data:application/json;base64,",
+                    Base64.encode(
+                        abi.encodePacked(
+                            '{"name":"',
+                            string.concat(customName, " #", tokenId.toString()),
+                            '", "description":"',
+                            customDescription,
+                            '", "external_url":"',
+                            generateExternalURL(),
+                            '", "attributes": [',
+                            generateAttributes(tokenId),
+                            '], "image":"',
+                            customImage,
+                            '"}'
                         )
-                    );
-            }
+                    )
+                );
         }
 
         // Get the customization data for this crowdfund.
         (bool isDarkMode, Color color) = getCustomizationChoices();
 
         // Construct metadata.
-        return
-            string.concat(
-                "data:application/json;base64,",
-                Base64.encode(
-                    abi.encodePacked(
-                        '{"name":"',
-                        generateName(tokenId),
-                        '", "description":"',
-                        generateDescription(PartyGovernanceNFT(address(this)).name(), tokenId),
-                        '", "external_url":"',
-                        generateExternalURL(),
-                        '", "attributes": [',
-                        generateAttributes(tokenId),
-                        '], "image":"',
-                        generateSVG(
-                            PartyGovernanceNFT(address(this)).name(),
-                            generateVotingPowerPercentage(tokenId),
-                            getLatestProposalStatuses(),
-                            PartyGovernance(address(this)).lastProposalId(),
-                            tokenId,
-                            hasUnclaimedDistribution(tokenId),
-                            color,
-                            isDarkMode
-                        ),
-                        '"}'
+        if (hasPartyStarted()) {
+            return
+                string.concat(
+                    "data:application/json;base64,",
+                    Base64.encode(
+                        abi.encodePacked(
+                            '{"name":"',
+                            generateName(tokenId),
+                            '", "description":"',
+                            generateDescription(PartyGovernanceNFT(address(this)).name(), tokenId),
+                            '", "external_url":"',
+                            generateExternalURL(),
+                            '", "attributes": [',
+                            generateAttributes(tokenId),
+                            '], "image":"',
+                            generateSVG(
+                                PartyGovernanceNFT(address(this)).name(),
+                                generateVotingPowerPercentage(tokenId),
+                                getLatestProposalStatuses(),
+                                PartyGovernance(address(this)).lastProposalId(),
+                                tokenId,
+                                hasUnclaimedDistribution(tokenId),
+                                color,
+                                isDarkMode
+                            ),
+                            '"}'
+                        )
                     )
-                )
-            );
+                );
+        } else {
+            return
+                string.concat(
+                    "data:application/json;base64,",
+                    Base64.encode(
+                        abi.encodePacked(
+                            '{"name":"',
+                            generateName(tokenId),
+                            '", "description":"',
+                            generateDescription(PartyGovernanceNFT(address(this)).name(), tokenId),
+                            '", "external_url":"',
+                            generateExternalURL(),
+                            '", "image":"',
+                            generateSVG(
+                                PartyGovernanceNFT(address(this)).name(),
+                                generateVotingPowerPercentage(tokenId),
+                                getLatestProposalStatuses(),
+                                PartyGovernance(address(this)).lastProposalId(),
+                                tokenId,
+                                hasUnclaimedDistribution(tokenId),
+                                color,
+                                isDarkMode
+                            ),
+                            '"}'
+                        )
+                    )
+                );
+        }
     }
 
     function generateName(uint256 tokenId) private view returns (string memory) {
-        return string.concat(generateVotingPowerPercentage(tokenId), "% Voting Power");
+        if (hasPartyStarted()) {
+            return string.concat(generateVotingPowerPercentage(tokenId), "% Voting Power");
+        } else {
+            return "Party Membership";
+        }
     }
 
     function generateExternalURL() private view returns (string memory) {
-        return string.concat("https://partybid.app/party/", address(this).toHexString());
+        return string.concat("https://party.app/party/", address(this).toHexString());
     }
 
     function generateDescription(
         string memory partyName,
         uint256 tokenId
     ) private view returns (string memory) {
-        return
-            string.concat(
-                "This Party Card represents ",
-                generateVotingPowerPercentage(tokenId),
-                "% voting power in ",
-                partyName,
-                ". Head to ",
-                generateExternalURL(),
-                " to view the Party's latest activity."
-            );
+        if (hasPartyStarted()) {
+            return
+                string.concat(
+                    "This membership represents ",
+                    generateVotingPowerPercentage(tokenId),
+                    "% voting power in ",
+                    partyName,
+                    ". Head to ",
+                    generateExternalURL(),
+                    " to view the Party's latest activity."
+                );
+        } else {
+            return
+                string.concat(
+                    "This item represents membership in ",
+                    partyName,
+                    ". Exact voting power will be determined when the crowdfund ends. Head to ",
+                    generateExternalURL(),
+                    " to view the Party's latest activity."
+                );
+        }
     }
 
     function generateAttributes(uint256 tokenId) private view returns (string memory) {
+        string memory votingPowerPercentage = generateVotingPowerPercentage(tokenId);
+
+        if (
+            keccak256(abi.encodePacked(votingPowerPercentage)) == keccak256(abi.encodePacked("--"))
+        ) {
+            votingPowerPercentage = "0";
+        }
+
         return
             string.concat(
                 '{"trait_type":"Voting Power", "value":',
-                generateVotingPowerPercentage(tokenId),
+                votingPowerPercentage,
                 ', "max_value":100}'
             );
     }
 
     function generateCollectionName() internal view returns (string memory) {
-        return string.concat("Party Cards: ", PartyGovernanceNFT(address(this)).name());
+        return string.concat("Party Memberships: ", PartyGovernanceNFT(address(this)).name());
     }
 
     function generateCollectionDescription() internal view returns (string memory) {
@@ -433,8 +435,16 @@ contract PartyNFTRenderer is RendererBase {
     }
 
     function generateVotingPowerPercentage(uint256 tokenId) private view returns (string memory) {
-        uint256 intrinsicVotingPowerPercentage = PartyGovernance(address(this))
-            .getDistributionShareOf(tokenId);
+        Party party = Party(payable(address(this)));
+        uint256 totalVotingPower = party.getGovernanceValues().totalVotingPower;
+
+        if (totalVotingPower == 0) {
+            return "--";
+        }
+
+        uint256 intrinsicVotingPowerPercentage = (party.votingPowerByTokenId(tokenId) * 1e18) /
+            totalVotingPower;
+
         if (intrinsicVotingPowerPercentage == 1e18) {
             return "100";
         } else if (intrinsicVotingPowerPercentage < 0.1e18) {
@@ -449,28 +459,72 @@ contract PartyNFTRenderer is RendererBase {
         view
         returns (PartyGovernance.ProposalStatus[4] memory proposalStatuses)
     {
+        uint16 versionId = getPartyVersion();
         uint256 latestProposalId = PartyGovernance(address(this)).lastProposalId();
         uint256 numOfProposalsToDisplay = latestProposalId < 4 ? latestProposalId : 4;
         for (uint256 i; i < numOfProposalsToDisplay; ++i) {
             uint256 proposalId = latestProposalId - i;
-            (PartyGovernance.ProposalStatus status, ) = PartyGovernance(address(this))
-                .getProposalStateInfo(proposalId);
-            proposalStatuses[i] = status;
+
+            uint16 status;
+            if (versionId == 0) {
+                IParty1_1.ProposalStatus proposalStatus;
+                (proposalStatus, ) = IParty1_1(address(this)).getProposalStateInfo(proposalId);
+                status = uint16(proposalStatus);
+            } else {
+                PartyGovernance.ProposalStatus proposalStatus;
+                (proposalStatus, ) = PartyGovernance(address(this)).getProposalStateInfo(
+                    proposalId
+                );
+                status = uint16(proposalStatus);
+            }
+
+            proposalStatuses[i] = PartyGovernance.ProposalStatus(status);
         }
     }
 
+    function getPartyVersion() private view returns (uint16) {
+        (bool success, bytes memory response) = address(this).staticcall(
+            abi.encodeCall(Party(payable(address(this))).VERSION_ID, ())
+        );
+
+        if (!success) return 0;
+
+        return abi.decode(response, (uint16));
+    }
+
     function hasUnclaimedDistribution(uint256 tokenId) private view returns (bool) {
-        TokenDistributor distributor = TokenDistributor(
+        TokenDistributor[] memory distributors = new TokenDistributor[](2);
+        distributors[0] = TokenDistributor(
             _GLOBALS.getAddress(LibGlobals.GLOBAL_TOKEN_DISTRIBUTOR)
         );
-        ITokenDistributorParty party = ITokenDistributorParty(address(this));
-        uint256 lastDistributionId = distributor.lastDistributionIdPerParty(party);
-        for (uint256 distributionId = 1; distributionId <= lastDistributionId; ++distributionId) {
-            if (!distributor.hasPartyTokenIdClaimed(party, tokenId, distributionId)) {
-                return true;
+        // Address of the old token distributor contract.
+        distributors[1] = TokenDistributor(0x1CA2007a81F8A7491BB6E11D8e357FD810896454);
+
+        Party party = Party(payable(address(this)));
+        for (uint256 i; i < distributors.length; ++i) {
+            TokenDistributor distributor = distributors[i];
+            uint256 lastDistributionId = distributor.lastDistributionIdPerParty(party);
+
+            for (
+                uint256 distributionId = 1;
+                distributionId <= lastDistributionId;
+                ++distributionId
+            ) {
+                if (!distributor.hasPartyTokenIdClaimed(party, tokenId, distributionId)) {
+                    return true;
+                }
             }
         }
+
         return false;
+    }
+
+    function hasPartyStarted() private view returns (bool) {
+        uint256 totalVotingPower = PartyGovernance(address(this))
+            .getGovernanceValues()
+            .totalVotingPower;
+
+        return totalVotingPower != 0;
     }
 
     function calcAnimationVariables(
