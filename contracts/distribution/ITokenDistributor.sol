@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0
-pragma solidity 0.8.17;
+pragma solidity 0.8.20;
 
 import "../tokens/IERC20.sol";
 
-import "./ITokenDistributorParty.sol";
+import "../party/Party.sol";
 
 /// @notice Creates token distributions for parties.
 interface ITokenDistributor {
@@ -19,7 +19,7 @@ interface ITokenDistributor {
         // ID of the distribution. Assigned by createDistribution().
         uint256 distributionId;
         // The party whose members can claim the distribution.
-        ITokenDistributorParty party;
+        Party party;
         // Who can claim `fee`.
         address payable feeRecipient;
         // The token being distributed.
@@ -28,18 +28,20 @@ interface ITokenDistributor {
         uint128 memberSupply;
         // Amount of `token` to be redeemed by `feeRecipient`.
         uint128 fee;
+        // Total shares at time distribution was created.
+        uint96 totalShares;
     }
 
-    event DistributionCreated(ITokenDistributorParty indexed party, DistributionInfo info);
+    event DistributionCreated(Party indexed party, DistributionInfo info);
     event DistributionFeeClaimed(
-        ITokenDistributorParty indexed party,
+        Party indexed party,
         address indexed feeRecipient,
         TokenType tokenType,
         address token,
         uint256 amount
     );
     event DistributionClaimedByPartyToken(
-        ITokenDistributorParty indexed party,
+        Party indexed party,
         uint256 indexed partyTokenId,
         address indexed owner,
         TokenType tokenType,
@@ -57,7 +59,7 @@ interface ITokenDistributor {
     /// @param feeBps Percentage (in bps) of the distribution `feeRecipient` receives.
     /// @return info Information on the created distribution.
     function createNativeDistribution(
-        ITokenDistributorParty party,
+        Party party,
         address payable feeRecipient,
         uint16 feeBps
     ) external payable returns (DistributionInfo memory info);
@@ -74,7 +76,7 @@ interface ITokenDistributor {
     /// @return info Information on the created distribution.
     function createErc20Distribution(
         IERC20 token,
-        ITokenDistributorParty party,
+        Party party,
         address payable feeRecipient,
         uint16 feeBps
     ) external returns (DistributionInfo memory info);
@@ -115,13 +117,11 @@ interface ITokenDistributor {
 
     /// @notice Compute the amount of a distribution's token are owed to a party
     ///         member, identified by the `partyTokenId`.
-    /// @param party The party to use for computing the claim amount.
-    /// @param memberSupply Total amount of tokens that can be claimed in the distribution.
+    /// @param info Information on the distribution being claimed.
     /// @param partyTokenId The ID of the party token to claim for.
     /// @return claimAmount The amount of the distribution owed to the party member.
     function getClaimAmount(
-        ITokenDistributorParty party,
-        uint256 memberSupply,
+        DistributionInfo calldata info,
         uint256 partyTokenId
     ) external view returns (uint128);
 
@@ -129,10 +129,7 @@ interface ITokenDistributor {
     /// @param party The party to use for checking whether the fee has been claimed.
     /// @param distributionId The ID of the distribution to check.
     /// @return feeClaimed Whether the fee has been claimed.
-    function wasFeeClaimed(
-        ITokenDistributorParty party,
-        uint256 distributionId
-    ) external view returns (bool);
+    function wasFeeClaimed(Party party, uint256 distributionId) external view returns (bool);
 
     /// @notice Check whether a `partyTokenId` has claimed their share of a distribution.
     /// @param party The party to use for checking whether the `partyTokenId` has claimed.
@@ -140,7 +137,7 @@ interface ITokenDistributor {
     /// @param distributionId The ID of the distribution to check.
     /// @return hasClaimed Whether the `partyTokenId` has claimed.
     function hasPartyTokenIdClaimed(
-        ITokenDistributorParty party,
+        Party party,
         uint256 partyTokenId,
         uint256 distributionId
     ) external view returns (bool);
@@ -150,7 +147,7 @@ interface ITokenDistributor {
     /// @param distributionId The ID of the distribution to check.
     /// @return remainingMemberSupply The amount of distribution supply remaining.
     function getRemainingMemberSupply(
-        ITokenDistributorParty party,
+        Party party,
         uint256 distributionId
     ) external view returns (uint128);
 }

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0
-pragma solidity 0.8.17;
+pragma solidity 0.8.20;
 
 import "../utils/LibSafeCast.sol";
 import "../utils/vendor/Strings.sol";
@@ -7,6 +7,8 @@ import "../utils/vendor/Base64.sol";
 
 import "./RendererBase.sol";
 import "../crowdfund/Crowdfund.sol";
+import "../crowdfund/ReraiseETHCrowdfund.sol";
+import "../crowdfund/ETHCrowdfundBase.sol";
 
 contract CrowdfundNFTRenderer is RendererBase {
     using LibSafeCast for uint256;
@@ -19,6 +21,11 @@ contract CrowdfundNFTRenderer is RendererBase {
         LIVE,
         WON,
         LOST
+    }
+
+    enum CrowdfundType {
+        NFT,
+        ETH
     }
 
     uint256 constant CROWDFUND_CARD_DATA = 0;
@@ -97,7 +104,7 @@ contract CrowdfundNFTRenderer is RendererBase {
     }
 
     function generateExternalURL() private view returns (string memory) {
-        return string.concat("https://partybid.app/join/", address(this).toHexString());
+        return string.concat("https://party.app/join/", address(this).toHexString());
     }
 
     function generateDescription(
@@ -112,7 +119,7 @@ contract CrowdfundNFTRenderer is RendererBase {
             return
                 string.concat(
                     partyName,
-                    " has won! You can use this Party Card to activate your membership in the Party. Head to ",
+                    " has won! You can use this item to activate your membership in the Party. Head to ",
                     externalURL,
                     " to activate."
                 );
@@ -120,18 +127,18 @@ contract CrowdfundNFTRenderer is RendererBase {
             return
                 string.concat(
                     partyName,
-                    " has lost. You can use this Party Card to claim your ETH back from the Party. Head to ",
+                    " has lost. You can use this item to claim your ETH back from the Party. Head to ",
                     externalURL,
                     " to claim."
                 );
         } else {
             return
                 string.concat(
-                    "This Party Card represents your contribution of ",
+                    "This item represents your contribution of ",
                     contribution,
                     " ETH to the ",
                     partyName,
-                    " crowdfund. When the crowdfund concludes, you can use this Party Card to claim your ETH or activate your membership in the Party. During the crowdfund, Party Cards are non-transferable. Head to ",
+                    " crowdfund. When the crowdfund concludes, you can use this item to claim your ETH or activate your membership in the Party. During the crowdfund, this item is non-transferable. Head to ",
                     externalURL,
                     " to see more."
                 );
@@ -282,23 +289,62 @@ contract CrowdfundNFTRenderer is RendererBase {
     }
 
     function getContribution(address owner) private view returns (string memory amount) {
-        (uint256 ethContributed, , , ) = Crowdfund(address(this)).getContributorInfo(owner);
+        uint256 ethContributed;
+        if (getCrowdfundType() == CrowdfundType.NFT) {
+            (ethContributed, , , ) = Crowdfund(address(this)).getContributorInfo(owner);
+        } else {
+            uint96 votingPower = ReraiseETHCrowdfund(address(this)).pendingVotingPower(owner);
+
+            ethContributed = ReraiseETHCrowdfund(address(this)).convertVotingPowerToContribution(
+                votingPower
+            );
+        }
+
         return formatAsDecimalString(ethContributed, 18, 4);
     }
 
     function getCrowdfundStatus() private view returns (CrowdfundStatus) {
-        Crowdfund.CrowdfundLifecycle lifecycle = Crowdfund(payable(address(this)))
-            .getCrowdfundLifecycle();
+        if (getCrowdfundType() == CrowdfundType.NFT) {
+            Crowdfund.CrowdfundLifecycle lifecycle = Crowdfund(payable(address(this)))
+                .getCrowdfundLifecycle();
 
-        if (lifecycle == Crowdfund.CrowdfundLifecycle.Won) {
-            return CrowdfundStatus.WON;
-        } else if (
-            lifecycle == Crowdfund.CrowdfundLifecycle.Lost ||
-            lifecycle == Crowdfund.CrowdfundLifecycle.Expired
-        ) {
-            return CrowdfundStatus.LOST;
+            if (lifecycle == Crowdfund.CrowdfundLifecycle.Won) {
+                return CrowdfundStatus.WON;
+            } else if (
+                lifecycle == Crowdfund.CrowdfundLifecycle.Lost ||
+                lifecycle == Crowdfund.CrowdfundLifecycle.Expired
+            ) {
+                return CrowdfundStatus.LOST;
+            } else {
+                return CrowdfundStatus.LIVE;
+            }
         } else {
-            return CrowdfundStatus.LIVE;
+            ETHCrowdfundBase.CrowdfundLifecycle lifecycle = ETHCrowdfundBase(payable(address(this)))
+                .getCrowdfundLifecycle();
+
+            if (
+                lifecycle == ETHCrowdfundBase.CrowdfundLifecycle.Won ||
+                lifecycle == ETHCrowdfundBase.CrowdfundLifecycle.Finalized
+            ) {
+                return CrowdfundStatus.WON;
+            } else if (lifecycle == ETHCrowdfundBase.CrowdfundLifecycle.Lost) {
+                return CrowdfundStatus.LOST;
+            } else {
+                return CrowdfundStatus.LIVE;
+            }
+        }
+    }
+
+    function getCrowdfundType() private view returns (CrowdfundType) {
+        // If this function does not exist, then it is an NFT crowdfund.
+        (bool success, bytes memory res) = address(this).staticcall(
+            abi.encodeWithSignature("exchangeRateBps()")
+        );
+
+        if (success && res.length == 32) {
+            return CrowdfundType.ETH;
+        } else {
+            return CrowdfundType.NFT;
         }
     }
 

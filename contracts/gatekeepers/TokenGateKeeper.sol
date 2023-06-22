@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0
-pragma solidity 0.8.17;
+pragma solidity 0.8.20;
 
 import { IGateKeeper } from "./IGateKeeper.sol";
 
@@ -38,7 +38,7 @@ contract TokenGateKeeper is IGateKeeper {
     }
 
     /// @notice Creates a gate that requires a minimum balance of a token.
-    /// @param  token The token address (eg. ERC20 or ERC721).
+    /// @param  token The token address (e.g. ERC20 or ERC721).
     /// @param  minimumBalance The minimum balance allowed for participation.
     /// @return id The ID of the new gate.
     function createGate(Token token, uint256 minimumBalance) external returns (bytes12 id) {

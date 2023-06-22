@@ -18,6 +18,10 @@ const RELEVANT_ABIS = [
   "RendererStorage",
   "PartyNFTRenderer",
   "CrowdfundNFTRenderer",
+  "InitialETHCrowdfund",
+  "ReraiseETHCrowdfund",
+  "CollectionBatchBuyOperator",
+  "PixeldroidConsoleFont",
   "Globals",
 ];
 
@@ -26,6 +30,7 @@ const camelCaseToUnderscoreCase = (camelCaseString: string) => {
   return camelCaseString
     .replace("NFT", "Nft")
     .replace("ERC", "Erc")
+    .replace("ETH", "Eth")
     .split(/\.?(?=[A-Z])/)
     .join("_")
     .toLowerCase();

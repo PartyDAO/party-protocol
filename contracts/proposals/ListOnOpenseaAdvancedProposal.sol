@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0
-pragma solidity 0.8.17;
+pragma solidity 0.8.20;
 
 import "../globals/IGlobals.sol";
 import "../globals/LibGlobals.sol";
@@ -108,22 +108,12 @@ abstract contract ListOnOpenseaAdvancedProposal is OpenseaHelpers, ZoraHelpers {
     );
     event OpenseaOrderExpired(bytes32 orderHash, address token, uint256 tokenId, uint256 expiry);
 
-    /// @notice The Seaport contract.
-    IOpenseaExchange public immutable SEAPORT;
-    /// @notice The Seaport conduit controller.
-    IOpenseaConduitController public immutable CONDUIT_CONTROLLER;
     // The `Globals` contract storing global configuration values. This contract
     // is immutable and it’s address will never change.
     IGlobals private immutable _GLOBALS;
 
     // Set immutables.
-    constructor(
-        IGlobals globals,
-        IOpenseaExchange seaport,
-        IOpenseaConduitController conduitController
-    ) {
-        SEAPORT = seaport;
-        CONDUIT_CONTROLLER = conduitController;
+    constructor(IGlobals globals) {
         _GLOBALS = globals;
     }
 
@@ -332,7 +322,8 @@ abstract contract ListOnOpenseaAdvancedProposal is OpenseaHelpers, ZoraHelpers {
         }
         orderHash = _getOrderHash(orderParams);
         // Validate the order on-chain so no signature is required to fill it.
-        assert(SEAPORT.validate(orders));
+        IOpenseaExchange seaport = IOpenseaExchange(_GLOBALS.getAddress(LibGlobals.GLOBAL_SEAPORT));
+        assert(seaport.validate(orders));
         // Emit an event based on the type of listing.
         if (data.tokenType == TokenType.ERC721 && data.startPrice == data.endPrice) {
             emit OpenseaOrderListed(
@@ -364,7 +355,10 @@ abstract contract ListOnOpenseaAdvancedProposal is OpenseaHelpers, ZoraHelpers {
         // Get the OpenSea conduit key.
         conduitKey = _GLOBALS.getBytes32(LibGlobals.GLOBAL_OPENSEA_CONDUIT_KEY);
         // Get conduit.
-        (conduit, ) = CONDUIT_CONTROLLER.getConduit(conduitKey);
+        IOpenseaConduitController conduitController = IOpenseaConduitController(
+            _GLOBALS.getAddress(LibGlobals.GLOBAL_CONDUIT_CONTROLLER)
+        );
+        (conduit, ) = conduitController.getConduit(conduitKey);
         // Approve OpenSea's conduit to spend our NFT. This should revert if we
         // do not own the NFT.
         if (tokenType == TokenType.ERC721) {
@@ -391,7 +385,8 @@ abstract contract ListOnOpenseaAdvancedProposal is OpenseaHelpers, ZoraHelpers {
         assembly {
             orderComps := orderParams
         }
-        orderHash = SEAPORT.getOrderHash(orderComps);
+        IOpenseaExchange seaport = IOpenseaExchange(_GLOBALS.getAddress(LibGlobals.GLOBAL_SEAPORT));
+        orderHash = seaport.getOrderHash(orderComps);
         orderParams.totalOriginalConsiderationItems = origTotalOriginalConsiderationItems;
     }
 
@@ -405,7 +400,8 @@ abstract contract ListOnOpenseaAdvancedProposal is OpenseaHelpers, ZoraHelpers {
         uint256 startPrice,
         uint256 endPrice
     ) private {
-        (, , uint256 totalFilled, ) = SEAPORT.getOrderStatus(orderHash);
+        IOpenseaExchange seaport = IOpenseaExchange(_GLOBALS.getAddress(LibGlobals.GLOBAL_SEAPORT));
+        (, , uint256 totalFilled, ) = seaport.getOrderStatus(orderHash);
         if (totalFilled != 0) {
             // The order was filled before it expired. We no longer have the NFT
             // and instead we have the ETH it was bought with.

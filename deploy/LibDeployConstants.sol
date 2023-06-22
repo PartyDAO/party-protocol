@@ -30,39 +30,9 @@ library LibDeployConstants {
         address deployedZoraMarketWrapper;
     }
 
-    function rinkeby(address multisig) internal pure returns (DeployConstants memory) {
-        DeployConstants memory deployConstants = DeployConstants({
-            seaportExchangeAddress: 0x00000000000001ad428e4906aE43D8F9852d0dD6,
-            osZoraAuctionDuration: 2 minutes,
-            osZoraAuctionTimeout: 2 minutes,
-            osMinOrderDuration: 2 minutes,
-            osMaxOrderDuration: 14 days,
-            zoraMinAuctionDuration: 2 minutes,
-            zoraMaxAuctionDuration: 10 days,
-            zoraMaxAuctionTimeout: 7 days,
-            minCancelDelay: 5 minutes,
-            maxCancelDelay: 1 days,
-            distributorEmergencyActionAllowedDuration: 365 days,
-            partyDaoMultisig: multisig,
-            osZone: 0x0000000000000000000000000000000000000000,
-            osConduitKey: 0xf984c55ca75735630c1c27d3d06969c1aa6af1df86d22ddc0e3a978ad6138e9f,
-            osConduitController: 0x00000000F9490004C11Cef243f5400493c00Ad63,
-            fractionalVaultFactory: 0x09EB641BA93CfA6340E944a22bDd2F1C8c745A9f,
-            foundationMarket: 0x21b700d637551f15078E11871a3c0dcCf283D1e7,
-            nounsAuctionHouse: 0x7cb0384b923280269b3BD85f0a7fEaB776588382,
-            zoraAuctionHouse: 0xE7dd1252f50B3d845590Da0c5eADd985049a03ce,
-            networkName: "rinkeby",
-            deployedNounsMarketWrapper: 0x0000000000000000000000000000000000000000,
-            deployedFoundationMarketWrapper: 0x0000000000000000000000000000000000000000,
-            deployedZoraMarketWrapper: 0x0000000000000000000000000000000000000000
-        });
-
-        return deployConstants;
-    }
-
     function goerli(address multisig) internal pure returns (DeployConstants memory) {
         DeployConstants memory deployConstants = DeployConstants({
-            seaportExchangeAddress: 0x00000000000001ad428e4906aE43D8F9852d0dD6,
+            seaportExchangeAddress: 0x00000000000000ADc04C56Bf30aC9d3c0aAF14dC,
             osZoraAuctionDuration: 2 minutes,
             osZoraAuctionTimeout: 2 minutes,
             osMinOrderDuration: 2 minutes,
@@ -92,7 +62,7 @@ library LibDeployConstants {
 
     function mainnet() internal pure returns (DeployConstants memory) {
         DeployConstants memory deployConstants = DeployConstants({
-            seaportExchangeAddress: 0x00000000000001ad428e4906aE43D8F9852d0dD6,
+            seaportExchangeAddress: 0x00000000000000ADc04C56Bf30aC9d3c0aAF14dC,
             osZoraAuctionDuration: 1 days,
             osZoraAuctionTimeout: 1 days,
             osMinOrderDuration: 1 hours,

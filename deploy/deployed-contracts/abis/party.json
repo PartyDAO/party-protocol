@@ -56,6 +56,64 @@
   {
     "inputs": [
       {
+        "internalType": "uint256",
+        "name": "amount",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "minAmount",
+        "type": "uint256"
+      }
+    ],
+    "name": "BelowMinWithdrawAmountError",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "CannotDisableRageQuitAfterInitializationError",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "CannotRageQuitAndAcceptError",
+    "type": "error"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint40",
+        "name": "rageQuitTimestamp",
+        "type": "uint40"
+      }
+    ],
+    "name": "CannotRageQuitError",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "DistributionsRequireVoteError",
+    "type": "error"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "receiver",
+        "type": "address"
+      },
+      {
+        "internalType": "bytes",
+        "name": "errData",
+        "type": "bytes"
+      }
+    ],
+    "name": "EthTransferFailed",
+    "type": "error"
+  },
+  {
+    "inputs": [
+      {
         "internalType": "uint40",
         "name": "maxExecutableTime",
         "type": "uint40"
@@ -67,6 +125,17 @@
       }
     ],
     "name": "ExecutionTimeExceededError",
+    "type": "error"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint40",
+        "name": "rageQuitTimestamp",
+        "type": "uint40"
+      }
+    ],
+    "name": "FixedRageQuitTimestampError",
     "type": "error"
   },
   {
@@ -103,6 +172,11 @@
   },
   {
     "inputs": [],
+    "name": "InvalidTokenOrderError",
+    "type": "error"
+  },
+  {
+    "inputs": [],
     "name": "MismatchedPreciousListLengths",
     "type": "error"
   },
@@ -119,7 +193,17 @@
   },
   {
     "inputs": [],
+    "name": "NothingToBurnError",
+    "type": "error"
+  },
+  {
+    "inputs": [],
     "name": "OnlyActiveMemberError",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "OnlyAuthorityError",
     "type": "error"
   },
   {
@@ -130,22 +214,6 @@
   {
     "inputs": [],
     "name": "OnlyDelegateCallError",
-    "type": "error"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "address",
-        "name": "actual",
-        "type": "address"
-      },
-      {
-        "internalType": "address",
-        "name": "expected",
-        "type": "address"
-      }
-    ],
-    "name": "OnlyMintAuthorityError",
     "type": "error"
   },
   {
@@ -187,12 +255,22 @@
   },
   {
     "inputs": [],
+    "name": "OnlySelfError",
+    "type": "error"
+  },
+  {
+    "inputs": [],
     "name": "OnlyWhenEmergencyActionsAllowedError",
     "type": "error"
   },
   {
     "inputs": [],
     "name": "OnlyWhenEnabledError",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "PartyNotStartedError",
     "type": "error"
   },
   {
@@ -255,6 +333,11 @@
     "type": "error"
   },
   {
+    "inputs": [],
+    "name": "UnauthorizedToBurnError",
+    "type": "error"
+  },
+  {
     "anonymous": false,
     "inputs": [
       {
@@ -302,6 +385,57 @@
       }
     ],
     "name": "ApprovalForAll",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "authority",
+        "type": "address"
+      }
+    ],
+    "name": "AuthorityAdded",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "authority",
+        "type": "address"
+      }
+    ],
+    "name": "AuthorityRemoved",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": false,
+        "internalType": "address",
+        "name": "caller",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "tokenId",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "votingPower",
+        "type": "uint256"
+      }
+    ],
+    "name": "Burn",
     "type": "event"
   },
   {
@@ -520,6 +654,56 @@
     "anonymous": false,
     "inputs": [
       {
+        "indexed": false,
+        "internalType": "address",
+        "name": "caller",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256[]",
+        "name": "tokenIds",
+        "type": "uint256[]"
+      },
+      {
+        "indexed": false,
+        "internalType": "contract IERC20[]",
+        "name": "withdrawTokens",
+        "type": "address[]"
+      },
+      {
+        "indexed": false,
+        "internalType": "address",
+        "name": "receiver",
+        "type": "address"
+      }
+    ],
+    "name": "RageQuit",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": false,
+        "internalType": "uint40",
+        "name": "oldRageQuitTimestamp",
+        "type": "uint40"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint40",
+        "name": "newRageQuitTimestamp",
+        "type": "uint40"
+      }
+    ],
+    "name": "RageQuitSet",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
         "indexed": true,
         "internalType": "address",
         "name": "owner",
@@ -579,7 +763,20 @@
   },
   {
     "inputs": [],
-    "name": "abdicate",
+    "name": "VERSION_ID",
+    "outputs": [
+      {
+        "internalType": "uint16",
+        "name": "",
+        "type": "uint16"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "abdicateAuthority",
     "outputs": [],
     "stateMutability": "nonpayable",
     "type": "function"
@@ -592,7 +789,7 @@
         "type": "address"
       }
     ],
-    "name": "abdicate",
+    "name": "abdicateHost",
     "outputs": [],
     "stateMutability": "nonpayable",
     "type": "function"
@@ -618,6 +815,37 @@
         "type": "uint256"
       }
     ],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "authority",
+        "type": "address"
+      }
+    ],
+    "name": "addAuthority",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "tokenId",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "votingPower",
+        "type": "uint256"
+      }
+    ],
+    "name": "addVotingPower",
+    "outputs": [],
     "stateMutability": "nonpayable",
     "type": "function"
   },
@@ -656,6 +884,32 @@
       }
     ],
     "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "tokenId",
+        "type": "uint256"
+      }
+    ],
+    "name": "burn",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256[]",
+        "name": "tokenIds",
+        "type": "uint256[]"
+      }
+    ],
+    "name": "burn",
+    "outputs": [],
+    "stateMutability": "nonpayable",
     "type": "function"
   },
   {
@@ -766,6 +1020,11 @@
   {
     "inputs": [
       {
+        "internalType": "uint256",
+        "name": "amount",
+        "type": "uint256"
+      },
+      {
         "internalType": "enum ITokenDistributor.TokenType",
         "name": "tokenType",
         "type": "uint8"
@@ -796,7 +1055,7 @@
             "type": "uint256"
           },
           {
-            "internalType": "contract ITokenDistributorParty",
+            "internalType": "contract Party",
             "name": "party",
             "type": "address"
           },
@@ -819,6 +1078,11 @@
             "internalType": "uint128",
             "name": "fee",
             "type": "uint128"
+          },
+          {
+            "internalType": "uint96",
+            "name": "totalShares",
+            "type": "uint96"
           }
         ],
         "internalType": "struct ITokenDistributor.DistributionInfo",
@@ -1045,6 +1309,41 @@
   },
   {
     "inputs": [],
+    "name": "getProposalEngineOpts",
+    "outputs": [
+      {
+        "components": [
+          {
+            "internalType": "bool",
+            "name": "enableAddAuthorityProposal",
+            "type": "bool"
+          },
+          {
+            "internalType": "bool",
+            "name": "allowArbCallsToSpendPartyEth",
+            "type": "bool"
+          },
+          {
+            "internalType": "bool",
+            "name": "allowOperatorsToSpendPartyEth",
+            "type": "bool"
+          },
+          {
+            "internalType": "bool",
+            "name": "distributionsRequireVote",
+            "type": "bool"
+          }
+        ],
+        "internalType": "struct ProposalStorage.ProposalEngineOpts",
+        "name": "",
+        "type": "tuple"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
     "name": "getProposalExecutionEngine",
     "outputs": [
       {
@@ -1133,6 +1432,11 @@
             "internalType": "uint96",
             "name": "votes",
             "type": "uint96"
+          },
+          {
+            "internalType": "uint96",
+            "name": "totalVotingPower",
+            "type": "uint96"
           }
         ],
         "internalType": "struct PartyGovernance.ProposalStateValues",
@@ -1199,6 +1503,38 @@
   {
     "inputs": [
       {
+        "internalType": "uint256",
+        "name": "tokenId",
+        "type": "uint256"
+      }
+    ],
+    "name": "getVotingPowerShareOf",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint96",
+        "name": "newVotingPower",
+        "type": "uint96"
+      }
+    ],
+    "name": "increaseTotalVotingPower",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
         "components": [
           {
             "components": [
@@ -1245,6 +1581,33 @@
                 "type": "tuple"
               },
               {
+                "components": [
+                  {
+                    "internalType": "bool",
+                    "name": "enableAddAuthorityProposal",
+                    "type": "bool"
+                  },
+                  {
+                    "internalType": "bool",
+                    "name": "allowArbCallsToSpendPartyEth",
+                    "type": "bool"
+                  },
+                  {
+                    "internalType": "bool",
+                    "name": "allowOperatorsToSpendPartyEth",
+                    "type": "bool"
+                  },
+                  {
+                    "internalType": "bool",
+                    "name": "distributionsRequireVote",
+                    "type": "bool"
+                  }
+                ],
+                "internalType": "struct ProposalStorage.ProposalEngineOpts",
+                "name": "proposalEngine",
+                "type": "tuple"
+              },
+              {
                 "internalType": "string",
                 "name": "name",
                 "type": "string"
@@ -1275,9 +1638,14 @@
             "type": "uint256[]"
           },
           {
-            "internalType": "address",
-            "name": "mintAuthority",
-            "type": "address"
+            "internalType": "address[]",
+            "name": "authorities",
+            "type": "address[]"
+          },
+          {
+            "internalType": "uint40",
+            "name": "rageQuitTimestamp",
+            "type": "uint40"
           }
         ],
         "internalType": "struct Party.PartyInitData",
@@ -1322,6 +1690,25 @@
         "type": "address"
       }
     ],
+    "name": "isAuthority",
+    "outputs": [
+      {
+        "internalType": "bool",
+        "name": "",
+        "type": "bool"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
     "name": "isHost",
     "outputs": [
       {
@@ -1341,6 +1728,19 @@
         "internalType": "uint256",
         "name": "",
         "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "lastRageQuitTimestamp",
+    "outputs": [
+      {
+        "internalType": "uint40",
+        "name": "",
+        "type": "uint40"
       }
     ],
     "stateMutability": "view",
@@ -1373,19 +1773,6 @@
       }
     ],
     "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [],
-    "name": "mintAuthority",
-    "outputs": [
-      {
-        "internalType": "address",
-        "name": "",
-        "type": "address"
-      }
-    ],
-    "stateMutability": "view",
     "type": "function"
   },
   {
@@ -1602,6 +1989,47 @@
   {
     "inputs": [
       {
+        "internalType": "uint256[]",
+        "name": "tokenIds",
+        "type": "uint256[]"
+      },
+      {
+        "internalType": "contract IERC20[]",
+        "name": "withdrawTokens",
+        "type": "address[]"
+      },
+      {
+        "internalType": "uint256[]",
+        "name": "minWithdrawAmounts",
+        "type": "uint256[]"
+      },
+      {
+        "internalType": "address",
+        "name": "receiver",
+        "type": "address"
+      }
+    ],
+    "name": "rageQuit",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "rageQuitTimestamp",
+    "outputs": [
+      {
+        "internalType": "uint40",
+        "name": "",
+        "type": "uint40"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
         "internalType": "uint256",
         "name": "",
         "type": "uint256"
@@ -1693,6 +2121,19 @@
       }
     ],
     "name": "setApprovalForAll",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint40",
+        "name": "newRageQuitTimestamp",
+        "type": "uint40"
+      }
+    ],
+    "name": "setRageQuit",
     "outputs": [],
     "stateMutability": "nonpayable",
     "type": "function"

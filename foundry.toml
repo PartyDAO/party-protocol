@@ -1,9 +1,15 @@
 [profile.default]
 src = 'contracts'
 out = 'out'
-test = 'sol-tests'
+test = 'test'
 script = 'deploy'
 libs = ['lib']
 gas_reports = ['Proxy', 'Party', 'PartyGovernance', 'ProposalExecutionEngine', 'AuctionCrowdfund', 'BuyCrowdfund', 'CollectionBuyCrowdfund', 'Crowdfund', 'PartyFactory', 'CrowdfundFactory', 'TokenDistributor']
+remappings = [
+  "forge-std/=lib/forge-std/src/",
+  "openzeppelin/=lib/openzeppelin-contracts/",
+  "solmate/=lib/solmate/src/"
+]
+
 
 # See more config options https://github.com/foundry-rs/foundry/tree/master/config

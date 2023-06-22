@@ -708,6 +708,16 @@
       {
         "components": [
           {
+            "internalType": "contract Party",
+            "name": "partyImpl",
+            "type": "address"
+          },
+          {
+            "internalType": "contract IPartyFactory",
+            "name": "partyFactory",
+            "type": "address"
+          },
+          {
             "internalType": "address[]",
             "name": "hosts",
             "type": "address[]"
@@ -740,6 +750,33 @@
         ],
         "internalType": "struct Crowdfund.FixedGovernanceOpts",
         "name": "governanceOpts",
+        "type": "tuple"
+      },
+      {
+        "components": [
+          {
+            "internalType": "bool",
+            "name": "enableAddAuthorityProposal",
+            "type": "bool"
+          },
+          {
+            "internalType": "bool",
+            "name": "allowArbCallsToSpendPartyEth",
+            "type": "bool"
+          },
+          {
+            "internalType": "bool",
+            "name": "allowOperatorsToSpendPartyEth",
+            "type": "bool"
+          },
+          {
+            "internalType": "bool",
+            "name": "distributionsRequireVote",
+            "type": "bool"
+          }
+        ],
+        "internalType": "struct ProposalStorage.ProposalEngineOpts",
+        "name": "proposalEngineOpts",
         "type": "tuple"
       },
       {
@@ -892,6 +929,16 @@
       {
         "components": [
           {
+            "internalType": "contract Party",
+            "name": "partyImpl",
+            "type": "address"
+          },
+          {
+            "internalType": "contract IPartyFactory",
+            "name": "partyFactory",
+            "type": "address"
+          },
+          {
             "internalType": "address[]",
             "name": "hosts",
             "type": "address[]"
@@ -924,6 +971,33 @@
         ],
         "internalType": "struct Crowdfund.FixedGovernanceOpts",
         "name": "governanceOpts",
+        "type": "tuple"
+      },
+      {
+        "components": [
+          {
+            "internalType": "bool",
+            "name": "enableAddAuthorityProposal",
+            "type": "bool"
+          },
+          {
+            "internalType": "bool",
+            "name": "allowArbCallsToSpendPartyEth",
+            "type": "bool"
+          },
+          {
+            "internalType": "bool",
+            "name": "allowOperatorsToSpendPartyEth",
+            "type": "bool"
+          },
+          {
+            "internalType": "bool",
+            "name": "distributionsRequireVote",
+            "type": "bool"
+          }
+        ],
+        "internalType": "struct ProposalStorage.ProposalEngineOpts",
+        "name": "proposalEngineOpts",
         "type": "tuple"
       },
       {
@@ -1079,19 +1153,6 @@
     "type": "function"
   },
   {
-    "inputs": [],
-    "name": "governanceOptsHash",
-    "outputs": [
-      {
-        "internalType": "bytes32",
-        "name": "",
-        "type": "bytes32"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
     "inputs": [
       {
         "components": [
@@ -1168,6 +1229,16 @@
           {
             "components": [
               {
+                "internalType": "contract Party",
+                "name": "partyImpl",
+                "type": "address"
+              },
+              {
+                "internalType": "contract IPartyFactory",
+                "name": "partyFactory",
+                "type": "address"
+              },
+              {
                 "internalType": "address[]",
                 "name": "hosts",
                 "type": "address[]"
@@ -1200,6 +1271,33 @@
             ],
             "internalType": "struct Crowdfund.FixedGovernanceOpts",
             "name": "governanceOpts",
+            "type": "tuple"
+          },
+          {
+            "components": [
+              {
+                "internalType": "bool",
+                "name": "enableAddAuthorityProposal",
+                "type": "bool"
+              },
+              {
+                "internalType": "bool",
+                "name": "allowArbCallsToSpendPartyEth",
+                "type": "bool"
+              },
+              {
+                "internalType": "bool",
+                "name": "allowOperatorsToSpendPartyEth",
+                "type": "bool"
+              },
+              {
+                "internalType": "bool",
+                "name": "distributionsRequireVote",
+                "type": "bool"
+              }
+            ],
+            "internalType": "struct ProposalStorage.ProposalEngineOpts",
+            "name": "proposalEngineOpts",
             "type": "tuple"
           }
         ],
@@ -1363,6 +1461,19 @@
         "internalType": "contract Party",
         "name": "",
         "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "partyOptsHash",
+    "outputs": [
+      {
+        "internalType": "bytes32",
+        "name": "",
+        "type": "bytes32"
       }
     ],
     "stateMutability": "view",

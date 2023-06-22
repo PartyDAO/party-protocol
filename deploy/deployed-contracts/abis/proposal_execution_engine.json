@@ -7,16 +7,6 @@
         "type": "address"
       },
       {
-        "internalType": "contract IOpenseaExchange",
-        "name": "seaport",
-        "type": "address"
-      },
-      {
-        "internalType": "contract IOpenseaConduitController",
-        "name": "seaportConduitController",
-        "type": "address"
-      },
-      {
         "internalType": "contract IZoraAuctionHouse",
         "name": "zoraAuctionHouse",
         "type": "address"
@@ -97,6 +87,22 @@
   {
     "inputs": [
       {
+        "internalType": "address",
+        "name": "executor",
+        "type": "address"
+      },
+      {
+        "internalType": "address[]",
+        "name": "allowedExecutors",
+        "type": "address[]"
+      }
+    ],
+    "name": "NotAllowedToExecute",
+    "type": "error"
+  },
+  {
+    "inputs": [
+      {
         "internalType": "uint256",
         "name": "callValue",
         "type": "uint256"
@@ -108,6 +114,22 @@
       }
     ],
     "name": "NotEnoughEthAttachedError",
+    "type": "error"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "operatorValue",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "ethAvailable",
+        "type": "uint256"
+      }
+    ],
+    "name": "NotEnoughEthError",
     "type": "error"
   },
   {
@@ -160,6 +182,17 @@
       }
     ],
     "name": "PreciousLostError",
+    "type": "error"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "enum ProposalExecutionEngine.ProposalType",
+        "name": "proposalType",
+        "type": "uint8"
+      }
+    ],
+    "name": "ProposalDisabled",
     "type": "error"
   },
   {
@@ -770,6 +803,19 @@
       {
         "indexed": false,
         "internalType": "address",
+        "name": "executor",
+        "type": "address"
+      }
+    ],
+    "name": "OperationExecuted",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": false,
+        "internalType": "address",
         "name": "oldImpl",
         "type": "address"
       },
@@ -873,36 +919,10 @@
   },
   {
     "inputs": [],
-    "name": "CONDUIT_CONTROLLER",
-    "outputs": [
-      {
-        "internalType": "contract IOpenseaConduitController",
-        "name": "",
-        "type": "address"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [],
     "name": "IMPL",
     "outputs": [
       {
         "internalType": "address",
-        "name": "",
-        "type": "address"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [],
-    "name": "SEAPORT",
-    "outputs": [
-      {
-        "internalType": "contract IOpenseaExchange",
         "name": "",
         "type": "address"
       }

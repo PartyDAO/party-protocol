@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0
-pragma solidity 0.8.17;
+pragma solidity 0.8.20;
 
+import "../party/PartyGovernanceNFT.sol";
 import "../tokens/IERC721.sol";
 import "../tokens/IERC721Receiver.sol";
 import "../tokens/ERC1155Receiver.sol";
@@ -50,7 +51,8 @@ contract ArbitraryCallsProposal {
     }
 
     function _executeArbitraryCalls(
-        IProposalExecutionEngine.ExecuteProposalParams memory params
+        IProposalExecutionEngine.ExecuteProposalParams memory params,
+        bool allowArbCallsToSpendPartyEth
     ) internal returns (bytes memory nextProgressData) {
         // Get the calls to execute.
         ArbitraryCall[] memory calls = abi.decode(params.proposalData, (ArbitraryCall[]));
@@ -68,8 +70,9 @@ contract ArbitraryCallsProposal {
                 );
             }
         }
-        // Can only forward ETH attached to the call.
-        uint256 ethAvailable = msg.value;
+        // If we're not allowing arbitrary calls to spend the Party's ETH, only
+        // allow forwarded ETH attached to the call to be spent.
+        uint256 ethAvailable = allowArbCallsToSpendPartyEth ? address(this).balance : msg.value;
         for (uint256 i; i < calls.length; ++i) {
             // Execute an arbitrary call.
             _executeSingleArbitraryCall(
@@ -81,7 +84,9 @@ contract ArbitraryCallsProposal {
                 ethAvailable
             );
             // Update the amount of ETH available for the subsequent calls.
-            ethAvailable -= calls[i].value;
+            ethAvailable = allowArbCallsToSpendPartyEth
+                ? address(this).balance
+                : ethAvailable - calls[i].value;
             emit ArbitraryCallExecuted(params.proposalId, i, calls.length);
         }
         // If not a unanimous vote and we had a precious beforehand,
@@ -98,8 +103,9 @@ contract ArbitraryCallsProposal {
                 }
             }
         }
-        // Refund leftover ETH.
-        if (ethAvailable > 0) {
+        // Refund leftover ETH attached to the call if none was spent from the
+        // Party's balance.
+        if (!allowArbCallsToSpendPartyEth && ethAvailable > 0) {
             payable(msg.sender).transferEth(ethAvailable);
         }
         // No next step, so no progressData.
@@ -215,8 +221,8 @@ contract ArbitraryCallsProposal {
             ) {
                 return false;
             }
-            // Disallow calling `validate()` on Seaport.
-            if (selector == IOpenseaExchange.validate.selector) {
+            // Disallow calling `validate()` on Seaport if there are preciouses.
+            if (selector == IOpenseaExchange.validate.selector && preciousTokens.length != 0) {
                 return false;
             }
         }

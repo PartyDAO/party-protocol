@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0
-pragma solidity 0.8.17;
+pragma solidity 0.8.20;
 
 import "../tokens/IERC721.sol";
 import "../party/Party.sol";
@@ -75,6 +75,9 @@ abstract contract AuctionCrowdfundBase is Crowdfund {
         // Fixed governance options (i.e. cannot be changed) that the governance
         // `Party` will be created with if the crowdfund succeeds.
         FixedGovernanceOpts governanceOpts;
+        // Options for the proposal engine that the governance `Party` will be
+        // created with if the crowdfund succeeds.
+        ProposalStorage.ProposalEngineOpts proposalEngineOpts;
     }
 
     event Bid(uint256 bidAmount);
@@ -141,7 +144,8 @@ abstract contract AuctionCrowdfundBase is Crowdfund {
                 maxContribution: opts.maxContribution,
                 gateKeeper: opts.gateKeeper,
                 gateKeeperId: opts.gateKeeperId,
-                governanceOpts: opts.governanceOpts
+                governanceOpts: opts.governanceOpts,
+                proposalEngineOpts: opts.proposalEngineOpts
             })
         );
 
@@ -155,7 +159,7 @@ abstract contract AuctionCrowdfundBase is Crowdfund {
         }
     }
 
-    /// @notice Accept naked ETH, e.g., if an auction needs to return ETH to us.
+    /// @notice Accept ETH, e.g., if an auction needs to return ETH to us.
     receive() external payable {}
 
     /// @notice Place a bid on the NFT using the funds in this crowdfund,
@@ -175,14 +179,21 @@ abstract contract AuctionCrowdfundBase is Crowdfund {
     /// @param governanceOpts The governance options the crowdfund was created
     ///                       with. Only used for crowdfunds where only a host
     ///                       can bid to verify the caller is a host.
+    /// @param proposalEngineOpts The options used to initialize the proposal
+    ///                           engine in the `Party` instance created if the
+    ///                           crowdfund wins.
     /// @param hostIndex If the caller is a host, this is the index of the caller in the
     ///                  `governanceOpts.hosts` array. Only used for crowdfunds where only
     ///                  a host can bid to verify the caller is a host.
-    function bid(FixedGovernanceOpts memory governanceOpts, uint256 hostIndex) external {
+    function bid(
+        FixedGovernanceOpts memory governanceOpts,
+        ProposalStorage.ProposalEngineOpts memory proposalEngineOpts,
+        uint256 hostIndex
+    ) external {
         // This function can be optionally restricted in different ways.
         if (onlyHostCanBid) {
             // Only a host can call this function.
-            _assertIsHost(msg.sender, governanceOpts, hostIndex);
+            _assertIsHost(msg.sender, governanceOpts, proposalEngineOpts, hostIndex);
         } else if (address(gateKeeper) != address(0)) {
             // `onlyHostCanBid` is false and we are using a gatekeeper.
             // Only a contributor can call this function.
@@ -198,15 +209,19 @@ abstract contract AuctionCrowdfundBase is Crowdfund {
     /// @param amount The amount to bid.
     /// @param governanceOpts The governance options the crowdfund was created
     ///                       with. Used to verify the caller is a host.
+    /// @param proposalEngineOpts The options used to initialize the proposal
+    ///                           engine in the `Party` instance created if the
+    ///                           crowdfund wins.
     /// @param hostIndex If the caller is a host, this is the index of the caller in the
     ///                  `governanceOpts.hosts` array. Used to verify the caller is a host.
     function bid(
         uint96 amount,
         FixedGovernanceOpts memory governanceOpts,
+        ProposalStorage.ProposalEngineOpts memory proposalEngineOpts,
         uint256 hostIndex
     ) external {
         // Only a host can specify a custom bid amount.
-        _assertIsHost(msg.sender, governanceOpts, hostIndex);
+        _assertIsHost(msg.sender, governanceOpts, proposalEngineOpts, hostIndex);
 
         _bid(amount);
     }

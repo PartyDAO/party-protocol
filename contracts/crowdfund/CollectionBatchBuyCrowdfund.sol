@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Beta Software
 // http://ipfs.io/ipfs/QmbGX2MFCaMAsMNMugRFND6DtYygRkwkvrqEyTKhTdBLo5
-pragma solidity 0.8.17;
+pragma solidity 0.8.20;
 
 import "../tokens/IERC721.sol";
 import "../party/Party.sol";
@@ -58,6 +58,9 @@ contract CollectionBatchBuyCrowdfund is BuyCrowdfundBase {
         // Fixed governance options (i.e. cannot be changed) that the governance
         // `Party` will be created with if the crowdfund succeeds.
         FixedGovernanceOpts governanceOpts;
+        // Options for the proposal engine that the governance `Party` will be
+        // created with if the crowdfund succeeds.
+        ProposalStorage.ProposalEngineOpts proposalEngineOpts;
     }
 
     struct BatchBuyArgs {
@@ -69,6 +72,7 @@ contract CollectionBatchBuyCrowdfund is BuyCrowdfundBase {
         uint256 minTokensBought;
         uint256 minTotalEthUsed;
         FixedGovernanceOpts governanceOpts;
+        ProposalStorage.ProposalEngineOpts proposalEngineOpts;
         uint256 hostIndex;
     }
 
@@ -83,7 +87,7 @@ contract CollectionBatchBuyCrowdfund is BuyCrowdfundBase {
     /// @notice The contract of NFTs to buy.
     IERC721 public nftContract;
     /// @notice The merkle root of the token IDs that can be bought. If null,
-    ///         allow any token ID in the collection can be bought.
+    ///         allow any token ID in the collection to be bought.
     bytes32 public nftTokenIdsMerkleRoot;
 
     // Set the `Globals` contract.
@@ -114,7 +118,8 @@ contract CollectionBatchBuyCrowdfund is BuyCrowdfundBase {
                 maxContribution: opts.maxContribution,
                 gateKeeper: opts.gateKeeper,
                 gateKeeperId: opts.gateKeeperId,
-                governanceOpts: opts.governanceOpts
+                governanceOpts: opts.governanceOpts,
+                proposalEngineOpts: opts.proposalEngineOpts
             })
         );
         nftContract = opts.nftContract;
@@ -127,7 +132,7 @@ contract CollectionBatchBuyCrowdfund is BuyCrowdfundBase {
     /// @return party_ Address of the `Party` instance created after its bought.
     function batchBuy(BatchBuyArgs memory args) external onlyDelegateCall returns (Party party_) {
         // This function is restricted to hosts.
-        _assertIsHost(msg.sender, args.governanceOpts, args.hostIndex);
+        _assertIsHost(msg.sender, args.governanceOpts, args.proposalEngineOpts, args.hostIndex);
 
         {
             // Ensure that the crowdfund is still active.
@@ -222,7 +227,7 @@ contract CollectionBatchBuyCrowdfund is BuyCrowdfundBase {
             // Update length of `tokens`
             mstore(tokens, tokensBought)
             // Update length of `tokenIds`
-            mstore(0x1A0, tokensBought)
+            mstore(mload(args), tokensBought)
         }
 
         return
@@ -231,6 +236,7 @@ contract CollectionBatchBuyCrowdfund is BuyCrowdfundBase {
                 args.tokenIds,
                 totalEthUsed,
                 args.governanceOpts,
+                args.proposalEngineOpts,
                 // If `_assertIsHost()` succeeded, the governance opts were validated.
                 true
             );

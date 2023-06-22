@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0
-pragma solidity 0.8.17;
+pragma solidity 0.8.20;
 
 import "../utils/vendor/Strings.sol";
 import "../utils/vendor/Base64.sol";
@@ -9,6 +9,7 @@ import "../globals/IGlobals.sol";
 import "./fonts/IFont.sol";
 import "./IERC721Renderer.sol";
 import "./RendererStorage.sol";
+import "./IParty1_1.sol";
 
 abstract contract RendererBase is IERC721Renderer {
     using Strings for uint256;
@@ -109,10 +110,16 @@ abstract contract RendererBase is IERC721Renderer {
     function getCustomizationChoices() internal view returns (bool isDarkMode, Color color) {
         // Get the customization preset ID chosen by the crowdfund or party instance.
         uint256 presetId = _storage.getPresetFor(address(this));
+
         if (presetId == 0) {
-            // Preset ID 0 is reserved. It is used to indicates to party instances
+            // Preset ID 0 is reserved. It is used to indicate to party instances
             // to use the same customization preset as the crowdfund.
-            try Party(payable(address(this))).mintAuthority() returns (address crowdfund) {
+            (bool success, bytes memory result) = address(this).staticcall(
+                abi.encodeCall(IParty1_1.mintAuthority, ())
+            );
+
+            if (success && result.length == 32) {
+                address crowdfund = abi.decode(result, (address));
                 // Should return the crowdfund used to create the party, if the
                 // party was created conventionally. Use the customization
                 // preset chosen during crowdfund initialization.
@@ -120,9 +127,9 @@ abstract contract RendererBase is IERC721Renderer {
                 // If the preset ID is still 0 (this shouldn't happen), fallback
                 // to the default customization options.
                 if (presetId == 0) return (false, Color.DEFAULT);
-            } catch {
+            } else {
                 // Fallback to the default customization options. May happen if
-                // called from a non-party contract (eg. a crowdfund contract,
+                // called from a non-party contract (e.g. a crowdfund contract,
                 // although this shouldn't happen).
                 return (false, Color.DEFAULT);
             }
@@ -243,7 +250,7 @@ abstract contract RendererBase is IERC721Renderer {
             return "&lt;0.01";
         } else if (n < oneUnit) {
             // Preserve leading zeros for decimals.
-            // (eg. if 0.01, `n` will "1" so we need to prepend a "0").
+            // (e.g. if 0.01, `n` will "1" so we need to prepend a "0").
             return
                 string.concat("0.", prependNumWithZeros(str, decimals).substring(0, maxChars - 1));
         } else if (n >= 1000 * oneUnit) {

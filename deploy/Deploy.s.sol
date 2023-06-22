@@ -7,6 +7,9 @@ import "../contracts/crowdfund/AuctionCrowdfund.sol";
 import "../contracts/crowdfund/BuyCrowdfund.sol";
 import "../contracts/crowdfund/CollectionBuyCrowdfund.sol";
 import "../contracts/crowdfund/CollectionBatchBuyCrowdfund.sol";
+import "../contracts/operators/CollectionBatchBuyOperator.sol";
+import "../contracts/crowdfund/InitialETHCrowdfund.sol";
+import "../contracts/crowdfund/ReraiseETHCrowdfund.sol";
 import "../contracts/crowdfund/CrowdfundFactory.sol";
 import "../contracts/distribution/TokenDistributor.sol";
 import "../contracts/gatekeepers/AllowListGateKeeper.sol";
@@ -49,6 +52,8 @@ abstract contract Deploy {
     BuyCrowdfund public buyCrowdfund;
     CollectionBuyCrowdfund public collectionBuyCrowdfund;
     CollectionBatchBuyCrowdfund public collectionBatchBuyCrowdfund;
+    InitialETHCrowdfund public initialETHCrowdfund;
+    ReraiseETHCrowdfund public reraiseETHCrowdfund;
     CrowdfundFactory public crowdfundFactory;
     Party public party;
     PartyFactory public partyFactory;
@@ -57,6 +62,7 @@ abstract contract Deploy {
     RendererStorage public rendererStorage;
     CrowdfundNFTRenderer public crowdfundNFTRenderer;
     PartyNFTRenderer public partyNFTRenderer;
+    CollectionBatchBuyOperator public collectionBatchBuyOperator;
     PartyHelpers public partyHelpers;
     IGateKeeper public allowListGateKeeper;
     IGateKeeper public tokenGateKeeper;
@@ -67,8 +73,6 @@ abstract contract Deploy {
 
     function deploy(LibDeployConstants.DeployConstants memory deployConstants) public virtual {
         _switchDeployer(DeployerRole.Default);
-
-        IOpenseaExchange seaport = IOpenseaExchange(deployConstants.seaportExchangeAddress);
 
         // DEPLOY_GLOBALS
         console.log("");
@@ -96,17 +100,12 @@ abstract contract Deploy {
         console.log("### ProposalExecutionEngine");
         console.log("  Deploying - ProposalExecutionEngine");
         IZoraAuctionHouse zoraAuctionHouse = IZoraAuctionHouse(deployConstants.zoraAuctionHouse);
-        IOpenseaConduitController conduitController = IOpenseaConduitController(
-            deployConstants.osConduitController
-        );
         IFractionalV1VaultFactory fractionalVaultFactory = IFractionalV1VaultFactory(
             deployConstants.fractionalVaultFactory
         );
         _trackDeployerGasBefore();
         proposalExecutionEngine = new ProposalExecutionEngine(
             globals,
-            seaport,
-            conduitController,
             zoraAuctionHouse,
             fractionalVaultFactory
         );
@@ -128,7 +127,7 @@ abstract contract Deploy {
         console.log("  Deploying - PartyFactory");
         _switchDeployer(DeployerRole.PartyFactory);
         _trackDeployerGasBefore();
-        partyFactory = new PartyFactory(globals);
+        partyFactory = new PartyFactory();
         _trackDeployerGasAfter();
         console.log("  Deployed - PartyFactory", address(partyFactory));
         _switchDeployer(DeployerRole.Default);
@@ -178,6 +177,30 @@ abstract contract Deploy {
             address(collectionBatchBuyCrowdfund)
         );
 
+        // DEPLOY_INITIAL_ETH_CF_IMPLEMENTATION
+        console.log("");
+        console.log("### InitialETHCrowdfund crowdfund implementation");
+        console.log("  Deploying - InitialETHCrowdfund crowdfund implementation");
+        _trackDeployerGasBefore();
+        initialETHCrowdfund = new InitialETHCrowdfund(globals);
+        _trackDeployerGasAfter();
+        console.log(
+            "  Deployed - InitialETHCrowdfund crowdfund implementation",
+            address(initialETHCrowdfund)
+        );
+
+        // DEPLOY_RERAISE_ETH_CF_IMPLEMENTATION
+        console.log("");
+        console.log("### ReraiseETHCrowdfund crowdfund implementation");
+        console.log("  Deploying - ReraiseETHCrowdfund crowdfund implementation");
+        _trackDeployerGasBefore();
+        reraiseETHCrowdfund = new ReraiseETHCrowdfund(globals);
+        _trackDeployerGasAfter();
+        console.log(
+            "  Deployed - ReraiseETHCrowdfund crowdfund implementation",
+            address(reraiseETHCrowdfund)
+        );
+
         // DEPLOY_ROLLING_AUCTION_CF_IMPLEMENTATION
         console.log("");
         console.log("### RollingAuctionCrowdfund crowdfund implementation");
@@ -194,7 +217,7 @@ abstract contract Deploy {
         console.log("  Deploying - CrowdfundFactory");
         _switchDeployer(DeployerRole.CrowdfundFactory);
         _trackDeployerGasBefore();
-        crowdfundFactory = new CrowdfundFactory(globals);
+        crowdfundFactory = new CrowdfundFactory();
         _trackDeployerGasAfter();
         console.log("  Deployed - CrowdfundFactory", address(crowdfundFactory));
         _switchDeployer(DeployerRole.Default);
@@ -270,6 +293,15 @@ abstract contract Deploy {
         _trackDeployerGasAfter();
         console.log("  Deployed - PartyNFTRenderer", address(partyNFTRenderer));
 
+        // DEPLOY_BATCH_BUY_OPERATOR
+        console.log("");
+        console.log("### CollectionBatchBuyOperator");
+        console.log("  Deploying - CollectionBatchBuyOperator");
+        _trackDeployerGasBefore();
+        collectionBatchBuyOperator = new CollectionBatchBuyOperator();
+        _trackDeployerGasAfter();
+        console.log("  Deployed - CollectionBatchBuyOperator", address(collectionBatchBuyOperator));
+
         // DEPLOY_PARTY_HELPERS
         if (!isTest()) {
             console.log("");
@@ -333,7 +365,7 @@ abstract contract Deploy {
         // Set Global values and transfer ownership
         {
             console.log("### Configure Globals");
-            bytes[] memory multicallData = new bytes[](25);
+            bytes[] memory multicallData = new bytes[](999);
             uint256 n = 0;
             multicallData[n++] = abi.encodeCall(
                 globals.setAddress,
@@ -395,39 +427,67 @@ abstract contract Deploy {
             );
             multicallData[n++] = abi.encodeCall(
                 globals.setAddress,
+                (LibGlobals.GLOBAL_SEAPORT, deployConstants.seaportExchangeAddress)
+            );
+            multicallData[n++] = abi.encodeCall(
+                globals.setAddress,
+                (LibGlobals.GLOBAL_CONDUIT_CONTROLLER, deployConstants.osConduitController)
+            );
+            multicallData[n++] = abi.encodeCall(
+                globals.setAddress,
                 (LibGlobals.GLOBAL_PROPOSAL_ENGINE_IMPL, address(proposalExecutionEngine))
             );
-            multicallData[n++] = abi.encodeCall(
-                globals.setAddress,
-                (LibGlobals.GLOBAL_PARTY_IMPL, address(party))
-            );
-            multicallData[n++] = abi.encodeCall(
-                globals.setAddress,
-                (LibGlobals.GLOBAL_PARTY_FACTORY, address(partyFactory))
-            );
-            multicallData[n++] = abi.encodeCall(
-                globals.setAddress,
-                (LibGlobals.GLOBAL_AUCTION_CF_IMPL, address(auctionCrowdfund))
-            );
-            multicallData[n++] = abi.encodeCall(
-                globals.setAddress,
-                (LibGlobals.GLOBAL_BUY_CF_IMPL, address(buyCrowdfund))
-            );
-            multicallData[n++] = abi.encodeCall(
-                globals.setAddress,
-                (LibGlobals.GLOBAL_COLLECTION_BUY_CF_IMPL, address(collectionBuyCrowdfund))
-            );
-            multicallData[n++] = abi.encodeCall(
-                globals.setAddress,
-                (
-                    LibGlobals.GLOBAL_COLLECTION_BATCH_BUY_CF_IMPL,
-                    address(collectionBatchBuyCrowdfund)
-                )
-            );
-            multicallData[n++] = abi.encodeCall(
-                globals.setAddress,
-                (LibGlobals.GLOBAL_ROLLING_AUCTION_CF_IMPL, address(rollingAuctionCrowdfund))
-            );
+
+            // The Globals commented out below were depreciated in 1.2; factories
+            // can now choose the implementation address to deploy and no longer
+            // deploy the latest implementation.
+            //
+            // See https://github.com/PartyDAO/party-migrations for
+            // implementation addresses by release.
+
+            // multicallData[n++] = abi.encodeCall(
+            //     globals.setAddress,
+            //     (LibGlobals.GLOBAL_PARTY_IMPL, address(party))
+            // );
+            // multicallData[n++] = abi.encodeCall(
+            //     globals.setAddress,
+            //     (LibGlobals.GLOBAL_CROWDFUND_FACTORY, address(crowdfundFactory))
+            // );
+            // multicallData[n++] = abi.encodeCall(
+            //     globals.setAddress,
+            //     (LibGlobals.GLOBAL_PARTY_FACTORY, address(partyFactory))
+            // );
+            // multicallData[n++] = abi.encodeCall(
+            //     globals.setAddress,
+            //     (LibGlobals.GLOBAL_AUCTION_CF_IMPL, address(auctionCrowdfund))
+            // );
+            // multicallData[n++] = abi.encodeCall(
+            //     globals.setAddress,
+            //     (LibGlobals.GLOBAL_BUY_CF_IMPL, address(buyCrowdfund))
+            // );
+            // multicallData[n++] = abi.encodeCall(
+            //     globals.setAddress,
+            //     (LibGlobals.GLOBAL_COLLECTION_BUY_CF_IMPL, address(collectionBuyCrowdfund))
+            // );
+            // multicallData[n++] = abi.encodeCall(
+            //     globals.setAddress,
+            //     (
+            //         LibGlobals.GLOBAL_COLLECTION_BATCH_BUY_CF_IMPL,
+            //         address(collectionBatchBuyCrowdfund)
+            //     )
+            // );
+            // multicallData[n++] = abi.encodeCall(
+            //     globals.setAddress,
+            //     (LibGlobals.GLOBAL_INITIAL_ETH_CF_IMPL, address(initialETHCrowdfund))
+            // );
+            // multicallData[n++] = abi.encodeCall(
+            //     globals.setAddress,
+            //     (LibGlobals.GLOBAL_RERAISE_ETH_CF_IMPL, address(reraiseETHCrowdfund))
+            // );
+            // multicallData[n++] = abi.encodeCall(
+            //     globals.setAddress,
+            //     (LibGlobals.GLOBAL_ROLLING_AUCTION_CF_IMPL, address(rollingAuctionCrowdfund))
+            // );
             multicallData[n++] = abi.encodeCall(
                 globals.setAddress,
                 (LibGlobals.GLOBAL_RENDERER_STORAGE, address(rendererStorage))
@@ -554,7 +614,7 @@ contract DeployScript is Script, Deploy {
         Deploy.deploy(deployConstants);
         vm.stopBroadcast();
 
-        AddressMapping[] memory addressMapping = new AddressMapping[](18);
+        AddressMapping[] memory addressMapping = new AddressMapping[](21);
         addressMapping[0] = AddressMapping("Globals", address(globals));
         addressMapping[1] = AddressMapping("TokenDistributor", address(tokenDistributor));
         addressMapping[2] = AddressMapping(
@@ -577,14 +637,20 @@ contract DeployScript is Script, Deploy {
             "CollectionBatchBuyCrowdfund",
             address(collectionBatchBuyCrowdfund)
         );
-        addressMapping[10] = AddressMapping("CrowdfundFactory", address(crowdfundFactory));
-        addressMapping[11] = AddressMapping("CrowdfundNFTRenderer", address(crowdfundNFTRenderer));
-        addressMapping[12] = AddressMapping("PartyNFTRenderer", address(partyNFTRenderer));
-        addressMapping[13] = AddressMapping("PartyHelpers", address(partyHelpers));
-        addressMapping[14] = AddressMapping("AllowListGateKeeper", address(allowListGateKeeper));
-        addressMapping[15] = AddressMapping("TokenGateKeeper", address(tokenGateKeeper));
-        addressMapping[16] = AddressMapping("RendererStorage", address(rendererStorage));
-        addressMapping[17] = AddressMapping(
+        addressMapping[10] = AddressMapping("InitialETHCrowdfund", address(initialETHCrowdfund));
+        addressMapping[11] = AddressMapping("ReraiseETHCrowdfund", address(reraiseETHCrowdfund));
+        addressMapping[12] = AddressMapping(
+            "CollectionBatchBuyOperator",
+            address(collectionBatchBuyOperator)
+        );
+        addressMapping[13] = AddressMapping("CrowdfundFactory", address(crowdfundFactory));
+        addressMapping[14] = AddressMapping("CrowdfundNFTRenderer", address(crowdfundNFTRenderer));
+        addressMapping[15] = AddressMapping("PartyNFTRenderer", address(partyNFTRenderer));
+        addressMapping[16] = AddressMapping("PartyHelpers", address(partyHelpers));
+        addressMapping[17] = AddressMapping("AllowListGateKeeper", address(allowListGateKeeper));
+        addressMapping[18] = AddressMapping("TokenGateKeeper", address(tokenGateKeeper));
+        addressMapping[19] = AddressMapping("RendererStorage", address(rendererStorage));
+        addressMapping[20] = AddressMapping(
             "PixeldroidConsoleFont",
             address(pixeldroidConsoleFont)
         );
