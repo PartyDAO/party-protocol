@@ -2,31 +2,7 @@
   {
     "inputs": [
       {
-        "internalType": "address",
-        "name": "globals",
-        "type": "address"
-      },
-      {
-        "internalType": "address",
-        "name": "crowdfund",
-        "type": "address"
-      }
-    ],
-    "name": "getCrowdfundType",
-    "outputs": [
-      {
-        "internalType": "enum PartyHelpers.CrowdfundType",
-        "name": "",
-        "type": "uint8"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "address",
+        "internalType": "contract Party",
         "name": "party",
         "type": "address"
       },
@@ -62,7 +38,7 @@
   {
     "inputs": [
       {
-        "internalType": "address",
+        "internalType": "contract Party",
         "name": "party",
         "type": "address"
       },
@@ -108,7 +84,77 @@
   {
     "inputs": [
       {
-        "internalType": "address",
+        "internalType": "contract Party",
+        "name": "party",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256[]",
+        "name": "tokenIds",
+        "type": "uint256[]"
+      }
+    ],
+    "name": "getNftInfosBatch",
+    "outputs": [
+      {
+        "components": [
+          {
+            "internalType": "uint256",
+            "name": "tokenId",
+            "type": "uint256"
+          },
+          {
+            "internalType": "address",
+            "name": "owner",
+            "type": "address"
+          },
+          {
+            "internalType": "uint256",
+            "name": "intrinsicVotingPower",
+            "type": "uint256"
+          }
+        ],
+        "internalType": "struct PartyHelpers.NftInfo[]",
+        "name": "nftInfos",
+        "type": "tuple[]"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "contract Party",
+        "name": "party",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256[]",
+        "name": "tokenIds",
+        "type": "uint256[]"
+      },
+      {
+        "internalType": "contract IERC20[]",
+        "name": "withdrawTokens",
+        "type": "address[]"
+      }
+    ],
+    "name": "getRageQuitWithdrawAmounts",
+    "outputs": [
+      {
+        "internalType": "uint256[]",
+        "name": "withdrawAmounts",
+        "type": "uint256[]"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "contract Party",
         "name": "party",
         "type": "address"
       },

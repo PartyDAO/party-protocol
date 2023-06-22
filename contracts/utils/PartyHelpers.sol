@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0
-pragma solidity 0.8.17;
+pragma solidity 0.8.20;
 
 import "../party/Party.sol";
 
@@ -28,30 +28,8 @@ contract PartyHelpers {
         uint256 intrinsicVotingPower;
     }
 
-    ////////////////////////////
-    // Crowdfund helpers //
-    ////////////////////////////
-
-    function getCrowdfundType(
-        address globals,
-        address crowdfund
-    ) external view returns (CrowdfundType) {
-        IGlobals g = IGlobals(globals);
-        Implementation cf = Implementation(crowdfund);
-        address impl = cf.IMPL();
-        if (impl == g.getImplementation(LibGlobals.GLOBAL_AUCTION_CF_IMPL).IMPL()) {
-            return CrowdfundType.Bid;
-        } else if (impl == g.getImplementation(LibGlobals.GLOBAL_BUY_CF_IMPL).IMPL()) {
-            return CrowdfundType.Buy;
-        } else if (impl == g.getImplementation(LibGlobals.GLOBAL_COLLECTION_BUY_CF_IMPL).IMPL()) {
-            return CrowdfundType.CollectionBuy;
-        } else if (
-            impl == g.getImplementation(LibGlobals.GLOBAL_COLLECTION_BATCH_BUY_CF_IMPL).IMPL()
-        ) {
-            return CrowdfundType.CollectionBatchBuy;
-        }
-        revert("PartyHelpers::Unknown CrowdfundType");
-    }
+    // Token address used to indicate ETH.
+    address private constant ETH_ADDRESS = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
 
     /////////////////////////////
     // PartyGovernance helpers //
@@ -59,32 +37,30 @@ contract PartyHelpers {
 
     /// @notice Get the current delegate for each member in `members`
     function getCurrentDelegates(
-        address party,
+        Party party,
         address[] calldata members
     ) external view returns (MemberAndDelegate[] memory membersAndDelegates) {
-        Party p = Party(payable(party));
         membersAndDelegates = new MemberAndDelegate[](members.length);
         for (uint256 i; i < members.length; ++i) {
             membersAndDelegates[i] = MemberAndDelegate({
                 member: members[i],
-                delegate: p.delegationsByVoter(members[i])
+                delegate: party.delegationsByVoter(members[i])
             });
         }
     }
 
     /// @notice Get the total voting power of each voter in `voters` at a timestamp.
     function getVotingPowersAt(
-        address party,
+        Party party,
         address[] calldata voters,
         uint40 timestamp,
         uint256[] calldata indexes
     ) external view returns (MemberAndVotingPower[] memory memberAndVotingPower) {
-        Party p = Party(payable(party));
         memberAndVotingPower = new MemberAndVotingPower[](voters.length);
         for (uint256 i; i < voters.length; ++i) {
             memberAndVotingPower[i] = MemberAndVotingPower({
                 member: voters[i],
-                votingPower: p.getVotingPowerAt(voters[i], timestamp, indexes[i])
+                votingPower: party.getVotingPowerAt(voters[i], timestamp, indexes[i])
             });
         }
     }
@@ -139,5 +115,38 @@ contract PartyHelpers {
                 tokenId: currItem
             });
         }
+    }
+
+    function getRageQuitWithdrawAmounts(
+        Party party,
+        uint256[] calldata tokenIds,
+        IERC20[] calldata withdrawTokens
+    ) external view returns (uint256[] memory withdrawAmounts) {
+        withdrawAmounts = new uint256[](withdrawTokens.length);
+
+        uint16 feeBps_ = party.feeBps();
+        for (uint256 i; i < tokenIds.length; ++i) {
+            uint256 tokenId = tokenIds[i];
+            uint256 shareOfVotingPower = party.getVotingPowerShareOf(tokenId);
+
+            for (uint256 j; j < withdrawTokens.length; ++j) {
+                // Calculate amount to withdraw.
+                IERC20 token = withdrawTokens[j];
+
+                uint256 balance = address(token) == ETH_ADDRESS
+                    ? address(party).balance
+                    : token.balanceOf(address(party));
+
+                uint256 amount = (balance * shareOfVotingPower) / 1e18;
+
+                // Take fee from amount.
+                uint256 fee = (amount * feeBps_) / 1e4;
+
+                // Sum up amount to withdraw.
+                withdrawAmounts[j] += amount - fee;
+            }
+        }
+
+        return withdrawAmounts;
     }
 }

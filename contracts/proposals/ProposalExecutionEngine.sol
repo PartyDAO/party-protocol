@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0
-pragma solidity 0.8.17;
+pragma solidity 0.8.20;
 
 import "../utils/Implementation.sol";
 import "../utils/LibRawResult.sol";
@@ -12,6 +12,9 @@ import "./ListOnZoraProposal.sol";
 import "./FractionalizeProposal.sol";
 import "./ArbitraryCallsProposal.sol";
 import "./ProposalStorage.sol";
+import "./DistributeProposal.sol";
+import "./AddAuthorityProposal.sol";
+import "./OperatorProposal.sol";
 
 /// @notice Upgradable implementation of proposal execution logic for parties that use it.
 /// @dev This contract will be delegatecall'ed into by `Party` proxy instances.
@@ -23,7 +26,10 @@ contract ProposalExecutionEngine is
     ListOnOpenseaAdvancedProposal,
     ListOnZoraProposal,
     FractionalizeProposal,
-    ArbitraryCallsProposal
+    ArbitraryCallsProposal,
+    DistributeProposal,
+    AddAuthorityProposal,
+    OperatorProposal
 {
     using LibRawResult for bytes;
 
@@ -40,7 +46,10 @@ contract ProposalExecutionEngine is
         Fractionalize,
         ArbitraryCalls,
         UpgradeProposalEngineImpl,
-        ListOnOpenseaAdvanced
+        ListOnOpenseaAdvanced,
+        Distribute,
+        AddAuthority,
+        Operator
     }
 
     // Explicit storage bucket for "private" state owned by the `ProposalExecutionEngine`.
@@ -65,6 +74,7 @@ contract ProposalExecutionEngine is
 
     event ProposalEngineImplementationUpgraded(address oldImpl, address newImpl);
 
+    error ProposalDisabled(ProposalType proposalType);
     error ZeroProposalIdError();
     error MalformedProposalDataError();
     error ProposalExecutionBlockedError(uint256 proposalId, uint256 currentInProgressProposalId);
@@ -88,12 +98,10 @@ contract ProposalExecutionEngine is
     // Set immutables.
     constructor(
         IGlobals globals,
-        IOpenseaExchange seaport,
-        IOpenseaConduitController seaportConduitController,
         IZoraAuctionHouse zoraAuctionHouse,
         IFractionalV1VaultFactory fractionalVaultFactory
     )
-        ListOnOpenseaAdvancedProposal(globals, seaport, seaportConduitController)
+        ListOnOpenseaAdvancedProposal(globals)
         ListOnZoraProposal(globals, zoraAuctionHouse)
         FractionalizeProposal(fractionalVaultFactory)
         ArbitraryCallsProposal(zoraAuctionHouse)
@@ -101,13 +109,23 @@ contract ProposalExecutionEngine is
         _GLOBALS = globals;
     }
 
-    // Used by `Party` to setup the execution engine.
-    // Currently does nothing, but may be changed in future versions.
+    /// @notice Used by `Party` to setup the execution engine.
+    /// @param oldImpl The previous implementation address.
+    /// @param initializeData The data to use to initialize the execution engine.
     function initialize(
         address oldImpl,
         bytes calldata initializeData
     ) external override onlyDelegateCall {
-        /* NOOP */
+        // Prevent old parties from configuring new options to maintain security guarantees.
+        if (oldImpl != address(0)) return;
+
+        // If there is no initialize data, there is nothing to do.
+        if (initializeData.length == 0) return;
+
+        ProposalEngineOpts memory opts = abi.decode(initializeData, (ProposalEngineOpts));
+
+        // Set proposal engine opts
+        _getSharedProposalStorage().opts = opts;
     }
 
     /// @notice Get the current `InProgress` proposal ID.
@@ -210,7 +228,27 @@ contract ProposalExecutionEngine is
         } else if (pt == ProposalType.Fractionalize) {
             nextProgressData = _executeFractionalize(params);
         } else if (pt == ProposalType.ArbitraryCalls) {
-            nextProgressData = _executeArbitraryCalls(params);
+            nextProgressData = _executeArbitraryCalls(
+                params,
+                _getSharedProposalStorage().opts.allowArbCallsToSpendPartyEth
+            );
+        } else if (pt == ProposalType.Distribute) {
+            if (!_getSharedProposalStorage().opts.distributionsRequireVote) {
+                revert ProposalDisabled(pt);
+            }
+
+            nextProgressData = _executeDistribute(params);
+        } else if (pt == ProposalType.AddAuthority) {
+            if (!_getSharedProposalStorage().opts.enableAddAuthorityProposal) {
+                revert ProposalDisabled(pt);
+            }
+
+            nextProgressData = _executeAddAuthority(params);
+        } else if (pt == ProposalType.Operator) {
+            nextProgressData = _executeOperation(
+                params,
+                _getSharedProposalStorage().opts.allowOperatorsToSpendPartyEth
+            );
         } else if (pt == ProposalType.UpgradeProposalEngineImpl) {
             _executeUpgradeProposalsImplementation(params.proposalData);
         } else {

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0
-pragma solidity 0.8.17;
+pragma solidity 0.8.20;
 
 import "../tokens/IERC721.sol";
 import "../party/PartyGovernance.sol";
@@ -70,6 +70,7 @@ contract FractionalizeProposal {
         emit FractionalV1VaultCreated(data.token, data.tokenId, vaultId, vault);
         // Create distribution for fractional tokens for party.
         PartyGovernance(address(this)).distribute(
+            supply,
             ITokenDistributor.TokenType.Erc20,
             address(vault),
             vaultId

@@ -22,7 +22,7 @@
 
 # Party Protocol
 
-A protocol for _group coordination_. Party Protocol provides on-chain functionality for group formation, coordination, and distribution. Currently focused on making NFTs multiplayer.
+A protocol for _group coordination_. The Party Protocol provides on-chain functionality for group formation, coordination, and distribution, with the goal of making Ethereum multiplayer.
 
 ## Table of Contents
 
@@ -40,15 +40,11 @@ A protocol for _group coordination_. Party Protocol provides on-chain functional
 
 ## Documentation
 
-For more information on Party Protocol, see the documentation [here](./docs/).
-
-- [Overview](./docs/README.md)
-- [Crowdfund](./docs/crowdfund.md)
-- [Governance](./docs/governance.md)
+For more information on Party Protocol, see the documentation [here](https://docs.partydao.org).
 
 ## Contributing
 
-This is an open protocol, so if you are interested in contributioning see [here](./CONTRIBUTING.md) for more details about how you could get involved.
+This is an open protocol, so if you are interested in contributing see [here](./CONTRIBUTING.md) for more details about how you could get involved.
 
 ## Layout
 
@@ -68,37 +64,34 @@ contracts/
 ├── distribution/
 |   # Used to render crowdfund and governance NFTs
 └── renderers/
-sol-tests/ # Foundry tests
-tests/ # TS tests
+test/ # Foundry tests
 ```
 
 ## Deployments
 
 | Contract                      | Ethereum                                                                                                              | Goerli                                                                                                                       |
 | ----------------------------- | --------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
-| `CrowdfundFactory`            | [0x1cA200B6fa768d0CBe4b1C52B67dAEcad94838A6](https://etherscan.io/address/0x1cA200B6fa768d0CBe4b1C52B67dAEcad94838A6) | [0xa56b394E191dF03562d148216592d384F66bBa29](https://goerli.etherscan.io/address/0xa56b394E191dF03562d148216592d384F66bBa29) |
-| `PartyFactory`                | [0x1Ca2007D4F2BC0eC2A56ECB890e56e05f36182dF](https://etherscan.io/address/0x1Ca2007D4F2BC0eC2A56ECB890e56e05f36182dF) | [0xD1bc5eED9a90911caa76A8EA1f11C4Ea012976FC](https://goerli.etherscan.io/address/0xD1bc5eED9a90911caa76A8EA1f11C4Ea012976FC) |
-| `TokenDistributor`            | [0x1CA2007a81F8A7491BB6E11D8e357FD810896454](https://etherscan.io/address/0x1CA2007a81F8A7491BB6E11D8e357FD810896454) | [0xE6F58B31344404E3479d81fB8f9dD592feB37965](https://goerli.etherscan.io/address/0xE6F58B31344404E3479d81fB8f9dD592feB37965) |
-| `AuctionCrowdfund`            | [0xC45e57873C1a2366F44Cbe5851a376f0Ab9093DA](https://etherscan.io/address/0xC45e57873C1a2366F44Cbe5851a376f0Ab9093DA) | [0xF620e947e5b664ee200996C7d74354BCfB39D1D9](https://goerli.etherscan.io/address/0xF620e947e5b664ee200996C7d74354BCfB39D1D9) |
-| `RollingAuctionCrowdfund`     | [0x0d212feaE711aE9a065649ca577b4d6F4d67A0C6](https://etherscan.io/address/0x0d212feaE711aE9a065649ca577b4d6F4d67A0C6) | [0x44D31e47F2287A791441b8F330E6F4237eFB2FAb](https://goerli.etherscan.io/address/0x44D31e47F2287A791441b8F330E6F4237eFB2FAb) |
-| `BuyCrowdfund`                | [0x79EbABbF5afA3763B6259Cb0a7d7f72ab59A2c47](https://etherscan.io/address/0x79EbABbF5afA3763B6259Cb0a7d7f72ab59A2c47) | [0xd380e07E277A03dfdB2E0fE44eaaA48621C588A0](https://goerli.etherscan.io/address/0xd380e07E277A03dfdB2E0fE44eaaA48621C588A0) |
-| `CollectionBuyCrowdfund`      | [0xe944ecd23Dd7839077e1Fe04872eF93BfDe58bB3](https://etherscan.io/address/0xe944ecd23Dd7839077e1Fe04872eF93BfDe58bB3) | [0xf175C25243E25b47E7a3Cdef52b923fc628828b6](https://goerli.etherscan.io/address/0xf175C25243E25b47E7a3Cdef52b923fc628828b6) |
-| `CollectionBatchBuyCrowdfund` | [0x8e357490dC8E94E9594AE910BA261163631a6a3a](https://etherscan.io/address/0x8e357490dC8E94E9594AE910BA261163631a6a3a) | [0xDe29e1A87f338B4B96c27Ca46195b5f9eda4a780](https://goerli.etherscan.io/address/0xDe29e1A87f338B4B96c27Ca46195b5f9eda4a780) |
-| `Party`                       | [0x52010E220E5C8eF2217D86cfA58da51Da39e8ec4](https://etherscan.io/address/0x52010E220E5C8eF2217D86cfA58da51Da39e8ec4) | [0xa3b4A7110b48FDFf1970D787D1cdCB9679176464](https://goerli.etherscan.io/address/0xa3b4A7110b48FDFf1970D787D1cdCB9679176464) |
-| `ProposalExecutionEngine`     | [0x731Db043762729eA2dAe790a1C4a6AD78b86d67c](https://etherscan.io/address/0x731Db043762729eA2dAe790a1C4a6AD78b86d67c) | [0xC0ECE4825578430C664B9ca6434857EeE055673a](https://goerli.etherscan.io/address/0xC0ECE4825578430C664B9ca6434857EeE055673a) |
-| `CrowdfundNFTRenderer`        | [0xf613b7202e627de4911e52c20b663a354db0dc3a](https://etherscan.io/address/0xf613b7202e627de4911e52c20b663a354db0dc3a) | [0x0bAE16929c02EF73EC2495B4cA7c2858d7E8D1FD](https://goerli.etherscan.io/address/0x0bAE16929c02EF73EC2495B4cA7c2858d7E8D1FD) |
-| `PartyNFTRenderer`            | [0x1a9f341ba621d1b6143931d9946d5fbd994d1c85](https://etherscan.io/address/0x1a9f341ba621d1b6143931d9946d5fbd994d1c85) | [0x5b0621B23CeEFCc4eF0FA4f52B6794f515E2954C](https://goerli.etherscan.io/address/0x5b0621B23CeEFCc4eF0FA4f52B6794f515E2954C) |
-| `RendererStorage`             | [0x9A4fe89316bf81a1e4549476b219c456703C3F62](https://etherscan.io/address/0x9A4fe89316bf81a1e4549476b219c456703C3F62) | [0x35c3bD81F7b3E2ddCE70f2b9f2cA94aC9992EE23](https://goerli.etherscan.io/address/0x35c3bD81F7b3E2ddCE70f2b9f2cA94aC9992EE23) |
-| `AllowListGatekeeper`         | [0x50c58f8bD97C1845C8E8ff56117DbCE8a5B009b2](https://etherscan.io/address/0x50c58f8bD97C1845C8E8ff56117DbCE8a5B009b2) | [0xADcec7b4Db7969DFf00b9e5304be8e0d1261d6B4](https://goerli.etherscan.io/address/0xADcec7b4Db7969DFf00b9e5304be8e0d1261d6B4) |
-| `TokenGatekeeper`             | [0x26A7bd6161e4C6aE44620CFC6f7b9C3Daf83AD0b](https://etherscan.io/address/0x26A7bd6161e4C6aE44620CFC6f7b9C3Daf83AD0b) | [0xa6FbcE9898A34a1e6db5Dab699B20b6bfEfda8c3](https://goerli.etherscan.io/address/0xa6FbcE9898A34a1e6db5Dab699B20b6bfEfda8c3) |
-| `Globals`                     | [0x1cA20040cE6aD406bC2A6c89976388829E7fbAde](https://etherscan.io/address/0x1cA20040cE6aD406bC2A6c89976388829E7fbAde) | [0x753e22d4e112a4D8b07dF9C4C578b116E3B48792](https://goerli.etherscan.io/address/0x753e22d4e112a4D8b07dF9C4C578b116E3B48792) |
-| `FoundationMarketWrapper`     | [0x96e5b0519983f2f984324b926e6d28C3A4Eb92A1](https://etherscan.io/address/0x96e5b0519983f2f984324b926e6d28C3A4Eb92A1) | [0xc1bb865106E3c86B1804FfAaC7795F82c93c8ceF](https://goerli.etherscan.io/address/0xc1bb865106E3c86B1804FfAaC7795F82c93c8ceF) |
-| `NounsMarketWrapper`          | [0x9319DAd8736D752C5c72DB229f8e1b280DC80ab1](https://etherscan.io/address/0x9319DAd8736D752C5c72DB229f8e1b280DC80ab1) | [0x8633B1f69DA83067AB1Ec85a3411DE354fBF96cD](https://goerli.etherscan.io/address/0x8633B1f69DA83067AB1Ec85a3411DE354fBF96cD) |
-| `ZoraMarketWrapper`           | [0x11c07cE1315a3b92C9755F90cDF40B04b88c5731](https://etherscan.io/address/0x11c07cE1315a3b92C9755F90cDF40B04b88c5731) | [0x969Ee9Ea5cebc042b689bff8e5497F96808353AE](https://goerli.etherscan.io/address/0x969Ee9Ea5cebc042b689bff8e5497F96808353AE) |
+| `Globals`                     | [0x1ca20040ce6ad406bc2a6c89976388829e7fbade](https://etherscan.io/address/0x1ca20040ce6ad406bc2a6c89976388829e7fbade) | [0x753e22d4e112a4d8b07df9c4c578b116e3b48792](https://goerli.etherscan.io/address/0x753e22d4e112a4d8b07df9c4c578b116e3b48792) |
+| `TokenDistributor`            | [0x49a3caab781f711ad74c9d2f34c3cbd835d6a608](https://etherscan.io/address/0x49a3caab781f711ad74c9d2f34c3cbd835d6a608) | [0x8714EA9C2BC5a8f2d26D7c3F86558331c16145B5](https://goerli.etherscan.io/address/0x8714EA9C2BC5a8f2d26D7c3F86558331c16145B5) |
+| `ProposalExecutionEngine`     | [0xaec4d40045daf91bc3049ea9136c7df04bd8a6af](https://etherscan.io/address/0xaec4d40045daf91bc3049ea9136c7df04bd8a6af) | [0x9f25ae3e4eC957b8B1d87f499b767975AD370C07](https://goerli.etherscan.io/address/0x9f25ae3e4eC957b8B1d87f499b767975AD370C07) |
+| `Party`                       | [0xb676cfeeed5c7b739452a502f1eff9ab684a56da](https://etherscan.io/address/0xb676cfeeed5c7b739452a502f1eff9ab684a56da) | [0x72a4b63eceA9465e3984CDEe1354b9CF9030c043](https://goerli.etherscan.io/address/0x72a4b63eceA9465e3984CDEe1354b9CF9030c043) |
+| `PartyFactory`                | [0xc0e0ec5541e26e93d5a9f5e999ab2a0a7f8260ae](https://etherscan.io/address/0xc0e0ec5541e26e93d5a9f5e999ab2a0a7f8260ae) | [0x8d1C04E6873F232dB570F75948799128dB3Ae6f5](https://goerli.etherscan.io/address/0x8d1C04E6873F232dB570F75948799128dB3Ae6f5) |
+| `AuctionCrowdfund`            | [0xcf8ab207e1b055871dfa9be2a0cf3acaf2d1b3a7](https://etherscan.io/address/0xcf8ab207e1b055871dfa9be2a0cf3acaf2d1b3a7) | [0x631D392073330f0573AD18Fc64305768657D0D60](https://goerli.etherscan.io/address/0x631D392073330f0573AD18Fc64305768657D0D60) |
+| `RollingAuctionCrowdfund`     | [0x1b5cb8bb71eda9059d39c98348095b008b67e734](https://etherscan.io/address/0x1b5cb8bb71eda9059d39c98348095b008b67e734) | [0x989Fb364065a80d732837742f960924f343C6E04](https://goerli.etherscan.io/address/0x989Fb364065a80d732837742f960924f343C6E04) |
+| `BuyCrowdfund`                | [0x104db1e49b87c80ec2e2e9716e83a304415c15ce](https://etherscan.io/address/0x104db1e49b87c80ec2e2e9716e83a304415c15ce) | [0x712Dca72Cc443A5f5e03A388b69ab09b4CDAC428](https://goerli.etherscan.io/address/0x712Dca72Cc443A5f5e03A388b69ab09b4CDAC428) |
+| `CollectionBuyCrowdfund`      | [0x8ba53d174c540833d7f87e6ef97fc85d3d9291b4](https://etherscan.io/address/0x8ba53d174c540833d7f87e6ef97fc85d3d9291b4) | [0x884561d34e6B98a11DaF9Cc5d0d50cEFC664262F](https://goerli.etherscan.io/address/0x884561d34e6B98a11DaF9Cc5d0d50cEFC664262F) |
+| `CollectionBatchBuyCrowdfund` | [0x05daeace2257de1633cb809e2a23387a2742535c](https://etherscan.io/address/0x05daeace2257de1633cb809e2a23387a2742535c) | [0x9926816276CFE4E7c230E14d5a8808C9709Fa51a](https://goerli.etherscan.io/address/0x9926816276CFE4E7c230E14d5a8808C9709Fa51a) |
+| `CrowdfundFactory`            | [0x2e8920950677f8545b4ef80315f48e161cb02d1c](https://etherscan.io/address/0x2e8920950677f8545b4ef80315f48e161cb02d1c) | [0x37A711acc924AE303EFd07f4c94ABE7e8b1562be](https://goerli.etherscan.io/address/0x37A711acc924AE303EFd07f4c94ABE7e8b1562be) |
+| `CrowdfundNFTRenderer`        | [0x0d05169e6e84bde47145b03ec2e6ba9af4d3cb7c](https://etherscan.io/address/0x0d05169e6e84bde47145b03ec2e6ba9af4d3cb7c) | [0x64014855f8bdC9f3f95235C7d4821fA124D0015b](https://goerli.etherscan.io/address/0x64014855f8bdC9f3f95235C7d4821fA124D0015b) |
+| `AllowListGateKeeper`         | [0x50c58f8bd97c1845c8e8ff56117dbce8a5b009b2](https://etherscan.io/address/0x50c58f8bd97c1845c8e8ff56117dbce8a5b009b2) | [0xadcec7b4db7969dff00b9e5304be8e0d1261d6b4](https://goerli.etherscan.io/address/0xadcec7b4db7969dff00b9e5304be8e0d1261d6b4) |
+| `TokenGateKeeper`             | [0x26a7bd6161e4c6ae44620cfc6f7b9c3daf83ad0b](https://etherscan.io/address/0x26a7bd6161e4c6ae44620cfc6f7b9c3daf83ad0b) | [0xa6fbce9898a34a1e6db5dab699b20b6bfefda8c3](https://goerli.etherscan.io/address/0xa6fbce9898a34a1e6db5dab699b20b6bfefda8c3) |
+| `PartyNFTRenderer`            | [0x7b6c0019d2fe2ccbd4d748605789cb614c11182d](https://etherscan.io/address/0x7b6c0019d2fe2ccbd4d748605789cb614c11182d) | [0xc651c3e62Ae4072CDc1dA189f681a94B5b3E729A](https://goerli.etherscan.io/address/0xc651c3e62Ae4072CDc1dA189f681a94B5b3E729A) |
+| `InitialETHCrowdfund`         | [0x23c886396cfbadb0f3bac4b728150e8a59dc0e10](https://etherscan.io/address/0x23c886396cfbadb0f3bac4b728150e8a59dc0e10) | [0xDB59b3AAFFb5569B39206308A3629A47e4C31C97](https://goerli.etherscan.io/address/0xDB59b3AAFFb5569B39206308A3629A47e4C31C97) |
+| `CollectionBatchBuyOperator`  | [0xe06e71867bb25fe6b56b854500961d4d9dd7c12e](https://etherscan.io/address/0xe06e71867bb25fe6b56b854500961d4d9dd7c12e) | [0x57d146D6Ee733f719B9fEF0Fb9Bc80cd050A9192](https://goerli.etherscan.io/address/0x57d146D6Ee733f719B9fEF0Fb9Bc80cd050A9192) |
 
 ## Install
 
-First install [Foundry](https://book.getfoundry.sh/getting-started/installation.html).
+First, install [Foundry](https://book.getfoundry.sh/getting-started/installation.html).
 
 ```bash
 forge install
@@ -155,8 +148,8 @@ The rubric we use to determine bug bounties is as follows:
 
 | **Level**   | **Example**                                                                                                                                                                                      | **Maximum Bug Bounty** |
 | ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------- |
-| 6. Severe   | - Draining or freezing of holdings protocol-wide (e.g. draining token distributor, economic attacks, reentrancy, MEV, logic errors)                                                              | Let's talk             |
-| 5. Critical | - Contracts with balances can be exploited to steal holdings under specific conditions (e.g. bypass guardrails to transfer precious NFT from parties, user can steal their party's distribution) | Up to 25 ETH           |
+| 6. Critical | - Draining or freezing of holdings protocol-wide (e.g. draining token distributor, economic attacks, reentrancy, MEV, logic errors)                                                              | Let's talk             |
+| 5. Severe   | - Contracts with balances can be exploited to steal holdings under specific conditions (e.g. bypass guardrails to transfer precious NFT from parties, user can steal their party's distribution) | Up to 25 ETH           |
 | 4. High     | - Contracts temporarily unable to transfer holdings<br>- Users spoof each other                                                                                                                  | Up to 10 ETH           |
 | 3. Medium   | - Contract consumes unbounded gas<br>- Griefing, denial of service (i.e. attacker spends as much in gas as damage to the contract)                                                               | Up to 5 ETH            |
 | 2. Low      | - Contract fails to behave as expected, but doesn't lose value                                                                                                                                   | Up to 1 ETH            |
@@ -169,4 +162,4 @@ Any vulnerability or bug discovered must be reported only to the following email
 The primary license for the Party Protocol is the GNU General Public License 3.0 (`GPL-3.0`), see [LICENSE](./LICENSE).
 
 - Several interface/dependencies files from other sources maintain their original license (as indicated in their SPDX header).
-- All files in `sol-tests/` and `tests/` remain unlicensed (as indicated in their SPDX header).
+- All files in `test/` remain unlicensed (as indicated in their SPDX header).

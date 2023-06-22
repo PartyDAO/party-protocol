@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0
-pragma solidity 0.8.17;
+pragma solidity 0.8.20;
 
 import "./IProposalExecutionEngine.sol";
 import "../utils/LibRawResult.sol";
@@ -12,19 +12,25 @@ abstract contract ProposalStorage {
 
     struct SharedProposalStorage {
         IProposalExecutionEngine engineImpl;
+        ProposalEngineOpts opts;
+    }
+
+    struct ProposalEngineOpts {
+        // Whether the party can add new authorities with the add authority proposal.
+        bool enableAddAuthorityProposal;
+        // Whether the party can spend ETH from the party's balance with
+        // arbitrary call proposals.
+        bool allowArbCallsToSpendPartyEth;
+        // Whether operators can spend ETH from the party's balance with the
+        // operator proposal.
+        bool allowOperatorsToSpendPartyEth;
+        // Whether distributions require a vote or can be executed by any active member.
+        bool distributionsRequireVote;
     }
 
     uint256 internal constant PROPOSAL_FLAG_UNANIMOUS = 0x1;
     uint256 private constant SHARED_STORAGE_SLOT =
         uint256(keccak256("ProposalStorage.SharedProposalStorage"));
-
-    function _getProposalExecutionEngine() internal view returns (IProposalExecutionEngine impl) {
-        return _getSharedProposalStorage().engineImpl;
-    }
-
-    function _setProposalExecutionEngine(IProposalExecutionEngine impl) internal {
-        _getSharedProposalStorage().engineImpl = impl;
-    }
 
     function _initProposalImpl(IProposalExecutionEngine impl, bytes memory initData) internal {
         SharedProposalStorage storage stor = _getSharedProposalStorage();
@@ -38,7 +44,11 @@ abstract contract ProposalStorage {
         }
     }
 
-    function _getSharedProposalStorage() private pure returns (SharedProposalStorage storage stor) {
+    function _getSharedProposalStorage()
+        internal
+        pure
+        returns (SharedProposalStorage storage stor)
+    {
         uint256 s = SHARED_STORAGE_SLOT;
         assembly {
             stor.slot := s

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0
-pragma solidity 0.8.17;
+pragma solidity 0.8.20;
 
 import "../globals/IGlobals.sol";
 import "../globals/LibGlobals.sol";
@@ -12,38 +12,33 @@ import "./IPartyFactory.sol";
 
 /// @notice Factory used to deploy new proxified `Party` instances.
 contract PartyFactory is IPartyFactory {
-    error InvalidAuthorityError(address authority);
-
-    /// @inheritdoc IPartyFactory
-    IGlobals public immutable GLOBALS;
-
-    // Set the `Globals` contract.
-    constructor(IGlobals globals) {
-        GLOBALS = globals;
-    }
+    error NoAuthorityError();
 
     /// @inheritdoc IPartyFactory
     function createParty(
-        address authority,
+        Party partyImpl,
+        address[] memory authorities,
         Party.PartyOptions memory opts,
         IERC721[] memory preciousTokens,
-        uint256[] memory preciousTokenIds
+        uint256[] memory preciousTokenIds,
+        uint40 rageQuitTimestamp
     ) external returns (Party party) {
-        // Ensure a valid authority is set to mint governance NFTs.
-        if (authority == address(0)) {
-            revert InvalidAuthorityError(authority);
+        // Ensure an authority is set to mint governance NFTs.
+        if (authorities.length == 0) {
+            revert NoAuthorityError();
         }
         // Deploy a new proxified `Party` instance.
         Party.PartyInitData memory initData = Party.PartyInitData({
             options: opts,
             preciousTokens: preciousTokens,
             preciousTokenIds: preciousTokenIds,
-            mintAuthority: authority
+            authorities: authorities,
+            rageQuitTimestamp: rageQuitTimestamp
         });
         party = Party(
             payable(
                 new Proxy(
-                    GLOBALS.getImplementation(LibGlobals.GLOBAL_PARTY_IMPL),
+                    Implementation(address(partyImpl)),
                     abi.encodeCall(Party.initialize, (initData))
                 )
             )
