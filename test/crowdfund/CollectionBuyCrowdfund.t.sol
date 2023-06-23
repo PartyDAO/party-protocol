@@ -17,6 +17,8 @@ import "./MockParty.sol";
 import "./TestERC721Vault.sol";
 
 contract CollectionBuyCrowdfundTest is Test, TestUtils {
+    event BatchMetadataUpdate(uint256 _fromTokenId, uint256 _toTokenId);
+
     event MockPartyFactoryCreateParty(
         address caller,
         address[] authorities,
@@ -153,6 +155,8 @@ contract CollectionBuyCrowdfundTest is Test, TestUtils {
             _toERC721Array(erc721Vault.token()),
             _toUint256Array(tokenId)
         );
+        _expectEmit0();
+        emit BatchMetadataUpdate(0, type(uint256).max);
         vm.prank(host);
         Party party_ = cf.buy(
             tokenId,

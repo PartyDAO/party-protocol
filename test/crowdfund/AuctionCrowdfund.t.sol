@@ -18,6 +18,8 @@ import "./MockParty.sol";
 import "./MockMarketWrapper.sol";
 
 contract AuctionCrowdfundTest is Test, TestUtils {
+    event BatchMetadataUpdate(uint256 _fromTokenId, uint256 _toTokenId);
+
     event MockPartyFactoryCreateParty(
         address caller,
         address[] authorities,
@@ -186,6 +188,8 @@ contract AuctionCrowdfundTest is Test, TestUtils {
             _toERC721Array(tokenToBuy),
             _toUint256Array(tokenId)
         );
+        _expectEmit0();
+        emit BatchMetadataUpdate(0, type(uint256).max);
         Party party_ = cf.finalize(governanceOpts, proposalEngineOpts);
         assertEq(address(party_), address(party));
         // Burn contributor's NFT, mock minting governance tokens and returning

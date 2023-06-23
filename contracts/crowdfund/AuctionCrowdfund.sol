@@ -66,5 +66,9 @@ contract AuctionCrowdfund is AuctionCrowdfundBase {
             emit Lost();
         }
         _bidStatus = AuctionCrowdfundStatus.Finalized;
+
+        // Notify third-party platforms that the crowdfund NFT metadata has
+        // updated for all tokens.
+        emit BatchMetadataUpdate(0, type(uint256).max);
     }
 }

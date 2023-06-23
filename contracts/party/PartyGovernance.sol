@@ -11,6 +11,7 @@ import "../tokens/ERC1155Receiver.sol";
 import "../utils/LibERC20Compat.sol";
 import "../utils/LibRawResult.sol";
 import "../utils/LibSafeCast.sol";
+import "../utils/IERC4906.sol";
 import "../globals/IGlobals.sol";
 import "../globals/LibGlobals.sol";
 import "../proposals/IProposalExecutionEngine.sol";
@@ -26,6 +27,7 @@ abstract contract PartyGovernance is
     ERC1155Receiver,
     ProposalStorage,
     Implementation,
+    IERC4906,
     ReadOnlyDelegateCall
 {
     using LibERC20Compat for IERC20;
@@ -171,6 +173,7 @@ abstract contract PartyGovernance is
     error ExecutionTimeExceededError(uint40 maxExecutableTime, uint40 timestamp);
     error OnlyPartyHostError();
     error OnlyActiveMemberError();
+    error OnlyTokenDistributorOrSelfError();
     error InvalidDelegateError();
     error BadPreciousListError();
     error OnlyPartyDaoError(address notDao, address partyDao);
@@ -324,7 +327,9 @@ abstract contract PartyGovernance is
     ) public pure virtual override(ERC721Receiver, ERC1155Receiver) returns (bool) {
         return
             ERC721Receiver.supportsInterface(interfaceId) ||
-            ERC1155Receiver.supportsInterface(interfaceId);
+            ERC1155Receiver.supportsInterface(interfaceId) ||
+            // ERC4906 interface ID
+            interfaceId == 0x49064906;
     }
 
     /// @notice Get the current `ProposalExecutionEngine` instance.
@@ -504,6 +509,9 @@ abstract contract PartyGovernance is
             _GLOBALS.getAddress(LibGlobals.GLOBAL_TOKEN_DISTRIBUTOR)
         );
         emit DistributionCreated(tokenType, token, tokenId);
+        // Notify third-party platforms that the governance NFT metadata has
+        // updated for all tokens.
+        emit BatchMetadataUpdate(0, type(uint256).max);
         // Create a native token distribution.
         address payable feeRecipient_ = feeRecipient;
         uint16 feeBps_ = feeBps;
@@ -558,6 +566,10 @@ abstract contract PartyGovernance is
         );
         emit Proposed(proposalId, msg.sender, proposal);
         accept(proposalId, latestSnapIndex);
+
+        // Notify third-party platforms that the governance NFT metadata has
+        // updated for all tokens.
+        emit BatchMetadataUpdate(0, type(uint256).max);
     }
 
     /// @notice Vote to support a proposed proposal.
@@ -626,6 +638,9 @@ abstract contract PartyGovernance is
         ) {
             info.values.passedTime = uint40(block.timestamp);
             emit ProposalPassed(proposalId);
+            // Notify third-party platforms that the governance NFT metadata has
+            // updated for all tokens.
+            emit BatchMetadataUpdate(0, type(uint256).max);
         }
         return values.votes;
     }
@@ -655,6 +670,9 @@ abstract contract PartyGovernance is
         // -1 indicates veto.
         info.values.votes = VETO_VALUE;
         emit ProposalVetoed(proposalId, msg.sender);
+        // Notify third-party platforms that the governance NFT metadata has
+        // updated for all tokens.
+        emit BatchMetadataUpdate(0, type(uint256).max);
     }
 
     /// @notice Executes a proposal that has passed governance.
@@ -794,6 +812,9 @@ abstract contract PartyGovernance is
             }
         }
         emit ProposalCancelled(proposalId);
+        // Notify third-party platforms that the governance NFT metadata has
+        // updated for all tokens.
+        emit BatchMetadataUpdate(0, type(uint256).max);
     }
 
     /// @notice As the DAO, execute an arbitrary function call from this contract.
@@ -855,6 +876,9 @@ abstract contract PartyGovernance is
             nextProgressData = abi.decode(resultData, (bytes));
         }
         emit ProposalExecuted(proposalId, msg.sender, nextProgressData);
+        // Notify third-party platforms that the governance NFT metadata has
+        // updated for all tokens.
+        emit BatchMetadataUpdate(0, type(uint256).max);
         // If the returned progress data is empty, then the proposal completed
         // and it should not be executed again.
         return nextProgressData.length == 0;

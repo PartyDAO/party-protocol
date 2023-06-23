@@ -4,12 +4,13 @@ pragma solidity 0.8.20;
 import "../tokens/IERC721.sol";
 import "../utils/ReadOnlyDelegateCall.sol";
 import "../utils/EIP165.sol";
+import "../utils/IERC4906.sol";
 import "../globals/IGlobals.sol";
 import "../globals/LibGlobals.sol";
 import "../renderers/RendererStorage.sol";
 
 /// @notice NFT functionality for crowdfund types. This NFT is soulbound and read-only.
-contract CrowdfundNFT is IERC721, EIP165, ReadOnlyDelegateCall {
+contract CrowdfundNFT is IERC721, IERC4906, EIP165, ReadOnlyDelegateCall {
     error AlreadyMintedError(address owner, uint256 tokenId);
     error AlreadyBurnedError(address owner, uint256 tokenId);
     error InvalidTokenError(uint256 tokenId);
@@ -94,7 +95,9 @@ contract CrowdfundNFT is IERC721, EIP165, ReadOnlyDelegateCall {
         return
             super.supportsInterface(interfaceId) ||
             // ERC721 interface ID
-            interfaceId == 0x80ac58cd;
+            interfaceId == 0x80ac58cd ||
+            // ERC4906 interface ID
+            interfaceId == 0x49064906;
     }
 
     /// @notice Returns a URI to render the NFT.
