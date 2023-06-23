@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0
-pragma solidity 0.8.17;
+pragma solidity 0.8.20;
 
 import "solmate/utils/SSTORE2.sol";
 import "../utils/Multicall.sol";

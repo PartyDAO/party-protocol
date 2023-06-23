@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0
-pragma solidity 0.8.17;
+pragma solidity 0.8.20;
 
 import "../utils/LibAddress.sol";
 import "../utils/LibRawResult.sol";
@@ -32,6 +32,10 @@ abstract contract Crowdfund is Implementation, ERC721Receiver, CrowdfundNFT {
     // PartyGovernance options that must be known and fixed at crowdfund creation.
     // This is a subset of PartyGovernance.GovernanceOpts.
     struct FixedGovernanceOpts {
+        // The implementation of the party to be created.
+        Party partyImpl;
+        // The factory to use to create the party.
+        IPartyFactory partyFactory;
         // Address of initial party hosts.
         address[] hosts;
         // How long people can vote on a proposal.
@@ -62,6 +66,7 @@ abstract contract Crowdfund is Implementation, ERC721Receiver, CrowdfundNFT {
         IGateKeeper gateKeeper;
         bytes12 gateKeeperId;
         FixedGovernanceOpts governanceOpts;
+        ProposalStorage.ProposalEngineOpts proposalEngineOpts;
     }
 
     // A record of a single contribution made by a user.
@@ -116,6 +121,8 @@ abstract contract Crowdfund is Implementation, ERC721Receiver, CrowdfundNFT {
     event EmergencyExecute(address target, bytes data, uint256 amountEth);
     event EmergencyExecuteDisabled();
 
+    uint40 private constant DISABLE_RAGEQUIT_PERMANENTLY = 0xab2cb21860; // uint40(uint256(keccak256("DISABLE_RAGEQUIT_PERMANENTLY")))
+
     // The `Globals` contract storing global configuration values. This contract
     // is immutable and it’s address will never change.
     IGlobals private immutable _GLOBALS;
@@ -138,10 +145,10 @@ abstract contract Crowdfund is Implementation, ERC721Receiver, CrowdfundNFT {
     uint16 public splitBps;
     // Whether the share for split recipient has been claimed through `burn()`.
     bool private _splitRecipientHasBurned;
-    /// @notice Hash of party governance options passed into `initialize()`.
-    ///         Used to check whether the `GovernanceOpts` passed into
-    ///         `_createParty()` matches.
-    bytes32 public governanceOptsHash;
+    /// @notice Hash of party options passed into `initialize()`.
+    ///         Used to check whether the options passed into `_createParty()`
+    ///         matches.
+    bytes32 public partyOptsHash;
     /// @notice Who a contributor last delegated to.
     mapping(address => address) public delegationsByContributor;
     // Array of contributions by a contributor.
@@ -178,7 +185,7 @@ abstract contract Crowdfund is Implementation, ERC721Receiver, CrowdfundNFT {
         if (opts.splitBps > 1e4) {
             revert InvalidBpsError(opts.splitBps);
         }
-        governanceOptsHash = _hashFixedGovernanceOpts(opts.governanceOpts);
+        partyOptsHash = _hashOpts(opts.governanceOpts, opts.proposalEngineOpts);
         splitRecipient = opts.splitRecipient;
         splitBps = opts.splitBps;
         // Set the minimum and maximum contribution amounts.
@@ -225,13 +232,19 @@ abstract contract Crowdfund is Implementation, ERC721Receiver, CrowdfundNFT {
     /// @notice Revoke the DAO's ability to call emergencyExecute().
     /// @dev Either the DAO or the party host can call this.
     /// @param governanceOpts The fixed governance opts the crowdfund was created with.
+    /// @param proposalEngineOpts The options used to initialize the proposal
+    ///                           engine in the `Party` instance.
     /// @param hostIndex The index of the party host (caller).
     function disableEmergencyExecute(
         FixedGovernanceOpts memory governanceOpts,
+        ProposalStorage.ProposalEngineOpts memory proposalEngineOpts,
         uint256 hostIndex
     ) external onlyDelegateCall {
         // Only the DAO or a host can call this.
-        if (!_isHost(msg.sender, governanceOpts, hostIndex) && !_isPartyDao(msg.sender)) {
+        if (
+            !_isHost(msg.sender, governanceOpts, proposalEngineOpts, hostIndex) &&
+            !_isPartyDao(msg.sender)
+        ) {
             revert OnlyPartyDaoOrHostError(msg.sender);
         }
         emergencyExecuteDisabled = true;
@@ -279,7 +292,7 @@ abstract contract Crowdfund is Implementation, ERC721Receiver, CrowdfundNFT {
     }
 
     /// @notice Claim a governance NFT or refund that is owed back but could not be
-    ///         given due to error in `_burn()` (eg. a contract that does not
+    ///         given due to error in `_burn()` (e.g. a contract that does not
     ///         implement `onERC721Received()` or cannot receive ETH). Only call
     ///         this if refund and governance NFT minting could not be returned
     ///         with `burn()`.
@@ -423,9 +436,10 @@ abstract contract Crowdfund is Implementation, ERC721Receiver, CrowdfundNFT {
     function _assertIsHost(
         address who,
         FixedGovernanceOpts memory governanceOpts,
+        ProposalStorage.ProposalEngineOpts memory proposalEngineOpts,
         uint256 hostIndex
     ) internal view {
-        if (!_isHost(who, governanceOpts, hostIndex)) {
+        if (!_isHost(who, governanceOpts, proposalEngineOpts, hostIndex)) {
             revert OnlyPartyHostError();
         }
     }
@@ -434,11 +448,12 @@ abstract contract Crowdfund is Implementation, ERC721Receiver, CrowdfundNFT {
     function _isHost(
         address who,
         FixedGovernanceOpts memory governanceOpts,
+        ProposalStorage.ProposalEngineOpts memory proposalEngineOpts,
         uint256 hostIndex
     ) private view returns (bool isHost) {
         if (hostIndex < governanceOpts.hosts.length && who == governanceOpts.hosts[hostIndex]) {
             // Validate governance opts if the host was found.
-            _assertValidGovernanceOpts(governanceOpts);
+            _assertValidOpts(governanceOpts, proposalEngineOpts);
             return true;
         }
         return false;
@@ -462,6 +477,7 @@ abstract contract Crowdfund is Implementation, ERC721Receiver, CrowdfundNFT {
     // with the `burn()` function.
     function _createParty(
         FixedGovernanceOpts memory governanceOpts,
+        ProposalStorage.ProposalEngineOpts memory proposalEngineOpts,
         bool governanceOptsAlreadyValidated,
         IERC721[] memory preciousTokens,
         uint256[] memory preciousTokenIds
@@ -472,16 +488,22 @@ abstract contract Crowdfund is Implementation, ERC721Receiver, CrowdfundNFT {
         // If the governance opts haven't already been validated, make sure that
         // it hasn't been tampered with.
         if (!governanceOptsAlreadyValidated) {
-            _assertValidGovernanceOpts(governanceOpts);
+            _assertValidOpts(governanceOpts, proposalEngineOpts);
         }
+        // Get options used to create the party.
+        RendererStorage rendererStorage = RendererStorage(
+            _GLOBALS.getAddress(LibGlobals.GLOBAL_RENDERER_STORAGE)
+        );
+        address[] memory authorities = new address[](1);
+        authorities[0] = address(this);
         // Create a party.
-        party = party_ = _getPartyFactory().createParty(
-            address(this),
+        party = party_ = governanceOpts.partyFactory.createParty(
+            governanceOpts.partyImpl,
+            authorities,
             Party.PartyOptions({
                 name: name,
                 symbol: symbol,
-                // Indicates to the party to use the same customization preset as the crowdfund.
-                customizationPresetId: 0,
+                customizationPresetId: rendererStorage.getPresetFor(address(this)),
                 governance: PartyGovernance.GovernanceOpts({
                     hosts: governanceOpts.hosts,
                     voteDuration: governanceOpts.voteDuration,
@@ -490,10 +512,15 @@ abstract contract Crowdfund is Implementation, ERC721Receiver, CrowdfundNFT {
                     totalVotingPower: _getFinalPrice().safeCastUint256ToUint96(),
                     feeBps: governanceOpts.feeBps,
                     feeRecipient: governanceOpts.feeRecipient
-                })
+                }),
+                proposalEngine: proposalEngineOpts
             }),
             preciousTokens,
-            preciousTokenIds
+            preciousTokenIds,
+            // Ragequit is not applicable for NFT parties which primarily own
+            // non-fungible assets (which cannot be split) and can perform
+            // distributions without needing a vote.
+            DISABLE_RAGEQUIT_PERMANENTLY
         );
         // Transfer the acquired NFTs to the new party.
         for (uint256 i; i < preciousTokens.length; ++i) {
@@ -504,6 +531,7 @@ abstract contract Crowdfund is Implementation, ERC721Receiver, CrowdfundNFT {
     // Overloaded single token wrapper for _createParty()
     function _createParty(
         FixedGovernanceOpts memory governanceOpts,
+        ProposalStorage.ProposalEngineOpts memory proposalEngineOpts,
         bool governanceOptsAlreadyValidated,
         IERC721 preciousToken,
         uint256 preciousTokenId
@@ -512,15 +540,32 @@ abstract contract Crowdfund is Implementation, ERC721Receiver, CrowdfundNFT {
         tokens[0] = preciousToken;
         uint256[] memory tokenIds = new uint256[](1);
         tokenIds[0] = preciousTokenId;
-        return _createParty(governanceOpts, governanceOptsAlreadyValidated, tokens, tokenIds);
+        return
+            _createParty(
+                governanceOpts,
+                proposalEngineOpts,
+                governanceOptsAlreadyValidated,
+                tokens,
+                tokenIds
+            );
     }
 
     // Assert that the hash of `opts` matches the hash this crowdfund was initialized with.
-    function _assertValidGovernanceOpts(FixedGovernanceOpts memory governanceOpts) private view {
-        bytes32 governanceOptsHash_ = _hashFixedGovernanceOpts(governanceOpts);
-        if (governanceOptsHash_ != governanceOptsHash) {
+    function _assertValidOpts(
+        FixedGovernanceOpts memory governanceOpts,
+        ProposalStorage.ProposalEngineOpts memory proposalEngineOpts
+    ) private view {
+        bytes32 partyOptsHash_ = _hashOpts(governanceOpts, proposalEngineOpts);
+        if (partyOptsHash_ != partyOptsHash) {
             revert InvalidGovernanceOptionsError();
         }
+    }
+
+    function _hashOpts(
+        FixedGovernanceOpts memory govOpts,
+        ProposalStorage.ProposalEngineOpts memory proposalEngineOpts
+    ) internal pure returns (bytes32 h) {
+        return keccak256(abi.encode(govOpts, proposalEngineOpts));
     }
 
     function _getFinalContribution(
@@ -710,10 +755,6 @@ abstract contract Crowdfund is Implementation, ERC721Receiver, CrowdfundNFT {
             claims[contributor].refund = ethOwed;
         }
         emit Burned(contributor, ethUsed, ethOwed, votingPower);
-    }
-
-    function _getPartyFactory() internal view returns (IPartyFactory) {
-        return IPartyFactory(_GLOBALS.getAddress(LibGlobals.GLOBAL_PARTY_FACTORY));
     }
 }
 

@@ -8,7 +8,7 @@ interface IFoundationMarket {
         address payable seller;
         uint256 duration;
         uint256 extensionDuration;
-        uint256 endTime;
+        uint256 expiry;
         address payable bidder;
         uint256 amount;
     }

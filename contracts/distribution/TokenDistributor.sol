@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0
-pragma solidity 0.8.17;
+pragma solidity 0.8.20;
 
 import "../globals/IGlobals.sol";
 import "../globals/LibGlobals.sol";
@@ -11,8 +11,7 @@ import "../utils/LibSafeCast.sol";
 
 import "./ITokenDistributor.sol";
 
-/// @notice Creates token distributions for parties (or any contract that
-///         implements `ITokenDistributorParty`).
+/// @notice Creates token distributions for parties.
 contract TokenDistributor is ITokenDistributor {
     using LibAddress for address payable;
     using LibERC20Compat for IERC20;
@@ -32,7 +31,7 @@ contract TokenDistributor is ITokenDistributor {
 
     // Arguments for `_createDistribution()`.
     struct CreateDistributionArgs {
-        ITokenDistributorParty party;
+        Party party;
         TokenType tokenType;
         address token;
         uint256 currentTokenBalance;
@@ -62,15 +61,14 @@ contract TokenDistributor is ITokenDistributor {
     uint40 public immutable EMERGENCY_DISABLED_TIMESTAMP;
 
     /// @notice Last distribution ID for a party.
-    mapping(ITokenDistributorParty => uint256) public lastDistributionIdPerParty;
+    mapping(Party => uint256) public lastDistributionIdPerParty;
     /// Last known balance of a token, identified by an ID derived from the token.
     /// Gets lazily updated when creating and claiming a distribution (transfers).
     /// Allows one to simply transfer and call `createDistribution()` without
     /// fussing with allowances.
     mapping(bytes32 => uint256) private _storedBalances;
     // tokenDistributorParty => distributionId => DistributionState
-    mapping(ITokenDistributorParty => mapping(uint256 => DistributionState))
-        private _distributionStates;
+    mapping(Party => mapping(uint256 => DistributionState)) private _distributionStates;
 
     // msg.sender == DAO
     modifier onlyPartyDao() {
@@ -99,7 +97,7 @@ contract TokenDistributor is ITokenDistributor {
 
     /// @inheritdoc ITokenDistributor
     function createNativeDistribution(
-        ITokenDistributorParty party,
+        Party party,
         address payable feeRecipient,
         uint16 feeBps
     ) external payable returns (DistributionInfo memory info) {
@@ -118,7 +116,7 @@ contract TokenDistributor is ITokenDistributor {
     /// @inheritdoc ITokenDistributor
     function createErc20Distribution(
         IERC20 token,
-        ITokenDistributorParty party,
+        Party party,
         address payable feeRecipient,
         uint16 feeBps
     ) external returns (DistributionInfo memory info) {
@@ -159,7 +157,7 @@ contract TokenDistributor is ITokenDistributor {
         state.hasPartyTokenClaimed[partyTokenId] = true;
 
         // Compute amount owed to partyTokenId.
-        amountClaimed = getClaimAmount(info.party, info.memberSupply, partyTokenId);
+        amountClaimed = getClaimAmount(info, partyTokenId);
 
         // Cap at the remaining member supply. Otherwise a malicious
         // party could drain more than the distribution supply.
@@ -232,29 +230,48 @@ contract TokenDistributor is ITokenDistributor {
 
     /// @inheritdoc ITokenDistributor
     function getClaimAmount(
-        ITokenDistributorParty party,
-        uint256 memberSupply,
+        DistributionInfo calldata info,
         uint256 partyTokenId
     ) public view returns (uint128) {
-        // getDistributionShareOf() is the fraction of the memberSupply partyTokenId
-        // is entitled to, scaled by 1e18.
-        // We round up here to prevent dust amounts getting trapped in this contract.
-        return
-            ((uint256(party.getDistributionShareOf(partyTokenId)) * memberSupply + (1e18 - 1)) /
-                1e18).safeCastUint256ToUint128();
+        Party party = info.party;
+
+        // Check which method to use for calculating claim amount based on
+        // version of Party contract.
+        (bool success, bytes memory response) = address(party).staticcall(
+            abi.encodeCall(party.VERSION_ID, ())
+        );
+
+        // Check the version ID.
+        if (success && abi.decode(response, (uint16)) >= 1) {
+            uint256 shareOfSupply = ((info.party.getDistributionShareOf(partyTokenId)) * 1e18) /
+                info.totalShares;
+
+            return
+                // We round up here to prevent dust amounts getting trapped in this contract.
+                ((shareOfSupply * info.memberSupply + (1e18 - 1)) / 1e18)
+                    .safeCastUint256ToUint128();
+        } else {
+            // Use method of calculating claim amount for backwards
+            // compatibility with older parties where getDistributionShareOf()
+            // returned the fraction of the memberSupply partyTokenId is
+            // entitled to, scaled by 1e18.
+            uint256 shareOfSupply = party.getDistributionShareOf(partyTokenId);
+
+            return
+                // We round up here to prevent dust amounts getting trapped in this contract.
+                ((shareOfSupply * info.memberSupply + (1e18 - 1)) / 1e18)
+                    .safeCastUint256ToUint128();
+        }
     }
 
     /// @inheritdoc ITokenDistributor
-    function wasFeeClaimed(
-        ITokenDistributorParty party,
-        uint256 distributionId
-    ) external view returns (bool) {
+    function wasFeeClaimed(Party party, uint256 distributionId) external view returns (bool) {
         return _distributionStates[party][distributionId].wasFeeClaimed;
     }
 
     /// @inheritdoc ITokenDistributor
     function hasPartyTokenIdClaimed(
-        ITokenDistributorParty party,
+        Party party,
         uint256 partyTokenId,
         uint256 distributionId
     ) external view returns (bool) {
@@ -263,7 +280,7 @@ contract TokenDistributor is ITokenDistributor {
 
     /// @inheritdoc ITokenDistributor
     function getRemainingMemberSupply(
-        ITokenDistributorParty party,
+        Party party,
         uint256 distributionId
     ) external view returns (uint128) {
         return _distributionStates[party][distributionId].remainingMemberSupply;
@@ -314,7 +331,8 @@ contract TokenDistributor is ITokenDistributor {
             party: args.party,
             memberSupply: memberSupply,
             feeRecipient: args.feeRecipient,
-            fee: fee
+            fee: fee,
+            totalShares: args.party.getGovernanceValues().totalVotingPower
         });
         (
             _distributionStates[args.party][info.distributionId].distributionHash,
@@ -334,7 +352,7 @@ contract TokenDistributor is ITokenDistributor {
         uint256 storedBalance = _storedBalances[balanceId] - amount;
         // Temporarily set to max as a reentrancy guard. An interesing attack
         // could occur if we didn't do this where an attacker could `claim()` and
-        // reenter upon transfer (eg. in the `tokensToSend` hook of an ERC777) to
+        // reenter upon transfer (e.g. in the `tokensToSend` hook of an ERC777) to
         // `createERC20Distribution()`. Since the `balanceOf(address(this))`
         // would not of been updated yet, the supply would be miscalculated and
         // the attacker would create a distribution that essentially steals from
@@ -355,7 +373,7 @@ contract TokenDistributor is ITokenDistributor {
         DistributionInfo memory info
     ) internal pure returns (bytes32 hash) {
         assembly {
-            hash := keccak256(info, 0xe0)
+            hash := keccak256(info, 0x100)
         }
     }
 

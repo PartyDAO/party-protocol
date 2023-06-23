@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.17;
+pragma solidity 0.8.20;
 
 // ============ External Imports ============
 import { IZoraAuctionHouse } from "../vendor/markets/IZoraAuctionHouse.sol";
@@ -26,7 +26,8 @@ contract ZoraMarketWrapper is IMarketWrapper {
 
     constructor(address _zoraAuctionHouse) {
         market = IZoraAuctionHouse(_zoraAuctionHouse);
-        minBidIncrementPercentage = IZoraAuctionHouse(_zoraAuctionHouse).minBidIncrementPercentage();
+        minBidIncrementPercentage = IZoraAuctionHouse(_zoraAuctionHouse)
+            .minBidIncrementPercentage();
     }
 
     // ======== External Functions =========

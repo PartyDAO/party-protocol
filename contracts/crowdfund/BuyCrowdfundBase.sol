@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0
-pragma solidity 0.8.17;
+pragma solidity 0.8.20;
 
 import "../tokens/IERC721.sol";
 import "../party/Party.sol";
@@ -49,8 +49,12 @@ abstract contract BuyCrowdfundBase is Crowdfund {
         IGateKeeper gateKeeper;
         // The gatekeeper contract to use (if non-null).
         bytes12 gateKeeperId;
-        // Governance options.
+        // Fixed governance options (i.e. cannot be changed) that the governance
+        // `Party` will be created with if the crowdfund succeeds.
         FixedGovernanceOpts governanceOpts;
+        // Options for the proposal engine that the governance `Party` will be
+        // created with if the crowdfund succeeds.
+        ProposalStorage.ProposalEngineOpts proposalEngineOpts;
     }
 
     event Won(Party party, IERC721[] tokens, uint256[] tokenIds, uint256 settledPrice);
@@ -88,7 +92,8 @@ abstract contract BuyCrowdfundBase is Crowdfund {
                 maxContribution: opts.maxContribution,
                 gateKeeper: opts.gateKeeper,
                 gateKeeperId: opts.gateKeeperId,
-                governanceOpts: opts.governanceOpts
+                governanceOpts: opts.governanceOpts,
+                proposalEngineOpts: opts.proposalEngineOpts
             })
         );
     }
@@ -127,6 +132,7 @@ abstract contract BuyCrowdfundBase is Crowdfund {
         uint256[] memory tokenIds,
         uint96 totalEthUsed,
         FixedGovernanceOpts memory governanceOpts,
+        ProposalStorage.ProposalEngineOpts memory proposalEngineOpts,
         bool isValidatedGovernanceOpts
     ) internal returns (Party party_) {
         {
@@ -140,7 +146,13 @@ abstract contract BuyCrowdfundBase is Crowdfund {
         if (totalEthUsed != 0) {
             // Create a party around the newly bought NFTs and finalize a win.
             settledPrice = totalEthUsed;
-            party_ = _createParty(governanceOpts, isValidatedGovernanceOpts, tokens, tokenIds);
+            party_ = _createParty(
+                governanceOpts,
+                proposalEngineOpts,
+                isValidatedGovernanceOpts,
+                tokens,
+                tokenIds
+            );
             emit Won(party_, tokens, tokenIds, totalEthUsed);
         } else {
             // If all NFTs were purchased for free or were all "gifted" to us,
@@ -160,13 +172,22 @@ abstract contract BuyCrowdfundBase is Crowdfund {
         uint256 tokenId,
         uint96 totalEthUsed,
         FixedGovernanceOpts memory governanceOpts,
+        ProposalStorage.ProposalEngineOpts memory proposalEngineOpts,
         bool isValidatedGovernanceOpts
     ) internal returns (Party party_) {
         IERC721[] memory tokens = new IERC721[](1);
         tokens[0] = token;
         uint256[] memory tokenIds = new uint256[](1);
         tokenIds[0] = tokenId;
-        return _finalize(tokens, tokenIds, totalEthUsed, governanceOpts, isValidatedGovernanceOpts);
+        return
+            _finalize(
+                tokens,
+                tokenIds,
+                totalEthUsed,
+                governanceOpts,
+                proposalEngineOpts,
+                isValidatedGovernanceOpts
+            );
     }
 
     /// @inheritdoc Crowdfund

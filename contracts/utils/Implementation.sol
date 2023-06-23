@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0
-pragma solidity 0.8.17;
+pragma solidity 0.8.20;
 
 // Base contract for all contracts intended to be delegatecalled into.
 abstract contract Implementation {
