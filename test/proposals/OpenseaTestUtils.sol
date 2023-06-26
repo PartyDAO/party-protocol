@@ -17,7 +17,7 @@ contract OpenseaTestUtils is Test {
     struct BuyOpenseaListingParams {
         address payable maker;
         address buyer;
-        ListOnOpenseaAdvancedProposal.TokenType tokenType;
+        ListOnOpenseaAdvancedProposal.ListingTokenType tokenType;
         address token;
         uint256 tokenId;
         uint256 listPrice;
@@ -77,7 +77,8 @@ contract OpenseaTestUtils is Test {
         IOpenseaExchange.OfferItem[] memory offers = order
             .parameters
             .offer = new IOpenseaExchange.OfferItem[](1);
-        offers[0].itemType = params.tokenType == ListOnOpenseaAdvancedProposal.TokenType.ERC721
+        offers[0].itemType = params.tokenType ==
+            ListOnOpenseaAdvancedProposal.ListingTokenType.ERC721
             ? IOpenseaExchange.ItemType.ERC721
             : IOpenseaExchange.ItemType.ERC1155;
         offers[0].token = address(params.token);

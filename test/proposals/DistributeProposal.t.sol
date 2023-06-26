@@ -10,7 +10,7 @@ import "../TestUtils.sol";
 contract TestableDistributeProposal is DistributeProposal {
     event MockCreateDistribution(
         address caller,
-        ITokenDistributor.TokenType tokenType,
+        ITokenDistributor.ListingTokenType tokenType,
         address token,
         uint256 tokenId
     );
@@ -25,7 +25,7 @@ contract TestableDistributeProposal is DistributeProposal {
     // `distribute()` on itself.
     function distribute(
         uint256,
-        ITokenDistributor.TokenType tokenType,
+        ITokenDistributor.ListingTokenType tokenType,
         address token,
         uint256 tokenId
     ) external returns (ITokenDistributor.DistributionInfo memory distInfo) {
@@ -42,7 +42,7 @@ contract TestableDistributeProposal is DistributeProposal {
 contract DistributeProposalTest is Test, TestUtils {
     event MockCreateDistribution(
         address caller,
-        ITokenDistributor.TokenType tokenType,
+        ITokenDistributor.ListingTokenType tokenType,
         address token,
         uint256 tokenId
     );
@@ -59,7 +59,7 @@ contract DistributeProposalTest is Test, TestUtils {
         _expectEmit0();
         emit MockCreateDistribution(
             address(distributeProposal),
-            ITokenDistributor.TokenType.Native,
+            ITokenDistributor.ListingTokenType.Native,
             NATIVE_TOKEN_ADDRESS,
             0
         );
@@ -76,7 +76,7 @@ contract DistributeProposalTest is Test, TestUtils {
                 proposalData: abi.encode(
                     DistributeProposal.DistributeProposalData({
                         amount: 1 ether,
-                        tokenType: ITokenDistributor.TokenType.Native,
+                        tokenType: ITokenDistributor.ListingTokenType.Native,
                         token: NATIVE_TOKEN_ADDRESS,
                         tokenId: 0
                     })

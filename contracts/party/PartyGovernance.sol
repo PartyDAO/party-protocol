@@ -159,7 +159,7 @@ abstract contract PartyGovernance is
     event ProposalExecuted(uint256 indexed proposalId, address executor, bytes nextProgressData);
     event ProposalCancelled(uint256 indexed proposalId);
     event DistributionCreated(
-        ITokenDistributor.TokenType tokenType,
+        ITokenDistributor.ListingTokenType tokenType,
         address token,
         uint256 tokenId
     );
@@ -477,7 +477,7 @@ abstract contract PartyGovernance is
     /// @return distInfo The information about the created distribution.
     function distribute(
         uint256 amount,
-        ITokenDistributor.TokenType tokenType,
+        ITokenDistributor.ListingTokenType tokenType,
         address token,
         uint256 tokenId
     )
@@ -515,7 +515,7 @@ abstract contract PartyGovernance is
         // Create a native token distribution.
         address payable feeRecipient_ = feeRecipient;
         uint16 feeBps_ = feeBps;
-        if (tokenType == ITokenDistributor.TokenType.Native) {
+        if (tokenType == ITokenDistributor.ListingTokenType.Native) {
             return
                 distributor.createNativeDistribution{ value: amount }(
                     Party(payable(address(this))),
@@ -524,7 +524,7 @@ abstract contract PartyGovernance is
                 );
         }
         // Otherwise must be an ERC20 token distribution.
-        assert(tokenType == ITokenDistributor.TokenType.Erc20);
+        assert(tokenType == ITokenDistributor.ListingTokenType.Erc20);
         IERC20(token).compatTransfer(address(distributor), amount);
         return
             distributor.createErc20Distribution(

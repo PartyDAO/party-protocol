@@ -131,7 +131,7 @@ contract ListOnOpenseaProposalForkedTest is Test, TestUtils, ZoraTestUtils, Open
     }
 
     function _createAdvancedProposal(
-        ListOnOpenseaAdvancedProposal.TokenType tokenType,
+        ListOnOpenseaAdvancedProposal.ListingTokenType tokenType,
         address token,
         uint256 tokenId,
         uint256 startPrice,
@@ -178,7 +178,7 @@ contract ListOnOpenseaProposalForkedTest is Test, TestUtils, ZoraTestUtils, Open
                     startPrice: data.listPrice,
                     endPrice: data.listPrice,
                     duration: data.duration,
-                    tokenType: ListOnOpenseaAdvancedProposal.TokenType.ERC721,
+                    tokenType: ListOnOpenseaAdvancedProposal.ListingTokenType.ERC721,
                     token: address(data.token),
                     tokenId: data.tokenId,
                     fees: data.fees,
@@ -354,7 +354,7 @@ contract ListOnOpenseaProposalForkedTest is Test, TestUtils, ZoraTestUtils, Open
             BuyOpenseaListingParams({
                 maker: payable(impl),
                 buyer: buyer,
-                tokenType: ListOnOpenseaAdvancedProposal.TokenType.ERC721,
+                tokenType: ListOnOpenseaAdvancedProposal.ListingTokenType.ERC721,
                 token: address(token),
                 tokenId: tokenId,
                 listPrice: listPrice,
@@ -386,7 +386,7 @@ contract ListOnOpenseaProposalForkedTest is Test, TestUtils, ZoraTestUtils, Open
             ,
             IProposalExecutionEngine.ExecuteProposalParams memory executeParams
         ) = _createAdvancedProposal(
-                ListOnOpenseaAdvancedProposal.TokenType.ERC1155,
+                ListOnOpenseaAdvancedProposal.ListingTokenType.ERC1155,
                 address(token),
                 tokenId,
                 listPrice,
@@ -410,7 +410,7 @@ contract ListOnOpenseaProposalForkedTest is Test, TestUtils, ZoraTestUtils, Open
             BuyOpenseaListingParams({
                 maker: payable(impl),
                 buyer: buyer,
-                tokenType: ListOnOpenseaAdvancedProposal.TokenType.ERC1155,
+                tokenType: ListOnOpenseaAdvancedProposal.ListingTokenType.ERC1155,
                 token: address(token),
                 tokenId: tokenId,
                 listPrice: listPrice,
@@ -469,7 +469,7 @@ contract ListOnOpenseaProposalForkedTest is Test, TestUtils, ZoraTestUtils, Open
             BuyOpenseaListingParams({
                 maker: payable(impl),
                 buyer: buyer,
-                tokenType: ListOnOpenseaAdvancedProposal.TokenType.ERC721,
+                tokenType: ListOnOpenseaAdvancedProposal.ListingTokenType.ERC721,
                 token: address(token),
                 tokenId: tokenId,
                 listPrice: listPrice,
@@ -523,7 +523,7 @@ contract ListOnOpenseaProposalForkedTest is Test, TestUtils, ZoraTestUtils, Open
             BuyOpenseaListingParams({
                 maker: payable(impl),
                 buyer: buyer,
-                tokenType: ListOnOpenseaAdvancedProposal.TokenType.ERC721,
+                tokenType: ListOnOpenseaAdvancedProposal.ListingTokenType.ERC721,
                 token: address(token),
                 tokenId: tokenId,
                 listPrice: listPrice,
@@ -558,7 +558,7 @@ contract ListOnOpenseaProposalForkedTest is Test, TestUtils, ZoraTestUtils, Open
             ListOnOpenseaAdvancedProposal.OpenseaAdvancedProposalData memory data,
             IProposalExecutionEngine.ExecuteProposalParams memory executeParams
         ) = _createAdvancedProposal(
-                ListOnOpenseaAdvancedProposal.TokenType.ERC721,
+                ListOnOpenseaAdvancedProposal.ListingTokenType.ERC721,
                 address(token),
                 tokenId,
                 startPrice,
@@ -633,7 +633,7 @@ contract ListOnOpenseaProposalForkedTest is Test, TestUtils, ZoraTestUtils, Open
             BuyOpenseaListingParams({
                 maker: payable(impl),
                 buyer: buyer,
-                tokenType: ListOnOpenseaAdvancedProposal.TokenType.ERC721,
+                tokenType: ListOnOpenseaAdvancedProposal.ListingTokenType.ERC721,
                 token: address(token),
                 tokenId: tokenId,
                 listPrice: listPrice,
@@ -696,7 +696,7 @@ contract ListOnOpenseaProposalForkedTest is Test, TestUtils, ZoraTestUtils, Open
             BuyOpenseaListingParams({
                 maker: payable(impl),
                 buyer: buyer,
-                tokenType: ListOnOpenseaAdvancedProposal.TokenType.ERC721,
+                tokenType: ListOnOpenseaAdvancedProposal.ListingTokenType.ERC721,
                 token: address(token),
                 tokenId: tokenId,
                 listPrice: listPrice,

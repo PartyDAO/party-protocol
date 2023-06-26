@@ -11,7 +11,7 @@ import "./IProposalExecutionEngine.sol";
 abstract contract DistributeProposal {
     struct DistributeProposalData {
         uint256 amount;
-        ITokenDistributor.TokenType tokenType;
+        ITokenDistributor.ListingTokenType tokenType;
         address token;
         uint256 tokenId;
     }
