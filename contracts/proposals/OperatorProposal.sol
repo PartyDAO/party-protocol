@@ -10,7 +10,7 @@ import "../tokens/IERC1155.sol";
 
 /// @notice A proposal that can be used to execute an operation through an
 ///         operator which performs a specific action on the party's behalf.
-contract OperatorProposal {
+abstract contract OperatorProposal {
     using LibERC20Compat for IERC20;
 
     enum OperatorListingTokenType {
