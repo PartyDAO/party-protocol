@@ -347,7 +347,7 @@ abstract contract Crowdfund is Implementation, ERC721Receiver, CrowdfundNFT {
         address recipient,
         address initialDelegate,
         bytes memory gateData
-    ) external payable onlyDelegateCall {
+    ) public payable onlyDelegateCall {
         _setDelegate(recipient, initialDelegate);
 
         _contribute(
@@ -365,25 +365,37 @@ abstract contract Crowdfund is Implementation, ERC721Receiver, CrowdfundNFT {
     /// @param initialDelegates The addresses to delegate to for each recipient.
     /// @param values The ETH to contribute for each recipient.
     /// @param gateDatas Data to pass to the gatekeeper to prove eligibility.
-    /// @param revertOnFailure If true, revert if any contribution fails.
     function batchContributeFor(
         address[] memory recipients,
         address[] memory initialDelegates,
-        uint256[] memory values,
-        bytes[] memory gateDatas,
-        bool revertOnFailure
+        uint96[] memory values,
+        bytes[] memory gateDatas
     ) external payable {
+        uint96 previousTotalContributions = totalContributions;
+
+        uint256 ethAvailable = msg.value;
         for (uint256 i; i < recipients.length; ++i) {
-            (bool s, bytes memory r) = address(this).call{ value: values[i] }(
-                abi.encodeCall(
-                    this.contributeFor,
-                    (recipients[i], initialDelegates[i], gateDatas[i])
-                )
+            address recipient = recipients[i];
+            address initialDelegate = initialDelegates[i];
+            uint96 value = values[i];
+
+            ethAvailable -= value;
+
+            _setDelegate(recipient, initialDelegate);
+
+            _contribute(
+                recipient,
+                initialDelegate,
+                value,
+                previousTotalContributions,
+                gateDatas[i]
             );
-            if (revertOnFailure && !s) {
-                r.rawRevert();
-            }
+
+            previousTotalContributions += value;
         }
+
+        // Refund any unused ETH.
+        if (ethAvailable > 0) payable(msg.sender).transfer(ethAvailable);
     }
 
     /// @inheritdoc EIP165
