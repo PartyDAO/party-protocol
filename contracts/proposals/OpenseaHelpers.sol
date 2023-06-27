@@ -3,7 +3,6 @@ pragma solidity 0.8.20;
 
 import "./ListOnOpenseaAdvancedProposal.sol";
 import "./IProposalExecutionEngine.sol";
-import "./vendor/IOpenseaExchange.sol";
 
 // Abstract Opensea interaction functions.
 abstract contract OpenseaHelpers {

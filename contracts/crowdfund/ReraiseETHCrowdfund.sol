@@ -6,7 +6,6 @@ import "../crowdfund/CrowdfundNFT.sol";
 import "../utils/LibAddress.sol";
 import "../utils/LibRawResult.sol";
 import "../utils/LibSafeCast.sol";
-import "../tokens/ERC721Receiver.sol";
 import "../party/Party.sol";
 import "../globals/IGlobals.sol";
 import "../gatekeepers/IGateKeeper.sol";

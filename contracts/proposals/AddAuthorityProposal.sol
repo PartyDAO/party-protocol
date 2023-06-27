@@ -1,11 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0
 pragma solidity 0.8.20;
 
-import "../globals/IGlobals.sol";
-import "../globals/LibGlobals.sol";
-import "../crowdfund/CrowdfundFactory.sol";
-import "../crowdfund/ReraiseETHCrowdfund.sol";
-import "../gatekeepers/IGateKeeper.sol";
+import "../party/Party.sol";
 import "../utils/LibRawResult.sol";
 import "./IProposalExecutionEngine.sol";
 

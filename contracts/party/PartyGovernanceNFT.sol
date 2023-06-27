@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0
 pragma solidity 0.8.20;
 
-import "../utils/ReadOnlyDelegateCall.sol";
 import "../utils/LibSafeCast.sol";
 import "../utils/LibAddress.sol";
 import "openzeppelin/contracts/interfaces/IERC2981.sol";

@@ -4,7 +4,6 @@ pragma solidity 0.8.20;
 
 import "../tokens/IERC721.sol";
 import "../party/Party.sol";
-import "../utils/Implementation.sol";
 import "../utils/LibSafeERC721.sol";
 import "../globals/IGlobals.sol";
 import "../gatekeepers/IGateKeeper.sol";
@@ -12,6 +11,8 @@ import "openzeppelin/contracts/utils/cryptography/MerkleProof.sol";
 
 import "./BuyCrowdfundBase.sol";
 
+/// @notice A highly customizable crowdfund that can be used to buying one or
+///         many NFTs in batch from a specific collection.
 contract CollectionBatchBuyCrowdfund is BuyCrowdfundBase {
     using LibSafeERC721 for IERC721;
     using LibSafeCast for uint256;
