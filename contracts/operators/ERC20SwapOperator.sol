@@ -55,11 +55,6 @@ contract ERC20SwapOperator is IOperator {
     ///         approved aggregators although can be any contract.
     mapping(address target => bool isAllowed) public isTargetAllowed;
 
-    // Last recorded balance of each token held by this contract. This is used
-    // to calculate the amount of tokens sent to this contract. Learn more about
-    // this in the `execute()` method.
-    mapping(IERC20 => uint256) private _storedBalances;
-
     modifier onlyPartyDao() {
         {
             address partyDao = _GLOBALS.getAddress(LibGlobals.GLOBAL_DAO_WALLET);
