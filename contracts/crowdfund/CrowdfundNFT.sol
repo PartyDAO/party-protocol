@@ -80,8 +80,10 @@ contract CrowdfundNFT is IERC721, IERC4906, EIP165, ReadOnlyDelegateCall {
 
     /// @notice This is a soulbound NFT and cannot be transferred.
     ///         Attempting to call this function will always return null.
-    function getApproved(uint256) external pure returns (address) {
-        return address(0);
+    function getApproved(uint256) external pure returns (address _rgetApprove) {
+        assembly{
+            _rgetApprove := 0x00
+        }
     }
 
     /// @notice This is a soulbound NFT and cannot be transferred.
@@ -148,13 +150,15 @@ contract CrowdfundNFT is IERC721, IERC4906, EIP165, ReadOnlyDelegateCall {
         revert AlreadyBurnedError(owner, tokenId);
     }
 
-    function _delegateToRenderer() private view returns (string memory) {
+    function _delegateToRenderer() private view returns (string memory _str) {
         _readOnlyDelegateCall(
             // Instance of IERC721Renderer.
             _GLOBALS.getAddress(LibGlobals.GLOBAL_CF_NFT_RENDER_IMPL),
             msg.data
         );
         assert(false); // Will not be reached.
-        return "";
+        assembly{
+            _str := 0x0
+        }
     }
 }

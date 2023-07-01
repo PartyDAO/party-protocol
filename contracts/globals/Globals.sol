@@ -57,7 +57,7 @@ contract Globals is IGlobals, Multicall {
         if (value > 1) {
             revert InvalidBooleanValueError(key, value);
         }
-        return value != 0;
+        return value > 0;
     }
 
     function getAddress(uint256 key) external view returns (address) {

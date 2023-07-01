@@ -345,7 +345,7 @@ contract ReraiseETHCrowdfund is ETHCrowdfundBase, CrowdfundNFT {
 
         uint256 votingPower = pendingVotingPower[contributor];
 
-        if (votingPower == 0) return;
+        if (votingPower < 1) return;
 
         // Burn the crowdfund NFT.
         _burn(contributor);
@@ -394,7 +394,7 @@ contract ReraiseETHCrowdfund is ETHCrowdfundBase, CrowdfundNFT {
 
         // Requires that all voting power is claimed because the contributor is
         // expected to have burned their crowdfund NFT.
-        if (votingPower != 0) revert RemainingVotingPowerAfterClaimError(votingPower);
+        if (votingPower > 0) revert RemainingVotingPowerAfterClaimError(votingPower);
     }
 
     /// @notice `claimMultiple()` in batch form.

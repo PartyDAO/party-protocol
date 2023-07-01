@@ -274,7 +274,7 @@ abstract contract Crowdfund is Implementation, ERC721Receiver, CrowdfundNFT {
     /// @param contributors The contributors whose NFT to burn for.
     /// @param revertOnFailure If true, revert if any burn fails.
     function batchBurn(address payable[] calldata contributors, bool revertOnFailure) public {
-        for (uint256 i = 0; i < contributors.length; ++i) {
+        for (uint256 i; i < contributors.length; ++i) {
             (bool s, bytes memory r) = address(this).delegatecall(
                 abi.encodeCall(this.burn, (contributors[i]))
             );
