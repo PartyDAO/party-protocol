@@ -6,6 +6,7 @@ import "../utils/vendor/Strings.sol";
 import "../utils/vendor/Base64.sol";
 
 import "./RendererBase.sol";
+import "./MetadataRegistry.sol";
 import "./IMetadataRegistry1_1.sol";
 import "../party/PartyGovernance.sol";
 import "../party/PartyGovernanceNFT.sol";
@@ -23,12 +24,23 @@ contract PartyNFTRenderer is RendererBase {
         string status;
     }
 
-    uint256 constant PARTY_CARD_DATA = 1;
+    struct Metadata {
+        string description;
+        string externalURL;
+        string image;
+        string collectionName;
+        string collectionDescription;
+        string collectionImage;
+        string collectionBanner;
+        address royaltyReceiver;
+        uint256 royaltyAmount;
+    }
 
-    IMetadataRegistry1_1 constant OLD_METADATA_REGISTRY =
-        IMetadataRegistry1_1(0x175487875F0318EdbAB54BBA442fF53b36e96015);
+    uint256 constant PARTY_CARD_DATA = 1;
     address constant PARTYSTAR_PARTY_ADDRESS = 0x118928CCAc2035B578ae2D35FBFc2c120B6c4B82;
     address constant PARTYSTAR_CROWDFUND_ADDRESS = 0x0Bf08f7b6474C2aCCB9b9e325acb6FbcC682dE82;
+    IMetadataRegistry1_1 constant OLD_METADATA_REGISTRY =
+        IMetadataRegistry1_1(0x175487875F0318EdbAB54BBA442fF53b36e96015);
 
     constructor(
         IGlobals globals,
@@ -39,9 +51,12 @@ contract PartyNFTRenderer is RendererBase {
     function royaltyInfo(
         uint256,
         uint256
-    ) external pure returns (address receiver, uint256 royaltyAmount) {
-        receiver = address(0);
-        royaltyAmount = 0;
+    ) external view returns (address receiver, uint256 royaltyAmount) {
+        // Get any custom metadata for this party.
+        Metadata memory metadata = getCustomMetadata();
+
+        // By default, there are no royalties.
+        return (metadata.royaltyReceiver, metadata.royaltyAmount);
     }
 
     function contractURI() external view override returns (string memory) {
@@ -51,21 +66,34 @@ contract PartyNFTRenderer is RendererBase {
             isDarkMode
         );
 
+        // Get any custom metadata for this party.
+        Metadata memory metadata = getCustomMetadata();
+
         return
             string.concat(
                 "data:application/json;base64,",
                 Base64.encode(
                     abi.encodePacked(
                         '{"name":"',
-                        generateCollectionName(),
+                        bytes(metadata.collectionName).length == 0
+                            ? generateCollectionName()
+                            : metadata.collectionName,
                         '", "description":"',
-                        generateCollectionDescription(),
+                        bytes(metadata.collectionDescription).length == 0
+                            ? generateCollectionDescription()
+                            : metadata.collectionDescription,
                         '", "external_url":"',
-                        generateExternalURL(),
+                        bytes(metadata.externalURL).length == 0
+                            ? generateExternalURL()
+                            : metadata.externalURL,
                         '", "image":"',
-                        image,
+                        bytes(metadata.collectionImage).length == 0
+                            ? image
+                            : metadata.collectionImage,
                         '", "banner":"',
-                        banner,
+                        bytes(metadata.collectionBanner).length == 0
+                            ? banner
+                            : metadata.collectionBanner,
                         '"}'
                     )
                 )
@@ -107,8 +135,8 @@ contract PartyNFTRenderer is RendererBase {
                 );
         }
 
-        // Get the customization data for this crowdfund.
-        (bool isDarkMode, Color color) = getCustomizationChoices();
+        // Get any custom metadata for this party.
+        Metadata memory metadata = getCustomMetadata();
 
         // Construct metadata.
         if (hasPartyStarted()) {
@@ -120,22 +148,29 @@ contract PartyNFTRenderer is RendererBase {
                             '{"name":"',
                             generateName(tokenId),
                             '", "description":"',
-                            generateDescription(PartyGovernanceNFT(address(this)).name(), tokenId),
+                            bytes(metadata.description).length == 0
+                                ? generateDescription(
+                                    PartyGovernanceNFT(address(this)).name(),
+                                    tokenId
+                                )
+                                : metadata.description,
                             '", "external_url":"',
-                            generateExternalURL(),
+                            bytes(metadata.externalURL).length == 0
+                                ? generateExternalURL()
+                                : metadata.externalURL,
                             '", "attributes": [',
                             generateAttributes(tokenId),
                             '], "image":"',
-                            generateSVG(
-                                PartyGovernanceNFT(address(this)).name(),
-                                generateVotingPowerPercentage(tokenId),
-                                getLatestProposalStatuses(),
-                                PartyGovernance(address(this)).lastProposalId(),
-                                tokenId,
-                                hasUnclaimedDistribution(tokenId),
-                                color,
-                                isDarkMode
-                            ),
+                            bytes(metadata.image).length == 0
+                                ? generateSVG(
+                                    PartyGovernanceNFT(address(this)).name(),
+                                    generateVotingPowerPercentage(tokenId),
+                                    getLatestProposalStatuses(),
+                                    PartyGovernance(address(this)).lastProposalId(),
+                                    tokenId,
+                                    hasUnclaimedDistribution(tokenId)
+                                )
+                                : metadata.image,
                             '"}'
                         )
                     )
@@ -149,20 +184,27 @@ contract PartyNFTRenderer is RendererBase {
                             '{"name":"',
                             generateName(tokenId),
                             '", "description":"',
-                            generateDescription(PartyGovernanceNFT(address(this)).name(), tokenId),
+                            bytes(metadata.description).length == 0
+                                ? generateDescription(
+                                    PartyGovernanceNFT(address(this)).name(),
+                                    tokenId
+                                )
+                                : metadata.description,
                             '", "external_url":"',
-                            generateExternalURL(),
+                            bytes(metadata.externalURL).length == 0
+                                ? generateExternalURL()
+                                : metadata.externalURL,
                             '", "image":"',
-                            generateSVG(
-                                PartyGovernanceNFT(address(this)).name(),
-                                generateVotingPowerPercentage(tokenId),
-                                getLatestProposalStatuses(),
-                                PartyGovernance(address(this)).lastProposalId(),
-                                tokenId,
-                                hasUnclaimedDistribution(tokenId),
-                                color,
-                                isDarkMode
-                            ),
+                            bytes(metadata.image).length == 0
+                                ? generateSVG(
+                                    PartyGovernanceNFT(address(this)).name(),
+                                    generateVotingPowerPercentage(tokenId),
+                                    getLatestProposalStatuses(),
+                                    PartyGovernance(address(this)).lastProposalId(),
+                                    tokenId,
+                                    hasUnclaimedDistribution(tokenId)
+                                )
+                                : metadata.image,
                             '"}'
                         )
                     )
@@ -238,6 +280,30 @@ contract PartyNFTRenderer is RendererBase {
                 ". Head to ",
                 generateExternalURL(),
                 " to view the Party's latest activity."
+            );
+    }
+
+    function generateSVG(
+        string memory partyName,
+        string memory votingPowerPercentage,
+        PartyGovernance.ProposalStatus[4] memory proposalStatuses,
+        uint256 latestProposalId,
+        uint256 tokenId,
+        bool hasUnclaimed
+    ) public view returns (string memory) {
+        // Get the customization data for this party.
+        (bool isDarkMode, Color color) = getCustomizationChoices();
+
+        return
+            generateSVG(
+                partyName,
+                votingPowerPercentage,
+                proposalStatuses,
+                latestProposalId,
+                tokenId,
+                hasUnclaimed,
+                color,
+                isDarkMode
             );
     }
 
@@ -452,6 +518,15 @@ contract PartyNFTRenderer is RendererBase {
         } else {
             return formatAsDecimalString(intrinsicVotingPowerPercentage, 16, 4);
         }
+    }
+
+    function getCustomMetadata() private view returns (Metadata memory metadata) {
+        MetadataRegistry registry = MetadataRegistry(
+            _GLOBALS.getAddress(LibGlobals.GLOBAL_METADATA_REGISTRY)
+        );
+
+        bytes memory encodedMetadata = registry.getMetadata(address(this));
+        return encodedMetadata.length != 0 ? abi.decode(encodedMetadata, (Metadata)) : metadata;
     }
 
     function getLatestProposalStatuses()

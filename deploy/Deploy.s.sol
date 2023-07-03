@@ -19,6 +19,8 @@ import "../contracts/globals/Globals.sol";
 import "../contracts/globals/LibGlobals.sol";
 import "../contracts/party/Party.sol";
 import "../contracts/party/PartyFactory.sol";
+import "../contracts/renderers/MetadataRegistry.sol";
+import "../contracts/renderers/MetadataProvider.sol";
 import "../contracts/renderers/CrowdfundNFTRenderer.sol";
 import "../contracts/renderers/PartyNFTRenderer.sol";
 import "../contracts/renderers/fonts/PixeldroidConsoleFont.sol";
@@ -59,6 +61,8 @@ abstract contract Deploy {
     PartyFactory public partyFactory;
     ProposalExecutionEngine public proposalExecutionEngine;
     TokenDistributor public tokenDistributor;
+    MetadataRegistry public metadataRegistry;
+    MetadataProvider public metadataProvider;
     RendererStorage public rendererStorage;
     CrowdfundNFTRenderer public crowdfundNFTRenderer;
     PartyNFTRenderer public partyNFTRenderer;
@@ -221,6 +225,24 @@ abstract contract Deploy {
         _trackDeployerGasAfter();
         console.log("  Deployed - CrowdfundFactory", address(crowdfundFactory));
         _switchDeployer(DeployerRole.Default);
+
+        // DEPLOY_METADATA_REGISTRY
+        console.log("");
+        console.log("### MetadataRegistry");
+        console.log("  Deploying - MetadataRegistry");
+        _trackDeployerGasBefore();
+        metadataRegistry = new MetadataRegistry(globals);
+        _trackDeployerGasAfter();
+        console.log("  Deployed - MetadataRegistry", address(metadataRegistry));
+
+        // DEPLOY_METADATA_PROVIDER
+        console.log("");
+        console.log("### MetadataProvider");
+        console.log("  Deploying - MetadataProvider");
+        _trackDeployerGasBefore();
+        metadataProvider = new MetadataProvider();
+        _trackDeployerGasAfter();
+        console.log("  Deployed - MetadataProvider", address(metadataProvider));
 
         // DEPLOY_RENDERER_STORAGE
         console.log("");
@@ -500,6 +522,14 @@ abstract contract Deploy {
                 globals.setAddress,
                 (LibGlobals.GLOBAL_GOVERNANCE_NFT_RENDER_IMPL, address(partyNFTRenderer))
             );
+            multicallData[n++] = abi.encodeCall(
+                globals.setAddress,
+                (LibGlobals.GLOBAL_METADATA_REGISTRY, address(metadataRegistry))
+            );
+            multicallData[n++] = abi.encodeCall(
+                globals.setAddress,
+                (LibGlobals.GLOBAL_METADATA_PROVIDER, address(metadataProvider))
+            );
             // transfer ownership of Globals to multisig
             if (this.getDeployer() != deployConstants.partyDaoMultisig) {
                 multicallData[n++] = abi.encodeCall(
@@ -614,7 +644,7 @@ contract DeployScript is Script, Deploy {
         Deploy.deploy(deployConstants);
         vm.stopBroadcast();
 
-        AddressMapping[] memory addressMapping = new AddressMapping[](21);
+        AddressMapping[] memory addressMapping = new AddressMapping[](23);
         addressMapping[0] = AddressMapping("Globals", address(globals));
         addressMapping[1] = AddressMapping("TokenDistributor", address(tokenDistributor));
         addressMapping[2] = AddressMapping(
@@ -644,13 +674,15 @@ contract DeployScript is Script, Deploy {
             address(collectionBatchBuyOperator)
         );
         addressMapping[13] = AddressMapping("CrowdfundFactory", address(crowdfundFactory));
-        addressMapping[14] = AddressMapping("CrowdfundNFTRenderer", address(crowdfundNFTRenderer));
-        addressMapping[15] = AddressMapping("PartyNFTRenderer", address(partyNFTRenderer));
-        addressMapping[16] = AddressMapping("PartyHelpers", address(partyHelpers));
-        addressMapping[17] = AddressMapping("AllowListGateKeeper", address(allowListGateKeeper));
-        addressMapping[18] = AddressMapping("TokenGateKeeper", address(tokenGateKeeper));
-        addressMapping[19] = AddressMapping("RendererStorage", address(rendererStorage));
-        addressMapping[20] = AddressMapping(
+        addressMapping[14] = AddressMapping("MetadataRegistry", address(metadataRegistry));
+        addressMapping[15] = AddressMapping("MetadataProvider", address(metadataProvider));
+        addressMapping[16] = AddressMapping("CrowdfundNFTRenderer", address(crowdfundNFTRenderer));
+        addressMapping[17] = AddressMapping("PartyNFTRenderer", address(partyNFTRenderer));
+        addressMapping[18] = AddressMapping("PartyHelpers", address(partyHelpers));
+        addressMapping[19] = AddressMapping("AllowListGateKeeper", address(allowListGateKeeper));
+        addressMapping[20] = AddressMapping("TokenGateKeeper", address(tokenGateKeeper));
+        addressMapping[21] = AddressMapping("RendererStorage", address(rendererStorage));
+        addressMapping[22] = AddressMapping(
             "PixeldroidConsoleFont",
             address(pixeldroidConsoleFont)
         );

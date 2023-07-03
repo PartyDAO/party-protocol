@@ -9,6 +9,8 @@ import "../../contracts/utils/Proxy.sol";
 import "../../contracts/party/PartyFactory.sol";
 import "../../contracts/tokens/ERC721Receiver.sol";
 import "../../contracts/renderers/PartyNFTRenderer.sol";
+import "../../contracts/renderers/MetadataRegistry.sol";
+import "../../contracts/renderers/MetadataProvider.sol";
 import "../../contracts/renderers/RendererStorage.sol";
 import "../../contracts/renderers/fonts/PixeldroidConsoleFont.sol";
 import "../../contracts/distribution/TokenDistributor.sol";
@@ -41,6 +43,9 @@ contract InitialETHCrowdfundTest is Test, TestUtils, ERC721Receiver {
 
         initialETHCrowdfundImpl = new InitialETHCrowdfund(globals);
 
+        MetadataRegistry metadataRegistry = new MetadataRegistry(globals);
+        MetadataProvider metadataProvider = new MetadataProvider();
+
         // Upload font on-chain
         PixeldroidConsoleFont font = new PixeldroidConsoleFont();
         nftRendererStorage = new RendererStorage(address(this));
@@ -50,6 +55,8 @@ contract InitialETHCrowdfundTest is Test, TestUtils, ERC721Receiver {
         globals.setAddress(LibGlobals.GLOBAL_GOVERNANCE_NFT_RENDER_IMPL, address(nftRenderer));
         globals.setAddress(LibGlobals.GLOBAL_RENDERER_STORAGE, address(nftRendererStorage));
         globals.setAddress(LibGlobals.GLOBAL_TOKEN_DISTRIBUTOR, address(tokenDistributor));
+        globals.setAddress(LibGlobals.GLOBAL_METADATA_REGISTRY, address(metadataRegistry));
+        globals.setAddress(LibGlobals.GLOBAL_METADATA_PROVIDER, address(metadataProvider));
 
         // Generate customization options.
         uint256 versionId = 1;

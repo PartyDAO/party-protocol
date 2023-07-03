@@ -42,4 +42,5 @@ library LibGlobals {
     // uint256 internal constant GLOBAL_RERAISE_ETH_CF_IMPL = 29;
     uint256 internal constant GLOBAL_SEAPORT = 30;
     uint256 internal constant GLOBAL_CONDUIT_CONTROLLER = 31;
+    uint256 internal constant GLOBAL_METADATA_PROVIDER = 32;
 }
