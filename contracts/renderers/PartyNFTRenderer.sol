@@ -28,10 +28,10 @@ contract PartyNFTRenderer is RendererBase {
         string description;
         string externalURL;
         string image;
+        string banner;
         string collectionName;
         string collectionDescription;
-        string collectionImage;
-        string collectionBanner;
+        string collectionExternalURL;
         address royaltyReceiver;
         uint256 royaltyAmount;
     }
@@ -83,17 +83,13 @@ contract PartyNFTRenderer is RendererBase {
                             ? generateCollectionDescription()
                             : metadata.collectionDescription,
                         '", "external_url":"',
-                        bytes(metadata.externalURL).length == 0
+                        bytes(metadata.collectionExternalURL).length == 0
                             ? generateExternalURL()
-                            : metadata.externalURL,
+                            : metadata.collectionExternalURL,
                         '", "image":"',
-                        bytes(metadata.collectionImage).length == 0
-                            ? image
-                            : metadata.collectionImage,
+                        bytes(metadata.image).length == 0 ? image : metadata.image,
                         '", "banner":"',
-                        bytes(metadata.collectionBanner).length == 0
-                            ? banner
-                            : metadata.collectionBanner,
+                        bytes(metadata.banner).length == 0 ? banner : metadata.banner,
                         '"}'
                     )
                 )

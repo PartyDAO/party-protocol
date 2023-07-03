@@ -1356,10 +1356,10 @@ contract PartyGovernanceNFTTest is Test, TestUtils {
             description: "CUSTOM_DESCRIPTION",
             externalURL: "CUSTOM_EXTERNAL_URL",
             image: "CUSTOM_IMAGE",
+            banner: "CUSTOM_BANNER",
             collectionName: "CUSTOM_COLLECTION_NAME",
             collectionDescription: "CUSTOM_COLLECTION_DESCRIPTION",
-            collectionImage: "CUSTOM_COLLECTION_IMAGE",
-            collectionBanner: "CUSTOM_COLLECTION_BANNER",
+            collectionExternalURL: "CUSTOM_COLLECTION_EXTERNAL_URL",
             royaltyReceiver: _randomAddress(),
             royaltyAmount: _randomUint256()
         });
@@ -1405,10 +1405,10 @@ contract PartyGovernanceNFTTest is Test, TestUtils {
             description: "CUSTOM_DESCRIPTION",
             externalURL: "CUSTOM_EXTERNAL_URL",
             image: "CUSTOM_IMAGE",
+            banner: "CUSTOM_BANNER",
             collectionName: "CUSTOM_COLLECTION_NAME",
             collectionDescription: "CUSTOM_COLLECTION_DESCRIPTION",
-            collectionImage: "CUSTOM_COLLECTION_IMAGE",
-            collectionBanner: "CUSTOM_COLLECTION_BANNER",
+            collectionExternalURL: "CUSTOM_COLLECTION_EXTERNAL_URL",
             royaltyReceiver: _randomAddress(),
             royaltyAmount: _randomUint256()
         });
@@ -1470,10 +1470,10 @@ contract PartyGovernanceNFTTest is Test, TestUtils {
             description: "CUSTOM_DESCRIPTION",
             externalURL: "CUSTOM_EXTERNAL_URL",
             image: "CUSTOM_IMAGE",
+            banner: "CUSTOM_BANNER",
             collectionName: "CUSTOM_COLLECTION_NAME",
             collectionDescription: "CUSTOM_COLLECTION_DESCRIPTION",
-            collectionImage: "CUSTOM_COLLECTION_IMAGE",
-            collectionBanner: "CUSTOM_COLLECTION_BANNER",
+            collectionExternalURL: "CUSTOM_COLLECTION_EXTERNAL_URL",
             royaltyReceiver: _randomAddress(),
             royaltyAmount: _randomUint256()
         });
