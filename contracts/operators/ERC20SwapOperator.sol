@@ -23,7 +23,7 @@ contract ERC20SwapOperator is IOperator {
         uint256 receivedAmount
     );
 
-    // Parameters defining at time of operation execution
+    // Parameters defining at time of operation created
     struct ERC20SwapOperationData {
         /// The token to swap.
         IERC20 fromToken;

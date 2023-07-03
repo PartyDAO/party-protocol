@@ -190,7 +190,7 @@ contract PartyParticipant is ERC721Holder, Test {
         return
             party.distribute(
                 address(party).balance,
-                ITokenDistributor.ListingTokenType.Native,
+                ITokenDistributor.TokenType.Native,
                 address(0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE),
                 0
             );

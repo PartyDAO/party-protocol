@@ -105,7 +105,7 @@ contract OperatorProposalTest is Test, TestUtils {
 
         OperatorProposal.AssetData[] memory assets = new OperatorProposal.AssetData[](1);
         assets[0] = OperatorProposal.AssetData({
-            tokenType: OperatorProposal.OperatorListingTokenType.ETH,
+            tokenType: OperatorProposal.OperatorTokenType.ETH,
             token: address(0),
             tokenId: 0,
             amount: 1 ether
@@ -145,7 +145,7 @@ contract OperatorProposalTest is Test, TestUtils {
 
         OperatorProposal.AssetData[] memory assets = new OperatorProposal.AssetData[](1);
         assets[0] = OperatorProposal.AssetData({
-            tokenType: OperatorProposal.OperatorListingTokenType.ERC20,
+            tokenType: OperatorProposal.OperatorTokenType.ERC20,
             token: address(erc20),
             tokenId: 0,
             amount: 100e18
@@ -185,7 +185,7 @@ contract OperatorProposalTest is Test, TestUtils {
 
         OperatorProposal.AssetData[] memory assets = new OperatorProposal.AssetData[](1);
         assets[0] = OperatorProposal.AssetData({
-            tokenType: OperatorProposal.OperatorListingTokenType.ERC721,
+            tokenType: OperatorProposal.OperatorTokenType.ERC721,
             token: address(erc721),
             tokenId: 1,
             amount: 1
@@ -225,7 +225,7 @@ contract OperatorProposalTest is Test, TestUtils {
 
         OperatorProposal.AssetData[] memory assets = new OperatorProposal.AssetData[](1);
         assets[0] = OperatorProposal.AssetData({
-            tokenType: OperatorProposal.OperatorListingTokenType.ERC1155,
+            tokenType: OperatorProposal.OperatorTokenType.ERC1155,
             token: address(erc1155),
             tokenId: 1,
             amount: 10
@@ -265,25 +265,25 @@ contract OperatorProposalTest is Test, TestUtils {
 
         OperatorProposal.AssetData[] memory assets = new OperatorProposal.AssetData[](4);
         assets[0] = OperatorProposal.AssetData({
-            tokenType: OperatorProposal.OperatorListingTokenType.ETH,
+            tokenType: OperatorProposal.OperatorTokenType.ETH,
             token: address(0),
             tokenId: 0,
             amount: 1 ether
         });
         assets[1] = OperatorProposal.AssetData({
-            tokenType: OperatorProposal.OperatorListingTokenType.ERC20,
+            tokenType: OperatorProposal.OperatorTokenType.ERC20,
             token: address(erc20),
             tokenId: 0,
             amount: 100e18
         });
         assets[2] = OperatorProposal.AssetData({
-            tokenType: OperatorProposal.OperatorListingTokenType.ERC721,
+            tokenType: OperatorProposal.OperatorTokenType.ERC721,
             token: address(erc721),
             tokenId: 1,
             amount: 1
         });
         assets[3] = OperatorProposal.AssetData({
-            tokenType: OperatorProposal.OperatorListingTokenType.ERC1155,
+            tokenType: OperatorProposal.OperatorTokenType.ERC1155,
             token: address(erc1155),
             tokenId: 1,
             amount: 10
@@ -371,7 +371,7 @@ contract OperatorProposalTest is Test, TestUtils {
 
         OperatorProposal.AssetData[] memory assets = new OperatorProposal.AssetData[](1);
         assets[0] = OperatorProposal.AssetData({
-            tokenType: OperatorProposal.OperatorListingTokenType.ETH,
+            tokenType: OperatorProposal.OperatorTokenType.ETH,
             token: address(0),
             tokenId: 0,
             amount: 2

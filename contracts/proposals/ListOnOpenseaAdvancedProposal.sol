@@ -31,7 +31,7 @@ abstract contract ListOnOpenseaAdvancedProposal is OpenseaHelpers, ZoraHelpers {
         // How long the listing is valid for.
         uint40 duration;
         // The type of the NFT token.
-        ListingTokenType tokenType;
+        TokenType tokenType;
         // The NFT token contract.
         address token;
         // the NFT token ID.
@@ -45,7 +45,7 @@ abstract contract ListOnOpenseaAdvancedProposal is OpenseaHelpers, ZoraHelpers {
         bytes4 domainHashPrefix;
     }
 
-    enum ListingTokenType {
+    enum TokenType {
         // The NFT is an ERC721.
         ERC721,
         // The NFT is an ERC1155.
@@ -292,7 +292,7 @@ abstract contract ListOnOpenseaAdvancedProposal is OpenseaHelpers, ZoraHelpers {
         // What we are selling.
         orderParams.offer = new IOpenseaExchange.OfferItem[](1);
         IOpenseaExchange.OfferItem memory offer = orderParams.offer[0];
-        offer.itemType = data.tokenType == ListingTokenType.ERC721
+        offer.itemType = data.tokenType == TokenType.ERC721
             ? IOpenseaExchange.ItemType.ERC721
             : IOpenseaExchange.ItemType.ERC1155;
         offer.token = data.token;
@@ -325,7 +325,7 @@ abstract contract ListOnOpenseaAdvancedProposal is OpenseaHelpers, ZoraHelpers {
         IOpenseaExchange seaport = IOpenseaExchange(_GLOBALS.getAddress(LibGlobals.GLOBAL_SEAPORT));
         assert(seaport.validate(orders));
         // Emit an event based on the type of listing.
-        if (data.tokenType == ListingTokenType.ERC721 && data.startPrice == data.endPrice) {
+        if (data.tokenType == TokenType.ERC721 && data.startPrice == data.endPrice) {
             emit OpenseaOrderListed(
                 orderParams,
                 orderHash,
@@ -350,7 +350,7 @@ abstract contract ListOnOpenseaAdvancedProposal is OpenseaHelpers, ZoraHelpers {
     function _approveConduit(
         address token,
         uint256 tokenId,
-        ListingTokenType tokenType
+        TokenType tokenType
     ) private returns (address conduit, bytes32 conduitKey) {
         // Get the OpenSea conduit key.
         conduitKey = _GLOBALS.getBytes32(LibGlobals.GLOBAL_OPENSEA_CONDUIT_KEY);
@@ -361,7 +361,7 @@ abstract contract ListOnOpenseaAdvancedProposal is OpenseaHelpers, ZoraHelpers {
         (conduit, ) = conduitController.getConduit(conduitKey);
         // Approve OpenSea's conduit to spend our NFT. This should revert if we
         // do not own the NFT.
-        if (tokenType == ListingTokenType.ERC721) {
+        if (tokenType == TokenType.ERC721) {
             IERC721(token).approve(conduit, tokenId);
         } else {
             IERC1155(token).setApprovalForAll(conduit, true);
@@ -396,7 +396,7 @@ abstract contract ListOnOpenseaAdvancedProposal is OpenseaHelpers, ZoraHelpers {
         uint256 expiry,
         address token,
         uint256 tokenId,
-        ListingTokenType tokenType,
+        TokenType tokenType,
         uint256 startPrice,
         uint256 endPrice
     ) private {
@@ -407,7 +407,7 @@ abstract contract ListOnOpenseaAdvancedProposal is OpenseaHelpers, ZoraHelpers {
             // and instead we have the ETH it was bought with.
 
             // Emit an event based on the type of listing.
-            if (tokenType == ListingTokenType.ERC721 && startPrice == endPrice) {
+            if (tokenType == TokenType.ERC721 && startPrice == endPrice) {
                 emit OpenseaOrderSold(orderHash, IERC721(token), tokenId, startPrice);
             } else {
                 emit OpenseaAdvancedOrderSold(orderHash, token, tokenId, startPrice, endPrice);
@@ -415,7 +415,7 @@ abstract contract ListOnOpenseaAdvancedProposal is OpenseaHelpers, ZoraHelpers {
         } else if (expiry <= block.timestamp) {
             // The order expired before it was filled. We retain the NFT.
             // Revoke Seaport approval.
-            if (tokenType == ListingTokenType.ERC721) {
+            if (tokenType == TokenType.ERC721) {
                 IERC721(token).approve(address(0), tokenId);
             } else {
                 IERC1155(token).setApprovalForAll(conduit, false);

@@ -85,7 +85,7 @@ contract TokenDistributorUnitTest is Test, TestUtils {
     event DistributionFeeClaimed(
         Party indexed party,
         address indexed feeRecipient,
-        ITokenDistributor.ListingTokenType tokenType,
+        ITokenDistributor.TokenType tokenType,
         address token,
         uint256 amount
     );
@@ -93,7 +93,7 @@ contract TokenDistributorUnitTest is Test, TestUtils {
         Party indexed party,
         uint256 indexed partyTokenId,
         address indexed owner,
-        ITokenDistributor.ListingTokenType tokenType,
+        ITokenDistributor.TokenType tokenType,
         address token,
         uint256 amountClaimed
     );
@@ -150,7 +150,7 @@ contract TokenDistributorUnitTest is Test, TestUtils {
             ITokenDistributor.DistributionInfo({
                 distributionId: 1,
                 party: party,
-                tokenType: ITokenDistributor.ListingTokenType.Native,
+                tokenType: ITokenDistributor.TokenType.Native,
                 token: ETH_TOKEN_ADDRESS,
                 memberSupply: uint128(_computeLessFees(supply, DEFAULT_FEE_BPS)),
                 fee: uint128(_computeFees(supply, DEFAULT_FEE_BPS)),
@@ -177,7 +177,7 @@ contract TokenDistributorUnitTest is Test, TestUtils {
             ITokenDistributor.DistributionInfo({
                 distributionId: 1,
                 party: party,
-                tokenType: ITokenDistributor.ListingTokenType.Erc20,
+                tokenType: ITokenDistributor.TokenType.Erc20,
                 token: address(erc20),
                 memberSupply: uint128(_computeLessFees(supply, DEFAULT_FEE_BPS)),
                 fee: uint128(_computeFees(supply, DEFAULT_FEE_BPS)),
@@ -209,7 +209,7 @@ contract TokenDistributorUnitTest is Test, TestUtils {
             party,
             memberTokenId,
             member,
-            ITokenDistributor.ListingTokenType.Native,
+            ITokenDistributor.TokenType.Native,
             ETH_TOKEN_ADDRESS,
             claimAmount
         );
@@ -241,7 +241,7 @@ contract TokenDistributorUnitTest is Test, TestUtils {
             party,
             memberTokenId,
             member,
-            ITokenDistributor.ListingTokenType.Erc20,
+            ITokenDistributor.TokenType.Erc20,
             address(erc20),
             claimAmount
         );
@@ -271,7 +271,7 @@ contract TokenDistributorUnitTest is Test, TestUtils {
             party,
             memberTokenId,
             member,
-            ITokenDistributor.ListingTokenType.Native,
+            ITokenDistributor.TokenType.Native,
             ETH_TOKEN_ADDRESS,
             supply
         );
@@ -302,7 +302,7 @@ contract TokenDistributorUnitTest is Test, TestUtils {
             party,
             memberTokenId,
             member,
-            ITokenDistributor.ListingTokenType.Erc20,
+            ITokenDistributor.TokenType.Erc20,
             address(erc20),
             supply
         );
@@ -337,7 +337,7 @@ contract TokenDistributorUnitTest is Test, TestUtils {
             party,
             memberTokenIds[memberIdx],
             members[memberIdx],
-            ITokenDistributor.ListingTokenType.Native,
+            ITokenDistributor.TokenType.Native,
             ETH_TOKEN_ADDRESS,
             claimAmount
         );
@@ -373,7 +373,7 @@ contract TokenDistributorUnitTest is Test, TestUtils {
             party,
             memberTokenIds[memberIdx],
             members[memberIdx],
-            ITokenDistributor.ListingTokenType.Erc20,
+            ITokenDistributor.TokenType.Erc20,
             address(erc20),
             claimAmount
         );
@@ -535,7 +535,7 @@ contract TokenDistributorUnitTest is Test, TestUtils {
         for (uint256 i; i < 8; ++i) {
             ITokenDistributor.DistributionInfo memory di_ = di;
             if (i == 0) {
-                di_.tokenType = ITokenDistributor.ListingTokenType.Erc20;
+                di_.tokenType = ITokenDistributor.TokenType.Erc20;
             } else if (i == 1) {
                 di_.distributionId = _randomUint256();
             } else if (i == 2) {
@@ -686,7 +686,7 @@ contract TokenDistributorUnitTest is Test, TestUtils {
 
     function test_getDistributionHash() external {
         ITokenDistributor.DistributionInfo memory di = ITokenDistributor.DistributionInfo({
-            tokenType: ITokenDistributor.ListingTokenType(uint8(_randomUint256() % 2)),
+            tokenType: ITokenDistributor.TokenType(uint8(_randomUint256() % 2)),
             distributionId: _randomUint256(),
             party: Party(_randomAddress()),
             feeRecipient: _randomAddress(),

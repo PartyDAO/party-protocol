@@ -59,7 +59,7 @@ contract DummyProposalExecutionEngine is IProposalExecutionEngine, ProposalStora
 contract DummyTokenDistributor is ITokenDistributor {
     event DummyTokenDistributor_createDistributionCalled(
         Party party,
-        ITokenDistributor.ListingTokenType tokenType,
+        ITokenDistributor.TokenType tokenType,
         address token,
         uint256 tokenId,
         address payable feeRecipient,
@@ -83,7 +83,7 @@ contract DummyTokenDistributor is ITokenDistributor {
         distInfo.distributionId = ++lastId;
         emit DummyTokenDistributor_createDistributionCalled(
             party,
-            ITokenDistributor.ListingTokenType.Native,
+            ITokenDistributor.TokenType.Native,
             ETH_ADDRESS,
             0,
             feeRecipient,
@@ -104,7 +104,7 @@ contract DummyTokenDistributor is ITokenDistributor {
         distInfo.distributionId = ++lastId;
         emit DummyTokenDistributor_createDistributionCalled(
             party,
-            ITokenDistributor.ListingTokenType.Erc20,
+            ITokenDistributor.TokenType.Erc20,
             address(token),
             0,
             feeRecipient,
@@ -245,7 +245,7 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
     event DummyProposalExecutionEngine_cancelCalled(address context, uint256 proposalId);
     event DummyTokenDistributor_createDistributionCalled(
         Party party,
-        ITokenDistributor.ListingTokenType tokenType,
+        ITokenDistributor.TokenType tokenType,
         address token,
         uint256 tokenId,
         address payable feeRecipient,
@@ -2510,7 +2510,7 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
         _expectEmit0();
         emit DummyTokenDistributor_createDistributionCalled(
             Party(payable(address(gov))),
-            ITokenDistributor.ListingTokenType.Native,
+            ITokenDistributor.TokenType.Native,
             ETH_ADDRESS,
             0,
             defaultGovernanceOpts.feeRecipient,
@@ -2519,12 +2519,7 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
             tokenDistributor.lastId() + 1
         );
         vm.prank(member);
-        gov.distribute(
-            address(gov).balance,
-            ITokenDistributor.ListingTokenType.Native,
-            ETH_ADDRESS,
-            0
-        );
+        gov.distribute(address(gov).balance, ITokenDistributor.TokenType.Native, ETH_ADDRESS, 0);
         assertEq(tokenDistributor.SINK().balance, 1337e18);
     }
 
@@ -2553,7 +2548,7 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
         _expectEmit0();
         emit DummyTokenDistributor_createDistributionCalled(
             Party(payable(address(gov))),
-            ITokenDistributor.ListingTokenType.Erc20,
+            ITokenDistributor.TokenType.Erc20,
             address(erc20),
             0,
             defaultGovernanceOpts.feeRecipient,
@@ -2562,7 +2557,7 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
             tokenDistributor.lastId() + 1
         );
         vm.prank(member);
-        gov.distribute(1337e18, ITokenDistributor.ListingTokenType.Erc20, address(erc20), 0);
+        gov.distribute(1337e18, ITokenDistributor.TokenType.Erc20, address(erc20), 0);
         assertEq(erc20.balanceOf(tokenDistributor.SINK()), 1337e18);
     }
 
@@ -2589,12 +2584,7 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
         vm.deal(address(gov), 1337e18);
         vm.expectRevert(abi.encodeWithSelector(PartyGovernance.OnlyActiveMemberError.selector));
         vm.prank(member);
-        gov.distribute(
-            address(gov).balance,
-            ITokenDistributor.ListingTokenType.Native,
-            ETH_ADDRESS,
-            0
-        );
+        gov.distribute(address(gov).balance, ITokenDistributor.TokenType.Native, ETH_ADDRESS, 0);
     }
 
     function testDistribute_canOnlyDistributeIfPartyStarted() external {
@@ -2609,12 +2599,7 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
 
         vm.prank(member);
         vm.expectRevert(PartyGovernance.PartyNotStartedError.selector);
-        gov.distribute(
-            address(gov).balance,
-            ITokenDistributor.ListingTokenType.Native,
-            ETH_ADDRESS,
-            0
-        );
+        gov.distribute(address(gov).balance, ITokenDistributor.TokenType.Native, ETH_ADDRESS, 0);
     }
 
     function testDistribute_canOnlyDistributeIfDoesNotRequireVotes() external {
@@ -2634,12 +2619,7 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
 
         vm.prank(member);
         vm.expectRevert(PartyGovernance.DistributionsRequireVoteError.selector);
-        gov.distribute(
-            address(gov).balance,
-            ITokenDistributor.ListingTokenType.Native,
-            ETH_ADDRESS,
-            0
-        );
+        gov.distribute(address(gov).balance, ITokenDistributor.TokenType.Native, ETH_ADDRESS, 0);
     }
 
     function test_onlyWhenNotDisabled() external {
@@ -2667,12 +2647,7 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
         // Try creating a distribution.
         vm.prank(member);
         vm.expectRevert(PartyGovernance.OnlyWhenEnabledError.selector);
-        gov.distribute(
-            address(gov).balance,
-            ITokenDistributor.ListingTokenType.Native,
-            ETH_ADDRESS,
-            0
-        );
+        gov.distribute(address(gov).balance, ITokenDistributor.TokenType.Native, ETH_ADDRESS, 0);
     }
 
     function test_canReceive1155Token() external {

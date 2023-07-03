@@ -41,7 +41,7 @@ abstract contract ListOnOpenseaProposal is OpenseaHelpers {
                     startPrice: data.listPrice,
                     endPrice: data.listPrice,
                     duration: data.duration,
-                    tokenType: ListOnOpenseaAdvancedProposal.ListingTokenType.ERC721,
+                    tokenType: ListOnOpenseaAdvancedProposal.TokenType.ERC721,
                     token: address(data.token),
                     tokenId: data.tokenId,
                     fees: data.fees,

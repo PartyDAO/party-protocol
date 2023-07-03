@@ -7,7 +7,7 @@ import "../party/Party.sol";
 
 /// @notice Creates token distributions for parties.
 interface ITokenDistributor {
-    enum ListingTokenType {
+    enum TokenType {
         Native,
         Erc20
     }
@@ -15,7 +15,7 @@ interface ITokenDistributor {
     // Info on a distribution, created by createDistribution().
     struct DistributionInfo {
         // Type of distribution/token.
-        ListingTokenType tokenType;
+        TokenType tokenType;
         // ID of the distribution. Assigned by createDistribution().
         uint256 distributionId;
         // The party whose members can claim the distribution.
@@ -36,7 +36,7 @@ interface ITokenDistributor {
     event DistributionFeeClaimed(
         Party indexed party,
         address indexed feeRecipient,
-        ListingTokenType tokenType,
+        TokenType tokenType,
         address token,
         uint256 amount
     );
@@ -44,7 +44,7 @@ interface ITokenDistributor {
         Party indexed party,
         uint256 indexed partyTokenId,
         address indexed owner,
-        ListingTokenType tokenType,
+        TokenType tokenType,
         address token,
         uint256 amountClaimed
     );

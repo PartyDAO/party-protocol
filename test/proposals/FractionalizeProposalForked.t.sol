@@ -9,7 +9,7 @@ import "../DummyERC721.sol";
 contract TestableFractionalizeProposal is FractionalizeProposal {
     event MockCreateDistribution(
         address caller,
-        ITokenDistributor.ListingTokenType tokenType,
+        ITokenDistributor.TokenType tokenType,
         address token,
         uint256 tokenId
     );
@@ -38,7 +38,7 @@ contract TestableFractionalizeProposal is FractionalizeProposal {
     // `distribute()` on itself.
     function distribute(
         uint256,
-        ITokenDistributor.ListingTokenType tokenType,
+        ITokenDistributor.TokenType tokenType,
         address token,
         uint256 tokenId
     ) external returns (ITokenDistributor.DistributionInfo memory distInfo) {
@@ -59,7 +59,7 @@ contract FractionalizeProposalForkedTest is TestUtils {
 
     event MockCreateDistribution(
         address caller,
-        ITokenDistributor.ListingTokenType tokenType,
+        ITokenDistributor.TokenType tokenType,
         address token,
         uint256 tokenId
     );
@@ -89,7 +89,7 @@ contract FractionalizeProposalForkedTest is TestUtils {
         _expectEmit0();
         emit MockCreateDistribution(
             address(impl),
-            ITokenDistributor.ListingTokenType.Erc20,
+            ITokenDistributor.TokenType.Erc20,
             address(expectedVault),
             expectedVaultId
         );

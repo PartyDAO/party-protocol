@@ -71,7 +71,7 @@ contract FractionalizeProposal {
         // Create distribution for fractional tokens for party.
         PartyGovernance(address(this)).distribute(
             supply,
-            ITokenDistributor.ListingTokenType.Erc20,
+            ITokenDistributor.TokenType.Erc20,
             address(vault),
             vaultId
         );

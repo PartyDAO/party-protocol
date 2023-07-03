@@ -32,7 +32,7 @@ contract TokenDistributor is ITokenDistributor {
     // Arguments for `_createDistribution()`.
     struct CreateDistributionArgs {
         Party party;
-        ListingTokenType tokenType;
+        TokenType tokenType;
         address token;
         uint256 currentTokenBalance;
         address payable feeRecipient;
@@ -104,7 +104,7 @@ contract TokenDistributor is ITokenDistributor {
         info = _createDistribution(
             CreateDistributionArgs({
                 party: party,
-                tokenType: ListingTokenType.Native,
+                tokenType: TokenType.Native,
                 token: NATIVE_TOKEN_ADDRESS,
                 currentTokenBalance: address(this).balance,
                 feeRecipient: feeRecipient,
@@ -123,7 +123,7 @@ contract TokenDistributor is ITokenDistributor {
         info = _createDistribution(
             CreateDistributionArgs({
                 party: party,
-                tokenType: ListingTokenType.Erc20,
+                tokenType: TokenType.Erc20,
                 token: address(token),
                 currentTokenBalance: token.balanceOf(address(this)),
                 feeRecipient: feeRecipient,
@@ -342,7 +342,7 @@ contract TokenDistributor is ITokenDistributor {
     }
 
     function _transfer(
-        ListingTokenType tokenType,
+        TokenType tokenType,
         address token,
         address payable recipient,
         uint256 amount
@@ -360,10 +360,10 @@ contract TokenDistributor is ITokenDistributor {
         // by causing an arithmetic underflow with the supply calculation if
         // this were to be attempted.
         _storedBalances[balanceId] = type(uint256).max;
-        if (tokenType == ListingTokenType.Native) {
+        if (tokenType == TokenType.Native) {
             recipient.transferEth(amount);
         } else {
-            assert(tokenType == ListingTokenType.Erc20);
+            assert(tokenType == TokenType.Erc20);
             IERC20(token).compatTransfer(recipient, amount);
         }
         _storedBalances[balanceId] = storedBalance;
@@ -378,13 +378,13 @@ contract TokenDistributor is ITokenDistributor {
     }
 
     function _getBalanceId(
-        ListingTokenType tokenType,
+        TokenType tokenType,
         address token
     ) private pure returns (bytes32 balanceId) {
-        if (tokenType == ListingTokenType.Native) {
+        if (tokenType == TokenType.Native) {
             return bytes32(uint256(uint160(NATIVE_TOKEN_ADDRESS)));
         }
-        assert(tokenType == ListingTokenType.Erc20);
+        assert(tokenType == TokenType.Erc20);
         return bytes32(uint256(uint160(token)));
     }
 }

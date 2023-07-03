@@ -13,7 +13,7 @@ import "../tokens/IERC1155.sol";
 abstract contract OperatorProposal {
     using LibERC20Compat for IERC20;
 
-    enum OperatorListingTokenType {
+    enum OperatorTokenType {
         ETH,
         ERC20,
         ERC721,
@@ -21,7 +21,7 @@ abstract contract OperatorProposal {
     }
 
     struct AssetData {
-        OperatorListingTokenType tokenType;
+        OperatorTokenType tokenType;
         address token;
         uint256 tokenId;
         uint256 amount;
@@ -63,17 +63,17 @@ abstract contract OperatorProposal {
         uint256 ethToTransfer;
         for (uint256 i; i < data.assets.length; ++i) {
             AssetData memory asset = data.assets[i];
-            if (asset.tokenType == OperatorListingTokenType.ETH) {
+            if (asset.tokenType == OperatorTokenType.ETH) {
                 ethToTransfer += asset.amount;
-            } else if (asset.tokenType == OperatorListingTokenType.ERC20) {
+            } else if (asset.tokenType == OperatorTokenType.ERC20) {
                 IERC20(asset.token).compatTransfer(address(data.operator), asset.amount);
-            } else if (asset.tokenType == OperatorListingTokenType.ERC721) {
+            } else if (asset.tokenType == OperatorTokenType.ERC721) {
                 IERC721(asset.token).safeTransferFrom(
                     address(this),
                     address(data.operator),
                     asset.tokenId
                 );
-            } else if (asset.tokenType == OperatorListingTokenType.ERC1155) {
+            } else if (asset.tokenType == OperatorTokenType.ERC1155) {
                 IERC1155(asset.token).safeTransferFrom(
                     address(this),
                     address(data.operator),
