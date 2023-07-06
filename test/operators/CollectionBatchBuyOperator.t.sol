@@ -62,7 +62,63 @@ contract CollectionBatchBuyOperatorTest is Test, TestUtils, ERC721Receiver {
         bytes memory executionData = abi.encode(
             CollectionBatchBuyOperator.CollectionBatchBuyExecutionData({
                 calls: calls,
-                numOfTokens: 3
+                numOfTokens: 3,
+                isReceivedDirectly: false
+            })
+        );
+
+        // Execute the operation
+        uint256[] memory tokenIds = new uint256[](3);
+        tokenIds[0] = 1;
+        tokenIds[1] = 2;
+        tokenIds[2] = 3;
+        vm.expectEmit(false, false, false, true);
+        emit CollectionBatchBuyOperationExecuted(
+            Party(payable(address(this))),
+            nftContract,
+            tokenIds,
+            3
+        );
+
+        uint256 balanceBefore = address(this).balance;
+        operator.execute{ value: 5 }(operatorData, executionData, _randomAddress(), true);
+        assertEq(balanceBefore - address(this).balance, 3); // Sent 5 wei, only used 3 wei
+        for (uint256 i; i < tokenIds.length; ++i) {
+            assertEq(nftContract.ownerOf(tokenIds[i]), address(this));
+        }
+    }
+
+    function test_execute_canReceiveDirectly() public {
+        // Setup the operation
+        CollectionBatchBuyOperator.BuyCall[]
+            memory calls = new CollectionBatchBuyOperator.BuyCall[](3);
+        for (uint256 i; i < calls.length; ++i) {
+            CollectionBatchBuyOperator.TokenToBuy[]
+                memory tokensToBuy = new CollectionBatchBuyOperator.TokenToBuy[](1);
+            tokensToBuy[0].tokenId = i + 1;
+            tokensToBuy[0].price = 1;
+
+            calls[i] = CollectionBatchBuyOperator.BuyCall({
+                target: payable(address(nftContract)),
+                data: abi.encodeCall(nftContract.mint, (address(this))),
+                tokensToBuy: tokensToBuy
+            });
+        }
+
+        bytes memory operatorData = abi.encode(
+            CollectionBatchBuyOperator.CollectionBatchBuyOperationData({
+                nftContract: IERC721(address(nftContract)),
+                nftTokenIdsMerkleRoot: bytes32(0),
+                maximumPrice: maximumPrice,
+                minTokensBought: 3,
+                minTotalEthUsed: 0
+            })
+        );
+        bytes memory executionData = abi.encode(
+            CollectionBatchBuyOperator.CollectionBatchBuyExecutionData({
+                calls: calls,
+                numOfTokens: 3,
+                isReceivedDirectly: true
             })
         );
 
@@ -118,7 +174,8 @@ contract CollectionBatchBuyOperatorTest is Test, TestUtils, ERC721Receiver {
         bytes memory executionData = abi.encode(
             CollectionBatchBuyOperator.CollectionBatchBuyExecutionData({
                 calls: calls,
-                numOfTokens: 3
+                numOfTokens: 3,
+                isReceivedDirectly: false
             })
         );
 
@@ -165,7 +222,8 @@ contract CollectionBatchBuyOperatorTest is Test, TestUtils, ERC721Receiver {
         bytes memory executionData = abi.encode(
             CollectionBatchBuyOperator.CollectionBatchBuyExecutionData({
                 calls: calls,
-                numOfTokens: 3
+                numOfTokens: 3,
+                isReceivedDirectly: false
             })
         );
 
@@ -197,7 +255,8 @@ contract CollectionBatchBuyOperatorTest is Test, TestUtils, ERC721Receiver {
         bytes memory executionData = abi.encode(
             CollectionBatchBuyOperator.CollectionBatchBuyExecutionData({
                 calls: new CollectionBatchBuyOperator.BuyCall[](0),
-                numOfTokens: 0
+                numOfTokens: 0,
+                isReceivedDirectly: false
             })
         );
 
@@ -225,7 +284,8 @@ contract CollectionBatchBuyOperatorTest is Test, TestUtils, ERC721Receiver {
         bytes memory executionData = abi.encode(
             CollectionBatchBuyOperator.CollectionBatchBuyExecutionData({
                 calls: new CollectionBatchBuyOperator.BuyCall[](0),
-                numOfTokens: 1
+                numOfTokens: 1,
+                isReceivedDirectly: false
             })
         );
 
@@ -258,7 +318,8 @@ contract CollectionBatchBuyOperatorTest is Test, TestUtils, ERC721Receiver {
         bytes memory executionData = abi.encode(
             CollectionBatchBuyOperator.CollectionBatchBuyExecutionData({
                 calls: calls,
-                numOfTokens: 2
+                numOfTokens: 2,
+                isReceivedDirectly: false
             })
         );
 
@@ -300,7 +361,8 @@ contract CollectionBatchBuyOperatorTest is Test, TestUtils, ERC721Receiver {
         bytes memory executionData = abi.encode(
             CollectionBatchBuyOperator.CollectionBatchBuyExecutionData({
                 calls: calls,
-                numOfTokens: 1
+                numOfTokens: 1,
+                isReceivedDirectly: false
             })
         );
 
@@ -348,7 +410,8 @@ contract CollectionBatchBuyOperatorTest is Test, TestUtils, ERC721Receiver {
         bytes memory executionData = abi.encode(
             CollectionBatchBuyOperator.CollectionBatchBuyExecutionData({
                 calls: calls,
-                numOfTokens: 1
+                numOfTokens: 1,
+                isReceivedDirectly: false
             })
         );
 
@@ -385,7 +448,8 @@ contract CollectionBatchBuyOperatorTest is Test, TestUtils, ERC721Receiver {
         bytes memory executionData = abi.encode(
             CollectionBatchBuyOperator.CollectionBatchBuyExecutionData({
                 calls: calls,
-                numOfTokens: 1
+                numOfTokens: 1,
+                isReceivedDirectly: false
             })
         );
 
@@ -428,7 +492,8 @@ contract CollectionBatchBuyOperatorTest is Test, TestUtils, ERC721Receiver {
         bytes memory executionData = abi.encode(
             CollectionBatchBuyOperator.CollectionBatchBuyExecutionData({
                 calls: calls,
-                numOfTokens: 6
+                numOfTokens: 6,
+                isReceivedDirectly: false
             })
         );
 
@@ -465,7 +530,8 @@ contract CollectionBatchBuyOperatorTest is Test, TestUtils, ERC721Receiver {
         bytes memory executionData = abi.encode(
             CollectionBatchBuyOperator.CollectionBatchBuyExecutionData({
                 calls: calls,
-                numOfTokens: 3
+                numOfTokens: 3,
+                isReceivedDirectly: false
             })
         );
 

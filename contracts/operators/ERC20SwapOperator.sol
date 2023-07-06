@@ -25,11 +25,11 @@ contract ERC20SwapOperator is IOperator {
 
     // Parameters defining at time of operation created
     struct ERC20SwapOperationData {
-        /// The token to swap.
+        // The token to swap.
         IERC20 fromToken;
-        /// The token to receive.
+        // The token to receive.
         IERC20 toToken;
-        /// The minimum amount of `toToken` to receive.
+        // The minimum amount of `toToken` to receive.
         uint256 minReceivedAmount;
     }
 
@@ -39,6 +39,9 @@ contract ERC20SwapOperator is IOperator {
         address payable target;
         // The calldata to call the target with.
         bytes callData;
+        // Whether the received amount should be received by the Party directly
+        // or indirectly via this operator which will transfer it to the Party.
+        bool isReceivedDirectly;
     }
 
     error InsufficientReceivedAmountError(uint256 receivedAmount, uint256 minToTokenAmount);
@@ -123,10 +126,15 @@ contract ERC20SwapOperator is IOperator {
             }
         }
 
+        // Get the expected receiver of the tokens.
+        address payable receiver = ex.isReceivedDirectly
+            ? payable(msg.sender)
+            : payable(address(this));
+
         // Get the received amount.
         uint256 receivedAmount = op.toToken == ETH_TOKEN_ADDRESS
-            ? address(this).balance
-            : op.toToken.balanceOf(address(this));
+            ? receiver.balance
+            : op.toToken.balanceOf(receiver);
 
         // Check that the received amount is at least the minimum specified.
         if (receivedAmount < op.minReceivedAmount) {
@@ -140,8 +148,8 @@ contract ERC20SwapOperator is IOperator {
             op.fromToken.approve(ex.target, 0);
         }
 
-        // Transfer the received tokens to the party.
-        if (receivedAmount != 0) {
+        // Transfer the received tokens to the Party if not received directly.
+        if (!ex.isReceivedDirectly && receivedAmount != 0) {
             if (op.toToken == ETH_TOKEN_ADDRESS) {
                 payable(msg.sender).transferEth(receivedAmount);
             } else {
