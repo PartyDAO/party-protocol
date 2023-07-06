@@ -98,7 +98,7 @@ contract ProposalExecutionEngine is
     // Set immutables.
     constructor(
         IGlobals globals,
-        IZoraAuctionHouse zoraAuctionHouse,
+        IReserveAuctionCoreEth zoraAuctionHouse,
         IFractionalV1VaultFactory fractionalVaultFactory
     )
         ListOnOpenseaAdvancedProposal(globals)

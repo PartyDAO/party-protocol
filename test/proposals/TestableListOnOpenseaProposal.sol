@@ -18,7 +18,7 @@ contract TestableListOnOpenseaProposal is
 {
     constructor(
         IGlobals globals,
-        IZoraAuctionHouse zora
+        IReserveAuctionCoreEth zora
     ) ListOnOpenseaAdvancedProposal(globals) ListOnZoraProposal(globals, zora) {}
 
     receive() external payable {}

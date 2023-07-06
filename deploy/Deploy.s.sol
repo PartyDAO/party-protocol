@@ -99,7 +99,9 @@ abstract contract Deploy {
         console.log("");
         console.log("### ProposalExecutionEngine");
         console.log("  Deploying - ProposalExecutionEngine");
-        IZoraAuctionHouse zoraAuctionHouse = IZoraAuctionHouse(deployConstants.zoraAuctionHouse);
+        IReserveAuctionCoreEth zoraAuctionHouse = IReserveAuctionCoreEth(
+            deployConstants.zoraAuctionHouse
+        );
         IFractionalV1VaultFactory fractionalVaultFactory = IFractionalV1VaultFactory(
             deployConstants.fractionalVaultFactory
         );

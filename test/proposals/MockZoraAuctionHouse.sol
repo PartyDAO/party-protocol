@@ -5,41 +5,42 @@ import "forge-std/Test.sol";
 
 import "../../contracts/tokens/IERC20.sol";
 import "../../contracts/tokens/IERC721.sol";
-import "../../contracts/vendor/markets/IZoraAuctionHouse.sol";
+import "../../contracts/vendor/markets/IReserveAuctionCoreEth.sol";
 
-contract MockZoraAuctionHouse is IZoraAuctionHouse {
+contract MockZoraAuctionHouse is IReserveAuctionCoreEth {
     uint256 public lastAuctionId = 8000;
     uint256 public timeBuffer = 15 minutes;
 
     function createAuction(
-        uint256,
-        IERC721,
-        uint256,
-        uint256,
-        address payable,
-        uint8,
-        IERC20
-    ) external returns (uint256 auctionId) {
-        auctionId = ++lastAuctionId;
-    }
+        address _tokenContract,
+        uint256 _tokenId,
+        uint256 _duration,
+        uint256 _reservePrice,
+        address _sellerFundsRecipient,
+        uint256 _startTime
+    ) external override {}
 
-    function createBid(uint256, uint256) external payable {
+    function createBid(address, uint256) external payable override {
         revert("no implementado");
     }
 
-    function endAuction(uint256) external pure {
+    function setAuctionReservePrice(address, uint256, uint256) external pure override {
+        revert("no implementation");
+    }
+
+    function cancelAuction(address, uint256) external pure override {
         revert("no implementado");
     }
 
-    function cancelAuction(uint256) external pure {
+    function auctionForNFT(address, uint256) external pure override returns (Auction calldata) {
         revert("no implementado");
     }
 
-    function auctions(uint256) external pure returns (Auction memory) {
-        revert("no implementado");
+    function settleAuction(address, uint256) external pure override {
+        revert("no implementation");
     }
 
-    function minBidIncrementPercentage() external pure returns (uint8) {
-        revert("no implementado");
+    function erc721TransferHelper() external pure override returns (BaseTransferHelper) {
+        revert("no implementation");
     }
 }

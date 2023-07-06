@@ -36,7 +36,7 @@ contract ProposalExecutionEngineTest is Test, TestUtils {
             globals,
             IOpenseaExchange(_randomAddress()),
             IOpenseaConduitController(_randomAddress()),
-            IZoraAuctionHouse(_randomAddress()),
+            IReserveAuctionCoreEth(_randomAddress()),
             IFractionalV1VaultFactory(_randomAddress())
         );
     }

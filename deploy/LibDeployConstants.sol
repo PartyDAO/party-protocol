@@ -50,7 +50,7 @@ library LibDeployConstants {
             fractionalVaultFactory: 0x014850E83d9D0D1BB0c8624035F09626b967B81c,
             foundationMarket: 0xeB1bD095061bbDb1aD065524628812cae63e4222,
             nounsAuctionHouse: 0x7295e70f2B26986Ba108bD1Bf9E349a181F4a6Ea,
-            zoraAuctionHouse: 0x6a6Cdb103f1072E0aFeADAC9BeBD6E14B287Ca57,
+            zoraAuctionHouse: 0x2506D9F5A2b0E1A2619bCCe01CD3e7C289A13163,
             networkName: "goerli",
             deployedNounsMarketWrapper: 0x0000000000000000000000000000000000000000,
             deployedFoundationMarketWrapper: 0x0000000000000000000000000000000000000000,

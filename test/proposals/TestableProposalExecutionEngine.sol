@@ -18,7 +18,7 @@ contract TestableProposalExecutionEngine is ProposalExecutionEngine {
         IGlobals globals,
         IOpenseaExchange seaport,
         IOpenseaConduitController seaportConduitController,
-        IZoraAuctionHouse zora,
+        IReserveAuctionCoreEth zora,
         IFractionalV1VaultFactory fractionalVaultFactory
     ) ProposalExecutionEngine(globals, zora, fractionalVaultFactory) {}
 

@@ -27,7 +27,7 @@ contract PartyFactoryTest is Test, TestUtils {
 
         eng = new ProposalExecutionEngine(
             globals,
-            IZoraAuctionHouse(_randomAddress()),
+            IReserveAuctionCoreEth(_randomAddress()),
             IFractionalV1VaultFactory(_randomAddress())
         );
 
