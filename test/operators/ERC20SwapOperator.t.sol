@@ -21,6 +21,8 @@ contract ERC20SwapOperatorTest is Test, TestUtils, ERC721Receiver {
         uint256 receivedAmount
     );
 
+    event TargetAllowedSet(address target, bool isAllowed);
+
     address multisig;
     Globals globals;
     ERC20SwapOperator operator;
@@ -218,6 +220,32 @@ contract ERC20SwapOperatorTest is Test, TestUtils, ERC721Receiver {
             )
         );
         operator.execute(abi.encode(operationData), abi.encode(executionData), address(0), false);
+    }
+
+    function test_setTargetAllowed_works() public {
+        address newTarget = _randomAddress();
+
+        assertEq(operator.isTargetAllowed(newTarget), false);
+
+        vm.expectEmit(true, true, true, true);
+        emit TargetAllowedSet(newTarget, true);
+        vm.prank(multisig);
+        operator.setTargetAllowed(newTarget, true);
+
+        assertEq(operator.isTargetAllowed(newTarget), true);
+    }
+
+    function test_setTargetAllowed_onlyMultisig() public {
+        address newTarget = _randomAddress();
+
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                ERC20SwapOperator.OnlyPartyDaoError.selector,
+                address(this),
+                multisig
+            )
+        );
+        operator.setTargetAllowed(newTarget, true);
     }
 
     receive() external payable {}
