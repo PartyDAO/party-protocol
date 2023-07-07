@@ -112,11 +112,21 @@ contract ListOnZoraProposalForkedTest is ZoraTestUtils, TestUtils {
             IProposalExecutionEngine.ExecuteProposalParams memory executeParams,
             ListOnZoraProposal.ZoraProposalData memory proposalData
         ) = _createExecutionParams();
-        // _expectEmit3();
-        // emit AuctionCreated(
-        //     proposalData.token,
-        //     proposalData.tokenId,
-        // );
+        _expectEmit3();
+        emit AuctionCreated(
+            proposalData.token,
+            proposalData.tokenId,
+            IReserveAuctionCoreEth.Auction({
+                seller: address(proposal),
+                reservePrice: uint96(proposalData.listPrice),
+                sellerFundsRecipient: address(proposal),
+                highestBid: 0,
+                highestBidder: address(0),
+                duration: uint32(proposalData.duration),
+                startTime: 0,
+                firstBidTime: 0
+            })
+        );
         _expectEmit0();
         emit ZoraAuctionCreated(
             proposalData.token,
@@ -144,11 +154,21 @@ contract ListOnZoraProposalForkedTest is ZoraTestUtils, TestUtils {
         ) = _createExecutionParams();
         executeParams.progressData = proposal.executeListOnZora(executeParams);
         skip(proposalData.timeout);
-        // _expectEmit3();
-        // emit AuctionCanceled(
-        //     proposalData.token,
-        //     proposalData.tokenId
-        // );
+        _expectEmit3();
+        emit AuctionCanceled(
+            proposalData.token,
+            proposalData.tokenId,
+            IReserveAuctionCoreEth.Auction({
+                seller: address(proposal),
+                reservePrice: uint96(proposalData.listPrice),
+                sellerFundsRecipient: address(proposal),
+                highestBid: 0,
+                highestBidder: address(0),
+                duration: uint32(proposalData.duration),
+                startTime: 0,
+                firstBidTime: 0
+            })
+        );
         _expectEmit0();
         emit ZoraAuctionExpired(proposalData.token, proposalData.tokenId, block.timestamp);
         assertTrue(proposal.executeListOnZora(executeParams).length == 0);
