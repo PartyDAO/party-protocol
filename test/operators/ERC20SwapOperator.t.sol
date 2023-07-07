@@ -10,6 +10,8 @@ import "contracts/tokens/ERC721Receiver.sol";
 import "../DummyERC20.sol";
 import "../TestUtils.sol";
 
+IERC20 constant ETH_TOKEN_ADDRESS = IERC20(0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE);
+
 contract ERC20SwapOperatorTest is Test, TestUtils, ERC721Receiver {
     event ERC20SwapOperationExecuted(
         Party party,
@@ -91,6 +93,47 @@ contract ERC20SwapOperatorTest is Test, TestUtils, ERC721Receiver {
             // Burn received tokens to reset balances for next swap
             toToken.transfer(address(0), toToken.balanceOf(address(this)));
         }
+    }
+
+    function test_ERC20Swap_canReceiveETH() public {
+        fromToken.deal(address(operator), 100e18);
+
+        ERC20SwapOperator.ERC20SwapOperationData memory operationData = ERC20SwapOperator
+            .ERC20SwapOperationData({
+                fromToken: fromToken,
+                toToken: ETH_TOKEN_ADDRESS,
+                minReceivedAmount: 95e18
+            });
+
+        ERC20SwapOperator.ERC20SwapExecutionData memory executionData = ERC20SwapOperator
+            .ERC20SwapExecutionData({
+                target: payable(address(aggregator)),
+                callData: abi.encodeWithSelector(
+                    aggregator.swap.selector,
+                    fromToken,
+                    ETH_TOKEN_ADDRESS,
+                    100e18,
+                    address(operator)
+                )
+            });
+
+        uint256 balanceBefore = address(this).balance;
+
+        // Execute operation
+        vm.expectEmit(true, true, true, true);
+        emit ERC20SwapOperationExecuted(
+            Party(payable(address(this))),
+            fromToken,
+            ETH_TOKEN_ADDRESS,
+            100e18,
+            99e18
+        );
+        operator.execute(abi.encode(operationData), abi.encode(executionData), address(0), false);
+
+        assertEq(fromToken.balanceOf(address(this)), 0);
+        assertEq(fromToken.balanceOf(address(operator)), 0);
+        assertEq(fromToken.allowance(address(operator), address(aggregator)), 0);
+        assertEq(address(this).balance - balanceBefore, 99e18);
     }
 
     function test_ERC20Swap_withUnauthorizedTarget() public {
@@ -176,9 +219,11 @@ contract ERC20SwapOperatorTest is Test, TestUtils, ERC721Receiver {
         );
         operator.execute(abi.encode(operationData), abi.encode(executionData), address(0), false);
     }
+
+    receive() external payable {}
 }
 
-contract DummyAggregator {
+contract DummyAggregator is Test {
     uint16 slippageBps = 100; // Default to 1%
 
     function setSlippage(uint16 newSlippageBps) external {
@@ -192,13 +237,21 @@ contract DummyAggregator {
         address payable recipient
     ) external payable {
         // Burn from token
-        fromToken.transferFrom(msg.sender, address(0), amount);
+        if (fromToken == ETH_TOKEN_ADDRESS) {
+            payable(address(0)).transfer(amount);
+        } else {
+            fromToken.transferFrom(msg.sender, address(0), amount);
+        }
 
         // Calculate amount received
         uint256 receivedAmount = amount - ((amount * slippageBps) / 10000);
 
         // Mint to tokens contract to recipient
-        DummyERC20(address(toToken)).deal(recipient, receivedAmount);
+        if (toToken == ETH_TOKEN_ADDRESS) {
+            vm.deal(recipient, receivedAmount);
+        } else {
+            DummyERC20(address(toToken)).deal(recipient, receivedAmount);
+        }
     }
 
     function triggerRevert() external {

@@ -157,4 +157,6 @@ contract ERC20SwapOperator is IOperator {
             receivedAmount
         );
     }
+
+    receive() external payable {}
 }
