@@ -4,6 +4,7 @@ out = 'out'
 test = 'test'
 script = 'deploy'
 libs = ['lib']
+evm_version = 'shanghai'
 gas_reports = ['Proxy', 'Party', 'PartyGovernance', 'ProposalExecutionEngine', 'AuctionCrowdfund', 'BuyCrowdfund', 'CollectionBuyCrowdfund', 'Crowdfund', 'PartyFactory', 'CrowdfundFactory', 'TokenDistributor']
 remappings = [
   "forge-std/=lib/forge-std/src/",
