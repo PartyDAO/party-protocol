@@ -11,7 +11,7 @@ import "../TestUtils.sol";
 
 import "./TestableProposalExecutionEngine.sol";
 import "./DummyProposalEngineImpl.sol";
-import { MockZoraAuctionHouse } from "./MockZoraAuctionHouse.sol";
+import { MockZoraReserveAuctionCoreEth } from "./MockZoraReserveAuctionCoreEth.sol";
 
 contract ProposalExecutionEngineTest is Test, TestUtils {
     // From TestableProposalExecutionEngine
@@ -37,7 +37,7 @@ contract ProposalExecutionEngineTest is Test, TestUtils {
             globals,
             IOpenseaExchange(_randomAddress()),
             IOpenseaConduitController(_randomAddress()),
-            IReserveAuctionCoreEth(new MockZoraAuctionHouse()),
+            IReserveAuctionCoreEth(new MockZoraReserveAuctionCoreEth()),
             IFractionalV1VaultFactory(_randomAddress())
         );
     }

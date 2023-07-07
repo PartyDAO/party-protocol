@@ -4,12 +4,12 @@ pragma solidity ^0.8;
 import "contracts/proposals/ListOnZoraProposal.sol";
 import "contracts/globals/Globals.sol";
 import "../TestUtils.sol";
-import "./MockZoraAuctionHouse.sol";
+import "./MockZoraReserveAuctionCoreEth.sol";
 import "./TestableListOnZoraProposal.sol";
 import "../DummyERC721.sol";
 
 contract ListOnZoraProposalUnitTest is Test, TestUtils {
-    MockZoraAuctionHouse zora = new MockZoraAuctionHouse();
+    MockZoraReserveAuctionCoreEth zora = new MockZoraReserveAuctionCoreEth();
     Globals globals = new Globals(address(this));
     UnitTestableListOnZoraProposal impl =
         new UnitTestableListOnZoraProposal(IGlobals(address(globals)), zora);

@@ -64,8 +64,8 @@ contract ListOnZoraProposal is ZoraHelpers {
     IGlobals private immutable _GLOBALS;
 
     // Set immutables.
-    constructor(IGlobals globals, IReserveAuctionCoreEth zoraAuctionHouse) {
-        ZORA = zoraAuctionHouse;
+    constructor(IGlobals globals, IReserveAuctionCoreEth zora) {
+        ZORA = zora;
         ZORA_TRANSFER_HELPER = ZORA.erc721TransferHelper();
         _GLOBALS = globals;
     }

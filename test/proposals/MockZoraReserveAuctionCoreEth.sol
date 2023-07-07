@@ -7,7 +7,7 @@ import "../../contracts/tokens/IERC20.sol";
 import "../../contracts/tokens/IERC721.sol";
 import "../../contracts/vendor/markets/IReserveAuctionCoreEth.sol";
 
-contract MockZoraAuctionHouse is IReserveAuctionCoreEth {
+contract MockZoraReserveAuctionCoreEth is IReserveAuctionCoreEth {
     uint256 public lastAuctionId = 8000;
     uint256 public timeBuffer = 15 minutes;
 
