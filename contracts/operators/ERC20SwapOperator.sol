@@ -1,12 +1,14 @@
 // SPDX-License-Identifier: GPL-3.0
 pragma solidity 0.8.20;
 
-import "./IOperator.sol";
-import "../party/Party.sol";
-import "../tokens/IERC20.sol";
-import "../utils/LibAddress.sol";
-import "../utils/LibERC20Compat.sol";
-import "../utils/LibRawResult.sol";
+import { IOperator } from "./IOperator.sol";
+import { IGlobals } from "../globals/IGlobals.sol";
+import { LibGlobals } from "../globals/LibGlobals.sol";
+import { Party } from "../party/Party.sol";
+import { IERC20 } from "../tokens/IERC20.sol";
+import { LibAddress } from "../utils/LibAddress.sol";
+import { LibERC20Compat } from "../utils/LibERC20Compat.sol";
+import { LibRawResult } from "../utils/LibRawResult.sol";
 
 /// @notice An operator that can be used to perform swaps between tokens on
 ///         behalf of a party.

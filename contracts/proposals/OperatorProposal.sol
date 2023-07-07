@@ -68,7 +68,7 @@ abstract contract OperatorProposal {
             } else if (asset.tokenType == OperatorTokenType.ERC20) {
                 IERC20(asset.token).compatTransfer(address(data.operator), asset.amount);
             } else if (asset.tokenType == OperatorTokenType.ERC721) {
-                IERC721(asset.token).safeTransferFrom(
+                IERC721(asset.token).transferFrom(
                     address(this),
                     address(data.operator),
                     asset.tokenId
