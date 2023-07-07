@@ -23,6 +23,8 @@ contract ERC20SwapOperator is IOperator {
         uint256 receivedAmount
     );
 
+    event TargetAllowedSet(address target, bool isAllowed);
+
     // Parameters defining at time of operation created
     struct ERC20SwapOperationData {
         /// The token to swap.
@@ -81,6 +83,8 @@ contract ERC20SwapOperator is IOperator {
     /// @param isAllowed Whether the target is allowed.
     function setTargetAllowed(address target, bool isAllowed) external onlyPartyDao {
         isTargetAllowed[target] = isAllowed;
+
+        emit TargetAllowedSet(target, isAllowed);
     }
 
     /// @inheritdoc IOperator
