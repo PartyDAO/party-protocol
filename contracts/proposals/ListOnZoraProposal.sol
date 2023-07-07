@@ -8,7 +8,7 @@ import "../utils/LibRawResult.sol";
 import "../utils/LibSafeERC721.sol";
 import "../utils/LibSafeCast.sol";
 
-import { IReserveAuctionCoreEth } from "../vendor/markets/IReserveAuctionCoreEth.sol";
+import { IReserveAuctionCoreEth, BaseTransferHelper } from "../vendor/markets/IReserveAuctionCoreEth.sol";
 import "./IProposalExecutionEngine.sol";
 import "./ZoraHelpers.sol";
 
@@ -55,6 +55,10 @@ contract ListOnZoraProposal is ZoraHelpers {
 
     /// @notice Zora auction house contract.
     IReserveAuctionCoreEth public immutable ZORA;
+    /// @notice Zora ERC721 tranfer helper for approvals
+    BaseTransferHelper public immutable ZORA_TRANSFER_HELPER;
+    /// @notice Whether the Zora auction module has been approved (per party)
+    bool zoraAuctionModuleApproved;
     // The `Globals` contract storing global configuration values. This contract
     // is immutable and it’s address will never change.
     IGlobals private immutable _GLOBALS;
@@ -62,6 +66,7 @@ contract ListOnZoraProposal is ZoraHelpers {
     // Set immutables.
     constructor(IGlobals globals, IReserveAuctionCoreEth zoraAuctionHouse) {
         ZORA = zoraAuctionHouse;
+        ZORA_TRANSFER_HELPER = ZORA.erc721TransferHelper();
         _GLOBALS = globals;
     }
 
@@ -137,8 +142,10 @@ contract ListOnZoraProposal is ZoraHelpers {
         address token,
         uint256 tokenId
     ) internal virtual override {
-        IERC721(token).approve(address(ZORA.erc721TransferHelper()), tokenId);
-        ZORA.erc721TransferHelper().ZMM().setApprovalForModule(address(ZORA), true);
+        if (!zoraAuctionModuleApproved) {
+            ZORA_TRANSFER_HELPER.ZMM().setApprovalForModule(address(ZORA), true);
+        }
+        IERC721(token).approve(address(ZORA_TRANSFER_HELPER), tokenId);
 
         ZORA.createAuction(token, tokenId, duration, listPrice, address(this), 0);
         emit ZoraAuctionCreated(
@@ -171,13 +178,14 @@ contract ListOnZoraProposal is ZoraHelpers {
             emit ZoraAuctionExpired(token, tokenId, minExpiry);
             return ZoraAuctionStatus.Expired;
         } else {
-            if (block.timestamp >= auction.duration + auction.firstBidTime) {
+            uint32 auctionEndTime = auction.firstBidTime + auction.duration;
+            if (block.timestamp >= auctionEndTime) {
                 ZORA.settleAuction(token, tokenId);
                 emit ZoraAuctionSold(token, tokenId);
                 return ZoraAuctionStatus.Sold;
             } else {
                 // Auction live
-                revert ZoraListingLive(token, tokenId, auction.firstBidTime + auction.duration);
+                revert ZoraListingLive(token, tokenId, auctionEndTime);
             }
         }
     }

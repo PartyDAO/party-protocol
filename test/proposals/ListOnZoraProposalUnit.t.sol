@@ -12,10 +12,7 @@ contract ListOnZoraProposalUnitTest is Test, TestUtils {
     MockZoraAuctionHouse zora = new MockZoraAuctionHouse();
     Globals globals = new Globals(address(this));
     UnitTestableListOnZoraProposal impl =
-        new UnitTestableListOnZoraProposal(
-            IGlobals(address(globals)),
-            IReserveAuctionCoreEth(zora)
-        );
+        new UnitTestableListOnZoraProposal(IGlobals(address(globals)), zora);
     DummyERC721 token = new DummyERC721();
     uint256 tokenId = token.mint(address(impl));
 

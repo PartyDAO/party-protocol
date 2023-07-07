@@ -41,6 +41,6 @@ contract MockZoraAuctionHouse is IReserveAuctionCoreEth {
     }
 
     function erc721TransferHelper() external pure override returns (BaseTransferHelper) {
-        revert("no implementation");
+        return BaseTransferHelper(address(0));
     }
 }
