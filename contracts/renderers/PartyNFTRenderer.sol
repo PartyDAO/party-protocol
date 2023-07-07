@@ -149,7 +149,15 @@ contract PartyNFTRenderer is RendererBase {
                                     PartyGovernanceNFT(address(this)).name(),
                                     tokenId
                                 )
-                                : metadata.description,
+                                : string.concat(
+                                    metadata.description,
+                                    // Append default description.
+                                    " ",
+                                    generateDescription(
+                                        PartyGovernanceNFT(address(this)).name(),
+                                        tokenId
+                                    )
+                                ),
                             '", "external_url":"',
                             bytes(metadata.externalURL).length == 0
                                 ? generateExternalURL()
