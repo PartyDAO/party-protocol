@@ -163,11 +163,11 @@ abstract contract ListOnOpenseaAdvancedProposal is OpenseaHelpers, ZoraHelpers {
                     _GLOBALS.getUint256(LibGlobals.GLOBAL_OS_ZORA_AUCTION_DURATION)
                 );
                 if (zoraTimeout != 0) {
-                    uint256 auctionId = _createZoraAuction(
+                    _createZoraAuction(
                         data.startPrice,
                         zoraTimeout,
                         zoraDuration,
-                        IERC721(data.token),
+                        data.token,
                         data.tokenId
                     );
                     // Return the next step and data required to execute that step.
@@ -175,7 +175,6 @@ abstract contract ListOnOpenseaAdvancedProposal is OpenseaHelpers, ZoraHelpers {
                         abi.encode(
                             ListOnOpenseaStep.ListedOnZora,
                             ZoraProgressData({
-                                auctionId: auctionId,
                                 minExpiry: (block.timestamp + zoraTimeout).safeCastUint256ToUint40()
                             })
                         );
@@ -196,9 +195,8 @@ abstract contract ListOnOpenseaAdvancedProposal is OpenseaHelpers, ZoraHelpers {
             // Try to settle the Zora auction. This will revert if the auction
             // is still ongoing.
             ZoraAuctionStatus statusCode = _settleZoraAuction(
-                zpd.auctionId,
                 zpd.minExpiry,
-                IERC721(data.token),
+                data.token,
                 data.tokenId
             );
             if (statusCode == ZoraAuctionStatus.Sold || statusCode == ZoraAuctionStatus.Cancelled) {

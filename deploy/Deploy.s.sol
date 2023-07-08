@@ -99,14 +99,16 @@ abstract contract Deploy {
         console.log("");
         console.log("### ProposalExecutionEngine");
         console.log("  Deploying - ProposalExecutionEngine");
-        IZoraAuctionHouse zoraAuctionHouse = IZoraAuctionHouse(deployConstants.zoraAuctionHouse);
+        IReserveAuctionCoreEth zora = IReserveAuctionCoreEth(
+            deployConstants.zoraReserveAuctionCoreEth
+        );
         IFractionalV1VaultFactory fractionalVaultFactory = IFractionalV1VaultFactory(
             deployConstants.fractionalVaultFactory
         );
         _trackDeployerGasBefore();
         proposalExecutionEngine = new ProposalExecutionEngine(
             globals,
-            zoraAuctionHouse,
+            zora,
             fractionalVaultFactory
         );
         _trackDeployerGasAfter();
@@ -348,7 +350,7 @@ abstract contract Deploy {
         if (address(deployConstants.deployedZoraMarketWrapper) == address(0)) {
             console.log("  Deploying - ZoraMarketWrapper");
             _trackDeployerGasBefore();
-            zoraMarketWrapper = new ZoraMarketWrapper(deployConstants.zoraAuctionHouse);
+            zoraMarketWrapper = new ZoraMarketWrapper(deployConstants.zoraReserveAuctionCoreEth); // TODO: This needs to be updated or removed
             _trackDeployerGasAfter();
             console.log("  Deployed - ZoraMarketWrapper", address(zoraMarketWrapper));
         } else {

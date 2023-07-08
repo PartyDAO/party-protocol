@@ -8,7 +8,7 @@ import "../utils/LibRawResult.sol";
 import "../utils/LibSafeERC721.sol";
 import "../utils/LibSafeCast.sol";
 
-import "../vendor/markets/IZoraAuctionHouse.sol";
+import { IReserveAuctionCoreEth, BaseTransferHelper } from "../vendor/markets/IReserveAuctionCoreEth.sol";
 import "./IProposalExecutionEngine.sol";
 import "./ZoraHelpers.sol";
 
@@ -35,40 +35,38 @@ contract ListOnZoraProposal is ZoraHelpers {
         // How long the auction lasts once a person bids on it.
         uint40 duration;
         // The token contract of the NFT being listed.
-        IERC721 token;
+        address token;
         // The token ID of the NFT being listed.
         uint256 tokenId;
     }
 
-    error ZoraListingNotExpired(uint256 auctionId, uint40 expiry);
+    error ZoraListingNotExpired(address token, uint256 tokenid, uint40 expiry);
+    error ZoraListingLive(address token, uint256 tokenId, uint256 auctionEndTime);
 
     event ZoraAuctionCreated(
-        uint256 auctionId,
-        IERC721 token,
+        address token,
         uint256 tokenId,
         uint256 startingPrice,
         uint40 duration,
         uint40 timeoutTime
     );
-    event ZoraAuctionExpired(uint256 auctionId, uint256 expiry);
-    event ZoraAuctionSold(uint256 auctionId);
-    event ZoraAuctionFailed(uint256 auctionId);
+    event ZoraAuctionExpired(address token, uint256 tokenid, uint256 expiry);
+    event ZoraAuctionSold(address token, uint256 tokenid);
 
-    // keccak256(abi.encodeWithSignature('Error(string)', "Auction hasn't begun"))
-    bytes32 internal constant AUCTION_HASNT_BEGUN_ERROR_HASH =
-        0x54a53788b7942d79bb6fcd40012c5e867208839fa1607e1f245558ee354e9565;
-    // keccak256(abi.encodeWithSignature('Error(string)', "Auction doesn't exit"))
-    bytes32 internal constant AUCTION_DOESNT_EXIST_ERROR_HASH =
-        0x474ba0184a7cd5de777156a56f3859150719340a6974b6ee50f05c58139f4dc2;
     /// @notice Zora auction house contract.
-    IZoraAuctionHouse public immutable ZORA;
+    IReserveAuctionCoreEth public immutable ZORA;
+    /// @notice Zora ERC721 tranfer helper for approvals
+    BaseTransferHelper public immutable ZORA_TRANSFER_HELPER;
+    /// @notice Whether the Zora auction module has been approved (per party)
+    bool zoraAuctionModuleApproved;
     // The `Globals` contract storing global configuration values. This contract
     // is immutable and it’s address will never change.
     IGlobals private immutable _GLOBALS;
 
     // Set immutables.
-    constructor(IGlobals globals, IZoraAuctionHouse zoraAuctionHouse) {
-        ZORA = zoraAuctionHouse;
+    constructor(IGlobals globals, IReserveAuctionCoreEth zora) {
+        ZORA = zora;
+        ZORA_TRANSFER_HELPER = ZORA.erc721TransferHelper();
         _GLOBALS = globals;
     }
 
@@ -79,7 +77,7 @@ contract ListOnZoraProposal is ZoraHelpers {
         IProposalExecutionEngine.ExecuteProposalParams memory params
     ) internal returns (bytes memory nextProgressData) {
         ZoraProposalData memory data = abi.decode(params.proposalData, (ZoraProposalData));
-        // If there is progressData passed in, we're on the first step,
+        // If there is no progressData passed in, we're on the first step,
         // otherwise parse the first word of the progressData as the current step.
         ZoraStep step = params.progressData.length == 0
             ? ZoraStep.None
@@ -108,7 +106,7 @@ contract ListOnZoraProposal is ZoraHelpers {
                 }
             }
             // Create a Zora auction for the NFT.
-            uint256 auctionId = _createZoraAuction(
+            _createZoraAuction(
                 data.listPrice,
                 data.timeout,
                 data.duration,
@@ -119,7 +117,6 @@ contract ListOnZoraProposal is ZoraHelpers {
                 abi.encode(
                     ZoraStep.ListedOnZora,
                     ZoraProgressData({
-                        auctionId: auctionId,
                         minExpiry: (block.timestamp + data.timeout).safeCastUint256ToUint40()
                     })
                 );
@@ -129,7 +126,7 @@ contract ListOnZoraProposal is ZoraHelpers {
             params.progressData,
             (ZoraStep, ZoraProgressData)
         );
-        _settleZoraAuction(pd.auctionId, pd.minExpiry, data.token, data.tokenId);
+        _settleZoraAuction(pd.minExpiry, data.token, data.tokenId);
         // Nothing left to do.
         return "";
     }
@@ -142,21 +139,16 @@ contract ListOnZoraProposal is ZoraHelpers {
         uint40 timeout,
         // How long the auction will run for once a bid has been placed.
         uint40 duration,
-        IERC721 token,
+        address token,
         uint256 tokenId
-    ) internal override returns (uint256 auctionId) {
-        token.approve(address(ZORA), tokenId);
-        auctionId = ZORA.createAuction(
-            tokenId,
-            token,
-            duration,
-            listPrice,
-            payable(address(0)),
-            0,
-            IERC20(address(0)) // Indicates ETH sale
-        );
+    ) internal virtual override {
+        if (!zoraAuctionModuleApproved) {
+            ZORA_TRANSFER_HELPER.ZMM().setApprovalForModule(address(ZORA), true);
+        }
+        IERC721(token).approve(address(ZORA_TRANSFER_HELPER), tokenId);
+
+        ZORA.createAuction(token, tokenId, duration, listPrice, address(this), 0);
         emit ZoraAuctionCreated(
-            auctionId,
             token,
             tokenId,
             listPrice,
@@ -167,40 +159,34 @@ contract ListOnZoraProposal is ZoraHelpers {
 
     // Either cancel or finalize a Zora auction.
     function _settleZoraAuction(
-        uint256 auctionId,
         uint40 minExpiry,
-        IERC721 token,
+        address token,
         uint256 tokenId
     ) internal override returns (ZoraAuctionStatus statusCode) {
-        // Getting the state of an auction is super expensive so it seems
-        // cheaper to just let `endAuction()` fail and react to the error.
-        try ZORA.endAuction(auctionId) {
-            // Check whether auction cancelled due to a failed transfer during
-            // settlement by seeing if we now possess the NFT.
-            if (token.safeOwnerOf(tokenId) == address(this)) {
-                emit ZoraAuctionFailed(auctionId);
-                return ZoraAuctionStatus.Cancelled;
-            }
-        } catch (bytes memory errData) {
-            bytes32 errHash = keccak256(errData);
-            if (errHash == AUCTION_HASNT_BEGUN_ERROR_HASH) {
-                // No bids placed.
-                // Cancel if we're past the timeout.
-                if (minExpiry > uint40(block.timestamp)) {
-                    revert ZoraListingNotExpired(auctionId, minExpiry);
-                }
-                ZORA.cancelAuction(auctionId);
-                emit ZoraAuctionExpired(auctionId, minExpiry);
-                return ZoraAuctionStatus.Expired;
-            } else if (errHash != AUCTION_DOESNT_EXIST_ERROR_HASH) {
-                // Otherwise, we should get an auction doesn't exist error,
-                // because someone else must have called `endAuction()`.
-                // If we didn't then something is wrong, so revert.
-                errData.rawRevert();
-            }
-            // Already ended by someone else. Nothing to do.
+        IReserveAuctionCoreEth.Auction memory auction = ZORA.auctionForNFT(token, tokenId);
+        if (auction.seller != address(this)) {
+            // Auction has already been settled
+            emit ZoraAuctionSold(token, tokenId);
+            return ZoraAuctionStatus.Sold;
         }
-        emit ZoraAuctionSold(auctionId);
-        return ZoraAuctionStatus.Sold;
+        if (auction.firstBidTime == 0) {
+            if (minExpiry > block.timestamp) {
+                revert ZoraListingNotExpired(token, tokenId, minExpiry);
+            }
+            // minExpiry passed with no bids
+            ZORA.cancelAuction(token, tokenId);
+            emit ZoraAuctionExpired(token, tokenId, minExpiry);
+            return ZoraAuctionStatus.Expired;
+        } else {
+            uint32 auctionEndTime = auction.firstBidTime + auction.duration;
+            if (block.timestamp >= auctionEndTime) {
+                ZORA.settleAuction(token, tokenId);
+                emit ZoraAuctionSold(token, tokenId);
+                return ZoraAuctionStatus.Sold;
+            } else {
+                // Auction live
+                revert ZoraListingLive(token, tokenId, auctionEndTime);
+            }
+        }
     }
 }
