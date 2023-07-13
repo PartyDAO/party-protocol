@@ -8,6 +8,7 @@ import "../tokens/ERC721Receiver.sol";
 import "../party/Party.sol";
 import "../globals/IGlobals.sol";
 import "../gatekeepers/IGateKeeper.sol";
+import "../party/IPartyFactory.sol";
 import "../renderers/RendererStorage.sol";
 
 import "./CrowdfundNFT.sol";

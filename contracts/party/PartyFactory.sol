@@ -1,11 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0
 pragma solidity 0.8.20;
 
-import "../globals/IGlobals.sol";
-import "../globals/LibGlobals.sol";
 import "../tokens/IERC721.sol";
 import "../utils/Proxy.sol";
-import "../renderers/RendererStorage.sol";
 
 import "./Party.sol";
 import "./IPartyFactory.sol";

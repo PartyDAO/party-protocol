@@ -5,7 +5,6 @@ import "../distribution/ITokenDistributor.sol";
 import "../utils/ReadOnlyDelegateCall.sol";
 import "../tokens/IERC721.sol";
 import "../tokens/IERC20.sol";
-import "../tokens/IERC1155.sol";
 import "../tokens/ERC721Receiver.sol";
 import "../tokens/ERC1155Receiver.sol";
 import "../utils/LibERC20Compat.sol";
@@ -19,7 +18,6 @@ import "../proposals/LibProposal.sol";
 import "../proposals/ProposalStorage.sol";
 
 import "./Party.sol";
-import "./IPartyFactory.sol";
 
 /// @notice Base contract for a Party encapsulating all governance functionality.
 abstract contract PartyGovernance is
