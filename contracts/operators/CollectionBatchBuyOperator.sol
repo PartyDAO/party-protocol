@@ -140,8 +140,8 @@ contract CollectionBatchBuyOperator is IOperator {
                     revert MaximumPriceError(price, op.maximumPrice);
                 }
 
-                // Token IDs must be in ascending order. Assumes no token with id 0
-                if (tokenToBuy.tokenId <= lastTokenId) {
+                // Token IDs must be in ascending order
+                if (tokenToBuy.tokenId <= lastTokenId && j != 0) {
                     revert TokenIdsNotSorted();
                 }
 
