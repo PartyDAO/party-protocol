@@ -1,13 +1,13 @@
 // SPDX-License-Identifier: GPL-3.0
 pragma solidity 0.8.20;
 
-import "./IOperator.sol";
-import "../party/Party.sol";
-import "../tokens/IERC721.sol";
-import "../utils/LibRawResult.sol";
-import "../utils/LibAddress.sol";
-import "../utils/LibSafeERC721.sol";
-import "openzeppelin/contracts/utils/cryptography/MerkleProof.sol";
+import { IOperator } from "./IOperator.sol";
+import { Party } from "../party/Party.sol";
+import { IERC721 } from "../tokens/IERC721.sol";
+import { LibRawResult } from "../utils/LibRawResult.sol";
+import { LibAddress } from "../utils/LibAddress.sol";
+import { LibSafeERC721 } from "../utils/LibSafeERC721.sol";
+import { MerkleProof } from "openzeppelin/contracts/utils/cryptography/MerkleProof.sol";
 
 /// @notice An operator that can be used to buy NFTs from a collection.
 contract CollectionBatchBuyOperator is IOperator {
@@ -65,7 +65,7 @@ contract CollectionBatchBuyOperator is IOperator {
     event CollectionBatchBuyOperationExecuted(
         Party party,
         IERC721 token,
-        uint256[] tokenIdsBought,
+        uint256[] purchasedTokenIds,
         uint256 totalEthUsed
     );
 
@@ -78,13 +78,20 @@ contract CollectionBatchBuyOperator is IOperator {
     error CallProhibitedError(address target, bytes data);
     error NumOfTokensCannotBeLessThanMin(uint256 numOfTokens, uint256 min);
     error EthUsedForFailedBuyError(uint256 expectedEthUsed, uint256 actualEthUsed);
+    error PartyCantSpendEth();
+    error TokenAlreadyOwned();
+    error TokenIdsNotSorted();
 
     function execute(
         bytes memory operatorData,
         bytes memory executionData,
-        address executor,
+        address,
         bool allowOperatorsToSpendPartyEth
     ) external payable {
+        if (!allowOperatorsToSpendPartyEth) revert PartyCantSpendEth();
+
+        uint256 beforeEthBalance = address(this).balance;
+
         // Decode the operator data.
         CollectionBatchBuyOperationData memory op = abi.decode(
             operatorData,
@@ -109,17 +116,16 @@ contract CollectionBatchBuyOperator is IOperator {
         }
 
         // Lengths of arrays are updated at the end.
-        uint256[] memory tokenIds = new uint256[](ex.numOfTokens);
+        uint256[] memory purchasedTokenIds = new uint256[](ex.numOfTokens);
 
         // Get the expected receiver of the tokens.
         address receiver = ex.isReceivedDirectly ? msg.sender : address(this);
-
-        uint96 totalEthUsed;
-        uint256 tokensBought;
+        uint256 numTokensBought;
         for (uint256 i; i < ex.calls.length; ++i) {
             BuyCall memory call = ex.calls[i];
 
-            uint96 callValue;
+            uint96 callValue = 0;
+            uint256 lastTokenId = 0;
             for (uint256 j; j < call.tokensToBuy.length; ++j) {
                 TokenToBuy memory tokenToBuy = call.tokensToBuy[j];
 
@@ -134,11 +140,22 @@ contract CollectionBatchBuyOperator is IOperator {
                     revert MaximumPriceError(price, op.maximumPrice);
                 }
 
+                // Token IDs must be in ascending order. Assumes no token with id 0
+                if (tokenToBuy.tokenId <= lastTokenId) {
+                    revert TokenIdsNotSorted();
+                }
+
+                lastTokenId = tokenToBuy.tokenId;
+
+                if (op.nftContract.safeOwnerOf(tokenToBuy.tokenId) == receiver) {
+                    revert TokenAlreadyOwned();
+                }
+
                 // Add the price to the total value used for the call.
                 callValue += price;
             }
 
-            uint256 balanceBefore = address(this).balance;
+            uint256 beforeCallBalance = address(this).balance;
             {
                 // Execute the call to buy the NFT.
                 (bool success, ) = _buy(call.target, callValue, call.data);
@@ -147,38 +164,36 @@ contract CollectionBatchBuyOperator is IOperator {
             }
 
             {
-                uint96 ethUsed;
+                uint96 receivedTokensValue = 0;
                 for (uint256 j; j < call.tokensToBuy.length; ++j) {
                     uint256 tokenId = call.tokensToBuy[j].tokenId;
 
-                    // Check whether the NFT was successfully bought.
                     if (op.nftContract.safeOwnerOf(tokenId) == receiver) {
-                        ethUsed += call.tokensToBuy[j].price;
-                        ++tokensBought;
+                        purchasedTokenIds[numTokensBought++] = tokenId;
+                        receivedTokensValue += call.tokensToBuy[j].price;
 
-                        // Add the token to the list of tokens to finalize.
-                        tokenIds[tokensBought - 1] = tokenId;
+                        if (!ex.isReceivedDirectly) {
+                            // Transfer the NFT to the Party.
+                            op.nftContract.safeTransferFrom(address(this), msg.sender, tokenId);
+                        }
                     }
                 }
-
-                // Check ETH spent for call is what was expected.
-                uint256 actualEthUsed = balanceBefore - address(this).balance;
-                if (ethUsed != actualEthUsed) {
-                    revert EthUsedForFailedBuyError(ethUsed, actualEthUsed);
+                uint256 callUsage = beforeCallBalance - address(this).balance;
+                if (callUsage > receivedTokensValue) {
+                    revert EthUsedForFailedBuyError(receivedTokensValue, callUsage);
                 }
-
-                totalEthUsed += ethUsed;
             }
         }
 
         // This is to prevent this crowdfund from finalizing a loss if nothing
-        // was attempted to be bought (ie. `tokenIds` is empty) or all NFTs were
+        // was attempted to be bought (ie. `purchasedTokenIds` is empty) or all NFTs were
         // bought for free.
+        uint256 totalEthUsed = beforeEthBalance - address(this).balance;
         if (totalEthUsed == 0) revert NothingBoughtError();
 
         // Check number of tokens bought is not less than the minimum.
-        if (tokensBought < op.minTokensBought) {
-            revert NotEnoughTokensBoughtError(tokensBought, op.minTokensBought);
+        if (numTokensBought < op.minTokensBought) {
+            revert NotEnoughTokensBoughtError(numTokensBought, op.minTokensBought);
         }
 
         // Check total ETH used is not less than the minimum.
@@ -187,32 +202,20 @@ contract CollectionBatchBuyOperator is IOperator {
         }
 
         assembly {
-            // Update length of `tokenIds`
-            mstore(tokenIds, tokensBought)
+            // Update length of `purchasedTokenIds`
+            mstore(purchasedTokenIds, numTokensBought)
         }
 
-        // Transfer the NFTs to the party if not received directly.
-        if (!ex.isReceivedDirectly) {
-            for (uint256 i; i < tokenIds.length; ++i) {
-                op.nftContract.safeTransferFrom(address(this), msg.sender, tokenIds[i]);
-            }
-        }
-
-        uint256 unusedEth = msg.value - totalEthUsed;
+        uint256 unusedEth = address(this).balance;
         if (unusedEth > 0) {
-            if (allowOperatorsToSpendPartyEth) {
-                // Transfer unused ETH to the party.
-                payable(msg.sender).transferEth(unusedEth);
-            } else {
-                // Transfer unused ETH to the executor.
-                payable(executor).transferEth(unusedEth);
-            }
+            // Transfer unused ETH to the party.
+            payable(msg.sender).transferEth(unusedEth);
         }
 
         emit CollectionBatchBuyOperationExecuted(
             Party(payable(msg.sender)),
             op.nftContract,
-            tokenIds,
+            purchasedTokenIds,
             totalEthUsed
         );
     }
@@ -239,4 +242,7 @@ contract CollectionBatchBuyOperator is IOperator {
 
         if (!MerkleProof.verify(proof, root, leaf)) revert InvalidTokenIdError();
     }
+
+    /// @notice Receive ETH in case of refund for purchase
+    receive() external payable {}
 }
