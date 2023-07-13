@@ -26,7 +26,6 @@ import "../contracts/proposals/ProposalExecutionEngine.sol";
 import "../contracts/utils/PartyHelpers.sol";
 import "../contracts/market-wrapper/FoundationMarketWrapper.sol";
 import "../contracts/market-wrapper/NounsMarketWrapper.sol";
-import "../contracts/market-wrapper/ZoraMarketWrapper.sol";
 import "./LibDeployConstants.sol";
 
 abstract contract Deploy {
@@ -68,7 +67,6 @@ abstract contract Deploy {
     IGateKeeper public tokenGateKeeper;
     FoundationMarketWrapper public foundationMarketWrapper;
     NounsMarketWrapper public nounsMarketWrapper;
-    ZoraMarketWrapper public zoraMarketWrapper;
     PixeldroidConsoleFont public pixeldroidConsoleFont;
 
     function deploy(LibDeployConstants.DeployConstants memory deployConstants) public virtual {
@@ -344,15 +342,6 @@ abstract contract Deploy {
             console.log("  Deployed - NounsMarketWrapper", address(nounsMarketWrapper));
         } else {
             nounsMarketWrapper = NounsMarketWrapper(deployConstants.deployedNounsMarketWrapper);
-        }
-        if (address(deployConstants.deployedZoraMarketWrapper) == address(0)) {
-            console.log("  Deploying - ZoraMarketWrapper");
-            _trackDeployerGasBefore();
-            zoraMarketWrapper = new ZoraMarketWrapper(deployConstants.zoraAuctionHouse);
-            _trackDeployerGasAfter();
-            console.log("  Deployed - ZoraMarketWrapper", address(zoraMarketWrapper));
-        } else {
-            zoraMarketWrapper = ZoraMarketWrapper(deployConstants.deployedZoraMarketWrapper);
         }
 
         console.log("");

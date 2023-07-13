@@ -27,7 +27,6 @@ library LibDeployConstants {
         string networkName;
         address deployedNounsMarketWrapper;
         address deployedFoundationMarketWrapper;
-        address deployedZoraMarketWrapper;
     }
 
     function goerli(address multisig) internal pure returns (DeployConstants memory) {
@@ -53,8 +52,7 @@ library LibDeployConstants {
             zoraAuctionHouse: 0x6a6Cdb103f1072E0aFeADAC9BeBD6E14B287Ca57,
             networkName: "goerli",
             deployedNounsMarketWrapper: 0x0000000000000000000000000000000000000000,
-            deployedFoundationMarketWrapper: 0x0000000000000000000000000000000000000000,
-            deployedZoraMarketWrapper: 0x0000000000000000000000000000000000000000
+            deployedFoundationMarketWrapper: 0x0000000000000000000000000000000000000000
         });
 
         return deployConstants;
@@ -83,8 +81,7 @@ library LibDeployConstants {
             zoraAuctionHouse: 0xE468cE99444174Bd3bBBEd09209577d25D1ad673,
             networkName: "mainnet",
             deployedNounsMarketWrapper: 0x9319DAd8736D752C5c72DB229f8e1b280DC80ab1,
-            deployedFoundationMarketWrapper: 0x96e5b0519983f2f984324b926e6d28C3A4Eb92A1,
-            deployedZoraMarketWrapper: 0x11c07cE1315a3b92C9755F90cDF40B04b88c5731
+            deployedFoundationMarketWrapper: 0x96e5b0519983f2f984324b926e6d28C3A4Eb92A1
         });
 
         return deployConstants;
