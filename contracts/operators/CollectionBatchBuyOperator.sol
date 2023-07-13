@@ -79,7 +79,7 @@ contract CollectionBatchBuyOperator is IOperator {
     error NumOfTokensCannotBeLessThanMin(uint256 numOfTokens, uint256 min);
     error EthUsedForFailedBuyError(uint256 expectedEthUsed, uint256 actualEthUsed);
     error PartyCantSpendEth();
-    error TokenAlreadyOwned();
+    error TokenAlreadyOwned(IERC721 tokenContract, uint256 tokenId);
     error TokenIdsNotSorted();
 
     function execute(
@@ -147,8 +147,8 @@ contract CollectionBatchBuyOperator is IOperator {
 
                 lastTokenId = tokenToBuy.tokenId;
 
-                if (op.nftContract.safeOwnerOf(tokenToBuy.tokenId) == receiver) {
-                    revert TokenAlreadyOwned();
+                if (op.nftContract.safeOwnerOf(tokenToBuy.tokenId) == msg.sender) {
+                    revert TokenAlreadyOwned(op.nftContract, tokenToBuy.tokenId);
                 }
 
                 // Add the price to the total value used for the call.
