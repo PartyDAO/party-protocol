@@ -183,6 +183,48 @@ contract ERC20SwapOperatorTest is Test, TestUtils, ERC721Receiver {
         assertEq(address(this).balance - balanceBefore, 99e18);
     }
 
+    function test_ERC20Swap_canRefundLeftoverTokens() public {
+        // Mint tokens to swap
+        fromToken.deal(address(operator), 100e18);
+
+        // Setup operation
+        ERC20SwapOperator.ERC20SwapOperationData memory operationData = ERC20SwapOperator
+            .ERC20SwapOperationData({
+                fromToken: fromToken,
+                toToken: toToken,
+                minReceivedAmount: 45e18
+            });
+
+        ERC20SwapOperator.ERC20SwapExecutionData memory executionData = ERC20SwapOperator
+            .ERC20SwapExecutionData({
+                target: payable(address(aggregator)),
+                callData: abi.encodeWithSelector(
+                    aggregator.swap.selector,
+                    fromToken,
+                    toToken,
+                    50e18,
+                    address(operator)
+                ),
+                isReceivedDirectly: false
+            });
+
+        // Execute operation
+        vm.expectEmit(true, true, true, true);
+        emit ERC20SwapOperationExecuted(
+            Party(payable(address(this))),
+            fromToken,
+            toToken,
+            100e18,
+            49.5e18
+        );
+        operator.execute(abi.encode(operationData), abi.encode(executionData), address(0), false);
+
+        assertEq(toToken.balanceOf(address(this)), 49.5e18);
+        assertEq(fromToken.balanceOf(address(this)), 50e18);
+        assertEq(toToken.balanceOf(address(operator)), 0);
+        assertEq(fromToken.balanceOf(address(operator)), 0);
+    }
+
     function test_ERC20Swap_withUnauthorizedTarget() public {
         fromToken.deal(address(operator), 100e18);
 
