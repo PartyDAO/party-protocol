@@ -21,9 +21,8 @@ abstract contract ProposalStorage {
         // Whether the party can spend ETH from the party's balance with
         // arbitrary call proposals.
         bool allowArbCallsToSpendPartyEth;
-        // Whether operators can spend ETH from the party's balance with the
-        // operator proposal.
-        bool allowOperatorsToSpendPartyEth;
+        // Whether operators can be used.
+        bool allowOperators;
         // Whether distributions require a vote or can be executed by any active member.
         bool distributionsRequireVote;
     }

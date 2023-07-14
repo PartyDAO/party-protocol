@@ -82,8 +82,7 @@ contract CollectionBatchBuyOperator is IOperator {
     function execute(
         bytes memory operatorData,
         bytes memory executionData,
-        address executor,
-        bool allowOperatorsToSpendPartyEth
+        address
     ) external payable {
         // Decode the operator data.
         CollectionBatchBuyOperationData memory op = abi.decode(
@@ -200,13 +199,8 @@ contract CollectionBatchBuyOperator is IOperator {
 
         uint256 unusedEth = msg.value - totalEthUsed;
         if (unusedEth > 0) {
-            if (allowOperatorsToSpendPartyEth) {
-                // Transfer unused ETH to the party.
-                payable(msg.sender).transferEth(unusedEth);
-            } else {
-                // Transfer unused ETH to the executor.
-                payable(executor).transferEth(unusedEth);
-            }
+            // Transfer unused ETH to the party.
+            payable(msg.sender).transferEth(unusedEth);
         }
 
         emit CollectionBatchBuyOperationExecuted(

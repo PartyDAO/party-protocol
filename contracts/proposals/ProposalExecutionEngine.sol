@@ -245,10 +245,11 @@ contract ProposalExecutionEngine is
 
             nextProgressData = _executeAddAuthority(params);
         } else if (pt == ProposalType.Operator) {
-            nextProgressData = _executeOperation(
-                params,
-                _getSharedProposalStorage().opts.allowOperatorsToSpendPartyEth
-            );
+            if (!_getSharedProposalStorage().opts.allowOperators) {
+                revert ProposalDisabled(pt);
+            }
+
+            nextProgressData = _executeOperation(params);
         } else if (pt == ProposalType.UpgradeProposalEngineImpl) {
             _executeUpgradeProposalsImplementation(params.proposalData);
         } else {

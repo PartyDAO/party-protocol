@@ -80,7 +80,7 @@ contract ERC20SwapOperatorTest is Test, TestUtils, ERC721Receiver {
             100e18,
             99e18
         );
-        operator.execute(abi.encode(operationData), abi.encode(executionData), address(0), false);
+        operator.execute(abi.encode(operationData), abi.encode(executionData), address(0));
 
         assertEq(toToken.balanceOf(address(this)), 99e18);
         assertEq(fromToken.balanceOf(address(this)), 0);
@@ -132,7 +132,7 @@ contract ERC20SwapOperatorTest is Test, TestUtils, ERC721Receiver {
             100e18,
             99e18
         );
-        operator.execute(abi.encode(operationData), abi.encode(executionData), address(0), false);
+        operator.execute(abi.encode(operationData), abi.encode(executionData), address(0));
 
         assertEq(toToken.balanceOf(address(this)), 99e18);
         assertEq(fromToken.balanceOf(address(this)), 0);
@@ -175,7 +175,7 @@ contract ERC20SwapOperatorTest is Test, TestUtils, ERC721Receiver {
             100e18,
             99e18
         );
-        operator.execute(abi.encode(operationData), abi.encode(executionData), address(0), false);
+        operator.execute(abi.encode(operationData), abi.encode(executionData), address(0));
 
         assertEq(fromToken.balanceOf(address(this)), 0);
         assertEq(fromToken.balanceOf(address(operator)), 0);
@@ -213,7 +213,7 @@ contract ERC20SwapOperatorTest is Test, TestUtils, ERC721Receiver {
                 unauthorizedTarget
             )
         );
-        operator.execute(abi.encode(operationData), abi.encode(executionData), address(0), false);
+        operator.execute(abi.encode(operationData), abi.encode(executionData), address(0));
     }
 
     function test_ERC20Swap_withFailingCall() public {
@@ -234,7 +234,7 @@ contract ERC20SwapOperatorTest is Test, TestUtils, ERC721Receiver {
             });
 
         vm.expectRevert("ERROR");
-        operator.execute(abi.encode(operationData), abi.encode(executionData), address(0), false);
+        operator.execute(abi.encode(operationData), abi.encode(executionData), address(0));
     }
 
     function test_ERC20Swap_withInsufficientReceivedAmount() public {
@@ -267,7 +267,7 @@ contract ERC20SwapOperatorTest is Test, TestUtils, ERC721Receiver {
                 101e18 // Minimum received amount required
             )
         );
-        operator.execute(abi.encode(operationData), abi.encode(executionData), address(0), false);
+        operator.execute(abi.encode(operationData), abi.encode(executionData), address(0));
     }
 
     function test_setTargetAllowed_works() public {
