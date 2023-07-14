@@ -18,10 +18,15 @@ contract ERC20SwapOperator is IOperator {
     using LibERC20Compat for IERC20;
 
     event ERC20SwapOperationExecuted(
+        // Party that executed the operation
         Party party,
+        // Token that is swapped
         IERC20 fromToken,
+        // Token that is received from the swap
         IERC20 toToken,
+        // Amount of tokens that are swapped
         uint256 amount,
+        // Amount of tokens that are received from the swap
         uint256 receivedAmount
     );
 
