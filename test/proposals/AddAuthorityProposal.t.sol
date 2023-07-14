@@ -4,6 +4,7 @@ pragma solidity ^0.8;
 import "forge-std/Test.sol";
 
 import "../../contracts/proposals/AddAuthorityProposal.sol";
+import "../../contracts/crowdfund/ReraiseETHCrowdfund.sol";
 
 import "../TestUtils.sol";
 

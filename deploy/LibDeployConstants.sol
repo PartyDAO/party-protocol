@@ -17,6 +17,7 @@ library LibDeployConstants {
         uint256 maxCancelDelay;
         uint40 distributorEmergencyActionAllowedDuration;
         address partyDaoMultisig;
+        address[] allowedERC20SwapOperatorTargets;
         address osZone;
         bytes32 osConduitKey;
         address osConduitController;
@@ -31,6 +32,9 @@ library LibDeployConstants {
     }
 
     function goerli(address multisig) internal pure returns (DeployConstants memory) {
+        address[] memory allowedERC20SwapOperatorTargets = new address[](1);
+        allowedERC20SwapOperatorTargets[0] = 0xF91bB752490473B8342a3E964E855b9f9a2A668e; // 0x Swap Aggregator
+
         DeployConstants memory deployConstants = DeployConstants({
             seaportExchangeAddress: 0x00000000000000ADc04C56Bf30aC9d3c0aAF14dC,
             osZoraAuctionDuration: 2 minutes,
@@ -44,6 +48,7 @@ library LibDeployConstants {
             maxCancelDelay: 1 days,
             distributorEmergencyActionAllowedDuration: 365 days,
             partyDaoMultisig: multisig,
+            allowedERC20SwapOperatorTargets: allowedERC20SwapOperatorTargets,
             osZone: 0x0000000000000000000000000000000000000000,
             osConduitKey: 0xf984c55ca75735630c1c27d3d06969c1aa6af1df86d22ddc0e3a978ad6138e9f,
             osConduitController: 0x00000000F9490004C11Cef243f5400493c00Ad63,
@@ -61,6 +66,9 @@ library LibDeployConstants {
     }
 
     function mainnet() internal pure returns (DeployConstants memory) {
+        address[] memory allowedERC20SwapOperatorTargets = new address[](1);
+        allowedERC20SwapOperatorTargets[0] = 0xDef1C0ded9bec7F1a1670819833240f027b25EfF; // 0x Swap Aggregator
+
         DeployConstants memory deployConstants = DeployConstants({
             seaportExchangeAddress: 0x00000000000000ADc04C56Bf30aC9d3c0aAF14dC,
             osZoraAuctionDuration: 1 days,
@@ -74,6 +82,7 @@ library LibDeployConstants {
             maxCancelDelay: 12 weeks,
             distributorEmergencyActionAllowedDuration: 365 days,
             partyDaoMultisig: 0xF7f52Dd34bc21eDA08c0b804C7c1dbc48375820f,
+            allowedERC20SwapOperatorTargets: allowedERC20SwapOperatorTargets,
             osZone: 0x0000000000000000000000000000000000000000,
             osConduitKey: 0xf984c55ca75735630c1c27d3d06969c1aa6af1df86d22ddc0e3a978ad6138e9f,
             osConduitController: 0x00000000F9490004C11Cef243f5400493c00Ad63,

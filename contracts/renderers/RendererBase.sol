@@ -2,7 +2,6 @@
 pragma solidity 0.8.20;
 
 import "../utils/vendor/Strings.sol";
-import "../utils/vendor/Base64.sol";
 
 import "contracts/party/Party.sol";
 import "../globals/IGlobals.sol";
