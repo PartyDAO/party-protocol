@@ -11,7 +11,7 @@ import "../TestUtils.sol";
 import "../DummyERC721.sol";
 
 contract TestableArbitraryCallsProposal is ArbitraryCallsProposal {
-    constructor(IZoraAuctionHouse zora) ArbitraryCallsProposal(zora) {}
+    constructor(IReserveAuctionCoreEth zora) ArbitraryCallsProposal(zora) {}
 
     function execute(
         IProposalExecutionEngine.ExecuteProposalParams calldata params,
@@ -50,7 +50,7 @@ contract ArbitraryCallTarget {
 }
 
 contract FakeZora {
-    function cancelAuction(uint256 auctionId) external {}
+    function cancelAuction(address _tokenContract, uint256 _tokenId) external {}
 }
 
 contract ArbitraryCallsProposalTest is
@@ -65,7 +65,7 @@ contract ArbitraryCallsProposalTest is
     ArbitraryCallTarget target = new ArbitraryCallTarget();
     FakeZora zora = new FakeZora();
     TestableArbitraryCallsProposal testContract =
-        new TestableArbitraryCallsProposal(IZoraAuctionHouse(address(zora)));
+        new TestableArbitraryCallsProposal(IReserveAuctionCoreEth(address(zora)));
     IERC721[] preciousTokens;
     uint256[] preciousTokenIds;
 
@@ -558,8 +558,8 @@ contract ArbitraryCallsProposalTest is
         (ArbitraryCallsProposal.ArbitraryCall[] memory calls, ) = _createSimpleCalls(2, false);
         calls[0].target = payable(address(zora));
         calls[0].data = abi.encodeCall(
-            IZoraAuctionHouse.cancelAuction,
-            (_randomUint256()) // params don't matter
+            IReserveAuctionCoreEth.cancelAuction,
+            (_randomAddress(), _randomUint256()) // params don't matter
         );
         IProposalExecutionEngine.ExecuteProposalParams memory prop = _createTestProposal(calls);
         vm.expectRevert(
@@ -576,8 +576,8 @@ contract ArbitraryCallsProposalTest is
         (ArbitraryCallsProposal.ArbitraryCall[] memory calls, ) = _createSimpleCalls(2, false);
         calls[1].target = payable(address(zora));
         calls[1].data = abi.encodeCall(
-            IZoraAuctionHouse.cancelAuction,
-            (_randomUint256()) // params don't matter
+            IReserveAuctionCoreEth.cancelAuction,
+            (_randomAddress(), _randomUint256()) // params don't matter
         );
         IProposalExecutionEngine.ExecuteProposalParams memory prop = _createTestProposal(calls);
         _expectEmit0();

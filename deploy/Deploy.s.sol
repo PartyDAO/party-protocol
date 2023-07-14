@@ -8,6 +8,7 @@ import "../contracts/crowdfund/BuyCrowdfund.sol";
 import "../contracts/crowdfund/CollectionBuyCrowdfund.sol";
 import "../contracts/crowdfund/CollectionBatchBuyCrowdfund.sol";
 import "../contracts/operators/CollectionBatchBuyOperator.sol";
+import "../contracts/operators/ERC20SwapOperator.sol";
 import "../contracts/crowdfund/InitialETHCrowdfund.sol";
 import "../contracts/crowdfund/ReraiseETHCrowdfund.sol";
 import "../contracts/crowdfund/CrowdfundFactory.sol";
@@ -62,6 +63,7 @@ abstract contract Deploy {
     CrowdfundNFTRenderer public crowdfundNFTRenderer;
     PartyNFTRenderer public partyNFTRenderer;
     CollectionBatchBuyOperator public collectionBatchBuyOperator;
+    ERC20SwapOperator public swapOperator;
     PartyHelpers public partyHelpers;
     IGateKeeper public allowListGateKeeper;
     IGateKeeper public tokenGateKeeper;
@@ -97,14 +99,16 @@ abstract contract Deploy {
         console.log("");
         console.log("### ProposalExecutionEngine");
         console.log("  Deploying - ProposalExecutionEngine");
-        IZoraAuctionHouse zoraAuctionHouse = IZoraAuctionHouse(deployConstants.zoraAuctionHouse);
+        IReserveAuctionCoreEth zora = IReserveAuctionCoreEth(
+            deployConstants.zoraReserveAuctionCoreEth
+        );
         IFractionalV1VaultFactory fractionalVaultFactory = IFractionalV1VaultFactory(
             deployConstants.fractionalVaultFactory
         );
         _trackDeployerGasBefore();
         proposalExecutionEngine = new ProposalExecutionEngine(
             globals,
-            zoraAuctionHouse,
+            zora,
             fractionalVaultFactory
         );
         _trackDeployerGasAfter();
@@ -299,6 +303,18 @@ abstract contract Deploy {
         collectionBatchBuyOperator = new CollectionBatchBuyOperator();
         _trackDeployerGasAfter();
         console.log("  Deployed - CollectionBatchBuyOperator", address(collectionBatchBuyOperator));
+
+        // DEPLOY_ERC20_SWAP_OPERATOR
+        console.log("");
+        console.log("### ERC20SwapOperator");
+        console.log("  Deploying - ERC20SwapOperator");
+        _trackDeployerGasBefore();
+        swapOperator = new ERC20SwapOperator(
+            globals,
+            deployConstants.allowedERC20SwapOperatorTargets
+        );
+        _trackDeployerGasAfter();
+        console.log("  Deployed - ERC20SwapOperator", address(swapOperator));
 
         // DEPLOY_PARTY_HELPERS
         if (!isTest()) {
@@ -632,6 +648,7 @@ contract DeployScript is Script, Deploy {
             "CollectionBatchBuyOperator",
             address(collectionBatchBuyOperator)
         );
+        addressMapping[12] = AddressMapping("ERC20SwapOperator", address(swapOperator));
         addressMapping[13] = AddressMapping("CrowdfundFactory", address(crowdfundFactory));
         addressMapping[14] = AddressMapping("CrowdfundNFTRenderer", address(crowdfundNFTRenderer));
         addressMapping[15] = AddressMapping("PartyNFTRenderer", address(partyNFTRenderer));

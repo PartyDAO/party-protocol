@@ -7,6 +7,7 @@ import "../../contracts/party/PartyFactory.sol";
 import "../../contracts/globals/Globals.sol";
 import "../TestUtils.sol";
 import "../../contracts/proposals/ProposalExecutionEngine.sol";
+import { MockZoraReserveAuctionCoreEth } from "../proposals/MockZoraReserveAuctionCoreEth.sol";
 
 contract PartyFactoryTest is Test, TestUtils {
     Globals globals = new Globals(address(this));
@@ -27,7 +28,7 @@ contract PartyFactoryTest is Test, TestUtils {
 
         eng = new ProposalExecutionEngine(
             globals,
-            IZoraAuctionHouse(_randomAddress()),
+            new MockZoraReserveAuctionCoreEth(),
             IFractionalV1VaultFactory(_randomAddress())
         );
 

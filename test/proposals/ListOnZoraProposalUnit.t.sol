@@ -4,21 +4,20 @@ pragma solidity ^0.8;
 import "contracts/proposals/ListOnZoraProposal.sol";
 import "contracts/globals/Globals.sol";
 import "../TestUtils.sol";
-import "./MockZoraAuctionHouse.sol";
+import "./MockZoraReserveAuctionCoreEth.sol";
 import "./TestableListOnZoraProposal.sol";
 import "../DummyERC721.sol";
 
 contract ListOnZoraProposalUnitTest is Test, TestUtils {
-    MockZoraAuctionHouse zora = new MockZoraAuctionHouse();
+    MockZoraReserveAuctionCoreEth zora = new MockZoraReserveAuctionCoreEth();
     Globals globals = new Globals(address(this));
-    TestableListOnZoraProposal impl =
-        new TestableListOnZoraProposal(IGlobals(address(globals)), IZoraAuctionHouse(zora));
+    UnitTestableListOnZoraProposal impl =
+        new UnitTestableListOnZoraProposal(IGlobals(address(globals)), zora);
     DummyERC721 token = new DummyERC721();
     uint256 tokenId = token.mint(address(impl));
 
     event ZoraAuctionCreated(
-        uint256 auctionId,
-        IERC721 token,
+        address token,
         uint256 tokenId,
         uint256 startingPrice,
         uint40 duration,
@@ -48,7 +47,7 @@ contract ListOnZoraProposalUnitTest is Test, TestUtils {
             listPrice: listPrice,
             timeout: timeout,
             duration: duration,
-            token: token,
+            token: address(token),
             tokenId: tokenId
         });
 
@@ -88,8 +87,7 @@ contract ListOnZoraProposalUnitTest is Test, TestUtils {
         params.proposalData = abi.encode(data);
         _expectEmit0();
         emit ZoraAuctionCreated(
-            zora.lastAuctionId() + 1,
-            data.token,
+            address(data.token),
             data.tokenId,
             data.listPrice,
             minDuration,
@@ -105,8 +103,7 @@ contract ListOnZoraProposalUnitTest is Test, TestUtils {
         params.proposalData = abi.encode(data);
         _expectEmit0();
         emit ZoraAuctionCreated(
-            zora.lastAuctionId() + 1,
-            data.token,
+            address(data.token),
             data.tokenId,
             data.listPrice,
             maxDuration,
@@ -127,8 +124,7 @@ contract ListOnZoraProposalUnitTest is Test, TestUtils {
         params.proposalData = abi.encode(data);
         _expectEmit0();
         emit ZoraAuctionCreated(
-            zora.lastAuctionId() + 1,
-            data.token,
+            address(data.token),
             data.tokenId,
             data.listPrice,
             data.duration,
