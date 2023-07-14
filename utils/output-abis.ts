@@ -23,6 +23,7 @@ const RELEVANT_ABIS = [
   "CollectionBatchBuyOperator",
   "PixeldroidConsoleFont",
   "Globals",
+  "ERC20SwapOperator",
 ];
 
 // AFileName -> a_file_name

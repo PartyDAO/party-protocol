@@ -57,6 +57,9 @@ contract CollectionBatchBuyOperator is IOperator {
         // The total number of tokens that can be bought in this batch buy. This
         // should be equal to the sum of the each `tokensToBuy` in `calls`.
         uint256 numOfTokens;
+        // Whether the received amount should be received by the Party directly
+        // or indirectly via this operator which will transfer it to the Party.
+        bool isReceivedDirectly;
     }
 
     event CollectionBatchBuyOperationExecuted(
@@ -108,6 +111,9 @@ contract CollectionBatchBuyOperator is IOperator {
         // Lengths of arrays are updated at the end.
         uint256[] memory tokenIds = new uint256[](ex.numOfTokens);
 
+        // Get the expected receiver of the tokens.
+        address receiver = ex.isReceivedDirectly ? msg.sender : address(this);
+
         uint96 totalEthUsed;
         uint256 tokensBought;
         for (uint256 i; i < ex.calls.length; ++i) {
@@ -144,11 +150,10 @@ contract CollectionBatchBuyOperator is IOperator {
                 uint96 ethUsed;
                 for (uint256 j; j < call.tokensToBuy.length; ++j) {
                     uint256 tokenId = call.tokensToBuy[j].tokenId;
-                    uint96 price = call.tokensToBuy[j].price;
 
                     // Check whether the NFT was successfully bought.
-                    if (op.nftContract.safeOwnerOf(tokenId) == address(this)) {
-                        ethUsed += price;
+                    if (op.nftContract.safeOwnerOf(tokenId) == receiver) {
+                        ethUsed += call.tokensToBuy[j].price;
                         ++tokensBought;
 
                         // Add the token to the list of tokens to finalize.
@@ -186,9 +191,11 @@ contract CollectionBatchBuyOperator is IOperator {
             mstore(tokenIds, tokensBought)
         }
 
-        // Transfer the NFTs to the party.
-        for (uint256 i; i < tokenIds.length; ++i) {
-            op.nftContract.safeTransferFrom(address(this), msg.sender, tokenIds[i]);
+        // Transfer the NFTs to the party if not received directly.
+        if (!ex.isReceivedDirectly) {
+            for (uint256 i; i < tokenIds.length; ++i) {
+                op.nftContract.safeTransferFrom(address(this), msg.sender, tokenIds[i]);
+            }
         }
 
         uint256 unusedEth = msg.value - totalEthUsed;
