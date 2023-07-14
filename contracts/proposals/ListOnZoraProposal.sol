@@ -57,15 +57,18 @@ contract ListOnZoraProposal is ZoraHelpers {
     IReserveAuctionCoreEth public immutable ZORA;
     /// @notice Zora ERC721 tranfer helper for approvals
     BaseTransferHelper public immutable ZORA_TRANSFER_HELPER;
-    /// @notice Whether the Zora auction module has been approved (per party)
-    uint256 private constant _ZORA_PROPOSAL_STORAGE_SLOT =
-        uint256(keccak256("ListOnZoraProposal.Storage"));
-    struct ZoraProposalStorage {
-        bool zoraAuctionModuleApproved;
-    }
     // The `Globals` contract storing global configuration values. This contract
     // is immutable and it’s address will never change.
     IGlobals private immutable _GLOBALS;
+
+    /// @notice Use a constant, non-overlapping slot offset for the `ZoraProposalStorage` bucket
+    uint256 private constant _ZORA_PROPOSAL_STORAGE_SLOT =
+        uint256(keccak256("ListOnZoraProposal.Storage"));
+    /// @notice The storage struct for this contract
+    struct ZoraProposalStorage {
+        // Whether the Zora auction module has been approved (per party)
+        bool zoraAuctionModuleApproved;
+    }
 
     // Set immutables.
     constructor(IGlobals globals, IReserveAuctionCoreEth zora) {
@@ -196,7 +199,7 @@ contract ListOnZoraProposal is ZoraHelpers {
         }
     }
 
-    // Retrieve the explicit storage bucket for the ProposalExecutionEngine logic.
+    /// @notice Retrieve the explicit storage bucket for the `ZoraProposalStorage` struct.
     function _getZoraProposalStorage() private pure returns (ZoraProposalStorage storage stor) {
         uint256 slot = _ZORA_PROPOSAL_STORAGE_SLOT;
         assembly {
