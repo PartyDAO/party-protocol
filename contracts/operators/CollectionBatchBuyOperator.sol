@@ -4,13 +4,14 @@ pragma solidity 0.8.20;
 import "./IOperator.sol";
 import "../party/Party.sol";
 import "../tokens/IERC721.sol";
+import "../tokens/ERC721Receiver.sol";
 import "../utils/LibRawResult.sol";
 import "../utils/LibAddress.sol";
 import "../utils/LibSafeERC721.sol";
 import "openzeppelin/contracts/utils/cryptography/MerkleProof.sol";
 
 /// @notice An operator that can be used to buy NFTs from a collection.
-contract CollectionBatchBuyOperator is IOperator {
+contract CollectionBatchBuyOperator is ERC721Receiver, IOperator {
     using LibRawResult for bytes;
     using LibSafeERC721 for IERC721;
     using LibAddress for address payable;
