@@ -24,7 +24,7 @@ library LibDeployConstants {
         address fractionalVaultFactory;
         address foundationMarket;
         address nounsAuctionHouse;
-        address zoraAuctionHouse;
+        address zoraReserveAuctionCoreEth;
         string networkName;
         address deployedNounsMarketWrapper;
         address deployedFoundationMarketWrapper;
@@ -55,7 +55,7 @@ library LibDeployConstants {
             fractionalVaultFactory: 0x014850E83d9D0D1BB0c8624035F09626b967B81c,
             foundationMarket: 0xeB1bD095061bbDb1aD065524628812cae63e4222,
             nounsAuctionHouse: 0x7295e70f2B26986Ba108bD1Bf9E349a181F4a6Ea,
-            zoraAuctionHouse: 0x6a6Cdb103f1072E0aFeADAC9BeBD6E14B287Ca57,
+            zoraReserveAuctionCoreEth: 0x2506D9F5A2b0E1A2619bCCe01CD3e7C289A13163,
             networkName: "goerli",
             deployedNounsMarketWrapper: 0x0000000000000000000000000000000000000000,
             deployedFoundationMarketWrapper: 0x0000000000000000000000000000000000000000,
@@ -89,7 +89,7 @@ library LibDeployConstants {
             fractionalVaultFactory: 0x85Aa7f78BdB2DE8F3e0c0010d99AD5853fFcfC63,
             foundationMarket: 0xcDA72070E455bb31C7690a170224Ce43623d0B6f,
             nounsAuctionHouse: 0x830BD73E4184ceF73443C15111a1DF14e495C706,
-            zoraAuctionHouse: 0xE468cE99444174Bd3bBBEd09209577d25D1ad673,
+            zoraReserveAuctionCoreEth: 0x5f7072E1fA7c01dfAc7Cf54289621AFAaD2184d0,
             networkName: "mainnet",
             deployedNounsMarketWrapper: 0x9319DAd8736D752C5c72DB229f8e1b280DC80ab1,
             deployedFoundationMarketWrapper: 0x96e5b0519983f2f984324b926e6d28C3A4Eb92A1,

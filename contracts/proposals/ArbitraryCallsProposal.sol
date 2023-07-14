@@ -6,7 +6,7 @@ import "../tokens/IERC721Receiver.sol";
 import "../tokens/ERC1155Receiver.sol";
 import "../utils/LibSafeERC721.sol";
 import "../utils/LibAddress.sol";
-import "../vendor/markets/IZoraAuctionHouse.sol";
+import "../vendor/markets/IReserveAuctionCoreEth.sol";
 import "./vendor/IOpenseaExchange.sol";
 
 import "./LibProposal.sol";
@@ -43,9 +43,9 @@ contract ArbitraryCallsProposal {
 
     event ArbitraryCallExecuted(uint256 proposalId, uint256 idx, uint256 count);
 
-    IZoraAuctionHouse private immutable _ZORA;
+    IReserveAuctionCoreEth private immutable _ZORA;
 
-    constructor(IZoraAuctionHouse zora) {
+    constructor(IReserveAuctionCoreEth zora) {
         _ZORA = zora;
     }
 
@@ -206,7 +206,7 @@ contract ArbitraryCallsProposal {
                     }
                     // Can only call cancelAuction on the zora AH if it's the last call
                     // in the sequence.
-                } else if (selector == IZoraAuctionHouse.cancelAuction.selector) {
+                } else if (selector == IReserveAuctionCoreEth.cancelAuction.selector) {
                     if (call.target == address(_ZORA)) {
                         return callIndex + 1 == callsCount;
                     }
