@@ -98,7 +98,7 @@ contract ERC20SwapOperatorTest is Test, TestUtils, ERC721Receiver {
         }
     }
 
-    function test_ERC20Swap_canReceiveDirectly() public {
+    function test_ERC20Swap_canReceiveDirectly_withoutPreviousBalance() public {
         // Mint tokens to swap
         fromToken.deal(address(operator), 100e18);
 
@@ -135,6 +135,53 @@ contract ERC20SwapOperatorTest is Test, TestUtils, ERC721Receiver {
         operator.execute(abi.encode(operationData), abi.encode(executionData), address(0), false);
 
         assertEq(toToken.balanceOf(address(this)), 99e18);
+        assertEq(fromToken.balanceOf(address(this)), 0);
+        assertEq(toToken.balanceOf(address(operator)), 0);
+        assertEq(fromToken.balanceOf(address(operator)), 0);
+        assertEq(fromToken.allowance(address(operator), address(aggregator)), 0);
+    }
+
+    function test_ERC20Swap_canReceiveDirectly_withPreviousBalance() public {
+        // Setup non-zero balance of to token to this contract
+        uint256 toTokenBalanceBefore = _randomUint256();
+        toToken.deal(address(this), toTokenBalanceBefore);
+
+        // Mint tokens to swap
+        fromToken.deal(address(operator), 100e18);
+
+        // Setup operation
+        ERC20SwapOperator.ERC20SwapOperationData memory operationData = ERC20SwapOperator
+            .ERC20SwapOperationData({
+                fromToken: fromToken,
+                toToken: toToken,
+                minReceivedAmount: 95e18
+            });
+
+        ERC20SwapOperator.ERC20SwapExecutionData memory executionData = ERC20SwapOperator
+            .ERC20SwapExecutionData({
+                target: payable(address(aggregator)),
+                callData: abi.encodeWithSelector(
+                    aggregator.swap.selector,
+                    fromToken,
+                    toToken,
+                    100e18,
+                    address(this)
+                ),
+                isReceivedDirectly: true
+            });
+
+        // Execute operation
+        vm.expectEmit(true, true, true, true);
+        emit ERC20SwapOperationExecuted(
+            Party(payable(address(this))),
+            fromToken,
+            toToken,
+            100e18,
+            99e18
+        );
+        operator.execute(abi.encode(operationData), abi.encode(executionData), address(0), false);
+
+        assertEq(toToken.balanceOf(address(this)), toTokenBalanceBefore + 99e18);
         assertEq(fromToken.balanceOf(address(this)), 0);
         assertEq(toToken.balanceOf(address(operator)), 0);
         assertEq(fromToken.balanceOf(address(operator)), 0);

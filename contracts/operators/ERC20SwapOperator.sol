@@ -128,6 +128,24 @@ contract ERC20SwapOperator is IOperator {
             op.fromToken.approve(ex.target, amount);
         }
 
+        // Get the expected receiver of the `toToken`.
+        address payable receiver = ex.isReceivedDirectly
+            ? payable(msg.sender)
+            : payable(address(this));
+
+        // Get the balance of the `toToken` before the swap. Ignore if the
+        // `toToken` is not received directly, the intended behavior is to
+        // transfer any dust or "stray" balances this contract may have to the
+        // Party.
+        uint256 toTokenBalanceBefore;
+        if (ex.isReceivedDirectly) {
+            if (op.toToken == ETH_TOKEN_ADDRESS) {
+                toTokenBalanceBefore = address(msg.sender).balance;
+            } else {
+                toTokenBalanceBefore = op.toToken.balanceOf(address(msg.sender));
+            }
+        }
+
         // Perform the swap.
         {
             uint256 value = op.fromToken == ETH_TOKEN_ADDRESS ? amount : 0;
@@ -137,15 +155,10 @@ contract ERC20SwapOperator is IOperator {
             }
         }
 
-        // Get the expected receiver of the tokens.
-        address payable receiver = ex.isReceivedDirectly
-            ? payable(msg.sender)
-            : payable(address(this));
-
-        // Get the received amount.
+        // Calculate the amount of `toToken` received.
         uint256 receivedAmount = op.toToken == ETH_TOKEN_ADDRESS
-            ? receiver.balance
-            : op.toToken.balanceOf(receiver);
+            ? receiver.balance - toTokenBalanceBefore
+            : op.toToken.balanceOf(receiver) - toTokenBalanceBefore;
 
         // Check that the received amount is at least the minimum specified.
         if (receivedAmount < op.minReceivedAmount) {
