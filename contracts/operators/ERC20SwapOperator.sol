@@ -125,7 +125,7 @@ contract ERC20SwapOperator is IOperator {
 
             // Give target permission to spend `fromToken` on behalf of this
             // contract to swap.
-            op.fromToken.approve(ex.target, amount);
+            op.fromToken.compatApprove(ex.target, amount);
         }
 
         // Perform the swap.
@@ -156,7 +156,7 @@ contract ERC20SwapOperator is IOperator {
         // ensures compatibility with tokens require allowance to be zero before
         // approvals (e.g. USDT).
         if (op.fromToken != ETH_TOKEN_ADDRESS) {
-            op.fromToken.approve(ex.target, 0);
+            op.fromToken.compatApprove(ex.target, 0);
         }
 
         // Transfer the received tokens to the Party if not received directly.
