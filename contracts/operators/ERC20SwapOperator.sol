@@ -168,6 +168,19 @@ contract ERC20SwapOperator is IOperator {
             }
         }
 
+        // Transfer any remaining `fromTokens` back to the Party.
+        uint256 refundAmount = op.fromToken == ETH_TOKEN_ADDRESS
+            ? receiver.balance
+            : op.fromToken.balanceOf(receiver);
+
+        if (refundAmount != 0) {
+            if (op.fromToken == ETH_TOKEN_ADDRESS) {
+                payable(msg.sender).transferEth(refundAmount);
+            } else {
+                op.fromToken.compatTransfer(msg.sender, refundAmount);
+            }
+        }
+
         emit ERC20SwapOperationExecuted(
             Party(payable(msg.sender)),
             op.fromToken,
