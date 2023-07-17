@@ -27,8 +27,8 @@ contract MetadataRegistry {
     /// @notice Get the metadata for a Party instance.
     /// @param instance The address of the instance.
     /// @return metadata The encoded metadata.
-    function getMetadata(address instance) external view returns (bytes memory metadata) {
+    function getMetadata(address instance) external view returns (bytes memory) {
         IMetadataProvider provider = getProvider[instance];
-        return address(provider) != address(0) ? provider.getMetadata(instance) : metadata;
+        return address(provider) != address(0) ? provider.getMetadata(instance) : bytes("");
     }
 }
