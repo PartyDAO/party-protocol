@@ -156,9 +156,9 @@ contract ERC20SwapOperator is IOperator {
         }
 
         // Calculate the amount of `toToken` received.
-        uint256 receivedAmount = op.toToken == ETH_TOKEN_ADDRESS
-            ? receiver.balance - toTokenBalanceBefore
-            : op.toToken.balanceOf(receiver) - toTokenBalanceBefore;
+        uint256 receivedAmount = (
+            op.toToken == ETH_TOKEN_ADDRESS ? receiver.balance : op.toToken.balanceOf(receiver)
+        ) - toTokenBalanceBefore;
 
         // Check that the received amount is at least the minimum specified.
         if (receivedAmount < op.minReceivedAmount) {
