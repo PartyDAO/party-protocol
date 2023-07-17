@@ -59,7 +59,6 @@ contract PartyGovernanceNFTTest is Test, TestUtils {
         metadataRegistry = new MetadataRegistry(globals);
         metadataProvider = new MetadataProvider();
         globalsAdmin.setMetadataRegistry(address(metadataRegistry));
-        globalsAdmin.setMetadataProvider(address(metadataProvider));
 
         // Upload font on-chain
         PixeldroidConsoleFont font = new PixeldroidConsoleFont();

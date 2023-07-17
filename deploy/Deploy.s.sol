@@ -526,10 +526,6 @@ abstract contract Deploy {
                 globals.setAddress,
                 (LibGlobals.GLOBAL_METADATA_REGISTRY, address(metadataRegistry))
             );
-            multicallData[n++] = abi.encodeCall(
-                globals.setAddress,
-                (LibGlobals.GLOBAL_METADATA_PROVIDER, address(metadataProvider))
-            );
             // transfer ownership of Globals to multisig
             if (this.getDeployer() != deployConstants.partyDaoMultisig) {
                 multicallData[n++] = abi.encodeCall(

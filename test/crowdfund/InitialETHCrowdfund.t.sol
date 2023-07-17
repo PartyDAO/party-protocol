@@ -56,7 +56,6 @@ contract InitialETHCrowdfundTest is Test, TestUtils, ERC721Receiver {
         globals.setAddress(LibGlobals.GLOBAL_RENDERER_STORAGE, address(nftRendererStorage));
         globals.setAddress(LibGlobals.GLOBAL_TOKEN_DISTRIBUTOR, address(tokenDistributor));
         globals.setAddress(LibGlobals.GLOBAL_METADATA_REGISTRY, address(metadataRegistry));
-        globals.setAddress(LibGlobals.GLOBAL_METADATA_PROVIDER, address(metadataProvider));
 
         // Generate customization options.
         uint256 versionId = 1;
