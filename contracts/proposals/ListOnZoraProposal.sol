@@ -40,7 +40,7 @@ contract ListOnZoraProposal is ZoraHelpers {
         uint256 tokenId;
     }
 
-    error ZoraListingNotExpired(address token, uint256 tokenid, uint40 expiry);
+    error ZoraListingNotExpired(address token, uint256 tokenId, uint40 expiry);
     error ZoraListingLive(address token, uint256 tokenId, uint256 auctionEndTime);
 
     event ZoraAuctionCreated(
@@ -50,8 +50,8 @@ contract ListOnZoraProposal is ZoraHelpers {
         uint40 duration,
         uint40 timeoutTime
     );
-    event ZoraAuctionExpired(address token, uint256 tokenid, uint256 expiry);
-    event ZoraAuctionSold(address token, uint256 tokenid);
+    event ZoraAuctionExpired(address token, uint256 tokenId, uint256 expiry);
+    event ZoraAuctionSold(address token, uint256 tokenId);
 
     /// @notice Zora auction house contract.
     IReserveAuctionCoreEth public immutable ZORA;
