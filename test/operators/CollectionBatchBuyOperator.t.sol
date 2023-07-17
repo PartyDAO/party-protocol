@@ -33,6 +33,17 @@ contract CollectionBatchBuyOperatorTest is Test, TestUtils, ERC721Receiver {
 
     receive() external payable {}
 
+    function test_onERC721Received_works() public {
+        // Test transferring an NFT to the operator.
+        uint256 tokenId = nftContract.mint(address(this));
+
+        // Transfer the NFT to the operator.
+        nftContract.safeTransferFrom(address(this), address(operator), tokenId);
+
+        // Ensure the operator received the NFT.
+        assertEq(nftContract.ownerOf(tokenId), address(operator));
+    }
+
     function test_execute_works() public {
         // Setup the operation
         CollectionBatchBuyOperator.BuyCall[]
