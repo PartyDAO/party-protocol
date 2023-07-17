@@ -124,8 +124,8 @@ contract CollectionBatchBuyOperator is IOperator {
         for (uint256 i; i < ex.calls.length; ++i) {
             BuyCall memory call = ex.calls[i];
 
-            uint96 callValue = 0;
-            uint256 lastTokenId = 0;
+            uint96 callValue;
+            uint256 lastTokenId;
             for (uint256 j; j < call.tokensToBuy.length; ++j) {
                 TokenToBuy memory tokenToBuy = call.tokensToBuy[j];
 
@@ -174,7 +174,7 @@ contract CollectionBatchBuyOperator is IOperator {
 
                         if (!ex.isReceivedDirectly) {
                             // Transfer the NFT to the Party.
-                            op.nftContract.safeTransferFrom(address(this), msg.sender, tokenId);
+                            op.nftContract.transferFrom(address(this), msg.sender, tokenId);
                         }
                     }
                 }
@@ -188,7 +188,8 @@ contract CollectionBatchBuyOperator is IOperator {
         // This is to prevent this crowdfund from finalizing a loss if nothing
         // was attempted to be bought (ie. `purchasedTokenIds` is empty) or all NFTs were
         // bought for free.
-        uint256 totalEthUsed = beforeEthBalance - address(this).balance;
+        uint256 unusedEth = address(this).balance;
+        uint256 totalEthUsed = beforeEthBalance - unusedEth;
         if (totalEthUsed == 0) revert NothingBoughtError();
 
         // Check number of tokens bought is not less than the minimum.
@@ -205,8 +206,6 @@ contract CollectionBatchBuyOperator is IOperator {
             // Update length of `purchasedTokenIds`
             mstore(purchasedTokenIds, numTokensBought)
         }
-
-        uint256 unusedEth = address(this).balance;
         if (unusedEth > 0) {
             // Transfer unused ETH to the party.
             payable(msg.sender).transferEth(unusedEth);
