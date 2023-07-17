@@ -7,10 +7,11 @@ import { IERC721 } from "../tokens/IERC721.sol";
 import { LibRawResult } from "../utils/LibRawResult.sol";
 import { LibAddress } from "../utils/LibAddress.sol";
 import { LibSafeERC721 } from "../utils/LibSafeERC721.sol";
+import { ERC721Receiver } from "../tokens/ERC721Receiver.sol";
 import { MerkleProof } from "openzeppelin/contracts/utils/cryptography/MerkleProof.sol";
 
 /// @notice An operator that can be used to buy NFTs from a collection.
-contract CollectionBatchBuyOperator is IOperator {
+contract CollectionBatchBuyOperator is ERC721Receiver, IOperator {
     using LibRawResult for bytes;
     using LibSafeERC721 for IERC721;
     using LibAddress for address payable;
