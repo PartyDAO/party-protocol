@@ -44,7 +44,6 @@ contract InitialETHCrowdfundTest is Test, TestUtils, ERC721Receiver {
         initialETHCrowdfundImpl = new InitialETHCrowdfund(globals);
 
         MetadataRegistry metadataRegistry = new MetadataRegistry(globals);
-        MetadataProvider metadataProvider = new MetadataProvider();
 
         // Upload font on-chain
         PixeldroidConsoleFont font = new PixeldroidConsoleFont();

@@ -19,6 +19,21 @@ contract PartyNFTRenderer is RendererBase {
 
     error InvalidTokenIdError();
 
+    // The crowdfund type used to create this party.
+    enum CrowdfundType {
+        // Party was created using flexible crowdfund configuration which
+        // allowed members to contribute any amount with variable voting power
+        // awarded in proportion to the amount contributed (e.g. 1 ETH
+        // contributed with 10 ETH total contributed resulting in 10% voting
+        // power for contribution).
+        Flexible,
+        // Party was created using fixed crowdfund configuration which awarded
+        // members with fixed voting power per membership minted with each mint
+        // costing a fixed amount (e.g. 1 ETH for 10% voting power per mint,
+        // total of 10 mints available).
+        Fixed
+    }
+
     struct ProposalData {
         uint256 id;
         string status;
@@ -142,7 +157,7 @@ contract PartyNFTRenderer is RendererBase {
                     Base64.encode(
                         abi.encodePacked(
                             '{"name":"',
-                            generateName(tokenId),
+                            generateName(PartyGovernanceNFT(address(this)).name(), tokenId),
                             '", "description":"',
                             bytes(metadata.description).length == 0
                                 ? generateDescription(
@@ -186,7 +201,7 @@ contract PartyNFTRenderer is RendererBase {
                     Base64.encode(
                         abi.encodePacked(
                             '{"name":"',
-                            generateName(tokenId),
+                            generateName(PartyGovernanceNFT(address(this)).name(), tokenId),
                             '", "description":"',
                             bytes(metadata.description).length == 0
                                 ? generateDescription(
@@ -216,9 +231,22 @@ contract PartyNFTRenderer is RendererBase {
         }
     }
 
-    function generateName(uint256 tokenId) private view returns (string memory) {
+    function generateName(
+        string memory partyName,
+        uint256 tokenId
+    ) private view returns (string memory) {
         if (hasPartyStarted()) {
-            return string.concat(generateVotingPowerPercentage(tokenId), "% Voting Power");
+            if (getCrowdfundType() == CrowdfundType.Fixed) {
+                return string.concat(partyName, " #", tokenId.toString());
+            } else {
+                return
+                    string.concat(
+                        partyName,
+                        " ",
+                        generateVotingPowerPercentage(tokenId),
+                        "% Voting Power"
+                    );
+            }
         } else {
             return "Party Membership";
         }
@@ -569,6 +597,34 @@ contract PartyNFTRenderer is RendererBase {
         if (!success) return 0;
 
         return abi.decode(response, (uint16));
+    }
+
+    function getCrowdfundType() private view returns (CrowdfundType crowdfundType) {
+        Party party = Party(payable(address(this)));
+        uint256 numOfTokensToCheck = 3;
+        uint256 tokenCount = party.tokenCount();
+        if (tokenCount < numOfTokensToCheck) {
+            // Default to flexible membership.
+            return CrowdfundType.Flexible;
+        } else {
+            // Check the voting power of several tokens. If they are all the
+            // same, assume it is a fixed membership.
+
+            uint256 lastTokenId = tokenCount / numOfTokensToCheck;
+            for (uint256 i = 2; i <= numOfTokensToCheck; ++i) {
+                uint256 tokenId = i * (tokenCount / numOfTokensToCheck);
+
+                if (
+                    party.votingPowerByTokenId(tokenId) != party.votingPowerByTokenId(lastTokenId)
+                ) {
+                    return CrowdfundType.Flexible;
+                }
+
+                lastTokenId = tokenId;
+            }
+
+            return CrowdfundType.Fixed;
+        }
     }
 
     function hasUnclaimedDistribution(uint256 tokenId) private view returns (bool) {

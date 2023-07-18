@@ -1270,6 +1270,28 @@ contract PartyGovernanceNFTTest is Test, TestUtils {
         assertTrue(bytes(tokenURI).length > 0);
     }
 
+    function testTokenURI_withFixedCrowdfundType() public {
+        // Create party
+        DummyParty party = new DummyParty(address(globals), "Party of the Living Dead");
+
+        // Setup party as fixed membership mint party
+        party.setTokenCount(100);
+        party.mint(33);
+        party.setVotingPowerPercentage(33, 0.1e18);
+        party.mint(66);
+        party.setVotingPowerPercentage(66, 0.1e18);
+        party.mint(99);
+        party.setVotingPowerPercentage(99, 0.1e18);
+
+        // Get token URI
+        string memory tokenURI = party.tokenURI(33);
+
+        // Uncomment for testing rendering:
+        // console.log(tokenURI);
+
+        assertTrue(bytes(tokenURI).length > 0);
+    }
+
     // Test rendering using a preset ID 0, which is reserved to indicate to
     // parties to use the same preset as the crowdfund that created it (or of
     // whatever `authority()` chose if created outside the conventional flow).
@@ -1585,6 +1607,10 @@ contract DummyParty is ReadOnlyDelegateCall {
         returns (PartyGovernance.GovernanceValues memory gv)
     {
         return _governanceValues;
+    }
+
+    function setTokenCount(uint256 count) external {
+        tokenCount = count;
     }
 
     function setVotingPowerPercentage(uint256 tokenId, uint256 votingPower) external {
