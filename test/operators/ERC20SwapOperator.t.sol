@@ -338,6 +338,36 @@ contract ERC20SwapOperatorTest is Test, TestUtils, ERC721Receiver {
         operator.setTargetAllowed(newTarget, true);
     }
 
+    function test_inKindSwapShouldRevert() public {
+        // Mint tokens to swap
+        fromToken.deal(address(operator), 100e18);
+
+        // Setup operation
+        ERC20SwapOperator.ERC20SwapOperationData memory operationData = ERC20SwapOperator
+            .ERC20SwapOperationData({
+                fromToken: fromToken,
+                toToken: fromToken,
+                minReceivedAmount: 95e18
+            });
+
+        ERC20SwapOperator.ERC20SwapExecutionData memory executionData = ERC20SwapOperator
+            .ERC20SwapExecutionData({
+                target: payable(address(aggregator)),
+                callData: abi.encodeWithSelector(
+                    aggregator.swap.selector,
+                    fromToken,
+                    fromToken,
+                    100e18,
+                    address(operator)
+                ),
+                isReceivedDirectly: false
+            });
+
+        // Execute operation
+        vm.expectRevert(ERC20SwapOperator.InKindSwap.selector);
+        operator.execute(abi.encode(operationData), abi.encode(executionData), address(0), false);
+    }
+
     receive() external payable {}
 }
 
