@@ -179,6 +179,7 @@ contract ListOnZoraProposal is ZoraHelpers {
             }
             // minExpiry passed with no bids
             ZORA.cancelAuction(token, tokenId);
+            IERC721(token).approve(address(0), tokenId);
             emit ZoraAuctionExpired(token, tokenId, minExpiry);
             return ZoraAuctionStatus.Expired;
         } else {
