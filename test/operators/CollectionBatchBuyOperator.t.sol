@@ -33,6 +33,17 @@ contract CollectionBatchBuyOperatorTest is Test, TestUtils, ERC721Receiver {
 
     receive() external payable {}
 
+    function test_onERC721Received_works() public {
+        // Test transferring an NFT to the operator.
+        uint256 tokenId = nftContract.mint(address(this));
+
+        // Transfer the NFT to the operator.
+        nftContract.safeTransferFrom(address(this), address(operator), tokenId);
+
+        // Ensure the operator received the NFT.
+        assertEq(nftContract.ownerOf(tokenId), address(operator));
+    }
+
     function test_execute_works() public {
         // Setup the operation
         CollectionBatchBuyOperator.BuyCall[]
@@ -493,6 +504,104 @@ contract CollectionBatchBuyOperatorTest is Test, TestUtils, ERC721Receiver {
         );
 
         // Execute the operation
+        operator.execute{ value: 6 }(operatorData, executionData, _randomAddress());
+    }
+
+    /// @dev Tests that `execute` reverts if the tokens are not in ascending order per call.
+    function test_execute_tokensMustBeSorted() public {
+        CollectionBatchBuyOperator.BuyCall[]
+            memory calls = new CollectionBatchBuyOperator.BuyCall[](1);
+
+        CollectionBatchBuyOperator.TokenToBuy[]
+            memory tokensToBuy = new CollectionBatchBuyOperator.TokenToBuy[](3);
+        for (uint256 j = 0; j < tokensToBuy.length; ++j) {
+            uint256 tokenId = 3 - j;
+            tokensToBuy[j].tokenId = tokenId;
+            tokensToBuy[j].price = 2;
+        }
+        calls[0] = CollectionBatchBuyOperator.BuyCall({
+            target: payable(address(batchMinter)),
+            data: abi.encodeCall(batchMinter.batchMint, (nftContract, 3)),
+            tokensToBuy: tokensToBuy
+        });
+
+        bytes memory operatorData = abi.encode(
+            CollectionBatchBuyOperator.CollectionBatchBuyOperationData({
+                nftContract: IERC721(address(nftContract)),
+                nftTokenIdsMerkleRoot: "",
+                maximumPrice: maximumPrice,
+                minTokensBought: 3,
+                minTotalEthUsed: 2
+            })
+        );
+        bytes memory executionData = abi.encode(
+            CollectionBatchBuyOperator.CollectionBatchBuyExecutionData({
+                calls: calls,
+                numOfTokens: 3,
+                isReceivedDirectly: false
+            })
+        );
+
+        vm.expectRevert(CollectionBatchBuyOperator.TokenIdsNotSorted.selector);
+        operator.execute{ value: 6 }(operatorData, executionData, _randomAddress());
+    }
+
+    /// @dev Tests that `execute` reverts if the token is already owned.
+    function test_execute_tokenAlreadyOwned() public {
+        CollectionBatchBuyOperator.BuyCall[]
+            memory calls = new CollectionBatchBuyOperator.BuyCall[](2);
+
+        {
+            CollectionBatchBuyOperator.TokenToBuy[]
+                memory tokensToBuy = new CollectionBatchBuyOperator.TokenToBuy[](1);
+
+            tokensToBuy[0].tokenId = 1;
+            tokensToBuy[0].price = 2;
+
+            calls[0] = CollectionBatchBuyOperator.BuyCall({
+                target: payable(address(batchMinter)),
+                data: abi.encodeCall(batchMinter.batchMint, (nftContract, 1)),
+                tokensToBuy: tokensToBuy
+            });
+        }
+        {
+            CollectionBatchBuyOperator.TokenToBuy[]
+                memory tokensToBuy = new CollectionBatchBuyOperator.TokenToBuy[](1);
+
+            tokensToBuy[0].tokenId = 1;
+            tokensToBuy[0].price = 2;
+
+            calls[1] = CollectionBatchBuyOperator.BuyCall({
+                target: payable(address(batchMinter)),
+                data: abi.encodeCall(batchMinter.batchMint, (nftContract, 1)),
+                tokensToBuy: tokensToBuy
+            });
+        }
+
+        bytes memory operatorData = abi.encode(
+            CollectionBatchBuyOperator.CollectionBatchBuyOperationData({
+                nftContract: IERC721(address(nftContract)),
+                nftTokenIdsMerkleRoot: "",
+                maximumPrice: maximumPrice,
+                minTokensBought: 1,
+                minTotalEthUsed: 1
+            })
+        );
+        bytes memory executionData = abi.encode(
+            CollectionBatchBuyOperator.CollectionBatchBuyExecutionData({
+                calls: calls,
+                numOfTokens: 2,
+                isReceivedDirectly: false
+            })
+        );
+
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                CollectionBatchBuyOperator.TokenAlreadyOwned.selector,
+                nftContract,
+                1
+            )
+        );
         operator.execute{ value: 6 }(operatorData, executionData, _randomAddress());
     }
 }

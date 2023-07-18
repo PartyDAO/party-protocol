@@ -1,22 +1,17 @@
 // SPDX-License-Identifier: GPL-3.0
 pragma solidity 0.8.20;
 
-import "../globals/IGlobals.sol";
-import "../globals/LibGlobals.sol";
-import "../tokens/IERC721.sol";
-import "../utils/LibRawResult.sol";
-import "../utils/LibSafeERC721.sol";
-import "../utils/LibSafeCast.sol";
-
+import { IGlobals } from "../globals/IGlobals.sol";
+import { LibGlobals } from "../globals/LibGlobals.sol";
+import { IERC721 } from "../tokens/IERC721.sol";
+import { LibSafeCast } from "../utils/LibSafeCast.sol";
 import { IReserveAuctionCoreEth, BaseTransferHelper } from "../vendor/markets/IReserveAuctionCoreEth.sol";
-import "./IProposalExecutionEngine.sol";
-import "./ZoraHelpers.sol";
+import { IProposalExecutionEngine } from "./IProposalExecutionEngine.sol";
+import { ZoraHelpers } from "./ZoraHelpers.sol";
 
 // Implements proposals auctioning an NFT on Zora. Inherited by the `ProposalExecutionEngine`.
 // This contract will be delegatecall'ed into by `Party` proxy instances.
 contract ListOnZoraProposal is ZoraHelpers {
-    using LibRawResult for bytes;
-    using LibSafeERC721 for IERC721;
     using LibSafeCast for uint256;
 
     enum ZoraStep {
@@ -40,7 +35,7 @@ contract ListOnZoraProposal is ZoraHelpers {
         uint256 tokenId;
     }
 
-    error ZoraListingNotExpired(address token, uint256 tokenid, uint40 expiry);
+    error ZoraListingNotExpired(address token, uint256 tokenId, uint40 expiry);
     error ZoraListingLive(address token, uint256 tokenId, uint256 auctionEndTime);
 
     event ZoraAuctionCreated(
@@ -50,8 +45,8 @@ contract ListOnZoraProposal is ZoraHelpers {
         uint40 duration,
         uint40 timeoutTime
     );
-    event ZoraAuctionExpired(address token, uint256 tokenid, uint256 expiry);
-    event ZoraAuctionSold(address token, uint256 tokenid);
+    event ZoraAuctionExpired(address token, uint256 tokenId, uint256 expiry);
+    event ZoraAuctionSold(address token, uint256 tokenId);
 
     /// @notice Zora auction house contract.
     IReserveAuctionCoreEth public immutable ZORA;
