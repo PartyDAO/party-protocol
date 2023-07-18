@@ -6,16 +6,15 @@ import "contracts/globals/Globals.sol";
 import "../TestUtils.sol";
 import "../DummyERC721.sol";
 import "./TestableListOnZoraProposal.sol";
-import "./ZoraTestUtils.sol";
 import { LibSafeCast } from "../../contracts/utils/LibSafeCast.sol";
 
 using LibSafeCast for uint256;
 
-contract ListOnZoraProposalForkedTest is ZoraTestUtils, TestUtils {
+contract ListOnZoraProposalForkedTest is TestUtils {
     IReserveAuctionCoreEth ZORA =
         IReserveAuctionCoreEth(0x5f7072E1fA7c01dfAc7Cf54289621AFAaD2184d0);
     Globals globals = new Globals(address(this));
-    TestableListOnZoraProposal proposal = new TestableListOnZoraProposal(globals, ZORA);
+    TestableListOnZoraProposal proposal;
     DummyERC721 nftToken = new DummyERC721();
     uint256 nftTokenId;
 
@@ -53,7 +52,8 @@ contract ListOnZoraProposalForkedTest is ZoraTestUtils, TestUtils {
         IReserveAuctionCoreEth.Auction auction
     );
 
-    constructor() ZoraTestUtils(ZORA) {
+    function setUp() public onlyForked {
+        proposal = new TestableListOnZoraProposal(globals, ZORA);
         nftTokenId = nftToken.mint(address(proposal));
     }
 
