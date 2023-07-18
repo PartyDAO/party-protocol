@@ -115,7 +115,7 @@ contract ERC20SwapOperator is IOperator {
         if (!isTargetAllowed[ex.target]) revert UnauthorizedTargetError(ex.target);
 
         if (op.fromToken == op.toToken) {
-            // In kind swap. Revert
+            // Doesn't make sense to swap a token for the same token.
             revert InKindSwap();
         }
 
