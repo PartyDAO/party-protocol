@@ -101,8 +101,7 @@ contract ERC20SwapOperator is IOperator {
     function execute(
         bytes memory operatorData,
         bytes memory executionData,
-        address,
-        bool
+        address
     ) external payable {
         // Decode the operator data.
         ERC20SwapOperationData memory op = abi.decode(operatorData, (ERC20SwapOperationData));

@@ -79,18 +79,14 @@ contract CollectionBatchBuyOperator is ERC721Receiver, IOperator {
     error CallProhibitedError(address target, bytes data);
     error NumOfTokensCannotBeLessThanMin(uint256 numOfTokens, uint256 min);
     error EthUsedForFailedBuyError(uint256 expectedEthUsed, uint256 actualEthUsed);
-    error PartyCantSpendEth();
     error TokenAlreadyOwned(IERC721 tokenContract, uint256 tokenId);
     error TokenIdsNotSorted();
 
     function execute(
         bytes memory operatorData,
         bytes memory executionData,
-        address,
-        bool allowOperatorsToSpendPartyEth
+        address
     ) external payable {
-        if (!allowOperatorsToSpendPartyEth) revert PartyCantSpendEth();
-
         uint256 beforeEthBalance = address(this).balance;
 
         // Decode the operator data.

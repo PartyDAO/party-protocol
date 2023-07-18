@@ -106,6 +106,15 @@ contract ProposalExecutionEngineTest is Test, TestUtils {
             );
     }
 
+    function _createOperatorProposal() private pure returns (bytes memory) {
+        return
+            abi.encodeWithSelector(
+                bytes4(uint32(ProposalExecutionEngine.ProposalType.Operator))
+                // Data doesn't matter because it should revert when
+                // `enableAddAuthorityProposal` is false
+            );
+    }
+
     function test_executeProposal_rejectsBadProgressData() public {
         // This is a two-step proposal. We will execute the first step
         // then execute again with progressData that does not match
@@ -259,6 +268,19 @@ contract ProposalExecutionEngineTest is Test, TestUtils {
             abi.encodeWithSelector(
                 ProposalExecutionEngine.ProposalDisabled.selector,
                 ProposalExecutionEngine.ProposalType.Distribute
+            )
+        );
+        _executeProposal(executeParams);
+    }
+
+    function test_cannotExecuteOperatorProposalIfOperatorsDisabled() public {
+        IProposalExecutionEngine.ExecuteProposalParams memory executeParams = _createTestProposal(
+            _createOperatorProposal()
+        );
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                ProposalExecutionEngine.ProposalDisabled.selector,
+                ProposalExecutionEngine.ProposalType.Operator
             )
         );
         _executeProposal(executeParams);

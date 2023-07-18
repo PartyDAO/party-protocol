@@ -92,7 +92,7 @@ contract CollectionBatchBuyOperatorTest is Test, TestUtils, ERC721Receiver {
         );
 
         uint256 balanceBefore = address(this).balance;
-        operator.execute{ value: 5 }(operatorData, executionData, _randomAddress(), true);
+        operator.execute{ value: 5 }(operatorData, executionData, _randomAddress());
         assertEq(balanceBefore - address(this).balance, 3); // Sent 5 wei, only used 3 wei
         for (uint256 i; i < tokenIds.length; ++i) {
             assertEq(nftContract.ownerOf(tokenIds[i]), address(this));
@@ -147,7 +147,7 @@ contract CollectionBatchBuyOperatorTest is Test, TestUtils, ERC721Receiver {
         );
 
         uint256 balanceBefore = address(this).balance;
-        operator.execute{ value: 5 }(operatorData, executionData, _randomAddress(), true);
+        operator.execute{ value: 5 }(operatorData, executionData, _randomAddress());
         assertEq(balanceBefore - address(this).balance, 3); // Sent 5 wei, only used 3 wei
         for (uint256 i; i < tokenIds.length; ++i) {
             assertEq(nftContract.ownerOf(tokenIds[i]), address(this));
@@ -198,7 +198,7 @@ contract CollectionBatchBuyOperatorTest is Test, TestUtils, ERC721Receiver {
                 3
             )
         );
-        operator.execute{ value: 3 }(operatorData, executionData, _randomAddress(), true);
+        operator.execute{ value: 3 }(operatorData, executionData, _randomAddress());
     }
 
     function test_execute_updatedTokenLength() public {
@@ -249,7 +249,7 @@ contract CollectionBatchBuyOperatorTest is Test, TestUtils, ERC721Receiver {
             tokenIds,
             2
         );
-        operator.execute{ value: 2 }(operatorData, executionData, _randomAddress(), true);
+        operator.execute{ value: 2 }(operatorData, executionData, _randomAddress());
     }
 
     function test_execute_cannotMinTokensBoughtZero() public {
@@ -278,7 +278,7 @@ contract CollectionBatchBuyOperatorTest is Test, TestUtils, ERC721Receiver {
                 0
             )
         );
-        operator.execute{ value: 0 }(operatorData, executionData, _randomAddress(), true);
+        operator.execute{ value: 0 }(operatorData, executionData, _randomAddress());
     }
 
     function test_execute_cannotBuyingNothing() public {
@@ -302,7 +302,7 @@ contract CollectionBatchBuyOperatorTest is Test, TestUtils, ERC721Receiver {
 
         // Execute the operation
         vm.expectRevert(CollectionBatchBuyOperator.NothingBoughtError.selector);
-        operator.execute(operatorData, executionData, _randomAddress(), true);
+        operator.execute(operatorData, executionData, _randomAddress());
     }
 
     function test_execute_failedBuyCannotUseETH() public {
@@ -342,7 +342,7 @@ contract CollectionBatchBuyOperatorTest is Test, TestUtils, ERC721Receiver {
                 1e18
             )
         );
-        operator.execute{ value: 2e18 }(operatorData, executionData, _randomAddress(), true);
+        operator.execute{ value: 2e18 }(operatorData, executionData, _randomAddress());
     }
 
     function test_execute_aboveMaximumPrice() public {
@@ -385,12 +385,7 @@ contract CollectionBatchBuyOperatorTest is Test, TestUtils, ERC721Receiver {
                 maximumPrice
             )
         );
-        operator.execute{ value: maximumPrice + 1 }(
-            operatorData,
-            executionData,
-            _randomAddress(),
-            true
-        );
+        operator.execute{ value: maximumPrice + 1 }(operatorData, executionData, _randomAddress());
     }
 
     function test_execute_withTokenIdsAllowList() public {
@@ -427,7 +422,7 @@ contract CollectionBatchBuyOperatorTest is Test, TestUtils, ERC721Receiver {
         );
 
         // Execute the operation
-        operator.execute{ value: 1 }(operatorData, executionData, _randomAddress(), true);
+        operator.execute{ value: 1 }(operatorData, executionData, _randomAddress());
     }
 
     function test_execute_withTokenIdsAllowList_invalidProof() public {
@@ -466,7 +461,7 @@ contract CollectionBatchBuyOperatorTest is Test, TestUtils, ERC721Receiver {
 
         // Execute the operation
         vm.expectRevert(CollectionBatchBuyOperator.InvalidTokenIdError.selector);
-        operator.execute{ value: 1 }(operatorData, executionData, _randomAddress(), true);
+        operator.execute{ value: 1 }(operatorData, executionData, _randomAddress());
     }
 
     function test_execute_multipleTokensBoughtPerCall() public {
@@ -509,7 +504,7 @@ contract CollectionBatchBuyOperatorTest is Test, TestUtils, ERC721Receiver {
         );
 
         // Execute the operation
-        operator.execute{ value: 6 }(operatorData, executionData, _randomAddress(), true);
+        operator.execute{ value: 6 }(operatorData, executionData, _randomAddress());
     }
 
     /// @dev Tests that `execute` reverts if the tokens are not in ascending order per call.
@@ -548,7 +543,7 @@ contract CollectionBatchBuyOperatorTest is Test, TestUtils, ERC721Receiver {
         );
 
         vm.expectRevert(CollectionBatchBuyOperator.TokenIdsNotSorted.selector);
-        operator.execute{ value: 6 }(operatorData, executionData, _randomAddress(), true);
+        operator.execute{ value: 6 }(operatorData, executionData, _randomAddress());
     }
 
     /// @dev Tests that `execute` reverts if the token is already owned.
@@ -607,7 +602,7 @@ contract CollectionBatchBuyOperatorTest is Test, TestUtils, ERC721Receiver {
                 1
             )
         );
-        operator.execute{ value: 6 }(operatorData, executionData, _randomAddress(), true);
+        operator.execute{ value: 6 }(operatorData, executionData, _randomAddress());
     }
 }
 

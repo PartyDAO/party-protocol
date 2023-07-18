@@ -138,7 +138,7 @@ contract CrowdfundFactoryTest is Test, TestUtils {
                 proposalEngineOpts: ProposalStorage.ProposalEngineOpts({
                     enableAddAuthorityProposal: randomBool,
                     allowArbCallsToSpendPartyEth: randomBool,
-                    allowOperatorsToSpendPartyEth: randomBool,
+                    allowOperators: randomBool,
                     distributionsRequireVote: randomBool
                 })
             });
@@ -226,7 +226,7 @@ contract CrowdfundFactoryTest is Test, TestUtils {
                 proposalEngineOpts: ProposalStorage.ProposalEngineOpts({
                     enableAddAuthorityProposal: randomBool,
                     allowArbCallsToSpendPartyEth: randomBool,
-                    allowOperatorsToSpendPartyEth: randomBool,
+                    allowOperators: randomBool,
                     distributionsRequireVote: randomBool
                 })
             });
@@ -513,7 +513,7 @@ contract CrowdfundFactoryTest is Test, TestUtils {
                 proposalEngineOpts: ProposalStorage.ProposalEngineOpts({
                     enableAddAuthorityProposal: randomBool,
                     allowArbCallsToSpendPartyEth: randomBool,
-                    allowOperatorsToSpendPartyEth: randomBool,
+                    allowOperators: randomBool,
                     distributionsRequireVote: randomBool
                 })
             });
@@ -592,7 +592,7 @@ contract CrowdfundFactoryTest is Test, TestUtils {
                 proposalEngineOpts: ProposalStorage.ProposalEngineOpts({
                     enableAddAuthorityProposal: randomBool,
                     allowArbCallsToSpendPartyEth: randomBool,
-                    allowOperatorsToSpendPartyEth: randomBool,
+                    allowOperators: randomBool,
                     distributionsRequireVote: randomBool
                 })
             });
@@ -698,7 +698,7 @@ contract CrowdfundFactoryTest is Test, TestUtils {
             proposalEngineOpts: ProposalStorage.ProposalEngineOpts({
                 enableAddAuthorityProposal: randomBool,
                 allowArbCallsToSpendPartyEth: randomBool,
-                allowOperatorsToSpendPartyEth: randomBool,
+                allowOperators: randomBool,
                 distributionsRequireVote: randomBool
             }),
             preciousTokens: new IERC721[](0),

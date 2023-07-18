@@ -22,10 +22,9 @@ contract TestableOperatorProposal is OperatorProposal, ERC721Receiver, ERC1155Re
     }
 
     function execute(
-        IProposalExecutionEngine.ExecuteProposalParams calldata params,
-        bool allowOperatorsToSpendPartyEth
+        IProposalExecutionEngine.ExecuteProposalParams calldata params
     ) external payable returns (bytes memory nextProgressData) {
-        nextProgressData = _executeOperation(params, allowOperatorsToSpendPartyEth);
+        nextProgressData = _executeOperation(params);
     }
 }
 
@@ -43,8 +42,7 @@ contract MockOperator is IOperator, ERC721Receiver, ERC1155Receiver {
     function execute(
         bytes calldata data,
         bytes calldata executionData,
-        address,
-        bool
+        address
     ) external payable override {
         emit OperationExecuted(msg.sender, data, executionData);
     }
@@ -92,8 +90,7 @@ contract OperatorProposalTest is Test, TestUtils {
                 preciousTokens: new IERC721[](0),
                 preciousTokenIds: new uint256[](0),
                 proposalData: abi.encode(data)
-            }),
-            true
+            })
         );
         assertEq(nextProgressData.length, 0);
     }
@@ -131,8 +128,7 @@ contract OperatorProposalTest is Test, TestUtils {
                 preciousTokens: new IERC721[](0),
                 preciousTokenIds: new uint256[](0),
                 proposalData: abi.encode(data)
-            }),
-            true
+            })
         );
 
         assertEq(address(mockOperator).balance, 1 ether);
@@ -171,8 +167,7 @@ contract OperatorProposalTest is Test, TestUtils {
                 preciousTokens: new IERC721[](0),
                 preciousTokenIds: new uint256[](0),
                 proposalData: abi.encode(data)
-            }),
-            true
+            })
         );
 
         assertEq(erc20.balanceOf(address(mockOperator)), 100e18);
@@ -211,8 +206,7 @@ contract OperatorProposalTest is Test, TestUtils {
                 preciousTokens: new IERC721[](0),
                 preciousTokenIds: new uint256[](0),
                 proposalData: abi.encode(data)
-            }),
-            true
+            })
         );
 
         assertEq(erc721.balanceOf(address(mockOperator)), 1);
@@ -251,8 +245,7 @@ contract OperatorProposalTest is Test, TestUtils {
                 preciousTokens: new IERC721[](0),
                 preciousTokenIds: new uint256[](0),
                 proposalData: abi.encode(data)
-            }),
-            true
+            })
         );
 
         assertEq(erc1155.balanceOf(address(mockOperator), 1), 10);
@@ -315,8 +308,7 @@ contract OperatorProposalTest is Test, TestUtils {
                 preciousTokens: new IERC721[](0),
                 preciousTokenIds: new uint256[](0),
                 proposalData: abi.encode(data)
-            }),
-            true
+            })
         );
 
         assertEq(address(mockOperator).balance, 1 ether);
@@ -358,45 +350,8 @@ contract OperatorProposalTest is Test, TestUtils {
                 preciousTokens: new IERC721[](0),
                 preciousTokenIds: new uint256[](0),
                 proposalData: abi.encode(data)
-            }),
-            true
+            })
         );
         assertEq(nextProgressData.length, 0);
-    }
-
-    function test_executeOperation_canOnlyUseAttachedEthIfNotAllowedToSpendPartyEth() public {
-        // Prepare the operator proposal data.
-        address[] memory allowedExecutors = new address[](1);
-        allowedExecutors[0] = address(this);
-
-        OperatorProposal.AssetData[] memory assets = new OperatorProposal.AssetData[](1);
-        assets[0] = OperatorProposal.AssetData({
-            tokenType: OperatorProposal.OperatorTokenType.ETH,
-            token: address(0),
-            tokenId: 0,
-            amount: 2
-        });
-
-        OperatorProposal.OperatorProposalData memory data = OperatorProposal.OperatorProposalData({
-            allowedExecutors: allowedExecutors,
-            assets: assets,
-            operator: IOperator(address(mockOperator)),
-            operatorData: "0x1234"
-        });
-
-        // Execute the proposal.
-        vm.expectRevert(abi.encodeWithSelector(OperatorProposal.NotEnoughEthError.selector, 2, 1));
-        operatorProposal.execute{ value: 1 }(
-            IProposalExecutionEngine.ExecuteProposalParams({
-                proposalId: _randomUint256(),
-                progressData: "",
-                extraData: abi.encode(uint256(0), "0x5678"),
-                flags: 0,
-                preciousTokens: new IERC721[](0),
-                preciousTokenIds: new uint256[](0),
-                proposalData: abi.encode(data)
-            }),
-            false
-        );
     }
 }

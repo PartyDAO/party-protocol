@@ -81,7 +81,7 @@ contract PartyFactoryTest is Test, TestUtils {
             proposalEngine: ProposalStorage.ProposalEngineOpts({
                 enableAddAuthorityProposal: randomBool,
                 allowArbCallsToSpendPartyEth: randomBool,
-                allowOperatorsToSpendPartyEth: randomBool,
+                allowOperators: randomBool,
                 distributionsRequireVote: randomBool
             }),
             name: randomStr,
@@ -112,7 +112,7 @@ contract PartyFactoryTest is Test, TestUtils {
         ProposalStorage.ProposalEngineOpts memory proposalEngineOpts = party
             .getProposalEngineOpts();
         assertEq(proposalEngineOpts.allowArbCallsToSpendPartyEth, randomBool);
-        assertEq(proposalEngineOpts.allowOperatorsToSpendPartyEth, randomBool);
+        assertEq(proposalEngineOpts.allowOperators, randomBool);
         assertEq(proposalEngineOpts.distributionsRequireVote, randomBool);
         assertEq(party.preciousListHash(), _hashPreciousList(preciousTokens, preciousTokenIds));
     }

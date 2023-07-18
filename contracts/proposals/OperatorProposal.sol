@@ -46,8 +46,7 @@ abstract contract OperatorProposal {
     error NotEnoughEthError(uint256 operatorValue, uint256 ethAvailable);
 
     function _executeOperation(
-        IProposalExecutionEngine.ExecuteProposalParams memory params,
-        bool allowOperatorsToSpendPartyEth
+        IProposalExecutionEngine.ExecuteProposalParams memory params
     ) internal returns (bytes memory nextProgressData) {
         // Decode the proposal data.
         OperatorProposalData memory data = abi.decode(params.proposalData, (OperatorProposalData));
@@ -84,19 +83,8 @@ abstract contract OperatorProposal {
             }
         }
 
-        // Check whether operator can spend party's ETH balance. Otherwise, it
-        // can only spend ETH sent with the transaction from the executor.
-        if (!allowOperatorsToSpendPartyEth && ethToTransfer > msg.value) {
-            revert NotEnoughEthError(ethToTransfer, msg.value);
-        }
-
         // Execute the operation.
-        data.operator.execute{ value: ethToTransfer }(
-            data.operatorData,
-            executionData,
-            msg.sender,
-            allowOperatorsToSpendPartyEth
-        );
+        data.operator.execute{ value: ethToTransfer }(data.operatorData, executionData, msg.sender);
 
         // Nothing left to do.
         return "";
