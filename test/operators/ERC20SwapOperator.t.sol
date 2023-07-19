@@ -446,7 +446,7 @@ contract ERC20SwapOperatorTest is Test, TestUtils, ERC721Receiver {
 
         // Execute operation
         vm.expectRevert(ERC20SwapOperator.InKindSwap.selector);
-        operator.execute(abi.encode(operationData), abi.encode(executionData), address(0), false);
+        operator.execute(abi.encode(operationData), abi.encode(executionData), address(0));
     }
 
     receive() external payable {}
