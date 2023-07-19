@@ -56,6 +56,7 @@ contract ERC20SwapOperator is IOperator {
     error InsufficientReceivedAmountError(uint256 receivedAmount, uint256 minToTokenAmount);
     error OnlyPartyDaoError(address notDao, address partyDao);
     error UnauthorizedTargetError(address payable target);
+    error InKindSwap();
 
     IERC20 private constant ETH_TOKEN_ADDRESS = IERC20(0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE);
 
@@ -111,6 +112,11 @@ contract ERC20SwapOperator is IOperator {
 
         // Check if the target is allowed.
         if (!isTargetAllowed[ex.target]) revert UnauthorizedTargetError(ex.target);
+
+        if (op.fromToken == op.toToken) {
+            // Doesn't make sense to swap a token for the same token.
+            revert InKindSwap();
+        }
 
         // Get the amount of tokens sent to this contract. This contract should
         // not hold any token balances before the swap is performed, although if
