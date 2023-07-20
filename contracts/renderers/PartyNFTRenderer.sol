@@ -40,10 +40,12 @@ contract PartyNFTRenderer is RendererBase {
     }
 
     struct Metadata {
+        string name;
         string description;
         string externalURL;
         string image;
         string banner;
+        string animationURL;
         string collectionName;
         string collectionDescription;
         string collectionExternalURL;
@@ -68,7 +70,7 @@ contract PartyNFTRenderer is RendererBase {
         uint256
     ) external view returns (address receiver, uint256 royaltyAmount) {
         // Get any custom metadata for this party.
-        Metadata memory metadata = getCustomMetadata();
+        Metadata memory metadata = getCustomMetadata(0);
 
         // By default, there are no royalties.
         return (metadata.royaltyReceiver, metadata.royaltyAmount);
@@ -82,7 +84,7 @@ contract PartyNFTRenderer is RendererBase {
         );
 
         // Get any custom metadata for this party.
-        Metadata memory metadata = getCustomMetadata();
+        Metadata memory metadata = getCustomMetadata(0);
 
         return
             string.concat(
@@ -147,88 +149,58 @@ contract PartyNFTRenderer is RendererBase {
         }
 
         // Get any custom metadata for this party.
-        Metadata memory metadata = getCustomMetadata();
+        Metadata memory metadata = getCustomMetadata(tokenId);
 
         // Construct metadata.
-        if (hasPartyStarted()) {
-            return
-                string.concat(
-                    "data:application/json;base64,",
-                    Base64.encode(
-                        abi.encodePacked(
-                            '{"name":"',
-                            generateName(PartyGovernanceNFT(address(this)).name(), tokenId),
-                            '", "description":"',
-                            bytes(metadata.description).length == 0
-                                ? generateDescription(
+        return
+            string.concat(
+                "data:application/json;base64,",
+                Base64.encode(
+                    abi.encodePacked(
+                        '{"name":"',
+                        generateName(
+                            bytes(metadata.name).length == 0
+                                ? PartyGovernanceNFT(address(this)).name()
+                                : metadata.name,
+                            tokenId
+                        ),
+                        '", "description":"',
+                        bytes(metadata.description).length == 0
+                            ? generateDescription(PartyGovernanceNFT(address(this)).name(), tokenId)
+                            : string.concat(
+                                metadata.description,
+                                // Append default description.
+                                " ",
+                                generateDescription(
                                     PartyGovernanceNFT(address(this)).name(),
                                     tokenId
                                 )
-                                : string.concat(
-                                    metadata.description,
-                                    // Append default description.
-                                    " ",
-                                    generateDescription(
-                                        PartyGovernanceNFT(address(this)).name(),
-                                        tokenId
-                                    )
-                                ),
-                            '", "external_url":"',
-                            bytes(metadata.externalURL).length == 0
-                                ? generateExternalURL()
-                                : metadata.externalURL,
-                            '", "attributes": [',
-                            generateAttributes(tokenId),
-                            '], "image":"',
-                            bytes(metadata.image).length == 0
-                                ? generateSVG(
-                                    PartyGovernanceNFT(address(this)).name(),
-                                    generateVotingPowerPercentage(tokenId),
-                                    getLatestProposalStatuses(),
-                                    PartyGovernance(address(this)).lastProposalId(),
-                                    tokenId,
-                                    hasUnclaimedDistribution(tokenId)
-                                )
-                                : metadata.image,
-                            '"}'
-                        )
+                            ),
+                        '", "external_url":"',
+                        bytes(metadata.externalURL).length == 0
+                            ? generateExternalURL()
+                            : metadata.externalURL,
+                        bytes(metadata.animationURL).length == 0
+                            ? '", '
+                            : string.concat('", "animation_url":"', metadata.animationURL, '"'),
+                        hasPartyStarted()
+                            ? string.concat('"attributes": [', generateAttributes(tokenId), "]")
+                            : "",
+                        ', "image":"',
+                        bytes(metadata.image).length == 0
+                            ? generateSVG(
+                                PartyGovernanceNFT(address(this)).name(),
+                                generateVotingPowerPercentage(tokenId),
+                                getLatestProposalStatuses(),
+                                PartyGovernance(address(this)).lastProposalId(),
+                                tokenId,
+                                hasUnclaimedDistribution(tokenId)
+                            )
+                            : metadata.image,
+                        '"}'
                     )
-                );
-        } else {
-            return
-                string.concat(
-                    "data:application/json;base64,",
-                    Base64.encode(
-                        abi.encodePacked(
-                            '{"name":"',
-                            generateName(PartyGovernanceNFT(address(this)).name(), tokenId),
-                            '", "description":"',
-                            bytes(metadata.description).length == 0
-                                ? generateDescription(
-                                    PartyGovernanceNFT(address(this)).name(),
-                                    tokenId
-                                )
-                                : metadata.description,
-                            '", "external_url":"',
-                            bytes(metadata.externalURL).length == 0
-                                ? generateExternalURL()
-                                : metadata.externalURL,
-                            '", "image":"',
-                            bytes(metadata.image).length == 0
-                                ? generateSVG(
-                                    PartyGovernanceNFT(address(this)).name(),
-                                    generateVotingPowerPercentage(tokenId),
-                                    getLatestProposalStatuses(),
-                                    PartyGovernance(address(this)).lastProposalId(),
-                                    tokenId,
-                                    hasUnclaimedDistribution(tokenId)
-                                )
-                                : metadata.image,
-                            '"}'
-                        )
-                    )
-                );
-        }
+                )
+            );
     }
 
     function generateName(
@@ -552,12 +524,12 @@ contract PartyNFTRenderer is RendererBase {
         }
     }
 
-    function getCustomMetadata() private view returns (Metadata memory metadata) {
+    function getCustomMetadata(uint256 tokenId) private view returns (Metadata memory metadata) {
         MetadataRegistry registry = MetadataRegistry(
             _GLOBALS.getAddress(LibGlobals.GLOBAL_METADATA_REGISTRY)
         );
 
-        bytes memory encodedMetadata = registry.getMetadata(address(this));
+        bytes memory encodedMetadata = registry.getMetadata(address(this), tokenId);
         return encodedMetadata.length != 0 ? abi.decode(encodedMetadata, (Metadata)) : metadata;
     }
 

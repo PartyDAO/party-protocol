@@ -12,7 +12,7 @@ import { MockZoraReserveAuctionCoreEth } from "../proposals/MockZoraReserveAucti
 contract PartyFactoryTest is Test, TestUtils {
     Globals globals = new Globals(address(this));
     Party partyImpl = new Party(globals);
-    PartyFactory factory = new PartyFactory();
+    PartyFactory factory = new PartyFactory(globals);
     ProposalExecutionEngine eng;
     Party.PartyOptions defaultPartyOptions;
 

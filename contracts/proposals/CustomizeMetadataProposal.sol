@@ -37,9 +37,8 @@ abstract contract CustomizeMetadataProposal {
             _GLOBALS.getAddress(LibGlobals.GLOBAL_METADATA_REGISTRY)
         );
 
-        // Set the metadata.
-        data.provider.setMetadata(data.metadata);
-        registry.setProvider(data.provider);
+        data.provider.setMetadata(msg.sender, data.metadata);
+        registry.setProvider(msg.sender, data.provider);
 
         // Nothing left to do.
         return "";

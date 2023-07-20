@@ -49,7 +49,7 @@ contract ListOnZoraProposalIntegrationTest is Test, TestUtils, ZoraTestUtils {
         );
         globalsAdmin.setProposalEng(address(pe));
 
-        partyFactory = new PartyFactory();
+        partyFactory = new PartyFactory(globals);
     }
 
     event ZoraAuctionSold(address token, uint256 tokenid);

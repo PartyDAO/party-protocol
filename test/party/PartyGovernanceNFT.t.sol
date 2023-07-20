@@ -51,13 +51,14 @@ contract PartyGovernanceNFTTest is Test, TestUtils {
         eng = new DummySimpleProposalEngineImpl();
         globalsAdmin.setProposalEng(address(eng));
 
-        partyFactory = new PartyFactory();
+        partyFactory = new PartyFactory(globals);
 
         john = new PartyParticipant();
         partyAdmin = new PartyAdmin(partyFactory);
 
-        metadataRegistry = new MetadataRegistry(globals);
-        metadataProvider = new MetadataProvider();
+        address[] memory registrars = new address[](0);
+        metadataRegistry = new MetadataRegistry(globals, registrars);
+        metadataProvider = new MetadataProvider(globals);
         globalsAdmin.setMetadataRegistry(address(metadataRegistry));
 
         // Upload font on-chain
@@ -1374,10 +1375,12 @@ contract PartyGovernanceNFTTest is Test, TestUtils {
 
         // Set custom metadata
         PartyNFTRenderer.Metadata memory metadata = PartyNFTRenderer.Metadata({
+            name: "CUSTOM_NAME",
             description: "CUSTOM_DESCRIPTION",
             externalURL: "CUSTOM_EXTERNAL_URL",
             image: "CUSTOM_IMAGE",
             banner: "CUSTOM_BANNER",
+            animationURL: "CUSTOM_ANIMATION_URL",
             collectionName: "CUSTOM_COLLECTION_NAME",
             collectionDescription: "CUSTOM_COLLECTION_DESCRIPTION",
             collectionExternalURL: "CUSTOM_COLLECTION_EXTERNAL_URL",
@@ -1386,8 +1389,8 @@ contract PartyGovernanceNFTTest is Test, TestUtils {
         });
 
         vm.startPrank(address(party));
-        metadataProvider.setMetadata(abi.encode(metadata));
-        metadataRegistry.setProvider(metadataProvider);
+        metadataProvider.setMetadata(address(party), abi.encode(metadata));
+        metadataRegistry.setProvider(address(party), metadataProvider);
         vm.stopPrank();
 
         // Set claimed/unclaimed state
@@ -1423,10 +1426,12 @@ contract PartyGovernanceNFTTest is Test, TestUtils {
 
         // Set custom metadata
         PartyNFTRenderer.Metadata memory metadata = PartyNFTRenderer.Metadata({
+            name: "CUSTOM_NAME",
             description: "CUSTOM_DESCRIPTION",
             externalURL: "CUSTOM_EXTERNAL_URL",
             image: "CUSTOM_IMAGE",
             banner: "CUSTOM_BANNER",
+            animationURL: "CUSTOM_ANIMATION_URL",
             collectionName: "CUSTOM_COLLECTION_NAME",
             collectionDescription: "CUSTOM_COLLECTION_DESCRIPTION",
             collectionExternalURL: "CUSTOM_COLLECTION_EXTERNAL_URL",
@@ -1435,8 +1440,8 @@ contract PartyGovernanceNFTTest is Test, TestUtils {
         });
 
         vm.startPrank(address(party));
-        metadataProvider.setMetadata(abi.encode(metadata));
-        metadataRegistry.setProvider(metadataProvider);
+        metadataProvider.setMetadata(address(party), abi.encode(metadata));
+        metadataRegistry.setProvider(address(party), metadataProvider);
         vm.stopPrank();
 
         string memory contractURI = party.contractURI();
@@ -1488,10 +1493,12 @@ contract PartyGovernanceNFTTest is Test, TestUtils {
 
         // Set custom metadata
         PartyNFTRenderer.Metadata memory metadata = PartyNFTRenderer.Metadata({
+            name: "CUSTOM_NAME",
             description: "CUSTOM_DESCRIPTION",
             externalURL: "CUSTOM_EXTERNAL_URL",
             image: "CUSTOM_IMAGE",
             banner: "CUSTOM_BANNER",
+            animationURL: "CUSTOM_ANIMATION_URL",
             collectionName: "CUSTOM_COLLECTION_NAME",
             collectionDescription: "CUSTOM_COLLECTION_DESCRIPTION",
             collectionExternalURL: "CUSTOM_COLLECTION_EXTERNAL_URL",
@@ -1500,8 +1507,8 @@ contract PartyGovernanceNFTTest is Test, TestUtils {
         });
 
         vm.startPrank(address(party));
-        metadataProvider.setMetadata(abi.encode(metadata));
-        metadataRegistry.setProvider(metadataProvider);
+        metadataProvider.setMetadata(address(party), abi.encode(metadata));
+        metadataRegistry.setProvider(address(party), metadataProvider);
         vm.stopPrank();
 
         (address receiver, uint256 royaltyAmount) = party.royaltyInfo(0, 0);

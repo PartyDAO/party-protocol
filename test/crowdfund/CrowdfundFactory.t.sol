@@ -20,7 +20,7 @@ import "../TestUtils.sol";
 contract CrowdfundFactoryTest is Test, TestUtils {
     Globals globals = new Globals(address(this));
     CrowdfundFactory partyCrowdfundFactory = new CrowdfundFactory();
-    PartyFactory partyFactory = new PartyFactory();
+    PartyFactory partyFactory = new PartyFactory(globals);
     Party party = new Party(globals);
     MockMarketWrapper market = new MockMarketWrapper();
     AuctionCrowdfund auctionCrowdfund = new AuctionCrowdfund(globals);

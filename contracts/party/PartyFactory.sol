@@ -6,10 +6,21 @@ import "../utils/Proxy.sol";
 
 import "./Party.sol";
 import "./IPartyFactory.sol";
+import "../renderers/MetadataRegistry.sol";
+import "../renderers/MetadataProvider.sol";
 
 /// @notice Factory used to deploy new proxified `Party` instances.
 contract PartyFactory is IPartyFactory {
     error NoAuthorityError();
+
+    // The `Globals` contract storing global configuration values. This contract
+    // is immutable and it’s address will never change.
+    IGlobals private immutable _GLOBALS;
+
+    // Set immutables.
+    constructor(IGlobals globals) {
+        _GLOBALS = globals;
+    }
 
     /// @inheritdoc IPartyFactory
     function createParty(
@@ -19,7 +30,7 @@ contract PartyFactory is IPartyFactory {
         IERC721[] memory preciousTokens,
         uint256[] memory preciousTokenIds,
         uint40 rageQuitTimestamp
-    ) external returns (Party party) {
+    ) public returns (Party party) {
         // Ensure an authority is set to mint governance NFTs.
         if (authorities.length == 0) {
             revert NoAuthorityError();
@@ -41,5 +52,33 @@ contract PartyFactory is IPartyFactory {
             )
         );
         emit PartyCreated(party, opts, preciousTokens, preciousTokenIds, msg.sender);
+    }
+
+    function createPartyWithMetadata(
+        Party partyImpl,
+        address[] memory authorities,
+        Party.PartyOptions memory opts,
+        IERC721[] memory preciousTokens,
+        uint256[] memory preciousTokenIds,
+        uint40 rageQuitTimestamp,
+        MetadataProvider provider,
+        bytes memory metadata
+    ) external returns (Party party) {
+        party = createParty(
+            partyImpl,
+            authorities,
+            opts,
+            preciousTokens,
+            preciousTokenIds,
+            rageQuitTimestamp
+        );
+
+        MetadataRegistry registry = MetadataRegistry(
+            _GLOBALS.getAddress(LibGlobals.GLOBAL_METADATA_REGISTRY)
+        );
+
+        // Set the metadata for the Party.
+        registry.setProvider(address(party), provider);
+        provider.setMetadata(address(party), metadata);
     }
 }

@@ -133,7 +133,7 @@ abstract contract Deploy {
         console.log("  Deploying - PartyFactory");
         _switchDeployer(DeployerRole.PartyFactory);
         _trackDeployerGasBefore();
-        partyFactory = new PartyFactory();
+        partyFactory = new PartyFactory(globals);
         _trackDeployerGasAfter();
         console.log("  Deployed - PartyFactory", address(partyFactory));
         _switchDeployer(DeployerRole.Default);
@@ -229,11 +229,15 @@ abstract contract Deploy {
         _switchDeployer(DeployerRole.Default);
 
         // DEPLOY_METADATA_REGISTRY
+        address[] memory registrars = new address[](2);
+        registrars[0] = address(partyFactory);
+        registrars[1] = address(deployConstants.partyDaoMultisig);
+
         console.log("");
         console.log("### MetadataRegistry");
         console.log("  Deploying - MetadataRegistry");
         _trackDeployerGasBefore();
-        metadataRegistry = new MetadataRegistry(globals);
+        metadataRegistry = new MetadataRegistry(globals, registrars);
         _trackDeployerGasAfter();
         console.log("  Deployed - MetadataRegistry", address(metadataRegistry));
 
@@ -242,7 +246,7 @@ abstract contract Deploy {
         console.log("### MetadataProvider");
         console.log("  Deploying - MetadataProvider");
         _trackDeployerGasBefore();
-        metadataProvider = new MetadataProvider();
+        metadataProvider = new MetadataProvider(globals);
         _trackDeployerGasAfter();
         console.log("  Deployed - MetadataProvider", address(metadataProvider));
 

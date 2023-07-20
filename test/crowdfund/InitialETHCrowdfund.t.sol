@@ -10,7 +10,6 @@ import "../../contracts/party/PartyFactory.sol";
 import "../../contracts/tokens/ERC721Receiver.sol";
 import "../../contracts/renderers/PartyNFTRenderer.sol";
 import "../../contracts/renderers/MetadataRegistry.sol";
-import "../../contracts/renderers/MetadataProvider.sol";
 import "../../contracts/renderers/RendererStorage.sol";
 import "../../contracts/renderers/fonts/PixeldroidConsoleFont.sol";
 import "../../contracts/distribution/TokenDistributor.sol";
@@ -39,11 +38,11 @@ contract InitialETHCrowdfundTest is Test, TestUtils, ERC721Receiver {
     constructor() {
         globals = new Globals(address(this));
         partyImpl = new Party(globals);
-        partyFactory = new PartyFactory();
+        partyFactory = new PartyFactory(globals);
 
         initialETHCrowdfundImpl = new InitialETHCrowdfund(globals);
 
-        MetadataRegistry metadataRegistry = new MetadataRegistry(globals);
+        MetadataRegistry metadataRegistry = new MetadataRegistry(globals, new address[](0));
 
         // Upload font on-chain
         PixeldroidConsoleFont font = new PixeldroidConsoleFont();
