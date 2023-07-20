@@ -54,6 +54,7 @@ contract PartyFactory is IPartyFactory {
         emit PartyCreated(party, opts, preciousTokens, preciousTokenIds, msg.sender);
     }
 
+    /// @inheritdoc IPartyFactory
     function createPartyWithMetadata(
         Party partyImpl,
         address[] memory authorities,
