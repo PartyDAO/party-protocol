@@ -100,34 +100,29 @@ First, install [Foundry](https://book.getfoundry.sh/getting-started/installation
 forge install
 yarn -D
 yarn build
+yarn build:ts
 ```
 
 ## Testing
 
-### Run all tests (except fork tests):
+### Run tests (except fork tests):
 
 ```bash
-yarn test
-```
-
-### Run only TypeScript tests
-
-```bash
-yarn test:ts
-```
-
-### Run only Foundry tests
-
-```bash
-yarn test:sol
+forge test -vv
 # If you want gas reports:
-yarn test:sol --gas-report
+forge test --gas-report -vv
 ```
 
-### Run Foundry forked tests
+### Run forked tests
 
 ```bash
-forge test -m testFork --fork-url $YOUR_RPC_URL
+forge test --mt testFork --fork-url $YOUR_RPC_URL -vv
+```
+
+### Run all tests
+
+```bash
+forge test --fork-url $YOUR_RPC_URL -vv
 ```
 
 ## Audits
