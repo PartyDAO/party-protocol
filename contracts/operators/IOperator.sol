@@ -9,12 +9,9 @@ interface IOperator {
     /// @param executionData Data to be used by the execution, known at the time
     ///                      operation was executed.
     /// @param executor The address that executed the operation.
-    /// @param allowOperatorsToSpendPartyEth Whether operators are allowed to
-    ///                                      spend party's ETH balance.
     function execute(
         bytes memory operatorData,
         bytes memory executionData,
-        address executor,
-        bool allowOperatorsToSpendPartyEth
+        address executor
     ) external payable;
 }

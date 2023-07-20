@@ -14,7 +14,8 @@ import "./ZoraTestUtils.sol";
 import "../TestUsers.sol";
 
 contract ListOnZoraProposalIntegrationTest is Test, TestUtils, ZoraTestUtils {
-    IZoraAuctionHouse ZORA = IZoraAuctionHouse(0xE468cE99444174Bd3bBBEd09209577d25D1ad673);
+    IReserveAuctionCoreEth ZORA =
+        IReserveAuctionCoreEth(0x5f7072E1fA7c01dfAc7Cf54289621AFAaD2184d0);
 
     GlobalsAdmin globalsAdmin;
     Globals globals;
@@ -50,6 +51,8 @@ contract ListOnZoraProposalIntegrationTest is Test, TestUtils, ZoraTestUtils {
 
         partyFactory = new PartyFactory();
     }
+
+    event ZoraAuctionSold(address token, uint256 tokenid);
 
     function testForked_simpleZora() public onlyForked {
         john = new PartyParticipant();
@@ -94,7 +97,7 @@ contract ListOnZoraProposalIntegrationTest is Test, TestUtils, ZoraTestUtils {
             listPrice: 1.5 ether,
             timeout: 120,
             duration: 120,
-            token: toadz,
+            token: address(toadz),
             tokenId: 1
         });
 
@@ -129,34 +132,25 @@ contract ListOnZoraProposalIntegrationTest is Test, TestUtils, ZoraTestUtils {
 
         john.executeProposal(party, eo);
 
-        assertEq(toadz.ownerOf(1), address(ZORA));
-
-        // get the zora auction id created by the proposal
-        uint256 proposalAuctionId = uint256(
-            vm.load(
-                address(ZORA),
-                0x0000000000000000000000000000000000000000000000000000000000000005
-            )
-        ) - 1;
-
         // zora auction lifecycle tests
         {
             // bid up zora auction
             address auctionFinalizer = 0x000000000000000000000000000000000000dEaD;
             address auctionWinner = 0x000000000000000000000000000000000000D00d;
-            _bidOnZoraListing(proposalAuctionId, auctionFinalizer, 1.6 ether);
+            _bidOnZoraListing(address(toadz), 1, auctionFinalizer, 1.6 ether);
             _bidOnZoraListing(
-                proposalAuctionId,
+                address(toadz),
+                1,
                 0x0000000000000000000000000000000000001337,
                 4.2 ether
             );
-            _bidOnZoraListing(proposalAuctionId, auctionWinner, 13.37 ether);
+            _bidOnZoraListing(address(toadz), 1, auctionWinner, 13.37 ether);
 
             // have zora auction finish
-            vm.warp(block.timestamp + ZORA.auctions(proposalAuctionId).duration);
+            vm.warp(block.timestamp + ZORA.auctionForNFT(address(toadz), 1).duration);
 
             // finalize zora auction
-            ZORA.endAuction(proposalAuctionId);
+            ZORA.settleAuction(address(toadz), 1);
             // TODO: test our code path by calling execute() again john.executeProposal(party, eo);
 
             // ensure NFT is held by winner

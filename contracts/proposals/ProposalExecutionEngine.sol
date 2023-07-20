@@ -101,14 +101,14 @@ contract ProposalExecutionEngine is
     // Set immutables.
     constructor(
         IGlobals globals,
-        IZoraAuctionHouse zoraAuctionHouse,
+        IReserveAuctionCoreEth zora,
         IFractionalV1VaultFactory fractionalVaultFactory
     )
         CustomizeMetadataProposal(globals)
         ListOnOpenseaAdvancedProposal(globals)
-        ListOnZoraProposal(globals, zoraAuctionHouse)
+        ListOnZoraProposal(globals, zora)
         FractionalizeProposal(fractionalVaultFactory)
-        ArbitraryCallsProposal(zoraAuctionHouse)
+        ArbitraryCallsProposal(zora)
     {
         _GLOBALS = globals;
     }
@@ -249,12 +249,11 @@ contract ProposalExecutionEngine is
 
             nextProgressData = _executeAddAuthority(params);
         } else if (pt == ProposalType.Operator) {
-            nextProgressData = _executeOperation(
-                params,
-                _getSharedProposalStorage().opts.allowOperatorsToSpendPartyEth
-            );
-        } else if (pt == ProposalType.CustomizeMetadata) {
-            nextProgressData = _executeCustomizeMetadata(params);
+            if (!_getSharedProposalStorage().opts.allowOperators) {
+                revert ProposalDisabled(pt);
+            }
+
+            nextProgressData = _executeOperation(params);
         } else if (pt == ProposalType.UpgradeProposalEngineImpl) {
             _executeUpgradeProposalsImplementation(params.proposalData);
         } else {

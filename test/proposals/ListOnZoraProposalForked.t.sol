@@ -6,67 +6,54 @@ import "contracts/globals/Globals.sol";
 import "../TestUtils.sol";
 import "../DummyERC721.sol";
 import "./TestableListOnZoraProposal.sol";
-import "./ZoraTestUtils.sol";
+import { LibSafeCast } from "../../contracts/utils/LibSafeCast.sol";
 
-contract ListOnZoraProposalForkedTest is ZoraTestUtils, TestUtils {
-    IZoraAuctionHouse ZORA = IZoraAuctionHouse(0xE468cE99444174Bd3bBBEd09209577d25D1ad673);
+using LibSafeCast for uint256;
+
+contract ListOnZoraProposalForkedTest is TestUtils {
+    IReserveAuctionCoreEth ZORA =
+        IReserveAuctionCoreEth(0x5f7072E1fA7c01dfAc7Cf54289621AFAaD2184d0);
     Globals globals = new Globals(address(this));
-    TestableListOnZoraProposal proposal = new TestableListOnZoraProposal(globals, ZORA);
+    TestableListOnZoraProposal proposal;
     DummyERC721 nftToken = new DummyERC721();
     uint256 nftTokenId;
 
     event ZoraAuctionCreated(
-        uint256 auctionId,
-        IERC721 token,
+        address token,
         uint256 tokenId,
         uint256 startingPrice,
         uint40 duration,
         uint40 timeoutTime
     );
-    event ZoraAuctionExpired(uint256 auctionId, uint256 expiry);
-    event ZoraAuctionSold(uint256 auctionId);
-    event ZoraAuctionFailed(uint256 auctionId);
+    event ZoraAuctionExpired(address token, uint256 tokenid, uint256 expiry);
+    event ZoraAuctionSold(address token, uint256 tokenid);
 
     // Zora events
     event AuctionCreated(
-        uint256 indexed auctionId,
-        uint256 indexed tokenId,
         address indexed tokenContract,
-        uint256 duration,
-        uint256 reservePrice,
-        address tokenOwner,
-        address curator,
-        uint8 curatorFeePercentage,
-        address auctionCurrency
+        uint256 indexed tokenId,
+        IReserveAuctionCoreEth.Auction auction
     );
     event AuctionBid(
-        uint256 indexed auctionId,
-        uint256 indexed tokenId,
         address indexed tokenContract,
-        address sender,
-        uint256 value,
+        uint256 indexed tokenId,
         bool firstBid,
-        bool extended
+        bool extended,
+        IReserveAuctionCoreEth.Auction auction
     );
     event AuctionCanceled(
-        uint256 indexed auctionId,
-        uint256 indexed tokenId,
         address indexed tokenContract,
-        address tokenOwner
+        uint256 indexed tokenId,
+        IReserveAuctionCoreEth.Auction auction
     );
     event AuctionEnded(
-        uint256 indexed auctionId,
-        uint256 indexed tokenId,
         address indexed tokenContract,
-        address tokenOwner,
-        address curator,
-        address winner,
-        uint256 amount,
-        uint256 curatorFee,
-        address auctionCurrency
+        uint256 indexed tokenId,
+        IReserveAuctionCoreEth.Auction auction
     );
 
-    constructor() ZoraTestUtils(ZORA) {
+    function setUp() public onlyForked {
+        proposal = new TestableListOnZoraProposal(globals, ZORA);
         nftTokenId = nftToken.mint(address(proposal));
     }
 
@@ -82,32 +69,42 @@ contract ListOnZoraProposalForkedTest is ZoraTestUtils, TestUtils {
             listPrice: _randomUint256() % 1e18,
             timeout: uint40(_randomRange(1 hours, 1 days)),
             duration: uint40(_randomRange(1 hours, 1 days)),
-            token: nftToken,
+            token: address(nftToken),
             tokenId: nftTokenId
         });
         executeParams.proposalData = abi.encode(proposalData);
     }
 
-    function _bidOnListing(uint256 auctionId, uint256 bid) private {
-        _bidOnListing(_randomAddress(), auctionId, bid);
+    function _bidOnListing(address tokenContract, uint256 tokenId, uint256 bid) private {
+        _bidOnListing(_randomAddress(), tokenContract, tokenId, bid);
     }
 
-    function _bidOnListing(address bidder, uint256 auctionId, uint256 bid) private {
-        IZoraAuctionHouse.Auction memory auction = ZORA.auctions(auctionId);
-        uint256 timeBuffer = ZORA.timeBuffer();
+    function _bidOnListing(
+        address bidder,
+        address tokenContract,
+        uint256 tokenId,
+        uint256 bid
+    ) private {
+        IReserveAuctionCoreEth.Auction memory auction = ZORA.auctionForNFT(tokenContract, tokenId);
+        uint256 timeBuffer = 15 minutes;
         vm.deal(bidder, bid);
         vm.prank(bidder);
+
+        // cache needed values
+        uint32 firstBidTime = auction.firstBidTime;
+        auction.highestBidder = bidder;
+        auction.highestBid = bid.safeCastUint256ToUint96();
+        auction.firstBidTime = uint32(block.timestamp);
+
         _expectEmit3();
         emit AuctionBid(
-            auctionId,
-            auction.tokenId,
-            address(auction.tokenContract),
-            bidder,
-            bid,
-            auction.firstBidTime == 0,
-            block.timestamp - auction.firstBidTime - auction.duration <= timeBuffer
+            tokenContract,
+            tokenId,
+            firstBidTime == 0,
+            auction.firstBidTime + auction.duration < block.timestamp + timeBuffer,
+            auction
         );
-        ZORA.createBid{ value: bid }(auctionId, bid);
+        ZORA.createBid{ value: bid }(tokenContract, tokenId);
     }
 
     function testForked_canCreateListing() external onlyForked {
@@ -115,22 +112,23 @@ contract ListOnZoraProposalForkedTest is ZoraTestUtils, TestUtils {
             IProposalExecutionEngine.ExecuteProposalParams memory executeParams,
             ListOnZoraProposal.ZoraProposalData memory proposalData
         ) = _createExecutionParams();
-        uint256 auctionId = _getNextZoraAuctionId();
         _expectEmit3();
         emit AuctionCreated(
-            auctionId,
+            proposalData.token,
             proposalData.tokenId,
-            address(proposalData.token),
-            proposalData.duration,
-            proposalData.listPrice,
-            address(proposal),
-            address(0),
-            0,
-            address(0)
+            IReserveAuctionCoreEth.Auction({
+                seller: address(proposal),
+                reservePrice: uint96(proposalData.listPrice),
+                sellerFundsRecipient: address(proposal),
+                highestBid: 0,
+                highestBidder: address(0),
+                duration: uint32(proposalData.duration),
+                startTime: 0,
+                firstBidTime: 0
+            })
         );
         _expectEmit0();
         emit ZoraAuctionCreated(
-            auctionId,
             proposalData.token,
             proposalData.tokenId,
             proposalData.listPrice,
@@ -138,7 +136,6 @@ contract ListOnZoraProposalForkedTest is ZoraTestUtils, TestUtils {
             uint40(block.timestamp + proposalData.timeout)
         );
         assertTrue(proposal.executeListOnZora(executeParams).length > 0);
-        assertEq(proposalData.token.ownerOf(proposalData.tokenId), address(ZORA));
     }
 
     function testForked_canBidOnListing() external onlyForked {
@@ -146,9 +143,8 @@ contract ListOnZoraProposalForkedTest is ZoraTestUtils, TestUtils {
             IProposalExecutionEngine.ExecuteProposalParams memory executeParams,
             ListOnZoraProposal.ZoraProposalData memory proposalData
         ) = _createExecutionParams();
-        uint256 auctionId = _getNextZoraAuctionId();
         proposal.executeListOnZora(executeParams);
-        _bidOnListing(auctionId, proposalData.listPrice);
+        _bidOnListing(proposalData.token, proposalData.tokenId, proposalData.listPrice);
     }
 
     function testForked_canCancelExpiredListing() external onlyForked {
@@ -156,18 +152,25 @@ contract ListOnZoraProposalForkedTest is ZoraTestUtils, TestUtils {
             IProposalExecutionEngine.ExecuteProposalParams memory executeParams,
             ListOnZoraProposal.ZoraProposalData memory proposalData
         ) = _createExecutionParams();
-        uint256 auctionId = _getNextZoraAuctionId();
         executeParams.progressData = proposal.executeListOnZora(executeParams);
         skip(proposalData.timeout);
         _expectEmit3();
         emit AuctionCanceled(
-            auctionId,
+            proposalData.token,
             proposalData.tokenId,
-            address(proposalData.token),
-            address(proposal)
+            IReserveAuctionCoreEth.Auction({
+                seller: address(proposal),
+                reservePrice: uint96(proposalData.listPrice),
+                sellerFundsRecipient: address(proposal),
+                highestBid: 0,
+                highestBidder: address(0),
+                duration: uint32(proposalData.duration),
+                startTime: 0,
+                firstBidTime: 0
+            })
         );
         _expectEmit0();
-        emit ZoraAuctionExpired(auctionId, block.timestamp);
+        emit ZoraAuctionExpired(proposalData.token, proposalData.tokenId, block.timestamp);
         assertTrue(proposal.executeListOnZora(executeParams).length == 0);
     }
 
@@ -176,13 +179,13 @@ contract ListOnZoraProposalForkedTest is ZoraTestUtils, TestUtils {
             IProposalExecutionEngine.ExecuteProposalParams memory executeParams,
             ListOnZoraProposal.ZoraProposalData memory proposalData
         ) = _createExecutionParams();
-        uint256 auctionId = _getNextZoraAuctionId();
         executeParams.progressData = proposal.executeListOnZora(executeParams);
         skip(proposalData.timeout - 1);
         vm.expectRevert(
             abi.encodeWithSelector(
                 ListOnZoraProposal.ZoraListingNotExpired.selector,
-                auctionId,
+                proposalData.token,
+                proposalData.tokenId,
                 block.timestamp + 1
             )
         );
@@ -194,10 +197,16 @@ contract ListOnZoraProposalForkedTest is ZoraTestUtils, TestUtils {
             IProposalExecutionEngine.ExecuteProposalParams memory executeParams,
             ListOnZoraProposal.ZoraProposalData memory proposalData
         ) = _createExecutionParams();
-        uint256 auctionId = _getNextZoraAuctionId();
         executeParams.progressData = proposal.executeListOnZora(executeParams);
-        _bidOnListing(auctionId, proposalData.listPrice);
-        vm.expectRevert("Auction hasn't completed");
+        _bidOnListing(proposalData.token, proposalData.tokenId, proposalData.listPrice);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                ListOnZoraProposal.ZoraListingLive.selector,
+                proposalData.token,
+                proposalData.tokenId,
+                block.timestamp + proposalData.duration
+            )
+        );
         proposal.executeListOnZora(executeParams);
     }
 
@@ -206,12 +215,11 @@ contract ListOnZoraProposalForkedTest is ZoraTestUtils, TestUtils {
             IProposalExecutionEngine.ExecuteProposalParams memory executeParams,
             ListOnZoraProposal.ZoraProposalData memory proposalData
         ) = _createExecutionParams();
-        uint256 auctionId = _getNextZoraAuctionId();
         executeParams.progressData = proposal.executeListOnZora(executeParams);
-        _bidOnListing(auctionId, proposalData.listPrice);
+        _bidOnListing(proposalData.token, proposalData.tokenId, proposalData.listPrice);
         skip(proposalData.duration);
         _expectEmit0();
-        emit ZoraAuctionSold(auctionId);
+        emit ZoraAuctionSold(proposalData.token, proposalData.tokenId);
         assertTrue(proposal.executeListOnZora(executeParams).length == 0);
         assertEq(address(proposal).balance, proposalData.listPrice);
     }
@@ -221,33 +229,14 @@ contract ListOnZoraProposalForkedTest is ZoraTestUtils, TestUtils {
             IProposalExecutionEngine.ExecuteProposalParams memory executeParams,
             ListOnZoraProposal.ZoraProposalData memory proposalData
         ) = _createExecutionParams();
-        uint256 auctionId = _getNextZoraAuctionId();
         executeParams.progressData = proposal.executeListOnZora(executeParams);
-        _bidOnListing(auctionId, proposalData.listPrice);
+        _bidOnListing(proposalData.token, proposalData.tokenId, proposalData.listPrice);
         skip(proposalData.duration);
-        ZORA.endAuction(auctionId);
+        ZORA.settleAuction(proposalData.token, proposalData.tokenId);
         _expectEmit0();
-        emit ZoraAuctionSold(auctionId);
+        emit ZoraAuctionSold(proposalData.token, proposalData.tokenId);
         assertTrue(proposal.executeListOnZora(executeParams).length == 0);
         assertEq(address(proposal).balance, proposalData.listPrice);
-    }
-
-    function testForked_canSettleIfAuctionFails() external onlyForked {
-        (
-            IProposalExecutionEngine.ExecuteProposalParams memory executeParams,
-            ListOnZoraProposal.ZoraProposalData memory proposalData
-        ) = _createExecutionParams();
-        uint256 auctionId = _getNextZoraAuctionId();
-        executeParams.progressData = proposal.executeListOnZora(executeParams);
-        // Use a bidder that reverts when it receives the NFT, failing the entire
-        // auction.
-        _bidOnListing(address(new BadBidder()), auctionId, proposalData.listPrice);
-        skip(proposalData.duration);
-        _expectEmit0();
-        emit ZoraAuctionFailed(auctionId);
-        assertTrue(proposal.executeListOnZora(executeParams).length == 0);
-        assertEq(address(proposal).balance, 0);
-        assertEq(proposalData.token.ownerOf(proposalData.tokenId), address(proposal));
     }
 }
 

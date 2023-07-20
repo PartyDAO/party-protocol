@@ -4,12 +4,10 @@ pragma solidity 0.8.20;
 import "../tokens/IERC721.sol";
 
 // Abstract Zora interaction functions.
-// Used by both `ListOnZoraProposal` and `ListOnOpenseaProposal`.
+// Used by both `ListOnZoraProposal` and `ListOnOpenseaAdvancedProposal`.
 abstract contract ZoraHelpers {
     // ABI-encoded `progressData` passed into execute in the `ListedOnZora` step.
     struct ZoraProgressData {
-        // Auction ID.
-        uint256 auctionId;
         // The minimum timestamp when we can cancel the auction if no one bids.
         uint40 minExpiry;
     }
@@ -28,15 +26,14 @@ abstract contract ZoraHelpers {
         uint40 timeout,
         // How long the auction will run for once a bid has been placed.
         uint40 duration,
-        IERC721 token,
+        address token,
         uint256 tokenId
-    ) internal virtual returns (uint256 auctionId);
+    ) internal virtual;
 
     // Either cancel or finalize a Zora auction.
     function _settleZoraAuction(
-        uint256 auctionId,
         uint40 minExpiry,
-        IERC721 token,
+        address token,
         uint256 tokenId
     ) internal virtual returns (ZoraAuctionStatus statusCode);
 }

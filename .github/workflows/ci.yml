@@ -7,7 +7,7 @@ env:
   ETHERSCAN_API_KEY: ${{ secrets.ETHERSCAN_API_KEY }}
 
 jobs:
-  ci:
+  test:
     runs-on: ubuntu-latest
     steps:
       - name: "Check out the repo"
@@ -25,3 +25,15 @@ jobs:
 
       - name: "Run Foundry tests"
         run: forge test -vvv --fork-url $FORK_URL --etherscan-api-key $ETHERSCAN_API_KEY
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Use Node.js 16.x
+        uses: actions/setup-node@v3
+        with:
+          node-version: 16.x
+      - name: Install Dependencies
+        run: npm install
+      - name: Run Linter
+        run: npm run lint:check
