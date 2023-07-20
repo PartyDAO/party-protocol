@@ -69,11 +69,13 @@ test/ # Foundry tests
 
 ## Deployments
 
+Below are the latest deployments of each contract of the Party Protocol. For addresses of previous releases, see [here](https://github.com/PartyDAO/party-addresses).
+
 | Contract                      | Ethereum                                                                                                              | Goerli                                                                                                                       |
 | ----------------------------- | --------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
 | `Globals`                     | [0x1ca20040ce6ad406bc2a6c89976388829e7fbade](https://etherscan.io/address/0x1ca20040ce6ad406bc2a6c89976388829e7fbade) | [0x753e22d4e112a4d8b07df9c4c578b116e3b48792](https://goerli.etherscan.io/address/0x753e22d4e112a4d8b07df9c4c578b116e3b48792) |
 | `TokenDistributor`            | [0x49a3caab781f711ad74c9d2f34c3cbd835d6a608](https://etherscan.io/address/0x49a3caab781f711ad74c9d2f34c3cbd835d6a608) | [0x8714EA9C2BC5a8f2d26D7c3F86558331c16145B5](https://goerli.etherscan.io/address/0x8714EA9C2BC5a8f2d26D7c3F86558331c16145B5) |
-| `ProposalExecutionEngine`     | [0xaec4d40045daf91bc3049ea9136c7df04bd8a6af](https://etherscan.io/address/0xaec4d40045daf91bc3049ea9136c7df04bd8a6af) | [0x9f25ae3e4eC957b8B1d87f499b767975AD370C07](https://goerli.etherscan.io/address/0x9f25ae3e4eC957b8B1d87f499b767975AD370C07) |
+| `ProposalExecutionEngine`     | [0xaec4d40045daf91bc3049ea9136c7df04bd8a6af](https://etherscan.io/address/0xaec4d40045daf91bc3049ea9136c7df04bd8a6af) | [0xfC49C3b69c6E1bE79B11A9a7D4791663f4B8b4D3](https://goerli.etherscan.io/address/0xfC49C3b69c6E1bE79B11A9a7D4791663f4B8b4D3) |
 | `Party`                       | [0xb676cfeeed5c7b739452a502f1eff9ab684a56da](https://etherscan.io/address/0xb676cfeeed5c7b739452a502f1eff9ab684a56da) | [0x72a4b63eceA9465e3984CDEe1354b9CF9030c043](https://goerli.etherscan.io/address/0x72a4b63eceA9465e3984CDEe1354b9CF9030c043) |
 | `PartyFactory`                | [0xc0e0ec5541e26e93d5a9f5e999ab2a0a7f8260ae](https://etherscan.io/address/0xc0e0ec5541e26e93d5a9f5e999ab2a0a7f8260ae) | [0x8d1C04E6873F232dB570F75948799128dB3Ae6f5](https://goerli.etherscan.io/address/0x8d1C04E6873F232dB570F75948799128dB3Ae6f5) |
 | `AuctionCrowdfund`            | [0xcf8ab207e1b055871dfa9be2a0cf3acaf2d1b3a7](https://etherscan.io/address/0xcf8ab207e1b055871dfa9be2a0cf3acaf2d1b3a7) | [0x631D392073330f0573AD18Fc64305768657D0D60](https://goerli.etherscan.io/address/0x631D392073330f0573AD18Fc64305768657D0D60) |
@@ -85,9 +87,10 @@ test/ # Foundry tests
 | `CrowdfundNFTRenderer`        | [0x0d05169e6e84bde47145b03ec2e6ba9af4d3cb7c](https://etherscan.io/address/0x0d05169e6e84bde47145b03ec2e6ba9af4d3cb7c) | [0x64014855f8bdC9f3f95235C7d4821fA124D0015b](https://goerli.etherscan.io/address/0x64014855f8bdC9f3f95235C7d4821fA124D0015b) |
 | `AllowListGateKeeper`         | [0x50c58f8bd97c1845c8e8ff56117dbce8a5b009b2](https://etherscan.io/address/0x50c58f8bd97c1845c8e8ff56117dbce8a5b009b2) | [0xadcec7b4db7969dff00b9e5304be8e0d1261d6b4](https://goerli.etherscan.io/address/0xadcec7b4db7969dff00b9e5304be8e0d1261d6b4) |
 | `TokenGateKeeper`             | [0x26a7bd6161e4c6ae44620cfc6f7b9c3daf83ad0b](https://etherscan.io/address/0x26a7bd6161e4c6ae44620cfc6f7b9c3daf83ad0b) | [0xa6fbce9898a34a1e6db5dab699b20b6bfefda8c3](https://goerli.etherscan.io/address/0xa6fbce9898a34a1e6db5dab699b20b6bfefda8c3) |
-| `PartyNFTRenderer`            | [0x7b6c0019d2fe2ccbd4d748605789cb614c11182d](https://etherscan.io/address/0x7b6c0019d2fe2ccbd4d748605789cb614c11182d) | [0xc651c3e62Ae4072CDc1dA189f681a94B5b3E729A](https://goerli.etherscan.io/address/0xc651c3e62Ae4072CDc1dA189f681a94B5b3E729A) |
+| `PartyNFTRenderer`            | [0x19bcac3761df79c9b242ebe6670898da7d4bdcb3](https://etherscan.io/address/0x19bcac3761df79c9b242ebe6670898da7d4bdcb3) | [0xc651c3e62Ae4072CDc1dA189f681a94B5b3E729A](https://goerli.etherscan.io/address/0xc651c3e62Ae4072CDc1dA189f681a94B5b3E729A) |
+| `MetadataRegistry`            | [0x175487875f0318edbab54bba442ff53b36e96015](https://etherscan.io/address/0x175487875f0318edbab54bba442ff53b36e96015) | [0x5976806Ae2F42e0c1fD23EAC20c49F1A63c73530](https://goerli.etherscan.io/address/0x5976806Ae2F42e0c1fD23EAC20c49F1A63c73530) |
 | `InitialETHCrowdfund`         | [0x23c886396cfbadb0f3bac4b728150e8a59dc0e10](https://etherscan.io/address/0x23c886396cfbadb0f3bac4b728150e8a59dc0e10) | [0xDB59b3AAFFb5569B39206308A3629A47e4C31C97](https://goerli.etherscan.io/address/0xDB59b3AAFFb5569B39206308A3629A47e4C31C97) |
-| `CollectionBatchBuyOperator`  | [0xe06e71867bb25fe6b56b854500961d4d9dd7c12e](https://etherscan.io/address/0xe06e71867bb25fe6b56b854500961d4d9dd7c12e) | [0x57d146D6Ee733f719B9fEF0Fb9Bc80cd050A9192](https://goerli.etherscan.io/address/0x57d146D6Ee733f719B9fEF0Fb9Bc80cd050A9192) |
+| `CollectionBatchBuyOperator`  | [0xe06e71867bb25fe6b56b854500961d4d9dd7c12e](https://etherscan.io/address/0xe06e71867bb25fe6b56b854500961d4d9dd7c12e) | [0x039d2e6AEf994445b00b6B55524bAcA0B0Be78DB](https://goerli.etherscan.io/address/0x039d2e6AEf994445b00b6B55524bAcA0B0Be78DB) |
 
 ## Install
 
@@ -97,34 +100,29 @@ First, install [Foundry](https://book.getfoundry.sh/getting-started/installation
 forge install
 yarn -D
 yarn build
+yarn build:ts
 ```
 
 ## Testing
 
-### Run all tests (except fork tests):
+### Run tests (except fork tests):
 
 ```bash
-yarn test
-```
-
-### Run only TypeScript tests
-
-```bash
-yarn test:ts
-```
-
-### Run only Foundry tests
-
-```bash
-yarn test:sol
+forge test -vv
 # If you want gas reports:
-yarn test:sol --gas-report
+forge test --gas-report -vv
 ```
 
-### Run Foundry forked tests
+### Run forked tests
 
 ```bash
-forge test -m testFork --fork-url $YOUR_RPC_URL
+forge test --mt testFork --fork-url $YOUR_RPC_URL -vv
+```
+
+### Run all tests
+
+```bash
+forge test --fork-url $YOUR_RPC_URL -vv
 ```
 
 ## Audits
