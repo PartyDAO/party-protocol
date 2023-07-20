@@ -254,6 +254,8 @@ contract ProposalExecutionEngine is
             }
 
             nextProgressData = _executeOperation(params);
+        } else if (pt == ProposalType.CustomizeMetadata) {
+            nextProgressData = _executeCustomizeMetadata(params);
         } else if (pt == ProposalType.UpgradeProposalEngineImpl) {
             _executeUpgradeProposalsImplementation(params.proposalData);
         } else {
