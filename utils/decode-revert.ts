@@ -23,7 +23,7 @@ yargs.command(
         .map(abi => abi.filter((e: any) => e.type === "error"))
         .flat(1),
     );
-    const iface = new ethers.utils.Interface(errorAbis);
+    const iface = new ethers.Interface(errorAbis);
     try {
       const decoded = iface.parseError(argv.hex as any);
       console.info(
