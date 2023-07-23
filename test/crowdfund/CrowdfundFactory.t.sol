@@ -13,6 +13,8 @@ import "contracts/tokens/IERC721.sol";
 import "./MockMarketWrapper.sol";
 import "contracts/globals/Globals.sol";
 import "contracts/globals/LibGlobals.sol";
+import "contracts/renderers/MetadataRegistry.sol";
+import "contracts/renderers/MetadataProvider.sol";
 
 import "forge-std/Test.sol";
 import "../TestUtils.sol";
@@ -33,6 +35,9 @@ contract CrowdfundFactoryTest is Test, TestUtils {
     ReraiseETHCrowdfund reraiseETHCrowdfund = new ReraiseETHCrowdfund(globals);
     AllowListGateKeeper allowListGateKeeper = new AllowListGateKeeper();
     TokenGateKeeper tokenGateKeeper = new TokenGateKeeper();
+    MetadataRegistry metadataRegistry =
+        new MetadataRegistry(globals, _toAddressArray(address(partyFactory)));
+    MetadataProvider metadataProvider = new MetadataProvider(globals);
 
     event Contributed(
         address sender,
@@ -48,6 +53,7 @@ contract CrowdfundFactoryTest is Test, TestUtils {
     );
 
     constructor() {
+        globals.setAddress(LibGlobals.GLOBAL_METADATA_REGISTRY, address(metadataRegistry));
         globals.setAddress(LibGlobals.GLOBAL_RENDERER_STORAGE, address(new MockRendererStorage()));
     }
 
@@ -622,6 +628,7 @@ contract CrowdfundFactoryTest is Test, TestUtils {
     }
 
     function testCreateInitialETHCrowdfund(
+        bytes memory randomBytes,
         string memory randomStr,
         uint96 randomUint96,
         uint40 randomUint40,
@@ -640,18 +647,19 @@ contract CrowdfundFactoryTest is Test, TestUtils {
             bytes memory createGateCallData
         ) = _randomGateKeeper();
 
-        uint16 exchangeRateBps = randomBps != 0 ? randomBps : 1;
         uint96 initialContribution;
-        // Only pass in initial contribution amount if it will not overflow.
-        if (randomUint40 > type(uint96).max / exchangeRateBps) {
-            // Only pass in initial contribution amount if results in non-zero voting power.
-            if ((randomUint40 * exchangeRateBps) / 1e4 != 0) {
-                initialContribution = (randomUint40 * exchangeRateBps) / 1e4;
+        InitialETHCrowdfund.InitialETHCrowdfundOptions memory crowdfundOpts;
+        {
+            uint16 exchangeRateBps = randomBps != 0 ? randomBps : 1;
+            // Only pass in initial contribution amount if it will not overflow.
+            if (randomUint40 > type(uint96).max / exchangeRateBps) {
+                // Only pass in initial contribution amount if results in non-zero voting power.
+                if ((randomUint40 * exchangeRateBps) / 1e4 != 0) {
+                    initialContribution = (randomUint40 * exchangeRateBps) / 1e4;
+                }
             }
-        }
 
-        InitialETHCrowdfund.InitialETHCrowdfundOptions memory crowdfundOpts = InitialETHCrowdfund
-            .InitialETHCrowdfundOptions({
+            crowdfundOpts = InitialETHCrowdfund.InitialETHCrowdfundOptions({
                 initialContributor: _randomAddress(),
                 initialDelegate: _randomAddress(),
                 // Ensure that `minContribution` is less than initial contribution.
@@ -679,16 +687,18 @@ contract CrowdfundFactoryTest is Test, TestUtils {
                 gateKeeper: gateKeeper,
                 gateKeeperId: gateKeeperId
             });
+        }
 
-        address host = _randomAddress();
         InitialETHCrowdfund.ETHPartyOptions memory partyOpts = InitialETHCrowdfund.ETHPartyOptions({
             name: randomStr,
             symbol: randomStr,
             customizationPresetId: 0,
+            customMetadataProvider: metadataProvider,
+            customMetadata: randomBytes,
             governanceOpts: Crowdfund.FixedGovernanceOpts({
                 partyImpl: party,
                 partyFactory: partyFactory,
-                hosts: _toAddressArray(host),
+                hosts: _toAddressArray(_randomAddress()),
                 voteDuration: randomUint40,
                 executionDelay: randomUint40,
                 passThresholdBps: randomBps,
@@ -728,6 +738,13 @@ contract CrowdfundFactoryTest is Test, TestUtils {
         assertEq(inst.fundingSplitBps(), crowdfundOpts.fundingSplitBps);
         assertEq(inst.fundingSplitRecipient(), crowdfundOpts.fundingSplitRecipient);
         assertEq(inst.totalContributions(), initialContribution);
+        if (randomBytes.length != 0) {
+            assertEq(
+                address(metadataRegistry.getProvider(address(party_))),
+                address(metadataProvider)
+            );
+            assertEq(metadataProvider.getMetadata(address(party_), 0), randomBytes);
+        }
     }
 
     function testCreateReraiseETHCrowdfund(
