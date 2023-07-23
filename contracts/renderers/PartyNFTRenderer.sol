@@ -148,6 +148,15 @@ contract PartyNFTRenderer is RendererBase {
                 );
         }
 
+        string memory image = generateSVG(
+            PartyGovernanceNFT(address(this)).name(),
+            generateVotingPowerPercentage(tokenId),
+            getLatestProposalStatuses(),
+            PartyGovernance(address(this)).lastProposalId(),
+            tokenId,
+            hasUnclaimedDistribution(tokenId)
+        );
+
         // Get any custom metadata for this party.
         Metadata memory metadata = getCustomMetadata(tokenId);
 
@@ -186,17 +195,10 @@ contract PartyNFTRenderer is RendererBase {
                         hasPartyStarted()
                             ? string.concat('"attributes": [', generateAttributes(tokenId), "]")
                             : "",
-                        ', "image":"',
-                        bytes(metadata.image).length == 0
-                            ? generateSVG(
-                                PartyGovernanceNFT(address(this)).name(),
-                                generateVotingPowerPercentage(tokenId),
-                                getLatestProposalStatuses(),
-                                PartyGovernance(address(this)).lastProposalId(),
-                                tokenId,
-                                hasUnclaimedDistribution(tokenId)
-                            )
-                            : metadata.image,
+                        ', "party_card_url":"', // Custom metadata field.
+                        image,
+                        '", "image":"',
+                        bytes(metadata.image).length == 0 ? image : metadata.image,
                         '"}'
                     )
                 )
