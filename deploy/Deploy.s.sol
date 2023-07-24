@@ -727,7 +727,7 @@ contract DeployScript is Script, Deploy {
     function writeAbisToFiles() private {
         string[] memory ffiCmd = new string[](2);
         ffiCmd[0] = "node";
-        ffiCmd[1] = "./js/utils/output-abis.js";
+        ffiCmd[1] = "./js/output-abis.js";
         bytes memory ffiResp = vm.ffi(ffiCmd);
 
         bool wroteSuccessfully = keccak256(ffiResp) ==
@@ -741,7 +741,7 @@ contract DeployScript is Script, Deploy {
     function writeAddressesToFile(string memory networkName, string memory jsonRes) private {
         string[] memory ffiCmd = new string[](4);
         ffiCmd[0] = "node";
-        ffiCmd[1] = "./js/utils/save-json.js";
+        ffiCmd[1] = "./js/save-json.js";
         ffiCmd[2] = networkName;
         ffiCmd[3] = jsonRes;
         bytes memory ffiResp = vm.ffi(ffiCmd);
