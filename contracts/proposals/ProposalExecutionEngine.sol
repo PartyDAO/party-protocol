@@ -15,7 +15,6 @@ import "./ProposalStorage.sol";
 import "./DistributeProposal.sol";
 import "./AddAuthorityProposal.sol";
 import "./OperatorProposal.sol";
-import "./CustomizeMetadataProposal.sol";
 
 /// @notice Upgradable implementation of proposal execution logic for parties that use it.
 /// @dev This contract will be delegatecall'ed into by `Party` proxy instances.
@@ -30,8 +29,7 @@ contract ProposalExecutionEngine is
     ArbitraryCallsProposal,
     DistributeProposal,
     AddAuthorityProposal,
-    OperatorProposal,
-    CustomizeMetadataProposal
+    OperatorProposal
 {
     using LibRawResult for bytes;
 
@@ -51,8 +49,7 @@ contract ProposalExecutionEngine is
         ListOnOpenseaAdvanced,
         Distribute,
         AddAuthority,
-        Operator,
-        CustomizeMetadata
+        Operator
     }
 
     // Explicit storage bucket for "private" state owned by the `ProposalExecutionEngine`.
@@ -104,7 +101,6 @@ contract ProposalExecutionEngine is
         IReserveAuctionCoreEth zora,
         IFractionalV1VaultFactory fractionalVaultFactory
     )
-        CustomizeMetadataProposal(globals)
         ListOnOpenseaAdvancedProposal(globals)
         ListOnZoraProposal(globals, zora)
         FractionalizeProposal(fractionalVaultFactory)
@@ -254,8 +250,6 @@ contract ProposalExecutionEngine is
             }
 
             nextProgressData = _executeOperation(params);
-        } else if (pt == ProposalType.CustomizeMetadata) {
-            nextProgressData = _executeCustomizeMetadata(params);
         } else if (pt == ProposalType.UpgradeProposalEngineImpl) {
             _executeUpgradeProposalsImplementation(params.proposalData);
         } else {
