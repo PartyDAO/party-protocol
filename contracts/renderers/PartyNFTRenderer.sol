@@ -218,13 +218,7 @@ contract PartyNFTRenderer is RendererBase {
             if (getCrowdfundType() == CrowdfundType.Fixed) {
                 return string.concat(partyName, " #", tokenId.toString());
             } else {
-                return
-                    string.concat(
-                        partyName,
-                        " ",
-                        generateVotingPowerPercentage(tokenId),
-                        "% Voting Power"
-                    );
+                return string.concat(generateVotingPowerPercentage(tokenId), "% Voting Power");
             }
         } else {
             return "Party Membership";
