@@ -1,13 +1,16 @@
 // SPDX-License-Identifier: GPL-3.0
 pragma solidity 0.8.20;
 
-import "../tokens/IERC721.sol";
-import "../utils/Proxy.sol";
+import { IERC721 } from "../tokens/IERC721.sol";
+import { Proxy } from "../utils/Proxy.sol";
 
-import "./Party.sol";
-import "./IPartyFactory.sol";
-import "../renderers/MetadataRegistry.sol";
-import "../renderers/MetadataProvider.sol";
+import { Party } from "./Party.sol";
+import { IPartyFactory } from "./IPartyFactory.sol";
+import { IGlobals } from "../globals/IGlobals.sol";
+import { LibGlobals } from "../globals/LibGlobals.sol";
+import { Implementation } from "../utils/Implementation.sol";
+import { MetadataRegistry } from "../renderers/MetadataRegistry.sol";
+import { MetadataProvider } from "../renderers/MetadataProvider.sol";
 
 /// @notice Factory used to deploy new proxified `Party` instances.
 contract PartyFactory is IPartyFactory {
@@ -80,6 +83,6 @@ contract PartyFactory is IPartyFactory {
 
         // Set the metadata for the Party.
         registry.setProvider(address(party), provider);
-        provider.setMetadata(address(party), metadata);
+        if (metadata.length > 0) provider.setMetadata(address(party), metadata);
     }
 }

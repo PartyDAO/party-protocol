@@ -1,10 +1,11 @@
 // SPDX-License-Identifier: GPL-3.0
 pragma solidity 0.8.20;
 
-import "./IProposalExecutionEngine.sol";
-import "../globals/LibGlobals.sol";
-import "../renderers/MetadataRegistry.sol";
-import "../renderers/MetadataProvider.sol";
+import { IProposalExecutionEngine } from "./IProposalExecutionEngine.sol";
+import { IGlobals } from "../globals/IGlobals.sol";
+import { LibGlobals } from "../globals/LibGlobals.sol";
+import { MetadataRegistry } from "../renderers/MetadataRegistry.sol";
+import { MetadataProvider } from "../renderers/MetadataProvider.sol";
 
 // Implement a proposal for customizing the metadata for Party Cards.
 abstract contract CustomizeMetadataProposal {
@@ -37,8 +38,9 @@ abstract contract CustomizeMetadataProposal {
             _GLOBALS.getAddress(LibGlobals.GLOBAL_METADATA_REGISTRY)
         );
 
-        data.provider.setMetadata(msg.sender, data.metadata);
-        registry.setProvider(msg.sender, data.provider);
+        // Set the metadata for the Party.
+        registry.setProvider(address(this), data.provider);
+        if (data.metadata.length > 0) data.provider.setMetadata(address(this), data.metadata);
 
         // Nothing left to do.
         return "";

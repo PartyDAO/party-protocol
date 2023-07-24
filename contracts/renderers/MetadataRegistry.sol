@@ -29,6 +29,8 @@ contract MetadataRegistry is Multicall {
     ///      `IMetadataProvider.supportsRegistrars()`.
     mapping(address registrar => mapping(address instance => bool canSetData)) private _isRegistrar;
 
+    /// @param globals The address of the `Globals` contract.
+    /// @param registrars The addresses of the initial universal registrars.
     constructor(IGlobals globals, address[] memory registrars) {
         _GLOBALS = globals;
 

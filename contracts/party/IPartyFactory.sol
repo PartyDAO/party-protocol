@@ -1,10 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0
 pragma solidity 0.8.20;
 
-import "../tokens/IERC721.sol";
-import "../renderers/MetadataProvider.sol";
-
-import "./Party.sol";
+import { Party } from "../party/Party.sol";
+import { IERC721 } from "../tokens/IERC721.sol";
+import { MetadataProvider } from "../renderers/MetadataProvider.sol";
 
 // Creates generic Party instances.
 interface IPartyFactory {

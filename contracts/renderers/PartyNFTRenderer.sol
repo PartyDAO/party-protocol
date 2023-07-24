@@ -1,16 +1,21 @@
 // SPDX-License-Identifier: GPL-3.0
 pragma solidity 0.8.20;
 
-import "../utils/LibSafeCast.sol";
-import "../utils/vendor/Strings.sol";
-import "../utils/vendor/Base64.sol";
+import { LibSafeCast } from "../utils/LibSafeCast.sol";
+import { Strings } from "../utils/vendor/Strings.sol";
+import { Base64 } from "../utils/vendor/Base64.sol";
 
-import "./RendererBase.sol";
-import "./MetadataRegistry.sol";
-import "./IMetadataRegistry1_1.sol";
-import "../party/PartyGovernance.sol";
-import "../party/PartyGovernanceNFT.sol";
-import "../distribution/TokenDistributor.sol";
+import { RendererBase } from "./RendererBase.sol";
+import { RendererStorage } from "./RendererStorage.sol";
+import { MetadataRegistry } from "./MetadataRegistry.sol";
+import { IMetadataRegistry1_1 } from "./IMetadataRegistry1_1.sol";
+import { Party, PartyGovernance } from "../party/PartyGovernance.sol";
+import { PartyGovernanceNFT } from "../party/PartyGovernanceNFT.sol";
+import { TokenDistributor } from "../distribution/TokenDistributor.sol";
+import { IGlobals } from "../globals/IGlobals.sol";
+import { LibGlobals } from "../globals/LibGlobals.sol";
+import { IFont } from "./fonts/IFont.sol";
+import { IParty1_1 } from "./IParty1_1.sol";
 
 contract PartyNFTRenderer is RendererBase {
     using LibSafeCast for uint256;
@@ -22,8 +27,8 @@ contract PartyNFTRenderer is RendererBase {
     // The crowdfund type used to create this party.
     enum CrowdfundType {
         // Party was created using flexible crowdfund configuration which
-        // allowed members to contribute any amount with variable voting power
-        // awarded in proportion to the amount contributed (e.g. 1 ETH
+        // allowed members to contribute an amount in range and variable voting
+        // power awarded in proportion to the amount contributed (e.g. 1 ETH
         // contributed with 10 ETH total contributed resulting in 10% voting
         // power for contribution).
         Flexible,
@@ -575,7 +580,7 @@ contract PartyNFTRenderer is RendererBase {
 
     function getCrowdfundType() private view returns (CrowdfundType crowdfundType) {
         Party party = Party(payable(address(this)));
-        uint256 numOfTokensToCheck = 3;
+        uint256 numOfTokensToCheck = 5;
         uint256 tokenCount = party.tokenCount();
         if (tokenCount < numOfTokensToCheck) {
             // Default to flexible membership.
