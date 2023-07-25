@@ -4,6 +4,7 @@ pragma solidity 0.8.20;
 import "../utils/Implementation.sol";
 import "../utils/LibRawResult.sol";
 import "../globals/IGlobals.sol";
+import { IERC1271 } from "openzeppelin/contracts/interfaces/IERC1271.sol";
 
 import "./IProposalExecutionEngine.sol";
 import "./ListOnOpenseaProposal.sol";
@@ -15,6 +16,7 @@ import "./ProposalStorage.sol";
 import "./DistributeProposal.sol";
 import "./AddAuthorityProposal.sol";
 import "./OperatorProposal.sol";
+import { SetSignatureValidatorProposal } from "./SetSignatureValidatorProposal.sol";
 
 /// @notice Upgradable implementation of proposal execution logic for parties that use it.
 /// @dev This contract will be delegatecall'ed into by `Party` proxy instances.
@@ -29,7 +31,9 @@ contract ProposalExecutionEngine is
     ArbitraryCallsProposal,
     DistributeProposal,
     AddAuthorityProposal,
-    OperatorProposal
+    OperatorProposal,
+    SetSignatureValidatorProposal,
+    IERC1271
 {
     using LibRawResult for bytes;
 
@@ -49,7 +53,8 @@ contract ProposalExecutionEngine is
         ListOnOpenseaAdvanced,
         Distribute,
         AddAuthority,
-        Operator
+        Operator,
+        SetSignatureValidatorProposal
     }
 
     // Explicit storage bucket for "private" state owned by the `ProposalExecutionEngine`.
@@ -214,6 +219,27 @@ contract ProposalExecutionEngine is
         stor.nextProgressDataHash = 0;
     }
 
+    function isValidSignature(bytes32 hash, bytes memory signature) external view returns (bytes4) {
+        mapping(bytes32 => IERC1271)
+            storage signatureValidators = _getSetSignatureValidatorProposalStorage()
+                .signatureValidators;
+        IERC1271 validator = signatureValidators[hash];
+        if (address(validator) != address(0)) {
+            return validator.isValidSignature(hash, signature);
+        }
+        if (msg.sender == address(0)) {
+            validator = signatureValidators[0];
+            if (address(validator) == address(0)) {
+                // Use global off-chain signature validator
+                validator = IERC1271(
+                    _GLOBALS.getAddress(LibGlobals.GLOBAL_OFF_CHAIN_SIGNATURE_VALIDATOR)
+                );
+            }
+            return validator.isValidSignature(hash, signature);
+        }
+        return 0;
+    }
+
     // Switch statement used to execute the right proposal.
     function _execute(
         ProposalType pt,
@@ -250,6 +276,8 @@ contract ProposalExecutionEngine is
             }
 
             nextProgressData = _executeOperation(params);
+        } else if (pt == ProposalType.SetSignatureValidatorProposal) {
+            nextProgressData = _executeSetSignatureValidator(params);
         } else if (pt == ProposalType.UpgradeProposalEngineImpl) {
             _executeUpgradeProposalsImplementation(params.proposalData);
         } else {
