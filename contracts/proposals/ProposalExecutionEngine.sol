@@ -220,15 +220,16 @@ contract ProposalExecutionEngine is
     }
 
     function isValidSignature(bytes32 hash, bytes memory signature) external view returns (bytes4) {
-        mapping(bytes32 => IERC1271)
-            storage signatureValidators = _getSetSignatureValidatorProposalStorage()
-                .signatureValidators;
-        IERC1271 validator = signatureValidators[hash];
+        IERC1271 validator = getSignatureValidatorForHash(hash);
+        if (address(validator) == address(1)) {
+            // Signature set by party to be always valid
+            return IERC1271.isValidSignature.selector;
+        }
         if (address(validator) != address(0)) {
             return validator.isValidSignature(hash, signature);
         }
         if (msg.sender == address(0)) {
-            validator = signatureValidators[0];
+            validator = getSignatureValidatorForHash(0);
             if (address(validator) == address(0)) {
                 // Use global off-chain signature validator
                 validator = IERC1271(
