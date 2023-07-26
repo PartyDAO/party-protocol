@@ -57,18 +57,18 @@ contract InitialETHCrowdfundTest is Test, TestUtils, ERC721Receiver {
 
         // Generate customization options.
         uint256 versionId = 1;
-        uint256 numOfColors = uint8(type(RendererBase.Color).max) + 1;
+        uint256 numOfColors = uint8(type(Color).max) + 1;
         for (uint256 i; i < numOfColors; ++i) {
             // Generate customization options for all colors w/ each mode (light and dark).
             nftRendererStorage.createCustomizationPreset(
                 // Preset ID 0 is reserved. It is used to indicates to party instances
                 // to use the same customization preset as the crowdfund.
                 i + 1,
-                abi.encode(versionId, false, RendererBase.Color(i))
+                abi.encode(versionId, false, Color(i))
             );
             nftRendererStorage.createCustomizationPreset(
                 i + 1 + numOfColors,
-                abi.encode(versionId, true, RendererBase.Color(i))
+                abi.encode(versionId, true, Color(i))
             );
         }
     }

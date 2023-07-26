@@ -70,18 +70,18 @@ contract PartyGovernanceNFTTest is Test, TestUtils {
 
         // Generate customization options.
         uint256 versionId = 1;
-        uint256 numOfColors = uint8(type(RendererBase.Color).max) + 1;
+        uint256 numOfColors = uint8(type(Color).max) + 1;
         for (uint256 i; i < numOfColors; ++i) {
             // Generate customization options for all colors w/ each mode (light and dark).
             nftRendererStorage.createCustomizationPreset(
                 // Preset ID 0 is reserved. It is used to indicates to party instances
                 // to use the same customization preset as the crowdfund.
                 i + 1,
-                abi.encode(versionId, false, RendererBase.Color(i))
+                abi.encode(versionId, false, Color(i))
             );
             nftRendererStorage.createCustomizationPreset(
                 i + 1 + numOfColors,
-                abi.encode(versionId, true, RendererBase.Color(i))
+                abi.encode(versionId, true, Color(i))
             );
         }
 
@@ -1228,8 +1228,7 @@ contract PartyGovernanceNFTTest is Test, TestUtils {
             proposalStatuses,
             3,
             420,
-            true,
-            RendererBase.Color.CYAN,
+            Color.CYAN,
             true
         );
 
@@ -1250,7 +1249,6 @@ contract PartyGovernanceNFTTest is Test, TestUtils {
         party.createMockProposal(PartyGovernance.ProposalStatus.Complete);
         party.createMockProposal(PartyGovernance.ProposalStatus.Voting);
         party.createMockProposal(PartyGovernance.ProposalStatus.Ready);
-        party.createMockProposal(PartyGovernance.ProposalStatus.InProgress);
 
         // Mint governance NFT
         uint256 tokenId = 396;
@@ -1266,7 +1264,7 @@ contract PartyGovernanceNFTTest is Test, TestUtils {
         string memory tokenURI = party.tokenURI(tokenId);
 
         // Uncomment for testing rendering:
-        // console.log(tokenURI);
+        console.log(tokenURI);
 
         assertTrue(bytes(tokenURI).length > 0);
     }
@@ -1312,7 +1310,6 @@ contract PartyGovernanceNFTTest is Test, TestUtils {
         party.createMockProposal(PartyGovernance.ProposalStatus.Complete);
         party.createMockProposal(PartyGovernance.ProposalStatus.Voting);
         party.createMockProposal(PartyGovernance.ProposalStatus.Ready);
-        party.createMockProposal(PartyGovernance.ProposalStatus.InProgress);
 
         // Mint governance NFT
         uint256 tokenId = 396;
@@ -1344,7 +1341,6 @@ contract PartyGovernanceNFTTest is Test, TestUtils {
         party.createMockProposal(PartyGovernance.ProposalStatus.Complete);
         party.createMockProposal(PartyGovernance.ProposalStatus.Voting);
         party.createMockProposal(PartyGovernance.ProposalStatus.Ready);
-        party.createMockProposal(PartyGovernance.ProposalStatus.InProgress);
 
         // Mint governance NFT
         uint256 tokenId = 396;

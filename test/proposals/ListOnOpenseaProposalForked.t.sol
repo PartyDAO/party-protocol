@@ -740,12 +740,6 @@ contract ListOnOpenseaProposalForkedTest is Test, TestUtils, ZoraTestUtils, Open
             uint40(block.timestamp) + uint40(ZORA_AUCTION_TIMEOUT)
         );
         executeParams.progressData = impl.executeListOnOpensea(executeParams);
-        {
-            (, ZoraHelpers.ZoraProgressData memory progressData) = abi.decode(
-                executeParams.progressData,
-                (ListOnOpenseaAdvancedProposal.ListOnOpenseaStep, ZoraHelpers.ZoraProgressData)
-            );
-        }
         // Try to advance the proposal before the zora auction has timed out (fail).
         skip(ZORA_AUCTION_TIMEOUT - 1);
         vm.expectRevert(
@@ -812,12 +806,6 @@ contract ListOnOpenseaProposalForkedTest is Test, TestUtils, ZoraTestUtils, Open
             uint40(block.timestamp) + uint40(ZORA_AUCTION_TIMEOUT)
         );
         executeParams.progressData = impl.executeListOnOpensea(executeParams);
-        {
-            (, ZoraHelpers.ZoraProgressData memory progressData) = abi.decode(
-                executeParams.progressData,
-                (ListOnOpenseaAdvancedProposal.ListOnOpenseaStep, ZoraHelpers.ZoraProgressData)
-            );
-        }
         // Bid on the zora auction.
         _bidOnZoraListing(address(token), tokenId, buyer, listPrice);
         // The auction will be now extended by ZORA_AUCTION_DURATION.
