@@ -151,7 +151,7 @@ contract ListOnZoraProposal is ZoraHelpers {
         }
         IERC721(token).approve(address(ZORA_TRANSFER_HELPER), tokenId);
 
-        ZORA.createAuction(token, tokenId, duration, listPrice, address(this), 0);
+        ZORA.createAuction(token, tokenId, duration, listPrice, address(this), block.timestamp);
         emit ZoraAuctionCreated(
             token,
             tokenId,

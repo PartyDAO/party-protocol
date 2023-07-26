@@ -123,7 +123,7 @@ contract ListOnZoraProposalForkedTest is TestUtils {
                 highestBid: 0,
                 highestBidder: address(0),
                 duration: uint32(proposalData.duration),
-                startTime: 0,
+                startTime: uint32(block.timestamp),
                 firstBidTime: 0
             })
         );
@@ -152,6 +152,7 @@ contract ListOnZoraProposalForkedTest is TestUtils {
             IProposalExecutionEngine.ExecuteProposalParams memory executeParams,
             ListOnZoraProposal.ZoraProposalData memory proposalData
         ) = _createExecutionParams();
+        uint32 auctionStartTime = uint32(block.timestamp);
         executeParams.progressData = proposal.executeListOnZora(executeParams);
         skip(proposalData.timeout);
         _expectEmit3();
@@ -165,7 +166,7 @@ contract ListOnZoraProposalForkedTest is TestUtils {
                 highestBid: 0,
                 highestBidder: address(0),
                 duration: uint32(proposalData.duration),
-                startTime: 0,
+                startTime: auctionStartTime,
                 firstBidTime: 0
             })
         );
