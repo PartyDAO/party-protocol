@@ -2,16 +2,13 @@
 pragma solidity ^0.8;
 
 import { Test } from "forge-std/Test.sol";
-import { TestUtils } from "../TestUtils.sol";
 import { SetSignatureValidatorProposal } from "../../contracts/proposals/SetSignatureValidatorProposal.sol";
-import { IProposalExecutionEngine } from "../../contracts/proposals/IProposalExecutionEngine.sol";
 import { IERC1271 } from "openzeppelin/contracts/interfaces/IERC1271.sol";
 import { IERC721 } from "../../contracts/tokens/IERC721.sol";
 import { GlobalsAdmin } from "../TestUsers.sol";
 import { PartyFactory } from "../../contracts/party/PartyFactory.sol";
 import { Globals } from "../../contracts/globals/Globals.sol";
 import { Party } from "../../contracts/party/Party.sol";
-import { TokenDistributor } from "../../contracts/distribution/TokenDistributor.sol";
 import { ProposalExecutionEngine } from "../../contracts/proposals/ProposalExecutionEngine.sol";
 import { IFractionalV1VaultFactory } from "../../contracts/proposals/vendor/FractionalV1.sol";
 import { MockZoraReserveAuctionCoreEth } from "../proposals/MockZoraReserveAuctionCoreEth.sol";
@@ -19,13 +16,16 @@ import { PartyGovernance } from "../../contracts/party/PartyGovernance.sol";
 import { OffChainSignatureValidator } from "../../contracts/signature-validators/OffChainSignatureValidator.sol";
 import { Strings } from "openzeppelin/contracts/utils/Strings.sol";
 
-contract OffChainSignatureValidatorTest is Test, TestUtils {
-    event SigningThresholdBipsSet(Party party, uint96 oldThresholdBips, uint96 newThresholdBips);
+contract OffChainSignatureValidatorTest is Test {
+    event SigningThresholdBipsSet(
+        Party indexed party,
+        uint96 oldThresholdBips,
+        uint96 newThresholdBips
+    );
 
     GlobalsAdmin globalsAdmin;
     Globals globals;
     Party party;
-    TokenDistributor tokenDistributor;
     PartyFactory partyFactory;
     OffChainSignatureValidator offChainGlobalValidator = new OffChainSignatureValidator();
     uint256 internal johnPk = 0xa11ce;
@@ -44,9 +44,6 @@ contract OffChainSignatureValidatorTest is Test, TestUtils {
         Party partyImpl = new Party(globals);
         address globalDaoWalletAddress = address(420);
         globalsAdmin.setGlobalDaoWallet(globalDaoWalletAddress);
-
-        tokenDistributor = new TokenDistributor(globals, 0);
-        globalsAdmin.setTokenDistributor(address(tokenDistributor));
 
         ProposalExecutionEngine pe = new ProposalExecutionEngine(
             globals,

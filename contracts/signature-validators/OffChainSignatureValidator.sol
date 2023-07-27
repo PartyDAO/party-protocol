@@ -11,7 +11,11 @@ contract OffChainSignatureValidator is IERC1271 {
     error InsufficientVotingPower();
     error MessageHashMismatch();
 
-    event SigningThresholdBipsSet(Party party, uint96 oldThresholdBips, uint96 newThresholdBips);
+    event SigningThresholdBipsSet(
+        Party indexed party,
+        uint96 oldThresholdBips,
+        uint96 newThresholdBips
+    );
 
     mapping(Party party => uint96 thresholdBips) public signingThersholdBips;
 

@@ -2,29 +2,25 @@
 pragma solidity ^0.8;
 
 import { Test } from "forge-std/Test.sol";
-import { TestUtils } from "../TestUtils.sol";
 import { SetSignatureValidatorProposal } from "../../contracts/proposals/SetSignatureValidatorProposal.sol";
-import { IProposalExecutionEngine } from "../../contracts/proposals/IProposalExecutionEngine.sol";
 import { IERC1271 } from "openzeppelin/contracts/interfaces/IERC1271.sol";
 import { IERC721 } from "../../contracts/tokens/IERC721.sol";
-import { PartyParticipant, GlobalsAdmin, PartyAdmin } from "../TestUsers.sol";
+import { GlobalsAdmin } from "../TestUsers.sol";
 import { PartyFactory } from "../../contracts/party/PartyFactory.sol";
 import { Globals } from "../../contracts/globals/Globals.sol";
 import { Party } from "../../contracts/party/Party.sol";
-import { TokenDistributor } from "../../contracts/distribution/TokenDistributor.sol";
 import { ProposalExecutionEngine } from "../../contracts/proposals/ProposalExecutionEngine.sol";
 import { IFractionalV1VaultFactory } from "../../contracts/proposals/vendor/FractionalV1.sol";
 import { MockZoraReserveAuctionCoreEth } from "./MockZoraReserveAuctionCoreEth.sol";
 import { PartyGovernance } from "../../contracts/party/PartyGovernance.sol";
 import { OffChainSignatureValidator } from "../../contracts/signature-validators/OffChainSignatureValidator.sol";
 
-contract SetSignatureValidatorProposalTest is Test, TestUtils {
+contract SetSignatureValidatorProposalTest is Test {
     event SignatureValidatorSet(bytes32 indexed hash, IERC1271 indexed signatureValidator);
 
     GlobalsAdmin globalsAdmin;
     Globals globals;
     Party party;
-    TokenDistributor tokenDistributor;
     PartyFactory partyFactory;
     uint256 internal johnPk = 0xa11ce;
     uint256 internal dannyPk = 0xb0b;
@@ -42,9 +38,6 @@ contract SetSignatureValidatorProposalTest is Test, TestUtils {
         Party partyImpl = new Party(globals);
         address globalDaoWalletAddress = address(420);
         globalsAdmin.setGlobalDaoWallet(globalDaoWalletAddress);
-
-        tokenDistributor = new TokenDistributor(globals, 0);
-        globalsAdmin.setTokenDistributor(address(tokenDistributor));
 
         ProposalExecutionEngine pe = new ProposalExecutionEngine(
             globals,
