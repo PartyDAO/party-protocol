@@ -7,7 +7,7 @@ import { SetSignatureValidatorProposal } from "../../contracts/proposals/SetSign
 import { IProposalExecutionEngine } from "../../contracts/proposals/IProposalExecutionEngine.sol";
 import { IERC1271 } from "openzeppelin/contracts/interfaces/IERC1271.sol";
 import { IERC721 } from "../../contracts/tokens/IERC721.sol";
-import { PartyParticipant, GlobalsAdmin, PartyAdmin } from "../TestUsers.sol";
+import { GlobalsAdmin } from "../TestUsers.sol";
 import { PartyFactory } from "../../contracts/party/PartyFactory.sol";
 import { Globals } from "../../contracts/globals/Globals.sol";
 import { Party } from "../../contracts/party/Party.sol";
@@ -25,6 +25,7 @@ contract OffChainSignatureValidatorTest is Test, TestUtils {
     Party party;
     TokenDistributor tokenDistributor;
     PartyFactory partyFactory;
+    OffChainSignatureValidator offChainGlobalValidator = new OffChainSignatureValidator();
     uint256 internal johnPk = 0xa11ce;
     uint256 internal dannyPk = 0xb0b;
     uint256 internal stevePk = 0xca1;
@@ -51,8 +52,6 @@ contract OffChainSignatureValidatorTest is Test, TestUtils {
             IFractionalV1VaultFactory(address(0))
         );
         globalsAdmin.setProposalEng(address(pe));
-
-        OffChainSignatureValidator offChainGlobalValidator = new OffChainSignatureValidator();
         globalsAdmin.setOffChainSignatureValidator(address(offChainGlobalValidator));
 
         Party.PartyOptions memory opts;
@@ -146,6 +145,71 @@ contract OffChainSignatureValidatorTest is Test, TestUtils {
         );
         vm.expectRevert(OffChainSignatureValidator.MessageHashMismatch.selector);
         address(party).staticcall(staticCallData);
+    }
+
+    function testOffChainMessageValidationMessageInsufficientVotingPower() public {
+        (bytes32 messageHash, bytes memory signature) = _signMessage(
+            johnPk,
+            "Hello World! nonce:1000"
+        );
+
+        bytes memory staticCallData = abi.encodeWithSelector(
+            IERC1271.isValidSignature.selector,
+            messageHash,
+            signature
+        );
+
+        vm.prank(address(party));
+        offChainGlobalValidator.setSigningThersholdBips(4000);
+
+        vm.prank(address(0), address(0));
+        vm.expectRevert(OffChainSignatureValidator.InsufficientVotingPower.selector);
+        address(party).staticcall(staticCallData);
+
+        vm.prank(address(party));
+        offChainGlobalValidator.setSigningThersholdBips(3000);
+
+        vm.prank(address(0), address(0));
+        // Now sufficient
+        (bool success, bytes memory res) = address(party).staticcall(staticCallData);
+        assertTrue(success);
+        assertEq(abi.decode(res, (bytes4)), IERC1271.isValidSignature.selector);
+    }
+
+    function testDelegatedNonPartyMemberCanSign() public {
+        uint256 bobPk = 12345678;
+        address bob = vm.addr(bobPk);
+
+        (bytes32 messageHash, bytes memory signature) = _signMessage(
+            bobPk,
+            "Hello World! nonce:1000"
+        );
+
+        vm.prank(john);
+        party.delegateVotingPower(bob);
+        vm.roll(block.number + 10);
+
+        bytes memory staticCallData = abi.encodeWithSelector(
+            IERC1271.isValidSignature.selector,
+            messageHash,
+            signature
+        );
+        vm.startPrank(address(0), address(0));
+        (bool success, bytes memory res) = address(party).staticcall(staticCallData);
+        assertTrue(success);
+        assertEq(abi.decode(res, (bytes4)), IERC1271.isValidSignature.selector);
+
+        // But john can still sign too
+        (messageHash, signature) = _signMessage(johnPk, "Hello World! nonce:1000");
+        staticCallData = abi.encodeWithSelector(
+            IERC1271.isValidSignature.selector,
+            messageHash,
+            signature
+        );
+        vm.startPrank(address(0), address(0));
+        (success, res) = address(party).staticcall(staticCallData);
+        assertTrue(success);
+        assertEq(abi.decode(res, (bytes4)), IERC1271.isValidSignature.selector);
     }
 
     function _signMessage(
