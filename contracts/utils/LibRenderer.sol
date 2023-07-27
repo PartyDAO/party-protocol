@@ -2,7 +2,6 @@
 pragma solidity 0.8.20;
 
 import { Strings } from "../utils/vendor/Strings.sol";
-import { PartyGovernance } from "../party/PartyGovernance.sol";
 
 enum Color {
     DEFAULT,

@@ -263,7 +263,7 @@ abstract contract Deploy {
         {
             console.log("### Creating customization presets");
             uint256 versionId = 1;
-            uint256 numOfColors = uint8(type(RendererBase.Color).max) + 1;
+            uint256 numOfColors = uint8(type(Color).max) + 1;
             bytes[] memory multicallData = new bytes[](numOfColors * 2);
             // Create customization options for all colors w/ both modes (light and dark).
             for (uint256 i; i < numOfColors; ++i) {
@@ -273,12 +273,12 @@ abstract contract Deploy {
                         // Preset ID 0 is reserved. It is used to indicates to party instances
                         // to use the same customization preset as the crowdfund.
                         i + 1,
-                        abi.encode(versionId, false, RendererBase.Color(i))
+                        abi.encode(versionId, false, Color(i))
                     )
                 );
                 multicallData[i * 2 + 1] = abi.encodeCall(
                     rendererStorage.createCustomizationPreset,
-                    (i + 1 + numOfColors, abi.encode(versionId, true, RendererBase.Color(i)))
+                    (i + 1 + numOfColors, abi.encode(versionId, true, Color(i)))
                 );
             }
             _trackDeployerGasBefore();
