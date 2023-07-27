@@ -129,7 +129,7 @@ contract SetSignatureValidatorProposalTest is Test, TestUtils {
         assertEq(abi.decode(res, (bytes4)), 0);
     }
 
-    function testValidatorSet() public {
+    function testValidatorSetToExternalValidator() public {
         MockValdidator validator = new MockValdidator();
         _setValidatorForHash(keccak256("hello"), validator);
 
@@ -152,6 +152,16 @@ contract SetSignatureValidatorProposalTest is Test, TestUtils {
     function testOverrideDefaultOffChainValidator() public {
         MockValdidator validator = new MockValdidator();
         _setValidatorForHash(0, validator);
+
+        bytes memory staticCallData = abi.encodeWithSelector(
+            IERC1271.isValidSignature.selector,
+            keccak256("hello"),
+            "0x"
+        );
+        vm.startPrank(address(0), address(0));
+        (bool success, bytes memory res) = address(party).staticcall(staticCallData);
+        assertTrue(success);
+        assertEq(abi.decode(res, (bytes4)), IERC1271.isValidSignature.selector);
     }
 
     function testDefaultOffChainValidatorCalled() public {
