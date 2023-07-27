@@ -20,6 +20,8 @@ import { OffChainSignatureValidator } from "../../contracts/signature-validators
 import { Strings } from "openzeppelin/contracts/utils/Strings.sol";
 
 contract OffChainSignatureValidatorTest is Test, TestUtils {
+    event SigningThresholdBipsSet(Party party, uint96 oldThresholdBips, uint96 newThresholdBips);
+
     GlobalsAdmin globalsAdmin;
     Globals globals;
     Party party;
@@ -63,7 +65,7 @@ contract OffChainSignatureValidatorTest is Test, TestUtils {
         opts.governance.voteDuration = 99;
         opts.governance.executionDelay = _EXECUTION_DELAY;
         opts.governance.passThresholdBps = 1000;
-        opts.governance.totalVotingPower = 300;
+        opts.governance.totalVotingPower = 20001;
 
         partyFactory = new PartyFactory();
         address[] memory authorities = new address[](1);
@@ -76,9 +78,9 @@ contract OffChainSignatureValidatorTest is Test, TestUtils {
             preciousTokenIds,
             0
         );
-        party.mint(john, 100, john);
-        party.mint(danny, 100, danny);
-        party.mint(steve, 100, steve);
+        party.mint(john, 10000, john);
+        party.mint(danny, 10000, danny);
+        party.mint(steve, 1, steve);
         vm.warp(block.timestamp + 100);
         vm.roll(block.number + 10);
     }
@@ -113,11 +115,12 @@ contract OffChainSignatureValidatorTest is Test, TestUtils {
         );
         vm.startPrank(address(0), address(0));
 
-        vm.expectRevert(OffChainSignatureValidator.NotMemberOfParty.selector);
-        address(party).staticcall(staticCallData);
+        (bool success, bytes memory res) = address(party).staticcall(staticCallData);
+        assertFalse(success);
+        _assertEqual(res, OffChainSignatureValidator.NotMemberOfParty.selector);
     }
 
-    function testOffChainMessageValidationMessageHashMismatch() public {
+    function testOffChainMessageValidationHashMismatch() public {
         bytes memory message = "hello world1";
         bytes memory encondedMessage = abi.encodePacked(message);
         bytes memory encodedPacket = abi.encodePacked(
@@ -126,14 +129,8 @@ contract OffChainSignatureValidatorTest is Test, TestUtils {
             encondedMessage
         );
         bytes32 messageHash = keccak256(encodedPacket);
-        messageHash = keccak256(
-            abi.encodePacked(
-                "\x19Ethereum Signed Message:\n",
-                Strings.toString(encondedMessage.length),
-                encondedMessage
-            )
-        );
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(johnPk, messageHash);
+        message = "hello world2";
         bytes memory signature = abi.encodePacked(r, s, v, abi.encode(message));
 
         vm.startPrank(address(0), address(0));
@@ -143,11 +140,12 @@ contract OffChainSignatureValidatorTest is Test, TestUtils {
             messageHash,
             signature
         );
-        vm.expectRevert(OffChainSignatureValidator.MessageHashMismatch.selector);
-        address(party).staticcall(staticCallData);
+        (bool success, bytes memory res) = address(party).staticcall(staticCallData);
+        assertFalse(success);
+        _assertEqual(res, OffChainSignatureValidator.MessageHashMismatch.selector);
     }
 
-    function testOffChainMessageValidationMessageInsufficientVotingPower() public {
+    function testOffChainMessageValidationInsufficientVotingPower() public {
         (bytes32 messageHash, bytes memory signature) = _signMessage(
             johnPk,
             "Hello World! nonce:1000"
@@ -160,20 +158,44 @@ contract OffChainSignatureValidatorTest is Test, TestUtils {
         );
 
         vm.prank(address(party));
+        vm.expectEmit(true, true, true, true);
+        emit SigningThresholdBipsSet(party, 0, 5000);
+        offChainGlobalValidator.setSigningThersholdBips(5000);
+
+        vm.prank(address(0), address(0));
+        (bool success, bytes memory res) = address(party).staticcall(staticCallData);
+        assertFalse(success);
+        _assertEqual(res, OffChainSignatureValidator.InsufficientVotingPower.selector);
+
+        vm.prank(address(party));
         offChainGlobalValidator.setSigningThersholdBips(4000);
 
         vm.prank(address(0), address(0));
-        vm.expectRevert(OffChainSignatureValidator.InsufficientVotingPower.selector);
-        address(party).staticcall(staticCallData);
-
-        vm.prank(address(party));
-        offChainGlobalValidator.setSigningThersholdBips(3000);
-
-        vm.prank(address(0), address(0));
         // Now sufficient
-        (bool success, bytes memory res) = address(party).staticcall(staticCallData);
+        (success, res) = address(party).staticcall(staticCallData);
         assertTrue(success);
         assertEq(abi.decode(res, (bytes4)), IERC1271.isValidSignature.selector);
+    }
+
+    function testOffChainMessageValidationDelegatedLessThanOneBip() public {
+        (bytes32 messageHash, bytes memory signature) = _signMessage(
+            stevePk,
+            "Hello World! nonce:1000"
+        );
+
+        bytes memory staticCallData = abi.encodeWithSelector(
+            IERC1271.isValidSignature.selector,
+            messageHash,
+            signature
+        );
+
+        vm.prank(address(party));
+        offChainGlobalValidator.setSigningThersholdBips(1000);
+
+        vm.prank(address(0), address(0));
+        (bool success, bytes memory res) = address(party).staticcall(staticCallData);
+        assertFalse(success);
+        _assertEqual(res, OffChainSignatureValidator.InsufficientVotingPower.selector);
     }
 
     function testDelegatedNonPartyMemberCanSign() public {
@@ -268,5 +290,13 @@ contract OffChainSignatureValidatorTest is Test, TestUtils {
         );
         assertTrue(success);
         return abi.decode(res, (address));
+    }
+
+    function _assertEqual(bytes memory givenRevert, bytes4 expectedRevert) internal {
+        bytes4 givenRevertParsed;
+        assembly {
+            givenRevertParsed := mload(add(givenRevert, 0x20))
+        }
+        assertEq(givenRevertParsed, expectedRevert);
     }
 }
