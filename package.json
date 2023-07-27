@@ -5,7 +5,8 @@
   "license": "GPL-3.0",
   "scripts": {
     "clean": "rm -rf out/ js/",
-    "lint": "npx prettier --write .",
+    "lint:fix": "prettier --write .",
+    "lint:check": "prettier --check .",
     "build": "forge build --extra-output storageLayout",
     "build:ts": "tsc -b",
     "test": "forge test",

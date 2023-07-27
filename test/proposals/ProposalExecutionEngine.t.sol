@@ -11,6 +11,7 @@ import "../TestUtils.sol";
 
 import "./TestableProposalExecutionEngine.sol";
 import "./DummyProposalEngineImpl.sol";
+import { MockZoraReserveAuctionCoreEth } from "./MockZoraReserveAuctionCoreEth.sol";
 
 contract ProposalExecutionEngineTest is Test, TestUtils {
     // From TestableProposalExecutionEngine
@@ -36,7 +37,7 @@ contract ProposalExecutionEngineTest is Test, TestUtils {
             globals,
             IOpenseaExchange(_randomAddress()),
             IOpenseaConduitController(_randomAddress()),
-            IZoraAuctionHouse(_randomAddress()),
+            IReserveAuctionCoreEth(new MockZoraReserveAuctionCoreEth()),
             IFractionalV1VaultFactory(_randomAddress())
         );
     }
@@ -100,6 +101,15 @@ contract ProposalExecutionEngineTest is Test, TestUtils {
         return
             abi.encodeWithSelector(
                 bytes4(uint32(ProposalExecutionEngine.ProposalType.AddAuthority))
+                // Data doesn't matter because it should revert when
+                // `enableAddAuthorityProposal` is false
+            );
+    }
+
+    function _createOperatorProposal() private pure returns (bytes memory) {
+        return
+            abi.encodeWithSelector(
+                bytes4(uint32(ProposalExecutionEngine.ProposalType.Operator))
                 // Data doesn't matter because it should revert when
                 // `enableAddAuthorityProposal` is false
             );
@@ -258,6 +268,19 @@ contract ProposalExecutionEngineTest is Test, TestUtils {
             abi.encodeWithSelector(
                 ProposalExecutionEngine.ProposalDisabled.selector,
                 ProposalExecutionEngine.ProposalType.Distribute
+            )
+        );
+        _executeProposal(executeParams);
+    }
+
+    function test_cannotExecuteOperatorProposalIfOperatorsDisabled() public {
+        IProposalExecutionEngine.ExecuteProposalParams memory executeParams = _createTestProposal(
+            _createOperatorProposal()
+        );
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                ProposalExecutionEngine.ProposalDisabled.selector,
+                ProposalExecutionEngine.ProposalType.Operator
             )
         );
         _executeProposal(executeParams);

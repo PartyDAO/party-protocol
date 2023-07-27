@@ -42,16 +42,14 @@ contract ListOnOpenseaProposalForkedTest is Test, TestUtils, ZoraTestUtils, Open
     );
     event OpenseaOrderExpired(bytes32 orderHash, address token, uint256 tokenId, uint256 expiry);
     event ZoraAuctionCreated(
-        uint256 auctionId,
-        IERC721 token,
+        address token,
         uint256 tokenId,
         uint256 startingPrice,
-        uint40 expiry,
+        uint40 duration,
         uint40 timeoutTime
     );
-    event ZoraAuctionExpired(uint256 auctionId, uint256 expiry);
-    event ZoraAuctionSold(uint256 auctionId);
-    event ZoraAuctionFailed(uint256 auctionId);
+    event ZoraAuctionExpired(address token, uint256 tokenid, uint256 expiry);
+    event ZoraAuctionSold(address token, uint256 tokenid);
 
     uint256 constant ZORA_AUCTION_DURATION = 0.5 days;
     uint256 constant ZORA_AUCTION_TIMEOUT = 1 days;
@@ -61,7 +59,8 @@ contract ListOnOpenseaProposalForkedTest is Test, TestUtils, ZoraTestUtils, Open
     IOpenseaExchange SEAPORT = IOpenseaExchange(0x00000000000000ADc04C56Bf30aC9d3c0aAF14dC);
     IOpenseaConduitController CONDUIT_CONTROLLER =
         IOpenseaConduitController(0x00000000F9490004C11Cef243f5400493c00Ad63);
-    IZoraAuctionHouse ZORA = IZoraAuctionHouse(0xE468cE99444174Bd3bBBEd09209577d25D1ad673);
+    IReserveAuctionCoreEth ZORA =
+        IReserveAuctionCoreEth(0x5f7072E1fA7c01dfAc7Cf54289621AFAaD2184d0);
     bytes32 SEAPORT_CONDUIT_KEY =
         0xf984c55ca75735630c1c27d3d06969c1aa6af1df86d22ddc0e3a978ad6138e9f;
     IERC721[] preciousTokens;
@@ -676,7 +675,7 @@ contract ListOnOpenseaProposalForkedTest is Test, TestUtils, ZoraTestUtils, Open
         // Next, retrieve from zora and list on OS.
         uint256 listStartTime = block.timestamp;
         vm.expectEmit(false, false, false, true);
-        emit ZoraAuctionExpired(_getNextZoraAuctionId() - 1, block.timestamp);
+        emit ZoraAuctionExpired(address(token), tokenId, block.timestamp);
         executeParams.progressData = impl.executeListOnOpensea(executeParams);
         bytes32 orderHash;
         uint256 expiry;
@@ -732,11 +731,9 @@ contract ListOnOpenseaProposalForkedTest is Test, TestUtils, ZoraTestUtils, Open
             new address payable[](0)
         );
         // This will list on zora because the proposal was not passed unanimously.
-        uint256 auctionId = _getNextZoraAuctionId();
         vm.expectEmit(false, false, false, true);
         emit ZoraAuctionCreated(
-            auctionId,
-            token,
+            address(token),
             tokenId,
             listPrice,
             uint40(ZORA_AUCTION_DURATION),
@@ -748,99 +745,47 @@ contract ListOnOpenseaProposalForkedTest is Test, TestUtils, ZoraTestUtils, Open
                 executeParams.progressData,
                 (ListOnOpenseaAdvancedProposal.ListOnOpenseaStep, ZoraHelpers.ZoraProgressData)
             );
-            assertEq(progressData.auctionId, auctionId);
         }
         // Try to advance the proposal before the zora auction has timed out (fail).
         skip(ZORA_AUCTION_TIMEOUT - 1);
         vm.expectRevert(
             abi.encodeWithSelector(
                 ListOnZoraProposal.ZoraListingNotExpired.selector,
-                auctionId,
+                token,
+                tokenId,
                 block.timestamp + 1
             )
         );
         impl.executeListOnOpensea(executeParams);
 
         // Bid on the zora auction.
-        _bidOnZoraListing(auctionId, buyer, listPrice);
+        _bidOnZoraListing(address(token), tokenId, buyer, listPrice);
         // The auction will be now extended by ZORA_AUCTION_DURATION.
+        uint256 firstBidTimestamp = block.timestamp;
 
         // Try to advance the proposal before the zora auction has ended (fail).
         skip(ZORA_AUCTION_DURATION - 1);
-        vm.expectRevert("Auction hasn't completed");
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                ListOnZoraProposal.ZoraListingLive.selector,
+                token,
+                tokenId,
+                firstBidTimestamp + ZORA_AUCTION_DURATION
+            )
+        );
         impl.executeListOnOpensea(executeParams);
 
         // Skip past the end of the auction.
         skip(1);
         // Advance the proposal, finalizing the zora auction.
         vm.expectEmit(false, false, false, true);
-        emit ZoraAuctionSold(auctionId);
+        emit ZoraAuctionSold(address(token), tokenId);
         executeParams.progressData = impl.executeListOnOpensea(executeParams);
         assertEq(executeParams.progressData.length, 0);
         // Buyer should own the NFT.
         assertEq(token.ownerOf(tokenId), buyer);
         // Proposal contract should have the bid price.
         assertEq(address(impl).balance, LIST_PRICE);
-    }
-
-    // Test a proposal where the zora listing is cancelled.
-    function testForked_Execution_BoughtOnZora_Cancelled() public onlyForked {
-        // Zroa will cancel the auction during settlement because the buyer cannot receive the NFT.
-        address buyer = address(this);
-        uint256 listPrice = 1e18;
-        uint40 listDuration = 7 days;
-        (IERC721 token, uint256 tokenId) = _randomPreciousToken();
-        (, IProposalExecutionEngine.ExecuteProposalParams memory executeParams) = _createProposal(
-            token,
-            tokenId,
-            listPrice,
-            listDuration,
-            new uint256[](0),
-            new address payable[](0)
-        );
-        // This will list on zora because the proposal was not passed unanimously.
-        uint256 auctionId = _getNextZoraAuctionId();
-        vm.expectEmit(false, false, false, true);
-        emit ZoraAuctionCreated(
-            auctionId,
-            token,
-            tokenId,
-            listPrice,
-            uint40(ZORA_AUCTION_DURATION),
-            uint40(block.timestamp) + uint40(ZORA_AUCTION_TIMEOUT)
-        );
-        executeParams.progressData = impl.executeListOnOpensea(executeParams);
-        {
-            (, ZoraHelpers.ZoraProgressData memory progressData) = abi.decode(
-                executeParams.progressData,
-                (ListOnOpenseaAdvancedProposal.ListOnOpenseaStep, ZoraHelpers.ZoraProgressData)
-            );
-            assertEq(progressData.auctionId, auctionId);
-        }
-        // Try to advance the proposal before the zora auction has timed out (fail).
-        skip(ZORA_AUCTION_TIMEOUT - 1);
-        vm.expectRevert(
-            abi.encodeWithSelector(
-                ListOnZoraProposal.ZoraListingNotExpired.selector,
-                auctionId,
-                block.timestamp + 1
-            )
-        );
-        impl.executeListOnOpensea(executeParams);
-
-        // Bid on the zora auction.
-        _bidOnZoraListing(auctionId, buyer, listPrice);
-        // The auction will be now extended by ZORA_AUCTION_DURATION.
-
-        // Skip past the end of the auction.
-        skip(ZORA_AUCTION_DURATION);
-        // Advance the proposal, finalizing the zora auction.
-        vm.expectEmit(false, false, false, true);
-        emit ZoraAuctionFailed(auctionId);
-        executeParams.progressData = impl.executeListOnOpensea(executeParams);
-        // Listing cancelled because the buyer could not receive the NFT. The
-        // proposal should be done.
-        assertEq(executeParams.progressData.length, 0);
     }
 
     // Test a proposal where the zora listing is bought and finalized externally.
@@ -858,11 +803,9 @@ contract ListOnOpenseaProposalForkedTest is Test, TestUtils, ZoraTestUtils, Open
             new address payable[](0)
         );
         // This will list on zora because the proposal was not passed unanimously.
-        uint256 auctionId = _getNextZoraAuctionId();
         vm.expectEmit(false, false, false, true);
         emit ZoraAuctionCreated(
-            auctionId,
-            token,
+            address(token),
             tokenId,
             listPrice,
             uint40(ZORA_AUCTION_DURATION),
@@ -874,19 +817,18 @@ contract ListOnOpenseaProposalForkedTest is Test, TestUtils, ZoraTestUtils, Open
                 executeParams.progressData,
                 (ListOnOpenseaAdvancedProposal.ListOnOpenseaStep, ZoraHelpers.ZoraProgressData)
             );
-            assertEq(progressData.auctionId, auctionId);
         }
         // Bid on the zora auction.
-        _bidOnZoraListing(auctionId, buyer, listPrice);
+        _bidOnZoraListing(address(token), tokenId, buyer, listPrice);
         // The auction will be now extended by ZORA_AUCTION_DURATION.
         // Skip past the end of the auction.
         skip(ZORA_AUCTION_DURATION);
         // Settle externally.
-        ZORA.endAuction(auctionId);
+        ZORA.settleAuction(address(token), tokenId);
 
         // Advance the proposal, finalizing the zora auction.
         vm.expectEmit(false, false, false, true);
-        emit ZoraAuctionSold(auctionId);
+        emit ZoraAuctionSold(address(token), tokenId);
         executeParams.progressData = impl.executeListOnOpensea(executeParams);
         assertEq(executeParams.progressData.length, 0);
         // Buyer should own the NFT.

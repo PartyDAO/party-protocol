@@ -7,6 +7,7 @@ import "../../contracts/party/PartyFactory.sol";
 import "../../contracts/globals/Globals.sol";
 import "../TestUtils.sol";
 import "../../contracts/proposals/ProposalExecutionEngine.sol";
+import { MockZoraReserveAuctionCoreEth } from "../proposals/MockZoraReserveAuctionCoreEth.sol";
 
 contract PartyFactoryTest is Test, TestUtils {
     Globals globals = new Globals(address(this));
@@ -27,7 +28,7 @@ contract PartyFactoryTest is Test, TestUtils {
 
         eng = new ProposalExecutionEngine(
             globals,
-            IZoraAuctionHouse(_randomAddress()),
+            new MockZoraReserveAuctionCoreEth(),
             IFractionalV1VaultFactory(_randomAddress())
         );
 
@@ -80,7 +81,7 @@ contract PartyFactoryTest is Test, TestUtils {
             proposalEngine: ProposalStorage.ProposalEngineOpts({
                 enableAddAuthorityProposal: randomBool,
                 allowArbCallsToSpendPartyEth: randomBool,
-                allowOperatorsToSpendPartyEth: randomBool,
+                allowOperators: randomBool,
                 distributionsRequireVote: randomBool
             }),
             name: randomStr,
@@ -111,7 +112,7 @@ contract PartyFactoryTest is Test, TestUtils {
         ProposalStorage.ProposalEngineOpts memory proposalEngineOpts = party
             .getProposalEngineOpts();
         assertEq(proposalEngineOpts.allowArbCallsToSpendPartyEth, randomBool);
-        assertEq(proposalEngineOpts.allowOperatorsToSpendPartyEth, randomBool);
+        assertEq(proposalEngineOpts.allowOperators, randomBool);
         assertEq(proposalEngineOpts.distributionsRequireVote, randomBool);
         assertEq(party.preciousListHash(), _hashPreciousList(preciousTokens, preciousTokenIds));
     }

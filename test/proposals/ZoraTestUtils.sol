@@ -3,21 +3,22 @@ pragma solidity ^0.8;
 
 import "forge-std/Test.sol";
 
-import "../../contracts/vendor/markets/IZoraAuctionHouse.sol";
+import "../../contracts/vendor/markets/IReserveAuctionCoreEth.sol";
 
 contract ZoraTestUtils is Test {
-    IZoraAuctionHouse private immutable _ZORA;
+    IReserveAuctionCoreEth private immutable _ZORA;
 
-    constructor(IZoraAuctionHouse zora) {
+    constructor(IReserveAuctionCoreEth zora) {
         _ZORA = zora;
     }
 
-    function _bidOnZoraListing(uint256 auctionId, address bidder, uint256 bidPrice) internal {
+    function _bidOnZoraListing(
+        address tokenContract,
+        uint256 tokenId,
+        address bidder,
+        uint256 bidPrice
+    ) internal {
         hoax(bidder, bidPrice);
-        _ZORA.createBid{ value: bidPrice }(auctionId, bidPrice);
-    }
-
-    function _getNextZoraAuctionId() internal view returns (uint256 auctionId) {
-        return uint256(vm.load(address(_ZORA), bytes32(uint256(5))));
+        _ZORA.createBid{ value: bidPrice }(tokenContract, tokenId);
     }
 }
