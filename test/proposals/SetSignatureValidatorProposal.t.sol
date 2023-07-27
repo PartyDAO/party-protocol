@@ -16,6 +16,7 @@ import { ProposalExecutionEngine } from "../../contracts/proposals/ProposalExecu
 import { IFractionalV1VaultFactory } from "../../contracts/proposals/vendor/FractionalV1.sol";
 import { MockZoraReserveAuctionCoreEth } from "./MockZoraReserveAuctionCoreEth.sol";
 import { PartyGovernance } from "../../contracts/party/PartyGovernance.sol";
+import { OffChainSignatureValidator } from "../../contracts/signature-validators/OffChainSignatureValidator.sol";
 
 contract SetSignatureValidatorProposalTest is Test, TestUtils {
     event SignatureValidatorSet(bytes32 indexed hash, IERC1271 indexed signatureValidator);
@@ -51,6 +52,9 @@ contract SetSignatureValidatorProposalTest is Test, TestUtils {
             IFractionalV1VaultFactory(address(0))
         );
         globalsAdmin.setProposalEng(address(pe));
+
+        OffChainSignatureValidator offChainGlobalValidator = new OffChainSignatureValidator();
+        globalsAdmin.setOffChainSignatureValidator(address(offChainGlobalValidator));
 
         Party.PartyOptions memory opts;
         address[] memory hosts = new address[](1);
@@ -100,10 +104,86 @@ contract SetSignatureValidatorProposalTest is Test, TestUtils {
         assertEq(_getValidatorForHash(keccak256("hello")), address(1));
     }
 
+    function testSetValidatorToAddress1() public {
+        // Set validator for hash(hello) to be always valid
+        _setValidatorForHash(keccak256("hello"), IERC1271(address(1)));
+
+        bytes memory staticCallData = abi.encodeWithSelector(
+            IERC1271.isValidSignature.selector,
+            keccak256("hello"),
+            "0x"
+        );
+        (bool success, bytes memory res) = address(party).staticcall(staticCallData);
+        assertTrue(success);
+        assertEq(abi.decode(res, (bytes4)), IERC1271.isValidSignature.selector);
+    }
+
+    function testNoValidatorSetOnChainValidation() public {
+        bytes memory staticCallData = abi.encodeWithSelector(
+            IERC1271.isValidSignature.selector,
+            keccak256("hello2"),
+            "0x"
+        );
+        (bool success, bytes memory res) = address(party).staticcall(staticCallData);
+        assertTrue(success);
+        assertEq(abi.decode(res, (bytes4)), 0);
+    }
+
+    function testValidatorSet() public {
+        MockValdidator validator = new MockValdidator();
+        _setValidatorForHash(keccak256("hello"), validator);
+
+        bytes memory staticCallData = abi.encodeWithSelector(
+            IERC1271.isValidSignature.selector,
+            keccak256("hello"),
+            "0x"
+        );
+        (bool success, bytes memory res) = address(party).staticcall(staticCallData);
+        assertTrue(success);
+        assertEq(abi.decode(res, (bytes4)), IERC1271.isValidSignature.selector);
+
+        // Will also call that validator for off-chain call
+        vm.prank(address(0), address(0));
+        (success, res) = address(party).staticcall(staticCallData);
+        assertTrue(success);
+        assertEq(abi.decode(res, (bytes4)), IERC1271.isValidSignature.selector);
+    }
+
+    function testOverrideDefaultOffChainValidator() public {
+        MockValdidator validator = new MockValdidator();
+        _setValidatorForHash(0, validator);
+    }
+
+    function testDefaultOffChainValidatorCalled() public {
+        bytes memory staticCallData = abi.encodeWithSelector(
+            IERC1271.isValidSignature.selector,
+            keccak256("hello"),
+            "0x"
+        );
+        vm.startPrank(address(0), address(0));
+        // Validation should fail (malformed entry)
+        (bool success, ) = address(party).staticcall(staticCallData);
+        assertFalse(success);
+    }
+
+    function _setValidatorForHash(bytes32 hash, IERC1271 validator) internal {
+        PartyGovernance.Proposal memory proposal = _createTestProposal(hash, validator);
+
+        vm.prank(john);
+        uint256 proposalId = party.propose(proposal, 0);
+
+        vm.warp(block.timestamp + _EXECUTION_DELAY);
+
+        vm.expectEmit(true, true, true, true);
+        emit SignatureValidatorSet(hash, validator);
+        vm.prank(john);
+        party.execute(proposalId, proposal, preciousTokens, preciousTokenIds, "", "");
+    }
+
     function _createTestProposal(
         bytes32 hash,
         IERC1271 validator
-    ) private view returns (PartyGovernance.Proposal memory proposal) {
+    ) private pure returns (PartyGovernance.Proposal memory proposal) {
         SetSignatureValidatorProposal.SetSignatureValidatorProposalData
             memory data = SetSignatureValidatorProposal.SetSignatureValidatorProposalData({
                 signatureHash: hash,
@@ -129,5 +209,12 @@ contract SetSignatureValidatorProposalTest is Test, TestUtils {
         );
         assertTrue(success);
         return abi.decode(res, (address));
+    }
+}
+
+/// @notice Mock validator that always returns valid signature
+contract MockValdidator is IERC1271 {
+    function isValidSignature(bytes32, bytes memory) external pure override returns (bytes4) {
+        return MockValdidator.isValidSignature.selector;
     }
 }

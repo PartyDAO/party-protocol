@@ -228,7 +228,7 @@ contract ProposalExecutionEngine is
         if (address(validator) != address(0)) {
             return validator.isValidSignature(hash, signature);
         }
-        if (msg.sender == address(0)) {
+        if (tx.origin == address(0)) {
             validator = getSignatureValidatorForHash(0);
             if (address(validator) == address(0)) {
                 // Use global off-chain signature validator
