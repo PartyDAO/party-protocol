@@ -35,13 +35,12 @@ contract OffChainSignatureValidator is IERC1271 {
             v := mload(add(signature, 0x41))
         }
 
-        bytes memory rawMessageData;
+        bytes memory message;
         assembly {
-            // Raw message data begins after v. Overwriting part of s and v with size of `rawMessageData`
-            rawMessageData := add(signature, 0x41)
-            mstore(rawMessageData, sub(mload(signature), 0x41))
+            // Raw message data begins after v. Overwriting part of s and v with size of `message`
+            message := add(signature, 0x41)
+            mstore(message, sub(mload(signature), 0x41))
         }
-        bytes memory message = abi.encodePacked(abi.decode(rawMessageData, (string)));
 
         // Recreate the message pre-hash from the raw data
         bytes memory encodedPacket = abi.encodePacked(

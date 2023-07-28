@@ -6,6 +6,9 @@ on:
       - main
       - dev
   push:
+    branches:
+      - main
+      - dev
 
 env:
   FORK_URL: ${{ secrets.FORK_URL }}

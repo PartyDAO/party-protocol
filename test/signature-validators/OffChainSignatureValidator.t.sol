@@ -243,7 +243,7 @@ contract OffChainSignatureValidatorTest is Test {
         );
         messageHash = keccak256(encodedPacket);
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(privateKey, messageHash);
-        signature = abi.encodePacked(r, s, v, abi.encode(message));
+        signature = abi.encodePacked(r, s, v, abi.encodePacked(message));
     }
 
     function _setValidatorForHash(bytes32 hash, IERC1271 validator) internal {
