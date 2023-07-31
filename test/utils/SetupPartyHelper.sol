@@ -15,6 +15,8 @@ import { IReserveAuctionCoreEth } from "../../contracts/vendor/markets/IReserveA
 import { PartyGovernance } from "../../contracts/party/PartyGovernance.sol";
 import { ERC721Receiver } from "../../contracts/tokens/ERC721Receiver.sol";
 
+/// @notice This contract provides a fully functioning party instance for testing.
+///     Run setup from inheriting contract.
 abstract contract SetupPartyHelper is TestUtils, ERC721Receiver {
     bool private immutable _isForked;
     GlobalsAdmin globalsAdmin;
@@ -84,6 +86,9 @@ abstract contract SetupPartyHelper is TestUtils, ERC721Receiver {
         vm.roll(block.number + 10);
     }
 
+    /// @notice Propose pass and wait for the execution delay of a proposal
+    /// @param proposal The `PartyGovernance.Proposal` struct representing the proposal
+    /// @return proposalId The proposal id for the proposal
     function proposeAndPassProposal(
         PartyGovernance.Proposal memory proposal
     ) internal returns (uint256 proposalId) {
@@ -93,6 +98,10 @@ abstract contract SetupPartyHelper is TestUtils, ERC721Receiver {
         vm.warp(block.timestamp + _EXECUTION_DELAY);
     }
 
+    /// @notice Propose pass and execute the proposal
+    /// @param proposal The `PartyGovernance.Proposal` struct representing the proposal
+    /// @return proposalId The proposal id for the proposal
+    /// @return progressData The progress data returned from the proposal execution
     function proposePassAndExecuteProposal(
         PartyGovernance.Proposal memory proposal
     ) internal returns (uint256, bytes memory) {
@@ -101,6 +110,10 @@ abstract contract SetupPartyHelper is TestUtils, ERC721Receiver {
         return (proposalId, progressData);
     }
 
+    /// @notice Execute the given proposal
+    /// @param proposalId The proposal id for the proposal
+    /// @param proposal The `PartyGovernance.Proposal` struct representing the proposal
+    /// @return progressData The progress data returned from the proposal execution
     function executeProposal(
         uint256 proposalId,
         PartyGovernance.Proposal memory proposal
@@ -108,12 +121,11 @@ abstract contract SetupPartyHelper is TestUtils, ERC721Receiver {
         return executeProposal(proposalId, proposal, "");
     }
 
-    struct Log {
-        bytes32[] topics;
-        bytes data;
-        address emitter;
-    }
-
+    /// @notice Execute the given proposal with `progressData`
+    /// @param proposalId The proposal id for the proposal
+    /// @param proposal The `PartyGovernance.Proposal` struct representing the proposal
+    /// @param progressData The progress data to pass to the proposal execution
+    /// @return progressData The progress data returned from the proposal execution
     function executeProposal(
         uint256 proposalId,
         PartyGovernance.Proposal memory proposal,
