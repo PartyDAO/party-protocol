@@ -17,10 +17,10 @@ import { OffChainSignatureValidator } from "../../contracts/signature-validators
 import { Strings } from "openzeppelin/contracts/utils/Strings.sol";
 
 contract OffChainSignatureValidatorTest is Test {
-    event SigningThresholdBipsSet(
+    event SigningThresholdBpsSet(
         Party indexed party,
-        uint96 oldThresholdBips,
-        uint96 newThresholdBips
+        uint96 oldThresholdBps,
+        uint96 newThresholdBps
     );
 
     GlobalsAdmin globalsAdmin;
@@ -156,8 +156,8 @@ contract OffChainSignatureValidatorTest is Test {
 
         vm.prank(address(party));
         vm.expectEmit(true, true, true, true);
-        emit SigningThresholdBipsSet(party, 0, 5000);
-        offChainGlobalValidator.setSigningThersholdBips(5000);
+        emit SigningThresholdBpsSet(party, 0, 5000);
+        offChainGlobalValidator.setSigningThersholdBps(5000);
 
         vm.prank(address(0), address(0));
         (bool success, bytes memory res) = address(party).staticcall(staticCallData);
@@ -165,7 +165,7 @@ contract OffChainSignatureValidatorTest is Test {
         _assertEqual(res, OffChainSignatureValidator.InsufficientVotingPower.selector);
 
         vm.prank(address(party));
-        offChainGlobalValidator.setSigningThersholdBips(4000);
+        offChainGlobalValidator.setSigningThersholdBps(4000);
 
         vm.prank(address(0), address(0));
         // Now sufficient
@@ -187,7 +187,7 @@ contract OffChainSignatureValidatorTest is Test {
         );
 
         vm.prank(address(party));
-        offChainGlobalValidator.setSigningThersholdBips(1000);
+        offChainGlobalValidator.setSigningThersholdBps(1000);
 
         vm.prank(address(0), address(0));
         (bool success, bytes memory res) = address(party).staticcall(staticCallData);

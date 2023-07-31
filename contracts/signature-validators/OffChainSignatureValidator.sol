@@ -11,13 +11,13 @@ contract OffChainSignatureValidator is IERC1271 {
     error InsufficientVotingPower();
     error MessageHashMismatch();
 
-    event SigningThresholdBipsSet(
+    event SigningThresholdBpsSet(
         Party indexed party,
-        uint96 oldThresholdBips,
-        uint96 newThresholdBips
+        uint96 oldThresholdBps,
+        uint96 newThresholdBps
     );
 
-    mapping(Party party => uint96 thresholdBips) public signingThersholdBips;
+    mapping(Party party => uint96 thresholdBps) public signingThersholdBps;
 
     /// @notice Validate an off-chain signature
     /// @dev This function requires `signature` to be a valid EOA signature from a member in the
@@ -54,22 +54,22 @@ contract OffChainSignatureValidator is IERC1271 {
 
         Party party = Party(payable(msg.sender));
         address signer = ecrecover(hash, v, r, s);
-        uint96 signerVotingPowerBips = party.getVotingPowerAt(signer, uint40(block.timestamp)) *
+        uint96 signerVotingPowerBps = party.getVotingPowerAt(signer, uint40(block.timestamp)) *
             10000;
 
-        if (signerVotingPowerBips == 0 && party.balanceOf(signer) == 0) {
+        if (signerVotingPowerBps == 0 && party.balanceOf(signer) == 0) {
             // Must own a party card or be delegatated voting power
             revert NotMemberOfParty();
         }
 
         uint96 totalVotingPower = party.getGovernanceValues().totalVotingPower;
-        uint96 thresholdBips = signingThersholdBips[party];
+        uint96 thresholdBps = signingThersholdBps[party];
 
         // Either threshold is 0 or signer votes above threshold
         if (
-            thresholdBips == 0 ||
-            (signerVotingPowerBips > totalVotingPower &&
-                signerVotingPowerBips / totalVotingPower >= thresholdBips)
+            thresholdBps == 0 ||
+            (signerVotingPowerBps > totalVotingPower &&
+                signerVotingPowerBps / totalVotingPower >= thresholdBps)
         ) {
             return IERC1271.isValidSignature.selector;
         }
@@ -77,11 +77,11 @@ contract OffChainSignatureValidator is IERC1271 {
         revert InsufficientVotingPower();
     }
 
-    /// @notice Set the signing threshold BIPS for the party to validate off-chain signatures
-    /// @param thresholdBips The new threshold BIPS
-    function setSigningThersholdBips(uint96 thresholdBips) external {
+    /// @notice Set the signing threshold BPS for the party to validate off-chain signatures
+    /// @param thresholdBps The new threshold BPS
+    function setSigningThersholdBps(uint96 thresholdBps) external {
         Party party = Party(payable(msg.sender));
-        emit SigningThresholdBipsSet(party, signingThersholdBips[party], thresholdBips);
-        signingThersholdBips[party] = thresholdBips;
+        emit SigningThresholdBpsSet(party, signingThersholdBps[party], thresholdBps);
+        signingThersholdBps[party] = thresholdBps;
     }
 }
