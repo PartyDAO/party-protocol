@@ -2,10 +2,9 @@
 pragma solidity 0.8.20;
 
 import { IERC1271 } from "openzeppelin/contracts/interfaces/IERC1271.sol";
-import { ProposalStorage } from "./ProposalStorage.sol";
 import { IProposalExecutionEngine } from "./IProposalExecutionEngine.sol";
 
-abstract contract SetSignatureValidatorProposal is ProposalStorage {
+abstract contract SetSignatureValidatorProposal {
     struct SetSignatureValidatorProposalStorage {
         /// @notice Mapping from signature hash to signature validator for validating ERC1271 signatures.
         mapping(bytes32 => IERC1271) signatureValidators;
