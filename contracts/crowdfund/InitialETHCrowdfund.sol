@@ -43,10 +43,6 @@ contract InitialETHCrowdfund is ETHCrowdfundBase {
         string symbol;
         // The ID of the customization preset to use for the party card.
         uint256 customizationPresetId;
-        // Optional provider to use for the party for rendering custom metadata.
-        MetadataProvider customMetadataProvider;
-        // Optional custom metadata to use for the party.
-        bytes customMetadata;
         // Options to initialize party governance with.
         Crowdfund.FixedGovernanceOpts governanceOpts;
         // Options to initialize party proposal engine with.
@@ -103,12 +99,17 @@ contract InitialETHCrowdfund is ETHCrowdfundBase {
     ///         revert if called outside the constructor.
     /// @param crowdfundOpts Options to initialize the crowdfund with.
     /// @param partyOpts Options to initialize the party with.
+    /// @param customMetadataProvider Optional provider to use for the party for
+    ///                               rendering custom metadata.
+    /// @param customMetadata Optional custom metadata to use for the party.
     function initialize(
         InitialETHCrowdfundOptions memory crowdfundOpts,
-        ETHPartyOptions memory partyOpts
+        ETHPartyOptions memory partyOpts,
+        MetadataProvider customMetadataProvider,
+        bytes memory customMetadata
     ) external payable onlyConstructor {
         // Create party the initial crowdfund will be for.
-        Party party_ = _createParty(partyOpts);
+        Party party_ = _createParty(partyOpts, customMetadataProvider, customMetadata);
 
         // Initialize the crowdfund.
         _initialize(
@@ -384,11 +385,15 @@ contract InitialETHCrowdfund is ETHCrowdfundBase {
         }
     }
 
-    function _createParty(ETHPartyOptions memory opts) private returns (Party) {
+    function _createParty(
+        ETHPartyOptions memory opts,
+        MetadataProvider customMetadataProvider,
+        bytes memory customMetadata
+    ) private returns (Party) {
         address[] memory authorities = new address[](1);
         authorities[0] = address(this);
 
-        if (opts.customMetadata.length == 0) {
+        if (customMetadata.length == 0) {
             return
                 opts.governanceOpts.partyFactory.createParty(
                     opts.governanceOpts.partyImpl,
@@ -435,8 +440,8 @@ contract InitialETHCrowdfund is ETHCrowdfundBase {
                     opts.preciousTokens,
                     opts.preciousTokenIds,
                     opts.rageQuitTimestamp,
-                    opts.customMetadataProvider,
-                    opts.customMetadata
+                    customMetadataProvider,
+                    customMetadata
                 );
         }
     }

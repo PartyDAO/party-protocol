@@ -628,7 +628,6 @@ contract CrowdfundFactoryTest is Test, TestUtils {
     }
 
     function testCreateInitialETHCrowdfund(
-        bytes memory randomBytes,
         string memory randomStr,
         uint96 randomUint96,
         uint40 randomUint40,
@@ -693,8 +692,6 @@ contract CrowdfundFactoryTest is Test, TestUtils {
             name: randomStr,
             symbol: randomStr,
             customizationPresetId: 0,
-            customMetadataProvider: metadataProvider,
-            customMetadata: randomBytes,
             governanceOpts: Crowdfund.FixedGovernanceOpts({
                 partyImpl: party,
                 partyFactory: partyFactory,
@@ -738,12 +735,112 @@ contract CrowdfundFactoryTest is Test, TestUtils {
         assertEq(inst.fundingSplitBps(), crowdfundOpts.fundingSplitBps);
         assertEq(inst.fundingSplitRecipient(), crowdfundOpts.fundingSplitRecipient);
         assertEq(inst.totalContributions(), initialContribution);
+    }
+
+    function testCreateInitialETHCrowdfundWithMetadata(
+        bytes memory randomBytes,
+        uint96 randomUint96,
+        uint40 randomUint40,
+        uint16 randomBps,
+        bool randomBool
+    ) external {
+        vm.assume(randomUint40 != type(uint40).max); // Prevent overflow.
+        vm.assume(randomUint96 != type(uint96).max); // Prevent overflow.
+        vm.assume(randomUint96 != 0);
+        vm.assume(randomBps <= 1e4);
+
+        uint96 initialContribution;
+        InitialETHCrowdfund.InitialETHCrowdfundOptions memory crowdfundOpts;
+        {
+            uint16 exchangeRateBps = randomBps != 0 ? randomBps : 1;
+            // Only pass in initial contribution amount if it will not overflow.
+            if (randomUint40 > type(uint96).max / exchangeRateBps) {
+                // Only pass in initial contribution amount if results in non-zero voting power.
+                if ((randomUint40 * exchangeRateBps) / 1e4 != 0) {
+                    initialContribution = (randomUint40 * exchangeRateBps) / 1e4;
+                }
+            }
+
+            crowdfundOpts = InitialETHCrowdfund.InitialETHCrowdfundOptions({
+                initialContributor: _randomAddress(),
+                initialDelegate: _randomAddress(),
+                // Ensure that `minContribution` is less than initial contribution.
+                minContribution: initialContribution < randomUint96
+                    ? initialContribution
+                    : randomUint96 - 1,
+                // Ensure that `maxContribution` is greater than initial contribution.
+                maxContribution: initialContribution > randomUint96
+                    ? initialContribution
+                    : randomUint96 + 1,
+                disableContributingForExistingCard: randomBool,
+                // Ensure that `minTotalContributions` is less than initial contribution.
+                minTotalContributions: initialContribution < randomUint96
+                    ? initialContribution
+                    : randomUint96 - 1,
+                // Ensure that `maxTotalContributions` is greater than initial contribution.
+                maxTotalContributions: initialContribution > randomUint96
+                    ? initialContribution + 1 // Ensure initial contribution does not finalize the crowdfund.
+                    : randomUint96 + 1,
+                exchangeRateBps: exchangeRateBps,
+                fundingSplitBps: randomBps,
+                fundingSplitRecipient: payable(_randomAddress()),
+                // This is to avoid overflows when adding to `block.timestamp`.
+                duration: uint40(_randomRange(1, type(uint40).max - block.timestamp)),
+                gateKeeper: IGateKeeper(address(0)),
+                gateKeeperId: 0
+            });
+        }
+
+        InitialETHCrowdfund.ETHPartyOptions memory partyOpts = InitialETHCrowdfund.ETHPartyOptions({
+            name: "Party",
+            symbol: "PRTY",
+            customizationPresetId: 0,
+            governanceOpts: Crowdfund.FixedGovernanceOpts({
+                partyImpl: party,
+                partyFactory: partyFactory,
+                hosts: _toAddressArray(_randomAddress()),
+                voteDuration: randomUint40,
+                executionDelay: randomUint40,
+                passThresholdBps: randomBps,
+                feeBps: randomBps,
+                feeRecipient: payable(_randomAddress())
+            }),
+            proposalEngineOpts: ProposalStorage.ProposalEngineOpts({
+                enableAddAuthorityProposal: randomBool,
+                allowArbCallsToSpendPartyEth: randomBool,
+                allowOperators: randomBool,
+                distributionsRequireVote: randomBool
+            }),
+            preciousTokens: new IERC721[](0),
+            preciousTokenIds: new uint256[](0),
+            rageQuitTimestamp: 0
+        });
+
+        vm.deal(address(this), initialContribution);
+        InitialETHCrowdfund inst = partyCrowdfundFactory.createInitialETHCrowdfundWithMetadata{
+            value: initialContribution
+        }(initialETHCrowdfund, crowdfundOpts, partyOpts, metadataProvider, randomBytes, "");
+
+        // Check that value are initialized to what we expect.
+        assertEq(inst.expiry(), uint40(block.timestamp + crowdfundOpts.duration));
+        assertEq(inst.minContribution(), crowdfundOpts.minContribution);
+        assertEq(inst.maxContribution(), crowdfundOpts.maxContribution);
+        assertEq(
+            inst.disableContributingForExistingCard(),
+            crowdfundOpts.disableContributingForExistingCard
+        );
+        assertEq(inst.minTotalContributions(), crowdfundOpts.minTotalContributions);
+        assertEq(inst.maxTotalContributions(), crowdfundOpts.maxTotalContributions);
+        assertEq(inst.exchangeRateBps(), crowdfundOpts.exchangeRateBps);
+        assertEq(inst.fundingSplitBps(), crowdfundOpts.fundingSplitBps);
+        assertEq(inst.fundingSplitRecipient(), crowdfundOpts.fundingSplitRecipient);
+        assertEq(inst.totalContributions(), initialContribution);
         if (randomBytes.length != 0) {
             assertEq(
-                address(metadataRegistry.getProvider(address(party_))),
+                address(metadataRegistry.getProvider(address(inst.party()))),
                 address(metadataProvider)
             );
-            assertEq(metadataProvider.getMetadata(address(party_), 0), randomBytes);
+            assertEq(metadataProvider.getMetadata(address(inst.party()), 0), randomBytes);
         }
     }
 

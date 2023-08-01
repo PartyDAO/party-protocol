@@ -200,7 +200,45 @@ contract CrowdfundFactory {
             payable(
                 new Proxy{ value: msg.value }(
                     Implementation(address(crowdfundImpl)),
-                    abi.encodeCall(InitialETHCrowdfund.initialize, (crowdfundOpts, partyOpts))
+                    abi.encodeCall(
+                        InitialETHCrowdfund.initialize,
+                        (crowdfundOpts, partyOpts, MetadataProvider(address(0)), "")
+                    )
+                )
+            )
+        );
+        emit InitialETHCrowdfundCreated(msg.sender, inst, inst.party(), crowdfundOpts, partyOpts);
+    }
+
+    /// @notice Create a new crowdfund to raise ETH for a new party.
+    /// @param crowdfundImpl The implementation contract of the crowdfund to create.
+    /// @param crowdfundOpts Options used to initialize the crowdfund.
+    /// @param partyOpts Options used to initialize the party created by the crowdfund.
+    /// @param customMetadataProvider A custom metadata provider to use for the party.
+    /// @param customMetadata Custom metadata to use for the party.
+    /// @param createGateCallData Encoded calldata used by `createGate()` to create
+    ///                           the crowdfund if one is specified in `opts`.
+    function createInitialETHCrowdfundWithMetadata(
+        InitialETHCrowdfund crowdfundImpl,
+        InitialETHCrowdfund.InitialETHCrowdfundOptions memory crowdfundOpts,
+        InitialETHCrowdfund.ETHPartyOptions memory partyOpts,
+        MetadataProvider customMetadataProvider,
+        bytes memory customMetadata,
+        bytes memory createGateCallData
+    ) public payable returns (InitialETHCrowdfund inst) {
+        crowdfundOpts.gateKeeperId = _prepareGate(
+            crowdfundOpts.gateKeeper,
+            crowdfundOpts.gateKeeperId,
+            createGateCallData
+        );
+        inst = InitialETHCrowdfund(
+            payable(
+                new Proxy{ value: msg.value }(
+                    Implementation(address(crowdfundImpl)),
+                    abi.encodeCall(
+                        InitialETHCrowdfund.initialize,
+                        (crowdfundOpts, partyOpts, customMetadataProvider, customMetadata)
+                    )
                 )
             )
         );

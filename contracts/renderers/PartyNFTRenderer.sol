@@ -59,6 +59,8 @@ contract PartyNFTRenderer is RendererBase {
         uint256 royaltyAmount;
     }
 
+    address immutable IMPL;
+
     uint256 constant PARTY_CARD_DATA = 1;
     address constant PARTYSTAR_PARTY_ADDRESS = 0x118928CCAc2035B578ae2D35FBFc2c120B6c4B82;
     address constant PARTYSTAR_CROWDFUND_ADDRESS = 0x0Bf08f7b6474C2aCCB9b9e325acb6FbcC682dE82;
@@ -69,7 +71,9 @@ contract PartyNFTRenderer is RendererBase {
         IGlobals globals,
         RendererStorage rendererStorage,
         IFont font
-    ) RendererBase(globals, rendererStorage, font) {}
+    ) RendererBase(globals, rendererStorage, font) {
+        IMPL = address(this);
+    }
 
     function royaltyInfo(
         uint256,
@@ -599,6 +603,8 @@ contract PartyNFTRenderer is RendererBase {
     }
 
     function hasUnclaimedDistribution(uint256 tokenId) private view returns (bool) {
+        if (address(this) == IMPL) return false;
+
         TokenDistributor[] memory distributors = new TokenDistributor[](2);
         distributors[0] = TokenDistributor(
             _GLOBALS.getAddress(LibGlobals.GLOBAL_TOKEN_DISTRIBUTOR)

@@ -123,7 +123,10 @@ contract InitialETHCrowdfundTest is Test, TestUtils, ERC721Receiver {
             payable(
                 new Proxy{ value: args.initialContribution }(
                     initialETHCrowdfundImpl,
-                    abi.encodeCall(InitialETHCrowdfund.initialize, (crowdfundOpts, partyOpts))
+                    abi.encodeCall(
+                        InitialETHCrowdfund.initialize,
+                        (crowdfundOpts, partyOpts, MetadataProvider(address(0)), "")
+                    )
                 )
             )
         );
@@ -153,7 +156,7 @@ contract InitialETHCrowdfundTest is Test, TestUtils, ERC721Receiver {
         InitialETHCrowdfund.ETHPartyOptions memory partyOpts;
 
         vm.expectRevert(Implementation.OnlyConstructorError.selector);
-        crowdfund.initialize(crowdfundOpts, partyOpts);
+        crowdfund.initialize(crowdfundOpts, partyOpts, MetadataProvider(address(0)), "");
     }
 
     function test_initialization_minTotalContributionsGreaterThanMax() public {
