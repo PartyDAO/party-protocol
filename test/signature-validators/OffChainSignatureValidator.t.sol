@@ -9,7 +9,7 @@ import { ProposalExecutionEngine } from "../../contracts/proposals/ProposalExecu
 import { PartyGovernance } from "../../contracts/party/PartyGovernance.sol";
 import { OffChainSignatureValidator } from "../../contracts/signature-validators/OffChainSignatureValidator.sol";
 import { Strings } from "openzeppelin/contracts/utils/Strings.sol";
-import { LibGlobals } from "../../contracts/Globals/LibGlobals.sol";
+import { LibGlobals } from "../../contracts/globals/LibGlobals.sol";
 
 contract OffChainSignatureValidatorTest is SetupPartyHelper {
     constructor() SetupPartyHelper(false) {}
