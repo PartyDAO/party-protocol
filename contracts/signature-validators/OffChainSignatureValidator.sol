@@ -5,18 +5,20 @@ import { IERC1271 } from "openzeppelin/contracts/interfaces/IERC1271.sol";
 import { Strings } from "openzeppelin/contracts/utils/Strings.sol";
 import { Party } from "../party/Party.sol";
 
-/// @notice Contract that by default validates off-chain signature for parties
+/// @notice Contract that by default validates off-chain signatures for parties
 contract OffChainSignatureValidator is IERC1271 {
     error NotMemberOfParty();
     error InsufficientVotingPower();
     error MessageHashMismatch();
 
+    /// @notice Event emmitted when signing threshold updated
     event SigningThresholdBpsSet(
         Party indexed party,
         uint96 oldThresholdBps,
         uint96 newThresholdBps
     );
 
+    /// @notice Mapping of party to signing threshold BPS
     mapping(Party party => uint96 thresholdBps) public signingThersholdBps;
 
     /// @notice Validate an off-chain signature
@@ -79,7 +81,7 @@ contract OffChainSignatureValidator is IERC1271 {
 
     /// @notice Set the signing threshold BPS for the party to validate off-chain signatures
     /// @param thresholdBps The new threshold BPS
-    function setSigningThersholdBps(uint96 thresholdBps) external {
+    function setSigningThresholdBps(uint96 thresholdBps) external {
         Party party = Party(payable(msg.sender));
         emit SigningThresholdBpsSet(party, signingThersholdBps[party], thresholdBps);
         signingThersholdBps[party] = thresholdBps;

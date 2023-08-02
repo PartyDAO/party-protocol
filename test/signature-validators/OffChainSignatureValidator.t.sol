@@ -112,7 +112,7 @@ contract OffChainSignatureValidatorTest is SetupPartyHelper {
         vm.prank(address(party));
         vm.expectEmit(true, true, true, true);
         emit SigningThresholdBpsSet(party, 0, 5000);
-        offChainGlobalValidator.setSigningThersholdBps(5000);
+        offChainGlobalValidator.setSigningThresholdBps(5000);
 
         vm.prank(address(0), address(0));
         (bool success, bytes memory res) = address(party).staticcall(staticCallData);
@@ -120,7 +120,7 @@ contract OffChainSignatureValidatorTest is SetupPartyHelper {
         _assertEqual(res, OffChainSignatureValidator.InsufficientVotingPower.selector);
 
         vm.prank(address(party));
-        offChainGlobalValidator.setSigningThersholdBps(4000);
+        offChainGlobalValidator.setSigningThresholdBps(4000);
 
         vm.prank(address(0), address(0));
         // Now sufficient
@@ -142,7 +142,7 @@ contract OffChainSignatureValidatorTest is SetupPartyHelper {
         );
 
         vm.prank(address(party));
-        offChainGlobalValidator.setSigningThersholdBps(1000);
+        offChainGlobalValidator.setSigningThresholdBps(1000);
 
         vm.prank(address(0), address(0));
         (bool success, bytes memory res) = address(party).staticcall(staticCallData);
