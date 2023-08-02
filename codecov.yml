@@ -3,8 +3,8 @@ ignore:
   - "deploy"
 
 coverage:
-  range: 70..90
   status:
     patch:
       default:
         target: 90%
+        if_ci_failed: error
