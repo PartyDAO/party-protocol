@@ -1,22 +1,22 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8;
 
-import "contracts/proposals/ListOnZoraProposal.sol";
-import "contracts/globals/Globals.sol";
-import "../TestUtils.sol";
-import "../DummyERC721.sol";
-import "./TestableListOnZoraProposal.sol";
+import { ListOnZoraProposal } from "contracts/proposals/ListOnZoraProposal.sol";
+import { SetupPartyHelper } from "../utils/SetupPartyHelper.sol";
+import { DummyERC721 } from "../DummyERC721.sol";
 import { LibSafeCast } from "../../contracts/utils/LibSafeCast.sol";
+import { PartyGovernance } from "../../contracts/party/PartyGovernance.sol";
+import { ProposalExecutionEngine } from "../../contracts/proposals/ProposalExecutionEngine.sol";
+import { IReserveAuctionCoreEth } from "../../contracts/vendor/markets/IReserveAuctionCoreEth.sol";
 
 using LibSafeCast for uint256;
 
-contract ListOnZoraProposalForkedTest is TestUtils {
-    IReserveAuctionCoreEth ZORA =
-        IReserveAuctionCoreEth(0x5f7072E1fA7c01dfAc7Cf54289621AFAaD2184d0);
-    Globals globals = new Globals(address(this));
-    TestableListOnZoraProposal proposal;
+contract ListOnZoraProposalForkedTest is SetupPartyHelper {
+    constructor() SetupPartyHelper(true) {}
+
     DummyERC721 nftToken = new DummyERC721();
     uint256 nftTokenId;
+    IReserveAuctionCoreEth private ZORA;
 
     event ZoraAuctionCreated(
         address token,
@@ -52,29 +52,184 @@ contract ListOnZoraProposalForkedTest is TestUtils {
         IReserveAuctionCoreEth.Auction auction
     );
 
-    function setUp() public onlyForked {
-        proposal = new TestableListOnZoraProposal(globals, ZORA);
-        nftTokenId = nftToken.mint(address(proposal));
+    function setUp() public override onlyForked {
+        super.setUp();
+        nftTokenId = nftToken.mint(address(party));
+
+        bytes4 functionSelector = bytes4(keccak256("ZORA()"));
+        bytes memory data = abi.encodePacked(functionSelector);
+
+        (, bytes memory res) = address(party).staticcall(data);
+        ZORA = IReserveAuctionCoreEth(abi.decode(res, (address)));
     }
 
-    function _createExecutionParams()
-        private
-        view
-        returns (
-            IProposalExecutionEngine.ExecuteProposalParams memory executeParams,
+    function testForked_canCreateListing() external onlyForked {
+        (
+            PartyGovernance.Proposal memory proposal,
             ListOnZoraProposal.ZoraProposalData memory proposalData
-        )
-    {
-        proposalData = ListOnZoraProposal.ZoraProposalData({
-            listPrice: _randomUint256() % 1e18,
-            timeout: uint40(_randomRange(1 hours, 1 days)),
-            duration: uint40(_randomRange(1 hours, 1 days)),
-            token: address(nftToken),
-            tokenId: nftTokenId
-        });
-        executeParams.proposalData = abi.encode(proposalData);
+        ) = _buildZoraProposal();
+        uint256 proposalId = proposeAndPassProposal(proposal);
+        _expectEmit3();
+        emit AuctionCreated(
+            proposalData.token,
+            proposalData.tokenId,
+            IReserveAuctionCoreEth.Auction({
+                seller: address(party),
+                reservePrice: uint96(proposalData.listPrice),
+                sellerFundsRecipient: address(party),
+                highestBid: 0,
+                highestBidder: address(0),
+                duration: uint32(proposalData.duration),
+                startTime: uint32(block.timestamp),
+                firstBidTime: 0
+            })
+        );
+        _expectEmit3();
+        emit ZoraAuctionCreated(
+            proposalData.token,
+            proposalData.tokenId,
+            proposalData.listPrice,
+            proposalData.duration,
+            uint40(block.timestamp + proposalData.timeout)
+        );
+        executeProposal(proposalId, proposal);
     }
 
+    function testForked_canBidOnListing() external onlyForked {
+        (
+            PartyGovernance.Proposal memory proposal,
+            ListOnZoraProposal.ZoraProposalData memory proposalData
+        ) = _buildZoraProposal();
+        proposePassAndExecuteProposal(proposal);
+        _bidOnListing(proposalData.token, proposalData.tokenId, proposalData.listPrice);
+    }
+
+    function testForked_canCancelExpiredListing() external onlyForked {
+        (
+            PartyGovernance.Proposal memory proposal,
+            ListOnZoraProposal.ZoraProposalData memory proposalData
+        ) = _buildZoraProposal();
+        (uint256 proposalId, bytes memory progressData) = proposePassAndExecuteProposal(proposal);
+        uint32 auctionStartTime = uint32(block.timestamp);
+        skip(proposalData.timeout);
+        _expectEmit3();
+        emit AuctionCanceled(
+            proposalData.token,
+            proposalData.tokenId,
+            IReserveAuctionCoreEth.Auction({
+                seller: address(party),
+                reservePrice: uint96(proposalData.listPrice),
+                sellerFundsRecipient: address(party),
+                highestBid: 0,
+                highestBidder: address(0),
+                duration: uint32(proposalData.duration),
+                startTime: auctionStartTime,
+                firstBidTime: 0
+            })
+        );
+        _expectEmit3();
+        emit ZoraAuctionExpired(proposalData.token, proposalData.tokenId, block.timestamp);
+        executeProposal(proposalId, proposal, progressData);
+    }
+
+    function testForked_cannotCancelUnexpiredListing() external onlyForked {
+        (
+            PartyGovernance.Proposal memory proposal,
+            ListOnZoraProposal.ZoraProposalData memory proposalData
+        ) = _buildZoraProposal();
+        (uint256 proposalId, bytes memory progressData) = proposePassAndExecuteProposal(proposal);
+        skip(proposalData.timeout - 1);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                ListOnZoraProposal.ZoraListingNotExpired.selector,
+                proposalData.token,
+                proposalData.tokenId,
+                block.timestamp + 1
+            )
+        );
+        executeProposal(proposalId, proposal, progressData);
+    }
+
+    function testForked_cannotSettleOngoingListing() external onlyForked {
+        (
+            PartyGovernance.Proposal memory proposal,
+            ListOnZoraProposal.ZoraProposalData memory proposalData
+        ) = _buildZoraProposal();
+        (uint256 proposalId, bytes memory progressData) = proposePassAndExecuteProposal(proposal);
+        _bidOnListing(proposalData.token, proposalData.tokenId, proposalData.listPrice);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                ListOnZoraProposal.ZoraListingLive.selector,
+                proposalData.token,
+                proposalData.tokenId,
+                block.timestamp + proposalData.duration
+            )
+        );
+        executeProposal(proposalId, proposal, progressData);
+    }
+
+    function testForked_canSettleSuccessfulListing() external onlyForked {
+        (
+            PartyGovernance.Proposal memory proposal,
+            ListOnZoraProposal.ZoraProposalData memory proposalData
+        ) = _buildZoraProposal();
+        (uint256 proposalId, bytes memory progressData) = proposePassAndExecuteProposal(proposal);
+        uint32 auctionStartTime = uint32(block.timestamp);
+        _bidOnListing(john, proposalData.token, proposalData.tokenId, proposalData.listPrice);
+        skip(proposalData.duration);
+        _expectEmit3();
+        emit AuctionEnded(
+            proposalData.token,
+            proposalData.tokenId,
+            IReserveAuctionCoreEth.Auction({
+                seller: address(party),
+                reservePrice: uint96(proposalData.listPrice),
+                sellerFundsRecipient: address(party),
+                highestBid: uint96(proposalData.listPrice),
+                highestBidder: john,
+                duration: uint32(proposalData.duration),
+                startTime: auctionStartTime,
+                firstBidTime: auctionStartTime
+            })
+        );
+        _expectEmit3();
+        emit ZoraAuctionSold(proposalData.token, proposalData.tokenId);
+        assertTrue(executeProposal(proposalId, proposal, progressData).length == 0);
+        assertEq(address(party).balance, proposalData.listPrice);
+    }
+
+    function testForked_canSettleSuccessfulEndedListing() external onlyForked {
+        (
+            PartyGovernance.Proposal memory proposal,
+            ListOnZoraProposal.ZoraProposalData memory proposalData
+        ) = _buildZoraProposal();
+        (uint256 proposalId, bytes memory progressData) = proposePassAndExecuteProposal(proposal);
+        uint32 auctionStartTime = uint32(block.timestamp);
+        _bidOnListing(john, proposalData.token, proposalData.tokenId, proposalData.listPrice);
+        skip(proposalData.duration);
+        _expectEmit3();
+        emit AuctionEnded(
+            proposalData.token,
+            proposalData.tokenId,
+            IReserveAuctionCoreEth.Auction({
+                seller: address(party),
+                reservePrice: uint96(proposalData.listPrice),
+                sellerFundsRecipient: address(party),
+                highestBid: uint96(proposalData.listPrice),
+                highestBidder: john,
+                duration: uint32(proposalData.duration),
+                startTime: auctionStartTime,
+                firstBidTime: auctionStartTime
+            })
+        );
+        ZORA.settleAuction(proposalData.token, proposalData.tokenId);
+        _expectEmit3();
+        emit ZoraAuctionSold(proposalData.token, proposalData.tokenId);
+        assertTrue(executeProposal(proposalId, proposal, progressData).length == 0);
+        assertEq(address(party).balance, proposalData.listPrice);
+    }
+
+    /// MARK: Helpers
     function _bidOnListing(address tokenContract, uint256 tokenId, uint256 bid) private {
         _bidOnListing(_randomAddress(), tokenContract, tokenId, bid);
     }
@@ -107,136 +262,29 @@ contract ListOnZoraProposalForkedTest is TestUtils {
         ZORA.createBid{ value: bid }(tokenContract, tokenId);
     }
 
-    function testForked_canCreateListing() external onlyForked {
-        (
-            IProposalExecutionEngine.ExecuteProposalParams memory executeParams,
-            ListOnZoraProposal.ZoraProposalData memory proposalData
-        ) = _createExecutionParams();
-        _expectEmit3();
-        emit AuctionCreated(
-            proposalData.token,
-            proposalData.tokenId,
-            IReserveAuctionCoreEth.Auction({
-                seller: address(proposal),
-                reservePrice: uint96(proposalData.listPrice),
-                sellerFundsRecipient: address(proposal),
-                highestBid: 0,
-                highestBidder: address(0),
-                duration: uint32(proposalData.duration),
-                startTime: 0,
-                firstBidTime: 0
-            })
-        );
-        _expectEmit0();
-        emit ZoraAuctionCreated(
-            proposalData.token,
-            proposalData.tokenId,
-            proposalData.listPrice,
-            proposalData.duration,
-            uint40(block.timestamp + proposalData.timeout)
-        );
-        assertTrue(proposal.executeListOnZora(executeParams).length > 0);
-    }
+    function _buildZoraProposal()
+        private
+        view
+        returns (PartyGovernance.Proposal memory, ListOnZoraProposal.ZoraProposalData memory)
+    {
+        ListOnZoraProposal.ZoraProposalData memory data = ListOnZoraProposal.ZoraProposalData({
+            listPrice: _randomUint256() % 1e18,
+            timeout: uint40(_randomRange(1 hours, 1 days)),
+            duration: uint40(_randomRange(1 hours, 1 days)),
+            token: address(nftToken),
+            tokenId: nftTokenId
+        });
 
-    function testForked_canBidOnListing() external onlyForked {
-        (
-            IProposalExecutionEngine.ExecuteProposalParams memory executeParams,
-            ListOnZoraProposal.ZoraProposalData memory proposalData
-        ) = _createExecutionParams();
-        proposal.executeListOnZora(executeParams);
-        _bidOnListing(proposalData.token, proposalData.tokenId, proposalData.listPrice);
-    }
-
-    function testForked_canCancelExpiredListing() external onlyForked {
-        (
-            IProposalExecutionEngine.ExecuteProposalParams memory executeParams,
-            ListOnZoraProposal.ZoraProposalData memory proposalData
-        ) = _createExecutionParams();
-        executeParams.progressData = proposal.executeListOnZora(executeParams);
-        skip(proposalData.timeout);
-        _expectEmit3();
-        emit AuctionCanceled(
-            proposalData.token,
-            proposalData.tokenId,
-            IReserveAuctionCoreEth.Auction({
-                seller: address(proposal),
-                reservePrice: uint96(proposalData.listPrice),
-                sellerFundsRecipient: address(proposal),
-                highestBid: 0,
-                highestBidder: address(0),
-                duration: uint32(proposalData.duration),
-                startTime: 0,
-                firstBidTime: 0
-            })
-        );
-        _expectEmit0();
-        emit ZoraAuctionExpired(proposalData.token, proposalData.tokenId, block.timestamp);
-        assertTrue(proposal.executeListOnZora(executeParams).length == 0);
-    }
-
-    function testForked_cannotCancelUnexpiredListing() external onlyForked {
-        (
-            IProposalExecutionEngine.ExecuteProposalParams memory executeParams,
-            ListOnZoraProposal.ZoraProposalData memory proposalData
-        ) = _createExecutionParams();
-        executeParams.progressData = proposal.executeListOnZora(executeParams);
-        skip(proposalData.timeout - 1);
-        vm.expectRevert(
-            abi.encodeWithSelector(
-                ListOnZoraProposal.ZoraListingNotExpired.selector,
-                proposalData.token,
-                proposalData.tokenId,
-                block.timestamp + 1
+        PartyGovernance.Proposal memory proposal = PartyGovernance.Proposal({
+            maxExecutableTime: type(uint40).max,
+            cancelDelay: 0,
+            proposalData: abi.encodeWithSelector(
+                bytes4(uint32(ProposalExecutionEngine.ProposalType.ListOnZora)),
+                data
             )
-        );
-        proposal.executeListOnZora(executeParams);
-    }
+        });
 
-    function testForked_cannotSettleOngoingListing() external onlyForked {
-        (
-            IProposalExecutionEngine.ExecuteProposalParams memory executeParams,
-            ListOnZoraProposal.ZoraProposalData memory proposalData
-        ) = _createExecutionParams();
-        executeParams.progressData = proposal.executeListOnZora(executeParams);
-        _bidOnListing(proposalData.token, proposalData.tokenId, proposalData.listPrice);
-        vm.expectRevert(
-            abi.encodeWithSelector(
-                ListOnZoraProposal.ZoraListingLive.selector,
-                proposalData.token,
-                proposalData.tokenId,
-                block.timestamp + proposalData.duration
-            )
-        );
-        proposal.executeListOnZora(executeParams);
-    }
-
-    function testForked_canSettleSuccessfulListing() external onlyForked {
-        (
-            IProposalExecutionEngine.ExecuteProposalParams memory executeParams,
-            ListOnZoraProposal.ZoraProposalData memory proposalData
-        ) = _createExecutionParams();
-        executeParams.progressData = proposal.executeListOnZora(executeParams);
-        _bidOnListing(proposalData.token, proposalData.tokenId, proposalData.listPrice);
-        skip(proposalData.duration);
-        _expectEmit0();
-        emit ZoraAuctionSold(proposalData.token, proposalData.tokenId);
-        assertTrue(proposal.executeListOnZora(executeParams).length == 0);
-        assertEq(address(proposal).balance, proposalData.listPrice);
-    }
-
-    function testForked_canSettleSuccessfulEndedListing() external onlyForked {
-        (
-            IProposalExecutionEngine.ExecuteProposalParams memory executeParams,
-            ListOnZoraProposal.ZoraProposalData memory proposalData
-        ) = _createExecutionParams();
-        executeParams.progressData = proposal.executeListOnZora(executeParams);
-        _bidOnListing(proposalData.token, proposalData.tokenId, proposalData.listPrice);
-        skip(proposalData.duration);
-        ZORA.settleAuction(proposalData.token, proposalData.tokenId);
-        _expectEmit0();
-        emit ZoraAuctionSold(proposalData.token, proposalData.tokenId);
-        assertTrue(proposal.executeListOnZora(executeParams).length == 0);
-        assertEq(address(proposal).balance, proposalData.listPrice);
+        return (proposal, data);
     }
 }
 
