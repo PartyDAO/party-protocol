@@ -68,7 +68,7 @@ contract ListOnZoraProposalForkedTest is SetupPartyHelper {
             PartyGovernance.Proposal memory proposal,
             ListOnZoraProposal.ZoraProposalData memory proposalData
         ) = _buildZoraProposal();
-        uint256 proposalId = proposeAndPassProposal(proposal);
+        uint256 proposalId = _proposeAndPassProposal(proposal);
         _expectEmit3();
         emit AuctionCreated(
             proposalData.token,
@@ -92,7 +92,7 @@ contract ListOnZoraProposalForkedTest is SetupPartyHelper {
             proposalData.duration,
             uint40(block.timestamp + proposalData.timeout)
         );
-        executeProposal(proposalId, proposal);
+        _executeProposal(proposalId, proposal);
     }
 
     function testForked_canBidOnListing() external onlyForked {
@@ -100,7 +100,7 @@ contract ListOnZoraProposalForkedTest is SetupPartyHelper {
             PartyGovernance.Proposal memory proposal,
             ListOnZoraProposal.ZoraProposalData memory proposalData
         ) = _buildZoraProposal();
-        proposePassAndExecuteProposal(proposal);
+        _proposePassAndExecuteProposal(proposal);
         _bidOnListing(proposalData.token, proposalData.tokenId, proposalData.listPrice);
     }
 
@@ -109,7 +109,7 @@ contract ListOnZoraProposalForkedTest is SetupPartyHelper {
             PartyGovernance.Proposal memory proposal,
             ListOnZoraProposal.ZoraProposalData memory proposalData
         ) = _buildZoraProposal();
-        (uint256 proposalId, bytes memory progressData) = proposePassAndExecuteProposal(proposal);
+        (uint256 proposalId, bytes memory progressData) = _proposePassAndExecuteProposal(proposal);
         uint32 auctionStartTime = uint32(block.timestamp);
         skip(proposalData.timeout);
         _expectEmit3();
@@ -129,7 +129,7 @@ contract ListOnZoraProposalForkedTest is SetupPartyHelper {
         );
         _expectEmit3();
         emit ZoraAuctionExpired(proposalData.token, proposalData.tokenId, block.timestamp);
-        executeProposal(proposalId, proposal, progressData);
+        _executeProposal(proposalId, proposal, progressData);
     }
 
     function testForked_cannotCancelUnexpiredListing() external onlyForked {
@@ -137,7 +137,7 @@ contract ListOnZoraProposalForkedTest is SetupPartyHelper {
             PartyGovernance.Proposal memory proposal,
             ListOnZoraProposal.ZoraProposalData memory proposalData
         ) = _buildZoraProposal();
-        (uint256 proposalId, bytes memory progressData) = proposePassAndExecuteProposal(proposal);
+        (uint256 proposalId, bytes memory progressData) = _proposePassAndExecuteProposal(proposal);
         skip(proposalData.timeout - 1);
         vm.expectRevert(
             abi.encodeWithSelector(
@@ -147,7 +147,7 @@ contract ListOnZoraProposalForkedTest is SetupPartyHelper {
                 block.timestamp + 1
             )
         );
-        executeProposal(proposalId, proposal, progressData);
+        _executeProposal(proposalId, proposal, progressData);
     }
 
     function testForked_cannotSettleOngoingListing() external onlyForked {
@@ -155,7 +155,7 @@ contract ListOnZoraProposalForkedTest is SetupPartyHelper {
             PartyGovernance.Proposal memory proposal,
             ListOnZoraProposal.ZoraProposalData memory proposalData
         ) = _buildZoraProposal();
-        (uint256 proposalId, bytes memory progressData) = proposePassAndExecuteProposal(proposal);
+        (uint256 proposalId, bytes memory progressData) = _proposePassAndExecuteProposal(proposal);
         _bidOnListing(proposalData.token, proposalData.tokenId, proposalData.listPrice);
         vm.expectRevert(
             abi.encodeWithSelector(
@@ -165,7 +165,7 @@ contract ListOnZoraProposalForkedTest is SetupPartyHelper {
                 block.timestamp + proposalData.duration
             )
         );
-        executeProposal(proposalId, proposal, progressData);
+        _executeProposal(proposalId, proposal, progressData);
     }
 
     function testForked_canSettleSuccessfulListing() external onlyForked {
@@ -173,7 +173,7 @@ contract ListOnZoraProposalForkedTest is SetupPartyHelper {
             PartyGovernance.Proposal memory proposal,
             ListOnZoraProposal.ZoraProposalData memory proposalData
         ) = _buildZoraProposal();
-        (uint256 proposalId, bytes memory progressData) = proposePassAndExecuteProposal(proposal);
+        (uint256 proposalId, bytes memory progressData) = _proposePassAndExecuteProposal(proposal);
         uint32 auctionStartTime = uint32(block.timestamp);
         _bidOnListing(john, proposalData.token, proposalData.tokenId, proposalData.listPrice);
         skip(proposalData.duration);
@@ -194,7 +194,7 @@ contract ListOnZoraProposalForkedTest is SetupPartyHelper {
         );
         _expectEmit3();
         emit ZoraAuctionSold(proposalData.token, proposalData.tokenId);
-        assertTrue(executeProposal(proposalId, proposal, progressData).length == 0);
+        assertTrue(_executeProposal(proposalId, proposal, progressData).length == 0);
         assertEq(address(party).balance, proposalData.listPrice);
     }
 
@@ -203,7 +203,7 @@ contract ListOnZoraProposalForkedTest is SetupPartyHelper {
             PartyGovernance.Proposal memory proposal,
             ListOnZoraProposal.ZoraProposalData memory proposalData
         ) = _buildZoraProposal();
-        (uint256 proposalId, bytes memory progressData) = proposePassAndExecuteProposal(proposal);
+        (uint256 proposalId, bytes memory progressData) = _proposePassAndExecuteProposal(proposal);
         uint32 auctionStartTime = uint32(block.timestamp);
         _bidOnListing(john, proposalData.token, proposalData.tokenId, proposalData.listPrice);
         skip(proposalData.duration);
@@ -225,7 +225,7 @@ contract ListOnZoraProposalForkedTest is SetupPartyHelper {
         ZORA.settleAuction(proposalData.token, proposalData.tokenId);
         _expectEmit3();
         emit ZoraAuctionSold(proposalData.token, proposalData.tokenId);
-        assertTrue(executeProposal(proposalId, proposal, progressData).length == 0);
+        assertTrue(_executeProposal(proposalId, proposal, progressData).length == 0);
         assertEq(address(party).balance, proposalData.listPrice);
     }
 

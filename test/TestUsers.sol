@@ -46,6 +46,10 @@ contract GlobalsAdmin is Test {
     function setRendererStorage(address rendererStorage) public {
         globals.setAddress(LibGlobals.GLOBAL_RENDERER_STORAGE, rendererStorage);
     }
+
+    function setOffChainSignatureValidator(address signatureValidator) public {
+        globals.setAddress(LibGlobals.GLOBAL_OFF_CHAIN_SIGNATURE_VALIDATOR, signatureValidator);
+    }
 }
 
 contract PartyAdmin is Test {
