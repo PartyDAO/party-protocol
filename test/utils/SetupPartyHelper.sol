@@ -67,7 +67,7 @@ abstract contract SetupPartyHelper is TestUtils, ERC721Receiver {
         opts.governance.passThresholdBps = 1000;
         opts.governance.totalVotingPower = 301;
 
-        partyFactory = new PartyFactory();
+        partyFactory = new PartyFactory(globals);
         address[] memory authorities = new address[](1);
         authorities[0] = address(this);
         party = partyFactory.createParty(
