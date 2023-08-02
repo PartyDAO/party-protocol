@@ -1,14 +1,17 @@
 // SPDX-License-Identifier: GPL-3.0
 pragma solidity 0.8.20;
 
-import "./ETHCrowdfundBase.sol";
-import "../utils/LibAddress.sol";
-import "../utils/LibRawResult.sol";
-import "../utils/LibSafeCast.sol";
-import "../party/Party.sol";
-import "../crowdfund/Crowdfund.sol";
-import "../renderers/MetadataProvider.sol";
-import "../gatekeepers/IGateKeeper.sol";
+import { ETHCrowdfundBase } from "./ETHCrowdfundBase.sol";
+import { ProposalStorage } from "../proposals/ProposalStorage.sol";
+import { LibAddress } from "../utils/LibAddress.sol";
+import { LibRawResult } from "../utils/LibRawResult.sol";
+import { LibSafeCast } from "../utils/LibSafeCast.sol";
+import { Party, PartyGovernance } from "../party/Party.sol";
+import { Crowdfund } from "../crowdfund/Crowdfund.sol";
+import { MetadataProvider } from "../renderers/MetadataProvider.sol";
+import { IGateKeeper } from "../gatekeepers/IGateKeeper.sol";
+import { IGlobals } from "../globals/IGlobals.sol";
+import { IERC721 } from "../tokens/IERC721.sol";
 
 /// @notice A crowdfund for raising the initial funds for new parties.
 ///         Unlike other crowdfunds that are started for the purpose of
@@ -393,7 +396,7 @@ contract InitialETHCrowdfund is ETHCrowdfundBase {
         address[] memory authorities = new address[](1);
         authorities[0] = address(this);
 
-        if (customMetadata.length == 0) {
+        if (address(customMetadataProvider) == address(0)) {
             return
                 opts.governanceOpts.partyFactory.createParty(
                     opts.governanceOpts.partyImpl,

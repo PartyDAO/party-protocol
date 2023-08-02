@@ -2,6 +2,7 @@
 pragma solidity 0.8.20;
 
 import "contracts/renderers/MetadataRegistry.sol";
+import "contracts/renderers/MetadataProvider.sol";
 import "contracts/globals/Globals.sol";
 import "contracts/globals/LibGlobals.sol";
 import "forge-std/Test.sol";
@@ -114,6 +115,19 @@ contract MetadataRegistryTest is Test, TestUtils {
         registry.setProvider(instance, provider);
     }
 
+    function test_setProvider_asInstance() public {
+        IMetadataProvider provider = IMetadataProvider(_randomAddress());
+        address instance = _randomAddress();
+
+        // Set the provider
+        vm.prank(instance);
+        vm.expectEmit(true, true, true, true);
+        emit ProviderSet(instance, provider);
+        registry.setProvider(instance, provider);
+
+        assertTrue(registry.getProvider(instance) == provider);
+    }
+
     function test_setProvider_asRegistrar() public {
         IMetadataProvider provider = IMetadataProvider(_randomAddress());
         address registrar = _randomAddress();
@@ -154,5 +168,22 @@ contract MetadataRegistryTest is Test, TestUtils {
 
             assertTrue(registry.getProvider(instances[i]) == provider);
         }
+    }
+
+    function test_getMetadata_works() public {
+        MetadataProvider provider = new MetadataProvider(globals);
+        address registrar = _randomAddress();
+        address instance = _randomAddress();
+
+        // Set the provider
+        vm.prank(instance);
+        registry.setProvider(instance, provider);
+
+        // Set the metadata
+        bytes memory metadata = abi.encodePacked(_randomBytes32());
+        vm.prank(instance);
+        provider.setMetadata(instance, metadata);
+
+        assertEq(registry.getMetadata(instance, 0), metadata);
     }
 }

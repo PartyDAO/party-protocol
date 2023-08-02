@@ -1,16 +1,20 @@
 // SPDX-License-Identifier: GPL-3.0
 pragma solidity 0.8.20;
 
-import "../utils/LibRawResult.sol";
-import "../utils/Proxy.sol";
+import { LibRawResult } from "../utils/LibRawResult.sol";
+import { Proxy } from "../utils/Proxy.sol";
+import { Implementation } from "../utils/Implementation.sol";
+import { IGateKeeper } from "../gatekeepers/IGateKeeper.sol";
 
-import "./AuctionCrowdfund.sol";
-import "./BuyCrowdfund.sol";
-import "./CollectionBuyCrowdfund.sol";
-import "./RollingAuctionCrowdfund.sol";
-import "./CollectionBatchBuyCrowdfund.sol";
-import "./InitialETHCrowdfund.sol";
-import "./ReraiseETHCrowdfund.sol";
+import { AuctionCrowdfund, AuctionCrowdfundBase } from "./AuctionCrowdfund.sol";
+import { BuyCrowdfund } from "./BuyCrowdfund.sol";
+import { CollectionBuyCrowdfund } from "./CollectionBuyCrowdfund.sol";
+import { RollingAuctionCrowdfund } from "./RollingAuctionCrowdfund.sol";
+import { CollectionBatchBuyCrowdfund } from "./CollectionBatchBuyCrowdfund.sol";
+import { InitialETHCrowdfund, ETHCrowdfundBase } from "./InitialETHCrowdfund.sol";
+import { ReraiseETHCrowdfund } from "./ReraiseETHCrowdfund.sol";
+import { MetadataProvider } from "../renderers/MetadataProvider.sol";
+import { Party } from "../party/Party.sol";
 
 /// @notice Factory used to deploys new proxified `Crowdfund` instances.
 contract CrowdfundFactory {
@@ -66,7 +70,7 @@ contract CrowdfundFactory {
         BuyCrowdfund crowdfundImpl,
         BuyCrowdfund.BuyCrowdfundOptions memory opts,
         bytes memory createGateCallData
-    ) public payable returns (BuyCrowdfund inst) {
+    ) external payable returns (BuyCrowdfund inst) {
         opts.gateKeeperId = _prepareGate(opts.gateKeeper, opts.gateKeeperId, createGateCallData);
         inst = BuyCrowdfund(
             payable(
@@ -90,7 +94,7 @@ contract CrowdfundFactory {
         AuctionCrowdfund crowdfundImpl,
         AuctionCrowdfundBase.AuctionCrowdfundOptions memory opts,
         bytes memory createGateCallData
-    ) public payable returns (AuctionCrowdfund inst) {
+    ) external payable returns (AuctionCrowdfund inst) {
         opts.gateKeeperId = _prepareGate(opts.gateKeeper, opts.gateKeeperId, createGateCallData);
         inst = AuctionCrowdfund(
             payable(
@@ -115,7 +119,7 @@ contract CrowdfundFactory {
         AuctionCrowdfundBase.AuctionCrowdfundOptions memory opts,
         bytes32 allowedAuctionsMerkleRoot,
         bytes memory createGateCallData
-    ) public payable returns (RollingAuctionCrowdfund inst) {
+    ) external payable returns (RollingAuctionCrowdfund inst) {
         opts.gateKeeperId = _prepareGate(opts.gateKeeper, opts.gateKeeperId, createGateCallData);
         inst = RollingAuctionCrowdfund(
             payable(
@@ -141,7 +145,7 @@ contract CrowdfundFactory {
         CollectionBuyCrowdfund crowdfundImpl,
         CollectionBuyCrowdfund.CollectionBuyCrowdfundOptions memory opts,
         bytes memory createGateCallData
-    ) public payable returns (CollectionBuyCrowdfund inst) {
+    ) external payable returns (CollectionBuyCrowdfund inst) {
         opts.gateKeeperId = _prepareGate(opts.gateKeeper, opts.gateKeeperId, createGateCallData);
         inst = CollectionBuyCrowdfund(
             payable(
@@ -164,7 +168,7 @@ contract CrowdfundFactory {
         CollectionBatchBuyCrowdfund crowdfundImpl,
         CollectionBatchBuyCrowdfund.CollectionBatchBuyCrowdfundOptions memory opts,
         bytes memory createGateCallData
-    ) public payable returns (CollectionBatchBuyCrowdfund inst) {
+    ) external payable returns (CollectionBatchBuyCrowdfund inst) {
         opts.gateKeeperId = _prepareGate(opts.gateKeeper, opts.gateKeeperId, createGateCallData);
         inst = CollectionBatchBuyCrowdfund(
             payable(
@@ -190,24 +194,16 @@ contract CrowdfundFactory {
         InitialETHCrowdfund.InitialETHCrowdfundOptions memory crowdfundOpts,
         InitialETHCrowdfund.ETHPartyOptions memory partyOpts,
         bytes memory createGateCallData
-    ) public payable returns (InitialETHCrowdfund inst) {
-        crowdfundOpts.gateKeeperId = _prepareGate(
-            crowdfundOpts.gateKeeper,
-            crowdfundOpts.gateKeeperId,
-            createGateCallData
-        );
-        inst = InitialETHCrowdfund(
-            payable(
-                new Proxy{ value: msg.value }(
-                    Implementation(address(crowdfundImpl)),
-                    abi.encodeCall(
-                        InitialETHCrowdfund.initialize,
-                        (crowdfundOpts, partyOpts, MetadataProvider(address(0)), "")
-                    )
-                )
-            )
-        );
-        emit InitialETHCrowdfundCreated(msg.sender, inst, inst.party(), crowdfundOpts, partyOpts);
+    ) external payable returns (InitialETHCrowdfund inst) {
+        return
+            createInitialETHCrowdfundWithMetadata(
+                crowdfundImpl,
+                crowdfundOpts,
+                partyOpts,
+                MetadataProvider(address(0)),
+                "",
+                createGateCallData
+            );
     }
 
     /// @notice Create a new crowdfund to raise ETH for a new party.
@@ -255,7 +251,7 @@ contract CrowdfundFactory {
         ReraiseETHCrowdfund crowdfundImpl,
         ETHCrowdfundBase.ETHCrowdfundOptions memory opts,
         bytes memory createGateCallData
-    ) public payable returns (ReraiseETHCrowdfund inst) {
+    ) external payable returns (ReraiseETHCrowdfund inst) {
         opts.gateKeeperId = _prepareGate(opts.gateKeeper, opts.gateKeeperId, createGateCallData);
         inst = ReraiseETHCrowdfund(
             payable(
