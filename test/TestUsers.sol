@@ -50,6 +50,10 @@ contract GlobalsAdmin is Test {
     function setMetadataRegistry(address metadataRegistry) public {
         globals.setAddress(LibGlobals.GLOBAL_METADATA_REGISTRY, metadataRegistry);
     }
+
+    function setOffChainSignatureValidator(address signatureValidator) public {
+        globals.setAddress(LibGlobals.GLOBAL_OFF_CHAIN_SIGNATURE_VALIDATOR, signatureValidator);
+    }
 }
 
 contract PartyAdmin is Test {

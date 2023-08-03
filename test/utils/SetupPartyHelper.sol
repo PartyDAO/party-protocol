@@ -14,14 +14,22 @@ import { MockZoraReserveAuctionCoreEth } from "../proposals/MockZoraReserveAucti
 import { IReserveAuctionCoreEth } from "../../contracts/vendor/markets/IReserveAuctionCoreEth.sol";
 import { PartyGovernance } from "../../contracts/party/PartyGovernance.sol";
 import { ERC721Receiver } from "../../contracts/tokens/ERC721Receiver.sol";
+import { OffChainSignatureValidator } from "../../contracts/signature-validators/OffChainSignatureValidator.sol";
 
 /// @notice This contract provides a fully functioning party instance for testing.
 ///     Run setup from inheriting contract.
 abstract contract SetupPartyHelper is TestUtils, ERC721Receiver {
+    struct SetupPartyParams {
+        uint96 johnVotes;
+        uint96 dannyVotes;
+        uint96 steveVotes;
+        uint96 thisVotes;
+    }
+
     bool private immutable _isForked;
     GlobalsAdmin globalsAdmin;
     Party party;
-    Globals private globals;
+    Globals internal globals;
     PartyFactory private partyFactory;
     uint256 internal johnPk = 0xa11ce;
     uint256 internal dannyPk = 0xb0b;
@@ -29,12 +37,24 @@ abstract contract SetupPartyHelper is TestUtils, ERC721Receiver {
     address internal john = vm.addr(johnPk);
     address internal danny = vm.addr(dannyPk);
     address internal steve = vm.addr(stevePk);
+    uint96 internal johnVotes;
+    uint96 internal dannyVotes;
+    uint96 internal steveVotes;
+    uint96 internal thisVotes;
     IERC721[] private preciousTokens = new IERC721[](0);
     uint256[] private preciousTokenIds = new uint256[](0);
     uint40 private constant _EXECUTION_DELAY = 300;
 
     constructor(bool isForked) {
         _isForked = isForked;
+    }
+
+    function setUpWithParams(SetupPartyParams memory params) public {
+        johnVotes = params.johnVotes;
+        dannyVotes = params.dannyVotes;
+        steveVotes = params.steveVotes;
+        thisVotes = params.thisVotes;
+        SetupPartyHelper.setUp();
     }
 
     function setUp() public virtual {
@@ -56,6 +76,14 @@ abstract contract SetupPartyHelper is TestUtils, ERC721Receiver {
 
         globalsAdmin.setProposalEng(address(pe));
 
+        OffChainSignatureValidator offChainGlobalValidator = new OffChainSignatureValidator();
+        globalsAdmin.setOffChainSignatureValidator(address(offChainGlobalValidator));
+
+        johnVotes = johnVotes == 0 ? 100 : johnVotes;
+        dannyVotes = dannyVotes == 0 ? 100 : dannyVotes;
+        steveVotes = steveVotes == 0 ? 100 : steveVotes;
+        thisVotes = thisVotes == 0 ? 1 : thisVotes;
+
         Party.PartyOptions memory opts;
         address[] memory hosts = new address[](1);
         hosts[0] = address(420);
@@ -65,7 +93,7 @@ abstract contract SetupPartyHelper is TestUtils, ERC721Receiver {
         opts.governance.voteDuration = 99;
         opts.governance.executionDelay = _EXECUTION_DELAY;
         opts.governance.passThresholdBps = 1000;
-        opts.governance.totalVotingPower = 301;
+        opts.governance.totalVotingPower = johnVotes + dannyVotes + steveVotes + thisVotes;
 
         partyFactory = new PartyFactory(globals);
         address[] memory authorities = new address[](1);
@@ -78,10 +106,10 @@ abstract contract SetupPartyHelper is TestUtils, ERC721Receiver {
             preciousTokenIds,
             0
         );
-        party.mint(john, 100, john);
-        party.mint(danny, 100, danny);
-        party.mint(steve, 100, steve);
-        party.mint(address(this), 1, address(this));
+        party.mint(john, johnVotes, john);
+        party.mint(danny, dannyVotes, danny);
+        party.mint(steve, steveVotes, steve);
+        party.mint(address(this), thisVotes, address(this));
         vm.warp(block.timestamp + 100);
         vm.roll(block.number + 10);
     }
@@ -89,7 +117,7 @@ abstract contract SetupPartyHelper is TestUtils, ERC721Receiver {
     /// @notice Propose pass and wait for the execution delay of a proposal
     /// @param proposal The `PartyGovernance.Proposal` struct representing the proposal
     /// @return proposalId The proposal id for the proposal
-    function proposeAndPassProposal(
+    function _proposeAndPassProposal(
         PartyGovernance.Proposal memory proposal
     ) internal returns (uint256 proposalId) {
         vm.prank(john);
@@ -102,11 +130,11 @@ abstract contract SetupPartyHelper is TestUtils, ERC721Receiver {
     /// @param proposal The `PartyGovernance.Proposal` struct representing the proposal
     /// @return proposalId The proposal id for the proposal
     /// @return progressData The progress data returned from the proposal execution
-    function proposePassAndExecuteProposal(
+    function _proposePassAndExecuteProposal(
         PartyGovernance.Proposal memory proposal
     ) internal returns (uint256, bytes memory) {
-        uint256 proposalId = proposeAndPassProposal(proposal);
-        bytes memory progressData = executeProposal(proposalId, proposal);
+        uint256 proposalId = _proposeAndPassProposal(proposal);
+        bytes memory progressData = _executeProposal(proposalId, proposal);
         return (proposalId, progressData);
     }
 
@@ -114,11 +142,11 @@ abstract contract SetupPartyHelper is TestUtils, ERC721Receiver {
     /// @param proposalId The proposal id for the proposal
     /// @param proposal The `PartyGovernance.Proposal` struct representing the proposal
     /// @return progressData The progress data returned from the proposal execution
-    function executeProposal(
+    function _executeProposal(
         uint256 proposalId,
         PartyGovernance.Proposal memory proposal
     ) internal returns (bytes memory) {
-        return executeProposal(proposalId, proposal, "");
+        return _executeProposal(proposalId, proposal, "");
     }
 
     /// @notice Execute the given proposal with `progressData`
@@ -126,7 +154,7 @@ abstract contract SetupPartyHelper is TestUtils, ERC721Receiver {
     /// @param proposal The `PartyGovernance.Proposal` struct representing the proposal
     /// @param progressData The progress data to pass to the proposal execution
     /// @return progressData The progress data returned from the proposal execution
-    function executeProposal(
+    function _executeProposal(
         uint256 proposalId,
         PartyGovernance.Proposal memory proposal,
         bytes memory progressData
