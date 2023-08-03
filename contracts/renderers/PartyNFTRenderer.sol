@@ -199,16 +199,16 @@ contract PartyNFTRenderer is RendererBase {
                             ? generateExternalURL()
                             : metadata.externalURL,
                         bytes(metadata.animationURL).length == 0
-                            ? '", '
-                            : string.concat('", "animation_url":"', metadata.animationURL, '"'),
-                        hasPartyStarted()
-                            ? string.concat('"attributes": [', generateAttributes(tokenId), "]")
-                            : "",
-                        ', "party_card_url":"', // Custom metadata field.
+                            ? ""
+                            : string.concat('", "animation_url":"', metadata.animationURL),
+                        '", "party_card_url":"', // Custom metadata field.
                         image,
                         '", "image":"',
                         bytes(metadata.image).length == 0 ? image : metadata.image,
-                        '"}'
+                        hasPartyStarted()
+                            ? string.concat('", "attributes": [', generateAttributes(tokenId), "]")
+                            : '"',
+                        "}"
                     )
                 )
             );
