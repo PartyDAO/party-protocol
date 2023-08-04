@@ -33,7 +33,7 @@ contract PartyGovernanceTest is Test, TestUtils {
         eng = new DummySimpleProposalEngineImpl();
         globalsAdmin.setProposalEng(address(eng));
 
-        partyFactory = new PartyFactory();
+        partyFactory = new PartyFactory(globals);
 
         john = new PartyParticipant();
         danny = new PartyParticipant();

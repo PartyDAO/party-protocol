@@ -32,4 +32,24 @@ contract MockPartyFactory is IPartyFactory {
         );
         return Party(payable(address(mockParty)));
     }
+
+    function createPartyWithMetadata(
+        Party,
+        address[] memory authorities,
+        Party.PartyOptions memory opts,
+        IERC721[] memory preciousTokens,
+        uint256[] memory preciousTokenIds,
+        uint40,
+        MetadataProvider,
+        bytes memory
+    ) external returns (Party party) {
+        emit MockPartyFactoryCreateParty(
+            msg.sender,
+            authorities,
+            opts,
+            preciousTokens,
+            preciousTokenIds
+        );
+        return Party(payable(address(mockParty)));
+    }
 }

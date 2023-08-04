@@ -8,11 +8,15 @@ import "../../contracts/globals/Globals.sol";
 import "../TestUtils.sol";
 import "../../contracts/proposals/ProposalExecutionEngine.sol";
 import { MockZoraReserveAuctionCoreEth } from "../proposals/MockZoraReserveAuctionCoreEth.sol";
+import "../../contracts/renderers/MetadataProvider.sol";
+import "../../contracts/renderers/MetadataRegistry.sol";
 
 contract PartyFactoryTest is Test, TestUtils {
     Globals globals = new Globals(address(this));
     Party partyImpl = new Party(globals);
-    PartyFactory factory = new PartyFactory();
+    PartyFactory factory = new PartyFactory(globals);
+    MetadataRegistry registry = new MetadataRegistry(globals, _toAddressArray(address(factory)));
+    MetadataProvider provider = new MetadataProvider(globals);
     ProposalExecutionEngine eng;
     Party.PartyOptions defaultPartyOptions;
 
@@ -33,6 +37,7 @@ contract PartyFactoryTest is Test, TestUtils {
         );
 
         globals.setAddress(LibGlobals.GLOBAL_PROPOSAL_ENGINE_IMPL, address(eng));
+        globals.setAddress(LibGlobals.GLOBAL_METADATA_REGISTRY, address(registry));
     }
 
     function _createPreciouses(
@@ -115,6 +120,72 @@ contract PartyFactoryTest is Test, TestUtils {
         assertEq(proposalEngineOpts.allowOperators, randomBool);
         assertEq(proposalEngineOpts.distributionsRequireVote, randomBool);
         assertEq(party.preciousListHash(), _hashPreciousList(preciousTokens, preciousTokenIds));
+    }
+
+    function testCreatePartyWithMetadata(
+        string memory randomStr,
+        uint96 randomUint96,
+        uint40 randomUint40,
+        uint16 randomBps,
+        bool randomBool,
+        bytes memory metadata
+    ) external {
+        vm.assume(randomBps <= 1e4);
+
+        address authority = _randomAddress();
+        (IERC721[] memory preciousTokens, uint256[] memory preciousTokenIds) = _createPreciouses(3);
+        Party.PartyOptions memory opts = Party.PartyOptions({
+            governance: PartyGovernance.GovernanceOpts({
+                hosts: _toAddressArray(_randomAddress()),
+                voteDuration: randomUint40,
+                executionDelay: randomUint40,
+                passThresholdBps: randomBps,
+                totalVotingPower: randomUint96,
+                feeBps: randomBps,
+                feeRecipient: payable(_randomAddress())
+            }),
+            proposalEngine: ProposalStorage.ProposalEngineOpts({
+                enableAddAuthorityProposal: randomBool,
+                allowArbCallsToSpendPartyEth: randomBool,
+                allowOperators: randomBool,
+                distributionsRequireVote: randomBool
+            }),
+            name: randomStr,
+            symbol: randomStr,
+            customizationPresetId: 0
+        });
+        Party party = factory.createPartyWithMetadata(
+            partyImpl,
+            _toAddressArray(authority),
+            opts,
+            preciousTokens,
+            preciousTokenIds,
+            randomUint40,
+            provider,
+            metadata
+        );
+
+        assertEq(party.VERSION_ID(), 1);
+        assertEq(party.name(), opts.name);
+        assertEq(party.symbol(), opts.symbol);
+        assertTrue(party.isAuthority(authority));
+        assertEq(party.rageQuitTimestamp(), randomUint40);
+        PartyGovernance.GovernanceValues memory values = party.getGovernanceValues();
+        assertEq(values.voteDuration, opts.governance.voteDuration);
+        assertEq(values.executionDelay, opts.governance.executionDelay);
+        assertEq(values.passThresholdBps, opts.governance.passThresholdBps);
+        assertEq(values.totalVotingPower, opts.governance.totalVotingPower);
+        assertEq(party.feeBps(), opts.governance.feeBps);
+        assertEq(party.feeRecipient(), opts.governance.feeRecipient);
+        assertEq(address(party.getProposalExecutionEngine()), address(eng));
+        ProposalStorage.ProposalEngineOpts memory proposalEngineOpts = party
+            .getProposalEngineOpts();
+        assertEq(proposalEngineOpts.allowArbCallsToSpendPartyEth, randomBool);
+        assertEq(proposalEngineOpts.allowOperators, randomBool);
+        assertEq(proposalEngineOpts.distributionsRequireVote, randomBool);
+        assertEq(party.preciousListHash(), _hashPreciousList(preciousTokens, preciousTokenIds));
+        assertEq(address(registry.getProvider(address(party))), address(provider));
+        assertEq(provider.getMetadata(address(party), 0), metadata);
     }
 
     function testCreatePartyWithInvalidBps(uint16 passThresholdBps, uint16 feeBps) external {

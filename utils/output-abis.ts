@@ -24,6 +24,8 @@ const RELEVANT_ABIS = [
   "PixeldroidConsoleFont",
   "Globals",
   "ERC20SwapOperator",
+  "MetadataProvider",
+  "MetadataRegistry",
 ];
 
 // AFileName -> a_file_name

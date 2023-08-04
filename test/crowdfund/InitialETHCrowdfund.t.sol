@@ -9,6 +9,7 @@ import "../../contracts/utils/Proxy.sol";
 import "../../contracts/party/PartyFactory.sol";
 import "../../contracts/tokens/ERC721Receiver.sol";
 import "../../contracts/renderers/PartyNFTRenderer.sol";
+import "../../contracts/renderers/MetadataRegistry.sol";
 import "../../contracts/renderers/RendererStorage.sol";
 import "../../contracts/renderers/fonts/PixeldroidConsoleFont.sol";
 import "../../contracts/distribution/TokenDistributor.sol";
@@ -37,9 +38,11 @@ contract InitialETHCrowdfundTest is Test, TestUtils, ERC721Receiver {
     constructor() {
         globals = new Globals(address(this));
         partyImpl = new Party(globals);
-        partyFactory = new PartyFactory();
+        partyFactory = new PartyFactory(globals);
 
         initialETHCrowdfundImpl = new InitialETHCrowdfund(globals);
+
+        MetadataRegistry metadataRegistry = new MetadataRegistry(globals, new address[](0));
 
         // Upload font on-chain
         PixeldroidConsoleFont font = new PixeldroidConsoleFont();
@@ -50,21 +53,22 @@ contract InitialETHCrowdfundTest is Test, TestUtils, ERC721Receiver {
         globals.setAddress(LibGlobals.GLOBAL_GOVERNANCE_NFT_RENDER_IMPL, address(nftRenderer));
         globals.setAddress(LibGlobals.GLOBAL_RENDERER_STORAGE, address(nftRendererStorage));
         globals.setAddress(LibGlobals.GLOBAL_TOKEN_DISTRIBUTOR, address(tokenDistributor));
+        globals.setAddress(LibGlobals.GLOBAL_METADATA_REGISTRY, address(metadataRegistry));
 
         // Generate customization options.
         uint256 versionId = 1;
-        uint256 numOfColors = uint8(type(RendererBase.Color).max) + 1;
+        uint256 numOfColors = uint8(type(Color).max) + 1;
         for (uint256 i; i < numOfColors; ++i) {
             // Generate customization options for all colors w/ each mode (light and dark).
             nftRendererStorage.createCustomizationPreset(
                 // Preset ID 0 is reserved. It is used to indicates to party instances
                 // to use the same customization preset as the crowdfund.
                 i + 1,
-                abi.encode(versionId, false, RendererBase.Color(i))
+                abi.encode(versionId, false, Color(i))
             );
             nftRendererStorage.createCustomizationPreset(
                 i + 1 + numOfColors,
-                abi.encode(versionId, true, RendererBase.Color(i))
+                abi.encode(versionId, true, Color(i))
             );
         }
     }
@@ -119,7 +123,10 @@ contract InitialETHCrowdfundTest is Test, TestUtils, ERC721Receiver {
             payable(
                 new Proxy{ value: args.initialContribution }(
                     initialETHCrowdfundImpl,
-                    abi.encodeCall(InitialETHCrowdfund.initialize, (crowdfundOpts, partyOpts))
+                    abi.encodeCall(
+                        InitialETHCrowdfund.initialize,
+                        (crowdfundOpts, partyOpts, MetadataProvider(address(0)), "")
+                    )
                 )
             )
         );
@@ -149,7 +156,7 @@ contract InitialETHCrowdfundTest is Test, TestUtils, ERC721Receiver {
         InitialETHCrowdfund.ETHPartyOptions memory partyOpts;
 
         vm.expectRevert(Implementation.OnlyConstructorError.selector);
-        crowdfund.initialize(crowdfundOpts, partyOpts);
+        crowdfund.initialize(crowdfundOpts, partyOpts, MetadataProvider(address(0)), "");
     }
 
     function test_initialization_minTotalContributionsGreaterThanMax() public {

@@ -47,6 +47,10 @@ contract GlobalsAdmin is Test {
         globals.setAddress(LibGlobals.GLOBAL_RENDERER_STORAGE, rendererStorage);
     }
 
+    function setMetadataRegistry(address metadataRegistry) public {
+        globals.setAddress(LibGlobals.GLOBAL_METADATA_REGISTRY, metadataRegistry);
+    }
+
     function setOffChainSignatureValidator(address signatureValidator) public {
         globals.setAddress(LibGlobals.GLOBAL_OFF_CHAIN_SIGNATURE_VALIDATOR, signatureValidator);
     }
