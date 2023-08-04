@@ -1,13 +1,17 @@
 // SPDX-License-Identifier: GPL-3.0
 pragma solidity 0.8.20;
 
-import "./ETHCrowdfundBase.sol";
-import "../utils/LibAddress.sol";
-import "../utils/LibRawResult.sol";
-import "../utils/LibSafeCast.sol";
-import "../party/Party.sol";
-import "../crowdfund/Crowdfund.sol";
-import "../gatekeepers/IGateKeeper.sol";
+import { ETHCrowdfundBase } from "./ETHCrowdfundBase.sol";
+import { ProposalStorage } from "../proposals/ProposalStorage.sol";
+import { LibAddress } from "../utils/LibAddress.sol";
+import { LibRawResult } from "../utils/LibRawResult.sol";
+import { LibSafeCast } from "../utils/LibSafeCast.sol";
+import { Party, PartyGovernance } from "../party/Party.sol";
+import { Crowdfund } from "../crowdfund/Crowdfund.sol";
+import { MetadataProvider } from "../renderers/MetadataProvider.sol";
+import { IGateKeeper } from "../gatekeepers/IGateKeeper.sol";
+import { IGlobals } from "../globals/IGlobals.sol";
+import { IERC721 } from "../tokens/IERC721.sol";
 
 /// @notice A crowdfund for raising the initial funds for new parties.
 ///         Unlike other crowdfunds that are started for the purpose of
@@ -36,13 +40,23 @@ contract InitialETHCrowdfund is ETHCrowdfundBase {
     }
 
     struct ETHPartyOptions {
+        // Name of the party.
         string name;
+        // Symbol of the party.
         string symbol;
+        // The ID of the customization preset to use for the party card.
         uint256 customizationPresetId;
+        // Options to initialize party governance with.
         Crowdfund.FixedGovernanceOpts governanceOpts;
+        // Options to initialize party proposal engine with.
         ProposalStorage.ProposalEngineOpts proposalEngineOpts;
+        // The tokens that are considered precious by the party.These are
+        // protected assets and are subject to extra restrictions in proposals
+        // vs other assets.
         IERC721[] preciousTokens;
+        // The IDs associated with each token in `preciousTokens`.
         uint256[] preciousTokenIds;
+        // The timestamp until which ragequit is enabled.
         uint40 rageQuitTimestamp;
     }
 
@@ -88,12 +102,17 @@ contract InitialETHCrowdfund is ETHCrowdfundBase {
     ///         revert if called outside the constructor.
     /// @param crowdfundOpts Options to initialize the crowdfund with.
     /// @param partyOpts Options to initialize the party with.
+    /// @param customMetadataProvider Optional provider to use for the party for
+    ///                               rendering custom metadata.
+    /// @param customMetadata Optional custom metadata to use for the party.
     function initialize(
         InitialETHCrowdfundOptions memory crowdfundOpts,
-        ETHPartyOptions memory partyOpts
+        ETHPartyOptions memory partyOpts,
+        MetadataProvider customMetadataProvider,
+        bytes memory customMetadata
     ) external payable onlyConstructor {
         // Create party the initial crowdfund will be for.
-        Party party_ = _createParty(partyOpts);
+        Party party_ = _createParty(partyOpts, customMetadataProvider, customMetadata);
 
         // Initialize the crowdfund.
         _initialize(
@@ -369,32 +388,64 @@ contract InitialETHCrowdfund is ETHCrowdfundBase {
         }
     }
 
-    function _createParty(ETHPartyOptions memory opts) private returns (Party) {
+    function _createParty(
+        ETHPartyOptions memory opts,
+        MetadataProvider customMetadataProvider,
+        bytes memory customMetadata
+    ) private returns (Party) {
         address[] memory authorities = new address[](1);
         authorities[0] = address(this);
 
-        return
-            opts.governanceOpts.partyFactory.createParty(
-                opts.governanceOpts.partyImpl,
-                authorities,
-                Party.PartyOptions({
-                    name: opts.name,
-                    symbol: opts.symbol,
-                    customizationPresetId: opts.customizationPresetId,
-                    governance: PartyGovernance.GovernanceOpts({
-                        hosts: opts.governanceOpts.hosts,
-                        voteDuration: opts.governanceOpts.voteDuration,
-                        executionDelay: opts.governanceOpts.executionDelay,
-                        passThresholdBps: opts.governanceOpts.passThresholdBps,
-                        totalVotingPower: 0,
-                        feeBps: opts.governanceOpts.feeBps,
-                        feeRecipient: opts.governanceOpts.feeRecipient
+        if (address(customMetadataProvider) == address(0)) {
+            return
+                opts.governanceOpts.partyFactory.createParty(
+                    opts.governanceOpts.partyImpl,
+                    authorities,
+                    Party.PartyOptions({
+                        name: opts.name,
+                        symbol: opts.symbol,
+                        customizationPresetId: opts.customizationPresetId,
+                        governance: PartyGovernance.GovernanceOpts({
+                            hosts: opts.governanceOpts.hosts,
+                            voteDuration: opts.governanceOpts.voteDuration,
+                            executionDelay: opts.governanceOpts.executionDelay,
+                            passThresholdBps: opts.governanceOpts.passThresholdBps,
+                            totalVotingPower: 0,
+                            feeBps: opts.governanceOpts.feeBps,
+                            feeRecipient: opts.governanceOpts.feeRecipient
+                        }),
+                        proposalEngine: opts.proposalEngineOpts
                     }),
-                    proposalEngine: opts.proposalEngineOpts
-                }),
-                opts.preciousTokens,
-                opts.preciousTokenIds,
-                opts.rageQuitTimestamp
-            );
+                    opts.preciousTokens,
+                    opts.preciousTokenIds,
+                    opts.rageQuitTimestamp
+                );
+        } else {
+            return
+                opts.governanceOpts.partyFactory.createPartyWithMetadata(
+                    opts.governanceOpts.partyImpl,
+                    authorities,
+                    Party.PartyOptions({
+                        name: opts.name,
+                        symbol: opts.symbol,
+                        customizationPresetId: opts.customizationPresetId,
+                        governance: PartyGovernance.GovernanceOpts({
+                            hosts: opts.governanceOpts.hosts,
+                            voteDuration: opts.governanceOpts.voteDuration,
+                            executionDelay: opts.governanceOpts.executionDelay,
+                            passThresholdBps: opts.governanceOpts.passThresholdBps,
+                            totalVotingPower: 0,
+                            feeBps: opts.governanceOpts.feeBps,
+                            feeRecipient: opts.governanceOpts.feeRecipient
+                        }),
+                        proposalEngine: opts.proposalEngineOpts
+                    }),
+                    opts.preciousTokens,
+                    opts.preciousTokenIds,
+                    opts.rageQuitTimestamp,
+                    customMetadataProvider,
+                    customMetadata
+                );
+        }
     }
 }

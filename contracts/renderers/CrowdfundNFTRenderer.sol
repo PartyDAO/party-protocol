@@ -1,14 +1,18 @@
 // SPDX-License-Identifier: GPL-3.0
 pragma solidity 0.8.20;
 
-import "../utils/LibSafeCast.sol";
-import "../utils/vendor/Strings.sol";
-import "../utils/vendor/Base64.sol";
+import { LibSafeCast } from "../utils/LibSafeCast.sol";
+import { LibRenderer, Color, ColorType } from "../utils/LibRenderer.sol";
+import { Strings } from "../utils/vendor/Strings.sol";
+import { Base64 } from "../utils/vendor/Base64.sol";
 
-import "./RendererBase.sol";
-import "../crowdfund/Crowdfund.sol";
-import "../crowdfund/ReraiseETHCrowdfund.sol";
-import "../crowdfund/ETHCrowdfundBase.sol";
+import { RendererBase } from "./RendererBase.sol";
+import { RendererStorage } from "./RendererStorage.sol";
+import { Crowdfund } from "../crowdfund/Crowdfund.sol";
+import { ReraiseETHCrowdfund } from "../crowdfund/ReraiseETHCrowdfund.sol";
+import { ETHCrowdfundBase } from "../crowdfund/ETHCrowdfundBase.sol";
+import { IFont } from "./fonts/IFont.sol";
+import { IGlobals } from "../globals/IGlobals.sol";
 
 contract CrowdfundNFTRenderer is RendererBase {
     using LibSafeCast for uint256;
@@ -38,7 +42,7 @@ contract CrowdfundNFTRenderer is RendererBase {
 
     function contractURI() external view override returns (string memory) {
         (bool isDarkMode, Color color) = getCustomizationChoices();
-        (string memory image, string memory banner) = getCollectionImageAndBanner(
+        (string memory image, string memory banner) = LibRenderer.getCollectionImageAndBanner(
             color,
             isDarkMode
         );
@@ -195,13 +199,13 @@ contract CrowdfundNFTRenderer is RendererBase {
                 '"/><stop offset="1" stop-color="',
                 isDarkMode ? "#2e3848" : "#bccbdd",
                 '"/></linearGradient><linearGradient id="f" x1="0" x2="0" y1="1" y2="0"><stop offset="0" stop-color="',
-                generateColorHex(color, ColorType.SECONDARY),
+                LibRenderer.generateColorHex(color, ColorType.SECONDARY),
                 '"/><stop offset="1" stop-color="',
-                generateColorHex(color, ColorType.PRIMARY),
+                LibRenderer.generateColorHex(color, ColorType.PRIMARY),
                 '"/></linearGradient><linearGradient id="f2" x1="0" x2="0" y1="-.5" y2="1"><stop offset="0" stop-color="',
-                generateColorHex(color, ColorType.SECONDARY),
+                LibRenderer.generateColorHex(color, ColorType.SECONDARY),
                 '"/><stop offset="1" stop-color="',
-                generateColorHex(color, ColorType.PRIMARY),
+                LibRenderer.generateColorHex(color, ColorType.PRIMARY),
                 '"/></linearGradient><linearGradient id="h" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="',
                 isDarkMode ? "#ffffff" : "#3f485f",
                 '"/><stop offset=".5"  stop-color="',
@@ -214,12 +218,8 @@ contract CrowdfundNFTRenderer is RendererBase {
         string memory partyName,
         Color color
     ) private view returns (string memory) {
-        (
-            uint256 duration,
-            uint256 steps,
-            uint256 delay,
-            uint256 translateX
-        ) = calcAnimationVariables(partyName);
+        (uint256 duration, uint256 steps, uint256 delay, uint256 translateX) = LibRenderer
+            .calcAnimationVariables(partyName);
         return
             string.concat(
                 '<symbol id="b" viewBox="0 0 300 21.15"><path class="s" d="M0 21.08h300m-300-3h300m-300-3h300m-300-3h300m-300-3h300m-300-3h300m-300-3h300M0 .08h300"/></symbol><style>.z{animation:x ',
@@ -231,11 +231,11 @@ contract CrowdfundNFTRenderer is RendererBase {
                 "s}@keyframes x{to{transform:translateX(-",
                 translateX.toString(),
                 "px)}}.o,.p{fill:",
-                generateColorHex(color, ColorType.DARK),
+                LibRenderer.generateColorHex(color, ColorType.DARK),
                 ";font-family:pixeldroidConsoleRegular,Console;font-size:48px}.w{animation:W 1s steps(1, jump-end) infinite;}@keyframes W{50%{fill:",
-                generateColorHex(color, ColorType.LIGHT),
+                LibRenderer.generateColorHex(color, ColorType.LIGHT),
                 "}}.s{fill:none;stroke:",
-                generateColorHex(color, ColorType.PRIMARY),
+                LibRenderer.generateColorHex(color, ColorType.PRIMARY),
                 ";stroke-width:.15px}@font-face{font-family:pixeldroidConsoleRegular;src:url(",
                 _font.getFont(),
                 ");}</style></defs>"
@@ -249,9 +249,9 @@ contract CrowdfundNFTRenderer is RendererBase {
         return
             string.concat(
                 '<rect height="539" rx="29.5" ry="29.5" style="fill:url(#d);stroke:url(#e);" width="359" x=".5" y=".5"/><path d="M30 525.5c-8.55 0-15.5-6.95-15.5-15.5v-98c0-8.55 6.95-15.5 15.5-15.5h113.81a30.5 30.5 0 0 1 19.97 7.45l28.09 24.34a29.48 29.48 0 0 0 19.32 7.21H330c8.55 0 15.5 6.95 15.5 15.5v59c0 8.55-6.95 15.5-15.5 15.5H30Z" style="fill:',
-                generateColorHex(color, ColorType.PRIMARY),
+                LibRenderer.generateColorHex(color, ColorType.PRIMARY),
                 ';stroke:url(#f)"/><path d="M330 444H30v27h300v-27Zm-219-27.5v15H36v-15h75Z" fill="',
-                generateColorHex(color, ColorType.LIGHT),
+                LibRenderer.generateColorHex(color, ColorType.LIGHT),
                 '"/><text class="p" x="33" y="431.5">',
                 contributionAmount,
                 "</text>"
@@ -262,8 +262,8 @@ contract CrowdfundNFTRenderer is RendererBase {
         CrowdfundStatus status,
         Color color
     ) private pure returns (string memory) {
-        string memory activeColorHex = generateColorHex(color, ColorType.DARK);
-        string memory inactiveColorHex = generateColorHex(color, ColorType.LIGHT);
+        string memory activeColorHex = LibRenderer.generateColorHex(color, ColorType.DARK);
+        string memory inactiveColorHex = LibRenderer.generateColorHex(color, ColorType.LIGHT);
         return
             string.concat(
                 '<use height="21.15" transform="matrix(.3 0 0 1 30 413.42)" width="300" xlink:href="#b"/><use height="21.15" transform="matrix(0 -.05 1 0 32.92 431.5)" width="300" xlink:href="#b"/><use height="21.15" transform="matrix(0 -.05 1 0 56.92 431.5)" width="300" xlink:href="#b"/><use height="21.15" transform="matrix(0 -.05 1 0 80.92 431.5)" width="300" xlink:href="#b"/><use height="21.15" transform="matrix(0 -.05 1 0 104.92 431.5)" width="300" xlink:href="#b"/><clipPath id="C1"><path d="M115 480H35a5 5 0 0 0-5 5v20a5 5 0 0 0 5 5h80a5 5 0 0 0 5-5v-20a5 5 0 0 0-5-5Zm-50.74 21.5h-8.4v-13h2.65v10.45h5.75v2.55Zm5.17 0h-2.65v-13h2.65v13Zm9.76 0h-3.35l-4.42-13h2.89l3.2 9.93 3.3-9.93h2.82l-4.44 13Zm14.96 0h-8.53v-13h8.41v2.5h-5.81v2.7h5.41v2.5h-5.41v2.8h5.93v2.5Z" /></clipPath><g clip-path="url(#C1)"><rect class="w" x="30" y="480" width="300" height="35" fill="',
@@ -300,7 +300,7 @@ contract CrowdfundNFTRenderer is RendererBase {
             );
         }
 
-        return formatAsDecimalString(ethContributed, 18, 4);
+        return LibRenderer.formatAsDecimalString(ethContributed, 18, 4);
     }
 
     function getCrowdfundStatus() private view returns (CrowdfundStatus) {

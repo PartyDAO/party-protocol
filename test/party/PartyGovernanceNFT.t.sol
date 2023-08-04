@@ -9,6 +9,8 @@ import "../../contracts/party/Party.sol";
 import "../../contracts/globals/Globals.sol";
 import "../../contracts/renderers/PartyNFTRenderer.sol";
 import "../../contracts/renderers/RendererStorage.sol";
+import "../../contracts/renderers/MetadataRegistry.sol";
+import "../../contracts/renderers/MetadataProvider.sol";
 import "../../contracts/renderers/fonts/PixeldroidConsoleFont.sol";
 import "../proposals/DummySimpleProposalEngineImpl.sol";
 import "../proposals/DummyProposalEngineImpl.sol";
@@ -23,6 +25,8 @@ contract PartyGovernanceNFTTest is Test, TestUtils {
     PartyFactory partyFactory;
     DummySimpleProposalEngineImpl eng;
     PartyNFTRenderer nftRenderer;
+    MetadataRegistry metadataRegistry;
+    MetadataProvider metadataProvider;
     RendererStorage nftRendererStorage;
     TestTokenDistributor tokenDistributor;
     Globals globals;
@@ -47,10 +51,15 @@ contract PartyGovernanceNFTTest is Test, TestUtils {
         eng = new DummySimpleProposalEngineImpl();
         globalsAdmin.setProposalEng(address(eng));
 
-        partyFactory = new PartyFactory();
+        partyFactory = new PartyFactory(globals);
 
         john = new PartyParticipant();
         partyAdmin = new PartyAdmin(partyFactory);
+
+        address[] memory registrars = new address[](0);
+        metadataRegistry = new MetadataRegistry(globals, registrars);
+        metadataProvider = new MetadataProvider(globals);
+        globalsAdmin.setMetadataRegistry(address(metadataRegistry));
 
         // Upload font on-chain
         PixeldroidConsoleFont font = new PixeldroidConsoleFont();
@@ -61,18 +70,18 @@ contract PartyGovernanceNFTTest is Test, TestUtils {
 
         // Generate customization options.
         uint256 versionId = 1;
-        uint256 numOfColors = uint8(type(RendererBase.Color).max) + 1;
+        uint256 numOfColors = uint8(type(Color).max) + 1;
         for (uint256 i; i < numOfColors; ++i) {
             // Generate customization options for all colors w/ each mode (light and dark).
             nftRendererStorage.createCustomizationPreset(
                 // Preset ID 0 is reserved. It is used to indicates to party instances
                 // to use the same customization preset as the crowdfund.
                 i + 1,
-                abi.encode(versionId, false, RendererBase.Color(i))
+                abi.encode(versionId, false, Color(i))
             );
             nftRendererStorage.createCustomizationPreset(
                 i + 1 + numOfColors,
-                abi.encode(versionId, true, RendererBase.Color(i))
+                abi.encode(versionId, true, Color(i))
             );
         }
 
@@ -1219,8 +1228,7 @@ contract PartyGovernanceNFTTest is Test, TestUtils {
             proposalStatuses,
             3,
             420,
-            true,
-            RendererBase.Color.CYAN,
+            Color.CYAN,
             true
         );
 
@@ -1241,7 +1249,6 @@ contract PartyGovernanceNFTTest is Test, TestUtils {
         party.createMockProposal(PartyGovernance.ProposalStatus.Complete);
         party.createMockProposal(PartyGovernance.ProposalStatus.Voting);
         party.createMockProposal(PartyGovernance.ProposalStatus.Ready);
-        party.createMockProposal(PartyGovernance.ProposalStatus.InProgress);
 
         // Mint governance NFT
         uint256 tokenId = 396;
@@ -1255,6 +1262,28 @@ contract PartyGovernanceNFTTest is Test, TestUtils {
 
         // Get token URI
         string memory tokenURI = party.tokenURI(tokenId);
+
+        // Uncomment for testing rendering:
+        // console.log(tokenURI);
+
+        assertTrue(bytes(tokenURI).length > 0);
+    }
+
+    function testTokenURI_withFixedCrowdfundType() public {
+        // Create party
+        DummyParty party = new DummyParty(address(globals), "Party of the Living Dead");
+
+        // Setup party as fixed membership mint party
+        party.setTokenCount(100);
+        party.mint(33);
+        party.setVotingPowerPercentage(33, 0.1e18);
+        party.mint(66);
+        party.setVotingPowerPercentage(66, 0.1e18);
+        party.mint(99);
+        party.setVotingPowerPercentage(99, 0.1e18);
+
+        // Get token URI
+        string memory tokenURI = party.tokenURI(33);
 
         // Uncomment for testing rendering:
         // console.log(tokenURI);
@@ -1281,7 +1310,6 @@ contract PartyGovernanceNFTTest is Test, TestUtils {
         party.createMockProposal(PartyGovernance.ProposalStatus.Complete);
         party.createMockProposal(PartyGovernance.ProposalStatus.Voting);
         party.createMockProposal(PartyGovernance.ProposalStatus.Ready);
-        party.createMockProposal(PartyGovernance.ProposalStatus.InProgress);
 
         // Mint governance NFT
         uint256 tokenId = 396;
@@ -1313,7 +1341,6 @@ contract PartyGovernanceNFTTest is Test, TestUtils {
         party.createMockProposal(PartyGovernance.ProposalStatus.Complete);
         party.createMockProposal(PartyGovernance.ProposalStatus.Voting);
         party.createMockProposal(PartyGovernance.ProposalStatus.Ready);
-        party.createMockProposal(PartyGovernance.ProposalStatus.InProgress);
 
         // Mint governance NFT
         uint256 tokenId = 396;
@@ -1334,12 +1361,84 @@ contract PartyGovernanceNFTTest is Test, TestUtils {
         assertTrue(bytes(tokenURI).length > 0);
     }
 
+    function testTokenURI_customMetadata() public {
+        // Create party
+        DummyParty party = new DummyParty(address(globals), "Party of the Living Dead");
+
+        // Mint governance NFT
+        uint256 tokenId = 396;
+        party.mint(tokenId);
+
+        // Set custom metadata
+        PartyNFTRenderer.Metadata memory metadata = PartyNFTRenderer.Metadata({
+            name: "CUSTOM_NAME",
+            description: "CUSTOM_DESCRIPTION",
+            externalURL: "CUSTOM_EXTERNAL_URL",
+            image: "CUSTOM_IMAGE",
+            banner: "CUSTOM_BANNER",
+            animationURL: "CUSTOM_ANIMATION_URL",
+            collectionName: "CUSTOM_COLLECTION_NAME",
+            collectionDescription: "CUSTOM_COLLECTION_DESCRIPTION",
+            collectionExternalURL: "CUSTOM_COLLECTION_EXTERNAL_URL",
+            royaltyReceiver: _randomAddress(),
+            royaltyAmount: _randomUint256()
+        });
+
+        vm.startPrank(address(party));
+        metadataProvider.setMetadata(address(party), abi.encode(metadata));
+        metadataRegistry.setProvider(address(party), metadataProvider);
+        vm.stopPrank();
+
+        // Set claimed/unclaimed state
+        tokenDistributor.setHasClaimed(address(party), false);
+
+        // Get token URI
+        string memory tokenURI = party.tokenURI(tokenId);
+
+        // Uncomment for testing rendering:
+        // console.log(tokenURI);
+
+        assertTrue(bytes(tokenURI).length > 0);
+    }
+
     function testContractURI() external {
         // Create party
         DummyParty party = new DummyParty(address(globals), "Party of the Living Dead");
 
         // Set customization option
         party.useCustomizationPreset(1);
+
+        string memory contractURI = party.contractURI();
+
+        // Uncomment for testing rendering:
+        // console.log(contractURI);
+
+        assertTrue(bytes(contractURI).length > 0);
+    }
+
+    function testContractURI_customMetadata() external {
+        // Create party
+        DummyParty party = new DummyParty(address(globals), "Party of the Living Dead");
+
+        // Set custom metadata
+        PartyNFTRenderer.Metadata memory metadata = PartyNFTRenderer.Metadata({
+            name: "CUSTOM_NAME",
+            description: "CUSTOM_DESCRIPTION",
+            externalURL: "CUSTOM_EXTERNAL_URL",
+            image: "CUSTOM_IMAGE",
+            banner: "CUSTOM_BANNER",
+            animationURL: "CUSTOM_ANIMATION_URL",
+            collectionName: "CUSTOM_COLLECTION_NAME",
+            collectionDescription: "CUSTOM_COLLECTION_DESCRIPTION",
+            collectionExternalURL: "CUSTOM_COLLECTION_EXTERNAL_URL",
+            royaltyReceiver: _randomAddress(),
+            royaltyAmount: _randomUint256()
+        });
+
+        vm.startPrank(address(party));
+        metadataProvider.setMetadata(address(party), abi.encode(metadata));
+        metadataRegistry.setProvider(address(party), metadataProvider);
+        vm.stopPrank();
 
         string memory contractURI = party.contractURI();
 
@@ -1369,6 +1468,48 @@ contract PartyGovernanceNFTTest is Test, TestUtils {
         (address receiver, uint256 royaltyAmount) = party.royaltyInfo(0, 0);
         assertEq(receiver, address(0));
         assertEq(royaltyAmount, 0);
+    }
+
+    function testRoyaltyInfo_withCustomMetadata() external {
+        // Create party
+        (Party party, , ) = partyAdmin.createParty(
+            partyImpl,
+            PartyAdmin.PartyCreationMinimalOptions({
+                host1: address(this),
+                host2: address(0),
+                passThresholdBps: 5100,
+                totalVotingPower: 100,
+                preciousTokenAddress: address(toadz),
+                preciousTokenId: 1,
+                rageQuitTimestamp: 0,
+                feeBps: 0,
+                feeRecipient: payable(0)
+            })
+        );
+
+        // Set custom metadata
+        PartyNFTRenderer.Metadata memory metadata = PartyNFTRenderer.Metadata({
+            name: "CUSTOM_NAME",
+            description: "CUSTOM_DESCRIPTION",
+            externalURL: "CUSTOM_EXTERNAL_URL",
+            image: "CUSTOM_IMAGE",
+            banner: "CUSTOM_BANNER",
+            animationURL: "CUSTOM_ANIMATION_URL",
+            collectionName: "CUSTOM_COLLECTION_NAME",
+            collectionDescription: "CUSTOM_COLLECTION_DESCRIPTION",
+            collectionExternalURL: "CUSTOM_COLLECTION_EXTERNAL_URL",
+            royaltyReceiver: _randomAddress(),
+            royaltyAmount: _randomUint256()
+        });
+
+        vm.startPrank(address(party));
+        metadataProvider.setMetadata(address(party), abi.encode(metadata));
+        metadataRegistry.setProvider(address(party), metadataProvider);
+        vm.stopPrank();
+
+        (address receiver, uint256 royaltyAmount) = party.royaltyInfo(0, 0);
+        assertEq(receiver, metadata.royaltyReceiver);
+        assertEq(royaltyAmount, metadata.royaltyAmount);
     }
 
     function _createMockProposal(DummyParty party) private {
@@ -1469,6 +1610,10 @@ contract DummyParty is ReadOnlyDelegateCall {
         returns (PartyGovernance.GovernanceValues memory gv)
     {
         return _governanceValues;
+    }
+
+    function setTokenCount(uint256 count) external {
+        tokenCount = count;
     }
 
     function setVotingPowerPercentage(uint256 tokenId, uint256 votingPower) external {
