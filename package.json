@@ -11,6 +11,7 @@
     "build:ts": "tsc -b",
     "test": "forge test",
     "test:gas": "yarn test --gas-report",
+    "deploy": "node js/deploy.js",
     "deploy:goerli": "DRY_RUN=0 forge script ./deploy/Goerli.s.sol -vvv --rpc-url https://eth-goerli.g.alchemy.com/v2/${ALCHEMY_API_KEY} --broadcast --etherscan-api-key ${ETHERSCAN_API_KEY} --via-ir --skip test --optimize --optimizer-runs 200 --ffi --slow --verify",
     "deploy:goerli:dry": "DRY_RUN=1 forge script ./deploy/Goerli.s.sol -vvv --fork-url https://eth-goerli.g.alchemy.com/v2/${ALCHEMY_API_KEY} --via-ir --skip test --optimize --optimizer-runs 200 --ffi",
     "deploy:mainnet": "DRY_RUN=0 forge script ./deploy/Mainnet.s.sol -vvv --rpc-url https://eth-mainnet.g.alchemy.com/v2/${ALCHEMY_API_KEY} --broadcast --etherscan-api-key ${ETHERSCAN_API_KEY} --via-ir --skip test --optimize --optimizer-runs 200 --ffi --slow --verify",
@@ -21,12 +22,16 @@
   "devDependencies": {
     "@types/node": "^20.4.2",
     "@types/yargs": "^17.0.24",
+    "change-case": "^4.1.2",
     "colors": "^1.4.0",
+    "crypto": "^1.0.1",
+    "ethereumjs-util": "^7.1.5",
     "ethers": "^6.6.4",
     "glob-promise": "^6.0.3",
     "prettier": "^2.7.1",
     "prettier-plugin-solidity": "^1.0.0-rc.1",
     "typescript": "^4.6.4",
     "yargs": "^17.7.2"
-  }
+  },
+  "dependencies": {}
 }
