@@ -30,7 +30,7 @@ abstract contract SetupPartyHelper is TestUtils, ERC721Receiver {
     GlobalsAdmin globalsAdmin;
     Party party;
     Globals internal globals;
-    PartyFactory private partyFactory;
+    PartyFactory internal partyFactory;
     uint256 internal johnPk = 0xa11ce;
     uint256 internal dannyPk = 0xb0b;
     uint256 internal stevePk = 0xca1;
@@ -41,9 +41,9 @@ abstract contract SetupPartyHelper is TestUtils, ERC721Receiver {
     uint96 internal dannyVotes;
     uint96 internal steveVotes;
     uint96 internal thisVotes;
-    IERC721[] private preciousTokens = new IERC721[](0);
-    uint256[] private preciousTokenIds = new uint256[](0);
-    uint40 private constant _EXECUTION_DELAY = 300;
+    IERC721[] internal preciousTokens = new IERC721[](0);
+    uint256[] internal preciousTokenIds = new uint256[](0);
+    uint40 internal constant _EXECUTION_DELAY = 300;
 
     constructor(bool isForked) {
         _isForked = isForked;
