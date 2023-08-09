@@ -14,6 +14,7 @@ import { MockZoraReserveAuctionCoreEth } from "../proposals/MockZoraReserveAucti
 import { IReserveAuctionCoreEth } from "../../contracts/vendor/markets/IReserveAuctionCoreEth.sol";
 import { PartyGovernance } from "../../contracts/party/PartyGovernance.sol";
 import { ERC721Receiver } from "../../contracts/tokens/ERC721Receiver.sol";
+import { MetadataRegistry } from "../../contracts/renderers/MetadataRegistry.sol";
 
 /// @notice This contract provides a fully functioning party instance for testing.
 ///     Run setup from inheriting contract.
@@ -60,6 +61,19 @@ abstract contract SetupPartyHelper is TestUtils, ERC721Receiver {
 
         globalsAdmin.setProposalEng(address(pe));
 
+        partyFactory = new PartyFactory(globals);
+
+        address[] memory registrars = new address[](2);
+        registrars[0] = address(this);
+        registrars[1] = address(partyFactory);
+        MetadataRegistry metadataRegistry = new MetadataRegistry(globals, registrars);
+        globalsAdmin.setMetadataRegistry(address(metadataRegistry));
+
+        johnVotes = johnVotes == 0 ? 100 : johnVotes;
+        dannyVotes = dannyVotes == 0 ? 100 : dannyVotes;
+        steveVotes = steveVotes == 0 ? 100 : steveVotes;
+        thisVotes = thisVotes == 0 ? 1 : thisVotes;
+
         Party.PartyOptions memory opts;
         address[] memory hosts = new address[](1);
         hosts[0] = address(420);
@@ -71,7 +85,6 @@ abstract contract SetupPartyHelper is TestUtils, ERC721Receiver {
         opts.governance.passThresholdBps = 1000;
         opts.governance.totalVotingPower = 301;
 
-        partyFactory = new PartyFactory(globals);
         address[] memory authorities = new address[](1);
         authorities[0] = address(this);
         party = partyFactory.createParty(
