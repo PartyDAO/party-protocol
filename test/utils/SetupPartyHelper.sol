@@ -29,9 +29,13 @@ abstract contract SetupPartyHelper is TestUtils, ERC721Receiver {
     address internal john = vm.addr(johnPk);
     address internal danny = vm.addr(dannyPk);
     address internal steve = vm.addr(stevePk);
-    IERC721[] private preciousTokens = new IERC721[](0);
-    uint256[] private preciousTokenIds = new uint256[](0);
-    uint40 private constant _EXECUTION_DELAY = 300;
+    uint96 internal johnVotes;
+    uint96 internal dannyVotes;
+    uint96 internal steveVotes;
+    uint96 internal thisVotes;
+    IERC721[] internal preciousTokens = new IERC721[](0);
+    uint256[] internal preciousTokenIds = new uint256[](0);
+    uint40 internal constant _EXECUTION_DELAY = 300;
 
     constructor(bool isForked) {
         _isForked = isForked;
