@@ -448,8 +448,8 @@ contract PartyGovernanceTest is Test, TestUtils {
 
         // Mint governance NFTs
         partyAdmin.mintGovNft(party, address(john), 1);
-        partyAdmin.mintGovNft(party, address(danny), 50);
-        partyAdmin.mintGovNft(party, address(steve), 49);
+        partyAdmin.mintGovNft(party, address(danny), 49);
+        partyAdmin.mintGovNft(party, address(steve), 50);
 
         vm.warp(block.timestamp + 1);
 
@@ -462,7 +462,7 @@ contract PartyGovernanceTest is Test, TestUtils {
         john.makeProposal(party, p1, 0);
         _assertProposalStatus(party, 1, PartyGovernance.ProposalStatus.Voting, 1);
 
-        danny.vote(party, 1, 0);
+        steve.vote(party, 1, 0);
         _assertProposalStatus(party, 1, PartyGovernance.ProposalStatus.Passed, 51);
 
         vm.warp(block.timestamp + 98);
