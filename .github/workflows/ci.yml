@@ -27,6 +27,7 @@ jobs:
         uses: foundry-rs/foundry-toolchain@v1
         with:
           version: nightly
+          cache: false
 
       - name: Install dependencies
         run: forge install
@@ -44,6 +45,7 @@ jobs:
         uses: foundry-rs/foundry-toolchain@v1
         with:
           version: nightly
+          cache: false
       - name: Install dependencies
         run: forge install
       - name: "Run Foundry Coverage"
