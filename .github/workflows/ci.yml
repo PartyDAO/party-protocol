@@ -16,7 +16,7 @@ env:
 
 jobs:
   test:
-    runs-on: ubuntu-22.04.2
+    runs-on: ubuntu-22.03
     steps:
       - name: "Check out the repo"
         uses: actions/checkout@v3
