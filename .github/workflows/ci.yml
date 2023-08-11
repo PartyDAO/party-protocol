@@ -16,7 +16,7 @@ env:
 
 jobs:
   test:
-    runs-on: ubuntu-22.03
+    runs-on: ubuntu-20.04
     steps:
       - name: "Check out the repo"
         uses: actions/checkout@v3
@@ -34,7 +34,7 @@ jobs:
       - name: "Run Foundry tests"
         run: forge test -vvv --fork-url $FORK_URL --etherscan-api-key $ETHERSCAN_API_KEY
   coverage:
-    runs-on: ubuntu-22.04.2
+    runs-on: ubuntu-20.04
     steps:
       - name: "Check out the repo"
         uses: actions/checkout@v3
@@ -51,7 +51,7 @@ jobs:
       - name: "Upload coverage to Codecov"
         uses: codecov/codecov-action@v3
   lint:
-    runs-on: ubuntu-22.04.2
+    runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@v3
       - name: Use Node.js 16.x
