@@ -227,18 +227,18 @@ contract PartyNFTRenderer is RendererBase {
         uint256 tokenId,
         RenderingMethod renderingMethod
     ) private view returns (string memory) {
-        if (hasPartyStarted()) {
-            if (
-                renderingMethod == RenderingMethod.FixedCrowdfund ||
-                (renderingMethod == RenderingMethod.ENUM_OFFSET &&
-                    getCrowdfundType() == CrowdfundType.Fixed)
-            ) {
-                return string.concat(partyName, " #", tokenId.toString());
-            } else {
-                return string.concat(generateVotingPowerPercentage(tokenId), "% Voting Power");
-            }
+        if (
+            renderingMethod == RenderingMethod.FixedCrowdfund ||
+            (renderingMethod == RenderingMethod.ENUM_OFFSET &&
+                getCrowdfundType() == CrowdfundType.Fixed)
+        ) {
+            return string.concat(partyName, " #", tokenId.toString());
         } else {
-            return "Party Membership";
+            if (hasPartyStarted()) {
+                return string.concat(generateVotingPowerPercentage(tokenId), "% Voting Power");
+            } else {
+                return "Party Membership";
+            }
         }
     }
 
