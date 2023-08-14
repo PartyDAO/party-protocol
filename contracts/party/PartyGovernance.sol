@@ -138,6 +138,8 @@ abstract contract PartyGovernance is
         uint96 votes; // -1 == vetoed
         // Number of total voting power at time proposal created.
         uint96 totalVotingPower;
+        /// @notice Number of hosts at time proposal created
+        uint8 proposalTimeNumHosts;
         /// @notice Number of hosts that accepted proposal
         uint8 numHostsAccepted;
     }
@@ -571,7 +573,8 @@ abstract contract PartyGovernance is
                 completedTime: 0,
                 votes: 0,
                 totalVotingPower: _governanceValues.totalVotingPower,
-                numHostsAccepted: 0
+                numHostsAccepted: 0,
+                proposalTimeNumHosts: _governanceValues.numHosts
             }),
             getProposalHash(proposal)
         );
@@ -1077,7 +1080,7 @@ abstract contract PartyGovernance is
                 return ProposalStatus.Ready;
             }
             // If all hosts voted, skip execution delay
-            if (_allHostsAccepted(pv.numHostsAccepted)) {
+            if (pv.proposalTimeNumHosts > 0 && pv.proposalTimeNumHosts == pv.numHostsAccepted) {
                 return ProposalStatus.Ready;
             }
             // Passed.
@@ -1099,10 +1102,6 @@ abstract contract PartyGovernance is
         // The minting formula for voting power is a bit lossy, so we check
         // for slightly less than 100%.
         return acceptanceRatio >= 0.9999e4;
-    }
-
-    function _allHostsAccepted(uint96 numHostsAccepted) private view returns (bool) {
-        return numHostsAccepted > 0 && numHostsAccepted == _governanceValues.numHosts;
     }
 
     function _areVotesPassing(

@@ -399,6 +399,81 @@ contract PartyGovernanceTest is Test, TestUtils {
         assertEq(engInstance.getNumExecutedProposals(), 1);
     }
 
+    function testSimpleGovernanceAllHostsAcceptAbdicateHost() public {
+        // When all hosts accept a proposal, execution delay is bypassed
+        (
+            Party party,
+            IERC721[] memory preciousTokens,
+            uint256[] memory preciousTokenIds
+        ) = partyAdmin.createParty(
+                partyImpl,
+                PartyAdmin.PartyCreationMinimalOptions({
+                    host1: address(this),
+                    host2: address(steve),
+                    passThresholdBps: 5000,
+                    totalVotingPower: 43,
+                    preciousTokenAddress: address(toadz),
+                    preciousTokenId: 1,
+                    rageQuitTimestamp: 0,
+                    feeBps: 0,
+                    feeRecipient: payable(0)
+                })
+            );
+        DummySimpleProposalEngineImpl engInstance = DummySimpleProposalEngineImpl(address(party));
+
+        // Mint first governance NFT
+        partyAdmin.mintGovNft(party, address(john), 22, address(john));
+        assertEq(party.votingPowerByTokenId(1), 22);
+        assertEq(party.ownerOf(1), address(john));
+
+        // mint another governance NFT
+        partyAdmin.mintGovNft(party, address(danny), 21, address(danny));
+        assertEq(party.votingPowerByTokenId(2), 21);
+        assertEq(party.ownerOf(2), address(danny));
+
+        // Generate proposal
+        PartyGovernance.Proposal memory p1 = PartyGovernance.Proposal({
+            maxExecutableTime: 9999999999,
+            proposalData: abi.encodePacked([0]),
+            cancelDelay: uint40(1 days)
+        });
+        john.makeProposal(party, p1, 2);
+
+        party.accept(1, 0);
+
+        // Remove second host
+        party.abdicateHost(address(0));
+        assertEq(party.getGovernanceValues().numHosts, 1);
+
+        // Still need to wait for the second host
+        _assertProposalStatus(party, 1, PartyGovernance.ProposalStatus.Passed, 22);
+
+        // Votes from the only host
+        steve.vote(party, 1, 0);
+
+        // Host accepted so can execute immediately.
+        _assertProposalStatus(party, 1, PartyGovernance.ProposalStatus.Ready, 22);
+        assertEq(engInstance.getLastExecutedProposalId(), 0);
+        assertEq(engInstance.getNumExecutedProposals(), 0);
+
+        // Execute proposal
+        john.executeProposal(
+            party,
+            PartyParticipant.ExecutionOptions({
+                proposalId: 1,
+                proposal: p1,
+                preciousTokens: preciousTokens,
+                preciousTokenIds: preciousTokenIds,
+                progressData: abi.encodePacked([address(0)])
+            })
+        );
+
+        // Ensure execution occurred
+        _assertProposalStatus(party, 1, PartyGovernance.ProposalStatus.Complete, 22);
+        assertEq(engInstance.getLastExecutedProposalId(), 1);
+        assertEq(engInstance.getNumExecutedProposals(), 1);
+    }
+
     function testSimpleGovernanceNoHosts() public {
         // When all hosts accept a proposal, execution delay is bypassed
         (
