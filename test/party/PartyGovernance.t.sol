@@ -253,6 +253,213 @@ contract PartyGovernanceTest is Test, TestUtils {
         assertEq(engInstance.getFlagsForProposalId(1), LibProposal.PROPOSAL_FLAG_UNANIMOUS);
     }
 
+    function testSimpleGovernanceAllHostsAccept() public {
+        // When all hosts accept a proposal, execution delay is bypassed
+        (
+            Party party,
+            IERC721[] memory preciousTokens,
+            uint256[] memory preciousTokenIds
+        ) = partyAdmin.createParty(
+                partyImpl,
+                PartyAdmin.PartyCreationMinimalOptions({
+                    host1: address(danny),
+                    host2: address(this),
+                    passThresholdBps: 5000,
+                    totalVotingPower: 60,
+                    preciousTokenAddress: address(toadz),
+                    preciousTokenId: 1,
+                    rageQuitTimestamp: 0,
+                    feeBps: 0,
+                    feeRecipient: payable(0)
+                })
+            );
+        DummySimpleProposalEngineImpl engInstance = DummySimpleProposalEngineImpl(address(party));
+
+        // Mint first governance NFT
+        partyAdmin.mintGovNft(party, address(john), 20, address(john));
+        assertEq(party.votingPowerByTokenId(1), 20);
+        assertEq(party.ownerOf(1), address(john));
+
+        // mint another governance NFT
+        partyAdmin.mintGovNft(party, address(danny), 20, address(danny));
+        assertEq(party.votingPowerByTokenId(2), 20);
+        assertEq(party.ownerOf(2), address(danny));
+
+        // mint third governance NFT
+        partyAdmin.mintGovNft(party, address(steve), 20, address(steve));
+        assertEq(party.votingPowerByTokenId(3), 20);
+        assertEq(party.ownerOf(3), address(steve));
+
+        // Generate proposal
+        PartyGovernance.Proposal memory p1 = PartyGovernance.Proposal({
+            maxExecutableTime: 9999999999,
+            proposalData: abi.encodePacked([0]),
+            cancelDelay: uint40(1 days)
+        });
+        john.makeProposal(party, p1, 2);
+
+        // Ensure John's votes show up
+        assertEq(party.getGovernanceValues().totalVotingPower, 60);
+        _assertProposalStatus(party, 1, PartyGovernance.ProposalStatus.Voting, 20);
+
+        danny.vote(party, 1, 0);
+        _assertProposalStatus(party, 1, PartyGovernance.ProposalStatus.Passed, 40);
+
+        party.accept(1, 0);
+
+        // Host accepted so can execute immediately.
+        _assertProposalStatus(party, 1, PartyGovernance.ProposalStatus.Ready, 40);
+        assertEq(engInstance.getLastExecutedProposalId(), 0);
+        assertEq(engInstance.getNumExecutedProposals(), 0);
+
+        // Execute proposal
+        john.executeProposal(
+            party,
+            PartyParticipant.ExecutionOptions({
+                proposalId: 1,
+                proposal: p1,
+                preciousTokens: preciousTokens,
+                preciousTokenIds: preciousTokenIds,
+                progressData: abi.encodePacked([address(0)])
+            })
+        );
+
+        // Ensure execution occurred
+        _assertProposalStatus(party, 1, PartyGovernance.ProposalStatus.Complete, 40);
+        assertEq(engInstance.getLastExecutedProposalId(), 1);
+        assertEq(engInstance.getNumExecutedProposals(), 1);
+    }
+
+    function testSimpleGovernanceAllHostsAcceptNoVotes() public {
+        // When all hosts accept a proposal, execution delay is bypassed
+        (
+            Party party,
+            IERC721[] memory preciousTokens,
+            uint256[] memory preciousTokenIds
+        ) = partyAdmin.createParty(
+                partyImpl,
+                PartyAdmin.PartyCreationMinimalOptions({
+                    host1: address(this),
+                    host2: address(0),
+                    passThresholdBps: 5000,
+                    totalVotingPower: 43,
+                    preciousTokenAddress: address(toadz),
+                    preciousTokenId: 1,
+                    rageQuitTimestamp: 0,
+                    feeBps: 0,
+                    feeRecipient: payable(0)
+                })
+            );
+        DummySimpleProposalEngineImpl engInstance = DummySimpleProposalEngineImpl(address(party));
+
+        // Mint first governance NFT
+        partyAdmin.mintGovNft(party, address(john), 22, address(john));
+        assertEq(party.votingPowerByTokenId(1), 22);
+        assertEq(party.ownerOf(1), address(john));
+
+        // mint another governance NFT
+        partyAdmin.mintGovNft(party, address(danny), 21, address(danny));
+        assertEq(party.votingPowerByTokenId(2), 21);
+        assertEq(party.ownerOf(2), address(danny));
+
+        // Generate proposal
+        PartyGovernance.Proposal memory p1 = PartyGovernance.Proposal({
+            maxExecutableTime: 9999999999,
+            proposalData: abi.encodePacked([0]),
+            cancelDelay: uint40(1 days)
+        });
+        john.makeProposal(party, p1, 2);
+
+        // Ensure John's votes show up
+        assertEq(party.getGovernanceValues().totalVotingPower, 43);
+        _assertProposalStatus(party, 1, PartyGovernance.ProposalStatus.Passed, 22);
+
+        party.accept(1, 0);
+
+        // Host accepted so can execute immediately.
+        _assertProposalStatus(party, 1, PartyGovernance.ProposalStatus.Ready, 22);
+        assertEq(engInstance.getLastExecutedProposalId(), 0);
+        assertEq(engInstance.getNumExecutedProposals(), 0);
+
+        // Execute proposal
+        john.executeProposal(
+            party,
+            PartyParticipant.ExecutionOptions({
+                proposalId: 1,
+                proposal: p1,
+                preciousTokens: preciousTokens,
+                preciousTokenIds: preciousTokenIds,
+                progressData: abi.encodePacked([address(0)])
+            })
+        );
+
+        // Ensure execution occurred
+        _assertProposalStatus(party, 1, PartyGovernance.ProposalStatus.Complete, 22);
+        assertEq(engInstance.getLastExecutedProposalId(), 1);
+        assertEq(engInstance.getNumExecutedProposals(), 1);
+    }
+
+    function testSimpleGovernanceNoHosts() public {
+        // When all hosts accept a proposal, execution delay is bypassed
+        (
+            Party party,
+            IERC721[] memory preciousTokens,
+            uint256[] memory preciousTokenIds
+        ) = partyAdmin.createParty(
+                partyImpl,
+                PartyAdmin.PartyCreationMinimalOptions({
+                    host1: address(0),
+                    host2: address(0),
+                    passThresholdBps: 5000,
+                    totalVotingPower: 43,
+                    preciousTokenAddress: address(toadz),
+                    preciousTokenId: 1,
+                    rageQuitTimestamp: 0,
+                    feeBps: 0,
+                    feeRecipient: payable(0)
+                })
+            );
+
+        // Mint first governance NFT
+        partyAdmin.mintGovNft(party, address(john), 22, address(john));
+        assertEq(party.votingPowerByTokenId(1), 22);
+        assertEq(party.ownerOf(1), address(john));
+
+        // mint another governance NFT
+        partyAdmin.mintGovNft(party, address(danny), 21, address(danny));
+        assertEq(party.votingPowerByTokenId(2), 21);
+        assertEq(party.ownerOf(2), address(danny));
+
+        // Generate proposal
+        PartyGovernance.Proposal memory p1 = PartyGovernance.Proposal({
+            maxExecutableTime: 9999999999,
+            proposalData: abi.encodePacked([0]),
+            cancelDelay: uint40(1 days)
+        });
+        john.makeProposal(party, p1, 2);
+
+        // Ensure John's votes show up
+        assertEq(party.getGovernanceValues().totalVotingPower, 43);
+        _assertProposalStatus(party, 1, PartyGovernance.ProposalStatus.Passed, 22);
+
+        // No hosts, must wait delay
+        vm.warp(block.timestamp + 300);
+
+        _assertProposalStatus(party, 1, PartyGovernance.ProposalStatus.Ready, 22);
+
+        // Execute proposal
+        john.executeProposal(
+            party,
+            PartyParticipant.ExecutionOptions({
+                proposalId: 1,
+                proposal: p1,
+                preciousTokens: preciousTokens,
+                preciousTokenIds: preciousTokenIds,
+                progressData: abi.encodePacked([address(0)])
+            })
+        );
+    }
+
     function testVeto() public {
         // Create party
         (
