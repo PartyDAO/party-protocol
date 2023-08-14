@@ -56,7 +56,7 @@ contract AtomicManualPartyTest is SetupPartyHelper {
             preciousTokenIds,
             address(atomicManualParty)
         );
-        atomicManualParty.createParty(
+        Party atomicParty = atomicManualParty.createParty(
             Party(payable(address(Proxy(payable(address(party))).IMPL()))),
             opts,
             preciousTokens,
@@ -68,6 +68,12 @@ contract AtomicManualPartyTest is SetupPartyHelper {
 
         // Ensure `atomicManualParty` is not an authority after creation
         assertFalse(party.isAuthority(address(atomicManualParty)));
+
+        // Ensure holders match input
+        vm.roll(block.number + 1);
+        vm.warp(block.timestamp + 1);
+        assertEq(atomicParty.getVotingPowerAt(john, uint40(block.timestamp)), 100);
+        assertEq(atomicParty.getVotingPowerAt(danny, uint40(block.timestamp)), 80);
     }
 
     function test_createAtomicManualPartyWithMetadata() public {
@@ -99,7 +105,7 @@ contract AtomicManualPartyTest is SetupPartyHelper {
         );
         vm.expectEmit(false, true, true, true);
         emit ProviderSet(address(0), IMetadataProvider(address(0)));
-        atomicManualParty.createPartyWithMetadata(
+        Party atomicParty = atomicManualParty.createPartyWithMetadata(
             Party(payable(address(Proxy(payable(address(party))).IMPL()))),
             opts,
             preciousTokens,
@@ -113,6 +119,12 @@ contract AtomicManualPartyTest is SetupPartyHelper {
 
         // Ensure `atomicManualParty` is not an authority after creation
         assertFalse(party.isAuthority(address(atomicManualParty)));
+
+        // Ensure holders match input
+        vm.roll(block.number + 1);
+        vm.warp(block.timestamp + 1);
+        assertEq(atomicParty.getVotingPowerAt(john, uint40(block.timestamp)), 100);
+        assertEq(atomicParty.getVotingPowerAt(danny, uint40(block.timestamp)), 80);
     }
 
     function test_createAtomicManualPartyArityMismatch() public {
