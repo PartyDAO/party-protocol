@@ -1,0 +1,303 @@
+[
+  {
+    "inputs": [
+      {
+        "internalType": "contract IGlobals",
+        "name": "globals",
+        "type": "address"
+      },
+      {
+        "internalType": "contract IPartyFactory",
+        "name": "partyFactory",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "nonpayable",
+    "type": "constructor"
+  },
+  {
+    "inputs": [],
+    "name": "PartyMembersArityMismatch",
+    "type": "error"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "contract Party",
+        "name": "partyImpl",
+        "type": "address"
+      },
+      {
+        "components": [
+          {
+            "components": [
+              {
+                "internalType": "address[]",
+                "name": "hosts",
+                "type": "address[]"
+              },
+              {
+                "internalType": "uint40",
+                "name": "voteDuration",
+                "type": "uint40"
+              },
+              {
+                "internalType": "uint40",
+                "name": "executionDelay",
+                "type": "uint40"
+              },
+              {
+                "internalType": "uint16",
+                "name": "passThresholdBps",
+                "type": "uint16"
+              },
+              {
+                "internalType": "uint96",
+                "name": "totalVotingPower",
+                "type": "uint96"
+              },
+              {
+                "internalType": "uint16",
+                "name": "feeBps",
+                "type": "uint16"
+              },
+              {
+                "internalType": "address payable",
+                "name": "feeRecipient",
+                "type": "address"
+              }
+            ],
+            "internalType": "struct PartyGovernance.GovernanceOpts",
+            "name": "governance",
+            "type": "tuple"
+          },
+          {
+            "components": [
+              {
+                "internalType": "bool",
+                "name": "enableAddAuthorityProposal",
+                "type": "bool"
+              },
+              {
+                "internalType": "bool",
+                "name": "allowArbCallsToSpendPartyEth",
+                "type": "bool"
+              },
+              {
+                "internalType": "bool",
+                "name": "allowOperators",
+                "type": "bool"
+              },
+              {
+                "internalType": "bool",
+                "name": "distributionsRequireVote",
+                "type": "bool"
+              }
+            ],
+            "internalType": "struct ProposalStorage.ProposalEngineOpts",
+            "name": "proposalEngine",
+            "type": "tuple"
+          },
+          {
+            "internalType": "string",
+            "name": "name",
+            "type": "string"
+          },
+          {
+            "internalType": "string",
+            "name": "symbol",
+            "type": "string"
+          },
+          {
+            "internalType": "uint256",
+            "name": "customizationPresetId",
+            "type": "uint256"
+          }
+        ],
+        "internalType": "struct Party.PartyOptions",
+        "name": "opts",
+        "type": "tuple"
+      },
+      {
+        "internalType": "contract IERC721[]",
+        "name": "preciousTokens",
+        "type": "address[]"
+      },
+      {
+        "internalType": "uint256[]",
+        "name": "preciousTokenIds",
+        "type": "uint256[]"
+      },
+      {
+        "internalType": "uint40",
+        "name": "rageQuitTimestamp",
+        "type": "uint40"
+      },
+      {
+        "internalType": "address[]",
+        "name": "partyMembers",
+        "type": "address[]"
+      },
+      {
+        "internalType": "uint96[]",
+        "name": "partyMemberVotes",
+        "type": "uint96[]"
+      }
+    ],
+    "name": "createParty",
+    "outputs": [
+      {
+        "internalType": "contract Party",
+        "name": "party",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "contract Party",
+        "name": "partyImpl",
+        "type": "address"
+      },
+      {
+        "components": [
+          {
+            "components": [
+              {
+                "internalType": "address[]",
+                "name": "hosts",
+                "type": "address[]"
+              },
+              {
+                "internalType": "uint40",
+                "name": "voteDuration",
+                "type": "uint40"
+              },
+              {
+                "internalType": "uint40",
+                "name": "executionDelay",
+                "type": "uint40"
+              },
+              {
+                "internalType": "uint16",
+                "name": "passThresholdBps",
+                "type": "uint16"
+              },
+              {
+                "internalType": "uint96",
+                "name": "totalVotingPower",
+                "type": "uint96"
+              },
+              {
+                "internalType": "uint16",
+                "name": "feeBps",
+                "type": "uint16"
+              },
+              {
+                "internalType": "address payable",
+                "name": "feeRecipient",
+                "type": "address"
+              }
+            ],
+            "internalType": "struct PartyGovernance.GovernanceOpts",
+            "name": "governance",
+            "type": "tuple"
+          },
+          {
+            "components": [
+              {
+                "internalType": "bool",
+                "name": "enableAddAuthorityProposal",
+                "type": "bool"
+              },
+              {
+                "internalType": "bool",
+                "name": "allowArbCallsToSpendPartyEth",
+                "type": "bool"
+              },
+              {
+                "internalType": "bool",
+                "name": "allowOperators",
+                "type": "bool"
+              },
+              {
+                "internalType": "bool",
+                "name": "distributionsRequireVote",
+                "type": "bool"
+              }
+            ],
+            "internalType": "struct ProposalStorage.ProposalEngineOpts",
+            "name": "proposalEngine",
+            "type": "tuple"
+          },
+          {
+            "internalType": "string",
+            "name": "name",
+            "type": "string"
+          },
+          {
+            "internalType": "string",
+            "name": "symbol",
+            "type": "string"
+          },
+          {
+            "internalType": "uint256",
+            "name": "customizationPresetId",
+            "type": "uint256"
+          }
+        ],
+        "internalType": "struct Party.PartyOptions",
+        "name": "opts",
+        "type": "tuple"
+      },
+      {
+        "internalType": "contract IERC721[]",
+        "name": "preciousTokens",
+        "type": "address[]"
+      },
+      {
+        "internalType": "uint256[]",
+        "name": "preciousTokenIds",
+        "type": "uint256[]"
+      },
+      {
+        "internalType": "uint40",
+        "name": "rageQuitTimestamp",
+        "type": "uint40"
+      },
+      {
+        "internalType": "contract MetadataProvider",
+        "name": "provider",
+        "type": "address"
+      },
+      {
+        "internalType": "bytes",
+        "name": "metadata",
+        "type": "bytes"
+      },
+      {
+        "internalType": "address[]",
+        "name": "partyMembers",
+        "type": "address[]"
+      },
+      {
+        "internalType": "uint96[]",
+        "name": "partyMemberVotes",
+        "type": "uint96[]"
+      }
+    ],
+    "name": "createPartyWithMetadata",
+    "outputs": [
+      {
+        "internalType": "contract Party",
+        "name": "party",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  }
+]
