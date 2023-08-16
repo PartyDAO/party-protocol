@@ -39,8 +39,8 @@ contract AtomicManualParty {
         address[] memory authorities = new address[](1);
         authorities[0] = address(this);
 
-        uint96 totalVotes = 0;
-        for (uint256 i = 0; i < partyMemberVotes.length; i++) {
+        uint96 totalVotes;
+        for (uint256 i; i < partyMemberVotes.length; i++) {
             totalVotes += partyMemberVotes[i];
         }
         opts.governance.totalVotingPower = totalVotes;
@@ -73,8 +73,8 @@ contract AtomicManualParty {
         address[] memory authorities = new address[](1);
         authorities[0] = address(this);
 
-        uint96 totalVotes = 0;
-        for (uint256 i = 0; i < partyMemberVotes.length; i++) {
+        uint96 totalVotes;
+        for (uint256 i; i < partyMemberVotes.length; i++) {
             totalVotes += partyMemberVotes[i];
         }
         opts.governance.totalVotingPower = totalVotes;
@@ -106,7 +106,7 @@ contract AtomicManualParty {
             revert PartyMembersArityMismatch();
         }
 
-        for (uint256 i = 0; i < partyMembers.length; i++) {
+        for (uint256 i; i < partyMembers.length; i++) {
             party.mint(partyMembers[i], partyMemberVotes[i], partyMembers[i]);
         }
         party.abdicateAuthority();
