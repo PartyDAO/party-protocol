@@ -158,6 +158,31 @@ contract AtomicManualPartyTest is SetupPartyHelper {
         );
     }
 
+    function test_createAtomicManualParty_noMembers() public {
+        Party.PartyOptions memory opts;
+        opts.name = "PARTY";
+        opts.symbol = "PR-T";
+        opts.governance.voteDuration = 99;
+        opts.governance.executionDelay = _EXECUTION_DELAY;
+        opts.governance.passThresholdBps = 1000;
+        opts.governance.totalVotingPower = 180;
+
+        address[] memory partyMembers = new address[](0);
+        uint96[] memory partyMemberVotes = new uint96[](0);
+
+        Party partyImpl = Party(payable(address(Proxy(payable(address(party))).IMPL())));
+        vm.expectRevert(AtomicManualParty.NoPartyMembers.selector);
+        atomicManualParty.createParty(
+            partyImpl,
+            opts,
+            preciousTokens,
+            preciousTokenIds,
+            0,
+            partyMembers,
+            partyMemberVotes
+        );
+    }
+
     function test_createAtomicManualParty_multipleCardsToSameAddress() public {
         Party.PartyOptions memory opts;
         opts.name = "PARTY";

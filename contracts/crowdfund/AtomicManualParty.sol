@@ -14,6 +14,9 @@ import { Implementation } from "../utils/Implementation.sol";
 /// @notice Singleton that is called to create a party manually with an array
 ///         of party members and their votes.
 contract AtomicManualParty {
+    /// @notice Returned if the `AtomicManualParty` is created with no members
+    error NoPartyMembers();
+    /// @notice Returned if the lengths of `partyMembers` and `partyMemberVotes` do not match
     error PartyMembersArityMismatch();
 
     // The `Globals` contract storing global configuration values. This contract
@@ -36,6 +39,8 @@ contract AtomicManualParty {
         address[] memory partyMembers,
         uint96[] memory partyMemberVotes
     ) public returns (Party party) {
+        _validateAtomicManualPartyArrays(partyMembers, partyMemberVotes);
+
         address[] memory authorities = new address[](1);
         authorities[0] = address(this);
 
@@ -70,6 +75,8 @@ contract AtomicManualParty {
         address[] memory partyMembers,
         uint96[] memory partyMemberVotes
     ) external returns (Party party) {
+        _validateAtomicManualPartyArrays(partyMembers, partyMemberVotes);
+
         address[] memory authorities = new address[](1);
         authorities[0] = address(this);
 
@@ -102,13 +109,21 @@ contract AtomicManualParty {
         address[] memory partyMembers,
         uint96[] memory partyMemberVotes
     ) internal {
-        if (partyMembers.length != partyMemberVotes.length) {
-            revert PartyMembersArityMismatch();
-        }
-
         for (uint256 i; i < partyMembers.length; i++) {
             party.mint(partyMembers[i], partyMemberVotes[i], partyMembers[i]);
         }
         party.abdicateAuthority();
+    }
+
+    function _validateAtomicManualPartyArrays(
+        address[] memory partyMembers,
+        uint96[] memory partyMemberVotes
+    ) private pure {
+        if (partyMembers.length == 0) {
+            revert NoPartyMembers();
+        }
+        if (partyMembers.length != partyMemberVotes.length) {
+            revert PartyMembersArityMismatch();
+        }
     }
 }
