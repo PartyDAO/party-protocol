@@ -27,7 +27,10 @@ async function run(command: string) {
 
 async function confirm(question: string, defaultValue?: boolean): Promise<boolean> {
   return new Promise((resolve, reject) => {
-    rl.question(question + " ", answer => {
+    const formattedQuestion =
+      defaultValue === undefined ? question : `${question} (${defaultValue ? "Y/n" : "y/N"})`;
+
+    rl.question(formattedQuestion + " ", answer => {
       if (answer.toLowerCase() === "y" || answer.toLowerCase() === "yes") {
         resolve(true);
       } else if (answer.toLowerCase() === "n" || answer.toLowerCase() === "no") {
@@ -87,7 +90,7 @@ async function setDeployConstants(chain: string) {
     const pattern = new RegExp(` ${camelCaseKey}`);
     const match = content.match(new RegExp(`(\\w+)\\s+public\\s+${camelCaseKey};`, "m"));
     if (!match) {
-      console.warn(`Skipping ${camelCaseKey}`.yellow);
+      console.warn(`Skipping ${key}`.yellow);
       continue;
     }
 
