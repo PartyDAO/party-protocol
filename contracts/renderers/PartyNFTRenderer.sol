@@ -40,6 +40,12 @@ contract PartyNFTRenderer is RendererBase {
         Fixed
     }
 
+    enum RenderingMethod {
+        ENUM_OFFSET, // Apply an enum offset so that first valid value is 1
+        FlexibleCrowdfund,
+        FixedCrowdfund
+    }
+
     struct ProposalData {
         uint256 id;
         string status;
@@ -57,6 +63,7 @@ contract PartyNFTRenderer is RendererBase {
         string collectionExternalURL;
         address royaltyReceiver;
         uint256 royaltyAmount;
+        RenderingMethod renderingMethod;
     }
 
     address immutable IMPL;
@@ -180,7 +187,8 @@ contract PartyNFTRenderer is RendererBase {
                             bytes(metadata.name).length == 0
                                 ? PartyGovernanceNFT(address(this)).name()
                                 : metadata.name,
-                            tokenId
+                            tokenId,
+                            metadata.renderingMethod
                         ),
                         '", "description":"',
                         bytes(metadata.description).length == 0
@@ -216,16 +224,21 @@ contract PartyNFTRenderer is RendererBase {
 
     function generateName(
         string memory partyName,
-        uint256 tokenId
+        uint256 tokenId,
+        RenderingMethod renderingMethod
     ) private view returns (string memory) {
-        if (hasPartyStarted()) {
-            if (getCrowdfundType() == CrowdfundType.Fixed) {
-                return string.concat(partyName, " #", tokenId.toString());
-            } else {
-                return string.concat(generateVotingPowerPercentage(tokenId), "% Voting Power");
-            }
+        if (
+            renderingMethod == RenderingMethod.FixedCrowdfund ||
+            (renderingMethod == RenderingMethod.ENUM_OFFSET &&
+                getCrowdfundType() == CrowdfundType.Fixed)
+        ) {
+            return string.concat(partyName, " #", tokenId.toString());
         } else {
-            return "Party Membership";
+            if (hasPartyStarted()) {
+                return string.concat(generateVotingPowerPercentage(tokenId), "% Voting Power");
+            } else {
+                return "Party Membership";
+            }
         }
     }
 

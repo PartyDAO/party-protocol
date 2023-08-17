@@ -1381,7 +1381,8 @@ contract PartyGovernanceNFTTest is Test, TestUtils {
             collectionDescription: "CUSTOM_COLLECTION_DESCRIPTION",
             collectionExternalURL: "CUSTOM_COLLECTION_EXTERNAL_URL",
             royaltyReceiver: _randomAddress(),
-            royaltyAmount: _randomUint256()
+            royaltyAmount: _randomUint256(),
+            renderingMethod: PartyNFTRenderer.RenderingMethod.ENUM_OFFSET
         });
 
         vm.startPrank(address(party));
@@ -1432,7 +1433,8 @@ contract PartyGovernanceNFTTest is Test, TestUtils {
             collectionDescription: "CUSTOM_COLLECTION_DESCRIPTION",
             collectionExternalURL: "CUSTOM_COLLECTION_EXTERNAL_URL",
             royaltyReceiver: _randomAddress(),
-            royaltyAmount: _randomUint256()
+            royaltyAmount: _randomUint256(),
+            renderingMethod: PartyNFTRenderer.RenderingMethod.ENUM_OFFSET
         });
 
         vm.startPrank(address(party));
@@ -1499,7 +1501,8 @@ contract PartyGovernanceNFTTest is Test, TestUtils {
             collectionDescription: "CUSTOM_COLLECTION_DESCRIPTION",
             collectionExternalURL: "CUSTOM_COLLECTION_EXTERNAL_URL",
             royaltyReceiver: _randomAddress(),
-            royaltyAmount: _randomUint256()
+            royaltyAmount: _randomUint256(),
+            renderingMethod: PartyNFTRenderer.RenderingMethod.ENUM_OFFSET
         });
 
         vm.startPrank(address(party));
