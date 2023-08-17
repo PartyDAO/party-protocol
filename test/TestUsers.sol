@@ -54,6 +54,10 @@ contract GlobalsAdmin is Test {
     function setOffChainSignatureValidator(address signatureValidator) public {
         globals.setAddress(LibGlobals.GLOBAL_OFF_CHAIN_SIGNATURE_VALIDATOR, signatureValidator);
     }
+
+    function setGlobalPartyFactory(address partyFactory) public {
+        globals.setAddress(LibGlobals.GLOBAL_PARTY_FACTORY, partyFactory);
+    }
 }
 
 contract PartyAdmin is Test {

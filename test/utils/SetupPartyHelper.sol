@@ -81,6 +81,7 @@ abstract contract SetupPartyHelper is TestUtils, ERC721Receiver {
         globalsAdmin.setOffChainSignatureValidator(address(offChainGlobalValidator));
 
         partyFactory = new PartyFactory(globals);
+        globalsAdmin.setGlobalPartyFactory(address(partyFactory));
 
         address[] memory registrars = new address[](2);
         registrars[0] = address(this);

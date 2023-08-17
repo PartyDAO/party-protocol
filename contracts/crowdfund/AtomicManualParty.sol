@@ -22,11 +22,9 @@ contract AtomicManualParty {
     // The `Globals` contract storing global configuration values. This contract
     // is immutable and it’s address will never change.
     IGlobals private immutable _GLOBALS;
-    IPartyFactory private immutable _PARTY_FACTORY;
 
-    constructor(IGlobals globals, IPartyFactory partyFactory) {
+    constructor(IGlobals globals) {
         _GLOBALS = globals;
-        _PARTY_FACTORY = partyFactory;
     }
 
     /// @notice Atomically creates the party and distributes the party cards
@@ -50,7 +48,7 @@ contract AtomicManualParty {
         }
         opts.governance.totalVotingPower = totalVotes;
 
-        party = _PARTY_FACTORY.createParty(
+        party = IPartyFactory(_GLOBALS.getAddress(LibGlobals.GLOBAL_PARTY_FACTORY)).createParty(
             partyImpl,
             authorities,
             opts,
@@ -86,16 +84,17 @@ contract AtomicManualParty {
         }
         opts.governance.totalVotingPower = totalVotes;
 
-        party = _PARTY_FACTORY.createPartyWithMetadata(
-            partyImpl,
-            authorities,
-            opts,
-            preciousTokens,
-            preciousTokenIds,
-            rageQuitTimestamp,
-            provider,
-            metadata
-        );
+        party = IPartyFactory(_GLOBALS.getAddress(LibGlobals.GLOBAL_PARTY_FACTORY))
+            .createPartyWithMetadata(
+                partyImpl,
+                authorities,
+                opts,
+                preciousTokens,
+                preciousTokenIds,
+                rageQuitTimestamp,
+                provider,
+                metadata
+            );
 
         _issuePartyCards(party, partyMembers, partyMemberVotes);
     }
