@@ -61,11 +61,15 @@ async function checkDeployContractVariables() {
   const relevantAbiNames = Array.from(outputAbiFileContents.matchAll(/\s{2}"(.+)",/g), m => m[1]);
 
   // Print all address mapping names that are not in the ABI names
+  let noMissingNames = true;
   for (const name of addressMappingNames) {
     if (!relevantAbiNames.includes(name)) {
+      noMissingNames = false;
       console.error(`Could not find contract named "${name}" in \`RELEVANT_ABIS\``.red);
     }
   }
+
+  if (noMissingNames) console.log("All good!".green);
 }
 
 async function setDeployConstants(chain: string) {
@@ -236,6 +240,7 @@ async function updateHeadJson(chain: string, releaseName: string) {
   fs.writeFileSync(headJsonFile, JSON.stringify(head_json, null, 2));
 }
 
+// TODO: Add comments explaining each step
 async function main() {
   const chain = process.argv[2];
 
@@ -274,15 +279,13 @@ async function main() {
         dryRunSucceeded = true;
       }
     } else {
-      process.exit(0);
+      break;
     }
+
+    await confirm(`Does ${chain}.json only contain addresses for contracts that changed?`, true);
+
+    await confirm("Did ABI files change as you expected?", true);
   }
-
-  await confirm(`Does ${chain}.json only contain addresses for contracts that changed?`, true);
-
-  await confirm("Did ABI files change as you expected?", true);
-
-  await confirm("Do you want to review files?", true);
 
   if (await confirm("Run deploy?", true)) {
     run(`yarn deploy:${chain} --private-key ${process.env.PRIVATE_KEY}`);
