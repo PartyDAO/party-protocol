@@ -7,8 +7,6 @@ import { IPartyFactory } from "../party/IPartyFactory.sol";
 import { Party } from "../party/Party.sol";
 import { IERC721 } from "../tokens/IERC721.sol";
 import { MetadataProvider } from "../renderers/MetadataProvider.sol";
-import { Proxy } from "../utils/Proxy.sol";
-import { Implementation } from "../utils/Implementation.sol";
 
 /// @title AtomicManualParty
 /// @notice Singleton that is called to create a party manually with an array
