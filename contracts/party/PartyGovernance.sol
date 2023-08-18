@@ -1040,10 +1040,14 @@ abstract contract PartyGovernance is
     }
 
     function _getProposalFlags(ProposalStateValues memory pv) private pure returns (uint256) {
+        uint256 flags = 0;
         if (_isUnanimousVotes(pv.votes, pv.totalVotingPower)) {
-            return LibProposal.PROPOSAL_FLAG_UNANIMOUS;
+            flags = flags | LibProposal.PROPOSAL_FLAG_UNANIMOUS;
         }
-        return 0;
+        if (_hostsAccepted(pv.proposalTimeNumHosts, pv.numHostsAccepted)) {
+            flags = flags | LibProposal.PROPOSAL_FLAG_HOSTS_ACCEPT;
+        }
+        return flags;
     }
 
     function _getProposalStatus(
@@ -1080,7 +1084,7 @@ abstract contract PartyGovernance is
                 return ProposalStatus.Ready;
             }
             // If all hosts voted, skip execution delay
-            if (pv.proposalTimeNumHosts > 0 && pv.proposalTimeNumHosts == pv.numHostsAccepted) {
+            if (_hostsAccepted(pv.proposalTimeNumHosts, pv.numHostsAccepted)) {
                 return ProposalStatus.Ready;
             }
             // Passed.
@@ -1102,6 +1106,13 @@ abstract contract PartyGovernance is
         // The minting formula for voting power is a bit lossy, so we check
         // for slightly less than 100%.
         return acceptanceRatio >= 0.9999e4;
+    }
+
+    function _hostsAccepted(
+        uint8 proposalTimeNumHosts,
+        uint8 numHostsAccepted
+    ) private pure returns (bool) {
+        return proposalTimeNumHosts > 0 && proposalTimeNumHosts == numHostsAccepted;
     }
 
     function _areVotesPassing(
