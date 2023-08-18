@@ -573,8 +573,8 @@ abstract contract PartyGovernance is
                 completedTime: 0,
                 votes: 0,
                 totalVotingPower: _governanceValues.totalVotingPower,
-                numHostsAccepted: 0,
-                proposalTimeNumHosts: _governanceValues.numHosts
+                proposalTimeNumHosts: _governanceValues.numHosts,
+                numHostsAccepted: 0
             }),
             getProposalHash(proposal)
         );
