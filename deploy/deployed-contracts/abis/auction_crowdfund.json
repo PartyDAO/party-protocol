@@ -796,7 +796,7 @@
           },
           {
             "internalType": "bool",
-            "name": "allowOperatorsToSpendPartyEth",
+            "name": "allowOperators",
             "type": "bool"
           },
           {
@@ -888,7 +888,7 @@
           },
           {
             "internalType": "bool",
-            "name": "allowOperatorsToSpendPartyEth",
+            "name": "allowOperators",
             "type": "bool"
           },
           {
@@ -1116,7 +1116,7 @@
           },
           {
             "internalType": "bool",
-            "name": "allowOperatorsToSpendPartyEth",
+            "name": "allowOperators",
             "type": "bool"
           },
           {
@@ -1252,7 +1252,7 @@
           },
           {
             "internalType": "bool",
-            "name": "allowOperatorsToSpendPartyEth",
+            "name": "allowOperators",
             "type": "bool"
           },
           {
@@ -1524,7 +1524,7 @@
               },
               {
                 "internalType": "bool",
-                "name": "allowOperatorsToSpendPartyEth",
+                "name": "allowOperators",
                 "type": "bool"
               },
               {

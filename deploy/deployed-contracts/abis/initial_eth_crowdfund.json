@@ -923,7 +923,7 @@
               },
               {
                 "internalType": "bool",
-                "name": "allowOperatorsToSpendPartyEth",
+                "name": "allowOperators",
                 "type": "bool"
               },
               {
@@ -955,6 +955,16 @@
         "internalType": "struct InitialETHCrowdfund.ETHPartyOptions",
         "name": "partyOpts",
         "type": "tuple"
+      },
+      {
+        "internalType": "contract MetadataProvider",
+        "name": "customMetadataProvider",
+        "type": "address"
+      },
+      {
+        "internalType": "bytes",
+        "name": "customMetadata",
+        "type": "bytes"
       }
     ],
     "name": "initialize",

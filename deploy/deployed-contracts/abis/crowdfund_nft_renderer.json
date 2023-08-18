@@ -56,7 +56,7 @@
         "type": "uint8"
       },
       {
-        "internalType": "enum RendererBase.Color",
+        "internalType": "enum Color",
         "name": "color",
         "type": "uint8"
       },

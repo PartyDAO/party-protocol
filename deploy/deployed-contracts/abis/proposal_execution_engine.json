@@ -7,8 +7,8 @@
         "type": "address"
       },
       {
-        "internalType": "contract IZoraAuctionHouse",
-        "name": "zoraAuctionHouse",
+        "internalType": "contract IReserveAuctionCoreEth",
+        "name": "zora",
         "type": "address"
       },
       {
@@ -82,6 +82,17 @@
   {
     "inputs": [],
     "name": "MalformedProposalDataError",
+    "type": "error"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "contract IERC20",
+        "name": "token",
+        "type": "address"
+      }
+    ],
+    "name": "NotATokenError",
     "type": "error"
   },
   {
@@ -241,6 +252,27 @@
   {
     "inputs": [
       {
+        "internalType": "contract IERC20",
+        "name": "token",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "to",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "amount",
+        "type": "uint256"
+      }
+    ],
+    "name": "TokenTransferFailedError",
+    "type": "error"
+  },
+  {
+    "inputs": [
+      {
         "internalType": "uint256",
         "name": "u256",
         "type": "uint256"
@@ -305,8 +337,34 @@
   {
     "inputs": [
       {
+        "internalType": "address",
+        "name": "token",
+        "type": "address"
+      },
+      {
         "internalType": "uint256",
-        "name": "auctionId",
+        "name": "tokenId",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "auctionEndTime",
+        "type": "uint256"
+      }
+    ],
+    "name": "ZoraListingLive",
+    "type": "error"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "token",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "tokenid",
         "type": "uint256"
       },
       {
@@ -833,14 +891,27 @@
     "anonymous": false,
     "inputs": [
       {
-        "indexed": false,
-        "internalType": "uint256",
-        "name": "auctionId",
-        "type": "uint256"
+        "indexed": true,
+        "internalType": "bytes32",
+        "name": "hash",
+        "type": "bytes32"
       },
       {
+        "indexed": true,
+        "internalType": "contract IERC1271",
+        "name": "signatureValidator",
+        "type": "address"
+      }
+    ],
+    "name": "SignatureValidatorSet",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
         "indexed": false,
-        "internalType": "contract IERC721",
+        "internalType": "address",
         "name": "token",
         "type": "address"
       },
@@ -877,8 +948,14 @@
     "inputs": [
       {
         "indexed": false,
+        "internalType": "address",
+        "name": "token",
+        "type": "address"
+      },
+      {
+        "indexed": false,
         "internalType": "uint256",
-        "name": "auctionId",
+        "name": "tokenid",
         "type": "uint256"
       },
       {
@@ -896,21 +973,14 @@
     "inputs": [
       {
         "indexed": false,
-        "internalType": "uint256",
-        "name": "auctionId",
-        "type": "uint256"
-      }
-    ],
-    "name": "ZoraAuctionFailed",
-    "type": "event"
-  },
-  {
-    "anonymous": false,
-    "inputs": [
+        "internalType": "address",
+        "name": "token",
+        "type": "address"
+      },
       {
         "indexed": false,
         "internalType": "uint256",
-        "name": "auctionId",
+        "name": "tokenid",
         "type": "uint256"
       }
     ],
@@ -948,7 +1018,20 @@
     "name": "ZORA",
     "outputs": [
       {
-        "internalType": "contract IZoraAuctionHouse",
+        "internalType": "contract IReserveAuctionCoreEth",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "ZORA_TRANSFER_HELPER",
+    "outputs": [
+      {
+        "internalType": "contract BaseTransferHelper",
         "name": "",
         "type": "address"
       }
@@ -1041,6 +1124,25 @@
   {
     "inputs": [
       {
+        "internalType": "bytes32",
+        "name": "hash",
+        "type": "bytes32"
+      }
+    ],
+    "name": "getSignatureValidatorForHash",
+    "outputs": [
+      {
+        "internalType": "contract IERC1271",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
         "internalType": "address",
         "name": "oldImpl",
         "type": "address"
@@ -1054,6 +1156,30 @@
     "name": "initialize",
     "outputs": [],
     "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "bytes32",
+        "name": "hash",
+        "type": "bytes32"
+      },
+      {
+        "internalType": "bytes",
+        "name": "signature",
+        "type": "bytes"
+      }
+    ],
+    "name": "isValidSignature",
+    "outputs": [
+      {
+        "internalType": "bytes4",
+        "name": "",
+        "type": "bytes4"
+      }
+    ],
+    "stateMutability": "view",
     "type": "function"
   }
 ]

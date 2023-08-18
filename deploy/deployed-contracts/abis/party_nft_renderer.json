@@ -64,14 +64,48 @@
         "internalType": "uint256",
         "name": "tokenId",
         "type": "uint256"
+      }
+    ],
+    "name": "generateSVG",
+    "outputs": [
+      {
+        "internalType": "string",
+        "name": "",
+        "type": "string"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "string",
+        "name": "partyName",
+        "type": "string"
       },
       {
-        "internalType": "bool",
-        "name": "hasUnclaimed",
-        "type": "bool"
+        "internalType": "string",
+        "name": "votingPowerPercentage",
+        "type": "string"
       },
       {
-        "internalType": "enum RendererBase.Color",
+        "internalType": "enum PartyGovernance.ProposalStatus[4]",
+        "name": "proposalStatuses",
+        "type": "uint8[4]"
+      },
+      {
+        "internalType": "uint256",
+        "name": "latestProposalId",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "tokenId",
+        "type": "uint256"
+      },
+      {
+        "internalType": "enum Color",
         "name": "color",
         "type": "uint8"
       },
@@ -118,7 +152,7 @@
         "type": "uint256"
       }
     ],
-    "stateMutability": "pure",
+    "stateMutability": "view",
     "type": "function"
   },
   {
