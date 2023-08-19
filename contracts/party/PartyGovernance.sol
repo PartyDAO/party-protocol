@@ -148,6 +148,18 @@ abstract contract PartyGovernance is
         mapping(address => bool) hasVoted;
     }
 
+    // Values used when calculating gas refunds.
+    struct GasRefundValues {
+        // Gas costs that are independent of the transaction execution
+        uint64 baseGasUsed;
+        // The maximum base fee that the party will refund for.
+        uint64 maxBaseFee;
+        // The maximum priority fee that the party will refund for.
+        uint64 maxPriorityFee;
+        // The maximum gas used that the party will refund for.
+        uint64 maxGasUsed;
+    }
+
     event Proposed(uint256 proposalId, address proposer, Proposal proposal);
     event ProposalAccepted(uint256 proposalId, address voter, uint256 weight);
     event EmergencyExecute(address target, bytes data, uint256 amountEth);
@@ -163,6 +175,8 @@ abstract contract PartyGovernance is
     );
     event VotingPowerDelegated(address indexed owner, address indexed delegate);
     event HostStatusTransferred(address oldHost, address newHost);
+    event GasRefunded(address indexed receiver, uint256 amount, bool wasRefundSent);
+    event GasRefundSet(bool isEnabled);
     event EmergencyExecuteDisabled();
 
     error MismatchedPreciousListLengths();
@@ -195,6 +209,8 @@ abstract contract PartyGovernance is
 
     /// @notice Whether the DAO has emergency powers for this party.
     bool public emergencyExecuteDisabled;
+    /// @notice Whether gas refunds are enabled.
+    bool public gasRefundsEnabled;
     /// @notice Distribution fee bps.
     uint16 public feeBps;
     /// @notice Distribution fee recipient.
@@ -282,6 +298,8 @@ abstract contract PartyGovernance is
         IERC721[] memory preciousTokens,
         uint256[] memory preciousTokenIds
     ) internal virtual {
+        // TODO: Initialize `gasRefundsEnabled`
+
         // Check BPS are valid.
         if (govOpts.feeBps > 1e4) {
             revert InvalidBpsError(govOpts.feeBps);
@@ -445,6 +463,14 @@ abstract contract PartyGovernance is
         emit VotingPowerDelegated(msg.sender, delegate);
     }
 
+    /// @notice Set whether gas refunds are enabled.
+    /// @param isEnabled Whether gas refunds are enabled.
+    function setGasRefundsEnabled(bool isEnabled) external onlyHost {
+        gasRefundsEnabled = isEnabled;
+
+        emit GasRefundSet(isEnabled);
+    }
+
     /// @notice Transfer party host status to another.
     /// @param newPartyHost The address of the new host.
     function abdicateHost(address newPartyHost) external onlyHost {
@@ -563,11 +589,13 @@ abstract contract PartyGovernance is
             getProposalHash(proposal)
         );
         emit Proposed(proposalId, msg.sender, proposal);
-        accept(proposalId, latestSnapIndex);
 
         // Notify third-party platforms that the governance NFT metadata has
         // updated for all tokens.
         emit BatchMetadataUpdate(0, type(uint256).max);
+
+        // Have proposer vote to accept their own proposal.
+        accept(proposalId, latestSnapIndex);
     }
 
     /// @notice Vote to support a proposed proposal.
@@ -581,66 +609,16 @@ abstract contract PartyGovernance is
     ///                  before the proposal was created. Should be retrieved
     ///                  off-chain and passed in.
     /// @return totalVotes The total votes cast on the proposal.
-    function accept(uint256 proposalId, uint256 snapIndex) public returns (uint256 totalVotes) {
-        // Get the information about the proposal.
-        ProposalState storage info = _proposalStateByProposalId[proposalId];
-        ProposalStateValues memory values = info.values;
+    function accept(uint256 proposalId, uint256 snapIndex) public returns (uint96 totalVotes) {
+        // Track gas used for a gas refund.
+        uint256 startGas = gasleft();
 
-        // Can only vote in certain proposal statuses.
-        {
-            ProposalStatus status = _getProposalStatus(values);
-            // Allow voting even if the proposal is passed/ready so it can
-            // potentially reach 100% consensus, which unlocks special
-            // behaviors for certain proposal types.
-            if (
-                status != ProposalStatus.Voting &&
-                status != ProposalStatus.Passed &&
-                status != ProposalStatus.Ready
-            ) {
-                revert BadProposalStatusError(status);
-            }
-        }
+        // Vote to accept the proposal.
+        uint96 votingPower;
+        (votingPower, totalVotes) = _accept(proposalId, snapIndex);
 
-        // Prevent voting in the same block as the last rage quit timestamp.
-        // This is to prevent an exploit where a member can rage quit to reduce
-        // the total voting power of the party, then propose and vote in the
-        // same block since `getVotingPowerAt()` uses `values.proposedTime - 1`.
-        // This would allow them to use the voting power snapshot just before
-        // their card was burned to vote, potentially passing a proposal that
-        // would have otherwise not passed.
-        if (lastRageQuitTimestamp == block.timestamp) {
-            revert CannotRageQuitAndAcceptError();
-        }
-
-        // Cannot vote twice.
-        if (info.hasVoted[msg.sender]) {
-            revert AlreadyVotedError(msg.sender);
-        }
-        // Mark the caller as having voted.
-        info.hasVoted[msg.sender] = true;
-
-        // Increase the total votes that have been cast on this proposal.
-        uint96 votingPower = getVotingPowerAt(msg.sender, values.proposedTime - 1, snapIndex);
-        values.votes += votingPower;
-        info.values = values;
-        emit ProposalAccepted(proposalId, msg.sender, votingPower);
-
-        // Update the proposal status if it has reached the pass threshold.
-        if (
-            values.passedTime == 0 &&
-            _areVotesPassing(
-                values.votes,
-                values.totalVotingPower,
-                _governanceValues.passThresholdBps
-            )
-        ) {
-            info.values.passedTime = uint40(block.timestamp);
-            emit ProposalPassed(proposalId);
-            // Notify third-party platforms that the governance NFT metadata has
-            // updated for all tokens.
-            emit BatchMetadataUpdate(0, type(uint256).max);
-        }
-        return values.votes;
+        // Do not refund if no voting power was cast.
+        if (votingPower != 0 && gasRefundsEnabled) _refundGas(startGas);
     }
 
     /// @notice As a party host, veto a proposal, unilaterally rejecting it.
@@ -839,6 +817,71 @@ abstract contract PartyGovernance is
         emit EmergencyExecuteDisabled();
     }
 
+    function _accept(
+        uint256 proposalId,
+        uint256 snapIndex
+    ) private returns (uint96 votingPower, uint96 totalVotes) {
+        // Get the information about the proposal.
+        ProposalState storage info = _proposalStateByProposalId[proposalId];
+        ProposalStateValues memory values = info.values;
+
+        // Can only vote in certain proposal statuses.
+        {
+            ProposalStatus status = _getProposalStatus(values);
+            // Allow voting even if the proposal is passed/ready so it can
+            // potentially reach 100% consensus, which unlocks special
+            // behaviors for certain proposal types.
+            if (
+                status != ProposalStatus.Voting &&
+                status != ProposalStatus.Passed &&
+                status != ProposalStatus.Ready
+            ) {
+                revert BadProposalStatusError(status);
+            }
+        }
+
+        // Prevent voting in the same block as the last rage quit timestamp.
+        // This is to prevent an exploit where a member can rage quit to reduce
+        // the total voting power of the party, then propose and vote in the
+        // same block since `getVotingPowerAt()` uses `values.proposedTime - 1`.
+        // This would allow them to use the voting power snapshot just before
+        // their card was burned to vote, potentially passing a proposal that
+        // would have otherwise not passed.
+        if (lastRageQuitTimestamp == block.timestamp) {
+            revert CannotRageQuitAndAcceptError();
+        }
+
+        // Cannot vote twice.
+        if (info.hasVoted[msg.sender]) {
+            revert AlreadyVotedError(msg.sender);
+        }
+        // Mark the caller as having voted.
+        info.hasVoted[msg.sender] = true;
+
+        // Increase the total votes that have been cast on this proposal.
+        votingPower = getVotingPowerAt(msg.sender, values.proposedTime - 1, snapIndex);
+        totalVotes = values.votes + votingPower;
+        values.votes = totalVotes;
+        info.values = values;
+        emit ProposalAccepted(proposalId, msg.sender, votingPower);
+
+        // Update the proposal status if it has reached the pass threshold.
+        if (
+            values.passedTime == 0 &&
+            _areVotesPassing(
+                values.votes,
+                values.totalVotingPower,
+                _governanceValues.passThresholdBps
+            )
+        ) {
+            info.values.passedTime = uint40(block.timestamp);
+            emit ProposalPassed(proposalId);
+            // Notify third-party platforms that the governance NFT metadata has
+            // updated for all tokens.
+            emit BatchMetadataUpdate(0, type(uint256).max);
+        }
+    }
+
     function _executeProposal(
         uint256 proposalId,
         Proposal memory proposal,
@@ -1010,6 +1053,30 @@ abstract contract PartyGovernance is
         voterSnaps.push(snap);
     }
 
+    function _refundGas(uint256 startGas) private {
+        unchecked {
+            // Only refund if the party has ETH.
+            uint256 balance = address(this).balance;
+            if (balance == 0) return;
+
+            GasRefundValues memory gv = abi.decode(
+                abi.encodePacked(_GLOBALS.getBytes32(LibGlobals.GLOBAL_GAS_REFUND_VALUES)),
+                (GasRefundValues)
+            );
+
+            // Calculate the refund amount.
+            uint256 basefee = _min(block.basefee, gv.maxBaseFee);
+            uint256 gasPrice = _min(tx.gasprice, basefee + gv.maxPriorityFee);
+            uint256 gasUsed = _min(startGas - gasleft() + gv.baseGasUsed, gv.maxGasUsed);
+            uint256 refund = _min(gasPrice * gasUsed, balance);
+
+            // Transfer the refund. Do not revert if it fails.
+            (bool wasRefundSent, ) = tx.origin.call{ value: refund }("");
+
+            emit GasRefunded(tx.origin, refund, wasRefundSent);
+        }
+    }
+
     function _getLastVotingPowerSnapshotForVoter(
         address voter
     ) private view returns (VotingPowerSnapshot memory snap) {
@@ -1123,5 +1190,10 @@ abstract contract PartyGovernance is
         if (expectedHash != actualHash) {
             revert BadProposalHashError(actualHash, expectedHash);
         }
+    }
+
+    // TODO: Make this a free/library function?
+    function _min(uint256 a, uint256 b) internal pure returns (uint256) {
+        return a < b ? a : b;
     }
 }

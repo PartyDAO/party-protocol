@@ -1555,8 +1555,8 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
         skip(1);
         // Delegated voter submits proposal.
         // No intrinsic or delegated votes so no vote cast during proposal.
-        _expectProposalAcceptedEvent(proposalId, delegatedVoter, 0);
         _expectBatchMetadataUpdateEvent();
+        _expectProposalAcceptedEvent(proposalId, delegatedVoter, 0);
         vm.prank(delegatedVoter);
         assertEq(gov.propose(proposal, 0), proposalId);
 
@@ -1939,8 +1939,8 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
         uint256 proposalId = gov.getNextProposalId();
         // Skip because `accept()` will query voting power at `proposedTime - 1`
         skip(1);
-        _expectProposalAcceptedEvent(proposalId, voter, 30e18);
         _expectBatchMetadataUpdateEvent();
+        _expectProposalAcceptedEvent(proposalId, voter, 30e18);
         vm.prank(voter);
         gov.propose(proposal, 0);
 
@@ -1982,8 +1982,8 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
         // Skip because `accept()` will query voting power at `proposedTime - 1`
         skip(1);
         // delegate2 proposes and votes with their 1 effective VP.
-        _expectProposalAcceptedEvent(proposalId, delegate2, 1e18);
         _expectBatchMetadataUpdateEvent();
+        _expectProposalAcceptedEvent(proposalId, delegate2, 1e18);
         vm.prank(delegate2);
         gov.propose(proposal, 0);
 
