@@ -4,8 +4,10 @@ import fs from "fs";
 import { toChecksumAddress } from "ethereumjs-util";
 import "colors";
 import path from "path";
+import axios from "axios";
 import { createHash } from "crypto";
 import { snakeCase, camelCase } from "change-case";
+import { verifyWithIr } from "./verify-with-ir";
 
 const rl = readline.createInterface({
   input: process.stdin,
@@ -72,20 +74,74 @@ async function checkDeployContractVariables() {
   if (noMissingNames) console.log("All good!".green);
 }
 
-async function setDeployConstants(chain: string) {
-  const currDir = process.cwd();
-  const deployPath = `${currDir}/deploy/Deploy.s.sol`;
-  const jsonPath = `${currDir}/deploy/deployed-contracts/${chain}.json`;
+async function getSourceCode(address: string, chain: string) {
+  let endpoint;
+  if (chain === "mainnet") {
+    endpoint = "https://api.etherscan.io/api";
+  } else if (chain === "goerli") {
+    endpoint = `https://api-${chain}.etherscan.io/api`;
+  }
 
-  // Load the {chain}.json file and parse the JSON data
-  const data = JSON.parse(fs.readFileSync(jsonPath, "utf-8"));
+  let tries = 0;
+  while (true) {
+    const response = await axios.post(
+      endpoint,
+      {
+        module: "contract",
+        action: "getsourcecode",
+        address,
+        apikey: process.env.ETHERSCAN_API_KEY,
+      },
+      {
+        headers: {
+          "content-type": "application/x-www-form-urlencoded",
+        },
+      },
+    );
+
+    const result = response.data.result;
+
+    if (result != "Max rate limit reached") return result[0];
+  }
+}
+
+async function setLatestContractAddresses(chain: string) {
+  const deployPath = `deploy/Deploy.s.sol`;
+
+  // Load the head.json file in the party-addresses folder
+  let head_path = path.join("lib", "party-addresses", "contracts", chain, "head.json");
+  let head_data = JSON.parse(fs.readFileSync(head_path, "utf8"));
+
+  // Create a dictionary to hold the latest addresses for each contract
+  let addresses: { [key: string]: string } = {};
+  for (let contract in head_data) {
+    // Define the path to the release's JSON file
+    let release_path = path.join(
+      "lib",
+      "party-addresses",
+      "contracts",
+      chain,
+      head_data[contract],
+      `${contract}.json`,
+    );
+
+    // Load the release's JSON file
+    let release_data = JSON.parse(fs.readFileSync(release_path, "utf8"));
+
+    // Extract the address and add it to the dictionary
+    addresses[contract] = release_data["address"];
+  }
 
   // Read the entire Deploy.s.sol file as a single string
   let content = fs.readFileSync(deployPath, "utf-8");
 
   // Iterate over the keys and values in the JSON data
-  for (const [key, value] of Object.entries(data)) {
-    const camelCaseKey = camelCase(key);
+  for (const [key, value] of Object.entries(addresses)) {
+    let camelCaseKey = camelCase(key)
+      // Handle exceptions for contract names
+      .replace("Nft", "NFT")
+      .replace("Eth", "ETH")
+      .replace("Erc", "ERC");
 
     // Use a regex pattern to search for the variable name
     // in the Deploy.s.sol file and replace it with the value
@@ -94,17 +150,38 @@ async function setDeployConstants(chain: string) {
     const pattern = new RegExp(` ${camelCaseKey}`);
     const match = content.match(new RegExp(`(\\w+)\\s+public\\s+${camelCaseKey};`, "m"));
     if (!match) {
-      console.warn(`Skipping ${key}`.yellow);
+      console.warn(`Skipping ${key}`.grey);
       continue;
     }
 
     // Get the type of the variable
     const type = match[1];
 
-    // Use the key and value from the {chain}.json file
-    // to construct a new line of code that sets the
-    // variable name to the corresponding value
-    const replacement = ` ${camelCaseKey} = ${type}(${toChecksumAddress(value as string)})`;
+    // Convert the address to checksum format
+    const address = toChecksumAddress(value as string);
+
+    // Check if the address is for the expected contract
+    const sourceCode = await getSourceCode(address, chain);
+    const contractName = sourceCode["ContractName"];
+
+    // Handle errors
+    if (contractName != key) {
+      if (contractName) {
+        console.warn(`Expected ${address} to be for ${key}, not ${contractName}. Skipping`.yellow);
+      } else if (sourceCode["ABI"] === "Contract source code not verified") {
+        console.warn(`Code for ${address} not verified for ${key}. Skipping`.yellow);
+      } else {
+        console.warn(`Could not confirm ${address} is ${key}. Skipping`.yellow);
+      }
+
+      continue;
+    }
+
+    // Sets the variable to the corresponding address. Make `payable` to allow
+    // compatibility with variables that are expected by compiler to be `address
+    // payable`.
+    const replacement = ` ${camelCaseKey} = ${type}(payable(${address}))`;
+
     content = content.replace(pattern, replacement);
   }
 
@@ -124,7 +201,7 @@ async function checksumAddresses(file: string) {
 }
 
 async function updateReadmeDeployAddresses(chain: string) {
-  const jsonPath: string = `deploy/deployed-contracts/${chain}.json`;
+  const jsonPath: string = `deploy/cache/${chain}.json`;
 
   // Load the JSON file and parse the data
   const data: any = JSON.parse(await fs.promises.readFile(jsonPath, "utf8"));
@@ -133,8 +210,13 @@ async function updateReadmeDeployAddresses(chain: string) {
   const content: string[] = (await fs.promises.readFile("README.md", "utf8")).split("\n");
 
   for (const key in data) {
+    // Skip if one of these contracts
+    if (["PixeldroidConsoleFont", "RendererStorage", "PartyHelpers"].some(name => name === key)) {
+      continue;
+    }
+
     if (!content.join("\n").includes(key)) {
-      console.log(`${key} not found in README.md deployments`.red);
+      console.log(`${key} not found in README.md deployments`.yellow);
     }
   }
 
@@ -155,8 +237,7 @@ async function updateReadmeDeployAddresses(chain: string) {
 
         if (oldAddress) {
           // Replace the address in the line with the address from the JSON data
-          content[i] = content[i].replace(oldAddress, address);
-          content[i] = content[i].replace(oldAddress, address); // Replacing twice to match the `count` parameter in the Bash script
+          content[i] = content[i].replaceAll(oldAddress, address);
 
           console.log(`Updated ${key} address to ${address}...`);
         }
@@ -177,7 +258,7 @@ async function copyDeployFile(releaseName: string): Promise<void> {
 }
 
 async function copyABIs(): Promise<void> {
-  const src = "deploy/deployed-contracts/abis";
+  const src = "deploy/cache/abis";
   const dest = "lib/party-addresses/abis";
 
   for (const filename of await fs.promises.readdir(src)) {
@@ -192,7 +273,7 @@ async function copyABIs(): Promise<void> {
 }
 
 async function createReleaseFolder(chain: string, releaseName: string) {
-  const addressesPath = path.join("deploy", "deployed-contracts", `${chain}.json`);
+  const addressesPath = path.join("deploy", "cache", `${chain}.json`);
   const addressesData = await fs.promises.readFile(addressesPath, "utf8");
   const addresses = JSON.parse(addressesData);
 
@@ -209,7 +290,7 @@ async function createReleaseFolder(chain: string, releaseName: string) {
         snakeCase(contractName.replace("NFT", "Nft").replace("ERC", "Erc").replace("ETH", "Eth")) +
         ".json";
 
-      const contractFilePath = path.join("deploy/deployed-contracts/abis", contractFileName);
+      const contractFilePath = path.join("deploy/cache/abis", contractFileName);
       const contractContents = await fs.promises.readFile(contractFilePath);
       const hash = createHash("sha256").update(contractContents).digest("hex").slice(0, 8);
 
@@ -223,7 +304,7 @@ async function createReleaseFolder(chain: string, releaseName: string) {
 }
 
 async function updateHeadJson(chain: string, releaseName: string) {
-  const deploymentJsonPath = `deploy/deployed-contracts/${chain}.json`;
+  const deploymentJsonPath = `deploy/cache/${chain}.json`;
   const headJsonFile = `lib/party-addresses/contracts/${chain}/head.json`;
 
   // Get list of all updated contracts from the deployment JSON file keys
@@ -240,7 +321,6 @@ async function updateHeadJson(chain: string, releaseName: string) {
   fs.writeFileSync(headJsonFile, JSON.stringify(head_json, null, 2));
 }
 
-// TODO: Add comments explaining each step
 async function main() {
   const chain = process.argv[2];
 
@@ -249,13 +329,17 @@ async function main() {
     process.exit(1);
   }
 
-  await confirm("Are there other changes that could be batched into this deploy?", false);
-
-  if (await confirm("Do you want to set deployment constants to existing addresses?", false)) {
-    await setDeployConstants(chain);
+  if (
+    await confirm(
+      "Do you want to set contract variables to their existing addresses in Deploy.s.sol?",
+      false,
+    )
+  ) {
+    await setLatestContractAddresses(chain);
+    // Warn to check that the addresses are correct and to unset variables for
+    // contracts that are going to be deployed.
+    console.warn("Remember to unset variables for contracts that are going to be deployed!".yellow);
   }
-
-  await confirm("Do you need to update deployer addresses?", false);
 
   if (
     await confirm(
@@ -266,14 +350,14 @@ async function main() {
     await checkDeployContractVariables();
   }
 
-  await confirm('Have you updated "deploy.sol" to only deploy the contracts you want?', true);
+  await confirm("Have you updated Deploy.sol to only deploy the contracts you want?", true);
 
   let dryRunSucceeded = false;
   while (!dryRunSucceeded) {
     if (await confirm("Do dry run?", true)) {
       await run(`yarn deploy:${chain}:dry --private-key ${process.env.PRIVATE_KEY}`);
       await run("yarn lint:fix > /dev/null");
-      await checksumAddresses(`deploy/deployed-contracts/${chain}.json`);
+      await checksumAddresses(`deploy/cache/${chain}.json`);
 
       if (await confirm("Did dry run succeed?", true)) {
         dryRunSucceeded = true;
@@ -282,31 +366,42 @@ async function main() {
       break;
     }
 
-    await confirm(`Does ${chain}.json only contain addresses for contracts that changed?`, true);
+    await confirm("Was the deployer the expected address?", true);
 
-    await confirm("Did ABI files change as you expected?", true);
+    await confirm(
+      `Does deploy/cache/${chain}.json only contain addresses for contracts that changed?`,
+      true,
+    );
+
+    await confirm("Were ABI files in deploy/cache/abis created or changed as you expected?", true);
   }
+
+  await confirm("Are there no other changes that should be included into this deploy?", true);
 
   if (await confirm("Run deploy?", true)) {
     run(`yarn deploy:${chain} --private-key ${process.env.PRIVATE_KEY}`);
     await run("yarn lint:fix > /dev/null");
-    await checksumAddresses(`deploy/deployed-contracts/${chain}.json`);
+    await checksumAddresses(`deploy/cache/${chain}.json`);
 
-    // TODO: Add way to verify contracts compiled with `via-ir` on Etherscan
-    // // Wait for contract code to be uploaded to Etherscan
-    // await new Promise(resolve => setTimeout(resolve, 5000));
-    // // Do verification stuff ...
+    // Wait for contract code to be uploaded to Etherscan
+    console.log("Waiting for Etherscan to index contract code...");
+    await new Promise(resolve => setTimeout(resolve, 5000));
+
+    await verifyWithIr(chain, true);
   } else {
     process.exit(0);
   }
 
-  if (await confirm("Update addresses in README?", false)) await updateReadmeDeployAddresses(chain);
+  if (await confirm("Update addresses in README?", true)) await updateReadmeDeployAddresses(chain);
 
   run("yarn lint:fix > /dev/null");
 
-  const release_name = await new Promise<string>(resolve =>
-    rl.question("What is the release name?", resolve),
-  );
+  let release_name;
+  while (!release_name) {
+    release_name = await new Promise<string>(resolve =>
+      rl.question("What is the release name? ", resolve),
+    );
+  }
 
   if (await confirm("Copy deploy script to party-addresses?", false)) {
     await copyDeployFile(release_name);
@@ -314,7 +409,7 @@ async function main() {
 
   if (await confirm("Upload ABI files to party-addresses?", true)) await copyABIs();
 
-  if (await confirm("Create release folder in party-addresses?", true)) {
+  if (await confirm("Create or update release folder in party-addresses?", true)) {
     await createReleaseFolder(chain, release_name);
   }
 
@@ -324,10 +419,15 @@ async function main() {
 
   await run(`prettier --write lib/party-addresses >> /dev/null`);
 
+  const defaultMessage = `deploy ${release_name} to ${chain}`;
+  let message;
   if (await confirm("Commit and push changes in party-addresses?", true)) {
-    const message = await new Promise<string>(resolve =>
-      rl.question("What is the commit message?", resolve),
+    message = await new Promise<string>(resolve =>
+      rl.question(`What is the commit message? (default: "${defaultMessage}") `, resolve),
     );
+
+    // If no message is provided, use the default message
+    if (!message) message = defaultMessage;
 
     await run("cd lib/party-addresses");
     await run("git add .");
