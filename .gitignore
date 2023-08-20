@@ -4,6 +4,7 @@
 /node_modules
 /tests/built
 /js
+/deploy/cache/
 broadcast/
 package-lock.json
 yarn.lock
