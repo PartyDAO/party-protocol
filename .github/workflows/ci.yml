@@ -37,7 +37,30 @@ jobs:
       - name: Install dependencies
         run: forge install
       - name: "Run Foundry tests"
-        run: forge test -vvv --fork-url $FORK_URL --etherscan-api-key $ETHERSCAN_API_KEY --ffi
+        run: forge test -vvv --ffi
+  test-forked:
+    runs-on: ubuntu-latest
+    steps:
+      - name: "Check out the repo"
+        uses: actions/checkout@v3
+        with:
+          submodules: recursive
+      - name: Use Node.js 16.x
+        uses: actions/setup-node@v3
+        with:
+          node-version: 16.x
+      - name: Install yarn dependencies
+        run: yarn install
+      - name: Build ts
+        run: yarn build:ts
+      - name: "Install Foundry"
+        uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: nightly
+      - name: Install dependencies
+        run: forge install
+      - name: "Run Foundry tests"
+        run: forge test -vvv --fork-url $FORK_URL --ffi
   coverage:
     runs-on: ubuntu-latest
     steps:
