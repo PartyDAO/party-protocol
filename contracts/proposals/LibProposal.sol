@@ -5,6 +5,7 @@ import "../tokens/IERC721.sol";
 
 library LibProposal {
     uint256 internal constant PROPOSAL_FLAG_UNANIMOUS = 0x1;
+    uint256 internal constant PROPOSAL_FLAG_HOSTS_ACCEPT = 0x2;
 
     function isTokenPrecious(
         IERC721 token,
