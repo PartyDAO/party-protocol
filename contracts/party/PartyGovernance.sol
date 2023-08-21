@@ -93,6 +93,8 @@ abstract contract PartyGovernance is
         uint40 executionDelay;
         uint16 passThresholdBps;
         uint96 totalVotingPower;
+        /// @notice Number of hosts for this party
+        uint8 numHosts;
     }
 
     // A snapshot of voting power for a member.
@@ -136,6 +138,10 @@ abstract contract PartyGovernance is
         uint96 votes; // -1 == vetoed
         // Number of total voting power at time proposal created.
         uint96 totalVotingPower;
+        /// @notice Number of hosts at time proposal created
+        uint8 numHosts;
+        /// @notice Number of hosts that accepted proposal
+        uint8 numHostsAccepted;
     }
 
     // Storage states for a proposal.
@@ -192,6 +198,7 @@ abstract contract PartyGovernance is
     error DistributionsRequireVoteError();
     error PartyNotStartedError();
     error CannotRageQuitAndAcceptError();
+    error TooManyHosts();
 
     uint256 private constant UINT40_HIGH_BIT = 1 << 39;
     uint96 private constant VETO_VALUE = type(uint96).max;
@@ -306,7 +313,8 @@ abstract contract PartyGovernance is
             voteDuration: govOpts.voteDuration,
             executionDelay: govOpts.executionDelay,
             passThresholdBps: govOpts.passThresholdBps,
-            totalVotingPower: govOpts.totalVotingPower
+            totalVotingPower: govOpts.totalVotingPower,
+            numHosts: uint8(govOpts.hosts.length)
         });
         // Set fees.
         feeBps = govOpts.feeBps;
@@ -314,6 +322,9 @@ abstract contract PartyGovernance is
         // Set the precious list.
         _setPreciousList(preciousTokens, preciousTokenIds);
         // Set the party hosts.
+        if (govOpts.hosts.length > type(uint8).max) {
+            revert TooManyHosts();
+        }
         for (uint256 i = 0; i < govOpts.hosts.length; ++i) {
             isHost[govOpts.hosts[i]] = true;
         }
@@ -461,6 +472,9 @@ abstract contract PartyGovernance is
                 revert InvalidNewHostError();
             }
             isHost[newPartyHost] = true;
+        } else {
+            // Burned the host status
+            --_governanceValues.numHosts;
         }
         isHost[msg.sender] = false;
         emit HostStatusTransferred(msg.sender, newPartyHost);
@@ -564,7 +578,9 @@ abstract contract PartyGovernance is
                 executedTime: 0,
                 completedTime: 0,
                 votes: 0,
-                totalVotingPower: _governanceValues.totalVotingPower
+                totalVotingPower: _governanceValues.totalVotingPower,
+                numHosts: _governanceValues.numHosts,
+                numHostsAccepted: 0
             }),
             getProposalHash(proposal)
         );
@@ -628,6 +644,9 @@ abstract contract PartyGovernance is
         // Increase the total votes that have been cast on this proposal.
         uint96 votingPower = getVotingPowerAt(msg.sender, values.proposedTime - 1, snapIndex);
         values.votes += votingPower;
+        if (isHost[msg.sender]) {
+            ++values.numHostsAccepted;
+        }
         info.values = values;
         emit ProposalAccepted(proposalId, msg.sender, votingPower);
 
@@ -1039,10 +1058,14 @@ abstract contract PartyGovernance is
     }
 
     function _getProposalFlags(ProposalStateValues memory pv) private pure returns (uint256) {
+        uint256 flags = 0;
         if (_isUnanimousVotes(pv.votes, pv.totalVotingPower)) {
-            return LibProposal.PROPOSAL_FLAG_UNANIMOUS;
+            flags = flags | LibProposal.PROPOSAL_FLAG_UNANIMOUS;
         }
-        return 0;
+        if (_hostsAccepted(pv.numHosts, pv.numHostsAccepted)) {
+            flags = flags | LibProposal.PROPOSAL_FLAG_HOSTS_ACCEPT;
+        }
+        return flags;
     }
 
     function _getProposalStatus(
@@ -1078,6 +1101,10 @@ abstract contract PartyGovernance is
             if (_isUnanimousVotes(pv.votes, pv.totalVotingPower)) {
                 return ProposalStatus.Ready;
             }
+            // If all hosts voted, skip execution delay
+            if (_hostsAccepted(pv.numHosts, pv.numHostsAccepted)) {
+                return ProposalStatus.Ready;
+            }
             // Passed.
             return ProposalStatus.Passed;
         }
@@ -1097,6 +1124,10 @@ abstract contract PartyGovernance is
         // The minting formula for voting power is a bit lossy, so we check
         // for slightly less than 100%.
         return acceptanceRatio >= 0.9999e4;
+    }
+
+    function _hostsAccepted(uint8 numHosts, uint8 numHostsAccepted) private pure returns (bool) {
+        return numHosts > 0 && numHosts == numHostsAccepted;
     }
 
     function _areVotesPassing(
