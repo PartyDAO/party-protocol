@@ -17,6 +17,7 @@ contract TestParty {
         uint40 executionDelay;
         uint16 passThresholdBps;
         uint96 totalVotingPower;
+        uint8 numHosts;
     }
 
     GovernanceValues _governanceValues;
