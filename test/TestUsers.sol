@@ -84,9 +84,14 @@ contract PartyAdmin is Test {
         public
         returns (Party party, IERC721[] memory preciousTokens, uint256[] memory preciousTokenIds)
     {
-        address[] memory hosts = new address[](2);
-        hosts[0] = opts.host1;
-        hosts[1] = opts.host2;
+        uint256 size = 2 - (opts.host1 == address(0) ? 1 : 0) - (opts.host2 == address(0) ? 1 : 0);
+        address[] memory hosts = new address[](size);
+        if (opts.host1 != address(0)) {
+            hosts[0] = opts.host1;
+        }
+        if (opts.host2 != address(0)) {
+            hosts[1] = opts.host2;
+        }
 
         preciousTokens = new IERC721[](1);
         preciousTokens[0] = IERC721(opts.preciousTokenAddress);
