@@ -32,7 +32,25 @@ jobs:
         run: forge install
 
       - name: "Run Foundry tests"
-        run: forge test -vvv --fork-url $FORK_URL --etherscan-api-key $ETHERSCAN_API_KEY
+        run: forge test -vvv
+  test-forked:
+    runs-on: ubuntu-latest
+    steps:
+      - name: "Check out the repo"
+        uses: actions/checkout@v3
+        with:
+          submodules: recursive
+
+      - name: "Install Foundry"
+        uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: nightly
+
+      - name: Install dependencies
+        run: forge install
+
+      - name: "Run Foundry tests"
+        run: forge test -vvv --fork-url $FORK_URL
   coverage:
     runs-on: ubuntu-latest
     steps:

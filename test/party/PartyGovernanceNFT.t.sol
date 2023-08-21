@@ -1269,7 +1269,7 @@ contract PartyGovernanceNFTTest is Test, TestUtils {
         assertTrue(bytes(tokenURI).length > 0);
     }
 
-    function testTokenURI_withFixedCrowdfundType() public {
+    function testTokenURI_withFixedCrowdfundType() public onlyForked {
         // Create party
         DummyParty party = new DummyParty(address(globals), "Party of the Living Dead");
 
