@@ -139,7 +139,7 @@ abstract contract PartyGovernance is
         // Number of total voting power at time proposal created.
         uint96 totalVotingPower;
         /// @notice Number of hosts at time proposal created
-        uint8 proposalTimeNumHosts;
+        uint8 numHosts;
         /// @notice Number of hosts that accepted proposal
         uint8 numHostsAccepted;
     }
@@ -573,7 +573,7 @@ abstract contract PartyGovernance is
                 completedTime: 0,
                 votes: 0,
                 totalVotingPower: _governanceValues.totalVotingPower,
-                proposalTimeNumHosts: _governanceValues.numHosts,
+                numHosts: _governanceValues.numHosts,
                 numHostsAccepted: 0
             }),
             getProposalHash(proposal)
@@ -1044,7 +1044,7 @@ abstract contract PartyGovernance is
         if (_isUnanimousVotes(pv.votes, pv.totalVotingPower)) {
             flags = flags | LibProposal.PROPOSAL_FLAG_UNANIMOUS;
         }
-        if (_hostsAccepted(pv.proposalTimeNumHosts, pv.numHostsAccepted)) {
+        if (_hostsAccepted(pv.numHosts, pv.numHostsAccepted)) {
             flags = flags | LibProposal.PROPOSAL_FLAG_HOSTS_ACCEPT;
         }
         return flags;
@@ -1084,7 +1084,7 @@ abstract contract PartyGovernance is
                 return ProposalStatus.Ready;
             }
             // If all hosts voted, skip execution delay
-            if (_hostsAccepted(pv.proposalTimeNumHosts, pv.numHostsAccepted)) {
+            if (_hostsAccepted(pv.numHosts, pv.numHostsAccepted)) {
                 return ProposalStatus.Ready;
             }
             // Passed.
@@ -1108,11 +1108,8 @@ abstract contract PartyGovernance is
         return acceptanceRatio >= 0.9999e4;
     }
 
-    function _hostsAccepted(
-        uint8 proposalTimeNumHosts,
-        uint8 numHostsAccepted
-    ) private pure returns (bool) {
-        return proposalTimeNumHosts > 0 && proposalTimeNumHosts == numHostsAccepted;
+    function _hostsAccepted(uint8 numHosts, uint8 numHostsAccepted) private pure returns (bool) {
+        return numHosts > 0 && numHosts == numHostsAccepted;
     }
 
     function _areVotesPassing(
