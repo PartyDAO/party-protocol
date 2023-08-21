@@ -39,13 +39,13 @@ contract AtomicManualPartyTest is SetupPartyHelper {
         opts.governance.totalVotingPower = 180;
 
         address[] memory partyMembers = new address[](2);
-        uint96[] memory partyMemberVotes = new uint96[](2);
+        uint96[] memory partyMemberVotingPower = new uint96[](2);
 
         partyMembers[0] = john;
         partyMembers[1] = danny;
 
-        partyMemberVotes[0] = 100;
-        partyMemberVotes[1] = 80;
+        partyMemberVotingPower[0] = 100;
+        partyMemberVotingPower[1] = 80;
 
         // Not checking address of the party
         vm.expectEmit(false, true, true, true);
@@ -65,7 +65,7 @@ contract AtomicManualPartyTest is SetupPartyHelper {
             preciousTokenIds,
             0,
             partyMembers,
-            partyMemberVotes
+            partyMemberVotingPower
         );
 
         // Ensure `atomicManualParty` is not an authority after creation
@@ -87,13 +87,13 @@ contract AtomicManualPartyTest is SetupPartyHelper {
         opts.governance.totalVotingPower = 180;
 
         address[] memory partyMembers = new address[](2);
-        uint96[] memory partyMemberVotes = new uint96[](2);
+        uint96[] memory partyMemberVotingPower = new uint96[](2);
 
         partyMembers[0] = john;
         partyMembers[1] = danny;
 
-        partyMemberVotes[0] = 100;
-        partyMemberVotes[1] = 80;
+        partyMemberVotingPower[0] = 100;
+        partyMemberVotingPower[1] = 80;
 
         // Not checking address of the party
         vm.expectEmit(false, true, true, true);
@@ -115,7 +115,7 @@ contract AtomicManualPartyTest is SetupPartyHelper {
             MetadataProvider(address(0)),
             "",
             partyMembers,
-            partyMemberVotes
+            partyMemberVotingPower
         );
 
         // Ensure `atomicManualParty` is not an authority after creation
@@ -136,14 +136,14 @@ contract AtomicManualPartyTest is SetupPartyHelper {
         opts.governance.totalVotingPower = 180;
 
         address[] memory partyMembers = new address[](3);
-        uint96[] memory partyMemberVotes = new uint96[](2);
+        uint96[] memory partyMemberVotingPower = new uint96[](2);
 
         partyMembers[0] = john;
         partyMembers[1] = danny;
         partyMembers[2] = steve;
 
-        partyMemberVotes[0] = 100;
-        partyMemberVotes[1] = 80;
+        partyMemberVotingPower[0] = 100;
+        partyMemberVotingPower[1] = 80;
 
         Party partyImpl = Party(payable(address(Proxy(payable(address(party))).IMPL())));
         vm.expectRevert(AtomicManualParty.PartyMembersArityMismatch.selector);
@@ -154,7 +154,7 @@ contract AtomicManualPartyTest is SetupPartyHelper {
             preciousTokenIds,
             0,
             partyMembers,
-            partyMemberVotes
+            partyMemberVotingPower
         );
     }
 
@@ -168,7 +168,7 @@ contract AtomicManualPartyTest is SetupPartyHelper {
         opts.governance.totalVotingPower = 180;
 
         address[] memory partyMembers = new address[](0);
-        uint96[] memory partyMemberVotes = new uint96[](0);
+        uint96[] memory partyMemberVotingPower = new uint96[](0);
 
         Party partyImpl = Party(payable(address(Proxy(payable(address(party))).IMPL())));
         vm.expectRevert(AtomicManualParty.NoPartyMembers.selector);
@@ -179,7 +179,7 @@ contract AtomicManualPartyTest is SetupPartyHelper {
             preciousTokenIds,
             0,
             partyMembers,
-            partyMemberVotes
+            partyMemberVotingPower
         );
     }
 
@@ -193,15 +193,15 @@ contract AtomicManualPartyTest is SetupPartyHelper {
         opts.governance.totalVotingPower = 260;
 
         address[] memory partyMembers = new address[](3);
-        uint96[] memory partyMemberVotes = new uint96[](3);
+        uint96[] memory partyMemberVotingPower = new uint96[](3);
 
         partyMembers[0] = john;
         partyMembers[1] = danny;
         partyMembers[2] = john;
 
-        partyMemberVotes[0] = 100;
-        partyMemberVotes[1] = 80;
-        partyMemberVotes[2] = 80;
+        partyMemberVotingPower[0] = 100;
+        partyMemberVotingPower[1] = 80;
+        partyMemberVotingPower[2] = 80;
 
         // Not checking address of the party
         vm.expectEmit(false, true, true, true);
@@ -219,7 +219,7 @@ contract AtomicManualPartyTest is SetupPartyHelper {
             preciousTokenIds,
             0,
             partyMembers,
-            partyMemberVotes
+            partyMemberVotingPower
         );
 
         // Ensure `atomicManualParty` is not an authority after creation
@@ -232,5 +232,69 @@ contract AtomicManualPartyTest is SetupPartyHelper {
         // Ensure holders match input
         assertEq(atomicParty.getVotingPowerAt(john, uint40(block.timestamp)), 180);
         assertEq(atomicParty.getVotingPowerAt(danny, uint40(block.timestamp)), 80);
+    }
+
+    function test_atomicManualParty_invalidPartyMember() public {
+        Party.PartyOptions memory opts;
+        opts.name = "PARTY";
+        opts.symbol = "PR-T";
+        opts.governance.voteDuration = 99;
+        opts.governance.executionDelay = _EXECUTION_DELAY;
+        opts.governance.passThresholdBps = 1000;
+        opts.governance.totalVotingPower = 180;
+
+        address[] memory partyMembers = new address[](2);
+        uint96[] memory partyMemberVotingPower = new uint96[](2);
+
+        partyMembers[0] = john;
+        partyMembers[1] = address(0);
+
+        partyMemberVotingPower[0] = 100;
+        partyMemberVotingPower[1] = 80;
+
+        Party partyImpl = Party(payable(address(Proxy(payable(address(party))).IMPL())));
+
+        vm.expectRevert(AtomicManualParty.InvalidPartyMember.selector);
+        Party atomicParty = atomicManualParty.createParty(
+            partyImpl,
+            opts,
+            preciousTokens,
+            preciousTokenIds,
+            0,
+            partyMembers,
+            partyMemberVotingPower
+        );
+    }
+
+    function test_atomicManualParty_invalidPartyMemberVotingPower() public {
+        Party.PartyOptions memory opts;
+        opts.name = "PARTY";
+        opts.symbol = "PR-T";
+        opts.governance.voteDuration = 99;
+        opts.governance.executionDelay = _EXECUTION_DELAY;
+        opts.governance.passThresholdBps = 1000;
+        opts.governance.totalVotingPower = 180;
+
+        address[] memory partyMembers = new address[](2);
+        uint96[] memory partyMemberVotingPower = new uint96[](2);
+
+        partyMembers[0] = john;
+        partyMembers[1] = danny;
+
+        partyMemberVotingPower[0] = 100;
+        partyMemberVotingPower[1] = 0;
+
+        Party partyImpl = Party(payable(address(Proxy(payable(address(party))).IMPL())));
+
+        vm.expectRevert(AtomicManualParty.InvalidPartyMemberVotingPower.selector);
+        Party atomicParty = atomicManualParty.createParty(
+            partyImpl,
+            opts,
+            preciousTokens,
+            preciousTokenIds,
+            0,
+            partyMembers,
+            partyMemberVotingPower
+        );
     }
 }
