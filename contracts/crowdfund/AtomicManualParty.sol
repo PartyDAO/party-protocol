@@ -114,7 +114,7 @@ contract AtomicManualParty {
         party.abdicateAuthority();
     }
 
-    /// @notice Valid manual party cards arrays, returns total voting power
+    /// @notice Validate manual party cards arrays, returns total voting power
     /// @param partyMembers The party members to issue cards to
     /// @param partyMemberVotingPower The voting power each party member gets
     /// @return totalVotingPower The total voting power of the party
