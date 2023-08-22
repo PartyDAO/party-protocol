@@ -2,12 +2,12 @@ import readline from "readline";
 import childProcess from "child_process";
 import fs from "fs";
 import { toChecksumAddress } from "ethereumjs-util";
-import "colors";
 import path from "path";
 import axios from "axios";
 import { createHash } from "crypto";
 import { snakeCase, camelCase } from "change-case";
-import { verifyWithIr } from "./verify-with-ir";
+import { getEtherscanApiEndpoint, verify } from "./verify";
+import "colors";
 
 const rl = readline.createInterface({
   input: process.stdin,
@@ -75,17 +75,12 @@ async function checkDeployContractVariables() {
 }
 
 async function getSourceCode(address: string, chain: string) {
-  let endpoint;
-  if (chain === "mainnet") {
-    endpoint = "https://api.etherscan.io/api";
-  } else if (chain === "goerli") {
-    endpoint = `https://api-${chain}.etherscan.io/api`;
-  }
-
   let tries = 0;
-  while (true) {
+  while (tries < 5) {
+    tries++;
+
     const response = await axios.post(
-      endpoint,
+      getEtherscanApiEndpoint(chain),
       {
         module: "contract",
         action: "getsourcecode",
@@ -110,6 +105,12 @@ async function setLatestContractAddresses(chain: string) {
 
   // Load the head.json file in the party-addresses folder
   let head_path = path.join("lib", "party-addresses", "contracts", chain, "head.json");
+
+  // Check if the head.json file exists
+  if (!fs.existsSync(head_path)) {
+    console.error(`Could not find ${head_path}. Skipping.`.yellow);
+  }
+
   let head_data = JSON.parse(fs.readFileSync(head_path, "utf8"));
 
   // Create a dictionary to hold the latest addresses for each contract
@@ -311,6 +312,9 @@ async function updateHeadJson(chain: string, releaseName: string) {
   const deploymentData = fs.readFileSync(deploymentJsonPath, "utf8");
   const updated_contracts = Object.keys(JSON.parse(deploymentData));
 
+  // Create head JSON file if it doesn't exist
+  if (!fs.existsSync(headJsonFile)) fs.writeFileSync(headJsonFile, "{}");
+
   // Update only values of updated contracts to the release name in the
   // head JSON file. Leave other values unchanged.
   const headData = fs.readFileSync(headJsonFile, "utf8");
@@ -323,9 +327,13 @@ async function updateHeadJson(chain: string, releaseName: string) {
 
 async function main() {
   const chain = process.argv[2];
+  const validChains = ["mainnet", "goerli", "base", "base-goerli"];
 
   if (!chain) {
-    console.error("Missing chain argument".red);
+    console.error(`Missing chain argument. Valid chains are: ${validChains.join(", ")}`);
+    process.exit(1);
+  } else if (!validChains.includes(chain)) {
+    console.error(`Invalid chain "${chain}". Valid chains are: ${validChains.join(", ")}`);
     process.exit(1);
   }
 
@@ -387,7 +395,7 @@ async function main() {
     console.log("Waiting for Etherscan to index contract code...");
     await new Promise(resolve => setTimeout(resolve, 5000));
 
-    await verifyWithIr(chain, true);
+    await verify(chain, true);
   } else {
     process.exit(0);
   }
@@ -418,23 +426,6 @@ async function main() {
   }
 
   await run(`prettier --write lib/party-addresses >> /dev/null`);
-
-  const defaultMessage = `deploy ${release_name} to ${chain}`;
-  let message;
-  if (await confirm("Commit and push changes in party-addresses?", true)) {
-    message = await new Promise<string>(resolve =>
-      rl.question(`What is the commit message? (default: "${defaultMessage}") `, resolve),
-    );
-
-    // If no message is provided, use the default message
-    if (!message) message = defaultMessage;
-
-    await run("cd lib/party-addresses");
-    await run("git add .");
-    await run(`git commit -m "${message}"`);
-    await run("git push origin HEAD:main");
-    await run("cd ../..");
-  }
 
   rl.close();
 }
