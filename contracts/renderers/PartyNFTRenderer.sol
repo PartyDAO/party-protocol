@@ -117,14 +117,10 @@ contract PartyNFTRenderer is RendererBase {
                         bytes(metadata.image).length == 0 ? image : metadata.image,
                         // Determine which banner to render.
                         bytes(metadata.banner).length == 0
-                            ? // No custom banner.
-                            bytes(metadata.image).length == 0
-                                ? // If there is also no custom image, use the default Party banner.
-                                string.concat('", "banner":"', banner)
-                                : // If there is a custom image, do not include banner in metadata.
-                                ""
-                            : // Custom banner, use it.
-                            string.concat('", "banner":"', metadata.banner),
+                            ? bytes(metadata.image).length == 0 // No custom banner and no custom image, use the default Party banner.
+                                ? string.concat('", "banner":"', banner) // No custom banner but custom image, do not include banner in metadata.
+                                : ""
+                            : string.concat('", "banner":"', metadata.banner), // Custom banner, use it.
                         '"}'
                     )
                 )
