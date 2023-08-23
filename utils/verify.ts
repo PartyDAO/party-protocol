@@ -70,10 +70,7 @@ const generateStandardJson = (
 
   const result = child_process.execSync(cmd).toString();
   const jsonData = JSON.parse(result);
-  if (chain === "mainnet" || chain === "goerli") {
-    jsonData["settings"]["viaIR"] = true;
-  }
-
+  jsonData["settings"]["viaIR"] = true;
   jsonData["settings"]["evmVersion"] = evmVersion;
 
   return JSON.stringify(jsonData);
