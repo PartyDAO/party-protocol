@@ -32,13 +32,9 @@ contract SSTORE2MetadataProvider is IMetadataProvider, Multicall {
     uint256 public nextIndex;
 
     /// @notice The metadata for each Party instance.
-    /// @param index The index of the metadata.
-    /// @return file The address of the chunk of metadata stored as raw bytecode.
     mapping(uint256 index => address file) public files;
 
     /// @notice The start and end index of metadata for a instance.
-    /// @param instance The address of the instance.
-    /// @return indexes The indexes of metadata for a instance.
     mapping(address instance => Indexes indexes) public indexes;
 
     // Set the `Globals` contract.
