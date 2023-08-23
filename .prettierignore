@@ -3,7 +3,8 @@ broadcast
 cache
 out
 js
-lib/party-addresses/deploy
+lib/*
+!lib/party-addresses/
 node_modules
 artifacts
 audits
