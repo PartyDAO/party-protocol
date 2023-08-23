@@ -4,8 +4,6 @@
 /node_modules
 /tests/built
 /js
-lib/*
-!lib/party-addresses/
 /deploy/cache/
 broadcast/
 package-lock.json
