@@ -16,20 +16,18 @@ contract BasicMetadataProvider is MetadataProvider {
     function getMetadata(address instance, uint256) external view override returns (bytes memory) {
         Metadata memory metadata;
 
-        metadata.name = retrieveDynamicMetadataInfo(instance, MetadataFields.NAME);
-        metadata.description = retrieveDynamicMetadataInfo(instance, MetadataFields.DESCRIPTION);
+        metadata.name = metadata.collectionName = retrieveDynamicMetadataInfo(
+            instance,
+            MetadataFields.NAME
+        );
+        metadata.description = metadata.collectionDescription = retrieveDynamicMetadataInfo(
+            instance,
+            MetadataFields.DESCRIPTION
+        );
         metadata.externalURL = retrieveDynamicMetadataInfo(instance, MetadataFields.EXTERNAL_URL);
         metadata.image = retrieveDynamicMetadataInfo(instance, MetadataFields.IMAGE);
         metadata.banner = retrieveDynamicMetadataInfo(instance, MetadataFields.BANNER);
         metadata.animationURL = retrieveDynamicMetadataInfo(instance, MetadataFields.ANIMATION_URL);
-        metadata.collectionName = retrieveDynamicMetadataInfo(
-            instance,
-            MetadataFields.COLLECTION_NAME
-        );
-        metadata.collectionDescription = retrieveDynamicMetadataInfo(
-            instance,
-            MetadataFields.COLLECTION_DESCRIPTION
-        );
         metadata.collectionExternalURL = retrieveDynamicMetadataInfo(
             instance,
             MetadataFields.COLLECTION_EXTERNAL_URL
@@ -65,7 +63,7 @@ contract BasicMetadataProvider is MetadataProvider {
     /// @notice Set the metadata for a Party instance.
     /// @param instance The address of the instance.
     /// @param metadata The encoded metadata.
-    function setMetadata(address instance, bytes memory metadata) external override {
+    function setMetadata(address instance, bytes calldata metadata) external override {
         if (instance != msg.sender) {
             MetadataRegistry registry = MetadataRegistry(
                 _GLOBALS.getAddress(LibGlobals.GLOBAL_METADATA_REGISTRY)
@@ -118,23 +116,23 @@ contract BasicMetadataProvider is MetadataProvider {
             );
         }
 
-        if (decodedMetadata.collectionName.length != 0) {
-            storeMetadataInfo(
-                instance,
-                MetadataFields.COLLECTION_NAME,
-                decodedMetadata.collectionName,
-                false
-            );
-        }
+        // if (decodedMetadata.collectionName.length != 0) {
+        //     storeMetadataInfo(
+        //         instance,
+        //         MetadataFields.COLLECTION_NAME,
+        //         decodedMetadata.collectionName,
+        //         false
+        //     );
+        // }
 
-        if (decodedMetadata.collectionDescription.length != 0) {
-            storeMetadataInfo(
-                instance,
-                MetadataFields.COLLECTION_DESCRIPTION,
-                decodedMetadata.collectionDescription,
-                false
-            );
-        }
+        // if (decodedMetadata.collectionDescription.length != 0) {
+        //     storeMetadataInfo(
+        //         instance,
+        //         MetadataFields.COLLECTION_DESCRIPTION,
+        //         decodedMetadata.collectionDescription,
+        //         false
+        //     );
+        // }
 
         if (decodedMetadata.collectionExternalURL.length != 0) {
             storeMetadataInfo(
