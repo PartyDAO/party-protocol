@@ -15,6 +15,7 @@ import { IReserveAuctionCoreEth } from "../../contracts/vendor/markets/IReserveA
 import { PartyGovernance } from "../../contracts/party/PartyGovernance.sol";
 import { ERC721Receiver } from "../../contracts/tokens/ERC721Receiver.sol";
 import { OffChainSignatureValidator } from "../../contracts/signature-validators/OffChainSignatureValidator.sol";
+import { MetadataRegistry } from "../../contracts/renderers/MetadataRegistry.sol";
 
 /// @notice This contract provides a fully functioning party instance for testing.
 ///     Run setup from inheriting contract.
@@ -29,8 +30,9 @@ abstract contract SetupPartyHelper is TestUtils, ERC721Receiver {
     bool private immutable _isForked;
     GlobalsAdmin globalsAdmin;
     Party party;
+    Party partyImpl;
     Globals internal globals;
-    PartyFactory private partyFactory;
+    PartyFactory internal partyFactory;
     uint256 internal johnPk = 0xa11ce;
     uint256 internal dannyPk = 0xb0b;
     uint256 internal stevePk = 0xca1;
@@ -41,8 +43,8 @@ abstract contract SetupPartyHelper is TestUtils, ERC721Receiver {
     uint96 internal dannyVotes;
     uint96 internal steveVotes;
     uint96 internal thisVotes;
-    IERC721[] private preciousTokens = new IERC721[](0);
-    uint256[] private preciousTokenIds = new uint256[](0);
+    IERC721[] internal preciousTokens = new IERC721[](0);
+    uint256[] internal preciousTokenIds = new uint256[](0);
     uint40 private constant _EXECUTION_DELAY = 300;
 
     constructor(bool isForked) {
@@ -60,7 +62,7 @@ abstract contract SetupPartyHelper is TestUtils, ERC721Receiver {
     function setUp() public virtual {
         globalsAdmin = new GlobalsAdmin();
         globals = globalsAdmin.globals();
-        Party partyImpl = new Party(globals);
+        partyImpl = new Party(globals);
         address globalDaoWalletAddress = address(420);
         globalsAdmin.setGlobalDaoWallet(globalDaoWalletAddress);
 
@@ -79,6 +81,14 @@ abstract contract SetupPartyHelper is TestUtils, ERC721Receiver {
         OffChainSignatureValidator offChainGlobalValidator = new OffChainSignatureValidator();
         globalsAdmin.setOffChainSignatureValidator(address(offChainGlobalValidator));
 
+        partyFactory = new PartyFactory(globals);
+
+        address[] memory registrars = new address[](2);
+        registrars[0] = address(this);
+        registrars[1] = address(partyFactory);
+        MetadataRegistry metadataRegistry = new MetadataRegistry(globals, registrars);
+        globalsAdmin.setMetadataRegistry(address(metadataRegistry));
+
         johnVotes = johnVotes == 0 ? 100 : johnVotes;
         dannyVotes = dannyVotes == 0 ? 100 : dannyVotes;
         steveVotes = steveVotes == 0 ? 100 : steveVotes;
@@ -95,7 +105,6 @@ abstract contract SetupPartyHelper is TestUtils, ERC721Receiver {
         opts.governance.passThresholdBps = 1000;
         opts.governance.totalVotingPower = johnVotes + dannyVotes + steveVotes + thisVotes;
 
-        partyFactory = new PartyFactory(globals);
         address[] memory authorities = new address[](1);
         authorities[0] = address(this);
         party = partyFactory.createParty(
