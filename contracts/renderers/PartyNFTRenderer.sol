@@ -122,8 +122,12 @@ contract PartyNFTRenderer is RendererBase {
                             : metadata.collectionExternalURL,
                         '", "image":"',
                         bytes(metadata.image).length == 0 ? image : metadata.image,
-                        '", "banner":"',
-                        bytes(metadata.banner).length == 0 ? banner : metadata.banner,
+                        // Determine which banner to render.
+                        bytes(metadata.banner).length == 0
+                            ? bytes(metadata.image).length == 0 // No custom banner and no custom image, use the default Party banner.
+                                ? string.concat('", "banner":"', banner) // No custom banner but custom image, do not include banner in metadata.
+                                : ""
+                            : string.concat('", "banner":"', metadata.banner), // Custom banner, use it.
                         '"}'
                     )
                 )
@@ -196,7 +200,7 @@ contract PartyNFTRenderer is RendererBase {
                             : string.concat(
                                 metadata.description,
                                 // Append default description.
-                                " ",
+                                "\n\n",
                                 generateDescription(
                                     PartyGovernanceNFT(address(this)).name(),
                                     tokenId
