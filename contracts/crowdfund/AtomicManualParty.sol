@@ -14,13 +14,13 @@ import { MetadataProvider } from "../renderers/MetadataProvider.sol";
 contract AtomicManualParty {
     /// @notice Emitted when an atomic manual party is created
     event AtomicManualPartyCreated(
-        Party party,
+        Party indexed party,
         address[] partyMembers,
-        uint96[] partyMemberVotingPower
+        uint96[] partyMemberVotingPowers
     );
     /// @notice Returned if the `AtomicManualParty` is created with no members
     error NoPartyMembers();
-    /// @notice Returned if the lengths of `partyMembers` and `partyMemberVotingPower` do not match
+    /// @notice Returned if the lengths of `partyMembers` and `partyMemberVotingPowers` do not match
     error PartyMembersArityMismatch();
     /// @notice Returned if a party card would be issued to the null address
     error InvalidPartyMember();
@@ -43,11 +43,11 @@ contract AtomicManualParty {
         uint256[] memory preciousTokenIds,
         uint40 rageQuitTimestamp,
         address[] memory partyMembers,
-        uint96[] memory partyMemberVotingPower
+        uint96[] memory partyMemberVotingPowers
     ) public returns (Party party) {
         uint96 totalVotingPower = _validateAtomicManualPartyArrays(
             partyMembers,
-            partyMemberVotingPower
+            partyMemberVotingPowers
         );
 
         address[] memory authorities = new address[](1);
@@ -64,7 +64,7 @@ contract AtomicManualParty {
             rageQuitTimestamp
         );
 
-        _issuePartyCards(party, partyMembers, partyMemberVotingPower);
+        _issuePartyCards(party, partyMembers, partyMemberVotingPowers);
     }
 
     /// @notice Atomically creates the party and distributes the party cards
@@ -78,11 +78,11 @@ contract AtomicManualParty {
         MetadataProvider provider,
         bytes memory metadata,
         address[] memory partyMembers,
-        uint96[] memory partyMemberVotingPower
+        uint96[] memory partyMemberVotingPowers
     ) external returns (Party party) {
         uint96 totalVotingPower = _validateAtomicManualPartyArrays(
             partyMembers,
-            partyMemberVotingPower
+            partyMemberVotingPowers
         );
 
         address[] memory authorities = new address[](1);
@@ -102,48 +102,48 @@ contract AtomicManualParty {
                 metadata
             );
 
-        _issuePartyCards(party, partyMembers, partyMemberVotingPower);
+        _issuePartyCards(party, partyMembers, partyMemberVotingPowers);
     }
 
     /// @notice Issue party cards to the party members and finishes up creation
     /// @param party The party to issue cards for
     /// @param partyMembers The party members to issue cards to
-    /// @param partyMemberVotingPower The voting power each party member gets
+    /// @param partyMemberVotingPowers The voting power each party member gets
     function _issuePartyCards(
         Party party,
         address[] memory partyMembers,
-        uint96[] memory partyMemberVotingPower
+        uint96[] memory partyMemberVotingPowers
     ) internal {
         for (uint256 i; i < partyMembers.length; i++) {
-            party.mint(partyMembers[i], partyMemberVotingPower[i], partyMembers[i]);
+            party.mint(partyMembers[i], partyMemberVotingPowers[i], partyMembers[i]);
         }
         party.abdicateAuthority();
-        emit AtomicManualPartyCreated(party, partyMembers, partyMemberVotingPower);
+        emit AtomicManualPartyCreated(party, partyMembers, partyMemberVotingPowers);
     }
 
     /// @notice Validate manual party cards arrays, returns total voting power
     /// @param partyMembers The party members to issue cards to
-    /// @param partyMemberVotingPower The voting power each party member gets
+    /// @param partyMemberVotingPowers The voting power each party member gets
     /// @return totalVotingPower The total voting power of the party
     function _validateAtomicManualPartyArrays(
         address[] memory partyMembers,
-        uint96[] memory partyMemberVotingPower
+        uint96[] memory partyMemberVotingPowers
     ) private pure returns (uint96 totalVotingPower) {
         if (partyMembers.length == 0) {
             revert NoPartyMembers();
         }
-        if (partyMembers.length != partyMemberVotingPower.length) {
+        if (partyMembers.length != partyMemberVotingPowers.length) {
             revert PartyMembersArityMismatch();
         }
 
-        for (uint256 i = 0; i < partyMemberVotingPower.length; ++i) {
-            if (partyMemberVotingPower[i] == 0) {
+        for (uint256 i = 0; i < partyMemberVotingPowers.length; ++i) {
+            if (partyMemberVotingPowers[i] == 0) {
                 revert InvalidPartyMemberVotingPower();
             }
             if (partyMembers[i] == address(0)) {
                 revert InvalidPartyMember();
             }
-            totalVotingPower += partyMemberVotingPower[i];
+            totalVotingPower += partyMemberVotingPowers[i];
         }
     }
 }
