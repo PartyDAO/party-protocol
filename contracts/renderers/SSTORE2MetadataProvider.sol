@@ -11,7 +11,7 @@ import { SSTORE2 } from "solmate/utils/SSTORE2.sol";
 /// @notice A contract that provides custom metadata for Party Cards and uses
 ///         SSTORE2 to store large metadata.
 contract SSTORE2MetadataProvider is IMetadataProvider, Multicall {
-    event MetadataSet(address indexed instance, bytes[] metadata, Indexes indexes);
+    event MetadataSet(address indexed instance, Indexes indexes);
 
     error NotAuthorized(address caller, address instance);
 
@@ -52,7 +52,7 @@ contract SSTORE2MetadataProvider is IMetadataProvider, Multicall {
 
     /// @notice Set the metadata for a Party instance.
     /// @param instance The address of the instance.
-    /// @param metadata The encoded metadata split into chunks.
+    /// @param metadata The encoded metadata.
     function setMetadata(address instance, bytes calldata metadata) external {
         if (instance != msg.sender) {
             MetadataRegistry registry = MetadataRegistry(
@@ -70,28 +70,24 @@ contract SSTORE2MetadataProvider is IMetadataProvider, Multicall {
         // than the code size limit because SSTORE2 prefixes it with a 1 byte STOP
         // opcode to ensure it cannot be called as a normal contract.
         uint256 maxCodeSize = 24_575;
-        bytes[] memory metadataPartitions = new bytes[](metadata.length / maxCodeSize + 1);
-        for (uint256 i; i < metadataPartitions.length; ++i) {
+        uint256 metadataLength = metadata.length;
+        uint256 partitions = metadataLength / maxCodeSize + 1;
+        uint256 index = nextIndex;
+        for (uint256 i; i < partitions; ++i) {
             uint256 start = i * maxCodeSize;
             uint256 end = start + maxCodeSize;
-            if (end > metadata.length) {
-                end = metadata.length;
-            }
-            metadataPartitions[i] = metadata[start:end];
-        }
+            if (end > metadataLength) end = metadataLength;
 
-        uint256 index = nextIndex;
-        for (uint256 i; i < metadataPartitions.length; ++i) {
-            files[index + i] = SSTORE2.write(metadataPartitions[i]);
+            files[index + i] = SSTORE2.write(metadata[start:end]);
         }
 
         Indexes memory instanceIndexes = indexes[instance] = Indexes({
             start: uint128(index),
-            end: uint128(index + metadataPartitions.length - 1)
+            end: uint128(index + partitions - 1)
         });
 
-        nextIndex += metadataPartitions.length;
+        nextIndex += partitions;
 
-        emit MetadataSet(instance, metadataPartitions, instanceIndexes);
+        emit MetadataSet(instance, instanceIndexes);
     }
 }
