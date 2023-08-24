@@ -52,8 +52,8 @@ contract SSTORE2MetadataProvider is IMetadataProvider, Multicall {
 
     /// @notice Set the metadata for a Party instance.
     /// @param instance The address of the instance.
-    /// @param metadataPartitions The encoded metadata split into chunks.
-    function setMetadata(address instance, bytes[] calldata metadataPartitions) external {
+    /// @param metadata The encoded metadata split into chunks.
+    function setMetadata(address instance, bytes calldata metadata) external {
         if (instance != msg.sender) {
             MetadataRegistry registry = MetadataRegistry(
                 _GLOBALS.getAddress(LibGlobals.GLOBAL_METADATA_REGISTRY)
@@ -63,6 +63,21 @@ contract SSTORE2MetadataProvider is IMetadataProvider, Multicall {
             if (!registry.isRegistrar(msg.sender, instance)) {
                 revert NotAuthorized(msg.sender, instance);
             }
+        }
+
+        // Split the metadata into partitions of ~24KB max. The max bytecode we
+        // want each partition to have after deployment is capped at 1 byte less
+        // than the code size limit because SSTORE2 prefixes it with a 1 byte STOP
+        // opcode to ensure it cannot be called as a normal contract.
+        uint256 maxCodeSize = 24_575;
+        bytes[] memory metadataPartitions = new bytes[](metadata.length / maxCodeSize + 1);
+        for (uint256 i; i < metadataPartitions.length; ++i) {
+            uint256 start = i * maxCodeSize;
+            uint256 end = start + maxCodeSize;
+            if (end > metadata.length) {
+                end = metadata.length;
+            }
+            metadataPartitions[i] = metadata[start:end];
         }
 
         uint256 index = nextIndex;
