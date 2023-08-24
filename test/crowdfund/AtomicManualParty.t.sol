@@ -18,6 +18,11 @@ contract AtomicManualPartyTest is SetupPartyHelper {
         uint256[] preciousTokenIds,
         address creator
     );
+    event AtomicManualPartyCreated(
+        Party indexed party,
+        address[] partyMembers,
+        uint96[] partyMemberVotingPowers
+    );
     event ProviderSet(address indexed instance, IMetadataProvider indexed provider);
 
     AtomicManualParty private atomicManualParty;
@@ -56,6 +61,8 @@ contract AtomicManualPartyTest is SetupPartyHelper {
             preciousTokenIds,
             address(atomicManualParty)
         );
+        vm.expectEmit(false, true, true, true);
+        emit AtomicManualPartyCreated(Party(payable(0)), partyMembers, partyMemberVotingPower);
         // total voting power ignored
         opts.governance.totalVotingPower = 100;
         Party atomicParty = atomicManualParty.createParty(
