@@ -12,6 +12,12 @@ import { MetadataProvider } from "../renderers/MetadataProvider.sol";
 /// @notice Singleton that is called to create a party manually with an array
 ///         of party members and their voting power.
 contract AtomicManualParty {
+    /// @notice Emitted when an atomic manual party is created
+    event AtomicManualPartyCreated(
+        Party party,
+        address[] partyMembers,
+        uint96[] partyMemberVotingPower
+    );
     /// @notice Returned if the `AtomicManualParty` is created with no members
     error NoPartyMembers();
     /// @notice Returned if the lengths of `partyMembers` and `partyMemberVotingPower` do not match
@@ -99,7 +105,7 @@ contract AtomicManualParty {
         _issuePartyCards(party, partyMembers, partyMemberVotingPower);
     }
 
-    /// @notice Issue party cards to the party members
+    /// @notice Issue party cards to the party members and finishes up creation
     /// @param party The party to issue cards for
     /// @param partyMembers The party members to issue cards to
     /// @param partyMemberVotingPower The voting power each party member gets
@@ -112,6 +118,7 @@ contract AtomicManualParty {
             party.mint(partyMembers[i], partyMemberVotingPower[i], partyMembers[i]);
         }
         party.abdicateAuthority();
+        emit AtomicManualPartyCreated(party, partyMembers, partyMemberVotingPower);
     }
 
     /// @notice Validate manual party cards arrays, returns total voting power
