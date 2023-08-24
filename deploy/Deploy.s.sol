@@ -649,7 +649,7 @@ contract DeployScript is Script, Deploy {
         Deploy.deploy(deployConstants);
         vm.stopBroadcast();
 
-        AddressMapping[] memory addressMapping = new AddressMapping[](23);
+        AddressMapping[] memory addressMapping = new AddressMapping[](24);
         addressMapping[0] = AddressMapping("Globals", address(globals));
         addressMapping[1] = AddressMapping("TokenDistributor", address(tokenDistributor));
         addressMapping[2] = AddressMapping(
@@ -678,7 +678,7 @@ contract DeployScript is Script, Deploy {
             "CollectionBatchBuyOperator",
             address(collectionBatchBuyOperator)
         );
-        addressMapping[12] = AddressMapping("ERC20SwapOperator", address(swapOperator));
+        addressMapping[23] = AddressMapping("ERC20SwapOperator", address(swapOperator));
         addressMapping[13] = AddressMapping("CrowdfundFactory", address(crowdfundFactory));
         addressMapping[14] = AddressMapping("MetadataRegistry", address(metadataRegistry));
         addressMapping[15] = AddressMapping("MetadataProvider", address(metadataProvider));
