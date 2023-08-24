@@ -8,7 +8,6 @@ import { IGlobals } from "../globals/IGlobals.sol";
 import { IFont } from "./fonts/IFont.sol";
 import { IERC721Renderer } from "./IERC721Renderer.sol";
 import { RendererStorage } from "./RendererStorage.sol";
-import { IParty1_1 } from "./IParty1_1.sol";
 
 abstract contract RendererBase is IERC721Renderer {
     using Strings for uint256;
@@ -34,7 +33,8 @@ abstract contract RendererBase is IERC721Renderer {
             // Preset ID 0 is reserved. It is used to indicate to party instances
             // to use the same customization preset as the crowdfund.
             (bool success, bytes memory result) = address(this).staticcall(
-                abi.encodeCall(IParty1_1.mintAuthority, ())
+                // Call mintAuthority
+                abi.encodeWithSignature("mintAuthority()")
             );
 
             if (success && result.length == 32) {
