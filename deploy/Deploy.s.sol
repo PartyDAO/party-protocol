@@ -29,6 +29,7 @@ import "../contracts/proposals/ProposalExecutionEngine.sol";
 import "../contracts/utils/PartyHelpers.sol";
 import "../contracts/market-wrapper/FoundationMarketWrapper.sol";
 import "../contracts/market-wrapper/NounsMarketWrapper.sol";
+import { AtomicManualParty } from "../contracts/crowdfund/AtomicManualParty.sol";
 import "./LibDeployConstants.sol";
 
 abstract contract Deploy {
@@ -74,6 +75,7 @@ abstract contract Deploy {
     FoundationMarketWrapper public foundationMarketWrapper;
     NounsMarketWrapper public nounsMarketWrapper;
     PixeldroidConsoleFont public pixeldroidConsoleFont;
+    AtomicManualParty public atomicManualParty;
 
     function deploy(LibDeployConstants.DeployConstants memory deployConstants) public virtual {
         _switchDeployer(DeployerRole.Default);
@@ -393,6 +395,13 @@ abstract contract Deploy {
         _trackDeployerGasAfter();
         console.log("  Deployed - TokenGateKeeper", address(tokenGateKeeper));
 
+        console.log("");
+        console.log("  Deploying - AtomicManualParty");
+        _trackDeployerGasBefore();
+        atomicManualParty = new AtomicManualParty(globals);
+        _trackDeployerGasAfter();
+        console.log("  Deployed - AtomicManualParty", address(atomicManualParty));
+
         // Set Global values and transfer ownership
         {
             console.log("### Configure Globals");
@@ -649,7 +658,7 @@ contract DeployScript is Script, Deploy {
         Deploy.deploy(deployConstants);
         vm.stopBroadcast();
 
-        AddressMapping[] memory addressMapping = new AddressMapping[](23);
+        AddressMapping[] memory addressMapping = new AddressMapping[](24);
         addressMapping[0] = AddressMapping("Globals", address(globals));
         addressMapping[1] = AddressMapping("TokenDistributor", address(tokenDistributor));
         addressMapping[2] = AddressMapping(
@@ -692,6 +701,7 @@ contract DeployScript is Script, Deploy {
             "PixeldroidConsoleFont",
             address(pixeldroidConsoleFont)
         );
+        addressMapping[23] = AddressMapping("AtomicManualParty", address(atomicManualParty));
 
         console.log("");
         console.log("### Deployed addresses");

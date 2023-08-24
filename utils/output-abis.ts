@@ -26,6 +26,7 @@ const RELEVANT_ABIS = [
   "ERC20SwapOperator",
   "MetadataProvider",
   "MetadataRegistry",
+  "AtomicManualParty",
 ];
 
 // AFileName -> a_file_name
