@@ -209,6 +209,9 @@ contract BasicMetadataProvider is MetadataProvider {
             // Check if we can cheat
             uint256 dataLength = data.length;
             if (dataLength > 32 || (dataLength == 32 && value >> 255 == 1)) {
+                if (dataLength > type(uint16).max) {
+                    revert();
+                }
                 // Store the slot to the start of this data (with a key for dynamic data as the first bit 1)
                 uint256 dynamicSlot = (uint256(1) << 255) |
                     uint256(keccak256(abi.encode(instance, metadataSlotNumber, field)));

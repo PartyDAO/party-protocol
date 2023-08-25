@@ -20,7 +20,7 @@ contract CreatePartyWithCustomMetadataTest is SetupPartyHelper {
         basicMetadataProvider = new BasicMetadataProvider(globals);
     }
 
-    function test_createParty_withCustomMetadata() public {
+    function createParty_withCustomMetadata(PartyNFTRenderer.Metadata memory metadata) public {
         address[] memory authorities = new address[](1);
         authorities[0] = address(this);
 
@@ -35,13 +35,6 @@ contract CreatePartyWithCustomMetadataTest is SetupPartyHelper {
         opts.governance.passThresholdBps = 1000;
         opts.governance.totalVotingPower = johnVotes + dannyVotes + steveVotes + thisVotes;
 
-        bytes
-            memory metadataEncoded = hex"0000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000018000000000000000000000000000000000000000000000000000000000000001c00000000000000000000000000000000000000000000000000000000000000240000000000000000000000000000000000000000000000000000000000000026000000000000000000000000000000000000000000000000000000000000002c000000000000000000000000000000000000000000000000000000000000002e00000000000000000000000000000000000000000000000000000000000000300000000000000000000000000000000000000000000000000000000000000034000000000000000000000000000000000000000000000000000000000000003c0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000001c666c697070656420616e642077617270656420746f61642063726577000000000000000000000000000000000000000000000000000000000000000000000053576527726520737570706f7274696e672074686520666c697070656420616e642077617270656420746f61642065636f73797374656d2e20204c6574277320676f206765742027656d2c20667269656e64732e0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000035697066733a2f2f516d553573594778587679656b5265777a344238427662356538786174426e4d564c5a507246386d706934617350000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001c666c697070656420616e642077617270656420746f61642063726577000000000000000000000000000000000000000000000000000000000000000000000053576527726520737570706f7274696e672074686520666c697070656420616e642077617270656420746f61642065636f73797374656d2e20204c6574277320676f206765742027656d2c20667269656e64732e000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000";
-        PartyNFTRenderer.Metadata memory decodedMetadataStart = abi.decode(
-            metadataEncoded,
-            (PartyNFTRenderer.Metadata)
-        );
-
         uint256 gas = gasleft();
 
         party = partyFactory.createPartyWithMetadata(
@@ -52,10 +45,24 @@ contract CreatePartyWithCustomMetadataTest is SetupPartyHelper {
             preciousTokenIds,
             0,
             basicMetadataProvider,
-            metadataEncoded
+            abi.encode(metadata)
         );
 
-        emit log_named_uint("gas used", gas - gasleft());
+        emit log_named_uint("gas used optimized", gas - gasleft());
+
+        gas = gasleft();
+
+        party = partyFactory.createPartyWithMetadata(
+            partyImpl,
+            authorities,
+            opts,
+            preciousTokens,
+            preciousTokenIds,
+            0,
+            metadataProvider,
+            abi.encode(metadata)
+        );
+        emit log_named_uint("gas used optimized existing", gas - gasleft());
 
         bytes memory metadata = basicMetadataProvider.getMetadata(address(party), 0);
 
@@ -63,5 +70,53 @@ contract CreatePartyWithCustomMetadataTest is SetupPartyHelper {
             metadata,
             (PartyNFTRenderer.Metadata)
         );
+    }
+
+    function testRunMetadataBenchmarkShortLinks() public {
+        string memory description = "this is my desciption!";
+        for (uint i = 0; i < 10; ++i) {
+            emit log(string.concat("Description is now: ", description));
+            createParty_withCustomMetadata(
+                PartyNFTRenderer.Metadata({
+                    name: "My Party!",
+                    description: description,
+                    externalURL: "https://shortlink.io",
+                    image: "https://shortlink.io",
+                    banner: "",
+                    animationURL: "https://shortlink.io",
+                    collectionName: "My Party!",
+                    collectionDescription: description,
+                    collectionExternalURL: "",
+                    royaltyReceiver: _randomAddress(),
+                    royaltyAmount: _randomUint256(),
+                    renderingMethod: PartyNFTRenderer.RenderingMethod.ENUM_OFFSET
+                })
+            );
+            description = string.concat(description, "adding some amazing fluff here!!");
+        }
+    }
+
+    function testRunMetadataBenchmark() public {
+        string memory description = "this is my desciption!";
+        for (uint i = 0; i < 10; ++i) {
+            emit log(string.concat("Description is now: ", description));
+            createParty_withCustomMetadata(
+                PartyNFTRenderer.Metadata({
+                    name: "My Party!",
+                    description: description,
+                    externalURL: "ipfs://QmeSjSinHpPnmXmspMjwiXyN6zS4E9zccariGR3jxcaWtq",
+                    image: "ipfs://QmeSjSinHpPnmXmspMjwiXyN6zS4E9zccariGR3jxcaWtq",
+                    banner: "",
+                    animationURL: "ipfs://QmeSjSinHpPnmXmspMjwiXyN6zS4E9zccariGR3jxcaWtq",
+                    collectionName: "My Party!",
+                    collectionDescription: description,
+                    collectionExternalURL: "",
+                    royaltyReceiver: _randomAddress(),
+                    royaltyAmount: _randomUint256(),
+                    renderingMethod: PartyNFTRenderer.RenderingMethod.ENUM_OFFSET
+                })
+            );
+            description = string.concat(description, "adding some amazing fluff here!!");
+        }
     }
 }
