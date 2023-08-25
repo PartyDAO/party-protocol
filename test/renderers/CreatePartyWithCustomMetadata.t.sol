@@ -5,11 +5,13 @@ import { SetupPartyHelper } from "../utils/SetupPartyHelper.sol";
 import { Party } from "../../contracts/party/Party.sol";
 import { MetadataProvider } from "../../contracts/renderers/MetadataProvider.sol";
 import { BasicMetadataProvider } from "../../contracts/renderers/BasicMetadataProvider.sol";
+import { SSTORE2MetadataProvider } from "../../contracts/renderers/SSTORE2MetadataProvider.sol";
 import { PartyNFTRenderer } from "../../contracts/renderers/PartyNFTRenderer.sol";
 
 contract CreatePartyWithCustomMetadataTest is SetupPartyHelper {
     MetadataProvider metadataProvider;
     BasicMetadataProvider basicMetadataProvider;
+    SSTORE2MetadataProvider sstore2MetadataProvider;
 
     constructor() SetupPartyHelper(false) {}
 
@@ -18,6 +20,7 @@ contract CreatePartyWithCustomMetadataTest is SetupPartyHelper {
 
         metadataProvider = new MetadataProvider(globals);
         basicMetadataProvider = new BasicMetadataProvider(globals);
+        sstore2MetadataProvider = new SSTORE2MetadataProvider(globals);
     }
 
     function createParty_withCustomMetadata(PartyNFTRenderer.Metadata memory metadata) public {
@@ -44,11 +47,11 @@ contract CreatePartyWithCustomMetadataTest is SetupPartyHelper {
             preciousTokens,
             preciousTokenIds,
             0,
-            basicMetadataProvider,
+            sstore2MetadataProvider,
             abi.encode(metadata)
         );
 
-        emit log_named_uint("gas used optimized", gas - gasleft());
+        emit log_named_uint("gas used SSTORE2", gas - gasleft());
 
         gas = gasleft();
 
@@ -59,10 +62,10 @@ contract CreatePartyWithCustomMetadataTest is SetupPartyHelper {
             preciousTokens,
             preciousTokenIds,
             0,
-            metadataProvider,
+            basicMetadataProvider,
             abi.encode(metadata)
         );
-        emit log_named_uint("gas used optimized existing", gas - gasleft());
+        emit log_named_uint("gas used basic", gas - gasleft());
 
         bytes memory metadata = basicMetadataProvider.getMetadata(address(party), 0);
 
