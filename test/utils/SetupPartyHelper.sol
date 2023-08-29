@@ -22,7 +22,7 @@ abstract contract SetupPartyHelper is TestUtils, ERC721Receiver {
     bool private immutable _isForked;
     GlobalsAdmin globalsAdmin;
     Party party;
-    Globals private globals;
+    Globals internal globals;
     PartyFactory private partyFactory;
     uint256 internal johnPk = 0xa11ce;
     uint256 internal dannyPk = 0xb0b;
