@@ -2,6 +2,7 @@
 pragma solidity 0.8.20;
 
 import { LibSafeCast } from "../utils/LibSafeCast.sol";
+import { LibRawResult } from "../utils/LibRawResult.sol";
 import { LibRenderer, Color, ColorType } from "../utils/LibRenderer.sol";
 import { Strings } from "../utils/vendor/Strings.sol";
 import { Base64 } from "../utils/vendor/Base64.sol";
@@ -16,10 +17,10 @@ import { TokenDistributor } from "../distribution/TokenDistributor.sol";
 import { IGlobals } from "../globals/IGlobals.sol";
 import { LibGlobals } from "../globals/LibGlobals.sol";
 import { IFont } from "./fonts/IFont.sol";
-import { IParty1_1 } from "./IParty1_1.sol";
 
 contract PartyNFTRenderer is RendererBase {
     using LibSafeCast for uint256;
+    using LibRawResult for bytes;
     using Strings for uint256;
     using Strings for address;
 
@@ -500,7 +501,7 @@ contract PartyNFTRenderer is RendererBase {
 
     function generateVotingPowerPercentage(uint256 tokenId) private view returns (string memory) {
         Party party = Party(payable(address(this)));
-        uint256 totalVotingPower = party.getGovernanceValues().totalVotingPower;
+        uint256 totalVotingPower = getTotalVotingPower();
 
         if (totalVotingPower == 0) {
             return "--";
@@ -558,37 +559,26 @@ contract PartyNFTRenderer is RendererBase {
         view
         returns (PartyGovernance.ProposalStatus[4] memory proposalStatuses)
     {
-        uint16 versionId = getPartyVersion();
         uint256 latestProposalId = PartyGovernance(address(this)).lastProposalId();
         uint256 numOfProposalsToDisplay = latestProposalId < 4 ? latestProposalId : 4;
         for (uint256 i; i < numOfProposalsToDisplay; ++i) {
             uint256 proposalId = latestProposalId - i;
+            PartyGovernance.ProposalStatus proposalStatus;
 
-            uint16 status;
-            if (versionId == 0) {
-                IParty1_1.ProposalStatus proposalStatus;
-                (proposalStatus, ) = IParty1_1(address(this)).getProposalStateInfo(proposalId);
-                status = uint16(proposalStatus);
-            } else {
-                PartyGovernance.ProposalStatus proposalStatus;
-                (proposalStatus, ) = PartyGovernance(address(this)).getProposalStateInfo(
-                    proposalId
-                );
-                status = uint16(proposalStatus);
+            // Get the status of the proposal, regardless of the version of the
+            // Party contract.
+            (bool s, bytes memory r) = address(this).staticcall(
+                abi.encodeCall(PartyGovernance.getProposalStateInfo, (proposalId))
+            );
+            if (!s) {
+                r.rawRevert();
+            }
+            assembly {
+                proposalStatus := mload(add(r, 0x20))
             }
 
-            proposalStatuses[i] = PartyGovernance.ProposalStatus(status);
+            proposalStatuses[i] = proposalStatus;
         }
-    }
-
-    function getPartyVersion() private view returns (uint16) {
-        (bool success, bytes memory response) = address(this).staticcall(
-            abi.encodeCall(Party(payable(address(this))).VERSION_ID, ())
-        );
-
-        if (!success) return 0;
-
-        return abi.decode(response, (uint16));
     }
 
     function getCrowdfundType() private view returns (CrowdfundType crowdfundType) {
@@ -616,6 +606,20 @@ contract PartyNFTRenderer is RendererBase {
             }
 
             return CrowdfundType.Fixed;
+        }
+    }
+
+    function getTotalVotingPower() private view returns (uint96 totalVotingPower) {
+        // Get the total voting power of the Party regardless of
+        // the version of the Party contract.
+        (bool s, bytes memory r) = address(this).staticcall(
+            abi.encodeCall(PartyGovernance.getGovernanceValues, ())
+        );
+        if (!s) {
+            r.rawRevert();
+        }
+        assembly {
+            totalVotingPower := mload(add(r, 0x80))
         }
     }
 
@@ -649,10 +653,6 @@ contract PartyNFTRenderer is RendererBase {
     }
 
     function hasPartyStarted() private view returns (bool) {
-        uint256 totalVotingPower = PartyGovernance(address(this))
-            .getGovernanceValues()
-            .totalVotingPower;
-
-        return totalVotingPower != 0;
+        return getTotalVotingPower() != 0;
     }
 }
