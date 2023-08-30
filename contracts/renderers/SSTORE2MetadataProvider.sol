@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0
 pragma solidity 0.8.20;
 
+import { Party } from "../party/Party.sol";
+import { PartyNFTRenderer } from "./PartyNFTRenderer.sol";
 import { Multicall } from "../utils/Multicall.sol";
 import { MetadataRegistry } from "./MetadataRegistry.sol";
 import { IMetadataProvider } from "./IMetadataProvider.sol";
@@ -48,6 +50,16 @@ contract SSTORE2MetadataProvider is IMetadataProvider, Multicall {
         for (uint256 i = index.start; i <= index.end; i++) {
             data = abi.encodePacked(data, SSTORE2.read(files[i]));
         }
+
+        // To optimize, when storing the metadata the name, collection name, and
+        // collection description are expected to be omitted. The names will be
+        // set to the same as the Party's and the collection description will be
+        // set to the same as the description.
+        PartyNFTRenderer.Metadata memory metadata = abi.decode(data, (PartyNFTRenderer.Metadata));
+        metadata.name = metadata.collectionName = Party(payable(instance)).name();
+        metadata.collectionDescription = metadata.description;
+
+        return abi.encode(metadata);
     }
 
     /// @notice Set the metadata for a Party instance.
