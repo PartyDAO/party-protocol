@@ -15,13 +15,13 @@ contract MetadataProvider is IMetadataProvider, Multicall {
 
     // The `Globals` contract storing global configuration values. This contract
     // is immutable and it’s address will never change.
-    IGlobals private immutable _GLOBALS;
+    IGlobals internal immutable _GLOBALS;
 
     /// @inheritdoc IMetadataProvider
     bool public constant supportsRegistrars = true;
 
     // The metadata for each Party instance.
-    mapping(address instance => bytes metadata) private _metadata;
+    mapping(address instance => bytes metadata) internal _metadata;
 
     // Set the `Globals` contract.
     constructor(IGlobals globals) {
@@ -29,14 +29,17 @@ contract MetadataProvider is IMetadataProvider, Multicall {
     }
 
     /// @inheritdoc IMetadataProvider
-    function getMetadata(address instance, uint256) external view override returns (bytes memory) {
+    function getMetadata(
+        address instance,
+        uint256
+    ) external view virtual override returns (bytes memory) {
         return _metadata[instance];
     }
 
     /// @notice Set the metadata for a Party instance.
     /// @param instance The address of the instance.
     /// @param metadata The encoded metadata.
-    function setMetadata(address instance, bytes memory metadata) external {
+    function setMetadata(address instance, bytes memory metadata) external virtual {
         if (instance != msg.sender) {
             MetadataRegistry registry = MetadataRegistry(
                 _GLOBALS.getAddress(LibGlobals.GLOBAL_METADATA_REGISTRY)
