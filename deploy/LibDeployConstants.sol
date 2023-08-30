@@ -63,7 +63,6 @@ library LibDeployConstants {
         return deployConstants;
     }
 
-    // TODO: Update these values
     function baseGoerli(address multisig) internal pure returns (DeployConstants memory) {
         address[] memory allowedERC20SwapOperatorTargets = new address[](1);
         allowedERC20SwapOperatorTargets[0] = 0xF91bB752490473B8342a3E964E855b9f9a2A668e; // 0x Swap Aggregator
@@ -130,7 +129,6 @@ library LibDeployConstants {
         return deployConstants;
     }
 
-    // TODO: Update these values
     function base() internal pure returns (DeployConstants memory) {
         address[] memory allowedERC20SwapOperatorTargets = new address[](1);
         allowedERC20SwapOperatorTargets[0] = 0xDef1C0ded9bec7F1a1670819833240f027b25EfF; // 0x Swap Aggregator
