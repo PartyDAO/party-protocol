@@ -201,7 +201,7 @@ contract PartyNFTRenderer is RendererBase {
                             : string.concat(
                                 metadata.description,
                                 // Append default description.
-                                "\n\n",
+                                "\\n\\n",
                                 generateDescription(
                                     PartyGovernanceNFT(address(this)).name(),
                                     tokenId
@@ -289,9 +289,9 @@ contract PartyNFTRenderer is RendererBase {
 
         return
             string.concat(
-                '{"trait_type":"Voting Power", "value":',
+                '{"trait_type":"Voting Power", "value":"',
                 votingPowerPercentage,
-                ', "max_value":100}'
+                '", "max_value":100}'
             );
     }
 
