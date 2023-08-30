@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0
 pragma solidity 0.8.20;
 
+import { Party } from "../party/Party.sol";
 import { MetadataRegistry } from "./MetadataRegistry.sol";
 import { MetadataProvider } from "./MetadataProvider.sol";
 import { IGlobals } from "../globals/IGlobals.sol";
@@ -9,16 +10,15 @@ import { PartyNFTRenderer } from "./PartyNFTRenderer.sol";
 
 /// @notice A contract that provides custom metadata for Party Cards.
 contract BasicMetadataProvider is MetadataProvider {
+    error MetadataTooLarge();
+
     constructor(IGlobals globals) MetadataProvider(globals) {}
 
     /// @inheritdoc MetadataProvider
     function getMetadata(address instance, uint256) external view override returns (bytes memory) {
         Metadata memory metadata;
 
-        metadata.name = metadata.collectionName = retrieveDynamicMetadataInfo(
-            instance,
-            MetadataFields.NAME
-        );
+        metadata.name = metadata.collectionName = Party(payable(instance)).name();
         metadata.description = metadata.collectionDescription = retrieveDynamicMetadataInfo(
             instance,
             MetadataFields.DESCRIPTION
@@ -45,13 +45,13 @@ contract BasicMetadataProvider is MetadataProvider {
     }
 
     struct Metadata {
-        bytes name;
+        string name;
         bytes description;
         bytes externalURL;
         bytes image;
         bytes banner;
         bytes animationURL;
-        bytes collectionName;
+        string collectionName;
         bytes collectionDescription;
         bytes collectionExternalURL;
         address royaltyReceiver;
@@ -75,10 +75,6 @@ contract BasicMetadataProvider is MetadataProvider {
         }
 
         Metadata memory decodedMetadata = abi.decode(metadata, (Metadata));
-
-        if (decodedMetadata.name.length != 0) {
-            storeMetadataInfo(instance, MetadataFields.NAME, decodedMetadata.name, false);
-        }
 
         if (decodedMetadata.description.length != 0) {
             storeMetadataInfo(
@@ -114,24 +110,6 @@ contract BasicMetadataProvider is MetadataProvider {
                 false
             );
         }
-
-        // if (decodedMetadata.collectionName.length != 0) {
-        //     storeMetadataInfo(
-        //         instance,
-        //         MetadataFields.COLLECTION_NAME,
-        //         decodedMetadata.collectionName,
-        //         false
-        //     );
-        // }
-
-        // if (decodedMetadata.collectionDescription.length != 0) {
-        //     storeMetadataInfo(
-        //         instance,
-        //         MetadataFields.COLLECTION_DESCRIPTION,
-        //         decodedMetadata.collectionDescription,
-        //         false
-        //     );
-        // }
 
         if (decodedMetadata.collectionExternalURL.length != 0) {
             storeMetadataInfo(
@@ -172,32 +150,35 @@ contract BasicMetadataProvider is MetadataProvider {
         emit MetadataSet(instance, metadata);
     }
 
+    /// @notice The indexes of the metadata fields in storage (if dynamic contains a start slot)
     enum MetadataFields {
-        NAME,
         DESCRIPTION,
         EXTERNAL_URL,
         IMAGE,
         BANNER,
         ANIMATION_URL,
-        COLLECTION_NAME,
-        COLLECTION_DESCRIPTION,
         COLLECTION_EXTERNAL_URL,
         ROYALTY_RECEIVER,
         ROYALTY_AMOUNT,
         RENDERING_METHOD
     }
 
+    /// @notice Stores a metadata field to storage
+    /// @param instance The instance to store the metadata for
+    /// @param field The field to store
+    /// @param data The data to store
+    /// @param isValue Whether the data is a value type or a dynamic type
     function storeMetadataInfo(
         address instance,
         MetadataFields field,
         bytes memory data,
         bool isValue
     ) private {
-        uint256 metadataSlotNumber;
+        uint256 metadataSlot;
         assembly {
-            metadataSlotNumber := _metadata.slot
+            metadataSlot := _metadata.slot
         }
-        uint256 slot = uint256(keccak256(abi.encode(instance, metadataSlotNumber))) + uint8(field);
+        uint256 slot = uint256(keccak256(abi.encode(instance, metadataSlot))) + uint8(field);
 
         uint256 value;
         assembly {
@@ -205,16 +186,18 @@ contract BasicMetadataProvider is MetadataProvider {
         }
 
         if (!isValue) {
-            // Check if we can cheat
+            // Check if we can force the data into a single slot
             uint256 dataLength = data.length;
+            // We use the first bit as a signal that the data is an slot number
             if (dataLength > 32 || (dataLength == 32 && value >> 255 == 1)) {
                 if (dataLength > type(uint16).max) {
-                    revert();
+                    revert MetadataTooLarge();
                 }
-                // Store the slot to the start of this data (with a key for dynamic data as the first bit 1)
+                // Store the slot to the start of this data (first bit 1 indicates its a slot)
                 uint256 dynamicSlot = (uint256(1) << 255) |
-                    uint256(keccak256(abi.encode(instance, metadataSlotNumber, field)));
+                    uint256(keccak256(abi.encode(instance, metadataSlot, field)));
                 assembly {
+                    // Store the dynamic data start slot in the value slot
                     sstore(slot, dynamicSlot)
                 }
 
@@ -240,7 +223,6 @@ contract BasicMetadataProvider is MetadataProvider {
                         sstore(add(dynamicSlot, slotIncrement), toStore)
                     }
                 }
-
                 return;
             }
 
@@ -254,6 +236,7 @@ contract BasicMetadataProvider is MetadataProvider {
         }
     }
 
+    /// @notice Retrieves a value metadata field from storage
     function retrieveValueMetadataInfo(
         address instance,
         MetadataFields field
@@ -268,6 +251,7 @@ contract BasicMetadataProvider is MetadataProvider {
         }
     }
 
+    /// @notice Retrieves a dynamic metadata field from storage
     function retrieveDynamicMetadataInfo(
         address instance,
         MetadataFields field
@@ -282,9 +266,30 @@ contract BasicMetadataProvider is MetadataProvider {
             slotData := sload(slot)
         }
         if (slotData >> 255 == 0) {
-            return abi.encodePacked(slotData);
+            // Remove extra zeros from the data
+            bytes memory returnData;
+            assembly {
+                let dataSize := 0
+                for {
+                    let i := 0
+                } lt(i, 32) {
+                    i := add(i, 1)
+                } {
+                    if iszero(shr(mul(i, 8), slotData)) {
+                        dataSize := i
+                        break
+                    }
+                }
+                let freeMem := mload(0x40)
+                mstore(freeMem, dataSize)
+                mstore(add(freeMem, 0x20), shl(sub(256, mul(dataSize, 8)), slotData))
+                mstore(0x40, add(freeMem, 0x40))
+                returnData := freeMem
+            }
+            return returnData;
         }
 
+        // Retrieve dymanic data from dynamic slot
         bytes32 firstSlotDynamic;
 
         bytes memory res;
@@ -296,7 +301,6 @@ contract BasicMetadataProvider is MetadataProvider {
         }
 
         for (uint256 i = 32; i < res.length; i += 32) {
-            // Note: might need to mask excess
             uint256 slotIncrement = i + 30;
             bytes32 data;
             assembly {
