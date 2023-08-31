@@ -19,8 +19,9 @@ import "../DummyERC20.sol";
 import "../DummyERC721.sol";
 import "../TestUsers.sol";
 import "../TestUtils.sol";
+import { LintJSON } from "../utils/LintJSON.sol";
 
-contract PartyGovernanceNFTTest is Test, TestUtils {
+contract PartyGovernanceNFTTest is LintJSON, TestUtils {
     Party partyImpl;
     PartyFactory partyFactory;
     DummySimpleProposalEngineImpl eng;
@@ -1395,6 +1396,8 @@ contract PartyGovernanceNFTTest is Test, TestUtils {
 
         // Get token URI
         string memory tokenURI = party.tokenURI(tokenId);
+
+        _lintEncodedJSON(tokenURI);
 
         // Uncomment for testing rendering:
         // console.log(tokenURI);

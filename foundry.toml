@@ -11,6 +11,7 @@ remappings = [
   "openzeppelin/=lib/openzeppelin-contracts/",
   "solmate/=lib/solmate/src/"
 ]
+fs_permissions = [{ access = "read-write", path = "./out"}]
 
 
 # See more config options https://github.com/foundry-rs/foundry/tree/master/config
