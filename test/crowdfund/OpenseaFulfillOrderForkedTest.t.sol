@@ -13,7 +13,7 @@ import "../../contracts/globals/Globals.sol";
 import "../../contracts/globals/LibGlobals.sol";
 import "../../contracts/utils/Proxy.sol";
 
-contract OpenseaFulfillOrderTest is Test, TestUtils, OpenseaTestUtils {
+contract OpenseaFulfillOrderForkedTest is Test, TestUtils, OpenseaTestUtils {
     BuyCrowdfund cf;
     Crowdfund.FixedGovernanceOpts govOpts;
     ProposalStorage.ProposalEngineOpts proposalEngineOpts;
