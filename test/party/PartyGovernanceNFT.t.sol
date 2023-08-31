@@ -91,7 +91,9 @@ contract PartyGovernanceNFTTest is LintJSON, TestUtils {
         toadz = new DummyERC721();
         toadz.mint(nftHolderAddress);
     }
+}
 
+contract PartyGovernanceNFTTest is PartyGovernanceNFTTestBase {
     function testMint() external {
         (Party party, , ) = partyAdmin.createParty(
             partyImpl,
@@ -1624,7 +1626,7 @@ contract DummyParty is ReadOnlyDelegateCall {
     }
 }
 
-contract PartyGovernanceNFTForkedTest is PartyGovernanceNFTTest {
+contract PartyGovernanceNFTForkedTest is PartyGovernanceNFTTestBase {
     function testTokenURI_withFixedCrowdfundType() public onlyForked {
         // Create party
         DummyParty party = new DummyParty(address(globals), "Party of the Living Dead");

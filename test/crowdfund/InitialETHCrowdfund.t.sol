@@ -134,7 +134,7 @@ contract InitialETHCrowdfundTest is LintJSON, TestUtils, ERC721Receiver {
     }
 }
 
-contract InitialETHCrowdfundTest is InitialETHCrowdfundBaseTest {
+contract InitialETHCrowdfundTest is InitialETHCrowdfundTestBase {
     function test_initialization_cannotReinitialize() public {
         InitialETHCrowdfund crowdfund = _createCrowdfund(
             CreateCrowdfundArgs({
@@ -1678,7 +1678,7 @@ contract InitialETHCrowdfundTest is InitialETHCrowdfundBaseTest {
     }
 }
 
-contract InitialETHCrowdfundForkedTest is InitialETHCrowdfundBaseTest {
+contract InitialETHCrowdfundForkedTest is InitialETHCrowdfundTestBase {
     function testForked_partyCardTokenURI_whileCrowdfundActive() public onlyForked {
         InitialETHCrowdfund crowdfund = _createCrowdfund(
             CreateCrowdfundArgs({
