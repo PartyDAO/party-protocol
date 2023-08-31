@@ -28,7 +28,6 @@ contract LintJSON is Test {
         inputs[0] = "node";
         inputs[1] = "./js/lint-json.js";
         bytes memory ffiResp = vm.ffi(inputs);
-        vm.removeFile("./out/lint-json.json");
 
         uint256 resAsInt;
         assembly {

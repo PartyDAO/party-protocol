@@ -24,7 +24,7 @@ jobs:
         run: forge install
 
       - name: "Run Foundry tests"
-        run: forge test -vvv --fork-url $FORK_URL --etherscan-api-key $ETHERSCAN_API_KEY
+        run: forge test -vvv --fork-url $FORK_URL --etherscan-api-key $ETHERSCAN_API_KEY --ffi
   coverage:
     runs-on: ubuntu-latest
     steps:
@@ -39,7 +39,7 @@ jobs:
       - name: Install dependencies
         run: forge install
       - name: "Run Foundry Coverage"
-        run: forge coverage --report lcov
+        run: forge coverage --report lcov --ffi
       - name: "Upload coverage to Codecov"
         uses: codecov/codecov-action@v3
   lint:

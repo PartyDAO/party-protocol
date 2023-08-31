@@ -1707,6 +1707,8 @@ contract InitialETHCrowdfundTest is LintJSON, TestUtils, ERC721Receiver {
 
         string memory tokenURI = party.tokenURI(1);
 
+        _lintEncodedJSON(tokenURI);
+
         // Uncomment for testing rendering:
         // console.log(tokenURI);
 
@@ -1746,6 +1748,8 @@ contract InitialETHCrowdfundTest is LintJSON, TestUtils, ERC721Receiver {
         assertTrue(crowdfund.getCrowdfundLifecycle() == ETHCrowdfundBase.CrowdfundLifecycle.Won);
 
         string memory tokenURI = party.tokenURI(1);
+
+        _lintEncodedJSON(tokenURI);
 
         // Uncomment for testing rendering:
         // console.log(tokenURI);
@@ -1828,6 +1832,8 @@ contract InitialETHCrowdfundTest is LintJSON, TestUtils, ERC721Receiver {
         );
 
         string memory tokenURI = party.tokenURI(1);
+
+        _lintEncodedJSON(tokenURI);
 
         // Uncomment for testing rendering:
         // console.log(tokenURI);

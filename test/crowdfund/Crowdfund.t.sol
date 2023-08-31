@@ -1,8 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 pragma solidity ^0.8;
 
-import "forge-std/Test.sol";
-
 import "../../contracts/gatekeepers/AllowListGateKeeper.sol";
 import "../../contracts/globals/Globals.sol";
 import "../../contracts/globals/LibGlobals.sol";
@@ -17,6 +15,7 @@ import "../TestUtils.sol";
 import "./MockPartyFactory.sol";
 import "./MockParty.sol";
 import "./TestableCrowdfund.sol";
+import { LintJSON } from "../utils/LintJSON.sol";
 
 contract BadETHReceiver is ERC721Receiver {
     // Does not implement `receive()`.
@@ -29,7 +28,7 @@ contract BadERC721Receiver {
     receive() external payable {}
 }
 
-contract CrowdfundTest is Test, TestUtils {
+contract CrowdfundTest is LintJSON, TestUtils {
     event MockPartyFactoryCreateParty(
         address caller,
         address[] authorities,
@@ -1262,6 +1261,8 @@ contract CrowdfundTest is Test, TestUtils {
 
         string memory tokenURI = cf.tokenURI(uint256(uint160(address(contributor1))));
 
+        _lintEncodedJSON(tokenURI);
+
         // Uncomment for testing rendering:
         // console.log(tokenURI);
 
@@ -1284,6 +1285,8 @@ contract CrowdfundTest is Test, TestUtils {
         cf.contribute{ value: contributor1.balance }(delegate1, "");
         string memory tokenURI = cf.tokenURI(uint256(uint160(address(contributor1))));
 
+        _lintEncodedJSON(tokenURI);
+
         // Uncomment for testing rendering:
         // console.log(tokenURI);
 
@@ -1303,6 +1306,8 @@ contract CrowdfundTest is Test, TestUtils {
         cf.contribute{ value: contributor1.balance }(delegate1, "");
         string memory tokenURI = cf.tokenURI(uint256(uint160(address(contributor1))));
 
+        _lintEncodedJSON(tokenURI);
+
         // Uncomment for testing rendering:
         // console.log(tokenURI);
 
@@ -1314,6 +1319,8 @@ contract CrowdfundTest is Test, TestUtils {
         TestableCrowdfund cf = _createCrowdfund(0, presetId);
 
         string memory contractURI = cf.contractURI();
+
+        _lintEncodedJSON(contractURI);
 
         // Uncomment for testing rendering:
         // console.log(contractURI);

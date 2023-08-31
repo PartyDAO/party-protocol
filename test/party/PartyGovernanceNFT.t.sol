@@ -1264,6 +1264,8 @@ contract PartyGovernanceNFTTest is LintJSON, TestUtils {
         // Get token URI
         string memory tokenURI = party.tokenURI(tokenId);
 
+        _lintEncodedJSON(tokenURI);
+
         // Uncomment for testing rendering:
         // console.log(tokenURI);
 
@@ -1285,6 +1287,8 @@ contract PartyGovernanceNFTTest is LintJSON, TestUtils {
 
         // Get token URI
         string memory tokenURI = party.tokenURI(33);
+
+        _lintEncodedJSON(tokenURI);
 
         // Uncomment for testing rendering:
         // console.log(tokenURI);
@@ -1325,6 +1329,8 @@ contract PartyGovernanceNFTTest is LintJSON, TestUtils {
         // Get token URI
         string memory tokenURI = party.tokenURI(tokenId);
 
+        _lintEncodedJSON(tokenURI);
+
         // Uncomment for testing rendering:
         // console.log(tokenURI);
 
@@ -1355,6 +1361,8 @@ contract PartyGovernanceNFTTest is LintJSON, TestUtils {
 
         // Get token URI
         string memory tokenURI = party.tokenURI(tokenId);
+
+        _lintEncodedJSON(tokenURI);
 
         // Uncomment for testing rendering:
         // console.log(tokenURI);
@@ -1414,6 +1422,8 @@ contract PartyGovernanceNFTTest is LintJSON, TestUtils {
 
         string memory contractURI = party.contractURI();
 
+        _lintEncodedJSON(contractURI);
+
         // Uncomment for testing rendering:
         // console.log(contractURI);
 
@@ -1446,6 +1456,8 @@ contract PartyGovernanceNFTTest is LintJSON, TestUtils {
         vm.stopPrank();
 
         string memory contractURI = party.contractURI();
+
+        _lintEncodedJSON(contractURI);
 
         // Uncomment for testing rendering:
         // console.log(contractURI);
