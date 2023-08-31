@@ -658,7 +658,7 @@ contract DeployScript is Script, Deploy {
         Deploy.deploy(deployConstants);
         vm.stopBroadcast();
 
-        AddressMapping[] memory addressMapping = new AddressMapping[](24);
+        AddressMapping[] memory addressMapping = new AddressMapping[](25);
         addressMapping[0] = AddressMapping("Globals", address(globals));
         addressMapping[1] = AddressMapping("TokenDistributor", address(tokenDistributor));
         addressMapping[2] = AddressMapping(
@@ -701,7 +701,7 @@ contract DeployScript is Script, Deploy {
             "PixeldroidConsoleFont",
             address(pixeldroidConsoleFont)
         );
-        addressMapping[23] = AddressMapping("AtomicManualParty", address(atomicManualParty));
+        addressMapping[24] = AddressMapping("AtomicManualParty", address(atomicManualParty));
 
         console.log("");
         console.log("### Deployed addresses");
