@@ -37,7 +37,7 @@ jobs:
       - name: Install dependencies
         run: forge install
       - name: "Run Foundry tests"
-        run: forge test -vvv --ffi
+        run: forge test -vvv --no-match-contract "ForkedTest" --ffi
   test-forked:
     runs-on: ubuntu-latest
     steps:
@@ -60,7 +60,7 @@ jobs:
       - name: Install dependencies
         run: forge install
       - name: "Run Foundry tests"
-        run: forge test -vvv --fork-url $FORK_URL --ffi
+        run: forge test -vvv --fork-url $FORK_URL --match-contract "ForkedTest" --ffi
   coverage:
     runs-on: ubuntu-latest
     steps:
