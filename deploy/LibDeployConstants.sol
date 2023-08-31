@@ -63,6 +63,39 @@ library LibDeployConstants {
         return deployConstants;
     }
 
+    function baseGoerli(address multisig) internal pure returns (DeployConstants memory) {
+        address[] memory allowedERC20SwapOperatorTargets = new address[](1);
+        allowedERC20SwapOperatorTargets[0] = 0xF91bB752490473B8342a3E964E855b9f9a2A668e; // 0x Swap Aggregator
+
+        DeployConstants memory deployConstants = DeployConstants({
+            seaportExchangeAddress: 0x00000000000000ADc04C56Bf30aC9d3c0aAF14dC,
+            osZoraAuctionDuration: 2 minutes,
+            osZoraAuctionTimeout: 2 minutes,
+            osMinOrderDuration: 2 minutes,
+            osMaxOrderDuration: 14 days,
+            zoraMinAuctionDuration: 2 minutes,
+            zoraMaxAuctionDuration: 10 days,
+            zoraMaxAuctionTimeout: 7 days,
+            minCancelDelay: 5 minutes,
+            maxCancelDelay: 1 days,
+            distributorEmergencyActionAllowedDuration: 365 days,
+            partyDaoMultisig: multisig,
+            allowedERC20SwapOperatorTargets: allowedERC20SwapOperatorTargets,
+            osZone: 0x0000000000000000000000000000000000000000,
+            osConduitKey: 0xf984c55ca75735630c1c27d3d06969c1aa6af1df86d22ddc0e3a978ad6138e9f,
+            osConduitController: 0x00000000F9490004C11Cef243f5400493c00Ad63,
+            fractionalVaultFactory: 0x0000000000000000000000000000000000000000,
+            foundationMarket: 0x0000000000000000000000000000000000000000,
+            nounsAuctionHouse: 0x0000000000000000000000000000000000000000,
+            zoraReserveAuctionCoreEth: 0x0000000000000000000000000000000000000000,
+            networkName: "base-goerli",
+            deployedNounsMarketWrapper: 0x0000000000000000000000000000000000000000,
+            deployedFoundationMarketWrapper: 0x0000000000000000000000000000000000000000
+        });
+
+        return deployConstants;
+    }
+
     function mainnet() internal pure returns (DeployConstants memory) {
         address[] memory allowedERC20SwapOperatorTargets = new address[](1);
         allowedERC20SwapOperatorTargets[0] = 0xDef1C0ded9bec7F1a1670819833240f027b25EfF; // 0x Swap Aggregator
@@ -91,6 +124,39 @@ library LibDeployConstants {
             networkName: "mainnet",
             deployedNounsMarketWrapper: 0x9319DAd8736D752C5c72DB229f8e1b280DC80ab1,
             deployedFoundationMarketWrapper: 0x96e5b0519983f2f984324b926e6d28C3A4Eb92A1
+        });
+
+        return deployConstants;
+    }
+
+    function base() internal pure returns (DeployConstants memory) {
+        address[] memory allowedERC20SwapOperatorTargets = new address[](1);
+        allowedERC20SwapOperatorTargets[0] = 0xDef1C0ded9bec7F1a1670819833240f027b25EfF; // 0x Swap Aggregator
+
+        DeployConstants memory deployConstants = DeployConstants({
+            seaportExchangeAddress: 0x00000000000000ADc04C56Bf30aC9d3c0aAF14dC,
+            osZoraAuctionDuration: 1 days,
+            osZoraAuctionTimeout: 1 days,
+            osMinOrderDuration: 1 hours,
+            osMaxOrderDuration: 4 weeks,
+            zoraMinAuctionDuration: 1 days,
+            zoraMaxAuctionDuration: 4 weeks,
+            zoraMaxAuctionTimeout: 2 weeks,
+            minCancelDelay: 6 weeks,
+            maxCancelDelay: 12 weeks,
+            distributorEmergencyActionAllowedDuration: 365 days,
+            partyDaoMultisig: 0xF498fd75Ee8D35294952343f1A77CAE5EA5aF6AA,
+            allowedERC20SwapOperatorTargets: allowedERC20SwapOperatorTargets,
+            osZone: 0x0000000000000000000000000000000000000000,
+            osConduitKey: 0xf984c55ca75735630c1c27d3d06969c1aa6af1df86d22ddc0e3a978ad6138e9f,
+            osConduitController: 0x00000000F9490004C11Cef243f5400493c00Ad63,
+            fractionalVaultFactory: 0x0000000000000000000000000000000000000000,
+            foundationMarket: 0x0000000000000000000000000000000000000000,
+            nounsAuctionHouse: 0x0000000000000000000000000000000000000000,
+            zoraReserveAuctionCoreEth: 0x0000000000000000000000000000000000000000,
+            networkName: "base",
+            deployedNounsMarketWrapper: 0x0000000000000000000000000000000000000000,
+            deployedFoundationMarketWrapper: 0x0000000000000000000000000000000000000000
         });
 
         return deployConstants;

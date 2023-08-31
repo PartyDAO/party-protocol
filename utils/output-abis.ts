@@ -1,4 +1,4 @@
-import { writeFileSync, readFileSync, existsSync } from "fs";
+import { writeFileSync, readFileSync, existsSync, mkdir, mkdirSync } from "fs";
 
 const RELEVANT_ABIS = [
   "AllowListGateKeeper",
@@ -60,9 +60,12 @@ const saveAbis = async () => {
     output[newFilename] = foundAbi;
   });
 
+  // Create the directory if it doesn't exist
+  if (!existsSync("./deploy/cache/abis")) mkdirSync("./deploy/cache/abis");
+
   Object.keys(output).forEach(newFilename => {
     writeFileSync(
-      `./deploy/deployed-contracts/abis/${newFilename}.json`,
+      `./deploy/cache/abis/${newFilename}.json`,
       JSON.stringify(output[newFilename], undefined, 2),
     );
   });
