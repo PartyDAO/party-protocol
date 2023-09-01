@@ -281,7 +281,6 @@ export const verify = async (chain: string, skip: boolean) => {
   }
 
   if (verificationResults.length > 0) {
-    // PIN:
     const timeToWait = Math.max(20 * verificationResults.length, 20);
 
     console.log();
