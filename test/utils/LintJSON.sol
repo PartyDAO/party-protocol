@@ -23,6 +23,11 @@ contract LintJSON is Test {
     }
 
     function _lintJSON(string memory json) internal {
+        if (vm.envOr("COVERAGE", false)) {
+            // Don't check if we're running coverage
+            return;
+        }
+
         vm.writeFile("./out/lint-json.json", json);
         string[] memory inputs = new string[](2);
         inputs[0] = "node";

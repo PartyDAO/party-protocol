@@ -33,7 +33,7 @@ jobs:
   coverage:
     runs-on: ubuntu-latest
     steps:
-      - name: "Check out the repo"
+      - name: Check out the repo
         uses: actions/checkout@v3
         with:
           submodules: recursive
@@ -43,16 +43,14 @@ jobs:
           node-version: 16.x
       - name: Install Dependencies
         run: yarn install
-      - name: Build ts
-        run: yarn build:ts
       - name: "Install Foundry"
         uses: foundry-rs/foundry-toolchain@v1
         with:
           version: nightly
       - name: Install dependencies
         run: forge install
-      - name: "Run Foundry Coverage"
-        run: forge coverage --report lcov --ffi
+      - name: Run Foundry Coverage
+        run: yarn coverage
       - name: "Upload coverage to Codecov"
         uses: codecov/codecov-action@v3
   lint:
