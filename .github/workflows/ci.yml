@@ -20,7 +20,7 @@ jobs:
           node-version: 16.x
           cache: "yarn"
       - name: Install Dependencies
-        run: yarn install --frozen-lockfile
+        run: yarn install
       - name: Build ts
         run: yarn build:ts
       - name: "Install Foundry"
@@ -44,7 +44,7 @@ jobs:
           node-version: 16.x
           cache: "yarn"
       - name: Install Dependencies
-        run: yarn install --frozen-lockfile
+        run: yarn install
       - name: Build ts
         run: yarn build:ts
       - name: "Install Foundry"
@@ -67,6 +67,6 @@ jobs:
           node-version: 16.x
           cache: "yarn"
       - name: Install Dependencies
-        run: yarn install --frozen-lockfile
+        run: yarn install
       - name: Run Linter
         run: yarn lint:check
