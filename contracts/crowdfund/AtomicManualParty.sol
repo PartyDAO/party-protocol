@@ -16,7 +16,11 @@ contract AtomicManualParty {
     event AtomicManualPartyCreated(
         Party indexed party,
         address[] partyMembers,
-        uint96[] partyMemberVotingPowers
+        uint96[] partyMemberVotingPowers,
+        Party.PartyOptions opts,
+        IERC721[] preciousTokens,
+        uint256[] preciousTokenIds,
+        uint40 rageQuitTimestamp
     );
     /// @notice Returned if the `AtomicManualParty` is created with no members
     error NoPartyMembers();
@@ -65,6 +69,15 @@ contract AtomicManualParty {
         );
 
         _issuePartyCards(party, partyMembers, partyMemberVotingPowers);
+        emit AtomicManualPartyCreated(
+            party,
+            partyMembers,
+            partyMemberVotingPowers,
+            opts,
+            preciousTokens,
+            preciousTokenIds,
+            rageQuitTimestamp
+        );
     }
 
     /// @notice Atomically creates the party and distributes the party cards
@@ -103,6 +116,15 @@ contract AtomicManualParty {
             );
 
         _issuePartyCards(party, partyMembers, partyMemberVotingPowers);
+        emit AtomicManualPartyCreated(
+            party,
+            partyMembers,
+            partyMemberVotingPowers,
+            opts,
+            preciousTokens,
+            preciousTokenIds,
+            rageQuitTimestamp
+        );
     }
 
     /// @notice Issue party cards to the party members and finishes up creation
@@ -118,7 +140,6 @@ contract AtomicManualParty {
             party.mint(partyMembers[i], partyMemberVotingPowers[i], partyMembers[i]);
         }
         party.abdicateAuthority();
-        emit AtomicManualPartyCreated(party, partyMembers, partyMemberVotingPowers);
     }
 
     /// @notice Validate manual party cards arrays, returns total voting power
