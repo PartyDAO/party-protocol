@@ -1,8 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 pragma solidity ^0.8;
 
-import "forge-std/Test.sol";
-
 import "../../contracts/crowdfund/ReraiseETHCrowdfund.sol";
 import "../../contracts/globals/Globals.sol";
 import "../../contracts/utils/Proxy.sol";
@@ -13,10 +11,10 @@ import "../../contracts/renderers/RendererStorage.sol";
 import "../../contracts/renderers/fonts/PixeldroidConsoleFont.sol";
 import "../../contracts/distribution/TokenDistributor.sol";
 import "../../contracts/gatekeepers/AllowListGateKeeper.sol";
-
+import { LintJSON } from "../utils/LintJSON.sol";
 import "../TestUtils.sol";
 
-contract ReraiseETHCrowdfundTest is Test, TestUtils, ERC721Receiver {
+contract ReraiseETHCrowdfundTest is LintJSON, TestUtils, ERC721Receiver {
     event Transfer(address indexed owner, address indexed to, uint256 indexed tokenId);
     event Contributed(
         address indexed sender,
@@ -2175,6 +2173,8 @@ contract ReraiseETHCrowdfundTest is Test, TestUtils, ERC721Receiver {
 
         string memory tokenURI = crowdfund.tokenURI(uint256(uint160(member)));
 
+        _lintEncodedJSON(tokenURI);
+
         // Uncomment for testing rendering:
         // console.log(tokenURI);
 
@@ -2213,6 +2213,8 @@ contract ReraiseETHCrowdfundTest is Test, TestUtils, ERC721Receiver {
         assertTrue(crowdfund.getCrowdfundLifecycle() == ETHCrowdfundBase.CrowdfundLifecycle.Won);
 
         string memory tokenURI = crowdfund.tokenURI(uint256(uint160(member)));
+
+        _lintEncodedJSON(tokenURI);
 
         // Uncomment for testing rendering:
         // console.log(tokenURI);
@@ -2253,6 +2255,8 @@ contract ReraiseETHCrowdfundTest is Test, TestUtils, ERC721Receiver {
 
         string memory tokenURI = crowdfund.tokenURI(uint256(uint160(member)));
 
+        _lintEncodedJSON(tokenURI);
+
         // Uncomment for testing rendering:
         // console.log(tokenURI);
 
@@ -2291,6 +2295,8 @@ contract ReraiseETHCrowdfundTest is Test, TestUtils, ERC721Receiver {
         );
 
         string memory tokenURI = crowdfund.tokenURI(uint256(uint160(member)));
+
+        _lintEncodedJSON(tokenURI);
 
         // Uncomment for testing rendering:
         // console.log(tokenURI);
