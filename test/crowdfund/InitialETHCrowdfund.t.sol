@@ -16,8 +16,9 @@ import "../../contracts/distribution/TokenDistributor.sol";
 import "../../contracts/gatekeepers/AllowListGateKeeper.sol";
 
 import "../TestUtils.sol";
+import { LintJSON } from "../utils/LintJSON.sol";
 
-contract InitialETHCrowdfundTest is Test, TestUtils, ERC721Receiver {
+contract InitialETHCrowdfundTest is LintJSON, TestUtils, ERC721Receiver {
     event Contributed(
         address indexed sender,
         address indexed contributor,
@@ -1706,6 +1707,8 @@ contract InitialETHCrowdfundTest is Test, TestUtils, ERC721Receiver {
 
         string memory tokenURI = party.tokenURI(1);
 
+        _lintEncodedJSON(tokenURI);
+
         // Uncomment for testing rendering:
         // console.log(tokenURI);
 
@@ -1745,6 +1748,8 @@ contract InitialETHCrowdfundTest is Test, TestUtils, ERC721Receiver {
         assertTrue(crowdfund.getCrowdfundLifecycle() == ETHCrowdfundBase.CrowdfundLifecycle.Won);
 
         string memory tokenURI = party.tokenURI(1);
+
+        _lintEncodedJSON(tokenURI);
 
         // Uncomment for testing rendering:
         // console.log(tokenURI);
@@ -1786,6 +1791,8 @@ contract InitialETHCrowdfundTest is Test, TestUtils, ERC721Receiver {
 
         string memory tokenURI = party.tokenURI(1);
 
+        _lintEncodedJSON(tokenURI);
+
         // Uncomment for testing rendering:
         // console.log(tokenURI);
 
@@ -1825,6 +1832,8 @@ contract InitialETHCrowdfundTest is Test, TestUtils, ERC721Receiver {
         );
 
         string memory tokenURI = party.tokenURI(1);
+
+        _lintEncodedJSON(tokenURI);
 
         // Uncomment for testing rendering:
         // console.log(tokenURI);

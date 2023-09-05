@@ -14,32 +14,43 @@ jobs:
         uses: actions/checkout@v3
         with:
           submodules: recursive
-
+      - name: Use Node.js 16.x
+        uses: actions/setup-node@v3
+        with:
+          node-version: 16.x
+      - name: Install Dependencies
+        run: yarn install
+      - name: Build ts
+        run: yarn build:ts
       - name: "Install Foundry"
         uses: foundry-rs/foundry-toolchain@v1
         with:
           version: nightly
-
       - name: Install dependencies
         run: forge install
-
       - name: "Run Foundry tests"
-        run: forge test -vvv --fork-url $FORK_URL --etherscan-api-key $ETHERSCAN_API_KEY
+        run: forge test -vvv --fork-url $FORK_URL --etherscan-api-key $ETHERSCAN_API_KEY --ffi
   coverage:
     runs-on: ubuntu-latest
     steps:
-      - name: "Check out the repo"
+      - name: Check out the repo
         uses: actions/checkout@v3
         with:
           submodules: recursive
+      - name: Use Node.js 16.x
+        uses: actions/setup-node@v3
+        with:
+          node-version: 16.x
+      - name: Install Dependencies
+        run: yarn install
       - name: "Install Foundry"
         uses: foundry-rs/foundry-toolchain@v1
         with:
           version: nightly
       - name: Install dependencies
         run: forge install
-      - name: "Run Foundry Coverage"
-        run: forge coverage --report lcov
+      - name: Run Foundry Coverage
+        run: yarn coverage
       - name: "Upload coverage to Codecov"
         uses: codecov/codecov-action@v3
   lint:
@@ -51,6 +62,6 @@ jobs:
         with:
           node-version: 16.x
       - name: Install Dependencies
-        run: npm install
+        run: yarn install
       - name: Run Linter
-        run: npm run lint:check
+        run: yarn lint:check

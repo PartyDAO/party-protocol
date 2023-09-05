@@ -21,7 +21,8 @@
     "deploy:base-goerli": "DRY_RUN=0 forge script ./deploy/BaseGoerli.s.sol -vvv --rpc-url $BASE_GOERLI_RPC_URL --via-ir --broadcast --etherscan-api-key ${ETHERSCAN_API_KEY} --evm-version paris --skip test --optimize --optimizer-runs 0 --ffi --slow",
     "deploy:base-goerli:dry": "DRY_RUN=1 forge script ./deploy/BaseGoerli.s.sol -vvv --rpc-url $BASE_GOERLI_RPC_URL --via-ir --evm-version paris --skip test --optimize --optimizer-runs 0 --ffi",
     "decode-revert": "node js/decode-revert.js",
-    "layout": "node js/gen-storage-layout.js"
+    "layout": "node js/gen-storage-layout.js",
+    "coverage": "COVERAGE=true forge coverage --report lcov"
   },
   "devDependencies": {
     "@types/node": "^20.4.2",
