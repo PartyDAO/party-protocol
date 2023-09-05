@@ -58,7 +58,7 @@ contract RollingAuctionCrowdfund is AuctionCrowdfundBase {
     function initialize(
         AuctionCrowdfundBase.AuctionCrowdfundOptions memory opts,
         bytes32 allowedAuctionsMerkleRoot_
-    ) external payable onlyConstructor {
+    ) external payable onlyInitialize {
         // Initialize the base contract.
         AuctionCrowdfundBase._initialize(opts);
 

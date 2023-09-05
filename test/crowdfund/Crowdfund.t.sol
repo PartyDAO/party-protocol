@@ -1,12 +1,14 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8;
 
+import "forge-std/Test.sol";
+import { Clones } from "openzeppelin/contracts/proxy/Clones.sol";
+
 import "../../contracts/gatekeepers/AllowListGateKeeper.sol";
 import "../../contracts/globals/Globals.sol";
 import "../../contracts/globals/LibGlobals.sol";
 import "../../contracts/renderers/CrowdfundNFTRenderer.sol";
 import "../../contracts/renderers/fonts/PixeldroidConsoleFont.sol";
-import "../../contracts/utils/Proxy.sol";
 import "../../contracts/utils/EIP165.sol";
 
 import "../DummyERC721.sol";
@@ -29,6 +31,8 @@ contract BadERC721Receiver {
 }
 
 contract CrowdfundTest is LintJSON, TestUtils {
+    using Clones for address;
+
     event MockPartyFactoryCreateParty(
         address caller,
         address[] authorities,
@@ -128,32 +132,23 @@ contract CrowdfundTest is LintJSON, TestUtils {
         address initialDelegate,
         uint256 customizationPresetId
     ) private returns (TestableCrowdfund cf) {
-        cf = TestableCrowdfund(
-            payable(
-                new Proxy{ value: initialContribution }(
-                    Implementation(new TestableCrowdfund(globals)),
-                    abi.encodeCall(
-                        TestableCrowdfund.initialize,
-                        (
-                            Crowdfund.CrowdfundOptions({
-                                name: defaultName,
-                                symbol: defaultSymbol,
-                                customizationPresetId: customizationPresetId,
-                                splitRecipient: defaultSplitRecipient,
-                                splitBps: defaultSplitBps,
-                                initialContributor: initialContributor,
-                                initialDelegate: initialDelegate,
-                                minContribution: 0,
-                                maxContribution: type(uint96).max,
-                                gateKeeper: gateKeeper,
-                                gateKeeperId: gateKeeperId,
-                                governanceOpts: govOpts,
-                                proposalEngineOpts: proposalEngineOpts
-                            })
-                        )
-                    )
-                )
-            )
+        cf = TestableCrowdfund(address(new TestableCrowdfund(globals)).clone());
+        cf.initialize{ value: initialContribution }(
+            Crowdfund.CrowdfundOptions({
+                name: defaultName,
+                symbol: defaultSymbol,
+                customizationPresetId: customizationPresetId,
+                splitRecipient: defaultSplitRecipient,
+                splitBps: defaultSplitBps,
+                initialContributor: initialContributor,
+                initialDelegate: initialDelegate,
+                minContribution: 0,
+                maxContribution: type(uint96).max,
+                gateKeeper: gateKeeper,
+                gateKeeperId: gateKeeperId,
+                governanceOpts: govOpts,
+                proposalEngineOpts: proposalEngineOpts
+            })
         );
     }
 
@@ -941,37 +936,28 @@ contract CrowdfundTest is LintJSON, TestUtils {
     }
 
     function test_revertIfNullContributor() external {
-        Implementation impl = Implementation(new TestableCrowdfund(globals));
+        address impl = address(new TestableCrowdfund(globals));
+        TestableCrowdfund cf = TestableCrowdfund(impl.clone());
         // Attempt creating a crowdfund and setting a null address as the
         // initial contributor. Should revert when it attempts to mint a
         // contributor NFT to `address(0)`.
         vm.expectRevert(CrowdfundNFT.InvalidAddressError.selector);
-        TestableCrowdfund(
-            payable(
-                new Proxy{ value: 1 ether }(
-                    impl,
-                    abi.encodeCall(
-                        TestableCrowdfund.initialize,
-                        (
-                            Crowdfund.CrowdfundOptions({
-                                name: defaultName,
-                                symbol: defaultSymbol,
-                                customizationPresetId: 0,
-                                splitRecipient: defaultSplitRecipient,
-                                splitBps: defaultSplitBps,
-                                initialContributor: address(0),
-                                initialDelegate: address(this),
-                                minContribution: 0,
-                                maxContribution: type(uint96).max,
-                                gateKeeper: gateKeeper,
-                                gateKeeperId: gateKeeperId,
-                                governanceOpts: govOpts,
-                                proposalEngineOpts: proposalEngineOpts
-                            })
-                        )
-                    )
-                )
-            )
+        cf.initialize{ value: 1 ether }(
+            Crowdfund.CrowdfundOptions({
+                name: defaultName,
+                symbol: defaultSymbol,
+                customizationPresetId: 0,
+                splitRecipient: defaultSplitRecipient,
+                splitBps: defaultSplitBps,
+                initialContributor: address(0),
+                initialDelegate: address(this),
+                minContribution: 0,
+                maxContribution: type(uint96).max,
+                gateKeeper: gateKeeper,
+                gateKeeperId: gateKeeperId,
+                governanceOpts: govOpts,
+                proposalEngineOpts: proposalEngineOpts
+            })
         );
     }
 

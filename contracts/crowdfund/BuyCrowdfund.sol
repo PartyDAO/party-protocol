@@ -78,7 +78,7 @@ contract BuyCrowdfund is BuyCrowdfundBase {
     ///         revert if called outside the constructor.
     /// @param opts Options used to initialize the crowdfund. These are fixed
     ///             and cannot be changed later.
-    function initialize(BuyCrowdfundOptions memory opts) external payable onlyConstructor {
+    function initialize(BuyCrowdfundOptions memory opts) external payable onlyInitialize {
         if (opts.onlyHostCanBuy && opts.governanceOpts.hosts.length == 0) {
             revert MissingHostsError();
         }

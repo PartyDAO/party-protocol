@@ -2,12 +2,12 @@
 pragma solidity ^0.8;
 
 import "forge-std/Test.sol";
+import { Clones } from "openzeppelin/contracts/proxy/Clones.sol";
 
 import "../../contracts/crowdfund/CollectionBatchBuyCrowdfund.sol";
 import "../../contracts/renderers/RendererStorage.sol";
 import "../../contracts/globals/Globals.sol";
 import "../../contracts/globals/LibGlobals.sol";
-import "../../contracts/utils/Proxy.sol";
 
 import "../DummyERC721.sol";
 import "../TestUtils.sol";
@@ -17,6 +17,8 @@ import "./MockParty.sol";
 import "./TestERC721Vault.sol";
 
 contract CollectionBatchBuyCrowdfundTest is Test, TestUtils {
+    using Clones for address;
+
     event BatchMetadataUpdate(uint256 _fromTokenId, uint256 _toTokenId);
 
     event MockPartyFactoryCreateParty(
@@ -54,36 +56,27 @@ contract CollectionBatchBuyCrowdfundTest is Test, TestUtils {
     function _createCrowdfund(
         bytes32 nftTokenIdsMerkleRoot
     ) internal returns (CollectionBatchBuyCrowdfund cf) {
-        cf = CollectionBatchBuyCrowdfund(
-            payable(
-                address(
-                    new Proxy(
-                        new CollectionBatchBuyCrowdfund(globals),
-                        abi.encodeCall(
-                            CollectionBatchBuyCrowdfund.initialize,
-                            CollectionBatchBuyCrowdfund.CollectionBatchBuyCrowdfundOptions({
-                                name: "Crowdfund",
-                                symbol: "CF",
-                                customizationPresetId: 0,
-                                nftContract: nftContract,
-                                nftTokenIdsMerkleRoot: nftTokenIdsMerkleRoot,
-                                duration: 1 days,
-                                maximumPrice: maximumPrice,
-                                splitRecipient: payable(address(0)),
-                                splitBps: 0,
-                                initialContributor: address(0),
-                                initialDelegate: address(0),
-                                minContribution: 0,
-                                maxContribution: type(uint96).max,
-                                gateKeeper: IGateKeeper(address(0)),
-                                gateKeeperId: 0,
-                                governanceOpts: govOpts,
-                                proposalEngineOpts: proposalEngineOpts
-                            })
-                        )
-                    )
-                )
-            )
+        cf = CollectionBatchBuyCrowdfund(address(new CollectionBatchBuyCrowdfund(globals)).clone());
+        cf.initialize(
+            CollectionBatchBuyCrowdfund.CollectionBatchBuyCrowdfundOptions({
+                name: "Crowdfund",
+                symbol: "CF",
+                customizationPresetId: 0,
+                nftContract: nftContract,
+                nftTokenIdsMerkleRoot: nftTokenIdsMerkleRoot,
+                duration: 1 days,
+                maximumPrice: maximumPrice,
+                splitRecipient: payable(address(0)),
+                splitBps: 0,
+                initialContributor: address(0),
+                initialDelegate: address(0),
+                minContribution: 0,
+                maxContribution: type(uint96).max,
+                gateKeeper: IGateKeeper(address(0)),
+                gateKeeperId: 0,
+                governanceOpts: govOpts,
+                proposalEngineOpts: proposalEngineOpts
+            })
         );
     }
 
@@ -94,7 +87,7 @@ contract CollectionBatchBuyCrowdfundTest is Test, TestUtils {
     function test_cannotReinitialize() public {
         // Create the crowdfund.
         CollectionBatchBuyCrowdfund cf = _createCrowdfund();
-        vm.expectRevert(abi.encodeWithSelector(Implementation.OnlyConstructorError.selector));
+        vm.expectRevert(abi.encodeWithSelector(Implementation.AlreadyInitialized.selector));
         CollectionBatchBuyCrowdfund.CollectionBatchBuyCrowdfundOptions memory opts;
         cf.initialize(opts);
     }

@@ -323,7 +323,7 @@ contract ProposalExecutionEngine is
             );
         }
         _initProposalImpl(newImpl, initData);
-        emit ProposalEngineImplementationUpgraded(address(IMPL), expectedImpl);
+        emit ProposalEngineImplementationUpgraded(address(implementation), expectedImpl);
     }
 
     // Retrieve the explicit storage bucket for the ProposalExecutionEngine logic.

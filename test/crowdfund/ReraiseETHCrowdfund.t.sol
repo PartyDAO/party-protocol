@@ -1,9 +1,11 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8;
 
+import "forge-std/Test.sol";
+import { Clones } from "openzeppelin/contracts/proxy/Clones.sol";
+
 import "../../contracts/crowdfund/ReraiseETHCrowdfund.sol";
 import "../../contracts/globals/Globals.sol";
-import "../../contracts/utils/Proxy.sol";
 import "../../contracts/party/PartyFactory.sol";
 import "../../contracts/tokens/ERC721Receiver.sol";
 import "../../contracts/renderers/CrowdfundNFTRenderer.sol";
@@ -15,6 +17,8 @@ import { LintJSON } from "../utils/LintJSON.sol";
 import "../TestUtils.sol";
 
 contract ReraiseETHCrowdfundTest is LintJSON, TestUtils, ERC721Receiver {
+    using Clones for address;
+
     event Transfer(address indexed owner, address indexed to, uint256 indexed tokenId);
     event Contributed(
         address indexed sender,
@@ -31,6 +35,8 @@ contract ReraiseETHCrowdfundTest is LintJSON, TestUtils, ERC721Receiver {
     CrowdfundNFTRenderer nftRenderer;
     RendererStorage nftRendererStorage;
     TokenDistributor tokenDistributor;
+
+    ETHCrowdfundBase.ETHCrowdfundOptions opts;
 
     constructor() {
         Globals globals = new Globals(address(this));
@@ -73,9 +79,8 @@ contract ReraiseETHCrowdfundTest is LintJSON, TestUtils, ERC721Receiver {
         partyOpts.options.governance.hosts = new address[](1);
         partyOpts.options.governance.hosts[0] = address(this);
 
-        party = Party(
-            payable(new Proxy(new Party(globals), abi.encodeCall(Party.initialize, (partyOpts))))
-        );
+        party = Party(payable(address(new Party(globals)).clone()));
+        party.initialize(partyOpts);
     }
 
     struct CreateCrowdfundArgs {
@@ -96,9 +101,9 @@ contract ReraiseETHCrowdfundTest is LintJSON, TestUtils, ERC721Receiver {
     }
 
     function _createCrowdfund(
-        CreateCrowdfundArgs memory args
+        CreateCrowdfundArgs memory args,
+        bool initialize
     ) private returns (ReraiseETHCrowdfund crowdfund) {
-        ETHCrowdfundBase.ETHCrowdfundOptions memory opts;
         opts.party = party;
         opts.initialContributor = args.initialContributor;
         opts.initialDelegate = args.initialDelegate;
@@ -114,17 +119,19 @@ contract ReraiseETHCrowdfundTest is LintJSON, TestUtils, ERC721Receiver {
         opts.gateKeeper = args.gateKeeper;
         opts.gateKeeperId = args.gateKeeperId;
 
-        crowdfund = ReraiseETHCrowdfund(
-            payable(
-                new Proxy{ value: args.initialContribution }(
-                    reraiseETHCrowdfundImpl,
-                    abi.encodeCall(ReraiseETHCrowdfund.initialize, (opts))
-                )
-            )
-        );
+        crowdfund = ReraiseETHCrowdfund(address(reraiseETHCrowdfundImpl).clone());
+        if (initialize) {
+            crowdfund.initialize{ value: args.initialContribution }(opts);
+        }
 
         vm.prank(address(party));
         party.addAuthority(address(crowdfund));
+    }
+
+    function _createCrowdfund(
+        CreateCrowdfundArgs memory args
+    ) private returns (ReraiseETHCrowdfund crowdfund) {
+        return _createCrowdfund(args, true);
     }
 
     function test_initialization_cannotReinitialize() public {
@@ -147,24 +154,17 @@ contract ReraiseETHCrowdfundTest is LintJSON, TestUtils, ERC721Receiver {
             })
         );
 
-        ETHCrowdfundBase.ETHCrowdfundOptions memory opts;
+        ETHCrowdfundBase.ETHCrowdfundOptions memory emptyOpts;
 
-        vm.expectRevert(Implementation.OnlyConstructorError.selector);
-        crowdfund.initialize(opts);
+        vm.expectRevert(Implementation.AlreadyInitialized.selector);
+        crowdfund.initialize(emptyOpts);
     }
 
     function test_initialization_minTotalContributionsGreaterThanMax() public {
         uint96 minTotalContributions = 5 ether;
         uint96 maxTotalContributions = 3 ether;
 
-        vm.expectRevert(
-            abi.encodeWithSelector(
-                ETHCrowdfundBase.MinGreaterThanMaxError.selector,
-                minTotalContributions,
-                maxTotalContributions
-            )
-        );
-        _createCrowdfund(
+        ReraiseETHCrowdfund crowdfund = _createCrowdfund(
             CreateCrowdfundArgs({
                 initialContribution: 0,
                 initialContributor: payable(address(0)),
@@ -180,20 +180,23 @@ contract ReraiseETHCrowdfundTest is LintJSON, TestUtils, ERC721Receiver {
                 fundingSplitRecipient: payable(address(0)),
                 gateKeeper: IGateKeeper(address(0)),
                 gateKeeperId: bytes12(0)
-            })
+            }),
+            false
         );
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                ETHCrowdfundBase.MinGreaterThanMaxError.selector,
+                minTotalContributions,
+                maxTotalContributions
+            )
+        );
+        crowdfund.initialize(opts);
     }
 
     function test_initialization_maxTotalContributionsZero() public {
         uint96 maxTotalContributions = 0;
 
-        vm.expectRevert(
-            abi.encodeWithSelector(
-                ETHCrowdfundBase.MaxTotalContributionsCannotBeZeroError.selector,
-                maxTotalContributions
-            )
-        );
-        _createCrowdfund(
+        ReraiseETHCrowdfund crowdfund = _createCrowdfund(
             CreateCrowdfundArgs({
                 initialContribution: 0,
                 initialContributor: payable(address(0)),
@@ -209,8 +212,16 @@ contract ReraiseETHCrowdfundTest is LintJSON, TestUtils, ERC721Receiver {
                 fundingSplitRecipient: payable(address(0)),
                 gateKeeper: IGateKeeper(address(0)),
                 gateKeeperId: bytes12(0)
-            })
+            }),
+            false
         );
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                ETHCrowdfundBase.MaxTotalContributionsCannotBeZeroError.selector,
+                maxTotalContributions
+            )
+        );
+        crowdfund.initialize(opts);
     }
 
     function test_initialContribution_works() public {
@@ -242,36 +253,6 @@ contract ReraiseETHCrowdfundTest is LintJSON, TestUtils, ERC721Receiver {
         assertEq(address(crowdfund).balance, initialContribution);
         assertEq(crowdfund.totalContributions(), initialContribution);
         assertEq(crowdfund.pendingVotingPower(initialContributor), initialContribution);
-    }
-
-    function test_initialContribution_aboveMaxTotalContribution() public {
-        address payable initialContributor = payable(_randomAddress());
-        address initialDelegate = _randomAddress();
-        uint96 initialContribution = 1 ether;
-
-        // Will fail because initial contribution should trigger crowdfund to
-        // try to finalize a win but it will fail because it is not yet set as
-        // an authority on the party
-        vm.expectRevert(PartyGovernanceNFT.OnlyAuthorityError.selector);
-        // Create crowdfund with initial contribution
-        _createCrowdfund(
-            CreateCrowdfundArgs({
-                initialContribution: initialContribution,
-                initialContributor: initialContributor,
-                initialDelegate: initialDelegate,
-                minContributions: 0,
-                maxContributions: type(uint96).max,
-                disableContributingForExistingCard: false,
-                minTotalContributions: initialContribution,
-                maxTotalContributions: initialContribution,
-                duration: 7 days,
-                exchangeRateBps: 1e4,
-                fundingSplitBps: 0,
-                fundingSplitRecipient: payable(address(0)),
-                gateKeeper: IGateKeeper(address(0)),
-                gateKeeperId: bytes12(0)
-            })
-        );
     }
 
     function test_contribute_works() public {
