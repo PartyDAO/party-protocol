@@ -36,7 +36,7 @@ abstract contract BaseMetadataProviderTest is TestUtils {
             collectionExternalURL: "https://example.com/collection",
             royaltyReceiver: _randomAddress(),
             royaltyAmount: _randomUint256(),
-            renderingMethod: PartyNFTRenderer.RenderingMethod.ENUM_OFFSET
+            renderingMethod: PartyNFTRenderer.RenderingMethod.FixedCrowdfund
         });
         metadataProvider.setMetadata(address(0x123), abi.encode(metadata));
     }
