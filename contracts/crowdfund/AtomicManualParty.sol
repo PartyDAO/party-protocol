@@ -20,7 +20,8 @@ contract AtomicManualParty {
         Party.PartyOptions opts,
         IERC721[] preciousTokens,
         uint256[] preciousTokenIds,
-        uint40 rageQuitTimestamp
+        uint40 rageQuitTimestamp,
+        address creator
     );
     /// @notice Returned if the `AtomicManualParty` is created with no members
     error NoPartyMembers();
@@ -76,7 +77,8 @@ contract AtomicManualParty {
             opts,
             preciousTokens,
             preciousTokenIds,
-            rageQuitTimestamp
+            rageQuitTimestamp,
+            msg.sender
         );
     }
 
@@ -123,7 +125,8 @@ contract AtomicManualParty {
             opts,
             preciousTokens,
             preciousTokenIds,
-            rageQuitTimestamp
+            rageQuitTimestamp,
+            msg.sender
         );
     }
 

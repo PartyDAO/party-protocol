@@ -24,7 +24,8 @@ contract AtomicManualPartyTest is SetupPartyHelper {
         Party.PartyOptions opts,
         IERC721[] preciousTokens,
         uint256[] preciousTokenIds,
-        uint40 rageQuitTimestamp
+        uint40 rageQuitTimestamp,
+        address creator
     );
     event ProviderSet(address indexed instance, IMetadataProvider indexed provider);
 
@@ -72,7 +73,8 @@ contract AtomicManualPartyTest is SetupPartyHelper {
             opts,
             preciousTokens,
             preciousTokenIds,
-            0
+            0,
+            address(this)
         );
         // total voting power ignored
         opts.governance.totalVotingPower = 100;
