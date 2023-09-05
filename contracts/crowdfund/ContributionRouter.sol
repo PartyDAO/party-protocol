@@ -1,91 +1,65 @@
 // SPDX-License-Identifier: GPL-3.0
 pragma solidity 0.8.20;
 
-import { Crowdfund } from "./Crowdfund.sol";
-import { InitialETHCrowdfund } from "./InitialETHCrowdfund.sol";
 import { LibAddress } from "../utils/LibAddress.sol";
-import { IGlobals } from "../globals/IGlobals.sol";
-import { LibGlobals } from "../globals/LibGlobals.sol";
+import { LibRawResult } from "../utils/LibRawResult.sol";
 
 contract ContributionRouter {
-    event ReceivedFees(address indexed sender, uint256 amount);
-    event ClaimedFees(address indexed partyDao, address indexed recipient);
-
-    error OnlyPartyDaoError(address notDao, address partyDao);
-
+    using LibRawResult for bytes;
     using LibAddress for address payable;
 
-    // The `Globals` contract storing global configuration values. This contract
-    // is immutable and it’s address will never change.
-    IGlobals private immutable _GLOBALS;
+    event FeePerContributionUpdated(uint96 oldFeePerContribution, uint96 newFeePerContribution);
+    event ReceivedFees(address indexed sender, uint256 amount);
+    event ClaimedFees(address indexed partyDao, address indexed recipient, uint256 amount);
 
-    // Set the `Globals` contract.
-    constructor(IGlobals globals) {
-        _GLOBALS = globals;
+    error OnlyOwner();
+
+    /// @notice The address allowed to claim fees from the contract.
+    address public immutable OWNER;
+
+    /// @notice The amount of fees to pay to the DAO per contribution.
+    uint96 public feePerContribution;
+
+    constructor(address owner, uint96 initialFeePerContribution) {
+        OWNER = owner;
+        feePerContribution = initialFeePerContribution;
     }
 
-    modifier onlyPartyDao() {
-        {
-            address partyDao = _GLOBALS.getAddress(LibGlobals.GLOBAL_DAO_WALLET);
-            if (msg.sender != partyDao) {
-                revert OnlyPartyDaoError(msg.sender, partyDao);
-            }
-        }
+    modifier onlyOwner() {
+        if (msg.sender != OWNER) revert OnlyOwner();
         _;
     }
 
-    /// @notice Contribute to an NFT crowdfund and pay an optional fee to the DAO.
-    /// @param crowdfund The crowdfund to contribute to.
-    /// @param delegate The address to delegate to for the governance phase.
-    /// @param gateData Data to pass to the gatekeeper to prove eligibility.
-    /// @param feeAmount The amount of ETH to pay to the DAO.
-    function contributeToNFTCrowdfund(
-        Crowdfund crowdfund,
-        address delegate,
-        bytes memory gateData,
-        uint256 feeAmount
-    ) external payable {
-        // Contribute to the Party crowdfund, minus the fee. The fee will stay
-        // in this contract until claimed by the DAO. Will revert if the fee is
-        // greater than the contribution.
-        crowdfund.contributeFor{ value: msg.value - feeAmount }(msg.sender, delegate, gateData);
+    /// @notice Call a function on a contract with a fee attached.
+    /// @param target The address of the contract to call.
+    /// @param data The data to send to the contract.
+    function callWithFee(address target, bytes memory data) external payable {
+        uint256 feeAmount = feePerContribution;
+
+        // Make a call with a fee attached. The fee will stay in this contract
+        // until claimed by the owner. Will revert if the fee is greater than
+        // the value sent.
+        (bool success, bytes memory res) = target.call{ value: msg.value - feeAmount }(data);
+        if (!success) res.rawRevert();
 
         emit ReceivedFees(msg.sender, feeAmount);
     }
 
-    /// @notice Contribute to an initial ETH crowdfund and pay an optional fee to the DAO.
-    /// @param crowdfund The crowdfund to contribute to.
-    /// @param tokenId The token ID to contribute to.
-    /// @param delegate The address to delegate to for the governance phase.
-    /// @param gateData Data to pass to the gatekeeper to prove eligibility.
-    /// @param feeAmount The amount of ETH to pay to the DAO.
-    function contributeToInitialETHCrowdfund(
-        InitialETHCrowdfund crowdfund,
-        uint256 tokenId,
-        address delegate,
-        bytes memory gateData,
-        uint256 feeAmount
-    ) external payable {
-        // Contribute to the Party crowdfund, minus the fee. The fee will stay
-        // in this contract until claimed by the DAO. Will revert if the fee is
-        // greater than the contribution.
-        crowdfund.contributeFor{ value: msg.value - feeAmount }(
-            tokenId,
-            payable(msg.sender),
-            delegate,
-            gateData
-        );
+    /// @notice Set the fee per contribution. Only the owner can call.
+    /// @param newFeePerContribution The new amount to set fee per contribution to.
+    function setFeePerContribution(uint96 newFeePerContribution) external onlyOwner {
+        emit FeePerContributionUpdated(feePerContribution, newFeePerContribution);
 
-        emit ReceivedFees(msg.sender, feeAmount);
+        feePerContribution = newFeePerContribution;
     }
 
-    /// @notice Claim fees from the contract as the DAO.
+    /// @notice Claim fees from the contract. Only the owner can call.
     /// @param recipient The address to send the fees to.
-    function claimFees(address payable recipient) external onlyPartyDao {
-        recipient.transferEth(address(this).balance);
+    function claimFees(address payable recipient) external onlyOwner {
+        uint256 balance = address(this).balance;
 
-        emit ClaimedFees(msg.sender, recipient);
+        recipient.transferEth(balance);
+
+        emit ClaimedFees(msg.sender, recipient, balance);
     }
-
-    receive() external payable {}
 }
