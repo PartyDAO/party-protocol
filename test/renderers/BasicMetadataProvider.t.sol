@@ -1,19 +1,16 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8;
 
-import "forge-std/Test.sol";
-
+import { BaseMetadataProviderTest } from "./BaseMetadataProviderTest.sol";
 import "../../contracts/globals/Globals.sol";
 import "../../contracts/renderers/MetadataProvider.sol";
 import "../../contracts/renderers/BasicMetadataProvider.sol";
 
-import "../TestUtils.sol";
-
-contract BasicMetadataProviderTest is Test, TestUtils {
-    Globals globals = new Globals(address(this));
-    BasicMetadataProvider metadataProvider = new BasicMetadataProvider(globals);
-
-    string public name = "Party Name";
+contract BasicMetadataProviderTest is BaseMetadataProviderTest {
+    function setUp() public override {
+        super.setUp();
+        metadataProvider = new BasicMetadataProvider(globals);
+    }
 
     function test_setMetadataAndRetrieveMetadata() public {
         PartyNFTRenderer.Metadata memory metadata = PartyNFTRenderer.Metadata({
