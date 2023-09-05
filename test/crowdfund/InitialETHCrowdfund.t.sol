@@ -18,7 +18,7 @@ import "../../contracts/gatekeepers/AllowListGateKeeper.sol";
 import "../TestUtils.sol";
 import { LintJSON } from "../utils/LintJSON.sol";
 
-contract InitialETHCrowdfundTest is LintJSON, TestUtils, ERC721Receiver {
+contract InitialETHCrowdfundTestBase is LintJSON, TestUtils, ERC721Receiver {
     event Contributed(
         address indexed sender,
         address indexed contributor,
@@ -93,7 +93,7 @@ contract InitialETHCrowdfundTest is LintJSON, TestUtils, ERC721Receiver {
 
     function _createCrowdfund(
         CreateCrowdfundArgs memory args
-    ) private returns (InitialETHCrowdfund crowdfund) {
+    ) internal returns (InitialETHCrowdfund crowdfund) {
         InitialETHCrowdfund.InitialETHCrowdfundOptions memory crowdfundOpts;
         crowdfundOpts.initialContributor = args.initialContributor;
         crowdfundOpts.initialDelegate = args.initialDelegate;
@@ -132,7 +132,9 @@ contract InitialETHCrowdfundTest is LintJSON, TestUtils, ERC721Receiver {
             )
         );
     }
+}
 
+contract InitialETHCrowdfundTest is InitialETHCrowdfundTestBase {
     function test_initialization_cannotReinitialize() public {
         InitialETHCrowdfund crowdfund = _createCrowdfund(
             CreateCrowdfundArgs({
@@ -1674,7 +1676,9 @@ contract InitialETHCrowdfundTest is LintJSON, TestUtils, ERC721Receiver {
         vm.expectRevert(ETHCrowdfundBase.FundingSplitNotConfiguredError.selector);
         crowdfund.sendFundingSplit();
     }
+}
 
+contract InitialETHCrowdfundForkedTest is InitialETHCrowdfundTestBase {
     function testForked_partyCardTokenURI_whileCrowdfundActive() public onlyForked {
         InitialETHCrowdfund crowdfund = _createCrowdfund(
             CreateCrowdfundArgs({
