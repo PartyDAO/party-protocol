@@ -18,7 +18,7 @@ import "../../contracts/gatekeepers/AllowListGateKeeper.sol";
 import "../TestUtils.sol";
 import { LintJSON } from "../utils/LintJSON.sol";
 
-contract InitialETHCrowdfundTest is LintJSON, TestUtils, ERC721Receiver {
+contract InitialETHCrowdfundTestBase is LintJSON, TestUtils, ERC721Receiver {
     event Contributed(
         address indexed sender,
         address indexed contributor,

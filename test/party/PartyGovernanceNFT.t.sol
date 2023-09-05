@@ -21,7 +21,7 @@ import "../TestUsers.sol";
 import "../TestUtils.sol";
 import { LintJSON } from "../utils/LintJSON.sol";
 
-contract PartyGovernanceNFTTest is LintJSON, TestUtils {
+contract PartyGovernanceNFTTestBase is LintJSON, TestUtils {
     Party partyImpl;
     PartyFactory partyFactory;
     DummySimpleProposalEngineImpl eng;
