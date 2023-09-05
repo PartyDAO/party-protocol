@@ -21,7 +21,7 @@ import "../TestUsers.sol";
 import "../TestUtils.sol";
 import { LintJSON } from "../utils/LintJSON.sol";
 
-contract PartyGovernanceNFTTest is LintJSON, TestUtils {
+contract PartyGovernanceNFTTestBase is LintJSON, TestUtils {
     Party partyImpl;
     PartyFactory partyFactory;
     DummySimpleProposalEngineImpl eng;
@@ -97,7 +97,9 @@ contract PartyGovernanceNFTTest is LintJSON, TestUtils {
         toadz = new DummyERC721();
         toadz.mint(nftHolderAddress);
     }
+}
 
+contract PartyGovernanceNFTTest is PartyGovernanceNFTTestBase {
     function testMint() external {
         (Party party, , ) = partyAdmin.createParty(
             partyImpl,
@@ -1278,30 +1280,6 @@ contract PartyGovernanceNFTTest is LintJSON, TestUtils {
         assertTrue(bytes(tokenURI).length > 0);
     }
 
-    function testTokenURI_withFixedCrowdfundType() public onlyForked {
-        // Create party
-        DummyParty party = new DummyParty(address(globals), "Party of the Living Dead");
-
-        // Setup party as fixed membership mint party
-        party.setTokenCount(100);
-        party.mint(33);
-        party.setVotingPowerPercentage(33, 0.1e18);
-        party.mint(66);
-        party.setVotingPowerPercentage(66, 0.1e18);
-        party.mint(99);
-        party.setVotingPowerPercentage(99, 0.1e18);
-
-        // Get token URI
-        string memory tokenURI = party.tokenURI(33);
-
-        _lintEncodedJSON(tokenURI);
-
-        // Uncomment for testing rendering:
-        // console.log(tokenURI);
-
-        assertTrue(bytes(tokenURI).length > 0);
-    }
-
     // Test rendering using a preset ID 0, which is reserved to indicate to
     // parties to use the same preset as the crowdfund that created it (or of
     // whatever `authority()` chose if created outside the conventional flow).
@@ -1651,6 +1629,32 @@ contract DummyParty is ReadOnlyDelegateCall {
             msg.data
         );
         assert(false); // Will not be reached.
+    }
+}
+
+contract PartyGovernanceNFTForkedTest is PartyGovernanceNFTTestBase {
+    function testTokenURI_withFixedCrowdfundType() public onlyForked {
+        // Create party
+        DummyParty party = new DummyParty(address(globals), "Party of the Living Dead");
+
+        // Setup party as fixed membership mint party
+        party.setTokenCount(100);
+        party.mint(33);
+        party.setVotingPowerPercentage(33, 0.1e18);
+        party.mint(66);
+        party.setVotingPowerPercentage(66, 0.1e18);
+        party.mint(99);
+        party.setVotingPowerPercentage(99, 0.1e18);
+
+        // Get token URI
+        string memory tokenURI = party.tokenURI(33);
+
+        _lintEncodedJSON(tokenURI);
+
+        // Uncomment for testing rendering:
+        // console.log(tokenURI);
+
+        assertTrue(bytes(tokenURI).length > 0);
     }
 }
 
