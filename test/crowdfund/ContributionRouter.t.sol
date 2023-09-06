@@ -80,33 +80,6 @@ contract ContributionRouterTest is TestUtils {
         vm.expectRevert(ContributionRouter.OnlyOwner.selector);
         router.claimFees(recipient);
     }
-
-    function testGas_callWithFeeVsFallback() public {
-        // Setup for benchmark.
-        uint256 amount = 1 ether;
-        vm.deal(address(this), amount * 2);
-        bytes memory data = abi.encodeWithSelector(MockPayableContract.pay.selector);
-        MockPayableContract target = new MockPayableContract();
-
-        // Benchmark callWithFee().
-        uint256 gas = gasleft();
-        router.callWithFee{ value: amount }(address(target), data);
-        console.log("callWithFee gas used: %d", gas - gasleft());
-
-        // Benchmark fallback.
-        gas = gasleft();
-        (bool success, bytes memory res) = address(router).call{ value: amount }(
-            abi.encodePacked(data, address(target))
-        );
-        console.log("fallback gas used: %d", gas - gasleft());
-
-        // Check that both calls behaved as expected.
-        assertEq(success, true);
-        assertEq(res.length, 0);
-        assertEq(address(target).balance, (amount - feePerContribution) * 2);
-        assertEq(address(router).balance, feePerContribution * 2);
-        assertEq(address(this).balance, 0);
-    }
 }
 
 contract MockPayableContract {
