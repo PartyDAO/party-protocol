@@ -1,8 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0
 pragma solidity 0.8.20;
 
-import { IGlobals } from "../globals/IGlobals.sol";
-import { LibGlobals } from "../globals/LibGlobals.sol";
 import { IPartyFactory } from "../party/IPartyFactory.sol";
 import { Party } from "../party/Party.sol";
 import { IERC721 } from "../tokens/IERC721.sol";
@@ -32,12 +30,10 @@ contract AtomicManualParty {
     /// @notice Returned if a party card would be issued with no voting power
     error InvalidPartyMemberVotingPower();
 
-    // The `Globals` contract storing global configuration values. This contract
-    // is immutable and it’s address will never change.
-    IGlobals private immutable _GLOBALS;
+    IPartyFactory private immutable PARTY_FACTORY;
 
-    constructor(IGlobals globals) {
-        _GLOBALS = globals;
+    constructor(IPartyFactory partyFactory) {
+        PARTY_FACTORY = partyFactory;
     }
 
     /// @notice Atomically creates the party and distributes the party cards
@@ -60,7 +56,7 @@ contract AtomicManualParty {
 
         opts.governance.totalVotingPower = totalVotingPower;
 
-        party = IPartyFactory(_GLOBALS.getAddress(LibGlobals.GLOBAL_PARTY_FACTORY)).createParty(
+        party = PARTY_FACTORY.createParty(
             partyImpl,
             authorities,
             opts,
@@ -105,17 +101,16 @@ contract AtomicManualParty {
 
         opts.governance.totalVotingPower = totalVotingPower;
 
-        party = IPartyFactory(_GLOBALS.getAddress(LibGlobals.GLOBAL_PARTY_FACTORY))
-            .createPartyWithMetadata(
-                partyImpl,
-                authorities,
-                opts,
-                preciousTokens,
-                preciousTokenIds,
-                rageQuitTimestamp,
-                provider,
-                metadata
-            );
+        party = PARTY_FACTORY.createPartyWithMetadata(
+            partyImpl,
+            authorities,
+            opts,
+            preciousTokens,
+            preciousTokenIds,
+            rageQuitTimestamp,
+            provider,
+            metadata
+        );
 
         _issuePartyCards(party, partyMembers, partyMemberVotingPowers);
         emit AtomicManualPartyCreated(

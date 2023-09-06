@@ -23,7 +23,7 @@ abstract contract SetupPartyHelper is TestUtils, ERC721Receiver {
     GlobalsAdmin globalsAdmin;
     Party party;
     Globals internal globals;
-    PartyFactory private partyFactory;
+    PartyFactory internal partyFactory;
     uint256 internal johnPk = 0xa11ce;
     uint256 internal dannyPk = 0xb0b;
     uint256 internal stevePk = 0xca1;

@@ -35,7 +35,7 @@ contract AtomicManualPartyTest is SetupPartyHelper {
 
     function setUp() public override {
         super.setUp();
-        atomicManualParty = new AtomicManualParty(globals);
+        atomicManualParty = new AtomicManualParty(partyFactory);
     }
 
     function test_createAtomicManualParty() public {

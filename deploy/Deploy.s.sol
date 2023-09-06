@@ -398,7 +398,7 @@ abstract contract Deploy {
         console.log("");
         console.log("  Deploying - AtomicManualParty");
         _trackDeployerGasBefore();
-        atomicManualParty = new AtomicManualParty(globals);
+        atomicManualParty = new AtomicManualParty(partyFactory);
         _trackDeployerGasAfter();
         console.log("  Deployed - AtomicManualParty", address(atomicManualParty));
 
