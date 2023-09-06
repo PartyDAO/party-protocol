@@ -30,7 +30,7 @@ contract ContributionRouterTest is TestUtils {
         vm.deal(address(this), amount);
         uint256 feeAmount = feePerContribution;
         vm.expectEmit(true, true, true, true);
-        emit ReceivedFees(msg.sender, feeAmount);
+        emit ReceivedFees(address(this), feeAmount);
         router.callWithFee{ value: amount }(
             address(target),
             abi.encodeWithSelector(MockPayableContract.pay.selector)
