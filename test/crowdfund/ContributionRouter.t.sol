@@ -29,7 +29,7 @@ contract ContributionRouterTest is TestUtils {
         uint256 amount = 1 ether;
         vm.deal(address(this), amount);
         uint256 feeAmount = feePerContribution;
-        vm.expectEmit(false, false, false, true);
+        vm.expectEmit(true, true, true, true);
         emit ReceivedFees(msg.sender, feeAmount);
         router.callWithFee{ value: amount }(
             address(target),
@@ -53,7 +53,7 @@ contract ContributionRouterTest is TestUtils {
     function test_setFeePerContribution_works() external {
         uint96 newFeePerContribution = 0.02 ether;
         vm.prank(owner);
-        vm.expectEmit(false, false, false, true);
+        vm.expectEmit(true, true, true, true);
         emit FeePerContributionUpdated(feePerContribution, newFeePerContribution);
         router.setFeePerContribution(newFeePerContribution);
         assertEq(router.feePerContribution(), newFeePerContribution);
@@ -70,7 +70,7 @@ contract ContributionRouterTest is TestUtils {
         uint256 balance = _randomUint256();
         vm.deal(address(router), balance);
         vm.prank(owner);
-        vm.expectEmit(false, false, false, true);
+        vm.expectEmit(true, true, true, true);
         emit ClaimedFees(owner, recipient, balance);
         router.claimFees(recipient);
     }
