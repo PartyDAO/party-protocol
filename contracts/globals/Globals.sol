@@ -17,6 +17,11 @@ contract Globals is IGlobals, Multicall {
     error OnlyPendingMultiSigError();
     error InvalidBooleanValueError(uint256 key, uint256 value);
 
+    /// @notice Emitted when a value is set.
+    event ValueSet(uint256 key, bytes32 oldValue, bytes32 newValue);
+    /// @notice Emitted when includes is set.
+    event IncludesSet(uint256 key, bytes32 value, bool oldIsIncluded, bool newIsIncluded);
+
     modifier onlyMultisig() {
         if (msg.sender != multiSig) {
             revert OnlyMultiSigError();
@@ -81,30 +86,42 @@ contract Globals is IGlobals, Multicall {
     }
 
     function setBytes32(uint256 key, bytes32 value) external onlyMultisig {
+        emit ValueSet(key, _wordValues[key], value);
         _wordValues[key] = value;
     }
 
     function setUint256(uint256 key, uint256 value) external onlyMultisig {
+        emit ValueSet(key, _wordValues[key], bytes32(value));
         _wordValues[key] = bytes32(value);
     }
 
     function setBool(uint256 key, bool value) external onlyMultisig {
+        emit ValueSet(key, _wordValues[key], value ? bytes32(uint256(1)) : bytes32(0));
         _wordValues[key] = value ? bytes32(uint256(1)) : bytes32(0);
     }
 
     function setAddress(uint256 key, address value) external onlyMultisig {
+        emit ValueSet(key, _wordValues[key], bytes32(uint256(uint160(value))));
         _wordValues[key] = bytes32(uint256(uint160(value)));
     }
 
     function setIncludesBytes32(uint256 key, bytes32 value, bool isIncluded) external onlyMultisig {
+        emit IncludesSet(key, value, _includedWordValues[key][value], isIncluded);
         _includedWordValues[key][value] = isIncluded;
     }
 
     function setIncludesUint256(uint256 key, uint256 value, bool isIncluded) external onlyMultisig {
+        emit IncludesSet(key, bytes32(value), _includedWordValues[key][bytes32(value)], isIncluded);
         _includedWordValues[key][bytes32(value)] = isIncluded;
     }
 
     function setIncludesAddress(uint256 key, address value, bool isIncluded) external onlyMultisig {
+        emit IncludesSet(
+            key,
+            bytes32(uint256(uint160(value))),
+            _includedWordValues[key][bytes32(uint256(uint160(value)))],
+            isIncluded
+        );
         _includedWordValues[key][bytes32(uint256(uint160(value)))] = isIncluded;
     }
 }
