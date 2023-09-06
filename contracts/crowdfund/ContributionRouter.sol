@@ -62,4 +62,16 @@ contract ContributionRouter {
 
         emit ClaimedFees(msg.sender, recipient, balance);
     }
+
+    fallback() external payable {
+        uint256 feeAmount = feePerContribution;
+        address target;
+        assembly {
+            target := shr(96, calldataload(sub(calldatasize(), 0x14)))
+        }
+        (bool success, bytes memory res) = target.call{ value: msg.value - feeAmount }(msg.data);
+        if (!success) res.rawRevert();
+
+        emit ReceivedFees(msg.sender, feeAmount);
+    }
 }
