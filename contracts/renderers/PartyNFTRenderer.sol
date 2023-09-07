@@ -200,7 +200,7 @@ contract PartyNFTRenderer is RendererBase {
                             ? generateDescription(PartyGovernanceNFT(address(this)).name(), tokenId)
                             : string.concat(
                                 metadata.description,
-                                " ",
+                                "\\n\\n",
                                 // Append default description.
                                 generateDescription(
                                     PartyGovernanceNFT(address(this)).name(),
