@@ -495,10 +495,6 @@ abstract contract Deploy {
             // );
             // multicallData[n++] = abi.encodeCall(
             //     globals.setAddress,
-            //     (LibGlobals.GLOBAL_PARTY_FACTORY, address(partyFactory))
-            // );
-            // multicallData[n++] = abi.encodeCall(
-            //     globals.setAddress,
             //     (LibGlobals.GLOBAL_AUCTION_CF_IMPL, address(auctionCrowdfund))
             // );
             // multicallData[n++] = abi.encodeCall(
@@ -543,6 +539,10 @@ abstract contract Deploy {
             multicallData[n++] = abi.encodeCall(
                 globals.setAddress,
                 (LibGlobals.GLOBAL_METADATA_REGISTRY, address(metadataRegistry))
+            );
+            multicallData[n++] = abi.encodeCall(
+                globals.setAddress,
+                (LibGlobals.GLOBAL_PARTY_FACTORY, address(partyFactory))
             );
             // transfer ownership of Globals to multisig
             if (this.getDeployer() != deployConstants.partyDaoMultisig) {
