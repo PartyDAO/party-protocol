@@ -316,7 +316,8 @@ abstract contract Deploy {
         partyNFTRenderer = new PartyNFTRenderer(
             globals,
             rendererStorage,
-            IFont(address(pixeldroidConsoleFont))
+            IFont(address(pixeldroidConsoleFont)),
+            0x1CA2007a81F8A7491BB6E11D8e357FD810896454 // Old token distributor
         );
         _trackDeployerGasAfter();
         console.log("  Deployed - PartyNFTRenderer", address(partyNFTRenderer));

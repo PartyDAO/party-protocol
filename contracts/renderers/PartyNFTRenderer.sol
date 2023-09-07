@@ -74,13 +74,16 @@ contract PartyNFTRenderer is RendererBase {
     address constant PARTYSTAR_CROWDFUND_ADDRESS = 0x0Bf08f7b6474C2aCCB9b9e325acb6FbcC682dE82;
     IMetadataRegistry1_1 constant OLD_METADATA_REGISTRY =
         IMetadataRegistry1_1(0x175487875F0318EdbAB54BBA442fF53b36e96015);
+    address immutable OLD_TOKEN_DISTRIBUTOR;
 
     constructor(
         IGlobals globals,
         RendererStorage rendererStorage,
-        IFont font
+        IFont font,
+        address oldTokenDistributor
     ) RendererBase(globals, rendererStorage, font) {
         IMPL = address(this);
+        OLD_TOKEN_DISTRIBUTOR = oldTokenDistributor;
     }
 
     function royaltyInfo(
@@ -626,12 +629,16 @@ contract PartyNFTRenderer is RendererBase {
     function hasUnclaimedDistribution(uint256 tokenId) private view returns (bool) {
         if (address(this) == IMPL) return false;
 
-        TokenDistributor[] memory distributors = new TokenDistributor[](2);
+        // There will only be one distributor if old token distributor is not set
+        TokenDistributor[] memory distributors = OLD_TOKEN_DISTRIBUTOR != address(0)
+            ? new TokenDistributor[](2)
+            : new TokenDistributor[](1);
         distributors[0] = TokenDistributor(
             _GLOBALS.getAddress(LibGlobals.GLOBAL_TOKEN_DISTRIBUTOR)
         );
-        // Address of the old token distributor contract.
-        distributors[1] = TokenDistributor(0x1CA2007a81F8A7491BB6E11D8e357FD810896454);
+        if (OLD_TOKEN_DISTRIBUTOR != address(0)) {
+            distributors[1] = TokenDistributor(OLD_TOKEN_DISTRIBUTOR);
+        }
 
         Party party = Party(payable(address(this)));
         for (uint256 i; i < distributors.length; ++i) {
