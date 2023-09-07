@@ -74,7 +74,7 @@ contract PartyNFTRenderer is RendererBase {
     address constant PARTYSTAR_CROWDFUND_ADDRESS = 0x0Bf08f7b6474C2aCCB9b9e325acb6FbcC682dE82;
     IMetadataRegistry1_1 constant OLD_METADATA_REGISTRY =
         IMetadataRegistry1_1(0x175487875F0318EdbAB54BBA442fF53b36e96015);
-    ///@notice The old token distributor contract address.
+    /// @notice The old token distributor contract address.
     address immutable OLD_TOKEN_DISTRIBUTOR;
 
     constructor(
