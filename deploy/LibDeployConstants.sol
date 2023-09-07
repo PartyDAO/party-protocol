@@ -28,6 +28,7 @@ library LibDeployConstants {
         string networkName;
         address deployedNounsMarketWrapper;
         address deployedFoundationMarketWrapper;
+        address oldTokenDistributor;
     }
 
     function goerli(address multisig) internal pure returns (DeployConstants memory) {
@@ -57,7 +58,8 @@ library LibDeployConstants {
             zoraReserveAuctionCoreEth: 0x2506D9F5A2b0E1A2619bCCe01CD3e7C289A13163,
             networkName: "goerli",
             deployedNounsMarketWrapper: 0x0000000000000000000000000000000000000000,
-            deployedFoundationMarketWrapper: 0x0000000000000000000000000000000000000000
+            deployedFoundationMarketWrapper: 0x0000000000000000000000000000000000000000,
+            oldTokenDistributor: address(0)
         });
 
         return deployConstants;
@@ -90,7 +92,8 @@ library LibDeployConstants {
             zoraReserveAuctionCoreEth: 0x0000000000000000000000000000000000000000,
             networkName: "base-goerli",
             deployedNounsMarketWrapper: 0x0000000000000000000000000000000000000000,
-            deployedFoundationMarketWrapper: 0x0000000000000000000000000000000000000000
+            deployedFoundationMarketWrapper: 0x0000000000000000000000000000000000000000,
+            oldTokenDistributor: address(0)
         });
 
         return deployConstants;
@@ -123,7 +126,8 @@ library LibDeployConstants {
             zoraReserveAuctionCoreEth: 0x5f7072E1fA7c01dfAc7Cf54289621AFAaD2184d0,
             networkName: "mainnet",
             deployedNounsMarketWrapper: 0x9319DAd8736D752C5c72DB229f8e1b280DC80ab1,
-            deployedFoundationMarketWrapper: 0x96e5b0519983f2f984324b926e6d28C3A4Eb92A1
+            deployedFoundationMarketWrapper: 0x96e5b0519983f2f984324b926e6d28C3A4Eb92A1,
+            oldTokenDistributor: 0x1CA2007a81F8A7491BB6E11D8e357FD810896454
         });
 
         return deployConstants;
@@ -156,7 +160,8 @@ library LibDeployConstants {
             zoraReserveAuctionCoreEth: 0x0000000000000000000000000000000000000000,
             networkName: "base",
             deployedNounsMarketWrapper: 0x0000000000000000000000000000000000000000,
-            deployedFoundationMarketWrapper: 0x0000000000000000000000000000000000000000
+            deployedFoundationMarketWrapper: 0x0000000000000000000000000000000000000000,
+            oldTokenDistributor: address(0)
         });
 
         return deployConstants;
