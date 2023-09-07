@@ -14,6 +14,7 @@ import { MockZoraReserveAuctionCoreEth } from "../proposals/MockZoraReserveAucti
 import { IReserveAuctionCoreEth } from "../../contracts/vendor/markets/IReserveAuctionCoreEth.sol";
 import { PartyGovernance } from "../../contracts/party/PartyGovernance.sol";
 import { ERC721Receiver } from "../../contracts/tokens/ERC721Receiver.sol";
+import { MetadataRegistry } from "../../contracts/renderers/MetadataRegistry.sol";
 
 /// @notice This contract provides a fully functioning party instance for testing.
 ///     Run setup from inheriting contract.
@@ -21,7 +22,7 @@ abstract contract SetupPartyHelper is TestUtils, ERC721Receiver {
     bool private immutable _isForked;
     GlobalsAdmin globalsAdmin;
     Party party;
-    Globals private globals;
+    Globals internal globals;
     PartyFactory private partyFactory;
     uint256 internal johnPk = 0xa11ce;
     uint256 internal dannyPk = 0xb0b;
@@ -29,9 +30,13 @@ abstract contract SetupPartyHelper is TestUtils, ERC721Receiver {
     address internal john = vm.addr(johnPk);
     address internal danny = vm.addr(dannyPk);
     address internal steve = vm.addr(stevePk);
-    IERC721[] private preciousTokens = new IERC721[](0);
-    uint256[] private preciousTokenIds = new uint256[](0);
-    uint40 private constant _EXECUTION_DELAY = 300;
+    uint96 internal johnVotes;
+    uint96 internal dannyVotes;
+    uint96 internal steveVotes;
+    uint96 internal thisVotes;
+    IERC721[] internal preciousTokens = new IERC721[](0);
+    uint256[] internal preciousTokenIds = new uint256[](0);
+    uint40 internal constant _EXECUTION_DELAY = 300;
 
     constructor(bool isForked) {
         _isForked = isForked;
@@ -56,6 +61,20 @@ abstract contract SetupPartyHelper is TestUtils, ERC721Receiver {
 
         globalsAdmin.setProposalEng(address(pe));
 
+        partyFactory = new PartyFactory(globals);
+        globalsAdmin.setGlobalPartyFactory(address(partyFactory));
+
+        address[] memory registrars = new address[](2);
+        registrars[0] = address(this);
+        registrars[1] = address(partyFactory);
+        MetadataRegistry metadataRegistry = new MetadataRegistry(globals, registrars);
+        globalsAdmin.setMetadataRegistry(address(metadataRegistry));
+
+        johnVotes = johnVotes == 0 ? 100 : johnVotes;
+        dannyVotes = dannyVotes == 0 ? 100 : dannyVotes;
+        steveVotes = steveVotes == 0 ? 100 : steveVotes;
+        thisVotes = thisVotes == 0 ? 1 : thisVotes;
+
         Party.PartyOptions memory opts;
         address[] memory hosts = new address[](1);
         hosts[0] = address(420);
@@ -67,7 +86,6 @@ abstract contract SetupPartyHelper is TestUtils, ERC721Receiver {
         opts.governance.passThresholdBps = 1000;
         opts.governance.totalVotingPower = 301;
 
-        partyFactory = new PartyFactory(globals);
         address[] memory authorities = new address[](1);
         authorities[0] = address(this);
         party = partyFactory.createParty(
