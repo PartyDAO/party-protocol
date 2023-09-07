@@ -21,6 +21,10 @@ contract Globals is IGlobals, Multicall {
     event ValueSet(uint256 key, bytes32 oldValue, bytes32 newValue);
     /// @notice Emitted when includes is set.
     event IncludesSet(uint256 key, bytes32 value, bool oldIsIncluded, bool newIsIncluded);
+    /// @notice Emitted when the multisig is transferred and now pending.
+    event MultiSigTransferred(address indexed multisig, address indexed pendingMultiSig);
+    /// @notice Emitted when the multisig transfer is accepted.
+    event MultiSigAccepted(address indexed oldMultiSig, address indexed newMultiSig);
 
     modifier onlyMultisig() {
         if (msg.sender != multiSig) {
@@ -41,11 +45,14 @@ contract Globals is IGlobals, Multicall {
     }
 
     function transferMultiSig(address newMultiSig) external onlyMultisig {
+        emit MultiSigTransferred(multiSig, newMultiSig);
         pendingMultiSig = newMultiSig;
     }
 
     function acceptMultiSig() external onlyPendingMultisig {
-        multiSig = pendingMultiSig;
+        address newMultiSig = pendingMultiSig;
+        emit MultiSigAccepted(multiSig, newMultiSig);
+        multiSig = newMultiSig;
         delete pendingMultiSig;
     }
 
