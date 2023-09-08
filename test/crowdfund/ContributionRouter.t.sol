@@ -24,30 +24,37 @@ contract ContributionRouterTest is TestUtils {
         assertEq(router.feePerContribution(), feePerContribution);
     }
 
-    function test_callWithFee_works() external {
+    function test_fallback_works() external {
         MockPayableContract target = new MockPayableContract();
         uint256 amount = 1 ether;
         vm.deal(address(this), amount);
         uint256 feeAmount = feePerContribution;
         vm.expectEmit(true, true, true, true);
         emit ReceivedFees(address(this), feeAmount);
-        router.callWithFee{ value: amount }(
-            address(target),
-            abi.encodeWithSelector(MockPayableContract.pay.selector)
+        (bool success, bytes memory res) = address(router).call{ value: amount }(
+            abi.encodePacked(
+                abi.encodeWithSelector(MockPayableContract.pay.selector),
+                address(target)
+            )
         );
+        assertEq(success, true);
+        assertEq(res.length, 0);
         assertEq(address(target).balance, amount - feeAmount);
         assertEq(address(router).balance, feeAmount);
     }
 
-    function test_callWithFee_insufficientFee() public {
+    function test_fallback_insufficientFee() public {
         MockPayableContract target = new MockPayableContract();
         uint256 amount = feePerContribution - 1;
         vm.deal(address(this), amount);
-        vm.expectRevert(stdError.arithmeticError);
-        router.callWithFee{ value: amount }(
-            address(target),
-            abi.encodeWithSelector(MockPayableContract.pay.selector)
+        (bool success, bytes memory res) = address(router).call{ value: amount }(
+            abi.encodePacked(
+                abi.encodeWithSelector(MockPayableContract.pay.selector),
+                address(target)
+            )
         );
+        assertEq(success, false);
+        assertEq(res, stdError.arithmeticError);
     }
 
     function test_setFeePerContribution_works() external {

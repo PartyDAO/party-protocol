@@ -30,21 +30,6 @@ contract ContributionRouter {
         _;
     }
 
-    /// @notice Call a function on a contract with a fee attached.
-    /// @param target The address of the contract to call.
-    /// @param data The data to send to the contract.
-    function callWithFee(address target, bytes memory data) external payable {
-        uint256 feeAmount = feePerContribution;
-
-        // Make a call with a fee attached. The fee will stay in this contract
-        // until claimed by the owner. Will revert if the fee is greater than
-        // the value sent.
-        (bool success, bytes memory res) = target.call{ value: msg.value - feeAmount }(data);
-        if (!success) res.rawRevert();
-
-        emit ReceivedFees(msg.sender, feeAmount);
-    }
-
     /// @notice Set the fee per contribution. Only the owner can call.
     /// @param newFeePerContribution The new amount to set fee per contribution to.
     function setFeePerContribution(uint96 newFeePerContribution) external onlyOwner {
@@ -61,5 +46,20 @@ contract ContributionRouter {
         recipient.transferEth(balance);
 
         emit ClaimedFees(msg.sender, recipient, balance);
+    }
+
+    /// @notice Fallback function that forwards the call to the target contract
+    ///         and keeps the fee amount. The target contract is expected to
+    ///         be appended to the calldata.
+    fallback() external payable {
+        uint256 feeAmount = feePerContribution;
+        address target;
+        assembly {
+            target := shr(96, calldataload(sub(calldatasize(), 0x14)))
+        }
+        (bool success, bytes memory res) = target.call{ value: msg.value - feeAmount }(msg.data);
+        if (!success) res.rawRevert();
+
+        emit ReceivedFees(msg.sender, feeAmount);
     }
 }
