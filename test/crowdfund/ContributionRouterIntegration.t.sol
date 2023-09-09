@@ -19,7 +19,7 @@ contract ContributionRouterIntegrationTest is TestUtils {
     uint96 feePerMint;
     ContributionRouter router;
 
-    constructor() {
+    function setUp() public {
         feePerMint = 0.01 ether;
         router = new ContributionRouter(address(this), feePerMint);
 
