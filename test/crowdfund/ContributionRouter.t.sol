@@ -5,30 +5,30 @@ import "../../contracts/crowdfund/ContributionRouter.sol";
 import "../TestUtils.sol";
 
 contract ContributionRouterTest is TestUtils {
-    event FeePerContributionUpdated(uint96 oldFeePerContribution, uint96 newFeePerContribution);
+    event FeePerMintUpdated(uint96 oldFeePerMint, uint96 newFeePerMint);
     event ReceivedFees(address indexed sender, uint256 amount);
     event ClaimedFees(address indexed partyDao, address indexed recipient, uint256 amount);
 
     address owner;
-    uint96 feePerContribution;
+    uint96 feePerMint;
     ContributionRouter router;
 
     constructor() {
         owner = _randomAddress();
-        feePerContribution = 0.01 ether;
-        router = new ContributionRouter(owner, feePerContribution);
+        feePerMint = 0.01 ether;
+        router = new ContributionRouter(owner, feePerMint);
     }
 
     function test_initialization() public {
         assertEq(router.OWNER(), owner);
-        assertEq(router.feePerContribution(), feePerContribution);
+        assertEq(router.feePerMint(), feePerMint);
     }
 
     function test_fallback_works() external {
         MockPayableContract target = new MockPayableContract();
         uint256 amount = 1 ether;
         vm.deal(address(this), amount);
-        uint256 feeAmount = feePerContribution;
+        uint256 feeAmount = feePerMint;
         vm.expectEmit(true, true, true, true);
         emit ReceivedFees(address(this), feeAmount);
         (bool success, bytes memory res) = address(router).call{ value: amount }(
@@ -45,7 +45,7 @@ contract ContributionRouterTest is TestUtils {
 
     function test_fallback_insufficientFee() public {
         MockPayableContract target = new MockPayableContract();
-        uint256 amount = feePerContribution - 1;
+        uint256 amount = feePerMint - 1;
         vm.deal(address(this), amount);
         (bool success, bytes memory res) = address(router).call{ value: amount }(
             abi.encodePacked(
@@ -57,19 +57,19 @@ contract ContributionRouterTest is TestUtils {
         assertEq(res, stdError.arithmeticError);
     }
 
-    function test_setFeePerContribution_works() external {
-        uint96 newFeePerContribution = 0.02 ether;
+    function test_setFeePerMint_works() external {
+        uint96 newFeePerMint = 0.02 ether;
         vm.prank(owner);
         vm.expectEmit(true, true, true, true);
-        emit FeePerContributionUpdated(feePerContribution, newFeePerContribution);
-        router.setFeePerContribution(newFeePerContribution);
-        assertEq(router.feePerContribution(), newFeePerContribution);
+        emit FeePerMintUpdated(feePerMint, newFeePerMint);
+        router.setFeePerMint(newFeePerMint);
+        assertEq(router.feePerMint(), newFeePerMint);
     }
 
-    function test_setFeePerContribution_onlyOwner() external {
-        uint96 newFeePerContribution = 0.02 ether;
+    function test_setFeePerMint_onlyOwner() external {
+        uint96 newFeePerMint = 0.02 ether;
         vm.expectRevert(ContributionRouter.OnlyOwner.selector);
-        router.setFeePerContribution(newFeePerContribution);
+        router.setFeePerMint(newFeePerMint);
     }
 
     function test_claimFees_works() external {
