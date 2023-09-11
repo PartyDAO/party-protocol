@@ -97,6 +97,27 @@ contract ContributionRouterIntegrationTest is TestUtils {
         assertEq(member.balance, 0);
     }
 
+    function test_contributionFee_ethCrowdfund_revert() public {
+        // Setup for contribution.
+        address payable member = _randomAddress();
+        uint256 amount = 1 ether;
+        vm.deal(member, amount);
+        bytes memory data = abi.encodeCall(
+            InitialETHCrowdfund.contributeFor,
+            (0, member, address(0), "")
+        );
+
+        // Make contribution.
+        vm.prank(member);
+        (bool success, bytes memory res) = address(router).call{ value: amount }(
+            abi.encodePacked(data, ethCrowdfund)
+        );
+
+        // Check results.
+        assertEq(success, false);
+        assertEq(bytes4(res), ETHCrowdfundBase.InvalidDelegateError.selector);
+    }
+
     function test_contributionFee_ethCrowdfund_withBatchMint() public {
         // Setup for contribution.
         address payable member = _randomAddress();
