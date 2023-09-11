@@ -631,15 +631,14 @@ contract PartyNFTRenderer is RendererBase {
         if (address(this) == IMPL) return false;
 
         // There will only be one distributor if old token distributor is not set
-        TokenDistributor[] memory distributors = OLD_TOKEN_DISTRIBUTOR != address(0)
-            ? new TokenDistributor[](2)
-            : new TokenDistributor[](1);
+        TokenDistributor[] memory distributors = new TokenDistributor[](1);
+        if (OLD_TOKEN_DISTRIBUTOR != address(0)) {
+            distributors = new TokenDistributor[](2);
+            distributors[1] = TokenDistributor(OLD_TOKEN_DISTRIBUTOR);
+        }
         distributors[0] = TokenDistributor(
             _GLOBALS.getAddress(LibGlobals.GLOBAL_TOKEN_DISTRIBUTOR)
         );
-        if (OLD_TOKEN_DISTRIBUTOR != address(0)) {
-            distributors[1] = TokenDistributor(OLD_TOKEN_DISTRIBUTOR);
-        }
 
         Party party = Party(payable(address(this)));
         for (uint256 i; i < distributors.length; ++i) {
