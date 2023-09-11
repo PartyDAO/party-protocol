@@ -4,7 +4,6 @@ pragma solidity 0.8.20;
 import { LibAddress } from "../utils/LibAddress.sol";
 import { LibRawResult } from "../utils/LibRawResult.sol";
 import { InitialETHCrowdfund } from "../crowdfund/InitialETHCrowdfund.sol";
-import { Crowdfund } from "../crowdfund/Crowdfund.sol";
 
 contract ContributionRouter {
     using LibRawResult for bytes;
@@ -57,7 +56,7 @@ contract ContributionRouter {
         uint256 feeAmount = feePerMint;
         address target;
         assembly {
-            target := shr(96, calldataload(sub(calldatasize(), 0x14)))
+            target := shr(96, calldataload(sub(calldatasize(), 20)))
         }
         if (msg.sig == InitialETHCrowdfund.batchContributeFor.selector) {
             uint256 numOfMints;
@@ -65,14 +64,6 @@ contract ContributionRouter {
                 // 228 is the offset of the length of `tokenIds` in the
                 // calldata.
                 numOfMints := calldataload(228)
-            }
-            feeAmount *= numOfMints;
-        } else if (msg.sig == Crowdfund.batchContributeFor.selector) {
-            uint256 numOfMints;
-            assembly {
-                // 164 is the offset of the length of `recipients` in the
-                // calldata.
-                numOfMints := calldataload(164)
             }
             feeAmount *= numOfMints;
         }

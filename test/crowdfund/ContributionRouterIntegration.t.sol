@@ -86,7 +86,7 @@ contract ContributionRouterIntegrationTest is TestUtils {
         // Make contribution.
         vm.prank(member);
         (bool success, bytes memory res) = address(router).call{ value: amount }(
-            abi.encodePacked(data, address(ethCrowdfund))
+            abi.encodePacked(data, ethCrowdfund)
         );
 
         // Check results.
@@ -108,8 +108,7 @@ contract ContributionRouterIntegrationTest is TestUtils {
         uint96[] memory values = new uint96[](numOfMints);
         bytes[] memory gateDatas = new bytes[](numOfMints);
         for (uint256 i; i < numOfMints; ++i) {
-            recipients[i] = _randomAddress();
-            delegates[i] = _randomAddress();
+            delegates[i] = recipients[i] = _randomAddress();
             values[i] = amount - feePerMint;
         }
         vm.deal(member, amount * numOfMints);
@@ -130,7 +129,7 @@ contract ContributionRouterIntegrationTest is TestUtils {
         // Make contribution.
         vm.prank(member);
         (bool success, bytes memory res) = address(router).call{ value: amount * numOfMints }(
-            abi.encodePacked(data, address(ethCrowdfund))
+            abi.encodePacked(data, ethCrowdfund)
         );
 
         // Check results.
@@ -151,7 +150,7 @@ contract ContributionRouterIntegrationTest is TestUtils {
         // Make contribution.
         vm.prank(member);
         (bool success, bytes memory res) = address(router).call{ value: amount }(
-            abi.encodePacked(data, address(nftCrowdfund))
+            abi.encodePacked(data, nftCrowdfund)
         );
 
         // Check results.
@@ -159,40 +158,6 @@ contract ContributionRouterIntegrationTest is TestUtils {
         assertEq(res.length, 0);
         assertEq(address(nftCrowdfund).balance, amount - feePerMint);
         assertEq(address(router).balance, feePerMint);
-        assertEq(member.balance, 0);
-    }
-
-    function test_contributionFee_nftCrowdfund_withBatchMint() public {
-        // Setup for contribution.
-        address payable member = _randomAddress();
-        uint96 amount = 1 ether;
-        uint256 numOfMints = 4;
-        address[] memory recipients = new address[](numOfMints);
-        address[] memory delegates = new address[](numOfMints);
-        uint256[] memory values = new uint256[](numOfMints);
-        bytes[] memory gateDatas = new bytes[](numOfMints);
-        for (uint256 i; i < numOfMints; ++i) {
-            recipients[i] = _randomAddress();
-            delegates[i] = _randomAddress();
-            values[i] = amount - feePerMint;
-        }
-        vm.deal(member, amount * numOfMints);
-        bytes memory data = abi.encodeCall(
-            Crowdfund.batchContributeFor,
-            (recipients, delegates, values, gateDatas, true)
-        );
-
-        // Make contribution.
-        vm.prank(member);
-        (bool success, bytes memory res) = address(router).call{ value: amount * numOfMints }(
-            abi.encodePacked(data, address(nftCrowdfund))
-        );
-
-        // Check results.
-        assertEq(success, true);
-        assertEq(res.length, 0);
-        assertEq(address(nftCrowdfund).balance, (amount - feePerMint) * numOfMints);
-        assertEq(address(router).balance, feePerMint * numOfMints);
         assertEq(member.balance, 0);
     }
 }

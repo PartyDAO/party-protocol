@@ -13,7 +13,7 @@ contract ContributionRouterTest is TestUtils {
     uint96 feePerMint;
     ContributionRouter router;
 
-    constructor() {
+    function setUp() public {
         owner = _randomAddress();
         feePerMint = 0.01 ether;
         router = new ContributionRouter(owner, feePerMint);
@@ -32,10 +32,7 @@ contract ContributionRouterTest is TestUtils {
         vm.expectEmit(true, true, true, true);
         emit ReceivedFees(address(this), feeAmount);
         (bool success, bytes memory res) = address(router).call{ value: amount }(
-            abi.encodePacked(
-                abi.encodeWithSelector(MockPayableContract.pay.selector),
-                address(target)
-            )
+            abi.encodePacked(abi.encodeWithSelector(MockPayableContract.pay.selector), target)
         );
         assertEq(success, true);
         assertEq(res.length, 0);
@@ -48,10 +45,7 @@ contract ContributionRouterTest is TestUtils {
         uint256 amount = feePerMint - 1;
         vm.deal(address(this), amount);
         (bool success, bytes memory res) = address(router).call{ value: amount }(
-            abi.encodePacked(
-                abi.encodeWithSelector(MockPayableContract.pay.selector),
-                address(target)
-            )
+            abi.encodePacked(abi.encodeWithSelector(MockPayableContract.pay.selector), target)
         );
         assertEq(success, false);
         assertEq(res, stdError.arithmeticError);
