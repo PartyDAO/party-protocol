@@ -13,6 +13,17 @@ abstract contract ProposalStorage {
     struct SharedProposalStorage {
         IProposalExecutionEngine engineImpl;
         ProposalEngineOpts opts;
+        GovernanceValuesStorage governanceValues;
+    }
+
+    /// @notice Governance values stored for a party
+    struct GovernanceValuesStorage {
+        uint40 voteDuration;
+        uint40 executionDelay;
+        uint16 passThresholdBps;
+        uint96 totalVotingPower;
+        /// @notice Number of hosts for this party
+        uint8 numHosts;
     }
 
     struct ProposalEngineOpts {
