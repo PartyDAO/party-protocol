@@ -8,6 +8,8 @@ import "../../contracts/crowdfund/ContributionRouter.sol";
 import "./TestableCrowdfund.sol";
 
 import "../TestUtils.sol";
+import { TokenGateKeeperFee, Token } from "../../contracts/gatekeepers/TokenGateKeeperFee.sol";
+import { DummyERC20 } from "../DummyERC20.sol";
 
 contract ContributionRouterIntegrationTest is TestUtils {
     InitialETHCrowdfund ethCrowdfund;
@@ -18,10 +20,14 @@ contract ContributionRouterIntegrationTest is TestUtils {
 
     uint96 feePerMint;
     ContributionRouter router;
+    TokenGateKeeperFee gateKeeper;
+    DummyERC20 tokenGateKeeper;
 
     function setUp() public {
+        tokenGateKeeper = new DummyERC20();
         feePerMint = 0.01 ether;
         router = new ContributionRouter(address(this), feePerMint);
+        gateKeeper = new TokenGateKeeperFee(router);
 
         globals = new Globals(address(this));
         partyImpl = new Party(globals);
@@ -34,6 +40,8 @@ contract ContributionRouterIntegrationTest is TestUtils {
         ethCrowdfundOpts.maxTotalContributions = type(uint96).max;
         ethCrowdfundOpts.duration = 7 days;
         ethCrowdfundOpts.exchangeRateBps = 1e4;
+        ethCrowdfundOpts.gateKeeper = gateKeeper;
+        ethCrowdfundOpts.gateKeeperId = gateKeeper.createGate(Token(address(tokenGateKeeper)), 1);
 
         InitialETHCrowdfund.ETHPartyOptions memory partyOpts;
         partyOpts.name = "Test Party";
@@ -76,6 +84,33 @@ contract ContributionRouterIntegrationTest is TestUtils {
     function test_contributionFee_ethCrowdfund_withSingleMint() public {
         // Setup for contribution.
         address payable member = _randomAddress();
+        tokenGateKeeper.deal(member, 1);
+        uint256 amount = 1 ether;
+        vm.deal(member, amount);
+        bytes memory data = abi.encodeCall(
+            InitialETHCrowdfund.contributeFor,
+            (0, member, member, "")
+        );
+        bytes memory callData = abi.encodePacked(data, ethCrowdfund);
+
+        // Make contribution.
+        vm.prank(member);
+        uint256 gas = gasleft();
+        (bool success, bytes memory res) = address(router).call{ value: amount }(callData);
+        emit log_named_uint("gas used", gas - gasleft());
+
+        // Check results.
+        assertEq(success, true);
+        assertEq(res.length, 0);
+        assertEq(address(ethCrowdfund).balance, amount - feePerMint);
+        assertEq(address(router).balance, feePerMint);
+        assertEq(member.balance, 0);
+    }
+
+    function test_contributionFee_ethCrowdfund_withSingleMint_noRouter() public {
+        // Setup for contribution.
+        address payable member = _randomAddress();
+        tokenGateKeeper.deal(member, 1);
         uint256 amount = 1 ether;
         vm.deal(member, amount);
         bytes memory data = abi.encodeCall(
@@ -85,16 +120,13 @@ contract ContributionRouterIntegrationTest is TestUtils {
 
         // Make contribution.
         vm.prank(member);
-        (bool success, bytes memory res) = address(router).call{ value: amount }(
-            abi.encodePacked(data, ethCrowdfund)
-        );
+        uint256 gas = gasleft();
+        (bool success, bytes memory res) = address(ethCrowdfund).call{ value: amount }(data);
+        emit log_named_uint("gas used", gas - gasleft());
 
         // Check results.
         assertEq(success, true);
-        assertEq(res.length, 0);
-        assertEq(address(ethCrowdfund).balance, amount - feePerMint);
-        assertEq(address(router).balance, feePerMint);
-        assertEq(member.balance, 0);
+        assertEq(address(ethCrowdfund).balance, amount);
     }
 
     function test_contributionFee_ethCrowdfund_revert() public {

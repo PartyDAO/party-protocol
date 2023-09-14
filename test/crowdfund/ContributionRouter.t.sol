@@ -30,10 +30,14 @@ contract ContributionRouterTest is TestUtils {
         vm.deal(address(this), amount);
         uint256 feeAmount = feePerMint;
         vm.expectEmit(true, true, true, true);
-        emit ReceivedFees(address(this), feeAmount);
-        (bool success, bytes memory res) = address(router).call{ value: amount }(
-            abi.encodePacked(abi.encodeWithSelector(MockPayableContract.pay.selector), target)
+        bytes memory callData = abi.encodePacked(
+            abi.encodeWithSelector(MockPayableContract.pay.selector),
+            target
         );
+        emit ReceivedFees(address(this), feeAmount);
+        uint256 gas = gasleft();
+        (bool success, bytes memory res) = address(router).call{ value: amount }(callData);
+        emit log_named_uint("gas used", gas - gasleft());
         assertEq(success, true);
         assertEq(res.length, 0);
         assertEq(address(target).balance, amount - feeAmount);
@@ -80,6 +84,14 @@ contract ContributionRouterTest is TestUtils {
         address payable recipient = payable(_randomAddress());
         vm.expectRevert(ContributionRouter.OnlyOwner.selector);
         router.claimFees(recipient);
+    }
+
+    function test_transfer_232() external {
+        address payable recipient = payable(_randomAddress());
+        uint256 balance = _randomUint256();
+        vm.deal(address(recipient), balance);
+        vm.prank(recipient);
+        payable(router).call{ value: balance }("");
     }
 }
 
