@@ -38,7 +38,8 @@ contract SetGovernanceParameterProposal is ProposalStorage {
                 proposalData.voteDuration
             );
             _getSharedProposalStorage().governanceValues.voteDuration = proposalData.voteDuration;
-        } else if (proposalData.executionDelay != 0) {
+        }
+        if (proposalData.executionDelay != 0) {
             if (proposalData.executionDelay > 30 days) {
                 revert InvalidGovernanceParameter(proposalData.executionDelay);
             }
@@ -48,7 +49,8 @@ contract SetGovernanceParameterProposal is ProposalStorage {
             );
             _getSharedProposalStorage().governanceValues.executionDelay = proposalData
                 .executionDelay;
-        } else if (proposalData.passThresholdBps != 0) {
+        }
+        if (proposalData.passThresholdBps != 0) {
             if (proposalData.passThresholdBps > 10000) {
                 revert InvalidGovernanceParameter(proposalData.passThresholdBps);
             }

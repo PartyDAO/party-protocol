@@ -16,6 +16,35 @@ contract SetGovernanceParameterProposalTest is SetupPartyHelper {
     uint256 oldVoteDuration = 99;
     uint256 oldExecutionDelay = 300;
 
+    function testGovernanceParameterProposal_multiple() public {
+        uint16 newPassThresholdBps = 2000;
+        uint40 newVoteDuration = 2 hours;
+        uint40 newExecutionDelay = 100;
+        PartyGovernance.Proposal memory proposal = _createTestProposal(
+            newVoteDuration,
+            newExecutionDelay,
+            newPassThresholdBps
+        );
+
+        uint256 proposalId = _proposeAndPassProposal(proposal);
+
+        assertEq(party.getGovernanceValues().passThresholdBps, oldPassThresholdBps);
+        assertEq(party.getGovernanceValues().voteDuration, oldVoteDuration);
+        assertEq(party.getGovernanceValues().executionDelay, oldExecutionDelay);
+
+        vm.expectEmit(true, true, true, true);
+        emit VoteDurationSet(oldVoteDuration, newVoteDuration);
+        vm.expectEmit(true, true, true, true);
+        emit ExecutionDelaySet(oldExecutionDelay, newExecutionDelay);
+        vm.expectEmit(true, true, true, true);
+        emit PassThresholdBpsSet(oldPassThresholdBps, newPassThresholdBps);
+        _executeProposal(proposalId, proposal);
+
+        assertEq(party.getGovernanceValues().passThresholdBps, newPassThresholdBps);
+        assertEq(party.getGovernanceValues().voteDuration, newVoteDuration);
+        assertEq(party.getGovernanceValues().executionDelay, newExecutionDelay);
+    }
+
     function testGovernanceParameterProposal_passThresholdBps() public {
         uint16 newPassThresholdBps = 2000;
         PartyGovernance.Proposal memory proposal = _createTestProposal(0, 0, newPassThresholdBps);
