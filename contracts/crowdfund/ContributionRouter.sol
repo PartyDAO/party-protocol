@@ -18,12 +18,16 @@ contract ContributionRouter {
     /// @notice The address allowed to claim fees from the contract.
     address public immutable OWNER;
 
-    /// @notice The amount of fees to pay to the DAO per mint.
-    uint96 public feePerMint;
+    struct Storage {
+        uint96 feePerMint;
+        address caller;
+    }
+
+    Storage private _storage;
 
     constructor(address owner, uint96 initialFeePerMint) {
         OWNER = owner;
-        feePerMint = initialFeePerMint;
+        _storage.feePerMint = initialFeePerMint;
     }
 
     modifier onlyOwner() {
@@ -34,9 +38,9 @@ contract ContributionRouter {
     /// @notice Set the fee per mint. Only the owner can call.
     /// @param newFeePerMint The new amount to set fee per mint to.
     function setFeePerMint(uint96 newFeePerMint) external onlyOwner {
-        emit FeePerMintUpdated(feePerMint, newFeePerMint);
+        emit FeePerMintUpdated(_storage.feePerMint, newFeePerMint);
 
-        feePerMint = newFeePerMint;
+        _storage.feePerMint = newFeePerMint;
     }
 
     /// @notice Claim fees from the contract. Only the owner can call.
@@ -49,11 +53,20 @@ contract ContributionRouter {
         emit ClaimedFees(msg.sender, recipient, balance);
     }
 
+    function feePerMint() external view returns (uint96) {
+        return _storage.feePerMint;
+    }
+
+    function caller() external view returns (address) {
+        return _storage.caller;
+    }
+
     /// @notice Fallback function that forwards the call to the target contract
     ///         and keeps the fee amount. The target contract is expected to
     ///         be appended to the calldata.
     fallback() external payable {
-        uint256 feeAmount = feePerMint;
+        uint256 feeAmount = _storage.feePerMint;
+        _storage.caller = msg.sender;
         address target;
         assembly {
             target := shr(96, calldataload(sub(calldatasize(), 20)))
@@ -71,5 +84,9 @@ contract ContributionRouter {
         if (!success) res.rawRevert();
 
         emit ReceivedFees(msg.sender, feeAmount);
+    }
+
+    receive() external payable {
+        revert();
     }
 }
