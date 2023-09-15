@@ -7,6 +7,8 @@ import { IProposalExecutionEngine } from "./IProposalExecutionEngine.sol";
 contract SetGovernanceParameterProposal is ProposalStorage {
     /// @notice Reverted with when the new governance parameter value is invalid
     error InvalidGovernanceParameter(uint256 value);
+    /// @notice Emitted when the vote duration is set
+    event VoteDurationSet(uint256 oldValue, uint256 newValue);
     /// @notice Emitted when the execution delay is set
     event ExecutionDelaySet(uint256 oldValue, uint256 newValue);
     /// @notice Emitted when the pass threshold bps is set
@@ -14,6 +16,7 @@ contract SetGovernanceParameterProposal is ProposalStorage {
 
     /// @notice Enum containing all settable governance parameters
     enum GovernanceParameter {
+        VoteDuration,
         ExecutionDelay,
         PassThresholdBps
     }
@@ -32,8 +35,16 @@ contract SetGovernanceParameterProposal is ProposalStorage {
             params.proposalData,
             (SetGovernanceParameterProposalData)
         );
-
-        if (data.governanceParameter == GovernanceParameter.ExecutionDelay) {
+        if (data.governanceParameter == GovernanceParameter.VoteDuration) {
+            if (data.newValue > 7 days || data.newValue < 1 minutes) {
+                revert InvalidGovernanceParameter(data.newValue);
+            }
+            emit VoteDurationSet(
+                _getSharedProposalStorage().governanceValues.voteDuration,
+                data.newValue
+            );
+            _getSharedProposalStorage().governanceValues.voteDuration = uint40(data.newValue);
+        } else if (data.governanceParameter == GovernanceParameter.ExecutionDelay) {
             if (data.newValue > 7 days || data.newValue < 1 minutes) {
                 revert InvalidGovernanceParameter(data.newValue);
             }
@@ -43,7 +54,7 @@ contract SetGovernanceParameterProposal is ProposalStorage {
             );
             _getSharedProposalStorage().governanceValues.executionDelay = uint40(data.newValue);
         } else if (data.governanceParameter == GovernanceParameter.PassThresholdBps) {
-            if (data.newValue > 10000 || data.newValue < 1000) {
+            if (data.newValue > 10000 || data.newValue < 1) {
                 revert InvalidGovernanceParameter(data.newValue);
             }
             emit PassThresholdBpsSet(
