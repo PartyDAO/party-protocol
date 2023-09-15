@@ -1,6 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0
 pragma solidity 0.8.20;
-
 import { SetGovernanceParameterProposal } from "../../contracts/proposals/SetGovernanceParameterProposal.sol";
 import { SetupPartyHelper } from "../utils/SetupPartyHelper.sol";
 import { PartyGovernance } from "../../contracts/party/PartyGovernance.sol";
@@ -13,20 +12,65 @@ contract SetGovernanceParameterProposalTest is SetupPartyHelper {
     event ExecutionDelaySet(uint256 oldValue, uint256 newValue);
     event PassThresholdBpsSet(uint256 oldValue, uint256 newValue);
 
+    uint256 oldPassThresholdBps = 1000;
+    uint256 oldVoteDuration = 99;
+    uint256 oldExecutionDelay = 300;
+
     function testGovernanceParameterProposal_passThresholdBps_vanilla() public {
+        uint256 newPassThresholdBps = 2000;
         PartyGovernance.Proposal memory proposal = _createTestProposal(
             SetGovernanceParameterProposal.GovernanceParameter.PassThresholdBps,
-            2000
+            newPassThresholdBps
         );
 
         uint256 proposalId = _proposeAndPassProposal(proposal);
 
-        assertEq(party.getGovernanceValues().passThresholdBps, 1000);
+        assertEq(party.getGovernanceValues().passThresholdBps, oldPassThresholdBps);
         vm.expectEmit(true, true, true, true);
-        emit PassThresholdBpsSet(1000, 2000);
+        emit PassThresholdBpsSet(oldPassThresholdBps, newPassThresholdBps);
         _executeProposal(proposalId, proposal);
 
-        assertEq(party.getGovernanceValues().passThresholdBps, 2000);
+        assertEq(party.getGovernanceValues().passThresholdBps, newPassThresholdBps);
+        assertEq(party.getGovernanceValues().voteDuration, oldVoteDuration);
+        assertEq(party.getGovernanceValues().executionDelay, oldExecutionDelay);
+    }
+
+    function testGovernanceParameterProposal_voteDuration() public {
+        uint256 newVoteDuration = 200;
+        PartyGovernance.Proposal memory proposal = _createTestProposal(
+            SetGovernanceParameterProposal.GovernanceParameter.VoteDuration,
+            newVoteDuration
+        );
+
+        uint256 proposalId = _proposeAndPassProposal(proposal);
+
+        assertEq(party.getGovernanceValues().voteDuration, oldVoteDuration);
+        vm.expectEmit(true, true, true, true);
+        emit VoteDurationSet(oldVoteDuration, newVoteDuration);
+        _executeProposal(proposalId, proposal);
+
+        assertEq(party.getGovernanceValues().voteDuration, newVoteDuration);
+        assertEq(party.getGovernanceValues().passThresholdBps, oldPassThresholdBps);
+        assertEq(party.getGovernanceValues().executionDelay, oldExecutionDelay);
+    }
+
+    function testGovernanceParameterProposal_executionDelay() public {
+        uint256 newExecutionDelay = 100;
+        PartyGovernance.Proposal memory proposal = _createTestProposal(
+            SetGovernanceParameterProposal.GovernanceParameter.ExecutionDelay,
+            newExecutionDelay
+        );
+
+        uint256 proposalId = _proposeAndPassProposal(proposal);
+
+        assertEq(party.getGovernanceValues().executionDelay, oldExecutionDelay);
+        vm.expectEmit(true, true, true, true);
+        emit ExecutionDelaySet(oldExecutionDelay, newExecutionDelay);
+        _executeProposal(proposalId, proposal);
+
+        assertEq(party.getGovernanceValues().executionDelay, newExecutionDelay);
+        assertEq(party.getGovernanceValues().passThresholdBps, oldPassThresholdBps);
+        assertEq(party.getGovernanceValues().voteDuration, oldVoteDuration);
     }
 
     function _createTestProposal(
@@ -38,7 +82,6 @@ contract SetGovernanceParameterProposalTest is SetupPartyHelper {
                 governanceParameter: governanceParameter,
                 newValue: newValue
             });
-
         proposal = PartyGovernance.Proposal({
             maxExecutableTime: type(uint40).max,
             cancelDelay: 0,
