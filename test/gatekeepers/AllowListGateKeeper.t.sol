@@ -7,7 +7,7 @@ import "../../contracts/gatekeepers/AllowListGateKeeper.sol";
 import "../TestUtils.sol";
 
 contract AllowListGateKeeperTest is Test, TestUtils {
-    AllowListGateKeeper gk = new AllowListGateKeeper();
+    AllowListGateKeeper gk = new AllowListGateKeeper(address(0));
 
     // Generates a randomized 4-member allow list.
     function _randomAllowList() private view returns (address[4] memory allowList) {

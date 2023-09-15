@@ -794,7 +794,7 @@ contract CrowdfundTest is LintJSON, TestUtils {
         address payable contributor1 = _randomAddress();
         address payable contributor2 = _randomAddress();
 
-        AllowListGateKeeper gk = new AllowListGateKeeper();
+        AllowListGateKeeper gk = new AllowListGateKeeper(address(0));
         bytes12 gateId = gk.createGate(keccak256(abi.encodePacked(contributor1)));
         gateKeeper = gk;
         gateKeeperId = gateId;
@@ -1014,7 +1014,7 @@ contract CrowdfundTest is LintJSON, TestUtils {
     function test_contributeFor_withGatekeeper_allowsSenderToContributeForOthers() external {
         address contributor = _randomAddress();
         address recipient = _randomAddress();
-        AllowListGateKeeper gk = new AllowListGateKeeper();
+        AllowListGateKeeper gk = new AllowListGateKeeper(address(0));
         bytes12 gateId = gk.createGate(keccak256(abi.encodePacked(contributor)));
         gateKeeper = gk;
         gateKeeperId = gateId;
@@ -1038,7 +1038,7 @@ contract CrowdfundTest is LintJSON, TestUtils {
     function test_contributeFor_withGatekeeper_recipientNotBlockedFromChangingDelegate() external {
         address contributor = _randomAddress();
         address recipient = _randomAddress();
-        AllowListGateKeeper gk = new AllowListGateKeeper();
+        AllowListGateKeeper gk = new AllowListGateKeeper(address(0));
         bytes12 gateId = gk.createGate(keccak256(abi.encodePacked(contributor)));
         gateKeeper = gk;
         gateKeeperId = gateId;

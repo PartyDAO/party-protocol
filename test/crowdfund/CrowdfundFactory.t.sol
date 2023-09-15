@@ -33,8 +33,8 @@ contract CrowdfundFactoryTest is Test, TestUtils {
         new CollectionBatchBuyCrowdfund(globals);
     InitialETHCrowdfund initialETHCrowdfund = new InitialETHCrowdfund(globals);
     ReraiseETHCrowdfund reraiseETHCrowdfund = new ReraiseETHCrowdfund(globals);
-    AllowListGateKeeper allowListGateKeeper = new AllowListGateKeeper();
-    TokenGateKeeper tokenGateKeeper = new TokenGateKeeper();
+    AllowListGateKeeper allowListGateKeeper = new AllowListGateKeeper(address(0));
+    TokenGateKeeper tokenGateKeeper = new TokenGateKeeper(address(0));
     MetadataRegistry metadataRegistry =
         new MetadataRegistry(globals, _toAddressArray(address(partyFactory)));
     MetadataProvider metadataProvider = new MetadataProvider(globals);

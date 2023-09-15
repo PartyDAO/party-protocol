@@ -3,12 +3,18 @@ pragma solidity 0.8.20;
 
 import "./IGateKeeper.sol";
 import "openzeppelin/contracts/utils/cryptography/MerkleProof.sol";
+import { ContributionRouter } from "../crowdfund/ContributionRouter.sol";
 
 /// @notice A gateKeeper that implements a simple allow list per gate.
 contract AllowListGateKeeper is IGateKeeper {
+    address public immutable CONTRIBUTION_ROUTER;
     uint96 private _lastId;
-    /// @notice Get the merkle root used by a gate identifyied by it's `id`.
+    /// @notice Get the merkle root used by a gate identified by it's `id`.
     mapping(uint96 => bytes32) public merkleRoots;
+
+    constructor(address contributionRouter) {
+        CONTRIBUTION_ROUTER = contributionRouter;
+    }
 
     /// @inheritdoc IGateKeeper
     function isAllowed(
@@ -16,6 +22,9 @@ contract AllowListGateKeeper is IGateKeeper {
         bytes12 id,
         bytes memory userData
     ) external view returns (bool) {
+        if (participant == CONTRIBUTION_ROUTER) {
+            participant = ContributionRouter(payable(CONTRIBUTION_ROUTER)).caller();
+        }
         bytes32[] memory proof = abi.decode(userData, (bytes32[]));
         bytes32 leaf;
         assembly {

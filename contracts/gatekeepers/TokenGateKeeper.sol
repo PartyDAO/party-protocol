@@ -2,6 +2,7 @@
 pragma solidity 0.8.20;
 
 import { IGateKeeper } from "./IGateKeeper.sol";
+import { ContributionRouter } from "../crowdfund/ContributionRouter.sol";
 
 /**
  * @notice Compatible with both ER20s and ERC721s.
@@ -14,8 +15,13 @@ interface Token {
  * @notice a contract that implements an token gatekeeper
  */
 contract TokenGateKeeper is IGateKeeper {
+    address public immutable CONTRIBUTION_ROUTER;
     // last gate id
     uint96 private _lastId;
+
+    constructor(address contributionRouter) {
+        CONTRIBUTION_ROUTER = contributionRouter;
+    }
 
     struct TokenGate {
         Token token;
@@ -33,6 +39,9 @@ contract TokenGateKeeper is IGateKeeper {
         bytes12 id,
         bytes memory /* userData */
     ) external view returns (bool) {
+        if (participant == CONTRIBUTION_ROUTER) {
+            participant = ContributionRouter(payable(CONTRIBUTION_ROUTER)).caller();
+        }
         TokenGate memory _gate = gateInfo[uint96(id)];
         return _gate.token.balanceOf(participant) >= _gate.minimumBalance;
     }
