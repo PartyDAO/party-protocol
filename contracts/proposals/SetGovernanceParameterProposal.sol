@@ -14,54 +14,50 @@ contract SetGovernanceParameterProposal is ProposalStorage {
     /// @notice Emitted when the pass threshold bps is set
     event PassThresholdBpsSet(uint256 oldValue, uint256 newValue);
 
-    /// @notice Enum containing all settable governance parameters
-    enum GovernanceParameter {
-        VoteDuration,
-        ExecutionDelay,
-        PassThresholdBps
-    }
-
     /// @notice Struct containing data required for this proposal type
     struct SetGovernanceParameterProposalData {
-        GovernanceParameter governanceParameter;
-        uint256 newValue;
+        uint40 voteDuration;
+        uint40 executionDelay;
+        uint16 passThresholdBps;
     }
 
     /// @notice Execute a `SetGovernanceParameterProposal` which sets the given governance parameter.
     function _executeSetGovernanceParameter(
         IProposalExecutionEngine.ExecuteProposalParams memory params
     ) internal returns (bytes memory) {
-        SetGovernanceParameterProposalData memory data = abi.decode(
+        SetGovernanceParameterProposalData memory proposalData = abi.decode(
             params.proposalData,
             (SetGovernanceParameterProposalData)
         );
-        if (data.governanceParameter == GovernanceParameter.VoteDuration) {
-            if (data.newValue > 7 days || data.newValue < 1 minutes) {
-                revert InvalidGovernanceParameter(data.newValue);
+        if (proposalData.voteDuration != 0) {
+            if (proposalData.voteDuration < 1 hours) {
+                revert InvalidGovernanceParameter(proposalData.voteDuration);
             }
             emit VoteDurationSet(
                 _getSharedProposalStorage().governanceValues.voteDuration,
-                data.newValue
+                proposalData.voteDuration
             );
-            _getSharedProposalStorage().governanceValues.voteDuration = uint40(data.newValue);
-        } else if (data.governanceParameter == GovernanceParameter.ExecutionDelay) {
-            if (data.newValue > 7 days || data.newValue < 1 minutes) {
-                revert InvalidGovernanceParameter(data.newValue);
+            _getSharedProposalStorage().governanceValues.voteDuration = proposalData.voteDuration;
+        } else if (proposalData.executionDelay != 0) {
+            if (proposalData.executionDelay > 30 days) {
+                revert InvalidGovernanceParameter(proposalData.executionDelay);
             }
             emit ExecutionDelaySet(
                 _getSharedProposalStorage().governanceValues.executionDelay,
-                data.newValue
+                proposalData.executionDelay
             );
-            _getSharedProposalStorage().governanceValues.executionDelay = uint40(data.newValue);
-        } else if (data.governanceParameter == GovernanceParameter.PassThresholdBps) {
-            if (data.newValue > 10000 || data.newValue < 1) {
-                revert InvalidGovernanceParameter(data.newValue);
+            _getSharedProposalStorage().governanceValues.executionDelay = proposalData
+                .executionDelay;
+        } else if (proposalData.passThresholdBps != 0) {
+            if (proposalData.passThresholdBps > 10000) {
+                revert InvalidGovernanceParameter(proposalData.passThresholdBps);
             }
             emit PassThresholdBpsSet(
                 _getSharedProposalStorage().governanceValues.passThresholdBps,
-                data.newValue
+                proposalData.passThresholdBps
             );
-            _getSharedProposalStorage().governanceValues.passThresholdBps = uint16(data.newValue);
+            _getSharedProposalStorage().governanceValues.passThresholdBps = proposalData
+                .passThresholdBps;
         }
 
         return "";

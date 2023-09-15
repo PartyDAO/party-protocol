@@ -16,12 +16,9 @@ contract SetGovernanceParameterProposalTest is SetupPartyHelper {
     uint256 oldVoteDuration = 99;
     uint256 oldExecutionDelay = 300;
 
-    function testGovernanceParameterProposal_passThresholdBps_vanilla() public {
-        uint256 newPassThresholdBps = 2000;
-        PartyGovernance.Proposal memory proposal = _createTestProposal(
-            SetGovernanceParameterProposal.GovernanceParameter.PassThresholdBps,
-            newPassThresholdBps
-        );
+    function testGovernanceParameterProposal_passThresholdBps() public {
+        uint16 newPassThresholdBps = 2000;
+        PartyGovernance.Proposal memory proposal = _createTestProposal(0, 0, newPassThresholdBps);
 
         uint256 proposalId = _proposeAndPassProposal(proposal);
 
@@ -35,12 +32,23 @@ contract SetGovernanceParameterProposalTest is SetupPartyHelper {
         assertEq(party.getGovernanceValues().executionDelay, oldExecutionDelay);
     }
 
-    function testGovernanceParameterProposal_voteDuration() public {
-        uint256 newVoteDuration = 200;
-        PartyGovernance.Proposal memory proposal = _createTestProposal(
-            SetGovernanceParameterProposal.GovernanceParameter.VoteDuration,
-            newVoteDuration
+    function testGovernanceParameterProposal_passThresholdBps_invalid() public {
+        PartyGovernance.Proposal memory proposal = _createTestProposal(0, 0, 10001);
+
+        uint256 proposalId = _proposeAndPassProposal(proposal);
+
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                SetGovernanceParameterProposal.InvalidGovernanceParameter.selector,
+                10001
+            )
         );
+        _executeProposal(proposalId, proposal);
+    }
+
+    function testGovernanceParameterProposal_voteDuration() public {
+        uint40 newVoteDuration = 2 hours;
+        PartyGovernance.Proposal memory proposal = _createTestProposal(newVoteDuration, 0, 0);
 
         uint256 proposalId = _proposeAndPassProposal(proposal);
 
@@ -55,11 +63,8 @@ contract SetGovernanceParameterProposalTest is SetupPartyHelper {
     }
 
     function testGovernanceParameterProposal_executionDelay() public {
-        uint256 newExecutionDelay = 100;
-        PartyGovernance.Proposal memory proposal = _createTestProposal(
-            SetGovernanceParameterProposal.GovernanceParameter.ExecutionDelay,
-            newExecutionDelay
-        );
+        uint40 newExecutionDelay = 100;
+        PartyGovernance.Proposal memory proposal = _createTestProposal(0, newExecutionDelay, 0);
 
         uint256 proposalId = _proposeAndPassProposal(proposal);
 
@@ -74,13 +79,15 @@ contract SetGovernanceParameterProposalTest is SetupPartyHelper {
     }
 
     function _createTestProposal(
-        SetGovernanceParameterProposal.GovernanceParameter governanceParameter,
-        uint256 newValue
+        uint40 voteDuration,
+        uint40 executionDelay,
+        uint16 passThresholdBps
     ) private pure returns (PartyGovernance.Proposal memory proposal) {
         SetGovernanceParameterProposal.SetGovernanceParameterProposalData
             memory data = SetGovernanceParameterProposal.SetGovernanceParameterProposalData({
-                governanceParameter: governanceParameter,
-                newValue: newValue
+                voteDuration: voteDuration,
+                executionDelay: executionDelay,
+                passThresholdBps: passThresholdBps
             });
         proposal = PartyGovernance.Proposal({
             maxExecutableTime: type(uint40).max,
