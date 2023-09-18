@@ -990,8 +990,7 @@ contract InitialETHCrowdfundTest is LintJSON, TestUtils, ERC721Receiver {
                 recipients: recipients,
                 initialDelegates: delegates,
                 values: values,
-                gateDatas: gateDatas,
-                revertOnFailure: false
+                gateDatas: gateDatas
             })
         );
 
