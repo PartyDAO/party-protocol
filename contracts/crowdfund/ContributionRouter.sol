@@ -66,6 +66,8 @@ contract ContributionRouter {
     /// @notice Fallback function that forwards the call to the target contract
     ///         and keeps the fee amount. The target contract is expected to
     ///         be appended to the calldata.
+    /// @dev Only initial contributions per address allow for setting the delegate.
+    ///         Use the `delegate` function to set afterwards.
     fallback() external payable {
         uint256 feeAmount = _storage.feePerMint;
         _storage.caller = msg.sender;
