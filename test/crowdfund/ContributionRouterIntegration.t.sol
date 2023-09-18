@@ -141,7 +141,7 @@ contract ContributionRouterIntegrationTest is TestUtils {
             res,
             abi.encodeWithSelector(
                 ETHCrowdfundBase.NotAllowedByGateKeeperError.selector,
-                member,
+                address(router),
                 address(gateKeeper),
                 bytes12(uint96(1)),
                 ""
