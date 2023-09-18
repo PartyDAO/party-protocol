@@ -6,15 +6,20 @@ import "../../contracts/party/PartyFactory.sol";
 import "../../contracts/crowdfund/InitialETHCrowdfund.sol";
 import "../../contracts/crowdfund/ContributionRouter.sol";
 import "./TestableCrowdfund.sol";
+import { TokenGateKeeper, Token } from "../../contracts/gatekeepers/TokenGateKeeper.sol";
+import { DummyERC20 } from "../DummyERC20.sol";
 
 import "../TestUtils.sol";
 
 contract ContributionRouterIntegrationTest is TestUtils {
     InitialETHCrowdfund ethCrowdfund;
+    InitialETHCrowdfund gatekeeperEthCrowdfund;
     TestableCrowdfund nftCrowdfund;
     Globals globals;
     Party partyImpl;
     PartyFactory partyFactory;
+    TokenGateKeeper gateKeeper;
+    DummyERC20 gatekeepToken;
 
     uint96 feePerMint;
     ContributionRouter router;
@@ -26,6 +31,10 @@ contract ContributionRouterIntegrationTest is TestUtils {
         globals = new Globals(address(this));
         partyImpl = new Party(globals);
         partyFactory = new PartyFactory(globals);
+
+        gateKeeper = new TokenGateKeeper(address(router));
+        gatekeepToken = new DummyERC20();
+        bytes12 gateKeeperId = gateKeeper.createGate(Token(address(gatekeepToken)), 100);
 
         InitialETHCrowdfund initialETHCrowdfundImpl = new InitialETHCrowdfund(globals);
 
@@ -47,6 +56,20 @@ contract ContributionRouterIntegrationTest is TestUtils {
         partyOpts.governanceOpts.hosts[0] = address(this);
 
         ethCrowdfund = InitialETHCrowdfund(
+            payable(
+                new Proxy(
+                    initialETHCrowdfundImpl,
+                    abi.encodeCall(
+                        InitialETHCrowdfund.initialize,
+                        (ethCrowdfundOpts, partyOpts, MetadataProvider(address(0)), "")
+                    )
+                )
+            )
+        );
+
+        ethCrowdfundOpts.gateKeeper = gateKeeper;
+        ethCrowdfundOpts.gateKeeperId = gateKeeperId;
+        gatekeeperEthCrowdfund = InitialETHCrowdfund(
             payable(
                 new Proxy(
                     initialETHCrowdfundImpl,
@@ -93,6 +116,48 @@ contract ContributionRouterIntegrationTest is TestUtils {
         assertEq(success, true);
         assertEq(res.length, 0);
         assertEq(address(ethCrowdfund).balance, amount - feePerMint);
+        assertEq(address(router).balance, feePerMint);
+        assertEq(member.balance, 0);
+    }
+
+    function test_contributionFee_ethCrowdfund_gatekeeper() public {
+        // Setup for contribution.
+        address payable member = _randomAddress();
+        uint256 amount = 1 ether;
+        vm.deal(member, amount);
+        bytes memory data = abi.encodeCall(
+            InitialETHCrowdfund.contributeFor,
+            (0, member, member, "")
+        );
+
+        vm.prank(member);
+        (bool success, bytes memory res) = address(router).call{ value: amount }(
+            abi.encodePacked(data, gatekeeperEthCrowdfund)
+        );
+
+        // Reverted by gatekeeper
+        assertEq(success, false);
+        assertEq(
+            res,
+            abi.encodeWithSelector(
+                ETHCrowdfundBase.NotAllowedByGateKeeperError.selector,
+                member,
+                address(gateKeeper),
+                bytes12(uint96(1)),
+                ""
+            )
+        );
+
+        gatekeepToken.deal(member, 200);
+        vm.prank(member);
+        // Recall with tokens now
+        (success, res) = address(router).call{ value: amount }(
+            abi.encodePacked(data, gatekeeperEthCrowdfund)
+        );
+
+        assertEq(success, true);
+        assertEq(res.length, 0);
+        assertEq(address(gatekeeperEthCrowdfund).balance, amount - feePerMint);
         assertEq(address(router).balance, feePerMint);
         assertEq(member.balance, 0);
     }
