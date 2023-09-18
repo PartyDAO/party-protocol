@@ -76,7 +76,7 @@ contract ContributionRouter {
         if (msg.sig == InitialETHCrowdfund.batchContributeFor.selector) {
             uint256 numOfMints;
             assembly {
-                // 228 is the offset of the length of `tokenIds` in the
+                // 196 is the offset of the length of `tokenIds` in the
                 // calldata.
                 numOfMints := calldataload(196)
             }
