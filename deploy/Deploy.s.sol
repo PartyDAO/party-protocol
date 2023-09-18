@@ -360,7 +360,7 @@ abstract contract Deploy {
         console.log("### GateKeepers");
         console.log("  Deploying - AllowListGateKeeper");
         _trackDeployerGasBefore();
-        allowListGateKeeper = new AllowListGateKeeper();
+        allowListGateKeeper = new AllowListGateKeeper(address(0));
         _trackDeployerGasAfter();
         console.log("  Deployed - AllowListGateKeeper", address(allowListGateKeeper));
 
@@ -391,7 +391,7 @@ abstract contract Deploy {
         console.log("");
         console.log("  Deploying - TokenGateKeeper");
         _trackDeployerGasBefore();
-        tokenGateKeeper = new TokenGateKeeper();
+        tokenGateKeeper = new TokenGateKeeper(address(0));
         _trackDeployerGasAfter();
         console.log("  Deployed - TokenGateKeeper", address(tokenGateKeeper));
 

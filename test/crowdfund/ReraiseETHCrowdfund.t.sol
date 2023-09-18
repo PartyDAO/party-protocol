@@ -641,7 +641,7 @@ contract ReraiseETHCrowdfundTest is LintJSON, TestUtils, ERC721Receiver {
         address member = _randomAddress();
 
         // Create allowlist gatekeeper with only member allowed
-        AllowListGateKeeper gatekeeper = new AllowListGateKeeper();
+        AllowListGateKeeper gatekeeper = new AllowListGateKeeper(address(0));
         bytes12 gateId = gatekeeper.createGate(keccak256(abi.encodePacked(member)));
         bytes memory gateData = abi.encode(new bytes32[](0));
 

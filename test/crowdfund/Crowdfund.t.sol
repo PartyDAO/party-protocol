@@ -794,7 +794,7 @@ contract CrowdfundTest is LintJSON, TestUtils {
         address payable contributor1 = _randomAddress();
         address payable contributor2 = _randomAddress();
 
-        AllowListGateKeeper gk = new AllowListGateKeeper();
+        AllowListGateKeeper gk = new AllowListGateKeeper(address(0));
         bytes12 gateId = gk.createGate(keccak256(abi.encodePacked(contributor1)));
         gateKeeper = gk;
         gateKeeperId = gateId;
@@ -1014,7 +1014,7 @@ contract CrowdfundTest is LintJSON, TestUtils {
     function test_contributeFor_withGatekeeper_allowsSenderToContributeForOthers() external {
         address contributor = _randomAddress();
         address recipient = _randomAddress();
-        AllowListGateKeeper gk = new AllowListGateKeeper();
+        AllowListGateKeeper gk = new AllowListGateKeeper(address(0));
         bytes12 gateId = gk.createGate(keccak256(abi.encodePacked(contributor)));
         gateKeeper = gk;
         gateKeeperId = gateId;
@@ -1038,7 +1038,7 @@ contract CrowdfundTest is LintJSON, TestUtils {
     function test_contributeFor_withGatekeeper_recipientNotBlockedFromChangingDelegate() external {
         address contributor = _randomAddress();
         address recipient = _randomAddress();
-        AllowListGateKeeper gk = new AllowListGateKeeper();
+        AllowListGateKeeper gk = new AllowListGateKeeper(address(0));
         bytes12 gateId = gk.createGate(keccak256(abi.encodePacked(contributor)));
         gateKeeper = gk;
         gateKeeperId = gateId;
@@ -1060,7 +1060,7 @@ contract CrowdfundTest is LintJSON, TestUtils {
         address contributor = _randomAddress();
         address[] memory recipients = new address[](3);
         address[] memory initialDelegates = new address[](3);
-        uint256[] memory values = new uint256[](3);
+        uint96[] memory values = new uint96[](3);
         bytes[] memory gateDatas = new bytes[](3);
         for (uint256 i; i < 3; ++i) {
             recipients[i] = _randomAddress();
@@ -1075,8 +1075,7 @@ contract CrowdfundTest is LintJSON, TestUtils {
             recipients,
             initialDelegates,
             values,
-            gateDatas,
-            true
+            gateDatas
         );
         for (uint256 i; i < 3; ++i) {
             assertEq(cf.getContributionEntriesByContributorCount(contributor), 0);
@@ -1091,37 +1090,28 @@ contract CrowdfundTest is LintJSON, TestUtils {
         }
     }
 
-    function test_batchContributeFor_doesNotRevertOnFailure() external {
+    function test_batchContributeFor_invalidMessageValue() external {
         TestableCrowdfund cf = _createCrowdfund(0);
         address contributor = _randomAddress();
-        address[] memory recipients = new address[](4);
-        address[] memory initialDelegates = new address[](4);
-        uint256[] memory values = new uint256[](4);
-        bytes[] memory gateDatas = new bytes[](4);
+        address[] memory recipients = new address[](3);
+        address[] memory initialDelegates = new address[](3);
+        uint96[] memory values = new uint96[](3);
+        bytes[] memory gateDatas = new bytes[](3);
         for (uint256 i; i < 3; ++i) {
             recipients[i] = _randomAddress();
             initialDelegates[i] = _randomAddress();
             values[i] = 1e18;
             gateDatas[i] = "";
         }
+        // Contributor contributes on recipient's behalf
         vm.deal(contributor, 3e18);
         vm.prank(contributor);
-        // Contributor contributes on recipient's behalf and expect fail
-        vm.expectRevert(Crowdfund.InvalidDelegateError.selector);
-        cf.batchContributeFor{ value: contributor.balance }(
+        vm.expectRevert(Crowdfund.InvalidMessageValue.selector);
+        cf.batchContributeFor{ value: contributor.balance - 100 }(
             recipients,
             initialDelegates,
             values,
-            gateDatas,
-            true
-        );
-        // Contributor contributes on recipient's behalf and do not revert on fail
-        cf.batchContributeFor{ value: contributor.balance }(
-            recipients,
-            initialDelegates,
-            values,
-            gateDatas,
-            false
+            gateDatas
         );
     }
 

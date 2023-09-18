@@ -17,7 +17,7 @@ contract TokenGateKeeperTest is Test, TestUtils {
     DummyERC721 dummyERC721 = new DummyERC721();
 
     function setUp() public {
-        gk = new TokenGateKeeper();
+        gk = new TokenGateKeeper(address(0));
     }
 
     function testUniqueGateIds() public {

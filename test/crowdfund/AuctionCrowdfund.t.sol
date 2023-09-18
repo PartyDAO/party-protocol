@@ -663,7 +663,7 @@ contract AuctionCrowdfundTest is Test, TestUtils {
         address contributor = _randomAddress();
 
         // Create a AuctionCrowdfund instance with onlyHostCanBid and gatekeeper enabled.
-        AllowListGateKeeper gateKeeper = new AllowListGateKeeper();
+        AllowListGateKeeper gateKeeper = new AllowListGateKeeper(address(0));
         bytes32 contributorHash = keccak256(abi.encodePacked(contributor));
         bytes12 gateKeeperId = gateKeeper.createGate(contributorHash);
         (uint256 auctionId, uint256 tokenId) = market.createAuction(0);
@@ -710,7 +710,7 @@ contract AuctionCrowdfundTest is Test, TestUtils {
         address contributor = _randomAddress();
 
         // Create a AuctionCrowdfund instance with a gatekeeper enabled.
-        AllowListGateKeeper gateKeeper = new AllowListGateKeeper();
+        AllowListGateKeeper gateKeeper = new AllowListGateKeeper(address(0));
         bytes32 contributorHash = keccak256(abi.encodePacked(contributor));
         bytes12 gateKeeperId = gateKeeper.createGate(contributorHash);
         (uint256 auctionId, uint256 tokenId) = market.createAuction(0);
