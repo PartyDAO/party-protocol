@@ -1090,38 +1090,30 @@ contract CrowdfundTest is LintJSON, TestUtils {
         }
     }
 
-    // function test_batchContributeFor_doesNotRevertOnFailure() external {
-    //     TestableCrowdfund cf = _createCrowdfund(0);
-    //     address contributor = _randomAddress();
-    //     address[] memory recipients = new address[](4);
-    //     address[] memory initialDelegates = new address[](4);
-    //     uint96[] memory values = new uint96[](4);
-    //     bytes[] memory gateDatas = new bytes[](4);
-    //     for (uint256 i; i < 3; ++i) {
-    //         recipients[i] = _randomAddress();
-    //         initialDelegates[i] = _randomAddress();
-    //         values[i] = 1e18;
-    //         gateDatas[i] = "";
-    //     }
-    //     vm.deal(contributor, 3e18);
-    //     vm.prank(contributor);
-    //     // Contributor contributes on recipient's behalf and expect fail
-    //     vm.expectRevert(Crowdfund.InvalidDelegateError.selector);
-    //     cf.batchContributeFor{ value: contributor.balance }(
-    //         recipients,
-    //         initialDelegates,
-    //         values,
-    //         gateDatas
-    //     );
-    //     // Contributor contributes on recipient's behalf and do not revert on fail
-    //     cf.batchContributeFor{ value: contributor.balance }(
-    //         recipients,
-    //         initialDelegates,
-    //         values,
-    //         gateDatas,
-    //         false
-    //     );
-    // }
+    function test_batchContributeFor_invalidMessageValue() external {
+        TestableCrowdfund cf = _createCrowdfund(0);
+        address contributor = _randomAddress();
+        address[] memory recipients = new address[](3);
+        address[] memory initialDelegates = new address[](3);
+        uint96[] memory values = new uint96[](3);
+        bytes[] memory gateDatas = new bytes[](3);
+        for (uint256 i; i < 3; ++i) {
+            recipients[i] = _randomAddress();
+            initialDelegates[i] = _randomAddress();
+            values[i] = 1e18;
+            gateDatas[i] = "";
+        }
+        // Contributor contributes on recipient's behalf
+        vm.deal(contributor, 3e18);
+        vm.prank(contributor);
+        vm.expectRevert(Crowdfund.InvalidMessageValue.selector);
+        cf.batchContributeFor{ value: contributor.balance - 100 }(
+            recipients,
+            initialDelegates,
+            values,
+            gateDatas
+        );
+    }
 
     function test_canReuseContributionEntry() external {
         TestableCrowdfund cf = _createCrowdfund(0);

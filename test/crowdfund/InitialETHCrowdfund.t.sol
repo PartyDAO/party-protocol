@@ -1007,6 +1007,54 @@ contract InitialETHCrowdfundTest is LintJSON, TestUtils, ERC721Receiver {
         assertEq(party.votingPowerByTokenId(4), 0);
     }
 
+    function test_batchContributeFor_works_invalidMessageValue() public {
+        InitialETHCrowdfund crowdfund = _createCrowdfund(
+            CreateCrowdfundArgs({
+                initialContribution: 0,
+                initialContributor: payable(address(0)),
+                initialDelegate: address(0),
+                minContributions: 1 ether,
+                maxContributions: type(uint96).max,
+                disableContributingForExistingCard: false,
+                minTotalContributions: 3 ether,
+                maxTotalContributions: 5 ether,
+                duration: 7 days,
+                exchangeRateBps: 1e4,
+                fundingSplitBps: 0,
+                fundingSplitRecipient: payable(address(0)),
+                gateKeeper: IGateKeeper(address(0)),
+                gateKeeperId: bytes12(0)
+            })
+        );
+        Party party = crowdfund.party();
+
+        address sender = _randomAddress();
+        vm.deal(sender, 4 ether);
+
+        // Batch contribute for
+        uint256[] memory tokenIds = new uint256[](3);
+        address payable[] memory recipients = new address payable[](3);
+        address[] memory delegates = new address[](3);
+        uint96[] memory values = new uint96[](3);
+        bytes[] memory gateDatas = new bytes[](3);
+        for (uint256 i; i < 3; ++i) {
+            recipients[i] = _randomAddress();
+            delegates[i] = _randomAddress();
+            values[i] = 1 ether;
+        }
+        vm.expectRevert(ETHCrowdfundBase.InvalidMessageValue.selector);
+        vm.prank(sender);
+        uint96[] memory votingPowers = crowdfund.batchContributeFor{ value: 3 ether - 100 }(
+            InitialETHCrowdfund.BatchContributeForArgs({
+                tokenIds: tokenIds,
+                recipients: recipients,
+                initialDelegates: delegates,
+                values: values,
+                gateDatas: gateDatas
+            })
+        );
+    }
+
     function test_finalize_works() public {
         InitialETHCrowdfund crowdfund = _createCrowdfund(
             CreateCrowdfundArgs({
