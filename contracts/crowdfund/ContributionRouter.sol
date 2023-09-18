@@ -76,7 +76,7 @@ contract ContributionRouter {
             assembly {
                 // 228 is the offset of the length of `tokenIds` in the
                 // calldata.
-                numOfMints := calldataload(228)
+                numOfMints := calldataload(196)
             }
             feeAmount *= numOfMints;
         }

@@ -110,6 +110,7 @@ abstract contract Crowdfund is Implementation, ERC721Receiver, CrowdfundNFT {
     error OnlyWhenEmergencyActionsAllowedError();
     error BelowMinimumContributionsError(uint96 contributions, uint96 minContributions);
     error AboveMaximumContributionsError(uint96 contributions, uint96 maxContributions);
+    error InvalidMessageValue();
 
     event Burned(address contributor, uint256 ethUsed, uint256 ethOwed, uint256 votingPower);
     event Contributed(
@@ -386,7 +387,7 @@ abstract contract Crowdfund is Implementation, ERC721Receiver, CrowdfundNFT {
             valuesSum += values[i];
         }
         if (msg.value != valuesSum) {
-            revert();
+            revert InvalidMessageValue();
         }
     }
 

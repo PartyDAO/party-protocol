@@ -974,17 +974,17 @@ contract InitialETHCrowdfundTest is LintJSON, TestUtils, ERC721Receiver {
 
         // Batch contribute for
         vm.prank(sender);
-        uint256[] memory tokenIds = new uint256[](4);
-        address payable[] memory recipients = new address payable[](4);
-        address[] memory delegates = new address[](4);
-        uint96[] memory values = new uint96[](4);
-        bytes[] memory gateDatas = new bytes[](4);
-        for (uint256 i; i < 4; ++i) {
+        uint256[] memory tokenIds = new uint256[](3);
+        address payable[] memory recipients = new address payable[](3);
+        address[] memory delegates = new address[](3);
+        uint96[] memory values = new uint96[](3);
+        bytes[] memory gateDatas = new bytes[](3);
+        for (uint256 i; i < 3; ++i) {
             recipients[i] = _randomAddress();
             delegates[i] = _randomAddress();
-            values[i] = i != 3 ? 1 ether : 0.5 ether; // Last contribution is below min contribution
+            values[i] = 1 ether;
         }
-        uint96[] memory votingPowers = crowdfund.batchContributeFor{ value: 4 ether }(
+        uint96[] memory votingPowers = crowdfund.batchContributeFor{ value: 3 ether }(
             InitialETHCrowdfund.BatchContributeForArgs({
                 tokenIds: tokenIds,
                 recipients: recipients,
@@ -994,7 +994,7 @@ contract InitialETHCrowdfundTest is LintJSON, TestUtils, ERC721Receiver {
             })
         );
 
-        assertEq(address(sender).balance, 1 ether); // Should be refunded 1 ETH
+        assertEq(address(sender).balance, 1 ether);
         for (uint256 i; i < 3; ++i) {
             assertEq(votingPowers[i], 1 ether);
             assertEq(crowdfund.delegationsByContributor(recipients[i]), delegates[i]);

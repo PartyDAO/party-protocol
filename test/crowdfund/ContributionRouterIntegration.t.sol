@@ -141,8 +141,7 @@ contract ContributionRouterIntegrationTest is TestUtils {
                     recipients: recipients,
                     initialDelegates: delegates,
                     values: values,
-                    gateDatas: gateDatas,
-                    revertOnFailure: true
+                    gateDatas: gateDatas
                 })
             )
         );
