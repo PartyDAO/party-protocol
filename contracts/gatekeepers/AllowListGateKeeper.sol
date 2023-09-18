@@ -7,6 +7,7 @@ import { ContributionRouter } from "../crowdfund/ContributionRouter.sol";
 
 /// @notice A gateKeeper that implements a simple allow list per gate.
 contract AllowListGateKeeper is IGateKeeper {
+    /// @notice The address of the canonical contribution router.
     address public immutable CONTRIBUTION_ROUTER;
     uint96 private _lastId;
     /// @notice Get the merkle root used by a gate identified by it's `id`.

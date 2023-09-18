@@ -53,10 +53,12 @@ contract ContributionRouter {
         emit ClaimedFees(msg.sender, recipient, balance);
     }
 
+    /// @notice View function to get the `feePerMint` value.
     function feePerMint() external view returns (uint96) {
         return _storage.feePerMint;
     }
 
+    /// @notice View function to get the most recent caller to the contract.
     function caller() external view returns (address) {
         return _storage.caller;
     }
@@ -86,6 +88,7 @@ contract ContributionRouter {
         emit ReceivedFees(msg.sender, feeAmount);
     }
 
+    // Revert for any vanilla ETH transfers.
     receive() external payable {
         revert();
     }

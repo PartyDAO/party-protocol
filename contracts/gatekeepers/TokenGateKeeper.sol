@@ -15,6 +15,7 @@ interface Token {
  * @notice a contract that implements an token gatekeeper
  */
 contract TokenGateKeeper is IGateKeeper {
+    /// @notice The address of the canonical contribution router.
     address public immutable CONTRIBUTION_ROUTER;
     // last gate id
     uint96 private _lastId;
