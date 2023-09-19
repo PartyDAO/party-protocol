@@ -86,15 +86,6 @@ abstract contract PartyGovernance is
         address payable feeRecipient;
     }
 
-    // Subset of `GovernanceOpts` that are commonly read together for
-    // efficiency.
-    struct GovernanceValues {
-        uint40 voteDuration;
-        uint40 executionDelay;
-        uint16 passThresholdBps;
-        uint96 totalVotingPower;
-    }
-
     // A snapshot of voting power for a member.
     struct VotingPowerSnapshot {
         // The timestamp when the snapshot was taken.
@@ -214,9 +205,11 @@ abstract contract PartyGovernance is
     mapping(address => bool) public isHost;
     /// @notice The last person a voter delegated its voting power to.
     mapping(address => address) public delegationsByVoter;
-    // ProposalState by proposal ID.
+    /// @notice Number of hosts for this party
+    uint8 public numHosts;
+    /// @notice ProposalState by proposal ID.
     mapping(uint256 => ProposalState) private _proposalStateByProposalId;
-    // Snapshots of voting power per user, each sorted by increasing time.
+    /// @notice Snapshots of voting power per user, each sorted by increasing time.
     mapping(address => VotingPowerSnapshot[]) private _votingPowerSnapshotsByVoter;
 
     modifier onlyHost() {
@@ -298,13 +291,13 @@ abstract contract PartyGovernance is
             abi.encode(proposalEngineOpts)
         );
         // Set the governance parameters.
-        _getSharedProposalStorage().governanceValues = GovernanceValuesStorage({
+        _getSharedProposalStorage().governanceValues = GovernanceValues({
             voteDuration: govOpts.voteDuration,
             executionDelay: govOpts.executionDelay,
             passThresholdBps: govOpts.passThresholdBps,
-            totalVotingPower: govOpts.totalVotingPower,
-            numHosts: uint8(govOpts.hosts.length)
+            totalVotingPower: govOpts.totalVotingPower
         });
+        numHosts = uint8(govOpts.hosts.length);
         // Set fees.
         feeBps = govOpts.feeBps;
         feeRecipient = govOpts.feeRecipient;
@@ -386,16 +379,8 @@ abstract contract PartyGovernance is
 
     /// @notice Retrieve fixed governance parameters.
     /// @return gv The governance parameters of this party.
-    function getGovernanceValues() external view returns (GovernanceValues memory gv) {
-        GovernanceValuesStorage memory _governanceValues = _getSharedProposalStorage()
-            .governanceValues;
-        return
-            GovernanceValues({
-                voteDuration: _governanceValues.voteDuration,
-                executionDelay: _governanceValues.executionDelay,
-                passThresholdBps: _governanceValues.passThresholdBps,
-                totalVotingPower: _governanceValues.totalVotingPower
-            });
+    function getGovernanceValues() external view returns (GovernanceValues memory) {
+        return _getSharedProposalStorage().governanceValues;
     }
 
     /// @notice Get the hash of a proposal.
@@ -472,7 +457,7 @@ abstract contract PartyGovernance is
             isHost[newPartyHost] = true;
         } else {
             // Burned the host status
-            --_getSharedProposalStorage().governanceValues.numHosts;
+            --numHosts;
         }
         isHost[msg.sender] = false;
         emit HostStatusTransferred(msg.sender, newPartyHost);
@@ -577,7 +562,7 @@ abstract contract PartyGovernance is
                 completedTime: 0,
                 votes: 0,
                 totalVotingPower: _getSharedProposalStorage().governanceValues.totalVotingPower,
-                numHosts: _getSharedProposalStorage().governanceValues.numHosts,
+                numHosts: numHosts,
                 numHostsAccepted: 0
             }),
             getProposalHash(proposal)
@@ -1077,7 +1062,7 @@ abstract contract PartyGovernance is
             return ProposalStatus.Defeated;
         }
         uint40 t = uint40(block.timestamp);
-        GovernanceValuesStorage memory gv = _getSharedProposalStorage().governanceValues;
+        GovernanceValues memory gv = _getSharedProposalStorage().governanceValues;
         if (pv.passedTime != 0) {
             // Ready.
             if (pv.passedTime + gv.executionDelay <= t) {

@@ -174,10 +174,6 @@ contract TestablePartyGovernance is PartyGovernance {
         return _getSharedProposalStorage().governanceValues.totalVotingPower;
     }
 
-    function getNumHosts() external view returns (uint8) {
-        return _getSharedProposalStorage().governanceValues.numHosts;
-    }
-
     function transferVotingPower(address from, address to, uint256 power) external {
         _transferVotingPower(from, to, power);
     }
@@ -2338,15 +2334,15 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
         ) = _createPreciousTokens(2);
         gov = _createGovernance(false, 100e18, preciousTokens, preciousTokenIds);
 
-        assertEq(gov.getNumHosts(), 2);
+        assertEq(gov.numHosts(), 2);
         vm.prank(defaultGovernanceOpts.hosts[0]);
         gov.abdicateHost(address(this));
         assertFalse(gov.isHost(defaultGovernanceOpts.hosts[0]));
         assertTrue(gov.isHost(address(this)));
-        assertEq(gov.getNumHosts(), 2);
+        assertEq(gov.numHosts(), 2);
         gov.abdicateHost(address(0));
         assertFalse(gov.isHost(address(this)));
-        assertEq(gov.getNumHosts(), 1);
+        assertEq(gov.numHosts(), 1);
     }
 
     // voting power of past member is 0 at current time.
