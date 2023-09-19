@@ -4,7 +4,6 @@ pragma solidity ^0.8;
 import "forge-std/Test.sol";
 
 import "../../contracts/proposals/AddAuthorityProposal.sol";
-import "../../contracts/crowdfund/ReraiseETHCrowdfund.sol";
 
 import "../TestUtils.sol";
 
@@ -33,30 +32,33 @@ contract TestableAddAuthorityProposal is AddAuthorityProposal {
     }
 }
 
-contract MockCrowdfundFactory {
-    ReraiseETHCrowdfund public expectedCrowdfund;
+contract MockContract {
+    function mockFunction() public pure returns (uint256) {
+        return 42;
+    }
+}
 
-    constructor(ReraiseETHCrowdfund expectedCrowdfund_) {
-        expectedCrowdfund = expectedCrowdfund_;
+contract MockFactory {
+    MockContract public expectedContract;
+
+    constructor(MockContract expectedContract_) {
+        expectedContract = expectedContract_;
     }
 
-    function createReraiseETHCrowdfund(
-        ETHCrowdfundBase.ETHCrowdfundOptions memory,
-        bytes memory
-    ) public payable returns (ReraiseETHCrowdfund inst) {
-        return expectedCrowdfund;
+    function createMockContract(bytes memory) public payable returns (MockContract inst) {
+        return expectedContract;
     }
 }
 
 contract AddAuthorityProposalTest is Test, TestUtils {
     TestableAddAuthorityProposal proposal;
-    MockCrowdfundFactory crowdfundFactory;
-    ReraiseETHCrowdfund expectedCrowdfund;
+    MockFactory factory;
+    MockContract expectedContract;
 
     constructor() {
         proposal = new TestableAddAuthorityProposal();
-        expectedCrowdfund = new ReraiseETHCrowdfund(IGlobals(address(0)));
-        crowdfundFactory = new MockCrowdfundFactory(expectedCrowdfund);
+        expectedContract = new MockContract();
+        factory = new MockFactory(expectedContract);
     }
 
     function test_executeAddAuthority_withNoCalldata() public {
@@ -83,13 +85,13 @@ contract AddAuthorityProposalTest is Test, TestUtils {
     }
 
     function test_executeAddAuthority_withResultFromCalldata() public {
-        assertEq(proposal.isAuthority(address(expectedCrowdfund)), false);
+        assertEq(proposal.isAuthority(address(expectedContract)), false);
 
-        ETHCrowdfundBase.ETHCrowdfundOptions memory callData;
+        bytes memory callData = abi.encode(_randomBytes32());
         AddAuthorityProposal.AddAuthorityProposalData memory data = AddAuthorityProposal
             .AddAuthorityProposalData({
-                target: address(crowdfundFactory),
-                callData: abi.encodeCall(crowdfundFactory.createReraiseETHCrowdfund, (callData, ""))
+                target: address(factory),
+                callData: abi.encodeCall(factory.createMockContract, (callData))
             });
 
         // Execute the proposal.
@@ -106,6 +108,6 @@ contract AddAuthorityProposalTest is Test, TestUtils {
         );
 
         assertEq(nextProgressData.length, 0);
-        assertEq(proposal.isAuthority(address(expectedCrowdfund)), true);
+        assertEq(proposal.isAuthority(address(expectedContract)), true);
     }
 }

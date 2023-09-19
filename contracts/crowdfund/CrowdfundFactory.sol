@@ -11,8 +11,7 @@ import { BuyCrowdfund } from "./BuyCrowdfund.sol";
 import { CollectionBuyCrowdfund } from "./CollectionBuyCrowdfund.sol";
 import { RollingAuctionCrowdfund } from "./RollingAuctionCrowdfund.sol";
 import { CollectionBatchBuyCrowdfund } from "./CollectionBatchBuyCrowdfund.sol";
-import { InitialETHCrowdfund, ETHCrowdfundBase } from "./InitialETHCrowdfund.sol";
-import { ReraiseETHCrowdfund } from "./ReraiseETHCrowdfund.sol";
+import { InitialETHCrowdfund } from "./InitialETHCrowdfund.sol";
 import { MetadataProvider } from "../renderers/MetadataProvider.sol";
 import { Party } from "../party/Party.sol";
 
@@ -52,11 +51,6 @@ contract CrowdfundFactory {
         Party indexed party,
         InitialETHCrowdfund.InitialETHCrowdfundOptions crowdfundOpts,
         InitialETHCrowdfund.ETHPartyOptions partyOpts
-    );
-    event ReraiseETHCrowdfundCreated(
-        address indexed creator,
-        ReraiseETHCrowdfund indexed crowdfund,
-        ETHCrowdfundBase.ETHCrowdfundOptions opts
     );
 
     /// @notice Create a new crowdfund to purchase a specific NFT (i.e., with a
@@ -239,29 +233,6 @@ contract CrowdfundFactory {
             )
         );
         emit InitialETHCrowdfundCreated(msg.sender, inst, inst.party(), crowdfundOpts, partyOpts);
-    }
-
-    /// @notice Create a new crowdfund to raise ETH for an existing party.
-    /// @param crowdfundImpl The implementation contract of the crowdfund to create.
-    /// @param opts Options used to initialize the crowdfund. These are fixed
-    ///             and cannot be changed later.
-    /// @param createGateCallData Encoded calldata used by `createGate()` to create
-    ///                           the crowdfund if one is specified in `opts`.
-    function createReraiseETHCrowdfund(
-        ReraiseETHCrowdfund crowdfundImpl,
-        ETHCrowdfundBase.ETHCrowdfundOptions memory opts,
-        bytes memory createGateCallData
-    ) external payable returns (ReraiseETHCrowdfund inst) {
-        opts.gateKeeperId = _prepareGate(opts.gateKeeper, opts.gateKeeperId, createGateCallData);
-        inst = ReraiseETHCrowdfund(
-            payable(
-                new Proxy{ value: msg.value }(
-                    Implementation(address(crowdfundImpl)),
-                    abi.encodeCall(ReraiseETHCrowdfund.initialize, (opts))
-                )
-            )
-        );
-        emit ReraiseETHCrowdfundCreated(msg.sender, inst, opts);
     }
 
     function _prepareGate(

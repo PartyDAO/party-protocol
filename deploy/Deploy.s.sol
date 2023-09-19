@@ -10,7 +10,6 @@ import "../contracts/crowdfund/CollectionBatchBuyCrowdfund.sol";
 import "../contracts/operators/CollectionBatchBuyOperator.sol";
 import "../contracts/operators/ERC20SwapOperator.sol";
 import "../contracts/crowdfund/InitialETHCrowdfund.sol";
-import "../contracts/crowdfund/ReraiseETHCrowdfund.sol";
 import "../contracts/crowdfund/CrowdfundFactory.sol";
 import "../contracts/distribution/TokenDistributor.sol";
 import "../contracts/gatekeepers/AllowListGateKeeper.sol";
@@ -56,7 +55,6 @@ abstract contract Deploy {
     CollectionBuyCrowdfund public collectionBuyCrowdfund;
     CollectionBatchBuyCrowdfund public collectionBatchBuyCrowdfund;
     InitialETHCrowdfund public initialETHCrowdfund;
-    ReraiseETHCrowdfund public reraiseETHCrowdfund;
     CrowdfundFactory public crowdfundFactory;
     Party public party;
     PartyFactory public partyFactory;
@@ -195,18 +193,6 @@ abstract contract Deploy {
         console.log(
             "  Deployed - InitialETHCrowdfund crowdfund implementation",
             address(initialETHCrowdfund)
-        );
-
-        // DEPLOY_RERAISE_ETH_CF_IMPLEMENTATION
-        console.log("");
-        console.log("### ReraiseETHCrowdfund crowdfund implementation");
-        console.log("  Deploying - ReraiseETHCrowdfund crowdfund implementation");
-        _trackDeployerGasBefore();
-        reraiseETHCrowdfund = new ReraiseETHCrowdfund(globals);
-        _trackDeployerGasAfter();
-        console.log(
-            "  Deployed - ReraiseETHCrowdfund crowdfund implementation",
-            address(reraiseETHCrowdfund)
         );
 
         // DEPLOY_ROLLING_AUCTION_CF_IMPLEMENTATION
@@ -518,10 +504,6 @@ abstract contract Deploy {
             // );
             // multicallData[n++] = abi.encodeCall(
             //     globals.setAddress,
-            //     (LibGlobals.GLOBAL_RERAISE_ETH_CF_IMPL, address(reraiseETHCrowdfund))
-            // );
-            // multicallData[n++] = abi.encodeCall(
-            //     globals.setAddress,
             //     (LibGlobals.GLOBAL_ROLLING_AUCTION_CF_IMPL, address(rollingAuctionCrowdfund))
             // );
             multicallData[n++] = abi.encodeCall(
@@ -658,7 +640,7 @@ contract DeployScript is Script, Deploy {
         Deploy.deploy(deployConstants);
         vm.stopBroadcast();
 
-        AddressMapping[] memory addressMapping = new AddressMapping[](25);
+        AddressMapping[] memory addressMapping = new AddressMapping[](24);
         addressMapping[0] = AddressMapping("Globals", address(globals));
         addressMapping[1] = AddressMapping("TokenDistributor", address(tokenDistributor));
         addressMapping[2] = AddressMapping(
@@ -682,12 +664,11 @@ contract DeployScript is Script, Deploy {
             address(collectionBatchBuyCrowdfund)
         );
         addressMapping[10] = AddressMapping("InitialETHCrowdfund", address(initialETHCrowdfund));
-        addressMapping[11] = AddressMapping("ReraiseETHCrowdfund", address(reraiseETHCrowdfund));
-        addressMapping[12] = AddressMapping(
+        addressMapping[11] = AddressMapping(
             "CollectionBatchBuyOperator",
             address(collectionBatchBuyOperator)
         );
-        addressMapping[23] = AddressMapping("ERC20SwapOperator", address(swapOperator));
+        addressMapping[12] = AddressMapping("ERC20SwapOperator", address(swapOperator));
         addressMapping[13] = AddressMapping("CrowdfundFactory", address(crowdfundFactory));
         addressMapping[14] = AddressMapping("MetadataRegistry", address(metadataRegistry));
         addressMapping[15] = AddressMapping("MetadataProvider", address(metadataProvider));
@@ -701,7 +682,7 @@ contract DeployScript is Script, Deploy {
             "PixeldroidConsoleFont",
             address(pixeldroidConsoleFont)
         );
-        addressMapping[24] = AddressMapping("AtomicManualParty", address(atomicManualParty));
+        addressMapping[23] = AddressMapping("AtomicManualParty", address(atomicManualParty));
 
         console.log("");
         console.log("### Deployed addresses");
