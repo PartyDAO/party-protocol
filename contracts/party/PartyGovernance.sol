@@ -86,17 +86,6 @@ abstract contract PartyGovernance is
         address payable feeRecipient;
     }
 
-    // Subset of `GovernanceOpts` that are commonly read together for
-    // efficiency.
-    struct GovernanceValues {
-        uint40 voteDuration;
-        uint40 executionDelay;
-        uint16 passThresholdBps;
-        uint96 totalVotingPower;
-        /// @notice Number of hosts for this party
-        uint8 numHosts;
-    }
-
     // A snapshot of voting power for a member.
     struct VotingPowerSnapshot {
         // The timestamp when the snapshot was taken.
@@ -223,11 +212,11 @@ abstract contract PartyGovernance is
     mapping(address => bool) public isHost;
     /// @notice The last person a voter delegated its voting power to.
     mapping(address => address) public delegationsByVoter;
-    // Governance parameters for this party.
-    GovernanceValues internal _governanceValues;
-    // ProposalState by proposal ID.
+    /// @notice Number of hosts for this party
+    uint8 public numHosts;
+    /// @notice ProposalState by proposal ID.
     mapping(uint256 => ProposalState) private _proposalStateByProposalId;
-    // Snapshots of voting power per user, each sorted by increasing time.
+    /// @notice Snapshots of voting power per user, each sorted by increasing time.
     mapping(address => VotingPowerSnapshot[]) private _votingPowerSnapshotsByVoter;
 
     modifier onlyHost() {
@@ -309,13 +298,13 @@ abstract contract PartyGovernance is
             abi.encode(proposalEngineOpts)
         );
         // Set the governance parameters.
-        _governanceValues = GovernanceValues({
+        _getSharedProposalStorage().governanceValues = GovernanceValues({
             voteDuration: govOpts.voteDuration,
             executionDelay: govOpts.executionDelay,
             passThresholdBps: govOpts.passThresholdBps,
-            totalVotingPower: govOpts.totalVotingPower,
-            numHosts: uint8(govOpts.hosts.length)
+            totalVotingPower: govOpts.totalVotingPower
         });
+        numHosts = uint8(govOpts.hosts.length);
         // Set fees.
         feeBps = govOpts.feeBps;
         feeRecipient = govOpts.feeRecipient;
@@ -397,8 +386,8 @@ abstract contract PartyGovernance is
 
     /// @notice Retrieve fixed governance parameters.
     /// @return gv The governance parameters of this party.
-    function getGovernanceValues() external view returns (GovernanceValues memory gv) {
-        return _governanceValues;
+    function getGovernanceValues() external view returns (GovernanceValues memory) {
+        return _getSharedProposalStorage().governanceValues;
     }
 
     /// @notice Get the hash of a proposal.
@@ -474,7 +463,7 @@ abstract contract PartyGovernance is
             isHost[newPartyHost] = true;
         } else {
             // Burned the host status
-            --_governanceValues.numHosts;
+            --numHosts;
         }
         isHost[msg.sender] = false;
         emit HostStatusTransferred(msg.sender, newPartyHost);
@@ -519,7 +508,7 @@ abstract contract PartyGovernance is
             }
         }
         // Prevent creating a distribution if the party has not started.
-        if (_governanceValues.totalVotingPower == 0) {
+        if (_getSharedProposalStorage().governanceValues.totalVotingPower == 0) {
             revert PartyNotStartedError();
         }
         // Get the address of the token distributor.
@@ -578,8 +567,8 @@ abstract contract PartyGovernance is
                 executedTime: 0,
                 completedTime: 0,
                 votes: 0,
-                totalVotingPower: _governanceValues.totalVotingPower,
-                numHosts: _governanceValues.numHosts,
+                totalVotingPower: _getSharedProposalStorage().governanceValues.totalVotingPower,
+                numHosts: numHosts,
                 numHostsAccepted: 0
             }),
             getProposalHash(proposal)
@@ -656,7 +645,7 @@ abstract contract PartyGovernance is
             _areVotesPassing(
                 values.votes,
                 values.totalVotingPower,
-                _governanceValues.passThresholdBps
+                _getSharedProposalStorage().governanceValues.passThresholdBps
             )
         ) {
             info.values.passedTime = uint40(block.timestamp);
@@ -1091,7 +1080,7 @@ abstract contract PartyGovernance is
             return ProposalStatus.Defeated;
         }
         uint40 t = uint40(block.timestamp);
-        GovernanceValues memory gv = _governanceValues;
+        GovernanceValues memory gv = _getSharedProposalStorage().governanceValues;
         if (pv.passedTime != 0) {
             // Ready.
             if (pv.passedTime + gv.executionDelay <= t) {
