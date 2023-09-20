@@ -167,11 +167,11 @@ contract TestablePartyGovernance is PartyGovernance {
     }
 
     function increaseTotalVotingPower(uint96 newVotingPower) external {
-        _governanceValues.totalVotingPower += newVotingPower;
+        _getSharedProposalStorage().governanceValues.totalVotingPower += newVotingPower;
     }
 
     function getTotalVotingPower() external view returns (uint96) {
-        return _governanceValues.totalVotingPower;
+        return _getSharedProposalStorage().governanceValues.totalVotingPower;
     }
 
     function transferVotingPower(address from, address to, uint256 power) external {
@@ -2323,6 +2323,26 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
         vm.prank(nonHost);
         vm.expectRevert(abi.encodeWithSelector(PartyGovernance.OnlyPartyHostError.selector));
         gov.abdicateHost(nonHost2);
+    }
+
+    // Demonstrate correct functionality of abidacte host along with the `numHost` counter.
+    function testHostPower_canAbidacteHost() external {
+        TestablePartyGovernance gov;
+        (
+            IERC721[] memory preciousTokens,
+            uint256[] memory preciousTokenIds
+        ) = _createPreciousTokens(2);
+        gov = _createGovernance(false, 100e18, preciousTokens, preciousTokenIds);
+
+        assertEq(gov.numHosts(), 2);
+        vm.prank(defaultGovernanceOpts.hosts[0]);
+        gov.abdicateHost(address(this));
+        assertFalse(gov.isHost(defaultGovernanceOpts.hosts[0]));
+        assertTrue(gov.isHost(address(this)));
+        assertEq(gov.numHosts(), 2);
+        gov.abdicateHost(address(0));
+        assertFalse(gov.isHost(address(this)));
+        assertEq(gov.numHosts(), 1);
     }
 
     // voting power of past member is 0 at current time.

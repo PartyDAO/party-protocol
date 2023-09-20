@@ -17,6 +17,7 @@ import "./DistributeProposal.sol";
 import "./AddAuthorityProposal.sol";
 import "./OperatorProposal.sol";
 import { SetSignatureValidatorProposal } from "./SetSignatureValidatorProposal.sol";
+import { SetGovernanceParameterProposal } from "./SetGovernanceParameterProposal.sol";
 
 /// @notice Upgradable implementation of proposal execution logic for parties that use it.
 /// @dev This contract will be delegatecall'ed into by `Party` proxy instances.
@@ -33,6 +34,7 @@ contract ProposalExecutionEngine is
     AddAuthorityProposal,
     OperatorProposal,
     SetSignatureValidatorProposal,
+    SetGovernanceParameterProposal,
     IERC1271
 {
     using LibRawResult for bytes;
@@ -54,7 +56,8 @@ contract ProposalExecutionEngine is
         Distribute,
         AddAuthority,
         Operator,
-        SetSignatureValidatorProposal
+        SetSignatureValidatorProposal,
+        SetGovernanceParameterProposal
     }
 
     // Explicit storage bucket for "private" state owned by the `ProposalExecutionEngine`.
@@ -279,6 +282,8 @@ contract ProposalExecutionEngine is
             nextProgressData = _executeOperation(params);
         } else if (pt == ProposalType.SetSignatureValidatorProposal) {
             nextProgressData = _executeSetSignatureValidator(params);
+        } else if (pt == ProposalType.SetGovernanceParameterProposal) {
+            nextProgressData = _executeSetGovernanceParameter(params);
         } else if (pt == ProposalType.UpgradeProposalEngineImpl) {
             _executeUpgradeProposalsImplementation(params.proposalData);
         } else {
