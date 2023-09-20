@@ -443,6 +443,7 @@ contract PartyGovernanceTest is Test, TestUtils {
 
         // Remove second host
         party.abdicateHost(address(0));
+        assertEq(party.numHosts(), 1);
 
         // Still need to wait for the second host
         _assertProposalStatus(party, 1, PartyGovernance.ProposalStatus.Passed, 22);
