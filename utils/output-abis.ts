@@ -27,6 +27,7 @@ const RELEVANT_ABIS = [
   "MetadataProvider",
   "MetadataRegistry",
   "AtomicManualParty",
+  "ContributionRouter"
 ];
 
 // AFileName -> a_file_name

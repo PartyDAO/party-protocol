@@ -30,6 +30,7 @@ import "../contracts/utils/PartyHelpers.sol";
 import "../contracts/market-wrapper/FoundationMarketWrapper.sol";
 import "../contracts/market-wrapper/NounsMarketWrapper.sol";
 import { AtomicManualParty } from "../contracts/crowdfund/AtomicManualParty.sol";
+import { ContributionRouter } from "../contracts/crowdfund/ContributionRouter.sol";
 import "./LibDeployConstants.sol";
 
 abstract contract Deploy {
@@ -76,6 +77,7 @@ abstract contract Deploy {
     NounsMarketWrapper public nounsMarketWrapper;
     PixeldroidConsoleFont public pixeldroidConsoleFont;
     AtomicManualParty public atomicManualParty;
+    ContributionRouter public contributionRouter;
 
     function deploy(LibDeployConstants.DeployConstants memory deployConstants) public virtual {
         _switchDeployer(DeployerRole.Default);
@@ -355,14 +357,33 @@ abstract contract Deploy {
             console.log("  Deployed - PartyHelpers", address(partyHelpers));
         }
 
+        // Deploy CONTRIBUTION_ROUTER
+        console.log("");
+        console.log("### ContributionRouter");
+        console.log("  Deploying - ContributionRouter");
+        _trackDeployerGasBefore();
+        contributionRouter = new ContributionRouter(
+            deployConstants.partyDaoMultisig,
+            deployConstants.contributionRouterInitialFee
+        );
+        _trackDeployerGasAfter();
+        console.log("  Deployed - ContributionRouter", address(contributionRouter));
+
         // DEPLOY_GATE_KEEPRS
         console.log("");
         console.log("### GateKeepers");
         console.log("  Deploying - AllowListGateKeeper");
         _trackDeployerGasBefore();
-        allowListGateKeeper = new AllowListGateKeeper(address(0));
+        allowListGateKeeper = new AllowListGateKeeper(address(contributionRouter));
         _trackDeployerGasAfter();
         console.log("  Deployed - AllowListGateKeeper", address(allowListGateKeeper));
+
+        console.log("");
+        console.log("  Deploying - TokenGateKeeper");
+        _trackDeployerGasBefore();
+        tokenGateKeeper = new TokenGateKeeper(address(contributionRouter));
+        _trackDeployerGasAfter();
+        console.log("  Deployed - TokenGateKeeper", address(tokenGateKeeper));
 
         // DEPLOY_MARKET_WRAPPERS
         console.log("");
@@ -387,13 +408,6 @@ abstract contract Deploy {
         } else {
             nounsMarketWrapper = NounsMarketWrapper(deployConstants.deployedNounsMarketWrapper);
         }
-
-        console.log("");
-        console.log("  Deploying - TokenGateKeeper");
-        _trackDeployerGasBefore();
-        tokenGateKeeper = new TokenGateKeeper(address(0));
-        _trackDeployerGasAfter();
-        console.log("  Deployed - TokenGateKeeper", address(tokenGateKeeper));
 
         console.log("");
         console.log("  Deploying - AtomicManualParty");
@@ -658,7 +672,7 @@ contract DeployScript is Script, Deploy {
         Deploy.deploy(deployConstants);
         vm.stopBroadcast();
 
-        AddressMapping[] memory addressMapping = new AddressMapping[](25);
+        AddressMapping[] memory addressMapping = new AddressMapping[](26);
         addressMapping[0] = AddressMapping("Globals", address(globals));
         addressMapping[1] = AddressMapping("TokenDistributor", address(tokenDistributor));
         addressMapping[2] = AddressMapping(
@@ -702,6 +716,7 @@ contract DeployScript is Script, Deploy {
             address(pixeldroidConsoleFont)
         );
         addressMapping[24] = AddressMapping("AtomicManualParty", address(atomicManualParty));
+        addressMapping[25] = AddressMapping("ContributionRouter", address(contributionRouter));
 
         console.log("");
         console.log("### Deployed addresses");
