@@ -2,10 +2,10 @@
 pragma solidity ^0.8;
 
 import "forge-std/Test.sol";
+import { Clones } from "openzeppelin/contracts/proxy/Clones.sol";
 
 import "../../contracts/crowdfund/InitialETHCrowdfund.sol";
 import "../../contracts/globals/Globals.sol";
-import "../../contracts/utils/Proxy.sol";
 import "../../contracts/party/PartyFactory.sol";
 import "../../contracts/tokens/ERC721Receiver.sol";
 import "../../contracts/renderers/PartyNFTRenderer.sol";
@@ -19,6 +19,8 @@ import "../TestUtils.sol";
 import { LintJSON } from "../utils/LintJSON.sol";
 
 contract InitialETHCrowdfundTestBase is LintJSON, TestUtils, ERC721Receiver {
+    using Clones for address;
+
     event Contributed(
         address indexed sender,
         address indexed contributor,
@@ -35,6 +37,9 @@ contract InitialETHCrowdfundTestBase is LintJSON, TestUtils, ERC721Receiver {
     PartyNFTRenderer nftRenderer;
     RendererStorage nftRendererStorage;
     TokenDistributor tokenDistributor;
+
+    InitialETHCrowdfund.ETHPartyOptions partyOpts;
+    InitialETHCrowdfund.InitialETHCrowdfundOptions crowdfundOpts;
 
     constructor() {
         globals = new Globals(address(this));
@@ -92,9 +97,9 @@ contract InitialETHCrowdfundTestBase is LintJSON, TestUtils, ERC721Receiver {
     }
 
     function _createCrowdfund(
-        CreateCrowdfundArgs memory args
+        CreateCrowdfundArgs memory args,
+        bool initialize
     ) internal returns (InitialETHCrowdfund crowdfund) {
-        InitialETHCrowdfund.InitialETHCrowdfundOptions memory crowdfundOpts;
         crowdfundOpts.initialContributor = args.initialContributor;
         crowdfundOpts.initialDelegate = args.initialDelegate;
         crowdfundOpts.minContribution = args.minContributions;
@@ -109,7 +114,6 @@ contract InitialETHCrowdfundTestBase is LintJSON, TestUtils, ERC721Receiver {
         crowdfundOpts.gateKeeper = args.gateKeeper;
         crowdfundOpts.gateKeeperId = args.gateKeeperId;
 
-        InitialETHCrowdfund.ETHPartyOptions memory partyOpts;
         partyOpts.name = "Test Party";
         partyOpts.symbol = "TEST";
         partyOpts.governanceOpts.partyImpl = partyImpl;
@@ -120,17 +124,21 @@ contract InitialETHCrowdfundTestBase is LintJSON, TestUtils, ERC721Receiver {
         partyOpts.governanceOpts.hosts = new address[](1);
         partyOpts.governanceOpts.hosts[0] = address(this);
 
-        crowdfund = InitialETHCrowdfund(
-            payable(
-                new Proxy{ value: args.initialContribution }(
-                    initialETHCrowdfundImpl,
-                    abi.encodeCall(
-                        InitialETHCrowdfund.initialize,
-                        (crowdfundOpts, partyOpts, MetadataProvider(address(0)), "")
-                    )
-                )
-            )
-        );
+        crowdfund = InitialETHCrowdfund(payable(address(initialETHCrowdfundImpl).clone()));
+        if (initialize) {
+            crowdfund.initialize{ value: args.initialContribution }(
+                crowdfundOpts,
+                partyOpts,
+                MetadataProvider(address(0)),
+                ""
+            );
+        }
+    }
+
+    function _createCrowdfund(
+        CreateCrowdfundArgs memory args
+    ) internal returns (InitialETHCrowdfund) {
+        return _createCrowdfund(args, true);
     }
 }
 
@@ -155,25 +163,23 @@ contract InitialETHCrowdfundTest is InitialETHCrowdfundTestBase {
             })
         );
 
-        InitialETHCrowdfund.InitialETHCrowdfundOptions memory crowdfundOpts;
-        InitialETHCrowdfund.ETHPartyOptions memory partyOpts;
+        InitialETHCrowdfund.InitialETHCrowdfundOptions memory defaultCrowdfundOpts;
+        InitialETHCrowdfund.ETHPartyOptions memory defaultPartyOpts;
 
-        vm.expectRevert(Implementation.OnlyConstructorError.selector);
-        crowdfund.initialize(crowdfundOpts, partyOpts, MetadataProvider(address(0)), "");
+        vm.expectRevert(Implementation.AlreadyInitialized.selector);
+        crowdfund.initialize(
+            defaultCrowdfundOpts,
+            defaultPartyOpts,
+            MetadataProvider(address(0)),
+            ""
+        );
     }
 
     function test_initialization_minTotalContributionsGreaterThanMax() public {
         uint96 minTotalContributions = 5 ether;
         uint96 maxTotalContributions = 3 ether;
 
-        vm.expectRevert(
-            abi.encodeWithSelector(
-                ETHCrowdfundBase.MinGreaterThanMaxError.selector,
-                minTotalContributions,
-                maxTotalContributions
-            )
-        );
-        _createCrowdfund(
+        InitialETHCrowdfund crowdfund = _createCrowdfund(
             CreateCrowdfundArgs({
                 initialContribution: 0,
                 initialContributor: payable(address(0)),
@@ -189,20 +195,22 @@ contract InitialETHCrowdfundTest is InitialETHCrowdfundTestBase {
                 fundingSplitRecipient: payable(address(0)),
                 gateKeeper: IGateKeeper(address(0)),
                 gateKeeperId: bytes12(0)
-            })
+            }),
+            false
         );
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                ETHCrowdfundBase.MinGreaterThanMaxError.selector,
+                minTotalContributions,
+                maxTotalContributions
+            )
+        );
+        crowdfund.initialize(crowdfundOpts, partyOpts, MetadataProvider(address(0)), "");
     }
 
     function test_initialization_maxTotalContributionsZero() public {
         uint96 maxTotalContributions = 0;
-
-        vm.expectRevert(
-            abi.encodeWithSelector(
-                ETHCrowdfundBase.MaxTotalContributionsCannotBeZeroError.selector,
-                maxTotalContributions
-            )
-        );
-        _createCrowdfund(
+        InitialETHCrowdfund crowdfund = _createCrowdfund(
             CreateCrowdfundArgs({
                 initialContribution: 0,
                 initialContributor: payable(address(0)),
@@ -218,8 +226,16 @@ contract InitialETHCrowdfundTest is InitialETHCrowdfundTestBase {
                 fundingSplitRecipient: payable(address(0)),
                 gateKeeper: IGateKeeper(address(0)),
                 gateKeeperId: bytes12(0)
-            })
+            }),
+            false
         );
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                ETHCrowdfundBase.MaxTotalContributionsCannotBeZeroError.selector,
+                maxTotalContributions
+            )
+        );
+        crowdfund.initialize(crowdfundOpts, partyOpts, MetadataProvider(address(0)), "");
     }
 
     function test_initialContribution_works() public {

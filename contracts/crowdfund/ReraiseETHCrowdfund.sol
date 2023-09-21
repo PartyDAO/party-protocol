@@ -65,7 +65,7 @@ contract ReraiseETHCrowdfund is ETHCrowdfundBase, CrowdfundNFT {
     /// @notice Initializer to be delegatecalled by `Proxy` constructor. Will
     ///         revert if called outside the constructor.
     /// @param opts The options to initialize the crowdfund with.
-    function initialize(ETHCrowdfundOptions memory opts) external payable onlyConstructor {
+    function initialize(ETHCrowdfundOptions memory opts) external payable onlyInitialize {
         // Initialize the crowdfund.
         ETHCrowdfundBase._initialize(opts);
 

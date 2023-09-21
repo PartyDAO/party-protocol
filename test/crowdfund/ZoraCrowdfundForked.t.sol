@@ -2,12 +2,12 @@
 pragma solidity ^0.8;
 
 import "forge-std/Test.sol";
+import { Clones } from "openzeppelin/contracts/proxy/Clones.sol";
 
 import "../../contracts/crowdfund/AuctionCrowdfund.sol";
 import "../../contracts/crowdfund/Crowdfund.sol";
 import "../../contracts/globals/Globals.sol";
 import "../../contracts/globals/LibGlobals.sol";
-import "../../contracts/utils/Proxy.sol";
 import "../../contracts/vendor/markets/IZoraAuctionHouse.sol";
 import "../../contracts/renderers/RendererStorage.sol";
 
@@ -18,6 +18,8 @@ import "../DummyERC721.sol";
 import "../TestUtils.sol";
 
 contract ZoraCrowdfundForkedTest is TestUtils, ERC721Receiver {
+    using Clones for address;
+
     event Won(uint256 bid, Party party);
     event Lost();
 
@@ -61,39 +63,30 @@ contract ZoraCrowdfundForkedTest is TestUtils, ERC721Receiver {
         );
 
         // Create a AuctionCrowdfund crowdfund
-        cf = AuctionCrowdfund(
-            payable(
-                address(
-                    new Proxy(
-                        pbImpl,
-                        abi.encodeCall(
-                            AuctionCrowdfund.initialize,
-                            AuctionCrowdfundBase.AuctionCrowdfundOptions({
-                                name: "Party",
-                                symbol: "PRTY",
-                                customizationPresetId: 0,
-                                auctionId: auctionId,
-                                market: zoraMarket,
-                                nftContract: nftContract,
-                                nftTokenId: tokenId,
-                                duration: 1 days,
-                                maximumBid: type(uint96).max,
-                                splitRecipient: payable(address(0)),
-                                splitBps: 0,
-                                initialContributor: address(this),
-                                initialDelegate: address(0),
-                                minContribution: 0,
-                                maxContribution: type(uint96).max,
-                                gateKeeper: IGateKeeper(address(0)),
-                                gateKeeperId: 0,
-                                onlyHostCanBid: false,
-                                governanceOpts: govOpts,
-                                proposalEngineOpts: proposalEngineOpts
-                            })
-                        )
-                    )
-                )
-            )
+        cf = AuctionCrowdfund(payable(address(pbImpl).clone()));
+        cf.initialize(
+            AuctionCrowdfundBase.AuctionCrowdfundOptions({
+                name: "Party",
+                symbol: "PRTY",
+                customizationPresetId: 0,
+                auctionId: auctionId,
+                market: zoraMarket,
+                nftContract: nftContract,
+                nftTokenId: tokenId,
+                duration: 1 days,
+                maximumBid: type(uint96).max,
+                splitRecipient: payable(address(0)),
+                splitBps: 0,
+                initialContributor: address(this),
+                initialDelegate: address(0),
+                minContribution: 0,
+                maxContribution: type(uint96).max,
+                gateKeeper: IGateKeeper(address(0)),
+                gateKeeperId: 0,
+                onlyHostCanBid: false,
+                governanceOpts: govOpts,
+                proposalEngineOpts: proposalEngineOpts
+            })
         );
 
         // Contribute ETH used to bid.
