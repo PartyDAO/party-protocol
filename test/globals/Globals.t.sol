@@ -7,8 +7,8 @@ import "../TestUtils.sol";
 contract GlobalsTest is TestUtils {
     event ValueSet(uint256 key, bytes32 oldValue, bytes32 newValue);
     event IncludesSet(uint256 key, bytes32 value, bool oldIsIncluded, bool newIsIncluded);
-    event MultiSigTransferred(address indexed multisig, address indexed pendingMultiSig);
-    event MultiSigAccepted(address indexed oldMultiSig, address indexed newMultiSig);
+    event PendingMultiSigSet(address indexed oldPendingMultiSig, address indexed pendingMultiSig);
+    event MultiSigSet(address indexed oldMultiSig, address indexed newMultiSig);
 
     Globals globals = new Globals(address(this));
 
@@ -16,7 +16,7 @@ contract GlobalsTest is TestUtils {
         address payable newMultisig = _randomAddress();
 
         vm.expectEmit(true, true, true, true);
-        emit MultiSigTransferred(address(this), newMultisig);
+        emit PendingMultiSigSet(address(0), newMultisig);
         globals.transferMultiSig(newMultisig);
 
         assertEq(globals.pendingMultiSig(), newMultisig);
@@ -24,7 +24,7 @@ contract GlobalsTest is TestUtils {
 
         vm.prank(newMultisig);
         vm.expectEmit(true, true, true, true);
-        emit MultiSigAccepted(address(this), newMultisig);
+        emit MultiSigSet(address(this), newMultisig);
         globals.acceptMultiSig();
 
         assertEq(globals.multiSig(), newMultisig);
