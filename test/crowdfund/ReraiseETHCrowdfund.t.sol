@@ -119,12 +119,13 @@ contract ReraiseETHCrowdfundTest is LintJSON, TestUtils, ERC721Receiver {
         opts.gateKeeperId = args.gateKeeperId;
 
         crowdfund = ReraiseETHCrowdfund(address(reraiseETHCrowdfundImpl).clone());
+
         if (initialize) {
             crowdfund.initialize{ value: args.initialContribution }(opts);
-        }
 
-        vm.prank(address(party));
-        party.addAuthority(address(crowdfund));
+            vm.prank(address(party));
+            party.addAuthority(address(crowdfund));
+        }
     }
 
     function _createCrowdfund(
@@ -252,6 +253,39 @@ contract ReraiseETHCrowdfundTest is LintJSON, TestUtils, ERC721Receiver {
         assertEq(address(crowdfund).balance, initialContribution);
         assertEq(crowdfund.totalContributions(), initialContribution);
         assertEq(crowdfund.pendingVotingPower(initialContributor), initialContribution);
+    }
+
+    function test_initialContribution_aboveMaxTotalContribution() public {
+        address payable initialContributor = payable(_randomAddress());
+        address initialDelegate = _randomAddress();
+        uint96 initialContribution = 1 ether;
+
+        // Create crowdfund with initial contribution
+        ReraiseETHCrowdfund crowdfund = _createCrowdfund(
+            CreateCrowdfundArgs({
+                initialContribution: initialContribution,
+                initialContributor: initialContributor,
+                initialDelegate: initialDelegate,
+                minContributions: 0,
+                maxContributions: type(uint96).max,
+                disableContributingForExistingCard: false,
+                minTotalContributions: initialContribution,
+                maxTotalContributions: initialContribution,
+                duration: 7 days,
+                exchangeRateBps: 1e4,
+                fundingSplitBps: 0,
+                fundingSplitRecipient: payable(address(0)),
+                gateKeeper: IGateKeeper(address(0)),
+                gateKeeperId: bytes12(0)
+            }),
+            false
+        );
+
+        // Will fail because initial contribution should trigger crowdfund to
+        // try to finalize a win but it will fail because it is not yet set as
+        // an authority on the party
+        vm.expectRevert(PartyGovernanceNFT.OnlyAuthorityError.selector);
+        crowdfund.initialize{ value: initialContribution }(opts);
     }
 
     function test_contribute_works() public {
