@@ -17,7 +17,7 @@ contract AuctionCrowdfund is AuctionCrowdfundBase {
     ///         revert if called outside the constructor.
     /// @param opts Options used to initialize the crowdfund. These are fixed
     ///             and cannot be changed later.
-    function initialize(AuctionCrowdfundOptions memory opts) external payable onlyConstructor {
+    function initialize(AuctionCrowdfundOptions memory opts) external payable onlyInitialize {
         AuctionCrowdfundBase._initialize(opts);
     }
 

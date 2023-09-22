@@ -3,28 +3,41 @@ pragma solidity 0.8.20;
 
 // Base contract for all contracts intended to be delegatecalled into.
 abstract contract Implementation {
-    error OnlyDelegateCallError();
-    error OnlyConstructorError();
+    event Initialized();
 
-    address public immutable IMPL;
+    error AlreadyInitialized();
+    error OnlyDelegateCallError();
+
+    /// @notice The address of the implementation contract.
+    address public immutable implementation;
+
+    /// @notice Whether or not the implementation has been initialized.
+    bool public initialized;
 
     constructor() {
-        IMPL = address(this);
+        implementation = address(this);
     }
 
     // Reverts if the current function context is not inside of a delegatecall.
     modifier onlyDelegateCall() virtual {
-        if (address(this) == IMPL) {
+        if (address(this) == implementation) {
             revert OnlyDelegateCallError();
         }
         _;
     }
 
-    // Reverts if the current function context is not inside of a constructor.
-    modifier onlyConstructor() {
-        if (address(this).code.length != 0) {
-            revert OnlyConstructorError();
-        }
+    modifier onlyInitialize() {
+        if (initialized) revert AlreadyInitialized();
+
+        initialized = true;
+        emit Initialized();
+
         _;
+    }
+
+    /// @notice The address of the implementation contract.
+    /// @dev This is an alias for `implementation` for backwards compatibility.
+    function IMPL() external view returns (address) {
+        return implementation;
     }
 }
