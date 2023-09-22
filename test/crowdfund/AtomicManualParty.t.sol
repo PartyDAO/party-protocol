@@ -4,7 +4,6 @@ pragma solidity ^0.8;
 import { SetupPartyHelper } from "../utils/SetupPartyHelper.sol";
 import { AtomicManualParty } from "../../contracts/crowdfund/AtomicManualParty.sol";
 import { Party } from "../../contracts/party/Party.sol";
-import { Proxy } from "../../contracts/utils/Proxy.sol";
 import { IERC721 } from "../../contracts/tokens/IERC721.sol";
 import { MetadataProvider } from "../../contracts/renderers/MetadataProvider.sol";
 import { IMetadataProvider } from "../../contracts/renderers/IMetadataProvider.sol";
@@ -79,7 +78,7 @@ contract AtomicManualPartyTest is SetupPartyHelper {
         // total voting power ignored
         opts.governance.totalVotingPower = 100;
         Party atomicParty = atomicManualParty.createParty(
-            Party(payable(address(Proxy(payable(address(party))).IMPL()))),
+            Party(payable(address(party.implementation()))),
             opts,
             preciousTokens,
             preciousTokenIds,
@@ -127,7 +126,7 @@ contract AtomicManualPartyTest is SetupPartyHelper {
         vm.expectEmit(false, true, true, true);
         emit ProviderSet(address(0), IMetadataProvider(address(0)));
         Party atomicParty = atomicManualParty.createPartyWithMetadata(
-            Party(payable(address(Proxy(payable(address(party))).IMPL()))),
+            Party(payable(address(party.implementation()))),
             opts,
             preciousTokens,
             preciousTokenIds,
@@ -165,7 +164,7 @@ contract AtomicManualPartyTest is SetupPartyHelper {
         partyMemberVotingPower[0] = 100;
         partyMemberVotingPower[1] = 80;
 
-        Party partyImpl = Party(payable(address(Proxy(payable(address(party))).IMPL())));
+        Party partyImpl = Party(payable(address(party.implementation())));
         vm.expectRevert(AtomicManualParty.PartyMembersArityMismatch.selector);
         atomicManualParty.createParty(
             partyImpl,
@@ -190,7 +189,7 @@ contract AtomicManualPartyTest is SetupPartyHelper {
         address[] memory partyMembers = new address[](0);
         uint96[] memory partyMemberVotingPower = new uint96[](0);
 
-        Party partyImpl = Party(payable(address(Proxy(payable(address(party))).IMPL())));
+        Party partyImpl = Party(payable(address(party.implementation())));
         vm.expectRevert(AtomicManualParty.NoPartyMembers.selector);
         atomicManualParty.createParty(
             partyImpl,
@@ -233,7 +232,7 @@ contract AtomicManualPartyTest is SetupPartyHelper {
             address(atomicManualParty)
         );
         Party atomicParty = atomicManualParty.createParty(
-            Party(payable(address(Proxy(payable(address(party))).IMPL()))),
+            Party(payable(address(party.implementation()))),
             opts,
             preciousTokens,
             preciousTokenIds,
@@ -272,10 +271,10 @@ contract AtomicManualPartyTest is SetupPartyHelper {
         partyMemberVotingPower[0] = 100;
         partyMemberVotingPower[1] = 80;
 
-        Party partyImpl = Party(payable(address(Proxy(payable(address(party))).IMPL())));
+        Party partyImpl = Party(payable(address(party.implementation())));
 
         vm.expectRevert(AtomicManualParty.InvalidPartyMember.selector);
-        Party atomicParty = atomicManualParty.createParty(
+        atomicManualParty.createParty(
             partyImpl,
             opts,
             preciousTokens,
@@ -304,10 +303,10 @@ contract AtomicManualPartyTest is SetupPartyHelper {
         partyMemberVotingPower[0] = 100;
         partyMemberVotingPower[1] = 0;
 
-        Party partyImpl = Party(payable(address(Proxy(payable(address(party))).IMPL())));
+        Party partyImpl = Party(payable(address(party.implementation())));
 
         vm.expectRevert(AtomicManualParty.InvalidPartyMemberVotingPower.selector);
-        Party atomicParty = atomicManualParty.createParty(
+        atomicManualParty.createParty(
             partyImpl,
             opts,
             preciousTokens,

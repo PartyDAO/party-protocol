@@ -2,6 +2,7 @@
 pragma solidity ^0.8;
 
 import "forge-std/Test.sol";
+import { Clones } from "openzeppelin/contracts/proxy/Clones.sol";
 
 import "./MockPartyFactory.sol";
 import "../TestUtils.sol";
@@ -11,9 +12,10 @@ import "../../contracts/crowdfund/BuyCrowdfund.sol";
 import "../../contracts/renderers/RendererStorage.sol";
 import "../../contracts/globals/Globals.sol";
 import "../../contracts/globals/LibGlobals.sol";
-import "../../contracts/utils/Proxy.sol";
 
 contract OpenseaFulfillOrderForkedTest is Test, TestUtils, OpenseaTestUtils {
+    using Clones for address;
+
     BuyCrowdfund cf;
     Crowdfund.FixedGovernanceOpts govOpts;
     ProposalStorage.ProposalEngineOpts proposalEngineOpts;
@@ -42,37 +44,28 @@ contract OpenseaFulfillOrderForkedTest is Test, TestUtils, OpenseaTestUtils {
         govOpts.partyFactory = partyFactory;
 
         // Create a BuyCrowdfund
-        cf = BuyCrowdfund(
-            payable(
-                address(
-                    new Proxy(
-                        buyCrowdfundImpl,
-                        abi.encodeCall(
-                            BuyCrowdfund.initialize,
-                            BuyCrowdfund.BuyCrowdfundOptions({
-                                name: "Test",
-                                symbol: "TEST",
-                                customizationPresetId: 0,
-                                nftContract: token,
-                                nftTokenId: tokenId,
-                                duration: 7 days,
-                                maximumPrice: type(uint96).max,
-                                splitRecipient: payable(address(0)),
-                                splitBps: 0,
-                                initialContributor: address(0),
-                                initialDelegate: address(0),
-                                minContribution: 0,
-                                maxContribution: type(uint96).max,
-                                gateKeeper: IGateKeeper(address(0)),
-                                gateKeeperId: 0,
-                                onlyHostCanBuy: false,
-                                governanceOpts: govOpts,
-                                proposalEngineOpts: proposalEngineOpts
-                            })
-                        )
-                    )
-                )
-            )
+        cf = BuyCrowdfund(address(buyCrowdfundImpl).clone());
+        cf.initialize(
+            BuyCrowdfund.BuyCrowdfundOptions({
+                name: "Test",
+                symbol: "TEST",
+                customizationPresetId: 0,
+                nftContract: token,
+                nftTokenId: tokenId,
+                duration: 7 days,
+                maximumPrice: type(uint96).max,
+                splitRecipient: payable(address(0)),
+                splitBps: 0,
+                initialContributor: address(0),
+                initialDelegate: address(0),
+                minContribution: 0,
+                maxContribution: type(uint96).max,
+                gateKeeper: IGateKeeper(address(0)),
+                gateKeeperId: 0,
+                onlyHostCanBuy: false,
+                governanceOpts: govOpts,
+                proposalEngineOpts: proposalEngineOpts
+            })
         );
     }
 
