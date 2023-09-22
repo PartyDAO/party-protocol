@@ -89,8 +89,6 @@ contract InitialETHCrowdfund is ETHCrowdfundBase {
         // The data required to be validated by the `gatekeeper`, if set. If no
         // `gatekeeper` is set, this can be empty.
         bytes[] gateDatas;
-        // Whether to revert if any individual contribution fails or continue.
-        bool revertOnFailure;
     }
 
     event Refunded(address indexed contributor, uint256 indexed tokenId, uint256 amount);
@@ -255,35 +253,21 @@ contract InitialETHCrowdfund is ETHCrowdfundBase {
     function batchContributeFor(
         BatchContributeForArgs calldata args
     ) external payable onlyDelegateCall returns (uint96[] memory votingPowers) {
-        uint256 numContributions = args.recipients.length;
-        votingPowers = new uint96[](numContributions);
-
-        uint256 ethAvailable = msg.value;
-        for (uint256 i; i < numContributions; ++i) {
-            (bool s, bytes memory r) = address(this).call{ value: args.values[i] }(
-                abi.encodeCall(
-                    this.contributeFor,
-                    (
-                        args.tokenIds[i],
-                        args.recipients[i],
-                        args.initialDelegates[i],
-                        args.gateDatas[i]
-                    )
-                )
+        votingPowers = new uint96[](args.recipients.length);
+        uint256 valuesSum;
+        for (uint256 i; i < args.recipients.length; ++i) {
+            votingPowers[i] = _contribute(
+                args.recipients[i],
+                args.initialDelegates[i],
+                args.values[i],
+                args.tokenIds[i],
+                args.gateDatas[i]
             );
-
-            if (!s) {
-                if (args.revertOnFailure) {
-                    r.rawRevert();
-                }
-            } else {
-                votingPowers[i] = abi.decode(r, (uint96));
-                ethAvailable -= args.values[i];
-            }
+            valuesSum += args.values[i];
         }
-
-        // Refund any unused ETH.
-        if (ethAvailable > 0) payable(msg.sender).transfer(ethAvailable);
+        if (msg.value != valuesSum) {
+            revert InvalidMessageValue();
+        }
     }
 
     function _contribute(
@@ -302,12 +286,7 @@ contract InitialETHCrowdfund is ETHCrowdfundBase {
         IGateKeeper _gateKeeper = gateKeeper;
         if (_gateKeeper != IGateKeeper(address(0))) {
             if (!_gateKeeper.isAllowed(msg.sender, gateKeeperId, gateData)) {
-                revert NotAllowedByGateKeeperError(
-                    contributor,
-                    _gateKeeper,
-                    gateKeeperId,
-                    gateData
-                );
+                revert NotAllowedByGateKeeperError(msg.sender, _gateKeeper, gateKeeperId, gateData);
             }
         }
 

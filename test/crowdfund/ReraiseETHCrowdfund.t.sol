@@ -641,7 +641,7 @@ contract ReraiseETHCrowdfundTest is LintJSON, TestUtils, ERC721Receiver {
         address member = _randomAddress();
 
         // Create allowlist gatekeeper with only member allowed
-        AllowListGateKeeper gatekeeper = new AllowListGateKeeper();
+        AllowListGateKeeper gatekeeper = new AllowListGateKeeper(address(0));
         bytes12 gateId = gatekeeper.createGate(keccak256(abi.encodePacked(member)));
         bytes memory gateData = abi.encode(new bytes32[](0));
 
@@ -906,22 +906,21 @@ contract ReraiseETHCrowdfundTest is LintJSON, TestUtils, ERC721Receiver {
 
         // Batch contribute for
         vm.prank(sender);
-        address payable[] memory recipients = new address payable[](4);
-        address[] memory delegates = new address[](4);
-        uint96[] memory values = new uint96[](4);
-        bytes[] memory gateDatas = new bytes[](4);
-        for (uint256 i; i < 4; ++i) {
+        address payable[] memory recipients = new address payable[](3);
+        address[] memory delegates = new address[](3);
+        uint96[] memory values = new uint96[](3);
+        bytes[] memory gateDatas = new bytes[](3);
+        for (uint256 i; i < 3; ++i) {
             recipients[i] = _randomAddress();
             delegates[i] = _randomAddress();
-            values[i] = i != 3 ? 1 ether : 0.5 ether; // Last contribution is below min contribution
+            values[i] = 1 ether;
         }
-        uint96[] memory votingPowers = crowdfund.batchContributeFor{ value: 4 ether }(
+        uint96[] memory votingPowers = crowdfund.batchContributeFor{ value: 3 ether }(
             ReraiseETHCrowdfund.BatchContributeForArgs({
                 recipients: recipients,
                 initialDelegates: delegates,
                 values: values,
-                gateDatas: gateDatas,
-                revertOnFailure: false
+                gateDatas: gateDatas
             })
         );
 
@@ -931,8 +930,51 @@ contract ReraiseETHCrowdfundTest is LintJSON, TestUtils, ERC721Receiver {
             assertEq(crowdfund.delegationsByContributor(recipients[i]), delegates[i]);
             assertEq(crowdfund.pendingVotingPower(recipients[i]), 1 ether);
         }
-        // Should not have received voting power for failed contribution
-        assertEq(crowdfund.pendingVotingPower(recipients[recipients.length - 1]), 0);
+    }
+
+    function test_batchContributeFor_works_invalidMessageValue() public {
+        ReraiseETHCrowdfund crowdfund = _createCrowdfund(
+            CreateCrowdfundArgs({
+                initialContribution: 0,
+                initialContributor: payable(address(0)),
+                initialDelegate: address(0),
+                minContributions: 1 ether,
+                maxContributions: type(uint96).max,
+                disableContributingForExistingCard: false,
+                minTotalContributions: 3 ether,
+                maxTotalContributions: 5 ether,
+                duration: 7 days,
+                exchangeRateBps: 1e4,
+                fundingSplitBps: 0,
+                fundingSplitRecipient: payable(address(0)),
+                gateKeeper: IGateKeeper(address(0)),
+                gateKeeperId: bytes12(0)
+            })
+        );
+
+        address sender = _randomAddress();
+        vm.deal(sender, 4 ether);
+
+        // Batch contribute for
+        address payable[] memory recipients = new address payable[](3);
+        address[] memory delegates = new address[](3);
+        uint96[] memory values = new uint96[](3);
+        bytes[] memory gateDatas = new bytes[](3);
+        for (uint256 i; i < 3; ++i) {
+            recipients[i] = _randomAddress();
+            delegates[i] = _randomAddress();
+            values[i] = 1 ether;
+        }
+        vm.expectRevert(ETHCrowdfundBase.InvalidMessageValue.selector);
+        vm.prank(sender);
+        uint96[] memory votingPowers = crowdfund.batchContributeFor{ value: 3 ether - 100 }(
+            ReraiseETHCrowdfund.BatchContributeForArgs({
+                recipients: recipients,
+                initialDelegates: delegates,
+                values: values,
+                gateDatas: gateDatas
+            })
+        );
     }
 
     function test_finalize_works() public {

@@ -691,7 +691,7 @@ contract InitialETHCrowdfundTest is LintJSON, TestUtils, ERC721Receiver {
         address member = _randomAddress();
 
         // Create allowlist gatekeeper with only member allowed
-        AllowListGateKeeper gatekeeper = new AllowListGateKeeper();
+        AllowListGateKeeper gatekeeper = new AllowListGateKeeper(address(0));
         bytes12 gateId = gatekeeper.createGate(keccak256(abi.encodePacked(member)));
 
         InitialETHCrowdfund crowdfund = _createCrowdfund(
@@ -974,28 +974,27 @@ contract InitialETHCrowdfundTest is LintJSON, TestUtils, ERC721Receiver {
 
         // Batch contribute for
         vm.prank(sender);
-        uint256[] memory tokenIds = new uint256[](4);
-        address payable[] memory recipients = new address payable[](4);
-        address[] memory delegates = new address[](4);
-        uint96[] memory values = new uint96[](4);
-        bytes[] memory gateDatas = new bytes[](4);
-        for (uint256 i; i < 4; ++i) {
+        uint256[] memory tokenIds = new uint256[](3);
+        address payable[] memory recipients = new address payable[](3);
+        address[] memory delegates = new address[](3);
+        uint96[] memory values = new uint96[](3);
+        bytes[] memory gateDatas = new bytes[](3);
+        for (uint256 i; i < 3; ++i) {
             recipients[i] = _randomAddress();
             delegates[i] = _randomAddress();
-            values[i] = i != 3 ? 1 ether : 0.5 ether; // Last contribution is below min contribution
+            values[i] = 1 ether;
         }
-        uint96[] memory votingPowers = crowdfund.batchContributeFor{ value: 4 ether }(
+        uint96[] memory votingPowers = crowdfund.batchContributeFor{ value: 3 ether }(
             InitialETHCrowdfund.BatchContributeForArgs({
                 tokenIds: tokenIds,
                 recipients: recipients,
                 initialDelegates: delegates,
                 values: values,
-                gateDatas: gateDatas,
-                revertOnFailure: false
+                gateDatas: gateDatas
             })
         );
 
-        assertEq(address(sender).balance, 1 ether); // Should be refunded 1 ETH
+        assertEq(address(sender).balance, 1 ether);
         for (uint256 i; i < 3; ++i) {
             assertEq(votingPowers[i], 1 ether);
             assertEq(crowdfund.delegationsByContributor(recipients[i]), delegates[i]);
@@ -1006,6 +1005,54 @@ contract InitialETHCrowdfundTest is LintJSON, TestUtils, ERC721Receiver {
         }
         // Should not have minted for failed contribution
         assertEq(party.votingPowerByTokenId(4), 0);
+    }
+
+    function test_batchContributeFor_works_invalidMessageValue() public {
+        InitialETHCrowdfund crowdfund = _createCrowdfund(
+            CreateCrowdfundArgs({
+                initialContribution: 0,
+                initialContributor: payable(address(0)),
+                initialDelegate: address(0),
+                minContributions: 1 ether,
+                maxContributions: type(uint96).max,
+                disableContributingForExistingCard: false,
+                minTotalContributions: 3 ether,
+                maxTotalContributions: 5 ether,
+                duration: 7 days,
+                exchangeRateBps: 1e4,
+                fundingSplitBps: 0,
+                fundingSplitRecipient: payable(address(0)),
+                gateKeeper: IGateKeeper(address(0)),
+                gateKeeperId: bytes12(0)
+            })
+        );
+        Party party = crowdfund.party();
+
+        address sender = _randomAddress();
+        vm.deal(sender, 4 ether);
+
+        // Batch contribute for
+        uint256[] memory tokenIds = new uint256[](3);
+        address payable[] memory recipients = new address payable[](3);
+        address[] memory delegates = new address[](3);
+        uint96[] memory values = new uint96[](3);
+        bytes[] memory gateDatas = new bytes[](3);
+        for (uint256 i; i < 3; ++i) {
+            recipients[i] = _randomAddress();
+            delegates[i] = _randomAddress();
+            values[i] = 1 ether;
+        }
+        vm.expectRevert(ETHCrowdfundBase.InvalidMessageValue.selector);
+        vm.prank(sender);
+        uint96[] memory votingPowers = crowdfund.batchContributeFor{ value: 3 ether - 100 }(
+            InitialETHCrowdfund.BatchContributeForArgs({
+                tokenIds: tokenIds,
+                recipients: recipients,
+                initialDelegates: delegates,
+                values: values,
+                gateDatas: gateDatas
+            })
+        );
     }
 
     function test_finalize_works() public {

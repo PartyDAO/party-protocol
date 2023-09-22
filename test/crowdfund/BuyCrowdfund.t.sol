@@ -288,7 +288,7 @@ contract BuyCrowdfundTest is Test, TestUtils {
         address contributor = _randomAddress();
 
         // Create a BuyCrowdfund instance with a gatekeeper enabled.
-        AllowListGateKeeper gateKeeper = new AllowListGateKeeper();
+        AllowListGateKeeper gateKeeper = new AllowListGateKeeper(address(0));
         bytes32 contributorHash = keccak256(abi.encodePacked(contributor));
         bytes12 gateKeeperId = gateKeeper.createGate(contributorHash);
         BuyCrowdfund cf = _createCrowdfund(
@@ -328,7 +328,7 @@ contract BuyCrowdfundTest is Test, TestUtils {
         address contributor = _randomAddress();
 
         // Create a BuyCrowdfund instance with onlyHostCanBuy and a gatekeeper enabled.
-        AllowListGateKeeper gateKeeper = new AllowListGateKeeper();
+        AllowListGateKeeper gateKeeper = new AllowListGateKeeper(address(0));
         bytes32 contributorHash = keccak256(abi.encodePacked(contributor));
         bytes12 gateKeeperId = gateKeeper.createGate(contributorHash);
         BuyCrowdfund cf = _createCrowdfund(
@@ -368,7 +368,7 @@ contract BuyCrowdfundTest is Test, TestUtils {
         address host = _randomAddress();
 
         // Create a BuyCrowdfund instance with onlyHostCanBuy and a gatekeeper enabled.
-        AllowListGateKeeper gateKeeper = new AllowListGateKeeper();
+        AllowListGateKeeper gateKeeper = new AllowListGateKeeper(address(0));
         bytes12 gateKeeperId = gateKeeper.createGate(0);
         BuyCrowdfund cf = _createCrowdfund(
             0,

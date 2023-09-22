@@ -70,6 +70,7 @@ contract ETHCrowdfundBase is Implementation {
     error ZeroVotingPowerError();
     error FundingSplitAlreadyPaidError();
     error FundingSplitNotConfiguredError();
+    error InvalidMessageValue();
 
     event Contributed(
         address indexed sender,

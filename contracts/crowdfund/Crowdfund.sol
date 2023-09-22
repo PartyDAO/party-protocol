@@ -110,6 +110,7 @@ abstract contract Crowdfund is Implementation, ERC721Receiver, CrowdfundNFT {
     error OnlyWhenEmergencyActionsAllowedError();
     error BelowMinimumContributionsError(uint96 contributions, uint96 minContributions);
     error AboveMaximumContributionsError(uint96 contributions, uint96 maxContributions);
+    error InvalidMessageValue();
 
     event Burned(address contributor, uint256 ethUsed, uint256 ethOwed, uint256 votingPower);
     event Contributed(
@@ -366,24 +367,27 @@ abstract contract Crowdfund is Implementation, ERC721Receiver, CrowdfundNFT {
     /// @param initialDelegates The addresses to delegate to for each recipient.
     /// @param values The ETH to contribute for each recipient.
     /// @param gateDatas Data to pass to the gatekeeper to prove eligibility.
-    /// @param revertOnFailure If true, revert if any contribution fails.
     function batchContributeFor(
         address[] memory recipients,
         address[] memory initialDelegates,
-        uint256[] memory values,
-        bytes[] memory gateDatas,
-        bool revertOnFailure
+        uint96[] memory values,
+        bytes[] memory gateDatas
     ) external payable {
+        uint256 valuesSum;
         for (uint256 i; i < recipients.length; ++i) {
-            (bool s, bytes memory r) = address(this).call{ value: values[i] }(
-                abi.encodeCall(
-                    this.contributeFor,
-                    (recipients[i], initialDelegates[i], gateDatas[i])
-                )
+            _setDelegate(recipients[i], initialDelegates[i]);
+
+            _contribute(
+                recipients[i],
+                initialDelegates[i],
+                values[i],
+                totalContributions,
+                gateDatas[i]
             );
-            if (revertOnFailure && !s) {
-                r.rawRevert();
-            }
+            valuesSum += values[i];
+        }
+        if (msg.value != valuesSum) {
+            revert InvalidMessageValue();
         }
     }
 
