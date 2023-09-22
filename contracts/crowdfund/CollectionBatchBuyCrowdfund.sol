@@ -100,7 +100,7 @@ contract CollectionBatchBuyCrowdfund is BuyCrowdfundBase {
     ///             and cannot be changed later.
     function initialize(
         CollectionBatchBuyCrowdfundOptions memory opts
-    ) external payable onlyConstructor {
+    ) external payable onlyInitialize {
         if (opts.governanceOpts.hosts.length == 0) {
             revert MissingHostsError();
         }
