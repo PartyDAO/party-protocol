@@ -29,6 +29,7 @@ library LibDeployConstants {
         address deployedNounsMarketWrapper;
         address deployedFoundationMarketWrapper;
         uint96 contributionRouterInitialFee;
+        address oldTokenDistributor;
     }
 
     function goerli(address multisig) internal pure returns (DeployConstants memory) {
@@ -59,7 +60,8 @@ library LibDeployConstants {
             networkName: "goerli",
             deployedNounsMarketWrapper: 0x0000000000000000000000000000000000000000,
             deployedFoundationMarketWrapper: 0x0000000000000000000000000000000000000000,
-            contributionRouterInitialFee: 0.00055 ether
+            contributionRouterInitialFee: 0.00055 ether,
+            oldTokenDistributor: address(0)
         });
 
         return deployConstants;
@@ -93,7 +95,8 @@ library LibDeployConstants {
             networkName: "base-goerli",
             deployedNounsMarketWrapper: 0x0000000000000000000000000000000000000000,
             deployedFoundationMarketWrapper: 0x0000000000000000000000000000000000000000,
-            contributionRouterInitialFee: 0.00055 ether
+            contributionRouterInitialFee: 0.00055 ether,
+            oldTokenDistributor: address(0)
         });
 
         return deployConstants;
@@ -127,7 +130,8 @@ library LibDeployConstants {
             networkName: "mainnet",
             deployedNounsMarketWrapper: 0x9319DAd8736D752C5c72DB229f8e1b280DC80ab1,
             deployedFoundationMarketWrapper: 0x96e5b0519983f2f984324b926e6d28C3A4Eb92A1,
-            contributionRouterInitialFee: 0.00055 ether
+            contributionRouterInitialFee: 0.00055 ether,
+            oldTokenDistributor: 0x1CA2007a81F8A7491BB6E11D8e357FD810896454
         });
 
         return deployConstants;
@@ -161,7 +165,8 @@ library LibDeployConstants {
             networkName: "base",
             deployedNounsMarketWrapper: 0x0000000000000000000000000000000000000000,
             deployedFoundationMarketWrapper: 0x0000000000000000000000000000000000000000,
-            contributionRouterInitialFee: 0.00055 ether
+            contributionRouterInitialFee: 0.00055 ether,
+            oldTokenDistributor: address(0)
         });
 
         return deployConstants;

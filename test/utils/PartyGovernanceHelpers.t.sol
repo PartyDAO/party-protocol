@@ -38,7 +38,12 @@ contract PartyGovernanceHelpersTest is Test, TestUtils {
         eng = new DummySimpleProposalEngineImpl();
         globalsAdmin.setProposalEng(address(eng));
 
-        nftRenderer = new PartyNFTRenderer(globals, RendererStorage(address(0)), IFont(address(0)));
+        nftRenderer = new PartyNFTRenderer(
+            globals,
+            RendererStorage(address(0)),
+            IFont(address(0)),
+            address(0)
+        );
         globalsAdmin.setGovernanceNftRendererAddress(address(nftRenderer));
 
         partyFactory = new PartyFactory(globals);
