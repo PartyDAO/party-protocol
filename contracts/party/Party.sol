@@ -36,7 +36,7 @@ contract Party is PartyGovernanceNFT {
     /// @notice Initializer to be delegatecalled by `Proxy` constructor. Will
     ///         revert if called outside the constructor.
     /// @param initData Options used to initialize the party governance.
-    function initialize(PartyInitData memory initData) external onlyConstructor {
+    function initialize(PartyInitData memory initData) external onlyInitialize {
         PartyGovernanceNFT._initialize(
             initData.options.name,
             initData.options.symbol,

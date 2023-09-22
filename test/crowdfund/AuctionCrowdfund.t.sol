@@ -2,11 +2,11 @@
 pragma solidity ^0.8;
 
 import "forge-std/Test.sol";
+import { Clones } from "openzeppelin/contracts/proxy/Clones.sol";
 
 import "../../contracts/crowdfund/AuctionCrowdfund.sol";
 import "../../contracts/globals/Globals.sol";
 import "../../contracts/globals/LibGlobals.sol";
-import "../../contracts/utils/Proxy.sol";
 import "../../contracts/gatekeepers/AllowListGateKeeper.sol";
 import "../../contracts/renderers/RendererStorage.sol";
 
@@ -18,6 +18,8 @@ import "./MockParty.sol";
 import "./MockMarketWrapper.sol";
 
 contract AuctionCrowdfundTest is Test, TestUtils {
+    using Clones for address;
+
     event BatchMetadataUpdate(uint256 _fromTokenId, uint256 _toTokenId);
 
     event MockPartyFactoryCreateParty(
@@ -88,39 +90,30 @@ contract AuctionCrowdfundTest is Test, TestUtils {
         address[] memory hosts
     ) private returns (AuctionCrowdfund cf) {
         governanceOpts.hosts = hosts;
-        cf = AuctionCrowdfund(
-            payable(
-                address(
-                    new Proxy{ value: initialContribution }(
-                        auctionCrowdfundImpl,
-                        abi.encodeCall(
-                            AuctionCrowdfund.initialize,
-                            AuctionCrowdfundBase.AuctionCrowdfundOptions({
-                                name: defaultName,
-                                symbol: defaultSymbol,
-                                customizationPresetId: 0,
-                                auctionId: auctionId,
-                                market: market,
-                                nftContract: tokenToBuy,
-                                nftTokenId: tokenId,
-                                duration: defaultDuration,
-                                maximumBid: defaultMaxBid,
-                                splitRecipient: defaultSplitRecipient,
-                                splitBps: defaultSplitBps,
-                                initialContributor: address(this),
-                                initialDelegate: defaultInitialDelegate,
-                                minContribution: 0,
-                                maxContribution: type(uint96).max,
-                                gateKeeper: gateKeeper,
-                                gateKeeperId: gateKeeperId,
-                                onlyHostCanBid: onlyHostCanBid,
-                                governanceOpts: governanceOpts,
-                                proposalEngineOpts: proposalEngineOpts
-                            })
-                        )
-                    )
-                )
-            )
+        cf = AuctionCrowdfund(payable(address(auctionCrowdfundImpl).clone()));
+        cf.initialize{ value: initialContribution }(
+            AuctionCrowdfundBase.AuctionCrowdfundOptions({
+                name: defaultName,
+                symbol: defaultSymbol,
+                customizationPresetId: 0,
+                auctionId: auctionId,
+                market: market,
+                nftContract: tokenToBuy,
+                nftTokenId: tokenId,
+                duration: defaultDuration,
+                maximumBid: defaultMaxBid,
+                splitRecipient: defaultSplitRecipient,
+                splitBps: defaultSplitBps,
+                initialContributor: address(this),
+                initialDelegate: defaultInitialDelegate,
+                minContribution: 0,
+                maxContribution: type(uint96).max,
+                gateKeeper: gateKeeper,
+                gateKeeperId: gateKeeperId,
+                onlyHostCanBid: onlyHostCanBid,
+                governanceOpts: governanceOpts,
+                proposalEngineOpts: proposalEngineOpts
+            })
         );
     }
 
@@ -230,7 +223,7 @@ contract AuctionCrowdfundTest is Test, TestUtils {
     function test_cannotReinitialize() external {
         (uint256 auctionId, uint256 tokenId) = market.createAuction(1337);
         AuctionCrowdfund cf = _createCrowdfund(auctionId, tokenId, 0);
-        vm.expectRevert(abi.encodeWithSelector(Implementation.OnlyConstructorError.selector));
+        vm.expectRevert(abi.encodeWithSelector(Implementation.AlreadyInitialized.selector));
         AuctionCrowdfundBase.AuctionCrowdfundOptions memory opts;
         cf.initialize(opts);
     }
@@ -778,6 +771,8 @@ contract AuctionCrowdfundTest is Test, TestUtils {
     }
 
     function test_creation_initialContribution() external {
+        AuctionCrowdfund cf = AuctionCrowdfund(payable(address(auctionCrowdfundImpl).clone()));
+
         (uint256 auctionId, uint256 tokenId) = market.createAuction(1337);
         uint256 initialContribution = _randomRange(1, 1 ether);
         address initialContributor = _randomAddress();
@@ -790,39 +785,29 @@ contract AuctionCrowdfundTest is Test, TestUtils {
             initialDelegate,
             0
         );
-        AuctionCrowdfund(
-            payable(
-                address(
-                    new Proxy{ value: initialContribution }(
-                        auctionCrowdfundImpl,
-                        abi.encodeCall(
-                            AuctionCrowdfund.initialize,
-                            AuctionCrowdfundBase.AuctionCrowdfundOptions({
-                                name: defaultName,
-                                symbol: defaultSymbol,
-                                customizationPresetId: 0,
-                                auctionId: auctionId,
-                                market: market,
-                                nftContract: tokenToBuy,
-                                nftTokenId: tokenId,
-                                duration: defaultDuration,
-                                maximumBid: defaultMaxBid,
-                                splitRecipient: defaultSplitRecipient,
-                                splitBps: defaultSplitBps,
-                                initialContributor: initialContributor,
-                                initialDelegate: initialDelegate,
-                                minContribution: 0,
-                                maxContribution: type(uint96).max,
-                                gateKeeper: defaultGateKeeper,
-                                gateKeeperId: defaultGateKeeperId,
-                                onlyHostCanBid: false,
-                                governanceOpts: governanceOpts,
-                                proposalEngineOpts: proposalEngineOpts
-                            })
-                        )
-                    )
-                )
-            )
+        cf.initialize{ value: initialContribution }(
+            AuctionCrowdfundBase.AuctionCrowdfundOptions({
+                name: defaultName,
+                symbol: defaultSymbol,
+                customizationPresetId: 0,
+                auctionId: auctionId,
+                market: market,
+                nftContract: tokenToBuy,
+                nftTokenId: tokenId,
+                duration: defaultDuration,
+                maximumBid: defaultMaxBid,
+                splitRecipient: defaultSplitRecipient,
+                splitBps: defaultSplitBps,
+                initialContributor: initialContributor,
+                initialDelegate: initialDelegate,
+                minContribution: 0,
+                maxContribution: type(uint96).max,
+                gateKeeper: defaultGateKeeper,
+                gateKeeperId: defaultGateKeeperId,
+                onlyHostCanBid: false,
+                governanceOpts: governanceOpts,
+                proposalEngineOpts: proposalEngineOpts
+            })
         );
     }
 

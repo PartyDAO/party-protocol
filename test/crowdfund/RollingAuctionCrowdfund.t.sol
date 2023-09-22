@@ -1,10 +1,11 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8;
 
+import { Clones } from "openzeppelin/contracts/proxy/Clones.sol";
+
 import "contracts/crowdfund/RollingAuctionCrowdfund.sol";
 import "contracts/renderers/RendererStorage.sol";
 import "contracts/globals/Globals.sol";
-import "contracts/utils/Proxy.sol";
 import "contracts/tokens/ERC721Receiver.sol";
 import "./MockPartyFactory.sol";
 import "./MockMarketWrapper.sol";
@@ -12,6 +13,8 @@ import "./MockMarketWrapper.sol";
 import "../TestUtils.sol";
 
 contract RollingAuctionCrowdfundTest is TestUtils, ERC721Receiver {
+    using Clones for address;
+
     event Won(uint256 bid, Party party);
     event Lost();
     event AuctionUpdated(uint256 nextNftTokenId, uint256 nextAuctionId, uint256 nextMaximumBid);
@@ -64,42 +67,31 @@ contract RollingAuctionCrowdfundTest is TestUtils, ERC721Receiver {
 
     function _createCrowdfund(bytes32 allowedAuctionsMerkleRoot) internal {
         // Create crowdfund
-        crowdfund = RollingAuctionCrowdfund(
-            payable(
-                address(
-                    new Proxy(
-                        rollingAuctionCrowdfundImpl,
-                        abi.encodeCall(
-                            RollingAuctionCrowdfund.initialize,
-                            (
-                                AuctionCrowdfundBase.AuctionCrowdfundOptions({
-                                    name: "Crowfund",
-                                    symbol: "CF",
-                                    customizationPresetId: 0,
-                                    auctionId: auctionId,
-                                    market: market,
-                                    nftContract: nftContract,
-                                    nftTokenId: tokenId,
-                                    duration: 2 days,
-                                    maximumBid: type(uint96).max,
-                                    splitRecipient: payable(address(0)),
-                                    splitBps: 0,
-                                    initialContributor: address(this),
-                                    initialDelegate: address(this),
-                                    minContribution: 0,
-                                    maxContribution: type(uint96).max,
-                                    gateKeeper: IGateKeeper(address(0)),
-                                    gateKeeperId: 0,
-                                    onlyHostCanBid: false,
-                                    governanceOpts: govOpts,
-                                    proposalEngineOpts: proposalEngineOpts
-                                }),
-                                allowedAuctionsMerkleRoot
-                            )
-                        )
-                    )
-                )
-            )
+        crowdfund = RollingAuctionCrowdfund(payable(address(rollingAuctionCrowdfundImpl).clone()));
+        crowdfund.initialize(
+            AuctionCrowdfundBase.AuctionCrowdfundOptions({
+                name: "Crowfund",
+                symbol: "CF",
+                customizationPresetId: 0,
+                auctionId: auctionId,
+                market: market,
+                nftContract: nftContract,
+                nftTokenId: tokenId,
+                duration: 2 days,
+                maximumBid: type(uint96).max,
+                splitRecipient: payable(address(0)),
+                splitBps: 0,
+                initialContributor: address(this),
+                initialDelegate: address(this),
+                minContribution: 0,
+                maxContribution: type(uint96).max,
+                gateKeeper: IGateKeeper(address(0)),
+                gateKeeperId: 0,
+                onlyHostCanBid: false,
+                governanceOpts: govOpts,
+                proposalEngineOpts: proposalEngineOpts
+            }),
+            allowedAuctionsMerkleRoot
         );
 
         // Contribute enough ETH to play with
