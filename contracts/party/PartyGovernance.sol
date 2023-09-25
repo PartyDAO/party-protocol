@@ -1097,8 +1097,11 @@ abstract contract PartyGovernance is
         return acceptanceRatio >= 0.9999e4;
     }
 
-    function _hostsAccepted(uint8 numHosts, uint8 numHostsAccepted) private pure returns (bool) {
-        return numHosts > 0 && numHosts == numHostsAccepted;
+    function _hostsAccepted(
+        uint8 snapshotNumHosts,
+        uint8 numHostsAccepted
+    ) private pure returns (bool) {
+        return snapshotNumHosts > 0 && snapshotNumHosts == numHostsAccepted;
     }
 
     function _areVotesPassing(
