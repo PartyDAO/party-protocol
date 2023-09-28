@@ -112,11 +112,6 @@ contract PartyGovernanceNFT is PartyGovernance, ERC721, IERC2981 {
         }
     }
 
-    /// @inheritdoc ERC721
-    function ownerOf(uint256 tokenId) public view override returns (address owner) {
-        return ERC721.ownerOf(tokenId);
-    }
-
     /// @inheritdoc EIP165
     function supportsInterface(
         bytes4 interfaceId
@@ -151,7 +146,7 @@ contract PartyGovernanceNFT is PartyGovernance, ERC721, IERC2981 {
     ///         `TokenDistributor` implementations.
     /// @param tokenId The token ID to query.
     /// @return share The distribution shares of `tokenId`.
-    function getDistributionShareOf(uint256 tokenId) public view returns (uint256) {
+    function getDistributionShareOf(uint256 tokenId) external view returns (uint256) {
         return votingPowerByTokenId[tokenId];
     }
 
