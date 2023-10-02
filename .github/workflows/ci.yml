@@ -83,5 +83,7 @@ jobs:
           version: nightly
       - name: Install dependencies
         run: forge install
-      - name: Check contract sizes
-        run: "node js/contracts-deployable.js"
+      - name: Check contract deployable mainnet
+        run: "node js/contracts-deployable.js --via-ir --optimize --optimizer-runs 200"
+      - name: Check contracts deployable base
+        run: "node js/contracts-deployable.js --via-ir --optimize --optimizer-runs 0 --evm-version paris"

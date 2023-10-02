@@ -19,7 +19,8 @@ async function main() {
   await run("rm -rf out/");
   await run("rm -rf test/");
   await run("rm -rf deploy/");
-  await run("forge build --optimize --optimizer-runs 200");
+  const buildArgs = process.argv.slice(2).join(" ");
+  await run(`forge build ${buildArgs}`);
   const files = await glob("out/**/*.json");
   for (const file of files) {
     checkContractSize(file);
