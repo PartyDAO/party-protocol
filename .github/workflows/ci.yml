@@ -65,3 +65,25 @@ jobs:
         run: yarn install
       - name: Run Linter
         run: yarn lint:check
+  contracts-deployable:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Use Node.js 16.x
+        uses: actions/setup-node@v3
+        with:
+          node-version: 16.x
+      - name: Install Dependencies
+        run: yarn install
+      - name: Build ts
+        run: yarn build:ts
+      - name: "Install Foundry"
+        uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: nightly
+      - name: Install dependencies
+        run: forge install
+      - name: Check contract deployable mainnet
+        run: "node js/contracts-deployable.js --via-ir --optimize --optimizer-runs 200"
+      - name: Check contracts deployable base
+        run: "node js/contracts-deployable.js --via-ir --optimize --optimizer-runs 0 --evm-version paris"
