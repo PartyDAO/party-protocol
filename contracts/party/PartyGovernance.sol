@@ -5,8 +5,8 @@ import "../distribution/ITokenDistributor.sol";
 import "../utils/ReadOnlyDelegateCall.sol";
 import "../tokens/IERC721.sol";
 import "../tokens/IERC20.sol";
-import "../tokens/ERC721Receiver.sol";
-import "../tokens/ERC1155Receiver.sol";
+import { IERC721Receiver } from "../tokens/IERC721Receiver.sol";
+import { ERC1155TokenReceiverBase } from "../vendor/solmate/ERC1155.sol";
 import "../utils/LibERC20Compat.sol";
 import "../utils/LibRawResult.sol";
 import "../utils/LibSafeCast.sol";
@@ -21,8 +21,6 @@ import "./Party.sol";
 
 /// @notice Base contract for a Party encapsulating all governance functionality.
 abstract contract PartyGovernance is
-    ERC721Receiver,
-    ERC1155Receiver,
     ProposalStorage,
     Implementation,
     IERC4906,
@@ -322,17 +320,30 @@ abstract contract PartyGovernance is
     /// @dev Forward all unknown read-only calls to the proposal execution engine.
     ///      Initial use case is to facilitate eip-1271 signatures.
     fallback() external {
+        bytes4 functionSelector = bytes4(msg.data[0:4]);
+        if (
+            functionSelector == ERC1155TokenReceiverBase.onERC1155BatchReceived.selector ||
+            functionSelector == ERC1155TokenReceiverBase.onERC1155Received.selector ||
+            functionSelector == IERC721Receiver.onERC721Received.selector
+        ) {
+            assembly {
+                let freeMem := mload(0x40)
+                mstore(freeMem, functionSelector)
+                mstore(0x40, add(freeMem, 0x20))
+                return(freeMem, 0x20)
+            }
+        }
         _readOnlyDelegateCall(address(_getSharedProposalStorage().engineImpl), msg.data);
     }
 
-    /// @inheritdoc EIP165
-    /// @dev Combined logic for `ERC721Receiver` and `ERC1155Receiver`.
-    function supportsInterface(
-        bytes4 interfaceId
-    ) public pure virtual override(ERC721Receiver, ERC1155Receiver) returns (bool) {
+    /// @notice Query if a contract implements an interface.
+    /// @param interfaceId The interface identifier, as specified in ERC-165
+    /// @return `true` if the contract implements `interfaceId` and
+    ///         `interfaceId` is not 0xffffffff, `false` otherwise
+    function supportsInterface(bytes4 interfaceId) public pure virtual returns (bool) {
         return
-            ERC721Receiver.supportsInterface(interfaceId) ||
-            ERC1155Receiver.supportsInterface(interfaceId) ||
+            interfaceId == type(IERC721Receiver).interfaceId ||
+            interfaceId == type(ERC1155TokenReceiverBase).interfaceId ||
             // ERC4906 interface ID
             interfaceId == 0x49064906;
     }
