@@ -190,6 +190,228 @@ contract PartyGovernanceNFTTest is PartyGovernanceNFTTestBase {
         assertEq(party.getVotingPowerAt(recipient, uint40(block.timestamp)), 1);
     }
 
+    function testIncreaseTotalVotingPower_works() external {
+        (Party party, , ) = partyAdmin.createParty(
+            partyImpl,
+            PartyAdmin.PartyCreationMinimalOptions({
+                host1: address(this),
+                host2: address(0),
+                passThresholdBps: 5100,
+                totalVotingPower: 100,
+                preciousTokenAddress: address(toadz),
+                preciousTokenId: 1,
+                rageQuitTimestamp: 0,
+                feeBps: 0,
+                feeRecipient: payable(0)
+            })
+        );
+
+        uint96 votingPower = 10;
+
+        address authority = address(partyAdmin);
+        vm.prank(authority);
+        party.increaseTotalVotingPower(votingPower);
+
+        assertEq(party.getGovernanceValues().totalVotingPower, 110);
+    }
+
+    function testIncreaseTotalVotingPower_onlyAuthority() external {
+        (Party party, , ) = partyAdmin.createParty(
+            partyImpl,
+            PartyAdmin.PartyCreationMinimalOptions({
+                host1: address(this),
+                host2: address(0),
+                passThresholdBps: 5100,
+                totalVotingPower: 100,
+                preciousTokenAddress: address(toadz),
+                preciousTokenId: 1,
+                rageQuitTimestamp: 0,
+                feeBps: 0,
+                feeRecipient: payable(0)
+            })
+        );
+
+        uint96 votingPower = 10;
+
+        address notAuthority = _randomAddress();
+        vm.prank(notAuthority);
+        vm.expectRevert(PartyGovernanceNFT.OnlyAuthorityError.selector);
+        party.increaseTotalVotingPower(votingPower);
+    }
+
+    function testDecreaseTotalVotingPower_works() external {
+        (Party party, , ) = partyAdmin.createParty(
+            partyImpl,
+            PartyAdmin.PartyCreationMinimalOptions({
+                host1: address(this),
+                host2: address(0),
+                passThresholdBps: 5100,
+                totalVotingPower: 100,
+                preciousTokenAddress: address(toadz),
+                preciousTokenId: 1,
+                rageQuitTimestamp: 0,
+                feeBps: 0,
+                feeRecipient: payable(0)
+            })
+        );
+
+        uint96 votingPower = 10;
+
+        address authority = address(partyAdmin);
+        vm.prank(authority);
+        party.decreaseTotalVotingPower(votingPower);
+
+        assertEq(party.getGovernanceValues().totalVotingPower, 90);
+    }
+
+    function testDecreaseTotalVotingPower_onlyAuthority() external {
+        (Party party, , ) = partyAdmin.createParty(
+            partyImpl,
+            PartyAdmin.PartyCreationMinimalOptions({
+                host1: address(this),
+                host2: address(0),
+                passThresholdBps: 5100,
+                totalVotingPower: 100,
+                preciousTokenAddress: address(toadz),
+                preciousTokenId: 1,
+                rageQuitTimestamp: 0,
+                feeBps: 0,
+                feeRecipient: payable(0)
+            })
+        );
+
+        uint96 votingPower = 10;
+
+        address notAuthority = _randomAddress();
+        vm.prank(notAuthority);
+        vm.expectRevert(PartyGovernanceNFT.OnlyAuthorityError.selector);
+        party.decreaseTotalVotingPower(votingPower);
+    }
+
+    function testAddVotingPower_works() external {
+        (Party party, , ) = partyAdmin.createParty(
+            partyImpl,
+            PartyAdmin.PartyCreationMinimalOptions({
+                host1: address(this),
+                host2: address(0),
+                passThresholdBps: 5100,
+                totalVotingPower: 100,
+                preciousTokenAddress: address(toadz),
+                preciousTokenId: 1,
+                rageQuitTimestamp: 0,
+                feeBps: 0,
+                feeRecipient: payable(0)
+            })
+        );
+        address recipient = _randomAddress();
+        vm.prank(address(partyAdmin));
+        uint256 tokenId = party.mint(recipient, 10, recipient);
+
+        uint40 timestampBefore = uint40(block.timestamp);
+        skip(10);
+        uint40 timestampAfter = uint40(block.timestamp);
+
+        uint96 votingPower = 10;
+
+        address authority = address(partyAdmin);
+        vm.prank(authority);
+        party.addVotingPower(tokenId, votingPower);
+
+        assertEq(party.votingPowerByTokenId(tokenId), 20);
+        assertEq(party.mintedVotingPower(), 20);
+        assertEq(party.getVotingPowerAt(recipient, timestampAfter), 20);
+        assertEq(party.getVotingPowerAt(recipient, timestampBefore), 10);
+    }
+
+    function testAddVotingPower_onlyAuthority() external {
+        (Party party, , ) = partyAdmin.createParty(
+            partyImpl,
+            PartyAdmin.PartyCreationMinimalOptions({
+                host1: address(this),
+                host2: address(0),
+                passThresholdBps: 5100,
+                totalVotingPower: 100,
+                preciousTokenAddress: address(toadz),
+                preciousTokenId: 1,
+                rageQuitTimestamp: 0,
+                feeBps: 0,
+                feeRecipient: payable(0)
+            })
+        );
+        address recipient = _randomAddress();
+        vm.prank(address(partyAdmin));
+        uint256 tokenId = party.mint(recipient, 10, recipient);
+
+        uint96 votingPower = 10;
+
+        address notAuthority = _randomAddress();
+        vm.prank(notAuthority);
+        vm.expectRevert(PartyGovernanceNFT.OnlyAuthorityError.selector);
+        party.addVotingPower(tokenId, votingPower);
+    }
+
+    function testRemoveVotingPower_works() external {
+        (Party party, , ) = partyAdmin.createParty(
+            partyImpl,
+            PartyAdmin.PartyCreationMinimalOptions({
+                host1: address(this),
+                host2: address(0),
+                passThresholdBps: 5100,
+                totalVotingPower: 100,
+                preciousTokenAddress: address(toadz),
+                preciousTokenId: 1,
+                rageQuitTimestamp: 0,
+                feeBps: 0,
+                feeRecipient: payable(0)
+            })
+        );
+        address recipient = _randomAddress();
+        vm.prank(address(partyAdmin));
+        uint256 tokenId = party.mint(recipient, 20, recipient);
+
+        uint40 timestampBefore = uint40(block.timestamp);
+        skip(10);
+        uint40 timestampAfter = uint40(block.timestamp);
+
+        uint96 votingPower = 10;
+
+        address authority = address(partyAdmin);
+        vm.prank(authority);
+        party.removeVotingPower(tokenId, votingPower);
+
+        assertEq(party.votingPowerByTokenId(tokenId), 10);
+        assertEq(party.mintedVotingPower(), 10);
+        assertEq(party.getVotingPowerAt(recipient, timestampAfter), 10);
+        assertEq(party.getVotingPowerAt(recipient, timestampBefore), 20);
+    }
+
+    function testRemoveVotingPower_onlyAuthority() external {
+        (Party party, , ) = partyAdmin.createParty(
+            partyImpl,
+            PartyAdmin.PartyCreationMinimalOptions({
+                host1: address(this),
+                host2: address(0),
+                passThresholdBps: 5100,
+                totalVotingPower: 100,
+                preciousTokenAddress: address(toadz),
+                preciousTokenId: 1,
+                rageQuitTimestamp: 0,
+                feeBps: 0,
+                feeRecipient: payable(0)
+            })
+        );
+        address recipient = _randomAddress();
+        vm.prank(address(partyAdmin));
+        uint256 tokenId = party.mint(recipient, 20, recipient);
+
+        uint96 votingPower = 10;
+
+        address notAuthority = _randomAddress();
+        vm.prank(notAuthority);
+        vm.expectRevert(PartyGovernanceNFT.OnlyAuthorityError.selector);
+        party.removeVotingPower(tokenId, votingPower);
+    }
+
     function testBurn_works() external {
         (Party party, , ) = partyAdmin.createParty(
             partyImpl,
@@ -197,7 +419,7 @@ contract PartyGovernanceNFTTest is PartyGovernanceNFTTestBase {
                 host1: address(this),
                 host2: address(0),
                 passThresholdBps: 5100,
-                totalVotingPower: 0,
+                totalVotingPower: 100,
                 preciousTokenAddress: address(toadz),
                 preciousTokenId: 1,
                 rageQuitTimestamp: 0,
@@ -220,7 +442,7 @@ contract PartyGovernanceNFTTest is PartyGovernanceNFTTestBase {
         assertEq(party.mintedVotingPower(), 0);
     }
 
-    function testBurn_onlyAuthority() external {
+    function testBurn_beforePartyStarted() external {
         (Party party, , ) = partyAdmin.createParty(
             partyImpl,
             PartyAdmin.PartyCreationMinimalOptions({
@@ -239,12 +461,11 @@ contract PartyGovernanceNFTTest is PartyGovernanceNFTTestBase {
         vm.prank(address(partyAdmin));
         uint256 tokenId = party.mint(recipient, 10, recipient);
 
-        vm.prank(_randomAddress());
-        vm.expectRevert(PartyGovernanceNFT.OnlyAuthorityError.selector);
+        vm.prank(address(partyAdmin));
         party.burn(tokenId);
     }
 
-    function testBurn_onlyBeforePartyStarted() external {
+    function testBurn_onlyAuthority() external {
         (Party party, , ) = partyAdmin.createParty(
             partyImpl,
             PartyAdmin.PartyCreationMinimalOptions({
@@ -263,8 +484,8 @@ contract PartyGovernanceNFTTest is PartyGovernanceNFTTestBase {
         vm.prank(address(partyAdmin));
         uint256 tokenId = party.mint(recipient, 10, recipient);
 
-        vm.prank(address(partyAdmin));
-        vm.expectRevert(PartyGovernanceNFT.UnauthorizedToBurnError.selector);
+        vm.prank(_randomAddress());
+        vm.expectRevert(PartyGovernanceNFT.OnlyAuthorityError.selector);
         party.burn(tokenId);
     }
 
@@ -772,6 +993,64 @@ contract PartyGovernanceNFTTest is PartyGovernanceNFTTestBase {
         address notOwner = _randomAddress();
         vm.prank(notOwner);
         vm.expectRevert(PartyGovernanceNFT.UnauthorizedToBurnError.selector);
+        party.rageQuit(tokenIds, tokens, minWithdrawAmounts, recipient);
+    }
+
+    function testRageQuit_ifNotOwner_butAuthority() public {
+        (Party party, , ) = partyAdmin.createParty(
+            partyImpl,
+            PartyAdmin.PartyCreationMinimalOptions({
+                host1: address(this),
+                host2: address(0),
+                passThresholdBps: 5100,
+                totalVotingPower: 100,
+                preciousTokenAddress: address(toadz),
+                preciousTokenId: 1,
+                rageQuitTimestamp: 0,
+                feeBps: 0,
+                feeRecipient: payable(0)
+            })
+        );
+
+        vm.prank(address(this));
+        party.setRageQuit(uint40(block.timestamp) + 1);
+
+        address recipient = _randomAddress();
+        vm.prank(address(partyAdmin));
+        uint256 tokenId = party.mint(recipient, 10, recipient);
+
+        vm.deal(address(party), 1 ether);
+
+        IERC20[] memory tokens = new IERC20[](4);
+        tokens[0] = IERC20(address(new DummyERC20()));
+        tokens[1] = IERC20(address(new DummyERC20()));
+        tokens[2] = IERC20(address(new DummyERC20()));
+        tokens[3] = IERC20(ETH_ADDRESS);
+
+        // Sort the addresses from lowest to highest.
+        for (uint256 i; i < tokens.length; ++i) {
+            for (uint256 j = 0; j < tokens.length - i - 1; j++) {
+                if (address(tokens[j]) > address(tokens[j + 1])) {
+                    IERC20 temp = tokens[j];
+                    tokens[j] = tokens[j + 1];
+                    tokens[j + 1] = temp;
+                }
+            }
+        }
+
+        uint256[] memory minWithdrawAmounts = new uint256[](4);
+
+        uint96[] memory balances = new uint96[](3);
+        for (uint256 i; i < balances.length; ++i) {
+            balances[i] = uint96(_randomRange(10, type(uint96).max));
+            DummyERC20(address(tokens[i])).deal(address(party), balances[i]);
+        }
+
+        uint256[] memory tokenIds = new uint256[](1);
+        tokenIds[0] = tokenId;
+
+        address authority = address(partyAdmin);
+        vm.prank(authority);
         party.rageQuit(tokenIds, tokens, minWithdrawAmounts, recipient);
     }
 
