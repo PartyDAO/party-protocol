@@ -360,10 +360,10 @@ contract PartyGovernanceNFT is PartyGovernance, ERC721, IERC2981 {
                     revert CannotRageQuitError(currentRageQuitTimestamp);
                 }
             }
-
-            // Used as a reentrancy guard. Will be updated back after ragequit.
-            rageQuitTimestamp = DISABLE_RAGEQUIT_PERMANENTLY;
         }
+
+        // Used as a reentrancy guard. Will be updated back after ragequit.
+        rageQuitTimestamp = DISABLE_RAGEQUIT_PERMANENTLY;
 
         // Update last rage quit timestamp.
         lastRageQuitTimestamp = uint40(block.timestamp);
@@ -438,10 +438,8 @@ contract PartyGovernanceNFT is PartyGovernance, ERC721, IERC2981 {
             }
         }
 
-        if (!isAuthority_) {
-            // Update ragequit timestamp back to before.
-            rageQuitTimestamp = currentRageQuitTimestamp;
-        }
+        // Update ragequit timestamp back to before.
+        rageQuitTimestamp = currentRageQuitTimestamp;
 
         emit RageQuit(msg.sender, tokenIds, withdrawTokens, receiver);
     }
