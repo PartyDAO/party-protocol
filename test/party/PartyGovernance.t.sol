@@ -24,6 +24,16 @@ contract PartyGovernanceTest is Test, TestUtils {
     PartyAdmin partyAdmin;
     address globalDaoWalletAddress = address(420);
 
+    event PartyDelegateUpdated(address indexed owner, address indexed delegate);
+    event PartyCardIntrinsicVotingPowerSet(uint256 indexed tokenId, uint256 intrinsicVotingPower);
+    event PartyVotingSnapshotCreated(
+        address indexed voter,
+        uint40 timestamp,
+        uint96 delegatedVotingPower,
+        uint96 intrinsicVotingPower,
+        bool isDelegated
+    );
+
     function setUp() public {
         GlobalsAdmin globalsAdmin = new GlobalsAdmin();
         Globals globals = globalsAdmin.globals();
@@ -70,6 +80,11 @@ contract PartyGovernanceTest is Test, TestUtils {
         DummySimpleProposalEngineImpl engInstance = DummySimpleProposalEngineImpl(address(party));
 
         // Mint first governance NFT
+        vm.expectEmit(true, true, true, true);
+        emit PartyCardIntrinsicVotingPowerSet(1, 49);
+        vm.expectEmit(true, true, true, true);
+        emit PartyVotingSnapshotCreated(address(john), uint40(block.timestamp), 0, 49, false);
+
         partyAdmin.mintGovNft(party, address(john), 49, address(john));
         assertEq(party.votingPowerByTokenId(1), 49);
         assertEq(party.ownerOf(1), address(john));
@@ -88,6 +103,8 @@ contract PartyGovernanceTest is Test, TestUtils {
         // Increase time and have danny delegate to self
         uint40 nextTime = firstTime + 10;
         vm.warp(nextTime);
+        vm.expectEmit(true, true, true, true);
+        emit PartyDelegateUpdated(address(danny), address(danny));
         danny.delegate(party, address(danny));
 
         // Ensure voting power looks correct for diff times
@@ -140,6 +157,10 @@ contract PartyGovernanceTest is Test, TestUtils {
         assertEq(engInstance.getLastExecutedProposalId(), 1);
         assertEq(engInstance.getNumExecutedProposals(), 1);
         assertEq(engInstance.getFlagsForProposalId(1), 0);
+
+        vm.expectEmit(true, true, true, true);
+        emit PartyDelegateUpdated(address(danny), address(10));
+        danny.delegate(party, address(10));
     }
 
     function testSimpleGovernanceUnanimous() public {
