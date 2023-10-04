@@ -32,6 +32,7 @@ contract PartyGovernanceNFT is PartyGovernance, ERC721, IERC2981 {
     event RageQuitSet(uint40 oldRageQuitTimestamp, uint40 newRageQuitTimestamp);
     event Burn(address caller, uint256 tokenId, uint256 votingPower);
     event RageQuit(address caller, uint256[] tokenIds, IERC20[] withdrawTokens, address receiver);
+    event PartyCardIntrinsicVotingPowerSet(uint256 indexed tokenId, uint256 intrinsicVotingPower);
 
     uint40 private constant ENABLE_RAGEQUIT_PERMANENTLY = 0x6b5b567bfe; // uint40(uint256(keccak256("ENABLE_RAGEQUIT_PERMANENTLY")))
     uint40 private constant DISABLE_RAGEQUIT_PERMANENTLY = 0xab2cb21860; // uint40(uint256(keccak256("DISABLE_RAGEQUIT_PERMANENTLY")))
@@ -196,6 +197,8 @@ contract PartyGovernanceNFT is PartyGovernance, ERC721, IERC2981 {
         mintedVotingPower += votingPower_;
         votingPowerByTokenId[tokenId] = votingPower_;
 
+        emit PartyCardIntrinsicVotingPowerSet(tokenId, votingPower);
+
         // Use delegate from party over the one set during crowdfund.
         address delegate_ = delegationsByVoter[owner];
         if (delegate_ != address(0)) {
@@ -225,7 +228,10 @@ contract PartyGovernanceNFT is PartyGovernance, ERC721, IERC2981 {
 
         // Update state.
         mintedVotingPower += votingPower_;
-        votingPowerByTokenId[tokenId] += votingPower_;
+        uint256 newIntrinsicVotingPower = votingPowerByTokenId[tokenId] + votingPower_;
+        votingPowerByTokenId[tokenId] = newIntrinsicVotingPower;
+
+        emit PartyCardIntrinsicVotingPowerSet(tokenId, newIntrinsicVotingPower);
 
         _adjustVotingPower(ownerOf(tokenId), votingPower_.safeCastUint96ToInt192(), address(0));
     }
@@ -275,6 +281,7 @@ contract PartyGovernanceNFT is PartyGovernance, ERC721, IERC2981 {
 
             // Update voting power for token to be burned.
             delete votingPowerByTokenId[tokenId];
+            emit PartyCardIntrinsicVotingPowerSet(tokenId, 0);
             _adjustVotingPower(owner, -votingPower.safeCastUint96ToInt192(), address(0));
 
             // Burn token.

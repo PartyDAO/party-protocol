@@ -161,9 +161,16 @@ abstract contract PartyGovernance is
         address token,
         uint256 tokenId
     );
-    event VotingPowerDelegated(address indexed owner, address indexed delegate);
+    event PartyDelegateUpdated(address indexed owner, address indexed delegate);
     event HostStatusTransferred(address oldHost, address newHost);
     event EmergencyExecuteDisabled();
+    event PartyVotingSnapshotCreated(
+        address indexed voter,
+        uint40 timestamp,
+        uint96 delegatedVotingPower,
+        uint96 intrinsicVotingPower,
+        bool isDelegated
+    );
 
     error MismatchedPreciousListLengths();
     error BadProposalStatusError(ProposalStatus status);
@@ -442,7 +449,6 @@ abstract contract PartyGovernance is
     /// @param delegate The address to delegating voting power to.
     function delegateVotingPower(address delegate) external {
         _adjustVotingPower(msg.sender, 0, delegate);
-        emit VotingPowerDelegated(msg.sender, delegate);
     }
 
     /// @notice Transfer party host status to another.
@@ -941,6 +947,10 @@ abstract contract PartyGovernance is
         });
         _insertVotingPowerSnapshot(voter, newSnap);
         delegationsByVoter[voter] = delegate;
+
+        // This event is emitted even if the delegate did not change.
+        emit PartyDelegateUpdated(msg.sender, delegate);
+
         // Handle rebalancing delegates.
         _rebalanceDelegates(voter, oldDelegate, delegate, oldSnap, newSnap);
     }
@@ -1008,6 +1018,14 @@ abstract contract PartyGovernance is
             }
         }
         voterSnaps.push(snap);
+
+        emit PartyVotingSnapshotCreated(
+            voter,
+            snap.timestamp,
+            snap.delegatedVotingPower,
+            snap.intrinsicVotingPower,
+            snap.isDelegated
+        );
     }
 
     function _getLastVotingPowerSnapshotForVoter(
