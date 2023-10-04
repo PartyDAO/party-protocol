@@ -208,46 +208,58 @@ contract PartyGovernanceNFT is PartyGovernance, ERC721, IERC2981 {
     ///         authority.
     /// @param tokenId The ID of the NFT to add voting power to.
     /// @param votingPower The amount of voting power to add.
-    function addVotingPower(uint256 tokenId, uint256 votingPower) external onlyAuthority {
+    function addVotingPower(uint256 tokenId, uint96 votingPower) external onlyAuthority {
         uint96 mintedVotingPower_ = mintedVotingPower;
         uint96 totalVotingPower = _getSharedProposalStorage().governanceValues.totalVotingPower;
-        // Cap voting power to remaining unminted voting power supply.
-        uint96 votingPower_ = votingPower.safeCastUint256ToUint96();
-        // Allow minting past total voting power if minting party cards for
-        // initial crowdfund when there is no total voting power.
-        if (totalVotingPower != 0 && totalVotingPower - mintedVotingPower_ < votingPower_) {
+
+        // Cap voting power to remaining unminted voting power supply. Allow
+        // minting past total voting power if minting party cards for initial
+        // crowdfund when there is no total voting power.
+        if (totalVotingPower != 0 && totalVotingPower - mintedVotingPower_ < votingPower) {
             unchecked {
-                votingPower_ = totalVotingPower - mintedVotingPower_;
+                votingPower = totalVotingPower - mintedVotingPower_;
             }
         }
 
         // Update state.
-        mintedVotingPower += votingPower_;
-        uint256 newIntrinsicVotingPower = votingPowerByTokenId[tokenId] + votingPower_;
+        mintedVotingPower += votingPower;
+        uint256 newIntrinsicVotingPower = votingPowerByTokenId[tokenId] + votingPower;
         votingPowerByTokenId[tokenId] = newIntrinsicVotingPower;
 
         emit PartyCardIntrinsicVotingPowerSet(tokenId, newIntrinsicVotingPower);
 
-        _adjustVotingPower(ownerOf(tokenId), votingPower_.safeCastUint96ToInt192(), address(0));
+        _adjustVotingPower(ownerOf(tokenId), votingPower.safeCastUint96ToInt192(), address(0));
     }
 
-    /// @notice Update the total voting power of the party. Only callable by
+    /// @notice Remove voting power from an existing NFT. Only callable by an
+    ///         authority.
+    /// @param tokenId The ID of the NFT to remove voting power from.
+    /// @param votingPower The amount of voting power to remove.
+    function removeVotingPower(uint256 tokenId, uint96 votingPower) external onlyAuthority {
+        mintedVotingPower -= votingPower;
+        votingPowerByTokenId[tokenId] -= votingPower;
+
+        _adjustVotingPower(ownerOf(tokenId), -votingPower.safeCastUint96ToInt192(), address(0));
+    }
+
+    /// @notice Increase the total voting power of the party. Only callable by
     ///         an authority.
-    /// @param newVotingPower The new total voting power to add.
-    function increaseTotalVotingPower(uint96 newVotingPower) external onlyAuthority {
-        _getSharedProposalStorage().governanceValues.totalVotingPower += newVotingPower;
+    /// @param votingPower The new total voting power to add.
+    function increaseTotalVotingPower(uint96 votingPower) external onlyAuthority {
+        _getSharedProposalStorage().governanceValues.totalVotingPower += votingPower;
+    }
+
+    /// @notice Decrease the total voting power of the party. Only callable by
+    ///         an authority.
+    /// @param votingPower The new total voting power to add.
+    function decreaseTotalVotingPower(uint96 votingPower) external onlyAuthority {
+        _getSharedProposalStorage().governanceValues.totalVotingPower -= votingPower;
     }
 
     /// @notice Burn governance NFTs and remove their voting power. Can only
     ///         be called by an authority before the party has started.
     /// @param tokenIds The IDs of the governance NFTs to burn.
     function burn(uint256[] memory tokenIds) public onlyAuthority {
-        // Authority needs to be able to burn cards during the initial
-        // crowdfund to process refunds but not after the party has started.
-        if (_getSharedProposalStorage().governanceValues.totalVotingPower != 0)
-            revert UnauthorizedToBurnError();
-
-        // Used to update voting power state of party at the end.
         _burnAndUpdateVotingPower(tokenIds, false);
     }
 
@@ -257,9 +269,9 @@ contract PartyGovernanceNFT is PartyGovernance, ERC721, IERC2981 {
     ) private returns (uint96 totalVotingPowerBurned) {
         for (uint256 i; i < tokenIds.length; ++i) {
             uint256 tokenId = tokenIds[i];
+            address owner = ownerOf(tokenId);
 
             // Check if caller is authorized to burn the token.
-            address owner = ownerOf(tokenId);
             if (checkIfAuthorizedToBurn) {
                 if (
                     msg.sender != owner &&
@@ -334,19 +346,24 @@ contract PartyGovernanceNFT is PartyGovernance, ERC721, IERC2981 {
     ) external {
         if (tokenIds.length == 0) revert NothingToBurnError();
 
+        // Check if called by an authority.
+        bool isAuthority_ = isAuthority[msg.sender];
+
         // Check if ragequit is allowed.
         uint40 currentRageQuitTimestamp = rageQuitTimestamp;
-        if (currentRageQuitTimestamp != ENABLE_RAGEQUIT_PERMANENTLY) {
-            if (
-                currentRageQuitTimestamp == DISABLE_RAGEQUIT_PERMANENTLY ||
-                currentRageQuitTimestamp < block.timestamp
-            ) {
-                revert CannotRageQuitError(currentRageQuitTimestamp);
+        if (!isAuthority_) {
+            if (currentRageQuitTimestamp != ENABLE_RAGEQUIT_PERMANENTLY) {
+                if (
+                    currentRageQuitTimestamp == DISABLE_RAGEQUIT_PERMANENTLY ||
+                    currentRageQuitTimestamp < block.timestamp
+                ) {
+                    revert CannotRageQuitError(currentRageQuitTimestamp);
+                }
             }
-        }
 
-        // Used as a reentrancy guard. Will be updated back after ragequit.
-        rageQuitTimestamp = DISABLE_RAGEQUIT_PERMANENTLY;
+            // Used as a reentrancy guard. Will be updated back after ragequit.
+            rageQuitTimestamp = DISABLE_RAGEQUIT_PERMANENTLY;
+        }
 
         // Update last rage quit timestamp.
         lastRageQuitTimestamp = uint40(block.timestamp);
@@ -356,33 +373,29 @@ contract PartyGovernanceNFT is PartyGovernance, ERC721, IERC2981 {
         {
             IERC20 prevToken;
             for (uint256 i; i < withdrawTokens.length; ++i) {
-                IERC20 token = withdrawTokens[i];
-
                 // Check if order of tokens to transfer is valid.
                 // Prevent null and duplicate transfers.
-                if (prevToken >= token) revert InvalidTokenOrderError();
+                if (prevToken >= withdrawTokens[i]) revert InvalidTokenOrderError();
 
-                prevToken = token;
+                prevToken = withdrawTokens[i];
 
                 // Check token's balance.
-                uint256 balance = address(token) == ETH_ADDRESS
+                uint256 balance = address(withdrawTokens[i]) == ETH_ADDRESS
                     ? address(this).balance
-                    : token.balanceOf(address(this));
+                    : withdrawTokens[i].balanceOf(address(this));
 
                 // Add fair share of tokens from the party to total.
                 for (uint256 j; j < tokenIds.length; ++j) {
                     // Must be retrieved before burning the token.
-                    uint256 shareOfVotingPower = getVotingPowerShareOf(tokenIds[j]);
-
-                    withdrawAmounts[i] += (balance * shareOfVotingPower) / 1e18;
+                    withdrawAmounts[i] += (balance * getVotingPowerShareOf(tokenIds[j])) / 1e18;
                 }
             }
         }
         {
             // Burn caller's party cards. This will revert if caller is not the
             // the owner or approved for any of the card they are attempting to
-            // burn or if there are duplicate token IDs.
-            uint96 totalVotingPowerBurned = _burnAndUpdateVotingPower(tokenIds, true);
+            // burn, not an authority, or if there are duplicate token IDs.
+            uint96 totalVotingPowerBurned = _burnAndUpdateVotingPower(tokenIds, !isAuthority_);
 
             // Update total voting power of party.
             _getSharedProposalStorage().governanceValues.totalVotingPower -= totalVotingPowerBurned;
@@ -425,8 +438,10 @@ contract PartyGovernanceNFT is PartyGovernance, ERC721, IERC2981 {
             }
         }
 
-        // Update ragequit timestamp back to before.
-        rageQuitTimestamp = currentRageQuitTimestamp;
+        if (!isAuthority_) {
+            // Update ragequit timestamp back to before.
+            rageQuitTimestamp = currentRageQuitTimestamp;
+        }
 
         emit RageQuit(msg.sender, tokenIds, withdrawTokens, receiver);
     }
