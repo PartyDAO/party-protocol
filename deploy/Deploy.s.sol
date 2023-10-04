@@ -27,7 +27,6 @@ import "../contracts/renderers/PartyNFTRenderer.sol";
 import "../contracts/renderers/fonts/PixeldroidConsoleFont.sol";
 import "../contracts/proposals/ProposalExecutionEngine.sol";
 import "../contracts/utils/PartyHelpers.sol";
-import "../contracts/market-wrapper/FoundationMarketWrapper.sol";
 import "../contracts/market-wrapper/NounsMarketWrapper.sol";
 import { AtomicManualParty } from "../contracts/crowdfund/AtomicManualParty.sol";
 import { ContributionRouter } from "../contracts/crowdfund/ContributionRouter.sol";
@@ -73,7 +72,6 @@ abstract contract Deploy {
     PartyHelpers public partyHelpers;
     IGateKeeper public allowListGateKeeper;
     IGateKeeper public tokenGateKeeper;
-    FoundationMarketWrapper public foundationMarketWrapper;
     NounsMarketWrapper public nounsMarketWrapper;
     PixeldroidConsoleFont public pixeldroidConsoleFont;
     AtomicManualParty public atomicManualParty;
@@ -389,17 +387,6 @@ abstract contract Deploy {
         // DEPLOY_MARKET_WRAPPERS
         console.log("");
         console.log("### MarketWrappers");
-        if (address(deployConstants.deployedFoundationMarketWrapper) == address(0)) {
-            console.log("  Deploying - FoundationMarketWrapper");
-            _trackDeployerGasBefore();
-            foundationMarketWrapper = new FoundationMarketWrapper(deployConstants.foundationMarket);
-            _trackDeployerGasAfter();
-            console.log("  Deployed - FoundationMarketWrapper", address(foundationMarketWrapper));
-        } else {
-            foundationMarketWrapper = FoundationMarketWrapper(
-                deployConstants.deployedFoundationMarketWrapper
-            );
-        }
         if (address(deployConstants.deployedNounsMarketWrapper) == address(0)) {
             console.log("  Deploying - NounsMarketWrapper");
             _trackDeployerGasBefore();
