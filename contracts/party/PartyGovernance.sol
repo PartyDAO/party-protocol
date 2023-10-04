@@ -224,16 +224,12 @@ abstract contract PartyGovernance is
         _;
     }
 
-    // Caller must have voting power at the current time.
-    modifier onlyActiveMember() {
-        {
-            VotingPowerSnapshot memory snap = _getLastVotingPowerSnapshotForVoter(msg.sender);
-            // Must have either delegated voting power or intrinsic voting power.
-            if (snap.intrinsicVotingPower == 0 && snap.delegatedVotingPower == 0) {
-                revert OnlyActiveMemberError();
-            }
+    function _assertActiveMember() internal view {
+        VotingPowerSnapshot memory snap = _getLastVotingPowerSnapshotForVoter(msg.sender);
+        // Must have either delegated voting power or intrinsic voting power.
+        if (snap.intrinsicVotingPower == 0 && snap.delegatedVotingPower == 0) {
+            revert OnlyActiveMemberError();
         }
-        _;
     }
 
     // Only the party DAO multisig can call.
@@ -264,11 +260,10 @@ abstract contract PartyGovernance is
         _;
     }
 
-    modifier onlyWhenNotGloballyDisabled() {
+    function _assertNotGloballyDisabled() internal {
         if (_GLOBALS.getBool(LibGlobals.GLOBAL_DISABLE_PARTY_ACTIONS)) {
             revert OnlyWhenEnabledError();
         }
-        _;
     }
 
     // Set the `Globals` contract.
@@ -498,11 +493,8 @@ abstract contract PartyGovernance is
         ITokenDistributor.TokenType tokenType,
         address token,
         uint256 tokenId
-    )
-        external
-        onlyWhenNotGloballyDisabled
-        returns (ITokenDistributor.DistributionInfo memory distInfo)
-    {
+    ) external returns (ITokenDistributor.DistributionInfo memory distInfo) {
+        _assertNotGloballyDisabled();
         // Ignore if the party is calling functions on itself, like with
         // `FractionalizeProposal` and `DistributionProposal`.
         if (msg.sender != address(this)) {
@@ -565,7 +557,8 @@ abstract contract PartyGovernance is
     function propose(
         Proposal memory proposal,
         uint256 latestSnapIndex
-    ) external onlyActiveMember returns (uint256 proposalId) {
+    ) external returns (uint256 proposalId) {
+        _assertActiveMember();
         proposalId = ++lastProposalId;
         // Store the time the proposal was created and the proposal hash.
         (
@@ -720,7 +713,9 @@ abstract contract PartyGovernance is
         uint256[] memory preciousTokenIds,
         bytes calldata progressData,
         bytes calldata extraData
-    ) external payable onlyActiveMember onlyWhenNotGloballyDisabled onlyDelegateCall {
+    ) external payable onlyDelegateCall {
+        _assertNotGloballyDisabled();
+        _assertActiveMember();
         // Get information about the proposal.
         ProposalState storage proposalState = _proposalStateByProposalId[proposalId];
         // Proposal details must remain the same from `propose()`.
@@ -776,7 +771,8 @@ abstract contract PartyGovernance is
     ///      allowed to complete their lifecycle.
     /// @param proposalId The ID of the proposal to cancel.
     /// @param proposal The details of the proposal to cancel.
-    function cancel(uint256 proposalId, Proposal calldata proposal) external onlyActiveMember {
+    function cancel(uint256 proposalId, Proposal calldata proposal) external {
+        _assertActiveMember();
         // Get information about the proposal.
         ProposalState storage proposalState = _proposalStateByProposalId[proposalId];
         // Proposal details must remain the same from `propose()`.
