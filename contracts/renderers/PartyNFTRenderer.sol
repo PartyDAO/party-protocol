@@ -94,6 +94,7 @@ contract PartyNFTRenderer is RendererBase {
 
         bytes memory baseExternalURLBytes = bytes(baseExternalURL);
         if (baseExternalURLBytes.length > 31) {
+            // Must be less than 31 bytes because 1 byte is used for the length.
             revert ExternalURLTooLarge();
         }
         bytes32 baseExternalUrlData = bytes32(baseExternalURLBytes.length) << 248;
