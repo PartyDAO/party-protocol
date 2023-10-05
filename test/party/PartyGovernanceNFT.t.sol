@@ -65,7 +65,13 @@ contract PartyGovernanceNFTTest is LintJSON, TestUtils {
         // Upload font on-chain
         PixeldroidConsoleFont font = new PixeldroidConsoleFont();
         nftRendererStorage = new RendererStorage(address(this));
-        nftRenderer = new PartyNFTRenderer(globals, nftRendererStorage, font, address(0));
+        nftRenderer = new PartyNFTRenderer(
+            globals,
+            nftRendererStorage,
+            font,
+            address(0),
+            "https://party.app/party/"
+        );
         globalsAdmin.setGovernanceNftRendererAddress(address(nftRenderer));
         globalsAdmin.setRendererStorage(address(nftRendererStorage));
 

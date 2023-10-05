@@ -319,7 +319,8 @@ abstract contract Deploy {
             globals,
             rendererStorage,
             IFont(address(pixeldroidConsoleFont)),
-            deployConstants.oldTokenDistributor
+            deployConstants.oldTokenDistributor,
+            deployConstants.baseExternalURL
         );
         _trackDeployerGasAfter();
         console.log("  Deployed - PartyNFTRenderer", address(partyNFTRenderer));

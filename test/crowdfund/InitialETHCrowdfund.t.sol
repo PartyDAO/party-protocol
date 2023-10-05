@@ -48,7 +48,13 @@ contract InitialETHCrowdfundTest is LintJSON, TestUtils, ERC721Receiver {
         // Upload font on-chain
         PixeldroidConsoleFont font = new PixeldroidConsoleFont();
         nftRendererStorage = new RendererStorage(address(this));
-        nftRenderer = new PartyNFTRenderer(globals, nftRendererStorage, font, address(0));
+        nftRenderer = new PartyNFTRenderer(
+            globals,
+            nftRendererStorage,
+            font,
+            address(0),
+            "https://party.app/party/"
+        );
         tokenDistributor = new TokenDistributor(globals, 0);
 
         globals.setAddress(LibGlobals.GLOBAL_GOVERNANCE_NFT_RENDER_IMPL, address(nftRenderer));
