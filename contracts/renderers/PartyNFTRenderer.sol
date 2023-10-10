@@ -25,6 +25,7 @@ contract PartyNFTRenderer is RendererBase {
     using Strings for address;
 
     error InvalidTokenIdError();
+    error ExternalURLTooLarge();
 
     // The crowdfund type used to create this party.
     enum CrowdfundType {
@@ -77,14 +78,28 @@ contract PartyNFTRenderer is RendererBase {
     /// @notice The old token distributor contract address.
     address immutable OLD_TOKEN_DISTRIBUTOR;
 
+    /// @notice The base url for external URLs. External URL is BASE_EXTERNAL_URL + PARTY_ADDRESS
+    /// @dev First byte is the size of the data, the rest is the data (starting from MSB)
+    bytes32 private immutable BASE_EXTERNAL_URL_DATA;
+
     constructor(
         IGlobals globals,
         RendererStorage rendererStorage,
         IFont font,
-        address oldTokenDistributor
+        address oldTokenDistributor,
+        string memory baseExternalURL
     ) RendererBase(globals, rendererStorage, font) {
         IMPL = address(this);
         OLD_TOKEN_DISTRIBUTOR = oldTokenDistributor;
+
+        bytes memory baseExternalURLBytes = bytes(baseExternalURL);
+        if (baseExternalURLBytes.length > 31) {
+            // Must be less than or equal to 31 bytes because 1 byte is used for the length.
+            revert ExternalURLTooLarge();
+        }
+        bytes32 baseExternalUrlData = bytes32(baseExternalURLBytes.length) << 248;
+        baseExternalUrlData |= bytes32(baseExternalURLBytes) >> 8;
+        BASE_EXTERNAL_URL_DATA = baseExternalUrlData;
     }
 
     function royaltyInfo(
@@ -252,7 +267,20 @@ contract PartyNFTRenderer is RendererBase {
     }
 
     function generateExternalURL() private view returns (string memory) {
-        return string.concat("https://party.app/party/", address(this).toHexString());
+        bytes32 baseExternalUrlData = BASE_EXTERNAL_URL_DATA;
+        uint8 externalUrlLength = uint8(uint256(baseExternalUrlData >> 248));
+        string memory baseExternalUrl;
+        assembly {
+            let freeMem := mload(0x40)
+            baseExternalUrl := freeMem
+            // Store the length of the data
+            mstore(baseExternalUrl, externalUrlLength)
+            // Store the data to memory
+            mstore(add(baseExternalUrl, 0x20), shl(8, baseExternalUrlData))
+            // Update free mem
+            mstore(0x40, add(freeMem, 0x40))
+        }
+        return string.concat(baseExternalUrl, address(this).toHexString());
     }
 
     function generateDescription(
