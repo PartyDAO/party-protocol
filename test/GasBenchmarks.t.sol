@@ -10,6 +10,8 @@ import { ArbitraryCallsProposal } from "../contracts/proposals/ArbitraryCallsPro
 import { ProposalExecutionEngine } from "../contracts/proposals/ProposalExecutionEngine.sol";
 import { DistributeProposal } from "../contracts/proposals/DistributeProposal.sol";
 import { ITokenDistributor } from "../contracts/distribution/ITokenDistributor.sol";
+import { InitialETHCrowdfund } from "../contracts/crowdfund/InitialETHCrowdfund.sol";
+import { Proxy } from "../contracts/utils/Proxy.sol";
 
 contract GasBenchmarks is SetupPartyHelper {
     constructor() SetupPartyHelper(false) {}
@@ -86,7 +88,7 @@ contract GasBenchmarks is SetupPartyHelper {
     }
 
     /// @notice Gas benchmark the proposal and execution of an eth transfer proposal.
-    function test_proposal_transferEth() public {
+    function testProposal_transferEth() public {
         // Give the party some eth to spend
         vm.deal(address(party), 100);
         ArbitraryCallsProposal.ArbitraryCall[]
@@ -121,7 +123,7 @@ contract GasBenchmarks is SetupPartyHelper {
     }
 
     /// @notice Gas benchmark the proposal and execution of an eth distribution proposal.
-    function test_propose_distribute() public {
+    function testPropose_distribute() public {
         vm.deal(address(party), 1 ether);
         DistributeProposal.DistributeProposalData memory distProposal = DistributeProposal
             .DistributeProposalData({
@@ -168,5 +170,70 @@ contract GasBenchmarks is SetupPartyHelper {
         tokenDistributor.claim(info, 1);
         gasUsed = gasLeft - gasleft();
         emit log_named_uint("Claim distribution", gasUsed);
+    }
+
+    function _setupETHCrowdfund() internal returns (InitialETHCrowdfund) {
+        InitialETHCrowdfund.InitialETHCrowdfundOptions memory crowdfundOpts;
+        crowdfundOpts.minContribution = 0.01 ether;
+        crowdfundOpts.maxContribution = 0.01 ether;
+        crowdfundOpts.disableContributingForExistingCard = true;
+        crowdfundOpts.maxTotalContributions = 10 ether;
+        crowdfundOpts.minTotalContributions = 0.01 ether;
+        crowdfundOpts.exchangeRateBps = 10000;
+        crowdfundOpts.duration = 100;
+
+        InitialETHCrowdfund.ETHPartyOptions memory partyOpts;
+        address[] memory hosts = new address[](1);
+        hosts[0] = address(420);
+        partyOpts.name = "PARTY";
+        partyOpts.symbol = "PR-T";
+        partyOpts.governanceOpts.hosts = hosts;
+        partyOpts.governanceOpts.voteDuration = 99;
+        partyOpts.governanceOpts.executionDelay = _EXECUTION_DELAY;
+        partyOpts.governanceOpts.passThresholdBps = 1000;
+        partyOpts.governanceOpts.partyFactory = partyFactory;
+        partyOpts.governanceOpts.partyImpl = partyImpl;
+
+        InitialETHCrowdfund crowdfundImpl = new InitialETHCrowdfund(globals);
+        return
+            InitialETHCrowdfund(
+                payable(
+                    new Proxy(
+                        crowdfundImpl,
+                        abi.encodeCall(
+                            InitialETHCrowdfund.initialize,
+                            (crowdfundOpts, partyOpts, MetadataProvider(address(0)), "")
+                        )
+                    )
+                )
+            );
+    }
+
+    /// @notice Gas benchmark of contributing to an ETHParty membership mint twice
+    function testCrowdfundContribute_ETHCrowdfund_Twice() public {
+        InitialETHCrowdfund crowdfund = _setupETHCrowdfund();
+
+        InitialETHCrowdfund.BatchContributeArgs memory batchContributeArgs;
+        batchContributeArgs.tokenIds = new uint256[](2);
+        batchContributeArgs.delegate = address(this);
+        batchContributeArgs.values = new uint96[](2);
+        batchContributeArgs.values[0] = 0.01 ether;
+        batchContributeArgs.values[1] = 0.01 ether;
+        batchContributeArgs.gateDatas = new bytes[](2);
+
+        uint256 gasLeft = gasleft();
+        crowdfund.batchContribute{ value: 0.02 ether }(batchContributeArgs);
+        uint256 gasUsed = gasLeft - gasleft();
+        emit log_named_uint("Batch contribute two memberships to ETH party", gasUsed);
+    }
+
+    /// @notice Gas benchmark of contributing to an ETHParty membezrship mint
+    function testCrowdfundContribute_ETHCrowdfund() public {
+        InitialETHCrowdfund crowdfund = _setupETHCrowdfund();
+
+        uint256 gasLeft = gasleft();
+        crowdfund.contribute{ value: 0.01 ether }(address(this), "");
+        uint256 gasUsed = gasLeft - gasleft();
+        emit log_named_uint("Contribute to ETH party", gasUsed);
     }
 }
