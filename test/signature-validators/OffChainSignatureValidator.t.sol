@@ -6,7 +6,7 @@ import { SetSignatureValidatorProposal } from "../../contracts/proposals/SetSign
 import { IERC1271 } from "openzeppelin/contracts/interfaces/IERC1271.sol";
 import { Party } from "../../contracts/party/Party.sol";
 import { ProposalExecutionEngine } from "../../contracts/proposals/ProposalExecutionEngine.sol";
-import { PartyGovernance } from "../../contracts/party/PartyGovernance.sol";
+import { Proposal } from "../../contracts/utils/LibParty.sol";
 import { OffChainSignatureValidator } from "../../contracts/signature-validators/OffChainSignatureValidator.sol";
 import { Strings } from "openzeppelin/contracts/utils/Strings.sol";
 import { LibGlobals } from "../../contracts/globals/LibGlobals.sol";
@@ -202,21 +202,21 @@ contract OffChainSignatureValidatorTest is SetupPartyHelper {
     }
 
     function _setValidatorForHash(bytes32 hash, IERC1271 validator) internal {
-        PartyGovernance.Proposal memory proposal = _createTestProposal(hash, validator);
+        Proposal memory proposal = _createTestProposal(hash, validator);
         _proposePassAndExecuteProposal(proposal);
     }
 
     function _createTestProposal(
         bytes32 hash,
         IERC1271 validator
-    ) private pure returns (PartyGovernance.Proposal memory proposal) {
+    ) private pure returns (Proposal memory proposal) {
         SetSignatureValidatorProposal.SetSignatureValidatorProposalData
             memory data = SetSignatureValidatorProposal.SetSignatureValidatorProposalData({
                 signatureHash: hash,
                 signatureValidator: validator
             });
 
-        proposal = PartyGovernance.Proposal({
+        proposal = Proposal({
             maxExecutableTime: type(uint40).max,
             cancelDelay: 0,
             proposalData: abi.encodeWithSelector(

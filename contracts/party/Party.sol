@@ -11,7 +11,7 @@ import "./PartyGovernance.sol";
 contract Party is PartyGovernanceNFT {
     // Arguments used to initialize the party.
     struct PartyOptions {
-        PartyGovernance.GovernanceOpts governance;
+        GovernanceOpts governance;
         ProposalStorage.ProposalEngineOpts proposalEngine;
         string name;
         string symbol;

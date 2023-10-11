@@ -922,7 +922,7 @@ contract PartyGovernanceNFTTest is PartyGovernanceNFTTestBase {
         vm.prank(recipient);
         vm.expectRevert(PartyGovernance.CannotRageQuitAndAcceptError.selector);
         party.propose(
-            PartyGovernance.Proposal({
+            Proposal({
                 maxExecutableTime: uint40(type(uint40).max),
                 cancelDelay: uint40(1 days),
                 proposalData: abi.encode(0)
@@ -1497,11 +1497,11 @@ contract PartyGovernanceNFTTest is PartyGovernanceNFTTestBase {
     }
 
     function testGenerateSVG_works() public {
-        PartyGovernance.ProposalStatus[4] memory proposalStatuses = [
-            PartyGovernance.ProposalStatus.Voting,
-            PartyGovernance.ProposalStatus.Defeated,
-            PartyGovernance.ProposalStatus.Passed,
-            PartyGovernance.ProposalStatus.Invalid // Should not be rendered.
+        ProposalStatus[4] memory proposalStatuses = [
+            ProposalStatus.Voting,
+            ProposalStatus.Defeated,
+            ProposalStatus.Passed,
+            ProposalStatus.Invalid // Should not be rendered.
         ];
 
         string memory svg = nftRenderer.generateSVG(
@@ -1528,9 +1528,9 @@ contract PartyGovernanceNFTTest is PartyGovernanceNFTTestBase {
         party.useCustomizationPreset(16); // Should make card red w/ dark mode.
 
         // Create proposals
-        party.createMockProposal(PartyGovernance.ProposalStatus.Complete);
-        party.createMockProposal(PartyGovernance.ProposalStatus.Voting);
-        party.createMockProposal(PartyGovernance.ProposalStatus.Ready);
+        party.createMockProposal(ProposalStatus.Complete);
+        party.createMockProposal(ProposalStatus.Voting);
+        party.createMockProposal(ProposalStatus.Ready);
 
         // Mint governance NFT
         uint256 tokenId = 396;
@@ -1569,9 +1569,9 @@ contract PartyGovernanceNFTTest is PartyGovernanceNFTTestBase {
         party.useCustomizationPreset(0);
 
         // Create proposals
-        party.createMockProposal(PartyGovernance.ProposalStatus.Complete);
-        party.createMockProposal(PartyGovernance.ProposalStatus.Voting);
-        party.createMockProposal(PartyGovernance.ProposalStatus.Ready);
+        party.createMockProposal(ProposalStatus.Complete);
+        party.createMockProposal(ProposalStatus.Voting);
+        party.createMockProposal(ProposalStatus.Ready);
 
         // Mint governance NFT
         uint256 tokenId = 396;
@@ -1602,9 +1602,9 @@ contract PartyGovernanceNFTTest is PartyGovernanceNFTTestBase {
         party.useCustomizationPreset(999); // Should fallback to default card since doesn't exist.
 
         // Create proposals
-        party.createMockProposal(PartyGovernance.ProposalStatus.Complete);
-        party.createMockProposal(PartyGovernance.ProposalStatus.Voting);
-        party.createMockProposal(PartyGovernance.ProposalStatus.Ready);
+        party.createMockProposal(ProposalStatus.Complete);
+        party.createMockProposal(ProposalStatus.Voting);
+        party.createMockProposal(ProposalStatus.Ready);
 
         // Mint governance NFT
         uint256 tokenId = 396;
@@ -1788,9 +1788,7 @@ contract PartyGovernanceNFTTest is PartyGovernanceNFTTestBase {
     }
 
     function _createMockProposal(DummyParty party) private {
-        PartyGovernance.ProposalStatus status = PartyGovernance.ProposalStatus(
-            _randomRange(1, uint8(type(PartyGovernance.ProposalStatus).max))
-        );
+        ProposalStatus status = ProposalStatus(_randomRange(1, uint8(type(ProposalStatus).max)));
 
         party.createMockProposal(status);
     }
@@ -1822,8 +1820,8 @@ contract DummyParty is ReadOnlyDelegateCall {
     mapping(address => bool) public isHost;
     mapping(address => address) public delegationsByVoter;
     PartyGovernance.GovernanceValues private _governanceValues;
-    mapping(uint256 => PartyGovernance.ProposalState) private _proposalStateByProposalId;
-    mapping(address => PartyGovernance.VotingPowerSnapshot[]) private _votingPowerSnapshotsByVoter;
+    mapping(uint256 => ProposalState) private _proposalStateByProposalId;
+    mapping(address => VotingPowerSnapshot[]) private _votingPowerSnapshotsByVoter;
     string public name;
     string public symbol;
     mapping(uint256 => address) public ownerOf;
@@ -1834,7 +1832,7 @@ contract DummyParty is ReadOnlyDelegateCall {
     uint256 public tokenCount;
     mapping(uint256 => uint256) public votingPowerByTokenId;
 
-    mapping(uint256 => PartyGovernance.ProposalStatus) _proposalStatuses;
+    mapping(uint256 => ProposalStatus) _proposalStatuses;
     uint256 votingPowerPercentage; // 1e18 == 100%
 
     function useCustomizationPreset(uint256 customizationPresetId) external {
@@ -1861,20 +1859,13 @@ contract DummyParty is ReadOnlyDelegateCall {
         ownerOf[tokenId] = msg.sender;
     }
 
-    function createMockProposal(PartyGovernance.ProposalStatus status) external {
+    function createMockProposal(ProposalStatus status) external {
         _proposalStatuses[++lastProposalId] = status;
     }
 
     function getProposalStateInfo(
         uint256 proposalId
-    )
-        external
-        view
-        returns (
-            PartyGovernance.ProposalStatus status,
-            PartyGovernance.ProposalStateValues memory values
-        )
-    {
+    ) external view returns (ProposalStatus status, ProposalStateValues memory values) {
         status = _proposalStatuses[proposalId];
         values;
     }

@@ -11,7 +11,7 @@ import { RendererBase } from "./RendererBase.sol";
 import { RendererStorage } from "./RendererStorage.sol";
 import { MetadataRegistry } from "./MetadataRegistry.sol";
 import { IMetadataRegistry1_1 } from "./IMetadataRegistry1_1.sol";
-import { Party, PartyGovernance } from "../party/PartyGovernance.sol";
+import { Party, PartyGovernance, ProposalStatus } from "../party/PartyGovernance.sol";
 import { PartyGovernanceNFT } from "../party/PartyGovernanceNFT.sol";
 import { TokenDistributor } from "../distribution/TokenDistributor.sol";
 import { IGlobals } from "../globals/IGlobals.sol";
@@ -317,7 +317,7 @@ contract PartyNFTRenderer is RendererBase {
     function generateSVG(
         string memory partyName,
         string memory votingPowerPercentage,
-        PartyGovernance.ProposalStatus[4] memory proposalStatuses,
+        ProposalStatus[4] memory proposalStatuses,
         uint256 latestProposalId,
         uint256 tokenId
     ) public view returns (string memory) {
@@ -339,7 +339,7 @@ contract PartyNFTRenderer is RendererBase {
     function generateSVG(
         string memory partyName,
         string memory votingPowerPercentage,
-        PartyGovernance.ProposalStatus[4] memory proposalStatuses,
+        ProposalStatus[4] memory proposalStatuses,
         uint256 latestProposalId,
         uint256 tokenId,
         Color color,
@@ -438,7 +438,7 @@ contract PartyNFTRenderer is RendererBase {
 
     function generateSVG4(
         uint256 latestProposalId,
-        PartyGovernance.ProposalStatus[4] memory proposalStatuses
+        ProposalStatus[4] memory proposalStatuses
     ) private pure returns (string memory part) {
         // Render latest 4 proposals, or up to the latest proposal if there are
         // less than 4 proposals.
@@ -525,22 +525,22 @@ contract PartyNFTRenderer is RendererBase {
 
     function generateProposalStatus(
         uint256 proposalId,
-        PartyGovernance.ProposalStatus status
+        ProposalStatus status
     ) private pure returns (string memory) {
         string memory statusMessage;
-        if (status == PartyGovernance.ProposalStatus.Voting) {
+        if (status == ProposalStatus.Voting) {
             statusMessage = "Voting now";
-        } else if (status == PartyGovernance.ProposalStatus.Passed) {
+        } else if (status == ProposalStatus.Passed) {
             statusMessage = "Passing";
-        } else if (status == PartyGovernance.ProposalStatus.Ready) {
+        } else if (status == ProposalStatus.Ready) {
             statusMessage = "Executable";
-        } else if (status == PartyGovernance.ProposalStatus.InProgress) {
+        } else if (status == ProposalStatus.InProgress) {
             statusMessage = "In progress";
-        } else if (status == PartyGovernance.ProposalStatus.Complete) {
+        } else if (status == ProposalStatus.Complete) {
             statusMessage = "Complete";
-        } else if (status == PartyGovernance.ProposalStatus.Defeated) {
+        } else if (status == ProposalStatus.Defeated) {
             statusMessage = "Defeated";
-        } else if (status == PartyGovernance.ProposalStatus.Cancelled) {
+        } else if (status == ProposalStatus.Cancelled) {
             statusMessage = "Cancelled";
         } else {
             return "";
@@ -561,13 +561,13 @@ contract PartyNFTRenderer is RendererBase {
     function getLatestProposalStatuses()
         private
         view
-        returns (PartyGovernance.ProposalStatus[4] memory proposalStatuses)
+        returns (ProposalStatus[4] memory proposalStatuses)
     {
         uint256 latestProposalId = PartyGovernance(address(this)).lastProposalId();
         uint256 numOfProposalsToDisplay = latestProposalId < 4 ? latestProposalId : 4;
         for (uint256 i; i < numOfProposalsToDisplay; ++i) {
             uint256 proposalId = latestProposalId - i;
-            PartyGovernance.ProposalStatus proposalStatus;
+            ProposalStatus proposalStatus;
 
             // Get the status of the proposal, regardless of the version of the
             // Party contract.

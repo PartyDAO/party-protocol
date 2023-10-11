@@ -124,7 +124,7 @@ contract CollectionBatchBuyCrowdfundTest is Test, TestUtils {
                 name: "Crowdfund",
                 symbol: "CF",
                 customizationPresetId: 0,
-                governance: PartyGovernance.GovernanceOpts({
+                governance: GovernanceOpts({
                     hosts: govOpts.hosts,
                     voteDuration: govOpts.voteDuration,
                     executionDelay: govOpts.executionDelay,
@@ -289,7 +289,7 @@ contract CollectionBatchBuyCrowdfundTest is Test, TestUtils {
                 name: "Crowdfund",
                 symbol: "CF",
                 customizationPresetId: 0,
-                governance: PartyGovernance.GovernanceOpts({
+                governance: GovernanceOpts({
                     hosts: govOpts.hosts,
                     voteDuration: govOpts.voteDuration,
                     executionDelay: govOpts.executionDelay,

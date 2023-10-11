@@ -5,7 +5,7 @@ import { ListOnZoraProposal } from "contracts/proposals/ListOnZoraProposal.sol";
 import { SetupPartyHelper } from "../utils/SetupPartyHelper.sol";
 import { DummyERC721 } from "../DummyERC721.sol";
 import { LibSafeCast } from "../../contracts/utils/LibSafeCast.sol";
-import { PartyGovernance } from "../../contracts/party/PartyGovernance.sol";
+import { Proposal } from "../../contracts/utils/LibParty.sol";
 import { ProposalExecutionEngine } from "../../contracts/proposals/ProposalExecutionEngine.sol";
 import { IReserveAuctionCoreEth } from "../../contracts/vendor/markets/IReserveAuctionCoreEth.sol";
 
@@ -65,7 +65,7 @@ contract ListOnZoraProposalForkedTest is SetupPartyHelper {
 
     function testForked_canCreateListing() external onlyForked {
         (
-            PartyGovernance.Proposal memory proposal,
+            Proposal memory proposal,
             ListOnZoraProposal.ZoraProposalData memory proposalData
         ) = _buildZoraProposal();
         uint256 proposalId = _proposeAndPassProposal(proposal);
@@ -97,7 +97,7 @@ contract ListOnZoraProposalForkedTest is SetupPartyHelper {
 
     function testForked_canBidOnListing() external onlyForked {
         (
-            PartyGovernance.Proposal memory proposal,
+            Proposal memory proposal,
             ListOnZoraProposal.ZoraProposalData memory proposalData
         ) = _buildZoraProposal();
         _proposePassAndExecuteProposal(proposal);
@@ -106,7 +106,7 @@ contract ListOnZoraProposalForkedTest is SetupPartyHelper {
 
     function testForked_canCancelExpiredListing() external onlyForked {
         (
-            PartyGovernance.Proposal memory proposal,
+            Proposal memory proposal,
             ListOnZoraProposal.ZoraProposalData memory proposalData
         ) = _buildZoraProposal();
         (uint256 proposalId, bytes memory progressData) = _proposePassAndExecuteProposal(proposal);
@@ -134,7 +134,7 @@ contract ListOnZoraProposalForkedTest is SetupPartyHelper {
 
     function testForked_cannotCancelUnexpiredListing() external onlyForked {
         (
-            PartyGovernance.Proposal memory proposal,
+            Proposal memory proposal,
             ListOnZoraProposal.ZoraProposalData memory proposalData
         ) = _buildZoraProposal();
         (uint256 proposalId, bytes memory progressData) = _proposePassAndExecuteProposal(proposal);
@@ -152,7 +152,7 @@ contract ListOnZoraProposalForkedTest is SetupPartyHelper {
 
     function testForked_cannotSettleOngoingListing() external onlyForked {
         (
-            PartyGovernance.Proposal memory proposal,
+            Proposal memory proposal,
             ListOnZoraProposal.ZoraProposalData memory proposalData
         ) = _buildZoraProposal();
         (uint256 proposalId, bytes memory progressData) = _proposePassAndExecuteProposal(proposal);
@@ -170,7 +170,7 @@ contract ListOnZoraProposalForkedTest is SetupPartyHelper {
 
     function testForked_canSettleSuccessfulListing() external onlyForked {
         (
-            PartyGovernance.Proposal memory proposal,
+            Proposal memory proposal,
             ListOnZoraProposal.ZoraProposalData memory proposalData
         ) = _buildZoraProposal();
         (uint256 proposalId, bytes memory progressData) = _proposePassAndExecuteProposal(proposal);
@@ -200,7 +200,7 @@ contract ListOnZoraProposalForkedTest is SetupPartyHelper {
 
     function testForked_canSettleSuccessfulEndedListing() external onlyForked {
         (
-            PartyGovernance.Proposal memory proposal,
+            Proposal memory proposal,
             ListOnZoraProposal.ZoraProposalData memory proposalData
         ) = _buildZoraProposal();
         (uint256 proposalId, bytes memory progressData) = _proposePassAndExecuteProposal(proposal);
@@ -246,7 +246,7 @@ contract ListOnZoraProposalForkedTest is SetupPartyHelper {
             zpd
         );
 
-        PartyGovernance.Proposal memory proposal = PartyGovernance.Proposal({
+        Proposal memory proposal = Proposal({
             maxExecutableTime: uint40(block.timestamp + 10000 hours),
             cancelDelay: uint40(1 days),
             proposalData: proposalData
@@ -317,7 +317,7 @@ contract ListOnZoraProposalForkedTest is SetupPartyHelper {
     function _buildZoraProposal()
         private
         view
-        returns (PartyGovernance.Proposal memory, ListOnZoraProposal.ZoraProposalData memory)
+        returns (Proposal memory, ListOnZoraProposal.ZoraProposalData memory)
     {
         ListOnZoraProposal.ZoraProposalData memory data = ListOnZoraProposal.ZoraProposalData({
             listPrice: _randomUint256() % 1e18,
@@ -327,7 +327,7 @@ contract ListOnZoraProposalForkedTest is SetupPartyHelper {
             tokenId: nftTokenId
         });
 
-        PartyGovernance.Proposal memory proposal = PartyGovernance.Proposal({
+        Proposal memory proposal = Proposal({
             maxExecutableTime: type(uint40).max,
             cancelDelay: 0,
             proposalData: abi.encodeWithSelector(

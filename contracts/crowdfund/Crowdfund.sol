@@ -31,7 +31,7 @@ abstract contract Crowdfund is Implementation, ERC721Receiver, CrowdfundNFT {
     }
 
     // PartyGovernance options that must be known and fixed at crowdfund creation.
-    // This is a subset of PartyGovernance.GovernanceOpts.
+    // This is a subset of GovernanceOpts.
     struct FixedGovernanceOpts {
         // The implementation of the party to be created.
         Party partyImpl;
@@ -509,7 +509,7 @@ abstract contract Crowdfund is Implementation, ERC721Receiver, CrowdfundNFT {
                 name: name,
                 symbol: symbol,
                 customizationPresetId: rendererStorage.getPresetFor(address(this)),
-                governance: PartyGovernance.GovernanceOpts({
+                governance: GovernanceOpts({
                     hosts: governanceOpts.hosts,
                     voteDuration: governanceOpts.voteDuration,
                     executionDelay: governanceOpts.executionDelay,

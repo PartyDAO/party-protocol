@@ -7,7 +7,7 @@ import { IERC721 } from "../../contracts/tokens/IERC721.sol";
 import { GlobalsAdmin } from "../TestUsers.sol";
 import { PartyFactory } from "../../contracts/party/PartyFactory.sol";
 import { Globals } from "../../contracts/globals/Globals.sol";
-import { Party } from "../../contracts/party/Party.sol";
+import { Party, Proposal } from "../../contracts/party/Party.sol";
 import { ProposalExecutionEngine } from "../../contracts/proposals/ProposalExecutionEngine.sol";
 import { IFractionalV1VaultFactory } from "../../contracts/proposals/vendor/FractionalV1.sol";
 import { MockZoraReserveAuctionCoreEth } from "../proposals/MockZoraReserveAuctionCoreEth.sol";
@@ -124,10 +124,10 @@ abstract contract SetupPartyHelper is TestUtils, ERC721Receiver {
     }
 
     /// @notice Propose pass and wait for the execution delay of a proposal
-    /// @param proposal The `PartyGovernance.Proposal` struct representing the proposal
+    /// @param proposal The `Proposal` struct representing the proposal
     /// @return proposalId The proposal id for the proposal
     function _proposeAndPassProposal(
-        PartyGovernance.Proposal memory proposal
+        Proposal memory proposal
     ) internal returns (uint256 proposalId) {
         vm.prank(john);
         proposalId = party.propose(proposal, 0);
@@ -136,11 +136,11 @@ abstract contract SetupPartyHelper is TestUtils, ERC721Receiver {
     }
 
     /// @notice Propose pass and execute the proposal
-    /// @param proposal The `PartyGovernance.Proposal` struct representing the proposal
+    /// @param proposal The `Proposal` struct representing the proposal
     /// @return proposalId The proposal id for the proposal
     /// @return progressData The progress data returned from the proposal execution
     function _proposePassAndExecuteProposal(
-        PartyGovernance.Proposal memory proposal
+        Proposal memory proposal
     ) internal returns (uint256, bytes memory) {
         uint256 proposalId = _proposeAndPassProposal(proposal);
         bytes memory progressData = _executeProposal(proposalId, proposal);
@@ -149,23 +149,23 @@ abstract contract SetupPartyHelper is TestUtils, ERC721Receiver {
 
     /// @notice Execute the given proposal
     /// @param proposalId The proposal id for the proposal
-    /// @param proposal The `PartyGovernance.Proposal` struct representing the proposal
+    /// @param proposal The `Proposal` struct representing the proposal
     /// @return progressData The progress data returned from the proposal execution
     function _executeProposal(
         uint256 proposalId,
-        PartyGovernance.Proposal memory proposal
+        Proposal memory proposal
     ) internal returns (bytes memory) {
         return _executeProposal(proposalId, proposal, "");
     }
 
     /// @notice Execute the given proposal with `progressData`
     /// @param proposalId The proposal id for the proposal
-    /// @param proposal The `PartyGovernance.Proposal` struct representing the proposal
+    /// @param proposal The `Proposal` struct representing the proposal
     /// @param progressData The progress data to pass to the proposal execution
     /// @return progressData The progress data returned from the proposal execution
     function _executeProposal(
         uint256 proposalId,
-        PartyGovernance.Proposal memory proposal,
+        Proposal memory proposal,
         bytes memory progressData
     ) internal returns (bytes memory) {
         vm.recordLogs();

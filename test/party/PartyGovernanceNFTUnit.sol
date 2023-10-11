@@ -17,7 +17,7 @@ contract TestablePartyGovernanceNFT is PartyGovernanceNFT {
         string memory name_,
         string memory symbol_,
         uint256 customizationPresetId,
-        PartyGovernance.GovernanceOpts memory governanceOpts,
+        GovernanceOpts memory governanceOpts,
         ProposalStorage.ProposalEngineOpts memory proposalEngineOpts,
         IERC721[] memory preciousTokens,
         uint256[] memory preciousTokenIds,
@@ -48,7 +48,7 @@ contract TestablePartyGovernanceNFT is PartyGovernanceNFT {
 
 contract PartyGovernanceNFTUnitTest is TestUtils {
     TestablePartyGovernanceNFT nft = new TestablePartyGovernanceNFT();
-    PartyGovernance.GovernanceOpts defaultGovernanceOpts;
+    GovernanceOpts defaultGovernanceOpts;
     ProposalStorage.ProposalEngineOpts defaultProposalEngineOpts;
 
     function _initGovernance() private {

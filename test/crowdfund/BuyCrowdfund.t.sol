@@ -135,7 +135,7 @@ contract BuyCrowdfundTest is Test, TestUtils {
                 name: defaultName,
                 symbol: defaultSymbol,
                 customizationPresetId: 0,
-                governance: PartyGovernance.GovernanceOpts({
+                governance: GovernanceOpts({
                     hosts: govOpts.hosts,
                     voteDuration: govOpts.voteDuration,
                     executionDelay: govOpts.executionDelay,

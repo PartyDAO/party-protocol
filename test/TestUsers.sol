@@ -114,7 +114,7 @@ contract PartyAdmin is Test {
             partyImpl,
             authorities,
             Party.PartyOptions({
-                governance: PartyGovernance.GovernanceOpts({
+                governance: GovernanceOpts({
                     hosts: hosts,
                     voteDuration: 99,
                     executionDelay: 300,
@@ -158,7 +158,7 @@ contract PartyParticipant is ERC721Holder, Test {
 
     struct ExecutionOptions {
         uint256 proposalId;
-        PartyGovernance.Proposal proposal;
+        Proposal proposal;
         IERC721[] preciousTokens;
         uint256[] preciousTokenIds;
         bytes progressData;
@@ -166,7 +166,7 @@ contract PartyParticipant is ERC721Holder, Test {
 
     function makeProposal(
         Party party,
-        PartyGovernance.Proposal memory proposal,
+        Proposal memory proposal,
         uint256 lastestSnapIndex
     ) public returns (uint256) {
         // Skip because `accept()` will query voting power at `proposedTime - 1`

@@ -6,7 +6,7 @@ import { ProposalStorage } from "../proposals/ProposalStorage.sol";
 import { LibAddress } from "../utils/LibAddress.sol";
 import { LibRawResult } from "../utils/LibRawResult.sol";
 import { LibSafeCast } from "../utils/LibSafeCast.sol";
-import { Party, PartyGovernance } from "../party/Party.sol";
+import { Party, GovernanceOpts } from "../party/Party.sol";
 import { Crowdfund } from "../crowdfund/Crowdfund.sol";
 import { MetadataProvider } from "../renderers/MetadataProvider.sol";
 import { IGateKeeper } from "../gatekeepers/IGateKeeper.sol";
@@ -384,7 +384,7 @@ contract InitialETHCrowdfund is ETHCrowdfundBase {
                         name: opts.name,
                         symbol: opts.symbol,
                         customizationPresetId: opts.customizationPresetId,
-                        governance: PartyGovernance.GovernanceOpts({
+                        governance: GovernanceOpts({
                             hosts: opts.governanceOpts.hosts,
                             voteDuration: opts.governanceOpts.voteDuration,
                             executionDelay: opts.governanceOpts.executionDelay,
@@ -408,7 +408,7 @@ contract InitialETHCrowdfund is ETHCrowdfundBase {
                         name: opts.name,
                         symbol: opts.symbol,
                         customizationPresetId: opts.customizationPresetId,
-                        governance: PartyGovernance.GovernanceOpts({
+                        governance: GovernanceOpts({
                             hosts: opts.governanceOpts.hosts,
                             voteDuration: opts.governanceOpts.voteDuration,
                             executionDelay: opts.governanceOpts.executionDelay,

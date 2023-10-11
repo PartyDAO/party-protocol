@@ -74,7 +74,7 @@ contract PartyFactoryTest is Test, TestUtils {
         address authority = _randomAddress();
         (IERC721[] memory preciousTokens, uint256[] memory preciousTokenIds) = _createPreciouses(3);
         Party.PartyOptions memory opts = Party.PartyOptions({
-            governance: PartyGovernance.GovernanceOpts({
+            governance: GovernanceOpts({
                 hosts: _toAddressArray(_randomAddress()),
                 voteDuration: randomUint40,
                 executionDelay: randomUint40,
@@ -135,7 +135,7 @@ contract PartyFactoryTest is Test, TestUtils {
         address authority = _randomAddress();
         (IERC721[] memory preciousTokens, uint256[] memory preciousTokenIds) = _createPreciouses(3);
         Party.PartyOptions memory opts = Party.PartyOptions({
-            governance: PartyGovernance.GovernanceOpts({
+            governance: GovernanceOpts({
                 hosts: _toAddressArray(_randomAddress()),
                 voteDuration: randomUint40,
                 executionDelay: randomUint40,

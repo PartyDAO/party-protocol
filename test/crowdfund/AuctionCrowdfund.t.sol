@@ -142,7 +142,7 @@ contract AuctionCrowdfundTest is Test, TestUtils {
                 name: defaultName,
                 symbol: defaultSymbol,
                 customizationPresetId: 0,
-                governance: PartyGovernance.GovernanceOpts({
+                governance: GovernanceOpts({
                     hosts: governanceOpts.hosts,
                     voteDuration: governanceOpts.voteDuration,
                     executionDelay: governanceOpts.executionDelay,

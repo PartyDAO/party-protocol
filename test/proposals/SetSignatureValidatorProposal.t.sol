@@ -5,8 +5,7 @@ import { SetupPartyHelper } from "../utils/SetupPartyHelper.sol";
 import { SetSignatureValidatorProposal } from "../../contracts/proposals/SetSignatureValidatorProposal.sol";
 import { IERC1271 } from "openzeppelin/contracts/interfaces/IERC1271.sol";
 import { ProposalExecutionEngine } from "../../contracts/proposals/ProposalExecutionEngine.sol";
-import { PartyGovernance } from "../../contracts/party/PartyGovernance.sol";
-import { OffChainSignatureValidator } from "../../contracts/signature-validators/OffChainSignatureValidator.sol";
+import { Proposal } from "../../contracts/utils/LibParty.sol";
 
 contract SetSignatureValidatorProposalTest is SetupPartyHelper {
     constructor() SetupPartyHelper(false) {}
@@ -14,10 +13,7 @@ contract SetSignatureValidatorProposalTest is SetupPartyHelper {
     event SignatureValidatorSet(bytes32 indexed hash, IERC1271 indexed signatureValidator);
 
     function testSetValidatorForHash() public {
-        PartyGovernance.Proposal memory proposal = _createTestProposal(
-            keccak256("hello"),
-            IERC1271(address(1))
-        );
+        Proposal memory proposal = _createTestProposal(keccak256("hello"), IERC1271(address(1)));
 
         uint256 proposalId = _proposeAndPassProposal(proposal);
 
@@ -101,7 +97,7 @@ contract SetSignatureValidatorProposalTest is SetupPartyHelper {
     }
 
     function _setValidatorForHash(bytes32 hash, IERC1271 validator) internal {
-        PartyGovernance.Proposal memory proposal = _createTestProposal(hash, validator);
+        Proposal memory proposal = _createTestProposal(hash, validator);
         uint256 proposalId = _proposeAndPassProposal(proposal);
 
         vm.expectEmit(true, true, true, true);
@@ -112,14 +108,14 @@ contract SetSignatureValidatorProposalTest is SetupPartyHelper {
     function _createTestProposal(
         bytes32 hash,
         IERC1271 validator
-    ) private pure returns (PartyGovernance.Proposal memory proposal) {
+    ) private pure returns (Proposal memory proposal) {
         SetSignatureValidatorProposal.SetSignatureValidatorProposalData
             memory data = SetSignatureValidatorProposal.SetSignatureValidatorProposalData({
                 signatureHash: hash,
                 signatureValidator: validator
             });
 
-        proposal = PartyGovernance.Proposal({
+        proposal = Proposal({
             maxExecutableTime: type(uint40).max,
             cancelDelay: 0,
             proposalData: abi.encodeWithSelector(

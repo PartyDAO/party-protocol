@@ -15,6 +15,7 @@ import "../globals/IGlobals.sol";
 import "../globals/LibGlobals.sol";
 import "../proposals/IProposalExecutionEngine.sol";
 import "../proposals/LibProposal.sol";
+import "../utils/LibParty.sol";
 import "../proposals/ProposalStorage.sol";
 
 import "./Party.sol";
@@ -31,115 +32,6 @@ abstract contract PartyGovernance is
     using LibSafeCast for uint256;
     using LibSafeCast for int192;
     using LibSafeCast for uint96;
-
-    // States a proposal can be in.
-    enum ProposalStatus {
-        // The proposal does not exist.
-        Invalid,
-        // The proposal has been proposed (via `propose()`), has not been vetoed
-        // by a party host, and is within the voting window. Members can vote on
-        // the proposal and party hosts can veto the proposal.
-        Voting,
-        // The proposal has either exceeded its voting window without reaching
-        // `passThresholdBps` of votes or was vetoed by a party host.
-        Defeated,
-        // The proposal reached at least `passThresholdBps` of votes but is still
-        // waiting for `executionDelay` to pass before it can be executed. Members
-        // can continue to vote on the proposal and party hosts can veto at this time.
-        Passed,
-        // Same as `Passed` but now `executionDelay` has been satisfied. Any member
-        // may execute the proposal via `execute()`, unless `maxExecutableTime`
-        // has arrived.
-        Ready,
-        // The proposal has been executed at least once but has further steps to
-        // complete so it needs to be executed again. No other proposals may be
-        // executed while a proposal is in the `InProgress` state. No voting or
-        // vetoing of the proposal is allowed, however it may be forcibly cancelled
-        // via `cancel()` if the `cancelDelay` has passed since being first executed.
-        InProgress,
-        // The proposal was executed and completed all its steps. No voting or
-        // vetoing can occur and it cannot be cancelled nor executed again.
-        Complete,
-        // The proposal was executed at least once but did not complete before
-        // `cancelDelay` seconds passed since the first execute and was forcibly cancelled.
-        Cancelled
-    }
-
-    struct GovernanceOpts {
-        // Address of initial party hosts.
-        address[] hosts;
-        // How long people can vote on a proposal.
-        uint40 voteDuration;
-        // How long to wait after a proposal passes before it can be
-        // executed.
-        uint40 executionDelay;
-        // Minimum ratio of accept votes to consider a proposal passed,
-        // in bps, where 10,000 == 100%.
-        uint16 passThresholdBps;
-        // Total voting power of governance NFTs.
-        uint96 totalVotingPower;
-        // Fee bps for distributions.
-        uint16 feeBps;
-        // Fee recipeint for distributions.
-        address payable feeRecipient;
-    }
-
-    // A snapshot of voting power for a member.
-    struct VotingPowerSnapshot {
-        // The timestamp when the snapshot was taken.
-        uint40 timestamp;
-        // Voting power that was delegated to this user by others.
-        uint96 delegatedVotingPower;
-        // The intrinsic (not delegated from someone else) voting power of this user.
-        uint96 intrinsicVotingPower;
-        // Whether the user was delegated to another at this snapshot.
-        bool isDelegated;
-    }
-
-    // Proposal details chosen by proposer.
-    struct Proposal {
-        // Time beyond which the proposal can no longer be executed.
-        // If the proposal has already been executed, and is still InProgress,
-        // this value is ignored.
-        uint40 maxExecutableTime;
-        // The minimum seconds this proposal can remain in the InProgress status
-        // before it can be cancelled.
-        uint40 cancelDelay;
-        // Encoded proposal data. The first 4 bytes are the proposal type, followed
-        // by encoded proposal args specific to the proposal type. See
-        // ProposalExecutionEngine for details.
-        bytes proposalData;
-    }
-
-    // Accounting and state tracking values for a proposal.
-    struct ProposalStateValues {
-        // When the proposal was proposed.
-        uint40 proposedTime;
-        // When the proposal passed the vote.
-        uint40 passedTime;
-        // When the proposal was first executed.
-        uint40 executedTime;
-        // When the proposal completed.
-        uint40 completedTime;
-        // Number of accept votes.
-        uint96 votes; // -1 == vetoed
-        // Number of total voting power at time proposal created.
-        uint96 totalVotingPower;
-        /// @notice Number of hosts at time proposal created
-        uint8 numHosts;
-        /// @notice Number of hosts that accepted proposal
-        uint8 numHostsAccepted;
-    }
-
-    // Storage states for a proposal.
-    struct ProposalState {
-        // Accounting and state tracking values.
-        ProposalStateValues values;
-        // Hash of the proposal.
-        bytes32 hash;
-        // Whether a member has voted for (accepted) this proposal already.
-        mapping(address => bool) hasVoted;
-    }
 
     event Proposed(uint256 proposalId, address proposer, Proposal proposal);
     event ProposalAccepted(uint256 proposalId, address voter, uint256 weight);
@@ -401,31 +293,6 @@ abstract contract PartyGovernance is
         return _getSharedProposalStorage().governanceValues;
     }
 
-    /// @notice Get the hash of a proposal.
-    /// @dev Proposal details are not stored on-chain so the hash is used to enforce
-    ///      consistency between calls.
-    /// @param proposal The proposal to hash.
-    /// @return proposalHash The hash of the proposal.
-    function getProposalHash(Proposal memory proposal) public pure returns (bytes32 proposalHash) {
-        // Hash the proposal in-place. Equivalent to:
-        // keccak256(abi.encode(
-        //   proposal.maxExecutableTime,
-        //   proposal.cancelDelay,
-        //   keccak256(proposal.proposalData)
-        // ))
-        bytes32 dataHash = keccak256(proposal.proposalData);
-        assembly {
-            // Overwrite the data field with the hash of its contents and then
-            // hash the struct.
-            let dataPos := add(proposal, 0x40)
-            let t := mload(dataPos)
-            mstore(dataPos, dataHash)
-            proposalHash := keccak256(proposal, 0x60)
-            // Restore the data field.
-            mstore(dataPos, t)
-        }
-    }
-
     /// @notice Get the index of the most recent voting power snapshot <= `timestamp`.
     /// @param voter The address of the voter.
     /// @param timestamp The timestamp to get the snapshot index at.
@@ -582,7 +449,7 @@ abstract contract PartyGovernance is
                 numHosts: numHosts,
                 numHostsAccepted: 0
             }),
-            getProposalHash(proposal)
+            LibParty.getProposalHash(proposal)
         );
         emit Proposed(proposalId, msg.sender, proposal);
         accept(proposalId, latestSnapIndex);
@@ -653,7 +520,7 @@ abstract contract PartyGovernance is
         // Update the proposal status if it has reached the pass threshold.
         if (
             values.passedTime == 0 &&
-            _areVotesPassing(
+            LibParty.areVotesPassing(
                 values.votes,
                 values.totalVotingPower,
                 _getSharedProposalStorage().governanceValues.passThresholdBps
@@ -724,7 +591,7 @@ abstract contract PartyGovernance is
         // Get information about the proposal.
         ProposalState storage proposalState = _proposalStateByProposalId[proposalId];
         // Proposal details must remain the same from `propose()`.
-        _validateProposalHash(proposal, proposalState.hash);
+        LibParty.validateProposalHash(proposal, proposalState.hash);
         ProposalStateValues memory values = proposalState.values;
         ProposalStatus status = _getProposalStatus(values);
         // The proposal must be executable or have already been executed but still
@@ -780,7 +647,7 @@ abstract contract PartyGovernance is
         // Get information about the proposal.
         ProposalState storage proposalState = _proposalStateByProposalId[proposalId];
         // Proposal details must remain the same from `propose()`.
-        _validateProposalHash(proposal, proposalState.hash);
+        LibParty.validateProposalHash(proposal, proposalState.hash);
         ProposalStateValues memory values = proposalState.values;
         {
             // Must be `InProgress`.
@@ -1059,10 +926,10 @@ abstract contract PartyGovernance is
 
     function _getProposalFlags(ProposalStateValues memory pv) private pure returns (uint256) {
         uint256 flags = 0;
-        if (_isUnanimousVotes(pv.votes, pv.totalVotingPower)) {
+        if (LibParty.isUnanimousVotes(pv.votes, pv.totalVotingPower)) {
             flags = flags | LibProposal.PROPOSAL_FLAG_UNANIMOUS;
         }
-        if (_hostsAccepted(pv.numHosts, pv.numHostsAccepted)) {
+        if (LibParty.hostsAccepted(pv.numHosts, pv.numHostsAccepted)) {
             flags = flags | LibProposal.PROPOSAL_FLAG_HOSTS_ACCEPT;
         }
         return flags;
@@ -1098,11 +965,11 @@ abstract contract PartyGovernance is
                 return ProposalStatus.Ready;
             }
             // If unanimous, we skip the execution delay.
-            if (_isUnanimousVotes(pv.votes, pv.totalVotingPower)) {
+            if (LibParty.isUnanimousVotes(pv.votes, pv.totalVotingPower)) {
                 return ProposalStatus.Ready;
             }
             // If all hosts voted, skip execution delay
-            if (_hostsAccepted(pv.numHosts, pv.numHostsAccepted)) {
+            if (LibParty.hostsAccepted(pv.numHosts, pv.numHostsAccepted)) {
                 return ProposalStatus.Ready;
             }
             // Passed.
@@ -1115,32 +982,6 @@ abstract contract PartyGovernance is
         return ProposalStatus.Voting;
     }
 
-    function _isUnanimousVotes(
-        uint96 totalVotes,
-        uint96 totalVotingPower
-    ) private pure returns (bool) {
-        uint256 acceptanceRatio = (totalVotes * 1e4) / totalVotingPower;
-        // If >= 99.99% acceptance, consider it unanimous.
-        // The minting formula for voting power is a bit lossy, so we check
-        // for slightly less than 100%.
-        return acceptanceRatio >= 0.9999e4;
-    }
-
-    function _hostsAccepted(
-        uint8 snapshotNumHosts,
-        uint8 numHostsAccepted
-    ) private pure returns (bool) {
-        return snapshotNumHosts > 0 && snapshotNumHosts == numHostsAccepted;
-    }
-
-    function _areVotesPassing(
-        uint96 voteCount,
-        uint96 totalVotingPower,
-        uint16 passThresholdBps
-    ) private pure returns (bool) {
-        return (uint256(voteCount) * 1e4) / uint256(totalVotingPower) >= uint256(passThresholdBps);
-    }
-
     function _setPreciousList(
         IERC721[] memory preciousTokens,
         uint256[] memory preciousTokenIds
@@ -1148,32 +989,13 @@ abstract contract PartyGovernance is
         if (preciousTokens.length != preciousTokenIds.length) {
             revert MismatchedPreciousListLengths();
         }
-        preciousListHash = _hashPreciousList(preciousTokens, preciousTokenIds);
+        preciousListHash = LibParty.hashPreciousList(preciousTokens, preciousTokenIds);
     }
 
     function _isPreciousListCorrect(
         IERC721[] memory preciousTokens,
         uint256[] memory preciousTokenIds
     ) private view returns (bool) {
-        return preciousListHash == _hashPreciousList(preciousTokens, preciousTokenIds);
-    }
-
-    function _hashPreciousList(
-        IERC721[] memory preciousTokens,
-        uint256[] memory preciousTokenIds
-    ) internal pure returns (bytes32 h) {
-        assembly {
-            mstore(0x00, keccak256(add(preciousTokens, 0x20), mul(mload(preciousTokens), 0x20)))
-            mstore(0x20, keccak256(add(preciousTokenIds, 0x20), mul(mload(preciousTokenIds), 0x20)))
-            h := keccak256(0x00, 0x40)
-        }
-    }
-
-    // Assert that the hash of a proposal matches expectedHash.
-    function _validateProposalHash(Proposal memory proposal, bytes32 expectedHash) private pure {
-        bytes32 actualHash = getProposalHash(proposal);
-        if (expectedHash != actualHash) {
-            revert BadProposalHashError(actualHash, expectedHash);
-        }
+        return preciousListHash == LibParty.hashPreciousList(preciousTokens, preciousTokenIds);
     }
 }

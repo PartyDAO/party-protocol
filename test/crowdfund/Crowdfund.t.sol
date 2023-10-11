@@ -178,7 +178,7 @@ contract CrowdfundTest is LintJSON, TestUtils {
                 name: defaultName,
                 symbol: defaultSymbol,
                 customizationPresetId: 0,
-                governance: PartyGovernance.GovernanceOpts({
+                governance: GovernanceOpts({
                     hosts: fixedGovOpts.hosts,
                     voteDuration: fixedGovOpts.voteDuration,
                     executionDelay: fixedGovOpts.executionDelay,
