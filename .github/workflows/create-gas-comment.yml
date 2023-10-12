@@ -5,7 +5,7 @@ on:
     branches: main
 
 jobs:
-  gas:
+  gas-benchmarks:
     runs-on: ubuntu-latest
     steps:
       - name: "Check out the repo"
@@ -26,7 +26,7 @@ jobs:
           version: nightly
       - name: Install dependencies
         run: forge install
-      - name: Run gas tests
+      - name: Run gas benchmarks
         run: "node js/gas-benchmarks.js"
       - name: Find Comment
         uses: peter-evans/find-comment@v2

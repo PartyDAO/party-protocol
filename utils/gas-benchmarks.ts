@@ -19,9 +19,16 @@ async function main() {
     const outputLines = stdout.split("\n");
     let wantedOutput = new Array<string>();
     wantedOutput.push("Gas Report:");
+    let looking = false;
     for (let i = 0; i < outputLines.length; i++) {
       const outputLine = outputLines[i].trim();
+      // Only start looking until we see a line that starts with "Running"
+      if (outputLine.startsWith("Running")) {
+        looking = true;
+        continue;
+      }
       if (
+        !looking ||
         outputLine.startsWith("Logs") ||
         outputLine.includes("[PASS]") ||
         outputLine == "" ||
