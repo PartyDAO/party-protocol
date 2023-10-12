@@ -5,7 +5,7 @@ on:
     branches: main
 
 jobs:
-  gas-benchmark:
+  gas:
     runs-on: ubuntu-latest
     steps:
       - name: "Check out the repo"
@@ -39,7 +39,5 @@ jobs:
         with:
           comment-id: ${{ steps.fc.outputs.comment-id }}
           issue-number: ${{ github.event.pull_request.number }}
-          body: |
-            Gas Report
-            ${{ steps.build.outputs.build-log }}
+          body-path: gas-results.txt
           edit-mode: replace
