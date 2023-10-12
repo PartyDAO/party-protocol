@@ -6,7 +6,7 @@ import path from "path";
 import axios from "axios";
 import { createHash } from "crypto";
 import { snakeCase, camelCase } from "change-case";
-import { getEtherscanApiEndpoint, verify } from "./verify";
+import { getEtherscanApiEndpoint, getEtherscanApiKey, verify } from "./verify";
 import "colors";
 
 const rl = readline.createInterface({
@@ -85,7 +85,7 @@ async function getSourceCode(address: string, chain: string) {
         module: "contract",
         action: "getsourcecode",
         address,
-        apikey: process.env.ETHERSCAN_API_KEY,
+        apikey: getEtherscanApiKey(chain),
       },
       {
         headers: {

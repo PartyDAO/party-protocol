@@ -17,6 +17,10 @@ export const getEtherscanApiEndpoint = (chain: string) => {
   }
 };
 
+export function getEtherscanApiKey(chain: string) {
+  return chain.startsWith("base") ? process.env.BASESCAN_API_KEY : process.env.ETHERSCAN_API_KEY;
+}
+
 const readJsonFile = (filePath: string) => {
   return JSON.parse(fs.readFileSync(filePath, "utf8"));
 };
@@ -217,7 +221,7 @@ export const verify = async (chain: string, skip: boolean) => {
     (transaction: any) => transaction["transactionType"] === "CREATE",
   );
 
-  const apiKey = process.env.ETHERSCAN_API_KEY;
+  const apiKey = getEtherscanApiKey(chain);
 
   const contractNames = getContractNames(chain, runLatestData["libraries"]);
 
