@@ -1,23 +1,23 @@
 // SPDX-License-Identifier: GPL-3.0
 pragma solidity 0.8.20;
 
-import "../distribution/ITokenDistributor.sol";
-import "../utils/ReadOnlyDelegateCall.sol";
-import "../tokens/IERC721.sol";
-import "../tokens/IERC20.sol";
+import { ITokenDistributor } from "../distribution/ITokenDistributor.sol";
+import { ReadOnlyDelegateCall } from "../utils/ReadOnlyDelegateCall.sol";
+import { IERC721 } from "../tokens/IERC721.sol";
+import { IERC20 } from "../tokens/IERC20.sol";
 import { IERC721Receiver } from "../tokens/IERC721Receiver.sol";
 import { ERC1155TokenReceiverBase } from "../vendor/solmate/ERC1155.sol";
-import "../utils/LibERC20Compat.sol";
-import "../utils/LibRawResult.sol";
-import "../utils/LibSafeCast.sol";
-import "../utils/IERC4906.sol";
-import "../globals/IGlobals.sol";
-import "../globals/LibGlobals.sol";
-import "../proposals/IProposalExecutionEngine.sol";
-import "../proposals/LibProposal.sol";
-import "../proposals/ProposalStorage.sol";
-
-import "./Party.sol";
+import { LibERC20Compat } from "../utils/LibERC20Compat.sol";
+import { LibRawResult } from "../utils/LibRawResult.sol";
+import { LibSafeCast } from "../utils/LibSafeCast.sol";
+import { IERC4906 } from "../utils/IERC4906.sol";
+import { IGlobals } from "../globals/IGlobals.sol";
+import { LibGlobals } from "../globals/LibGlobals.sol";
+import { IProposalExecutionEngine } from "../proposals/IProposalExecutionEngine.sol";
+import { LibProposal } from "../proposals/LibProposal.sol";
+import { ProposalStorage } from "../proposals/ProposalStorage.sol";
+import { Implementation } from "../utils/Implementation.sol";
+import { Party } from "./Party.sol";
 
 /// @notice Base contract for a Party encapsulating all governance functionality.
 abstract contract PartyGovernance is
@@ -169,13 +169,9 @@ abstract contract PartyGovernance is
     error BadProposalStatusError(ProposalStatus status);
     error BadProposalHashError(bytes32 proposalHash, bytes32 actualHash);
     error ExecutionTimeExceededError(uint40 maxExecutableTime, uint40 timestamp);
-    error OnlyPartyHostError();
-    error OnlyActiveMemberError();
-    error OnlyTokenDistributorOrSelfError();
+    error NotAuthorized();
     error InvalidDelegateError();
     error BadPreciousListError();
-    error OnlyPartyDaoError(address notDao, address partyDao);
-    error OnlyPartyDaoOrHostError(address notDao, address partyDao);
     error OnlyWhenEmergencyActionsAllowedError();
     error OnlyWhenEnabledError();
     error AlreadyVotedError(address voter);
@@ -217,18 +213,17 @@ abstract contract PartyGovernance is
     /// @notice Snapshots of voting power per user, each sorted by increasing time.
     mapping(address => VotingPowerSnapshot[]) private _votingPowerSnapshotsByVoter;
 
-    modifier onlyHost() {
+    function _assertHost() internal view {
         if (!isHost[msg.sender]) {
-            revert OnlyPartyHostError();
+            revert NotAuthorized();
         }
-        _;
     }
 
     function _assertActiveMember() internal view {
         VotingPowerSnapshot memory snap = _getLastVotingPowerSnapshotForVoter(msg.sender);
         // Must have either delegated voting power or intrinsic voting power.
         if (snap.intrinsicVotingPower == 0 && snap.delegatedVotingPower == 0) {
-            revert OnlyActiveMemberError();
+            revert NotAuthorized();
         }
     }
 
@@ -237,7 +232,7 @@ abstract contract PartyGovernance is
         {
             address partyDao = _GLOBALS.getAddress(LibGlobals.GLOBAL_DAO_WALLET);
             if (msg.sender != partyDao) {
-                revert OnlyPartyDaoError(msg.sender, partyDao);
+                revert NotAuthorized();
             }
         }
         _;
@@ -247,7 +242,7 @@ abstract contract PartyGovernance is
     modifier onlyPartyDaoOrHost() {
         address partyDao = _GLOBALS.getAddress(LibGlobals.GLOBAL_DAO_WALLET);
         if (msg.sender != partyDao && !isHost[msg.sender]) {
-            revert OnlyPartyDaoOrHostError(msg.sender, partyDao);
+            revert NotAuthorized();
         }
         _;
     }
@@ -260,7 +255,7 @@ abstract contract PartyGovernance is
         _;
     }
 
-    function _assertNotGloballyDisabled() internal {
+    function _assertNotGloballyDisabled() internal view {
         if (_GLOBALS.getBool(LibGlobals.GLOBAL_DISABLE_PARTY_ACTIONS)) {
             revert OnlyWhenEnabledError();
         }
@@ -459,7 +454,8 @@ abstract contract PartyGovernance is
 
     /// @notice Transfer party host status to another.
     /// @param newPartyHost The address of the new host.
-    function abdicateHost(address newPartyHost) external onlyHost {
+    function abdicateHost(address newPartyHost) external {
+        _assertHost();
         // 0 is a special case burn address.
         if (newPartyHost != address(0)) {
             // Cannot transfer host status to an existing host.
@@ -507,7 +503,7 @@ abstract contract PartyGovernance is
             // Must be an active member.
             VotingPowerSnapshot memory snap = _getLastVotingPowerSnapshotForVoter(msg.sender);
             if (snap.intrinsicVotingPower == 0 && snap.delegatedVotingPower == 0) {
-                revert OnlyActiveMemberError();
+                revert NotAuthorized();
             }
         }
         // Prevent creating a distribution if the party has not started.
@@ -666,7 +662,8 @@ abstract contract PartyGovernance is
     ///      A proposal that has been already executed at least once (in the `InProgress` status)
     ///      cannot be vetoed.
     /// @param proposalId The ID of the proposal to veto.
-    function veto(uint256 proposalId) external onlyHost {
+    function veto(uint256 proposalId) external {
+        _assertHost();
         // Setting `votes` to -1 indicates a veto.
         ProposalState storage info = _proposalStateByProposalId[proposalId];
         ProposalStateValues memory values = info.values;
