@@ -26,6 +26,8 @@ jobs:
           version: nightly
       - name: Install dependencies
         run: forge install
+      - name: Run gas tests
+        run: "node js/gas-benchmarks.js"
       - name: Find Comment
         uses: peter-evans/find-comment@v2
         id: fc

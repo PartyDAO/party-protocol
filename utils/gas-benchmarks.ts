@@ -18,6 +18,7 @@ async function main() {
   childProcess.exec("forge test --match-contract GasBenchmarks -vv", (error, stdout, stderr) => {
     const outputLines = stdout.split("\n");
     let wantedOutput = new Array<string>();
+    wantedOutput.push("Gas Report:");
     for (let i = 0; i < outputLines.length; i++) {
       const outputLine = outputLines[i].trim();
       if (
