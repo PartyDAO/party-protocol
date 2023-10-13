@@ -153,7 +153,7 @@ contract PartyGovernanceNFTUnitTest is TestUtils {
         uint256 vp = _randomUint256() % defaultGovernanceOpts.totalVotingPower;
         address notAuthority = _randomAddress();
         vm.prank(notAuthority);
-        vm.expectRevert(PartyGovernanceNFT.OnlyAuthorityError.selector);
+        vm.expectRevert(PartyGovernance.NotAuthorized.selector);
         nft.mint(from, vp, from);
     }
 

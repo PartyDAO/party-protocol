@@ -139,7 +139,7 @@ contract PartyGovernanceNFTTest is PartyGovernanceNFTTestBase {
             })
         );
         address notAuthority = _randomAddress();
-        vm.expectRevert(PartyGovernanceNFT.OnlyAuthorityError.selector);
+        vm.expectRevert(PartyGovernance.NotAuthorized.selector);
         vm.prank(notAuthority);
         party.mint(_randomAddress(), 1, _randomAddress());
     }
@@ -235,7 +235,7 @@ contract PartyGovernanceNFTTest is PartyGovernanceNFTTestBase {
 
         address notAuthority = _randomAddress();
         vm.prank(notAuthority);
-        vm.expectRevert(PartyGovernanceNFT.OnlyAuthorityError.selector);
+        vm.expectRevert(PartyGovernance.NotAuthorized.selector);
         party.increaseTotalVotingPower(votingPower);
     }
 
@@ -284,7 +284,7 @@ contract PartyGovernanceNFTTest is PartyGovernanceNFTTestBase {
 
         address notAuthority = _randomAddress();
         vm.prank(notAuthority);
-        vm.expectRevert(PartyGovernanceNFT.OnlyAuthorityError.selector);
+        vm.expectRevert(PartyGovernance.NotAuthorized.selector);
         party.decreaseTotalVotingPower(votingPower);
     }
 
@@ -346,7 +346,7 @@ contract PartyGovernanceNFTTest is PartyGovernanceNFTTestBase {
 
         address notAuthority = _randomAddress();
         vm.prank(notAuthority);
-        vm.expectRevert(PartyGovernanceNFT.OnlyAuthorityError.selector);
+        vm.expectRevert(PartyGovernance.NotAuthorized.selector);
         party.addVotingPower(tokenId, votingPower);
     }
 
@@ -408,7 +408,7 @@ contract PartyGovernanceNFTTest is PartyGovernanceNFTTestBase {
 
         address notAuthority = _randomAddress();
         vm.prank(notAuthority);
-        vm.expectRevert(PartyGovernanceNFT.OnlyAuthorityError.selector);
+        vm.expectRevert(PartyGovernance.NotAuthorized.selector);
         party.removeVotingPower(tokenId, votingPower);
     }
 
@@ -485,7 +485,7 @@ contract PartyGovernanceNFTTest is PartyGovernanceNFTTestBase {
         uint256 tokenId = party.mint(recipient, 10, recipient);
 
         vm.prank(_randomAddress());
-        vm.expectRevert(PartyGovernanceNFT.OnlyAuthorityError.selector);
+        vm.expectRevert(PartyGovernance.NotAuthorized.selector);
         party.burn(tokenId);
     }
 
@@ -527,7 +527,7 @@ contract PartyGovernanceNFTTest is PartyGovernanceNFTTestBase {
         );
         address notHost = _randomAddress();
         vm.prank(notHost);
-        vm.expectRevert(PartyGovernance.OnlyPartyHostError.selector);
+        vm.expectRevert(PartyGovernance.NotAuthorized.selector);
         party.setRageQuit(0);
     }
 
@@ -992,7 +992,7 @@ contract PartyGovernanceNFTTest is PartyGovernanceNFTTestBase {
 
         address notOwner = _randomAddress();
         vm.prank(notOwner);
-        vm.expectRevert(PartyGovernanceNFT.UnauthorizedToBurnError.selector);
+        vm.expectRevert(PartyGovernance.NotAuthorized.selector);
         party.rageQuit(tokenIds, tokens, minWithdrawAmounts, recipient);
     }
 
@@ -1475,7 +1475,7 @@ contract PartyGovernanceNFTTest is PartyGovernanceNFTTestBase {
             })
         );
         address notAuthority = _randomAddress();
-        vm.expectRevert(PartyGovernanceNFT.OnlyAuthorityError.selector);
+        vm.expectRevert(PartyGovernance.NotAuthorized.selector);
         vm.prank(notAuthority);
         party.abdicateAuthority();
     }
