@@ -30,6 +30,7 @@ contract AddPartyCardsAuthority {
         if (newPartyMembers.length != newPartyMemberVotingPowers.length) {
             revert PartyMembersArityMismatch();
         }
+
         uint96 addedVotingPower;
         for (uint256 i = 0; i < newPartyMemberVotingPowers.length; ++i) {
             if (newPartyMemberVotingPowers[i] == 0) {
@@ -38,17 +39,16 @@ contract AddPartyCardsAuthority {
             if (newPartyMembers[i] == address(0)) {
                 revert InvalidPartyMember();
             }
-
-            (bool success, ) = msg.sender.call(
-                abi.encodeWithSelector(
-                    PartyGovernanceNFT.mint.selector,
-                    newPartyMembers[i],
-                    newPartyMemberVotingPowers[i],
-                    initialDelegates[i]
-                )
-            );
-            addedVotingPower += success ? newPartyMemberVotingPowers[i] : 0;
+            addedVotingPower += newPartyMemberVotingPowers[i];
         }
         Party(payable(msg.sender)).increaseTotalVotingPower(addedVotingPower);
+
+        for (uint256 i = 0; i < newPartyMembers.length; ++i) {
+            PartyGovernanceNFT(msg.sender).mint(
+                newPartyMembers[i],
+                newPartyMemberVotingPowers[i],
+                initialDelegates[i]
+            );
+        }
     }
 }
