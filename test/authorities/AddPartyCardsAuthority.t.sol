@@ -2,8 +2,10 @@
 pragma solidity ^0.8;
 
 import { SetupPartyHelper } from "../utils/SetupPartyHelper.sol";
-import { Party, PartyGovernanceNFT } from "../../contracts/party/Party.sol";
+import { Party, PartyGovernance, PartyGovernanceNFT } from "../../contracts/party/Party.sol";
+import { ProposalExecutionEngine } from "../../contracts/proposals/ProposalExecutionEngine.sol";
 import { AddPartyCardsAuthority } from "../../contracts/authorities/AddPartyCardsAuthority.sol";
+import { ArbitraryCallsProposal } from "../../contracts/proposals/ArbitraryCallsProposal.sol";
 
 contract AddPartyCardsAuthorityTest is SetupPartyHelper {
     AddPartyCardsAuthority authority;
@@ -55,9 +57,6 @@ contract AddPartyCardsAuthorityTest is SetupPartyHelper {
         newPartyMemberVotingPowers[1] = 200;
         newPartyMemberVotingPowers[2] = 300;
         address[] memory initialDelegates = new address[](3);
-        initialDelegates[0] = _randomAddress();
-        initialDelegates[1] = _randomAddress();
-        initialDelegates[2] = _randomAddress();
 
         uint96 totalVotingPowerBefore = party.getGovernanceValues().totalVotingPower;
         uint96 tokenCount = party.tokenCount();
@@ -73,10 +72,9 @@ contract AddPartyCardsAuthorityTest is SetupPartyHelper {
 
             assertEq(party.votingPowerByTokenId(tokenId), newPartyMemberVotingPowers[i]);
             assertEq(
-                party.getVotingPowerAt(initialDelegates[i], uint40(block.timestamp)),
+                party.getVotingPowerAt(newPartyMembers[i], uint40(block.timestamp)),
                 newPartyMemberVotingPowers[i]
             );
-            assertEq(party.delegationsByVoter(newPartyMembers[i]), initialDelegates[i]);
         }
         assertEq(
             party.getGovernanceValues().totalVotingPower - totalVotingPowerBefore,
@@ -155,5 +153,63 @@ contract AddPartyCardsAuthorityTest is SetupPartyHelper {
 
         vm.expectRevert(AddPartyCardsAuthority.InvalidPartyMemberVotingPower.selector);
         authority.addPartyCards(newPartyMembers, newPartyMemberVotingPowers, initialDelegates);
+    }
+
+    function test_integration() public {
+        // Propose proposal to call `addPartyCards` with 3 new members
+        address[] memory newPartyMembers = new address[](3);
+        newPartyMembers[0] = _randomAddress();
+        newPartyMembers[1] = _randomAddress();
+        newPartyMembers[2] = _randomAddress();
+        uint96[] memory newPartyMemberVotingPowers = new uint96[](3);
+        newPartyMemberVotingPowers[0] = 100;
+        newPartyMemberVotingPowers[1] = 200;
+        newPartyMemberVotingPowers[2] = 300;
+        address[] memory initialDelegates = new address[](3);
+
+        ArbitraryCallsProposal.ArbitraryCall[]
+            memory calls = new ArbitraryCallsProposal.ArbitraryCall[](1);
+        calls[0] = ArbitraryCallsProposal.ArbitraryCall({
+            target: payable(address(authority)),
+            value: 0,
+            data: abi.encodeCall(
+                AddPartyCardsAuthority.addPartyCards,
+                (newPartyMembers, newPartyMemberVotingPowers, initialDelegates)
+            ),
+            expectedResultHash: bytes32(0)
+        });
+
+        PartyGovernance.Proposal memory proposal = PartyGovernance.Proposal({
+            maxExecutableTime: uint40(type(uint40).max),
+            cancelDelay: 0,
+            proposalData: abi.encodeWithSelector(
+                bytes4(uint32(ProposalExecutionEngine.ProposalType.ArbitraryCalls)),
+                calls
+            )
+        });
+
+        uint96 totalVotingPowerBefore = party.getGovernanceValues().totalVotingPower;
+        uint96 tokenCount = party.tokenCount();
+
+        // Propose and execute
+        proposePassAndExecuteProposal(proposal);
+
+        // Check that the new members were added and the total voting power was updated
+        uint96 totalVotingPowerAdded;
+        for (uint256 i; i < newPartyMembers.length; i++) {
+            uint256 tokenId = tokenCount + i + 1;
+
+            totalVotingPowerAdded += newPartyMemberVotingPowers[i];
+
+            assertEq(party.votingPowerByTokenId(tokenId), newPartyMemberVotingPowers[i]);
+            assertEq(
+                party.getVotingPowerAt(newPartyMembers[i], uint40(block.timestamp)),
+                newPartyMemberVotingPowers[i]
+            );
+        }
+        assertEq(
+            party.getGovernanceValues().totalVotingPower - totalVotingPowerBefore,
+            totalVotingPowerAdded
+        );
     }
 }
