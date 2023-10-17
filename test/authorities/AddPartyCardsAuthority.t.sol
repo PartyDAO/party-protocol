@@ -25,24 +25,24 @@ contract AddPartyCardsAuthorityTest is SetupPartyHelper {
         newPartyMembers[0] = _randomAddress();
         uint96[] memory newPartyMemberVotingPowers = new uint96[](1);
         newPartyMemberVotingPowers[0] = 100;
+        address[] memory initialDelegates = new address[](1);
+        initialDelegates[0] = _randomAddress();
 
-        uint96 votingPowerBefore = party.getVotingPowerAt(
-            newPartyMembers[0],
-            uint40(block.timestamp)
-        );
         uint96 totalVotingPowerBefore = party.getGovernanceValues().totalVotingPower;
 
         vm.prank(address(party));
-        authority.addPartyCards(newPartyMembers, newPartyMemberVotingPowers);
+        authority.addPartyCards(newPartyMembers, newPartyMemberVotingPowers, initialDelegates);
 
         assertEq(
             party.getGovernanceValues().totalVotingPower - totalVotingPowerBefore,
             newPartyMemberVotingPowers[0]
         );
+        assertEq(party.votingPowerByTokenId(party.tokenCount()), newPartyMemberVotingPowers[0]);
         assertEq(
-            party.getVotingPowerAt(newPartyMembers[0], uint40(block.timestamp)) - votingPowerBefore,
+            party.getVotingPowerAt(initialDelegates[0], uint40(block.timestamp)),
             newPartyMemberVotingPowers[0]
         );
+        assertEq(party.delegationsByVoter(newPartyMembers[0]), initialDelegates[0]);
     }
 
     function test_addPartyCards_multiple() public {
@@ -54,25 +54,29 @@ contract AddPartyCardsAuthorityTest is SetupPartyHelper {
         newPartyMemberVotingPowers[0] = 100;
         newPartyMemberVotingPowers[1] = 200;
         newPartyMemberVotingPowers[2] = 300;
+        address[] memory initialDelegates = new address[](3);
+        initialDelegates[0] = _randomAddress();
+        initialDelegates[1] = _randomAddress();
+        initialDelegates[2] = _randomAddress();
 
-        uint96 votingPowerBefore = party.getVotingPowerAt(
-            newPartyMembers[0],
-            uint40(block.timestamp)
-        );
         uint96 totalVotingPowerBefore = party.getGovernanceValues().totalVotingPower;
+        uint96 tokenCount = party.tokenCount();
 
         vm.prank(address(party));
-        authority.addPartyCards(newPartyMembers, newPartyMemberVotingPowers);
+        authority.addPartyCards(newPartyMembers, newPartyMemberVotingPowers, initialDelegates);
 
         uint96 totalVotingPowerAdded;
         for (uint256 i; i < newPartyMembers.length; i++) {
+            uint256 tokenId = tokenCount + i + 1;
+
             totalVotingPowerAdded += newPartyMemberVotingPowers[i];
 
+            assertEq(party.votingPowerByTokenId(tokenId), newPartyMemberVotingPowers[i]);
             assertEq(
-                party.getVotingPowerAt(newPartyMembers[i], uint40(block.timestamp)) -
-                    votingPowerBefore,
+                party.getVotingPowerAt(initialDelegates[i], uint40(block.timestamp)),
                 newPartyMemberVotingPowers[i]
             );
+            assertEq(party.delegationsByVoter(newPartyMembers[i]), initialDelegates[i]);
         }
         assertEq(
             party.getGovernanceValues().totalVotingPower - totalVotingPowerBefore,
@@ -87,49 +91,58 @@ contract AddPartyCardsAuthorityTest is SetupPartyHelper {
         newPartyMemberVotingPowers[0] = 100;
         newPartyMemberVotingPowers[1] = 200;
         newPartyMemberVotingPowers[2] = 300;
+        address[] memory initialDelegates = new address[](3);
+        initialDelegates[0] = _randomAddress();
+        initialDelegates[1] = _randomAddress();
+        initialDelegates[2] = _randomAddress();
 
-        uint96 votingPowerBefore = party.getVotingPowerAt(
-            newPartyMembers[0],
-            uint40(block.timestamp)
-        );
         uint96 totalVotingPowerBefore = party.getGovernanceValues().totalVotingPower;
+        uint96 tokenCount = party.tokenCount();
 
         vm.prank(address(party));
-        authority.addPartyCards(newPartyMembers, newPartyMemberVotingPowers);
+        authority.addPartyCards(newPartyMembers, newPartyMemberVotingPowers, initialDelegates);
 
         uint96 totalVotingPowerAdded;
         for (uint256 i; i < newPartyMembers.length; i++) {
+            uint256 tokenId = tokenCount + i + 1;
+
             totalVotingPowerAdded += newPartyMemberVotingPowers[i];
 
-            assertEq(
-                party.getVotingPowerAt(newPartyMembers[i], uint40(block.timestamp)) -
-                    votingPowerBefore,
-                newPartyMemberVotingPowers[i]
-            );
+            assertEq(party.votingPowerByTokenId(tokenId), newPartyMemberVotingPowers[i]);
+            // Should only allow setting the initial delegate, not changing it
+            assertEq(party.delegationsByVoter(newPartyMembers[i]), initialDelegates[0]);
         }
+        assertEq(
+            party.getVotingPowerAt(initialDelegates[0], uint40(block.timestamp)),
+            totalVotingPowerAdded
+        );
         assertEq(
             party.getGovernanceValues().totalVotingPower - totalVotingPowerBefore,
             totalVotingPowerAdded
         );
     }
 
-    function test_addPartyCards_onlyParty() public {
+    function test_addPartyCards_onlyAuthority() public {
         address[] memory newPartyMembers = new address[](1);
         newPartyMembers[0] = _randomAddress();
         uint96[] memory newPartyMemberVotingPowers = new uint96[](1);
         newPartyMemberVotingPowers[0] = 100;
+        address[] memory initialDelegates = new address[](1);
+        initialDelegates[0] = address(0);
 
+        AddPartyCardsAuthority notAuthority = new AddPartyCardsAuthority();
         vm.expectRevert(PartyGovernanceNFT.OnlyAuthorityError.selector);
-        authority.addPartyCards(newPartyMembers, newPartyMemberVotingPowers);
+        vm.prank(address(party));
+        notAuthority.addPartyCards(newPartyMembers, newPartyMemberVotingPowers, initialDelegates);
     }
 
     function test_addPartyCard_cannotAddNoPartyCards() public {
-        address[] memory newPartyMembers = new address[](0);
+        address[] memory newPartyMembers;
         uint96[] memory newPartyMemberVotingPowers;
+        address[] memory initialDelegates;
 
-        // TODO: Specify expected error
-        vm.expectRevert();
-        authority.addPartyCards(newPartyMembers, newPartyMemberVotingPowers);
+        vm.expectRevert(AddPartyCardsAuthority.NoPartyMembers.selector);
+        authority.addPartyCards(newPartyMembers, newPartyMemberVotingPowers, initialDelegates);
     }
 
     function test_addPartyCard_cannotAddZeroVotingPower() public {
@@ -137,9 +150,10 @@ contract AddPartyCardsAuthorityTest is SetupPartyHelper {
         newPartyMembers[0] = _randomAddress();
         uint96[] memory newPartyMemberVotingPowers = new uint96[](1);
         newPartyMemberVotingPowers[0] = 0;
+        address[] memory initialDelegates = new address[](1);
+        initialDelegates[0] = _randomAddress();
 
-        // TODO: Specify expected error
-        vm.expectRevert();
-        authority.addPartyCards(newPartyMembers, newPartyMemberVotingPowers);
+        vm.expectRevert(AddPartyCardsAuthority.InvalidPartyMemberVotingPower.selector);
+        authority.addPartyCards(newPartyMembers, newPartyMemberVotingPowers, initialDelegates);
     }
 }
