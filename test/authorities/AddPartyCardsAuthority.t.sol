@@ -155,7 +155,7 @@ contract AddPartyCardsAuthorityTest is SetupPartyHelper {
         authority.addPartyCards(newPartyMembers, newPartyMemberVotingPowers, initialDelegates);
     }
 
-    function test_integration() public {
+    function test_addPartyCard_integration() public {
         // Propose proposal to call `addPartyCards` with 3 new members
         address[] memory newPartyMembers = new address[](3);
         newPartyMembers[0] = _randomAddress();
