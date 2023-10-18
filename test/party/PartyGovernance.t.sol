@@ -163,6 +163,36 @@ contract PartyGovernanceTest is Test, TestUtils {
         danny.delegate(party, address(10));
     }
 
+    function testVotingSnapshot_emittedWhenOverwritenSameBlock() public {
+        (Party party, , ) = partyAdmin.createParty(
+            partyImpl,
+            PartyAdmin.PartyCreationMinimalOptions({
+                host1: address(this),
+                host2: address(0),
+                passThresholdBps: 5100,
+                totalVotingPower: 100,
+                preciousTokenAddress: address(toadz),
+                preciousTokenId: 1,
+                rageQuitTimestamp: 0,
+                feeBps: 0,
+                feeRecipient: payable(0)
+            })
+        );
+
+        // Mint first governance NFT
+        vm.expectEmit(true, true, true, true);
+        emit PartyCardIntrinsicVotingPowerSet(1, 49);
+        vm.expectEmit(true, true, true, true);
+        emit PartyVotingSnapshotCreated(address(john), uint40(block.timestamp), 0, 49, false);
+        partyAdmin.mintGovNft(party, address(john), 49, address(john));
+
+        vm.expectEmit(true, true, true, true);
+        emit PartyCardIntrinsicVotingPowerSet(2, 20);
+        vm.expectEmit(true, true, true, true);
+        emit PartyVotingSnapshotCreated(address(john), uint40(block.timestamp), 0, 69, false);
+        partyAdmin.mintGovNft(party, address(john), 20, address(john));
+    }
+
     function testSimpleGovernanceUnanimous() public {
         // Create party
         (

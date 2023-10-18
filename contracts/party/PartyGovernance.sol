@@ -1007,6 +1007,14 @@ abstract contract PartyGovernance is
 
     // Append a new voting power snapshot, overwriting the last one if possible.
     function _insertVotingPowerSnapshot(address voter, VotingPowerSnapshot memory snap) private {
+        emit PartyVotingSnapshotCreated(
+            voter,
+            snap.timestamp,
+            snap.delegatedVotingPower,
+            snap.intrinsicVotingPower,
+            snap.isDelegated
+        );
+
         VotingPowerSnapshot[] storage voterSnaps = _votingPowerSnapshotsByVoter[voter];
         uint256 n = voterSnaps.length;
         // If same timestamp as last entry, overwrite the last snapshot, otherwise append.
@@ -1018,14 +1026,6 @@ abstract contract PartyGovernance is
             }
         }
         voterSnaps.push(snap);
-
-        emit PartyVotingSnapshotCreated(
-            voter,
-            snap.timestamp,
-            snap.delegatedVotingPower,
-            snap.intrinsicVotingPower,
-            snap.isDelegated
-        );
     }
 
     function _getLastVotingPowerSnapshotForVoter(
