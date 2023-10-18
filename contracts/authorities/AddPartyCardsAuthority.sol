@@ -43,7 +43,7 @@ contract AddPartyCardsAuthority {
         }
         Party(payable(msg.sender)).increaseTotalVotingPower(addedVotingPower);
 
-        for (uint256 i = 0; i < newPartyMembers.length; ++i) {
+        for (uint256 i; i < newPartyMembers.length; ++i) {
             PartyGovernanceNFT(msg.sender).mint(
                 newPartyMembers[i],
                 newPartyMemberVotingPowers[i],
