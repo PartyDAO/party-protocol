@@ -1201,7 +1201,7 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
         assertEq(gov.propose(proposal, 0), proposalId);
 
         // Non-host tries to veto.
-        vm.expectRevert(abi.encodeWithSelector(PartyGovernance.OnlyPartyHostError.selector));
+        vm.expectRevert(PartyGovernance.NotAuthorized.selector);
         vm.prank(undelegatedVoter);
         gov.veto(proposalId);
     }
@@ -2321,7 +2321,7 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
         address nonHost2 = _randomAddress();
 
         vm.prank(nonHost);
-        vm.expectRevert(abi.encodeWithSelector(PartyGovernance.OnlyPartyHostError.selector));
+        vm.expectRevert(PartyGovernance.NotAuthorized.selector);
         gov.abdicateHost(nonHost2);
     }
 
@@ -2602,7 +2602,7 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
 
         // Try to create a distribution.
         vm.deal(address(gov), 1337e18);
-        vm.expectRevert(abi.encodeWithSelector(PartyGovernance.OnlyActiveMemberError.selector));
+        vm.expectRevert(PartyGovernance.NotAuthorized.selector);
         vm.prank(member);
         gov.distribute(address(gov).balance, ITokenDistributor.TokenType.Native, ETH_ADDRESS, 0);
     }
