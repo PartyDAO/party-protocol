@@ -280,7 +280,7 @@ contract ReraiseETHCrowdfund is ETHCrowdfundBase, CrowdfundNFT {
             revert ContributingForExistingCardDisabledError();
         } else if (party.ownerOf(tokenId) == contributor) {
             // Increase voting power of contributor's existing party card.
-            party.addVotingPower(tokenId, votingPower);
+            party.increaseVotingPower(tokenId, votingPower);
         } else {
             revert NotOwnerError(tokenId);
         }
@@ -372,7 +372,7 @@ contract ReraiseETHCrowdfund is ETHCrowdfundBase, CrowdfundNFT {
                 revert ContributingForExistingCardDisabledError();
             } else if (party.ownerOf(tokenId) == contributor) {
                 // Increase voting power of contributor's existing party card.
-                party.addVotingPower(tokenId, votingPowerForCard);
+                party.increaseVotingPower(tokenId, votingPowerForCard);
             } else {
                 revert NotOwnerError(tokenId);
             }

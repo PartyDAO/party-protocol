@@ -284,7 +284,7 @@ contract ReraiseETHCrowdfundTest is LintJSON, TestUtils, ERC721Receiver {
         // Will fail because initial contribution should trigger crowdfund to
         // try to finalize a win but it will fail because it is not yet set as
         // an authority on the party
-        vm.expectRevert(PartyGovernanceNFT.OnlyAuthorityError.selector);
+        vm.expectRevert(PartyGovernance.NotAuthorized.selector);
         crowdfund.initialize{ value: initialContribution }(opts);
     }
 
@@ -1389,7 +1389,7 @@ contract ReraiseETHCrowdfundTest is LintJSON, TestUtils, ERC721Receiver {
         crowdfund.claim(tokenId, member);
     }
 
-    function test_claim_addVotingPowerToExistingCard() public {
+    function test_claim_increaseVotingPowerToExistingCard() public {
         ReraiseETHCrowdfund crowdfund = _createCrowdfund(
             CreateCrowdfundArgs({
                 initialContribution: 0,

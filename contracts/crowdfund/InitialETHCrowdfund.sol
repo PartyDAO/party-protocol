@@ -302,7 +302,7 @@ contract InitialETHCrowdfund is ETHCrowdfundBase {
             revert ContributingForExistingCardDisabledError();
         } else if (party.ownerOf(tokenId) == contributor) {
             // Increase voting power of contributor's existing party card.
-            party.addVotingPower(tokenId, votingPower);
+            party.increaseVotingPower(tokenId, votingPower);
         } else {
             revert NotOwnerError(tokenId);
         }
