@@ -32,7 +32,7 @@ contract AddPartyCardsAuthority {
         }
 
         uint96 addedVotingPower;
-        for (uint256 i = 0; i < newPartyMemberVotingPowers.length; ++i) {
+        for (uint256 i; i < newPartyMemberVotingPowers.length; ++i) {
             if (newPartyMemberVotingPowers[i] == 0) {
                 revert InvalidPartyMemberVotingPower();
             }
