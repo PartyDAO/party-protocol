@@ -197,7 +197,7 @@ contract PartyGovernanceNFT is PartyGovernance, ERC721, IERC2981 {
         mintedVotingPower += votingPower_;
         votingPowerByTokenId[tokenId] = votingPower_;
 
-        emit PartyCardIntrinsicVotingPowerSet(tokenId, votingPower);
+        emit PartyCardIntrinsicVotingPowerSet(tokenId, votingPower_);
 
         // Use delegate from party over the one set during crowdfund.
         address delegate_ = delegationsByVoter[owner];

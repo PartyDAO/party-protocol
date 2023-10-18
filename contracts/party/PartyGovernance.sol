@@ -949,7 +949,7 @@ abstract contract PartyGovernance is
         delegationsByVoter[voter] = delegate;
 
         // This event is emitted even if the delegate did not change.
-        emit PartyDelegateUpdated(msg.sender, delegate);
+        emit PartyDelegateUpdated(voter, delegate);
 
         // Handle rebalancing delegates.
         _rebalanceDelegates(voter, oldDelegate, delegate, oldSnap, newSnap);
