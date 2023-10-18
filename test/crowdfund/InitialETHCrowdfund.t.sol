@@ -385,7 +385,7 @@ contract InitialETHCrowdfundTest is InitialETHCrowdfundTestBase {
         crowdfund.contribute{ value: 1 ether }(tokenId, member, "");
     }
 
-    function test_contribute_addVotingPowerToExistingCard() public {
+    function test_contribute_increaseVotingPowerToExistingCard() public {
         InitialETHCrowdfund crowdfund = _createCrowdfund(
             CreateCrowdfundArgs({
                 initialContribution: 0,

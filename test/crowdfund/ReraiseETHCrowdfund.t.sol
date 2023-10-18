@@ -1389,7 +1389,7 @@ contract ReraiseETHCrowdfundTest is LintJSON, TestUtils, ERC721Receiver {
         crowdfund.claim(tokenId, member);
     }
 
-    function test_claim_addVotingPowerToExistingCard() public {
+    function test_claim_increaseVotingPowerToExistingCard() public {
         ReraiseETHCrowdfund crowdfund = _createCrowdfund(
             CreateCrowdfundArgs({
                 initialContribution: 0,

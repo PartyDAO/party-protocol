@@ -205,7 +205,7 @@ contract PartyGovernanceNFT is PartyGovernance, ERC721, IERC2981 {
     ///         authority.
     /// @param tokenId The ID of the NFT to add voting power to.
     /// @param votingPower The amount of voting power to add.
-    function addVotingPower(uint256 tokenId, uint96 votingPower) external {
+    function increaseVotingPower(uint256 tokenId, uint96 votingPower) external {
         _assertAuthority();
         uint96 mintedVotingPower_ = mintedVotingPower;
         uint96 totalVotingPower = _getSharedProposalStorage().governanceValues.totalVotingPower;
@@ -233,7 +233,7 @@ contract PartyGovernanceNFT is PartyGovernance, ERC721, IERC2981 {
     ///         authority.
     /// @param tokenId The ID of the NFT to remove voting power from.
     /// @param votingPower The amount of voting power to remove.
-    function removeVotingPower(uint256 tokenId, uint96 votingPower) external {
+    function decreaseVotingPower(uint256 tokenId, uint96 votingPower) external {
         _assertAuthority();
         mintedVotingPower -= votingPower;
         votingPowerByTokenId[tokenId] -= votingPower;

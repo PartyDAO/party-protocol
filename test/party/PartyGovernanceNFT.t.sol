@@ -288,7 +288,7 @@ contract PartyGovernanceNFTTest is PartyGovernanceNFTTestBase {
         party.decreaseTotalVotingPower(votingPower);
     }
 
-    function testAddVotingPower_works() external {
+    function testIncreaseVotingPower_works() external {
         (Party party, , ) = partyAdmin.createParty(
             partyImpl,
             PartyAdmin.PartyCreationMinimalOptions({
@@ -315,7 +315,7 @@ contract PartyGovernanceNFTTest is PartyGovernanceNFTTestBase {
 
         address authority = address(partyAdmin);
         vm.prank(authority);
-        party.addVotingPower(tokenId, votingPower);
+        party.increaseVotingPower(tokenId, votingPower);
 
         assertEq(party.votingPowerByTokenId(tokenId), 20);
         assertEq(party.mintedVotingPower(), 20);
@@ -323,7 +323,7 @@ contract PartyGovernanceNFTTest is PartyGovernanceNFTTestBase {
         assertEq(party.getVotingPowerAt(recipient, timestampBefore), 10);
     }
 
-    function testAddVotingPower_onlyAuthority() external {
+    function testIncreaseVotingPower_onlyAuthority() external {
         (Party party, , ) = partyAdmin.createParty(
             partyImpl,
             PartyAdmin.PartyCreationMinimalOptions({
@@ -347,10 +347,40 @@ contract PartyGovernanceNFTTest is PartyGovernanceNFTTestBase {
         address notAuthority = _randomAddress();
         vm.prank(notAuthority);
         vm.expectRevert(PartyGovernance.NotAuthorized.selector);
-        party.addVotingPower(tokenId, votingPower);
+        party.increaseVotingPower(tokenId, votingPower);
     }
 
-    function testRemoveVotingPower_works() external {
+    function testIncreaseVotingPower_cannotIncreaseBeyondTotalVotingPower() external {
+        (Party party, , ) = partyAdmin.createParty(
+            partyImpl,
+            PartyAdmin.PartyCreationMinimalOptions({
+                host1: address(this),
+                host2: address(0),
+                passThresholdBps: 5100,
+                totalVotingPower: 100,
+                preciousTokenAddress: address(toadz),
+                preciousTokenId: 1,
+                rageQuitTimestamp: 0,
+                feeBps: uint16(0),
+                feeRecipient: payable(0)
+            })
+        );
+        address recipient = _randomAddress();
+        vm.prank(address(partyAdmin));
+        uint256 tokenId = party.mint(recipient, 10, recipient);
+
+        uint96 votingPower = 100;
+
+        address authority = address(partyAdmin);
+        vm.prank(authority);
+        party.increaseVotingPower(tokenId, votingPower);
+
+        assertEq(party.votingPowerByTokenId(tokenId), 100);
+        assertEq(party.mintedVotingPower(), 100);
+        assertEq(party.getGovernanceValues().totalVotingPower, 100);
+    }
+
+    function testDecreaseVotingPower_works() external {
         (Party party, , ) = partyAdmin.createParty(
             partyImpl,
             PartyAdmin.PartyCreationMinimalOptions({
@@ -377,7 +407,7 @@ contract PartyGovernanceNFTTest is PartyGovernanceNFTTestBase {
 
         address authority = address(partyAdmin);
         vm.prank(authority);
-        party.removeVotingPower(tokenId, votingPower);
+        party.decreaseVotingPower(tokenId, votingPower);
 
         assertEq(party.votingPowerByTokenId(tokenId), 10);
         assertEq(party.mintedVotingPower(), 10);
@@ -385,7 +415,7 @@ contract PartyGovernanceNFTTest is PartyGovernanceNFTTestBase {
         assertEq(party.getVotingPowerAt(recipient, timestampBefore), 20);
     }
 
-    function testRemoveVotingPower_onlyAuthority() external {
+    function testDecreaseVotingPower_onlyAuthority() external {
         (Party party, , ) = partyAdmin.createParty(
             partyImpl,
             PartyAdmin.PartyCreationMinimalOptions({
@@ -409,7 +439,7 @@ contract PartyGovernanceNFTTest is PartyGovernanceNFTTestBase {
         address notAuthority = _randomAddress();
         vm.prank(notAuthority);
         vm.expectRevert(PartyGovernance.NotAuthorized.selector);
-        party.removeVotingPower(tokenId, votingPower);
+        party.decreaseVotingPower(tokenId, votingPower);
     }
 
     function testBurn_works() external {
