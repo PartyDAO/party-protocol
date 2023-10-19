@@ -14,6 +14,13 @@ contract AddPartyCardsAuthority {
     /// @notice Returned if a party card would be issued with no voting power
     error InvalidPartyMemberVotingPower();
 
+    /// @notice Emitted when a party card is added via the `AddPartyCardsAuthority`
+    event PartyCardAdded(
+        address indexed party,
+        address indexed partyMember,
+        uint96 newIntrinsicVotingPower
+    );
+
     /// @notice Atomically distributes new party cards and updates the total voting power as needed.
     /// @dev Called must be the party and this contract must be an authority on the party
     /// @param newPartyMembers Addresses of the new party members (duplicates allowed)
@@ -44,11 +51,14 @@ contract AddPartyCardsAuthority {
         Party(payable(msg.sender)).increaseTotalVotingPower(addedVotingPower);
 
         for (uint256 i; i < newPartyMembers.length; ++i) {
+            address newPartyMember = newPartyMembers[i];
+            uint96 newPartyMemberVotingPower = newPartyMemberVotingPowers[i];
             PartyGovernanceNFT(msg.sender).mint(
-                newPartyMembers[i],
-                newPartyMemberVotingPowers[i],
+                newPartyMember,
+                newPartyMemberVotingPower,
                 initialDelegates[i]
             );
+            emit PartyCardAdded(msg.sender, newPartyMember, newPartyMemberVotingPower);
         }
     }
 }

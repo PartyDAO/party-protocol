@@ -10,6 +10,12 @@ import { ArbitraryCallsProposal } from "../../contracts/proposals/ArbitraryCalls
 contract AddPartyCardsAuthorityTest is SetupPartyHelper {
     AddPartyCardsAuthority authority;
 
+    event PartyCardAdded(
+        address indexed party,
+        address indexed partyMember,
+        uint96 newIntrinsicVotingPower
+    );
+
     constructor() SetupPartyHelper(false) {}
 
     function setUp() public override {
@@ -61,6 +67,12 @@ contract AddPartyCardsAuthorityTest is SetupPartyHelper {
         uint96 totalVotingPowerBefore = party.getGovernanceValues().totalVotingPower;
         uint96 tokenCount = party.tokenCount();
 
+        vm.expectEmit(true, true, true, true);
+        emit PartyCardAdded(address(party), newPartyMembers[0], newPartyMemberVotingPowers[0]);
+        vm.expectEmit(true, true, true, true);
+        emit PartyCardAdded(address(party), newPartyMembers[1], newPartyMemberVotingPowers[1]);
+        vm.expectEmit(true, true, true, true);
+        emit PartyCardAdded(address(party), newPartyMembers[2], newPartyMemberVotingPowers[2]);
         vm.prank(address(party));
         authority.addPartyCards(newPartyMembers, newPartyMemberVotingPowers, initialDelegates);
 
@@ -97,6 +109,12 @@ contract AddPartyCardsAuthorityTest is SetupPartyHelper {
         uint96 totalVotingPowerBefore = party.getGovernanceValues().totalVotingPower;
         uint96 tokenCount = party.tokenCount();
 
+        vm.expectEmit(true, true, true, true);
+        emit PartyCardAdded(address(party), newPartyMembers[0], newPartyMemberVotingPowers[0]);
+        vm.expectEmit(true, true, true, true);
+        emit PartyCardAdded(address(party), newPartyMembers[1], newPartyMemberVotingPowers[1]);
+        vm.expectEmit(true, true, true, true);
+        emit PartyCardAdded(address(party), newPartyMembers[2], newPartyMemberVotingPowers[2]);
         vm.prank(address(party));
         authority.addPartyCards(newPartyMembers, newPartyMemberVotingPowers, initialDelegates);
 
