@@ -8,7 +8,7 @@ contract AddPartyCardsAuthority {
     /// @notice Returned if the `AtomicManualParty` is created with no members
     error NoPartyMembers();
     /// @notice Returned if the lengths of `partyMembers` and `partyMemberVotingPowers` do not match
-    error PartyMembersArityMismatch();
+    error ArityMismatch();
     /// @notice Returned if a party card would be issued to the null address
     error InvalidPartyMember();
     /// @notice Returned if a party card would be issued with no voting power
@@ -34,8 +34,11 @@ contract AddPartyCardsAuthority {
         if (newPartyMembers.length == 0) {
             revert NoPartyMembers();
         }
-        if (newPartyMembers.length != newPartyMemberVotingPowers.length) {
-            revert PartyMembersArityMismatch();
+        if (
+            newPartyMembers.length != newPartyMemberVotingPowers.length ||
+            newPartyMembers.length != initialDelegates.length
+        ) {
+            revert ArityMismatch();
         }
 
         uint96 addedVotingPower;

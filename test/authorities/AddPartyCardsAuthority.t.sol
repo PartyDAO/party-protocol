@@ -173,6 +173,18 @@ contract AddPartyCardsAuthorityTest is SetupPartyHelper {
         authority.addPartyCards(newPartyMembers, newPartyMemberVotingPowers, initialDelegates);
     }
 
+    function test_addPartyCard_arityMismatch() public {
+        address[] memory newPartyMembers = new address[](2);
+        newPartyMembers[0] = newPartyMembers[1] = _randomAddress();
+        uint96[] memory newPartyMemberVotingPowers = new uint96[](1);
+        newPartyMemberVotingPowers[0] = 0;
+        address[] memory initialDelegates = new address[](1);
+        initialDelegates[0] = _randomAddress();
+
+        vm.expectRevert(AddPartyCardsAuthority.ArityMismatch.selector);
+        authority.addPartyCards(newPartyMembers, newPartyMemberVotingPowers, initialDelegates);
+    }
+
     function test_addPartyCard_integration() public {
         // Propose proposal to call `addPartyCards` with 3 new members
         address[] memory newPartyMembers = new address[](3);
