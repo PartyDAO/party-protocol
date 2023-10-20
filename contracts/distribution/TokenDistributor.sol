@@ -46,6 +46,7 @@ contract TokenDistributor is ITokenDistributor {
     error DistributionAlreadyClaimedByPartyTokenError(uint256 distributionId, uint256 partyTokenId);
     error DistributionFeeAlreadyClaimedError(uint256 distributionId);
     error MustOwnTokenError(address sender, address expectedOwner, uint256 partyTokenId);
+    error TokenIdAboveMaxError(uint256 partyTokenId, uint256 maxTokenId);
     error EmergencyActionsNotAllowedError();
     error InvalidDistributionSupplyError(uint128 supply);
     error OnlyFeeRecipientError(address caller, address feeRecipient);
@@ -137,6 +138,10 @@ contract TokenDistributor is ITokenDistributor {
         DistributionInfo calldata info,
         uint256 partyTokenId
     ) public returns (uint128 amountClaimed) {
+        // Token ID must not be greater than the max token ID.
+        if (partyTokenId > info.maxTokenId) {
+            revert TokenIdAboveMaxError(partyTokenId, info.maxTokenId);
+        }
         // Caller must own the party token.
         {
             address ownerOfPartyToken = info.party.ownerOf(partyTokenId);
@@ -332,7 +337,8 @@ contract TokenDistributor is ITokenDistributor {
             memberSupply: memberSupply,
             feeRecipient: args.feeRecipient,
             fee: fee,
-            totalShares: args.party.getGovernanceValues().totalVotingPower
+            totalShares: args.party.getGovernanceValues().totalVotingPower,
+            maxTokenId: args.party.tokenCount()
         });
         (
             _distributionStates[args.party][info.distributionId].distributionHash,

@@ -30,6 +30,8 @@ interface ITokenDistributor {
         uint128 fee;
         // Total shares at time distribution was created.
         uint96 totalShares;
+        // Last token ID at time distribution was created that can claim.
+        uint96 maxTokenId;
     }
 
     event DistributionCreated(Party indexed party, DistributionInfo info);
