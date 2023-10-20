@@ -317,6 +317,10 @@ contract PartyWithoutVersionId {
     function getDistributionShareOf(uint256) public pure returns (uint256) {
         return 1;
     }
+
+    function tokenCount() external view virtual returns (uint96) {
+        return type(uint96).max;
+    }
 }
 
 contract PartyWithInvalidVersionId {
@@ -338,6 +342,10 @@ contract PartyWithInvalidVersionId {
     function getDistributionShareOf(uint256) public pure returns (uint256) {
         return 2;
     }
+
+    function tokenCount() external view virtual returns (uint96) {
+        return type(uint96).max;
+    }
 }
 
 contract PartyWithValidVersionId {
@@ -358,5 +366,9 @@ contract PartyWithValidVersionId {
 
     function getDistributionShareOf(uint256) public pure returns (uint256) {
         return 3;
+    }
+
+    function tokenCount() external view virtual returns (uint96) {
+        return type(uint96).max;
     }
 }

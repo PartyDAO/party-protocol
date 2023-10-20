@@ -45,6 +45,10 @@ contract TestParty {
     function getGovernanceValues() external view returns (GovernanceValues memory gv) {
         return _governanceValues;
     }
+
+    function tokenCount() external view virtual returns (uint96) {
+        return 2000;
+    }
 }
 
 contract TestTokenDistributorHash is TokenDistributor(IGlobals(address(0)), 0) {
