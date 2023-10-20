@@ -19,15 +19,23 @@ contract TestParty {
         uint96 totalVotingPower;
     }
 
+    uint96 public tokenCount;
     GovernanceValues _governanceValues;
     mapping(uint256 => address payable) _owners;
     mapping(uint256 => uint256) _shares;
 
     function mintShare(
         address payable owner,
-        uint256 partyTokenId,
         uint256 share
     ) external returns (address payable owner_, uint256 tokenId_, uint256 share_) {
+        return mintShare(owner, ++tokenCount, share);
+    }
+
+    function mintShare(
+        address payable owner,
+        uint256 partyTokenId,
+        uint256 share
+    ) public returns (address payable owner_, uint256 tokenId_, uint256 share_) {
         _owners[partyTokenId] = owner;
         _shares[partyTokenId] = share;
         _governanceValues.totalVotingPower += uint96(share);
@@ -44,10 +52,6 @@ contract TestParty {
 
     function getGovernanceValues() external view returns (GovernanceValues memory gv) {
         return _governanceValues;
-    }
-
-    function tokenCount() external view virtual returns (uint96) {
-        return 2000;
     }
 }
 
@@ -196,7 +200,6 @@ contract TokenDistributorUnitTest is Test, TestUtils {
     function test_claimNative_oneMemberWithFees() external {
         (address member, uint256 memberTokenId, ) = TestParty(address(party)).mintShare(
             _randomAddress(),
-            _randomUint256(),
             100e18
         );
         uint256 supply = _randomUint256() % 1e18;
@@ -227,7 +230,6 @@ contract TokenDistributorUnitTest is Test, TestUtils {
     function test_claimErc20_oneMemberWithFees() external {
         (address member, uint256 memberTokenId, ) = TestParty(address(party)).mintShare(
             _randomAddress(),
-            _randomUint256(),
             100e18
         );
         uint256 supply = _randomUint256() % 1e18;
@@ -259,7 +261,6 @@ contract TokenDistributorUnitTest is Test, TestUtils {
     function test_claimNative_oneMemberNoFees() external {
         (address member, uint256 memberTokenId, ) = TestParty(address(party)).mintShare(
             _randomAddress(),
-            _randomUint256(),
             100e18
         );
         uint256 supply = _randomUint256() % 1e18;
@@ -289,7 +290,6 @@ contract TokenDistributorUnitTest is Test, TestUtils {
     function test_claimErc20_oneMemberNoFees() external {
         (address member, uint256 memberTokenId, ) = TestParty(address(party)).mintShare(
             _randomAddress(),
-            _randomUint256(),
             100e18
         );
         uint256 supply = _randomUint256() % 1e18;
@@ -390,11 +390,14 @@ contract TokenDistributorUnitTest is Test, TestUtils {
     // Make sure small denomination distributions work as expected
     // (round up, first come first serve).
     function test_claimNative_smallDenomination() external {
-        (address payable member1, address payable member2) = (_randomAddress(), _randomAddress());
-        (uint256 memberTokenId1, uint256 memberTokenId2) = (_randomUint256(), _randomUint256());
-        // Both have 50% share ratios.
-        TestParty(address(party)).mintShare(member1, memberTokenId1, 0.5e18);
-        TestParty(address(party)).mintShare(member2, memberTokenId2, 0.5e18);
+        (address payable member1, uint256 memberTokenId1, ) = TestParty(address(party)).mintShare(
+            _randomAddress(),
+            0.5e18
+        );
+        (address payable member2, uint256 memberTokenId2, ) = TestParty(address(party)).mintShare(
+            _randomAddress(),
+            0.5e18
+        );
         // 3 wei supply, does not divide cleanly.
         vm.deal(address(distributor), 3);
         ITokenDistributor.DistributionInfo memory di = distributor.createNativeDistribution(
@@ -522,7 +525,6 @@ contract TokenDistributorUnitTest is Test, TestUtils {
     function test_claimNative_cannotChangeDistributionInfo() external {
         (address payable member, uint256 memberTokenId, ) = TestParty(address(party)).mintShare(
             _randomAddress(),
-            _randomUint256(),
             100e18
         );
         uint256 supply = _randomUint256() % 1e18;
@@ -569,7 +571,6 @@ contract TokenDistributorUnitTest is Test, TestUtils {
     function test_claimNative_cannotClaimFromNonOwnerOfPartyToken() external {
         (address payable member, uint256 memberTokenId, ) = TestParty(address(party)).mintShare(
             _randomAddress(),
-            _randomUint256(),
             100e18
         );
         uint256 supply = _randomUint256() % 1e18;
@@ -595,7 +596,6 @@ contract TokenDistributorUnitTest is Test, TestUtils {
     function test_claimNative_cannotClaimTwice() external {
         (address payable member, uint256 memberTokenId, ) = TestParty(address(party)).mintShare(
             _randomAddress(),
-            _randomUint256(),
             100e18
         );
         uint256 supply = _randomUint256() % 1e18;
@@ -708,7 +708,6 @@ contract TokenDistributorUnitTest is Test, TestUtils {
         IERC20 reenteringToken = new ReenteringToken(distributor);
         (address member, uint256 memberTokenId, ) = TestParty(address(party)).mintShare(
             _randomAddress(),
-            _randomUint256(),
             100e18
         );
         uint256 supply = _randomUint256() % 1e18;
@@ -781,8 +780,7 @@ contract TokenDistributorUnitTest is Test, TestUtils {
         }
         for (uint256 i; i < count; ++i) {
             owners[i] = _randomAddress();
-            tokenIds[i] = _randomUint256();
-            TestParty(address(party)).mintShare(owners[i], tokenIds[i], shares[i]);
+            (, tokenIds[i], ) = TestParty(address(party)).mintShare(owners[i], shares[i]);
         }
     }
 }

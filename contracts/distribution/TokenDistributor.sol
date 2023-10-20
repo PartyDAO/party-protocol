@@ -151,13 +151,13 @@ contract TokenDistributor is ITokenDistributor {
         }
         // DistributionInfo must be correct for this distribution ID.
         DistributionState storage state = _distributionStates[info.party][info.distributionId];
+        if (state.distributionHash != _getDistributionHash(info)) {
+            revert InvalidDistributionInfoError(info);
+        }
         // Token ID must not be greater than the max token ID.
         uint96 maxTokenId = state.maxTokenId;
         if (partyTokenId > maxTokenId) {
             revert TokenIdAboveMaxError(partyTokenId, maxTokenId);
-        }
-        if (state.distributionHash != _getDistributionHash(info)) {
-            revert InvalidDistributionInfoError(info);
         }
         // The partyTokenId must not have claimed its distribution yet.
         if (state.hasPartyTokenClaimed[partyTokenId]) {
