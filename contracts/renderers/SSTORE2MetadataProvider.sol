@@ -12,8 +12,6 @@ import { SSTORE2 } from "solmate/utils/SSTORE2.sol";
 /// @notice A contract that provides custom metadata for Party Cards and uses
 ///         SSTORE2 to store large metadata.
 contract SSTORE2MetadataProvider is MetadataProvider {
-    event MetadataSet(address indexed instance, Indexes indexes);
-
     /// @notice The start and end index of metadata for a instance.
     struct Indexes {
         uint128 start;
@@ -81,13 +79,13 @@ contract SSTORE2MetadataProvider is MetadataProvider {
             files[index + i] = SSTORE2.write(metadata[start:end]);
         }
 
-        Indexes memory instanceIndexes = indexes[instance] = Indexes({
+        indexes[instance] = Indexes({
             start: uint128(index),
             end: uint128(index + partitions - 1)
         });
 
         nextIndex += partitions;
 
-        emit MetadataSet(instance, instanceIndexes);
+        emit MetadataSet(instance, metadata);
     }
 }
