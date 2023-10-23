@@ -30,6 +30,8 @@ import "../contracts/utils/PartyHelpers.sol";
 import "../contracts/market-wrapper/NounsMarketWrapper.sol";
 import { AtomicManualParty } from "../contracts/crowdfund/AtomicManualParty.sol";
 import { ContributionRouter } from "../contracts/crowdfund/ContributionRouter.sol";
+import { SSTORE2MetadataProvider } from "../contracts/renderers/SSTORE2MetadataProvider.sol";
+import { BasicMetadataProvider } from "../contracts/renderers/BasicMetadataProvider.sol";
 import "./LibDeployConstants.sol";
 
 abstract contract Deploy {
@@ -63,7 +65,8 @@ abstract contract Deploy {
     ProposalExecutionEngine public proposalExecutionEngine;
     TokenDistributor public tokenDistributor;
     MetadataRegistry public metadataRegistry;
-    MetadataProvider public metadataProvider;
+    BasicMetadataProvider public basicMetadataProvider;
+    SSTORE2MetadataProvider public sstore2MetadataProvider;
     RendererStorage public rendererStorage;
     CrowdfundNFTRenderer public crowdfundNFTRenderer;
     PartyNFTRenderer public partyNFTRenderer;
@@ -243,14 +246,23 @@ abstract contract Deploy {
         _trackDeployerGasAfter();
         console.log("  Deployed - MetadataRegistry", address(metadataRegistry));
 
-        // DEPLOY_METADATA_PROVIDER
+        // DEPLOY_BASIC_METADATA_PROVIDER
         console.log("");
-        console.log("### MetadataProvider");
-        console.log("  Deploying - MetadataProvider");
+        console.log("### BasicMetadataProvider");
+        console.log("  Deploying - BasicMetadataProvider");
         _trackDeployerGasBefore();
-        metadataProvider = new MetadataProvider(globals);
+        basicMetadataProvider = new BasicMetadataProvider(globals);
         _trackDeployerGasAfter();
-        console.log("  Deployed - MetadataProvider", address(metadataProvider));
+        console.log("  Deployed - BasicMetadataProvider", address(basicMetadataProvider));
+
+        // DEPLOY_SSTORE2_METADATA_PROVIDER
+        console.log("");
+        console.log("### SSTORE2MetadataProvider");
+        console.log("  Deploying - SSTORE2MetadataProvider");
+        _trackDeployerGasBefore();
+        sstore2MetadataProvider = new SSTORE2MetadataProvider(globals);
+        _trackDeployerGasAfter();
+        console.log("  Deployed - SSTORE2MetadataProvider", address(sstore2MetadataProvider));
 
         // DEPLOY_RENDERER_STORAGE
         console.log("");
@@ -661,7 +673,7 @@ contract DeployScript is Script, Deploy {
         Deploy.deploy(deployConstants);
         vm.stopBroadcast();
 
-        AddressMapping[] memory addressMapping = new AddressMapping[](26);
+        AddressMapping[] memory addressMapping = new AddressMapping[](27);
         addressMapping[0] = AddressMapping("Globals", address(globals));
         addressMapping[1] = AddressMapping("TokenDistributor", address(tokenDistributor));
         addressMapping[2] = AddressMapping(
@@ -690,22 +702,29 @@ contract DeployScript is Script, Deploy {
             "CollectionBatchBuyOperator",
             address(collectionBatchBuyOperator)
         );
-        addressMapping[23] = AddressMapping("ERC20SwapOperator", address(swapOperator));
-        addressMapping[13] = AddressMapping("CrowdfundFactory", address(crowdfundFactory));
-        addressMapping[14] = AddressMapping("MetadataRegistry", address(metadataRegistry));
-        addressMapping[15] = AddressMapping("MetadataProvider", address(metadataProvider));
-        addressMapping[16] = AddressMapping("CrowdfundNFTRenderer", address(crowdfundNFTRenderer));
-        addressMapping[17] = AddressMapping("PartyNFTRenderer", address(partyNFTRenderer));
-        addressMapping[18] = AddressMapping("PartyHelpers", address(partyHelpers));
-        addressMapping[19] = AddressMapping("AllowListGateKeeper", address(allowListGateKeeper));
-        addressMapping[20] = AddressMapping("TokenGateKeeper", address(tokenGateKeeper));
-        addressMapping[21] = AddressMapping("RendererStorage", address(rendererStorage));
-        addressMapping[22] = AddressMapping(
+        addressMapping[13] = AddressMapping("ERC20SwapOperator", address(swapOperator));
+        addressMapping[14] = AddressMapping("CrowdfundFactory", address(crowdfundFactory));
+        addressMapping[15] = AddressMapping("MetadataRegistry", address(metadataRegistry));
+        addressMapping[16] = AddressMapping(
+            "BasicMetadataProvider",
+            address(basicMetadataProvider)
+        );
+        addressMapping[17] = AddressMapping(
+            "SSTORE2MetadataProvider",
+            address(sstore2MetadataProvider)
+        );
+        addressMapping[18] = AddressMapping("CrowdfundNFTRenderer", address(crowdfundNFTRenderer));
+        addressMapping[19] = AddressMapping("PartyNFTRenderer", address(partyNFTRenderer));
+        addressMapping[20] = AddressMapping("PartyHelpers", address(partyHelpers));
+        addressMapping[21] = AddressMapping("AllowListGateKeeper", address(allowListGateKeeper));
+        addressMapping[22] = AddressMapping("TokenGateKeeper", address(tokenGateKeeper));
+        addressMapping[23] = AddressMapping("RendererStorage", address(rendererStorage));
+        addressMapping[24] = AddressMapping(
             "PixeldroidConsoleFont",
             address(pixeldroidConsoleFont)
         );
-        addressMapping[24] = AddressMapping("AtomicManualParty", address(atomicManualParty));
-        addressMapping[25] = AddressMapping("ContributionRouter", address(contributionRouter));
+        addressMapping[25] = AddressMapping("AtomicManualParty", address(atomicManualParty));
+        addressMapping[26] = AddressMapping("ContributionRouter", address(contributionRouter));
 
         console.log("");
         console.log("### Deployed addresses");
