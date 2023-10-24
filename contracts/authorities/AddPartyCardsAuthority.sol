@@ -31,18 +31,19 @@ contract AddPartyCardsAuthority {
         uint96[] calldata newPartyMemberVotingPowers,
         address[] calldata initialDelegates
     ) external {
-        if (newPartyMembers.length == 0) {
+        uint256 newPartyMembersLength = newPartyMembers.length;
+        if (newPartyMembersLength == 0) {
             revert NoPartyMembers();
         }
         if (
-            newPartyMembers.length != newPartyMemberVotingPowers.length ||
-            newPartyMembers.length != initialDelegates.length
+            newPartyMembersLength != newPartyMemberVotingPowers.length ||
+            newPartyMembersLength != initialDelegates.length
         ) {
             revert ArityMismatch();
         }
 
         uint96 addedVotingPower;
-        for (uint256 i; i < newPartyMemberVotingPowers.length; ++i) {
+        for (uint256 i; i < newPartyMembersLength; ++i) {
             if (newPartyMemberVotingPowers[i] == 0) {
                 revert InvalidPartyMemberVotingPower();
             }
@@ -53,7 +54,7 @@ contract AddPartyCardsAuthority {
         }
         Party(payable(msg.sender)).increaseTotalVotingPower(addedVotingPower);
 
-        for (uint256 i; i < newPartyMembers.length; ++i) {
+        for (uint256 i; i < newPartyMembersLength; ++i) {
             address newPartyMember = newPartyMembers[i];
             uint96 newPartyMemberVotingPower = newPartyMemberVotingPowers[i];
             PartyGovernanceNFT(msg.sender).mint(
