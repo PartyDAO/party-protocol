@@ -27,6 +27,10 @@ contract TokenDistributor is ITokenDistributor {
         bool wasFeeClaimed;
         // Whether a governance token has claimed its distribution share.
         mapping(uint256 => bool) hasPartyTokenClaimed;
+        // Last token ID at time distribution was created that can claim.
+        // Stored here instead of in `DistributionInfo` to avoid versioning
+        // conflicts on the frontend with older parties.
+        uint96 maxTokenId;
     }
 
     // Arguments for `_createDistribution()`.
@@ -46,6 +50,7 @@ contract TokenDistributor is ITokenDistributor {
     error DistributionAlreadyClaimedByPartyTokenError(uint256 distributionId, uint256 partyTokenId);
     error DistributionFeeAlreadyClaimedError(uint256 distributionId);
     error MustOwnTokenError(address sender, address expectedOwner, uint256 partyTokenId);
+    error TokenIdAboveMaxError(uint256 partyTokenId, uint256 maxTokenId);
     error EmergencyActionsNotAllowedError();
     error InvalidDistributionSupplyError(uint128 supply);
     error OnlyFeeRecipientError(address caller, address feeRecipient);
@@ -148,6 +153,11 @@ contract TokenDistributor is ITokenDistributor {
         DistributionState storage state = _distributionStates[info.party][info.distributionId];
         if (state.distributionHash != _getDistributionHash(info)) {
             revert InvalidDistributionInfoError(info);
+        }
+        // Token ID must not be greater than the max token ID.
+        uint96 maxTokenId = state.maxTokenId;
+        if (partyTokenId > maxTokenId) {
+            revert TokenIdAboveMaxError(partyTokenId, maxTokenId);
         }
         // The partyTokenId must not have claimed its distribution yet.
         if (state.hasPartyTokenClaimed[partyTokenId]) {
@@ -334,10 +344,12 @@ contract TokenDistributor is ITokenDistributor {
             fee: fee,
             totalShares: args.party.getGovernanceValues().totalVotingPower
         });
-        (
-            _distributionStates[args.party][info.distributionId].distributionHash,
-            _distributionStates[args.party][info.distributionId].remainingMemberSupply
-        ) = (_getDistributionHash(info), memberSupply);
+
+        DistributionState storage state = _distributionStates[args.party][info.distributionId];
+        state.distributionHash = _getDistributionHash(info);
+        state.remainingMemberSupply = memberSupply;
+        state.maxTokenId = args.party.tokenCount();
+
         emit DistributionCreated(args.party, info);
     }
 

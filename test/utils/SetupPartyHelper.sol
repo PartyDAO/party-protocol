@@ -15,6 +15,7 @@ import { IReserveAuctionCoreEth } from "../../contracts/vendor/markets/IReserveA
 import { PartyGovernance } from "../../contracts/party/PartyGovernance.sol";
 import { ERC721Receiver } from "../../contracts/tokens/ERC721Receiver.sol";
 import { MetadataRegistry } from "../../contracts/renderers/MetadataRegistry.sol";
+import { TokenDistributor } from "../../contracts/distribution/TokenDistributor.sol";
 
 /// @notice This contract provides a fully functioning party instance for testing.
 ///     Run setup from inheriting contract.
@@ -70,6 +71,12 @@ abstract contract SetupPartyHelper is TestUtils, ERC721Receiver {
         MetadataRegistry metadataRegistry = new MetadataRegistry(globals, registrars);
         globalsAdmin.setMetadataRegistry(address(metadataRegistry));
 
+        TokenDistributor distributor = new TokenDistributor(
+            globals,
+            uint40(block.timestamp) + 365 days
+        );
+        globalsAdmin.setTokenDistributor(address(distributor));
+
         johnVotes = johnVotes == 0 ? 100 : johnVotes;
         dannyVotes = dannyVotes == 0 ? 100 : dannyVotes;
         steveVotes = steveVotes == 0 ? 100 : steveVotes;
@@ -84,7 +91,8 @@ abstract contract SetupPartyHelper is TestUtils, ERC721Receiver {
         opts.governance.voteDuration = 99;
         opts.governance.executionDelay = _EXECUTION_DELAY;
         opts.governance.passThresholdBps = 1000;
-        opts.governance.totalVotingPower = 301;
+        opts.governance.totalVotingPower = johnVotes + dannyVotes + steveVotes + thisVotes;
+        opts.proposalEngine.distributionsRequireVote = true;
 
         address[] memory authorities = new address[](1);
         authorities[0] = address(this);
