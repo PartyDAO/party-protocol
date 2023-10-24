@@ -26,6 +26,7 @@ contract InitialETHCrowdfundTest is LintJSON, TestUtils, ERC721Receiver {
         address delegate
     );
     event Refunded(address indexed contributor, uint256 indexed tokenId, uint256 amount);
+    event PartyDelegateUpdated(address indexed owner, address indexed delegate);
 
     InitialETHCrowdfund initialETHCrowdfundImpl;
     Globals globals;
@@ -738,14 +739,17 @@ contract InitialETHCrowdfundTest is LintJSON, TestUtils, ERC721Receiver {
 
         // Contribute as member (should succeed)
         vm.prank(member);
-        vm.expectEmit(true, false, false, true);
+        vm.expectEmit(true, true, true, true);
         emit Contributed(member, member, 1 ether, member);
         crowdfund.contribute{ value: 1 ether }(member, abi.encode(new bytes32[](0)));
 
         // Contribute as member on behalf of non-member (should succeed)
         vm.prank(member);
-        vm.expectEmit(true, false, false, true);
+        vm.expectEmit(true, true, true, true);
         emit Contributed(member, nonMember, 1 ether, member);
+        vm.expectEmit(true, true, true, true);
+        emit PartyDelegateUpdated(nonMember, member);
+
         crowdfund.contributeFor{ value: 1 ether }(
             0,
             nonMember,
