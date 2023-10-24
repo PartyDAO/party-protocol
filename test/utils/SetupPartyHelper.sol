@@ -21,10 +21,12 @@ import { TokenDistributor } from "../../contracts/distribution/TokenDistributor.
 ///     Run setup from inheriting contract.
 abstract contract SetupPartyHelper is TestUtils, ERC721Receiver {
     bool private immutable _isForked;
-    GlobalsAdmin globalsAdmin;
-    Party party;
+    GlobalsAdmin internal globalsAdmin;
+    Party internal party;
+    Party internal partyImpl;
     Globals internal globals;
     PartyFactory internal partyFactory;
+    TokenDistributor internal tokenDistributor;
     uint256 internal johnPk = 0xa11ce;
     uint256 internal dannyPk = 0xb0b;
     uint256 internal stevePk = 0xca1;
@@ -46,7 +48,7 @@ abstract contract SetupPartyHelper is TestUtils, ERC721Receiver {
     function setUp() public virtual {
         globalsAdmin = new GlobalsAdmin();
         globals = globalsAdmin.globals();
-        Party partyImpl = new Party(globals);
+        partyImpl = new Party(globals);
         address globalDaoWalletAddress = address(420);
         globalsAdmin.setGlobalDaoWallet(globalDaoWalletAddress);
 
@@ -64,6 +66,9 @@ abstract contract SetupPartyHelper is TestUtils, ERC721Receiver {
 
         partyFactory = new PartyFactory(globals);
         globalsAdmin.setGlobalPartyFactory(address(partyFactory));
+
+        tokenDistributor = new TokenDistributor(globals, 0);
+        globalsAdmin.setTokenDistributor(address(tokenDistributor));
 
         address[] memory registrars = new address[](2);
         registrars[0] = address(this);
@@ -91,7 +96,8 @@ abstract contract SetupPartyHelper is TestUtils, ERC721Receiver {
         opts.governance.voteDuration = 99;
         opts.governance.executionDelay = _EXECUTION_DELAY;
         opts.governance.passThresholdBps = 1000;
-        opts.governance.totalVotingPower = johnVotes + dannyVotes + steveVotes + thisVotes;
+        opts.governance.totalVotingPower = 301;
+        opts.proposalEngine.allowArbCallsToSpendPartyEth = true;
         opts.proposalEngine.distributionsRequireVote = true;
 
         address[] memory authorities = new address[](1);
