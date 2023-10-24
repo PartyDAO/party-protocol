@@ -22,7 +22,7 @@ contract AddPartyCardsAuthority {
     );
 
     /// @notice Atomically distributes new party cards and updates the total voting power as needed.
-    /// @dev Called must be the party and this contract must be an authority on the party
+    /// @dev Caller must be the party and this contract must be an authority on the party
     /// @param newPartyMembers Addresses of the new party members (duplicates allowed)
     /// @param newPartyMemberVotingPowers Voting powers for the new party cards
     /// @param initialDelegates Initial delegates for the new party members. If the member already set a delegate this is ignored.
