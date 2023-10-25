@@ -8,7 +8,7 @@ contract AddPartyCardsAuthority {
     /// @notice Returned if the `AtomicManualParty` is created with no members
     error NoPartyMembers();
     /// @notice Returned if the lengths of `partyMembers` and `partyMemberVotingPowers` do not match
-    error PartyMembersArityMismatch();
+    error ArityMismatch();
     /// @notice Returned if a party card would be issued to the null address
     error InvalidPartyMember();
     /// @notice Returned if a party card would be issued with no voting power
@@ -22,7 +22,7 @@ contract AddPartyCardsAuthority {
     );
 
     /// @notice Atomically distributes new party cards and updates the total voting power as needed.
-    /// @dev Called must be the party and this contract must be an authority on the party
+    /// @dev Caller must be the party and this contract must be an authority on the party
     /// @param newPartyMembers Addresses of the new party members (duplicates allowed)
     /// @param newPartyMemberVotingPowers Voting powers for the new party cards
     /// @param initialDelegates Initial delegates for the new party members. If the member already set a delegate this is ignored.
@@ -31,15 +31,19 @@ contract AddPartyCardsAuthority {
         uint96[] calldata newPartyMemberVotingPowers,
         address[] calldata initialDelegates
     ) external {
-        if (newPartyMembers.length == 0) {
+        uint256 newPartyMembersLength = newPartyMembers.length;
+        if (newPartyMembersLength == 0) {
             revert NoPartyMembers();
         }
-        if (newPartyMembers.length != newPartyMemberVotingPowers.length) {
-            revert PartyMembersArityMismatch();
+        if (
+            newPartyMembersLength != newPartyMemberVotingPowers.length ||
+            newPartyMembersLength != initialDelegates.length
+        ) {
+            revert ArityMismatch();
         }
 
         uint96 addedVotingPower;
-        for (uint256 i; i < newPartyMemberVotingPowers.length; ++i) {
+        for (uint256 i; i < newPartyMembersLength; ++i) {
             if (newPartyMemberVotingPowers[i] == 0) {
                 revert InvalidPartyMemberVotingPower();
             }
@@ -50,7 +54,7 @@ contract AddPartyCardsAuthority {
         }
         Party(payable(msg.sender)).increaseTotalVotingPower(addedVotingPower);
 
-        for (uint256 i; i < newPartyMembers.length; ++i) {
+        for (uint256 i; i < newPartyMembersLength; ++i) {
             address newPartyMember = newPartyMembers[i];
             uint96 newPartyMemberVotingPower = newPartyMemberVotingPowers[i];
             PartyGovernanceNFT(msg.sender).mint(

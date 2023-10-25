@@ -76,12 +76,6 @@ abstract contract SetupPartyHelper is TestUtils, ERC721Receiver {
         MetadataRegistry metadataRegistry = new MetadataRegistry(globals, registrars);
         globalsAdmin.setMetadataRegistry(address(metadataRegistry));
 
-        TokenDistributor distributor = new TokenDistributor(
-            globals,
-            uint40(block.timestamp) + 365 days
-        );
-        globalsAdmin.setTokenDistributor(address(distributor));
-
         johnVotes = johnVotes == 0 ? 100 : johnVotes;
         dannyVotes = dannyVotes == 0 ? 100 : dannyVotes;
         steveVotes = steveVotes == 0 ? 100 : steveVotes;

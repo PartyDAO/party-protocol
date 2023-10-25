@@ -154,11 +154,6 @@ contract TokenDistributor is ITokenDistributor {
         if (state.distributionHash != _getDistributionHash(info)) {
             revert InvalidDistributionInfoError(info);
         }
-        // Token ID must not be greater than the max token ID.
-        uint96 maxTokenId = state.maxTokenId;
-        if (partyTokenId > maxTokenId) {
-            revert TokenIdAboveMaxError(partyTokenId, maxTokenId);
-        }
         // The partyTokenId must not have claimed its distribution yet.
         if (state.hasPartyTokenClaimed[partyTokenId]) {
             revert DistributionAlreadyClaimedByPartyTokenError(info.distributionId, partyTokenId);
@@ -244,6 +239,15 @@ contract TokenDistributor is ITokenDistributor {
         uint256 partyTokenId
     ) public view returns (uint128) {
         Party party = info.party;
+
+        // Token ID must not be greater than the max token ID. If totalVotingPower hasn't increased we allow the claim.
+        uint96 maxTokenId = _distributionStates[party][info.distributionId].maxTokenId;
+        if (
+            partyTokenId > maxTokenId &&
+            info.party.getGovernanceValues().totalVotingPower > info.totalShares
+        ) {
+            revert TokenIdAboveMaxError(partyTokenId, maxTokenId);
+        }
 
         // Check which method to use for calculating claim amount based on
         // version of Party contract.
