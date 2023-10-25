@@ -30,6 +30,7 @@ import "../contracts/utils/PartyHelpers.sol";
 import "../contracts/market-wrapper/NounsMarketWrapper.sol";
 import { AtomicManualParty } from "../contracts/crowdfund/AtomicManualParty.sol";
 import { ContributionRouter } from "../contracts/crowdfund/ContributionRouter.sol";
+import { AddPartyCardsAuthority } from "../contracts/authorities/AddPartyCardsAuthority.sol";
 import "./LibDeployConstants.sol";
 
 abstract contract Deploy {
@@ -76,6 +77,7 @@ abstract contract Deploy {
     PixeldroidConsoleFont public pixeldroidConsoleFont;
     AtomicManualParty public atomicManualParty;
     ContributionRouter public contributionRouter;
+    AddPartyCardsAuthority public addPartyCardsAuthority;
 
     function deploy(LibDeployConstants.DeployConstants memory deployConstants) public virtual {
         _switchDeployer(DeployerRole.Default);
@@ -324,6 +326,15 @@ abstract contract Deploy {
         );
         _trackDeployerGasAfter();
         console.log("  Deployed - PartyNFTRenderer", address(partyNFTRenderer));
+
+        // DEPLOY_ADD_PARTY_CARDS_AUTHORITY
+        console.log("");
+        console.log("### AddPartyCardsAuthority");
+        console.log("  Deploying - AddPartyCardsAuthority");
+        _trackDeployerGasBefore();
+        addPartyCardsAuthority = new AddPartyCardsAuthority();
+        _trackDeployerGasAfter();
+        console.log("  Deployed - AddPartyCardsAuthority", address(addPartyCardsAuthority));
 
         // DEPLOY_BATCH_BUY_OPERATOR
         console.log("");
@@ -661,7 +672,7 @@ contract DeployScript is Script, Deploy {
         Deploy.deploy(deployConstants);
         vm.stopBroadcast();
 
-        AddressMapping[] memory addressMapping = new AddressMapping[](26);
+        AddressMapping[] memory addressMapping = new AddressMapping[](27);
         addressMapping[0] = AddressMapping("Globals", address(globals));
         addressMapping[1] = AddressMapping("TokenDistributor", address(tokenDistributor));
         addressMapping[2] = AddressMapping(
@@ -706,6 +717,10 @@ contract DeployScript is Script, Deploy {
         );
         addressMapping[24] = AddressMapping("AtomicManualParty", address(atomicManualParty));
         addressMapping[25] = AddressMapping("ContributionRouter", address(contributionRouter));
+        addressMapping[26] = AddressMapping(
+            "AddPartyCardsAuthority",
+            address(addPartyCardsAuthority)
+        );
 
         console.log("");
         console.log("### Deployed addresses");
