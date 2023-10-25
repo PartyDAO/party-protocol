@@ -58,6 +58,8 @@ contract InitialETHCrowdfund is ETHCrowdfundBase {
         uint256[] preciousTokenIds;
         // The timestamp until which ragequit is enabled.
         uint40 rageQuitTimestamp;
+        // Initial Authorities to set on the party
+        address[] authorities;
     }
 
     struct BatchContributeArgs {
@@ -372,8 +374,12 @@ contract InitialETHCrowdfund is ETHCrowdfundBase {
         MetadataProvider customMetadataProvider,
         bytes memory customMetadata
     ) private returns (Party) {
-        address[] memory authorities = new address[](1);
+        uint256 authoritiesLength = opts.authorities.length + 1;
+        address[] memory authorities = new address[](authoritiesLength);
         authorities[0] = address(this);
+        for (uint i = 1; i < authoritiesLength; ++i) {
+            authorities[i] = opts.authorities[i - 1];
+        }
 
         if (address(customMetadataProvider) == address(0)) {
             return

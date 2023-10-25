@@ -149,6 +149,8 @@ contract InitialETHCrowdfundTestBase is LintJSON, TestUtils, ERC721Receiver {
 }
 
 contract InitialETHCrowdfundTest is InitialETHCrowdfundTestBase {
+    using Clones for address;
+
     function test_initialization_cannotReinitialize() public {
         InitialETHCrowdfund crowdfund = _createCrowdfund(
             CreateCrowdfundArgs({
@@ -1744,6 +1746,74 @@ contract InitialETHCrowdfundTest is InitialETHCrowdfundTestBase {
         // Send funding split
         vm.expectRevert(ETHCrowdfundBase.FundingSplitNotConfiguredError.selector);
         crowdfund.sendFundingSplit();
+    }
+
+    function test_initialization_multipleAuthorities() public {
+        uint96 initialContribution = 1 ether;
+        address[] memory authorities = new address[](4);
+        for (uint256 i = 0; i < authorities.length; i++) {
+            authorities[i] = _randomAddress();
+        }
+
+        InitialETHCrowdfund.InitialETHCrowdfundOptions memory crowdfundOpts = InitialETHCrowdfund
+            .InitialETHCrowdfundOptions({
+                initialContributor: payable(address(this)),
+                initialDelegate: address(this),
+                minContribution: 1,
+                maxContribution: 2 ether,
+                disableContributingForExistingCard: true,
+                minTotalContributions: 0,
+                maxTotalContributions: 10 ether,
+                exchangeRateBps: 10000,
+                fundingSplitBps: 0,
+                fundingSplitRecipient: payable(0),
+                duration: 1 days,
+                gateKeeper: IGateKeeper(address(0)),
+                gateKeeperId: 0
+            });
+
+        InitialETHCrowdfund.ETHPartyOptions memory partyOpts = InitialETHCrowdfund.ETHPartyOptions({
+            name: "Test Party",
+            symbol: "TPARTY",
+            customizationPresetId: 0,
+            governanceOpts: Crowdfund.FixedGovernanceOpts({
+                partyImpl: partyImpl,
+                partyFactory: partyFactory,
+                hosts: new address[](0),
+                voteDuration: 1 days,
+                executionDelay: 1,
+                passThresholdBps: 1000,
+                feeBps: 0,
+                feeRecipient: payable(0)
+            }),
+            proposalEngineOpts: ProposalStorage.ProposalEngineOpts({
+                enableAddAuthorityProposal: true,
+                allowArbCallsToSpendPartyEth: true,
+                allowOperators: true,
+                distributionsRequireVote: true
+            }),
+            preciousTokens: new IERC721[](0),
+            preciousTokenIds: new uint256[](0),
+            rageQuitTimestamp: 0,
+            authorities: authorities
+        });
+
+        vm.deal(address(this), initialContribution);
+        InitialETHCrowdfund crowdfund = InitialETHCrowdfund(
+            payable(address(initialETHCrowdfundImpl).clone())
+        );
+
+        crowdfund.initialize{ value: initialContribution }(
+            crowdfundOpts,
+            partyOpts,
+            MetadataProvider(address(0)),
+            ""
+        );
+
+        Party party_ = crowdfund.party();
+        for (uint i = 0; i < authorities.length; i++) {
+            assertTrue(party_.isAuthority(authorities[i]));
+        }
     }
 }
 
