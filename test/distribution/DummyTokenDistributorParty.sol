@@ -47,4 +47,8 @@ contract DummyTokenDistributorParty {
     function getGovernanceValues() external view returns (GovernanceValues memory) {
         return _governanceValues;
     }
+
+    function tokenCount() external view virtual returns (uint96) {
+        return type(uint96).max;
+    }
 }

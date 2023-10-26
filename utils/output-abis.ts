@@ -29,6 +29,7 @@ const RELEVANT_ABIS = [
   "MetadataRegistry",
   "AtomicManualParty",
   "ContributionRouter",
+  "AddPartyCardsAuthority",
 ];
 
 // AFileName -> a_file_name
