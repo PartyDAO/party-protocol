@@ -172,7 +172,6 @@ contract MetadataRegistryTest is Test, TestUtils {
 
     function test_getMetadata_works() public {
         MetadataProvider provider = new MetadataProvider(globals);
-        address registrar = _randomAddress();
         address instance = _randomAddress();
 
         // Set the provider
