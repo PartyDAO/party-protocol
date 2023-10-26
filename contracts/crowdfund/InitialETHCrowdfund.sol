@@ -376,10 +376,10 @@ contract InitialETHCrowdfund is ETHCrowdfundBase {
     ) private returns (Party) {
         uint256 authoritiesLength = opts.authorities.length + 1;
         address[] memory authorities = new address[](authoritiesLength);
-        authorities[0] = address(this);
-        for (uint i = 1; i < authoritiesLength; ++i) {
-            authorities[i] = opts.authorities[i - 1];
+        for (uint i = 0; i < authoritiesLength - 1; ++i) {
+            authorities[i] = opts.authorities[i];
         }
+        authorities[authoritiesLength - 1] = address(this);
 
         if (address(customMetadataProvider) == address(0)) {
             return
