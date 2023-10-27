@@ -710,7 +710,7 @@ abstract contract PartyGovernance is
         uint256[] memory preciousTokenIds,
         bytes calldata progressData,
         bytes calldata extraData
-    ) external payable onlyDelegateCall {
+    ) external payable {
         _assertNotGloballyDisabled();
         _assertActiveMember();
         // Get information about the proposal.
