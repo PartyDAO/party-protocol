@@ -710,7 +710,8 @@ contract CrowdfundFactoryTest is Test, TestUtils {
             }),
             preciousTokens: new IERC721[](0),
             preciousTokenIds: new uint256[](0),
-            rageQuitTimestamp: 0
+            rageQuitTimestamp: 0,
+            authorities: new address[](0)
         });
 
         vm.deal(address(this), initialContribution);
@@ -813,7 +814,8 @@ contract CrowdfundFactoryTest is Test, TestUtils {
             }),
             preciousTokens: new IERC721[](0),
             preciousTokenIds: new uint256[](0),
-            rageQuitTimestamp: 0
+            rageQuitTimestamp: 0,
+            authorities: new address[](0)
         });
 
         vm.deal(address(this), initialContribution);
