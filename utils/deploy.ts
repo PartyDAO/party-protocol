@@ -367,6 +367,27 @@ async function main() {
     }
   }
 
+  // Get private key of deployer address
+  const privateKey = process.env.PRIVATE_KEY;
+  if (!privateKey) {
+    console.error("Missing PRIVATE_KEY environment variable.");
+    process.exit(1);
+  }
+
+  // Check that deployer address is expected address
+  const deployerAddress = await run(`cast wallet address ${privateKey}`, {
+    captureOutput: true,
+  });
+  const expectedDeployerAddress = "0x0e63D6f414b40BaFCa676810ef1aBf05ECc8E459";
+  if (deployerAddress !== expectedDeployerAddress) {
+    console.warn(
+      `Deployer address is ${deployerAddress}, expected ${expectedDeployerAddress}.`.yellow,
+    );
+    if (!(await confirm("Do you want to continue?", false))) {
+      process.exit(0);
+    }
+  }
+
   if (
     await confirm(
       "Do you want to set contract variables to their existing addresses in Deploy.s.sol?",
@@ -379,6 +400,10 @@ async function main() {
     console.warn("Remember to unset variables for contracts that are going to be deployed!".yellow);
   }
 
+  await confirm("Have you updated Deploy.sol to only deploy the contracts you want?", true);
+
+  await confirm("Are there no other changes that should be included into this deploy?", true);
+
   if (
     await confirm(
       "Do you want to check that deploy script variable names match contract names?",
@@ -388,12 +413,11 @@ async function main() {
     await checkDeployContractVariables();
   }
 
-  await confirm("Have you updated Deploy.sol to only deploy the contracts you want?", true);
-
+  // Run dry run deploy and check that it succeeded
   let dryRunSucceeded = false;
   while (!dryRunSucceeded) {
     if (await confirm("Do dry run?", true)) {
-      await run(`yarn deploy:${chain}:dry --private-key ${process.env.PRIVATE_KEY}`);
+      await run(`yarn deploy:${chain}:dry --private-key ${privateKey}`);
       await run("yarn lint:fix > /dev/null");
       await checksumAddresses(`deploy/cache/${chain}.json`);
 
@@ -404,8 +428,6 @@ async function main() {
       break;
     }
 
-    await confirm("Was the deployer the expected address?", true);
-
     await confirm(
       `Does deploy/cache/${chain}.json only contain addresses for contracts that changed?`,
       true,
@@ -414,10 +436,8 @@ async function main() {
     await confirm("Were ABI files in deploy/cache/abis created or changed as you expected?", true);
   }
 
-  await confirm("Are there no other changes that should be included into this deploy?", true);
-
   if (await confirm("Run deploy?", true)) {
-    run(`yarn deploy:${chain} --private-key ${process.env.PRIVATE_KEY}`);
+    run(`yarn deploy:${chain} --private-key ${privateKey}`);
     await run("yarn lint:fix > /dev/null");
     await checksumAddresses(`deploy/cache/${chain}.json`);
 
