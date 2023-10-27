@@ -14,17 +14,19 @@ const rl = readline.createInterface({
   output: process.stdout,
 });
 
-async function run(command: string) {
+async function run(command: string, { captureOutput = false, throwOnError = true } = {}) {
   const result = childProcess.spawnSync(command, [], {
     shell: true,
-    stdio: "inherit",
+    stdio: captureOutput ? "pipe" : "inherit",
   });
 
-  if (result.status !== 0) {
+  if (throwOnError && result.status !== 0) {
     throw new Error(`Command "${command}" failed with status code ${result.status}`);
   }
 
-  return result.stdout;
+  if (captureOutput) {
+    return result.stdout.toString().trim();
+  }
 }
 
 async function confirm(question: string, defaultValue?: boolean): Promise<boolean> {
@@ -335,6 +337,34 @@ async function main() {
   } else if (!validChains.includes(chain)) {
     console.error(`Invalid chain "${chain}". Valid chains are: ${validChains.join(", ")}`);
     process.exit(1);
+  }
+
+  // Get name of remote branch current branch is tracking
+  const remoteBranch = await run("git rev-parse --abbrev-ref --symbolic-full-name @{u}", {
+    captureOutput: true,
+    throwOnError: false,
+  });
+
+  if (remoteBranch) {
+    // Get number of commits current branch is behind remote branch
+    const numOfCommitsBehind = await run(`git rev-list --count HEAD...${remoteBranch}`, {
+      captureOutput: true,
+    }).then(Number);
+
+    // If current branch is behind remote branch, prompt to pull latest changes
+    if (numOfCommitsBehind > 0) {
+      console.warn(
+        (
+          "Current branch is " +
+          (numOfCommitsBehind > 1 ? `${numOfCommitsBehind} commits` : `1 commit`) +
+          " behind remote."
+        ).yellow,
+      );
+
+      if (await confirm("Do you want to pull latest changes?", true)) {
+        await run("git pull");
+      }
+    }
   }
 
   if (
