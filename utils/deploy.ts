@@ -340,29 +340,48 @@ async function main() {
   }
 
   // Get name of remote branch current branch is tracking
-  const remoteBranch = await run("git rev-parse --abbrev-ref --symbolic-full-name @{u}", {
+  const currentBranch = await run("git rev-parse --abbrev-ref HEAD", {
     captureOutput: true,
     throwOnError: false,
   });
 
-  if (remoteBranch) {
-    // Get number of commits current branch is behind remote branch
-    const numOfCommitsBehind = await run(`git rev-list --count HEAD...${remoteBranch}`, {
-      captureOutput: true,
-    }).then(Number);
+  if (currentBranch) {
+    const remoteBranch = `origin/${currentBranch}`;
+
+    // Get number of commits current branch is ahead and behind remote branch
+    const [numOfCommitsBehind, numOfCommitsAhead] = (
+      await run(`git rev-list --left-right --count ${remoteBranch}...HEAD`, {
+        captureOutput: true,
+      })
+    )
+      .split("\t")
+      .map(Number);
 
     // If current branch is behind remote branch, prompt to pull latest changes
     if (numOfCommitsBehind > 0) {
       console.warn(
         (
-          "Current branch is " +
           (numOfCommitsBehind > 1 ? `${numOfCommitsBehind} commits` : `1 commit`) +
           " behind remote."
         ).yellow,
       );
 
       if (await confirm("Do you want to pull latest changes?", true)) {
-        await run("git pull");
+        await run(`git pull origin ${currentBranch}`);
+      }
+    }
+
+    // If current branch is ahead of remote branch, prompt to confirm whether to continue
+    if (numOfCommitsAhead > 0) {
+      console.warn(
+        (
+          (numOfCommitsAhead > 1 ? `${numOfCommitsAhead} commits` : `1 commit`) +
+          " ahead of remote."
+        ).yellow,
+      );
+
+      if (!(await confirm("Do you want to continue?", false))) {
+        process.exit(0);
       }
     }
   }
