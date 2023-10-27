@@ -459,6 +459,9 @@ async function main() {
     release_name = await new Promise<string>(resolve =>
       rl.question("What is the release name? ", resolve),
     );
+
+    // Format the release name to be lowercase and replace spaces and dashes with underscores
+    release_name = release_name.trim().toLowerCase().replace(/[\s-]/g, "_");
   }
 
   if (await confirm("Copy deploy script to party-addresses?", false)) {
