@@ -27,7 +27,7 @@ contract TokenDistributorIntegrationTest is SetupPartyHelper {
                 })
             )
         });
-        proposePassAndExecuteProposal(distributionProposal);
+        _proposePassAndExecuteProposal(distributionProposal);
 
         // Claim the distribution
         TokenDistributor distributor = TokenDistributor(
@@ -84,7 +84,7 @@ contract TokenDistributorIntegrationTest is SetupPartyHelper {
                 })
             )
         });
-        proposePassAndExecuteProposal(distributionProposal);
+        _proposePassAndExecuteProposal(distributionProposal);
 
         vm.roll(block.number + 10);
 
@@ -153,7 +153,7 @@ contract TokenDistributorIntegrationTest is SetupPartyHelper {
                 })
             )
         });
-        proposePassAndExecuteProposal(distributionProposal);
+        _proposePassAndExecuteProposal(distributionProposal);
 
         vm.roll(block.number + 10);
 

@@ -147,7 +147,7 @@ contract AddPartyCardsAuthorityTest is SetupPartyHelper {
         initialDelegates[0] = address(0);
 
         AddPartyCardsAuthority notAuthority = new AddPartyCardsAuthority();
-        vm.expectRevert(PartyGovernanceNFT.OnlyAuthorityError.selector);
+        vm.expectRevert(PartyGovernance.NotAuthorized.selector);
         vm.prank(address(party));
         notAuthority.addPartyCards(newPartyMembers, newPartyMemberVotingPowers, initialDelegates);
     }
@@ -222,7 +222,7 @@ contract AddPartyCardsAuthorityTest is SetupPartyHelper {
         uint96 tokenCount = party.tokenCount();
 
         // Propose and execute
-        proposePassAndExecuteProposal(proposal);
+        _proposePassAndExecuteProposal(proposal);
 
         // Check that the new members were added and the total voting power was updated
         uint96 totalVotingPowerAdded;

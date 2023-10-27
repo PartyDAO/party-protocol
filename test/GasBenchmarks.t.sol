@@ -11,9 +11,11 @@ import { ProposalExecutionEngine } from "../contracts/proposals/ProposalExecutio
 import { DistributeProposal } from "../contracts/proposals/DistributeProposal.sol";
 import { ITokenDistributor } from "../contracts/distribution/ITokenDistributor.sol";
 import { InitialETHCrowdfund } from "../contracts/crowdfund/InitialETHCrowdfund.sol";
-import { Proxy } from "../contracts/utils/Proxy.sol";
+import { Clones } from "openzeppelin/contracts/proxy/Clones.sol";
 
 contract GasBenchmarks is SetupPartyHelper {
+    using Clones for address;
+
     constructor() SetupPartyHelper(false) {}
 
     /// @notice Gas benchmark the creation of a basic party
@@ -195,18 +197,9 @@ contract GasBenchmarks is SetupPartyHelper {
         partyOpts.governanceOpts.partyImpl = partyImpl;
 
         InitialETHCrowdfund crowdfundImpl = new InitialETHCrowdfund(globals);
-        return
-            InitialETHCrowdfund(
-                payable(
-                    new Proxy(
-                        crowdfundImpl,
-                        abi.encodeCall(
-                            InitialETHCrowdfund.initialize,
-                            (crowdfundOpts, partyOpts, MetadataProvider(address(0)), "")
-                        )
-                    )
-                )
-            );
+        InitialETHCrowdfund crowdfund = InitialETHCrowdfund(address(crowdfundImpl).clone());
+        crowdfund.initialize(crowdfundOpts, partyOpts, MetadataProvider(address(0)), "");
+        return crowdfund;
     }
 
     /// @notice Gas benchmark of contributing to an ETHParty membership mint twice
