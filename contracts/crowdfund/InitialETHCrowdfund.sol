@@ -58,7 +58,7 @@ contract InitialETHCrowdfund is ETHCrowdfundBase {
         uint256[] preciousTokenIds;
         // The timestamp until which ragequit is enabled.
         uint40 rageQuitTimestamp;
-        // Initial Authorities to set on the party
+        // Initial authorities to set on the party
         address[] authorities;
     }
 
