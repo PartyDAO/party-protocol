@@ -8,6 +8,7 @@ library LibSafeCast {
     error Uint256ToInt128CastOutOfRangeError(uint256 u256);
     error Uint256ToUint128CastOutOfRangeError(uint256 u256);
     error Uint256ToUint40CastOutOfRangeError(uint256 u256);
+    error Uint96ToUint16CastOutOfRange(uint96 u96);
 
     function safeCastUint256ToUint96(uint256 v) internal pure returns (uint96) {
         if (v > uint256(type(uint96).max)) {
@@ -28,6 +29,13 @@ library LibSafeCast {
             revert Uint256ToInt192CastOutOfRange(v);
         }
         return int192(uint192(v));
+    }
+
+    function safeCastUint96ToUint16(uint96 v) internal pure returns (uint16) {
+        if (v > uint96(type(uint16).max)) {
+            revert Uint96ToUint16CastOutOfRange(v);
+        }
+        return uint16(v);
     }
 
     function safeCastUint96ToInt192(uint96 v) internal pure returns (int192) {
