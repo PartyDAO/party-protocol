@@ -70,6 +70,7 @@ contract PartyGovernanceNFTTest is LintJSON, TestUtils {
             nftRendererStorage,
             font,
             address(0),
+            address(0),
             "https://party.app/party/"
         );
         globalsAdmin.setGovernanceNftRendererAddress(address(nftRenderer));
@@ -1273,7 +1274,7 @@ contract PartyGovernanceNFTTest is LintJSON, TestUtils {
         _lintEncodedJSON(tokenURI);
 
         // Uncomment for testing rendering:
-        // console.log(tokenURI);
+        console.log(tokenURI);
 
         assertTrue(bytes(tokenURI).length > 0);
     }

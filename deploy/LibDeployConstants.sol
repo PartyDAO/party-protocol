@@ -27,7 +27,8 @@ library LibDeployConstants {
         string networkName;
         address deployedNounsMarketWrapper;
         uint96 contributionRouterInitialFee;
-        address oldTokenDistributor;
+        address tokenDistributorV1;
+        address tokenDistributorV2;
         string baseExternalURL;
     }
 
@@ -58,7 +59,8 @@ library LibDeployConstants {
             networkName: "goerli",
             deployedNounsMarketWrapper: 0x0000000000000000000000000000000000000000,
             contributionRouterInitialFee: 0.00055 ether,
-            oldTokenDistributor: address(0),
+            tokenDistributorV1: address(0),
+            tokenDistributorV2: address(0),
             baseExternalURL: "https://party.app/party/"
         });
 
@@ -92,7 +94,8 @@ library LibDeployConstants {
             networkName: "base-goerli",
             deployedNounsMarketWrapper: 0x0000000000000000000000000000000000000000,
             contributionRouterInitialFee: 0.00055 ether,
-            oldTokenDistributor: address(0),
+            tokenDistributorV1: address(0),
+            tokenDistributorV2: address(0),
             baseExternalURL: "https://base.party.app/party/"
         });
 
@@ -126,7 +129,8 @@ library LibDeployConstants {
             networkName: "mainnet",
             deployedNounsMarketWrapper: 0x9319DAd8736D752C5c72DB229f8e1b280DC80ab1,
             contributionRouterInitialFee: 0.00055 ether,
-            oldTokenDistributor: 0x1CA2007a81F8A7491BB6E11D8e357FD810896454,
+            tokenDistributorV1: 0x1CA2007a81F8A7491BB6E11D8e357FD810896454,
+            tokenDistributorV2: 0x49a3caab781f711aD74C9d2F34c3cbD835d6A608,
             baseExternalURL: "https://party.app/party/"
         });
 
@@ -160,7 +164,8 @@ library LibDeployConstants {
             networkName: "base",
             deployedNounsMarketWrapper: 0x0000000000000000000000000000000000000000,
             contributionRouterInitialFee: 0.00055 ether,
-            oldTokenDistributor: address(0),
+            tokenDistributorV1: address(0),
+            tokenDistributorV2: 0xf0560F963538017CAA5081D96f839FE5D265acCB,
             baseExternalURL: "https://base.party.app/party/"
         });
 
