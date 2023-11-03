@@ -7,6 +7,7 @@ import "contracts/gatekeepers/IGateKeeper.sol";
 // TODO: Use named imports
 // TODO: Update contribution router to support batch contributions
 // TODO: Document that exchangeRateBps may be greater than 1e4 (100%)
+// TODO: Add natspec
 
 contract SellPartyCardsAuthority {
     using LibSafeCast for uint96;
@@ -67,11 +68,16 @@ contract SellPartyCardsAuthority {
     }
 
     mapping(Party party => uint256 lastId) public lastSaleId;
-    mapping(Party party => mapping(uint256 id => SaleState opts)) public saleStates;
+    mapping(Party party => mapping(uint256 id => SaleState opts)) private _saleStates;
 
-    event CreatedSale(Party party, uint256 saleId);
-    event Finalized(Party party, uint256 saleId);
-    event Contributed(address sender, address contributor, uint96 amount, address delegate);
+    event CreatedSale(Party indexed party, uint256 indexed saleId, SaleState state);
+    event Finalized(Party indexed party, uint256 indexed saleId);
+    event Contributed(
+        address indexed sender,
+        address indexed contributor,
+        uint96 amount,
+        address delegate
+    );
 
     error MinGreaterThanMaxError(uint96 minContribution, uint96 maxContribution);
     error ZeroMaxTotalContributionsError();
@@ -141,9 +147,9 @@ contract SellPartyCardsAuthority {
 
         Party party = Party(payable(msg.sender));
         saleId = ++lastSaleId[party];
-        saleStates[party][saleId] = state;
+        _saleStates[party][saleId] = state;
 
-        emit CreatedSale(party, saleId);
+        emit CreatedSale(party, saleId, state);
     }
 
     function contribute(
@@ -152,7 +158,7 @@ contract SellPartyCardsAuthority {
         address delegate,
         bytes calldata gateData
     ) external payable returns (uint96 votingPower) {
-        SaleState memory state = saleStates[party][saleId];
+        SaleState memory state = _saleStates[party][saleId];
 
         // TODO: Check that _beforeContribute here works as expected
         delegate = _beforeContribute(
@@ -181,7 +187,7 @@ contract SellPartyCardsAuthority {
         address initialDelegate,
         bytes calldata gateData
     ) external payable returns (uint96 votingPower) {
-        SaleState memory state = saleStates[party][saleId];
+        SaleState memory state = _saleStates[party][saleId];
 
         initialDelegate = _beforeContribute(
             party,
@@ -211,7 +217,7 @@ contract SellPartyCardsAuthority {
     function batchContribute(
         BatchContributeArgs memory args
     ) external payable returns (uint96[] memory votingPowers) {
-        SaleState memory state = saleStates[args.party][args.saleId];
+        SaleState memory state = _saleStates[args.party][args.saleId];
 
         // TODO: Check that _beforeContribute here works as expected
         args.delegate = _beforeContribute(
@@ -258,7 +264,7 @@ contract SellPartyCardsAuthority {
     function batchContributeFor(
         BatchContributeForArgs memory args
     ) external payable returns (uint96[] memory votingPowers) {
-        SaleState memory state = saleStates[args.party][args.saleId];
+        SaleState memory state = _saleStates[args.party][args.saleId];
 
         // TODO: Check that _beforeContribute here works as expected
         args.initialDelegates = _beforeContribute(
@@ -302,14 +308,14 @@ contract SellPartyCardsAuthority {
     }
 
     function finalize(Party party, uint256 saleId) external {
-        SaleState memory state = saleStates[party][saleId];
+        SaleState memory state = _saleStates[party][saleId];
 
         // Check that the sale is active.
         if (_isSaleActive(state.expiry, state.totalContributions, state.maxTotalContributions)) {
             // Allow host to finalize sale early.
             if (!party.isHost(msg.sender)) revert OnlyPartyHostError();
 
-            saleStates[party][saleId].expiry = uint40(block.timestamp);
+            _saleStates[party][saleId].expiry = uint40(block.timestamp);
 
             emit Finalized(party, saleId);
         } else {
@@ -399,7 +405,7 @@ contract SellPartyCardsAuthority {
         if (newTotalContributions >= maxTotalContributions) {
             // This occurs before refunding excess contribution to act as a
             // reentrancy guard.
-            saleStates[party][saleId].totalContributions = maxTotalContributions;
+            _saleStates[party][saleId].totalContributions = maxTotalContributions;
 
             // Finalize the crowdfund.
             emit Finalized(party, saleId);
@@ -412,7 +418,7 @@ contract SellPartyCardsAuthority {
                 payable(msg.sender).transferEth(refundAmount);
             }
         } else {
-            saleStates[party][saleId].totalContributions = newTotalContributions;
+            _saleStates[party][saleId].totalContributions = newTotalContributions;
         }
 
         // Check that the contribution amount is at or above the minimum. This
@@ -448,7 +454,7 @@ contract SellPartyCardsAuthority {
         uint256 saleId,
         uint96 contribution
     ) external view returns (uint96) {
-        uint16 exchangeRateBps = saleStates[party][saleId].exchangeRateBps;
+        uint16 exchangeRateBps = _saleStates[party][saleId].exchangeRateBps;
         return _convertContributionToVotingPower(contribution, exchangeRateBps);
     }
 
@@ -457,7 +463,7 @@ contract SellPartyCardsAuthority {
         uint256 saleId,
         uint96 votingPower
     ) external view returns (uint96) {
-        uint16 exchangeRateBps = saleStates[party][saleId].exchangeRateBps;
+        uint16 exchangeRateBps = _saleStates[party][saleId].exchangeRateBps;
         return _convertVotingPowerToContribution(votingPower, exchangeRateBps);
     }
 
@@ -475,8 +481,73 @@ contract SellPartyCardsAuthority {
         return (votingPower * 1e4) / exchangeRateBps;
     }
 
+    function getFixedMembershipSaleInfo(
+        Party party,
+        uint256 saleId
+    )
+        external
+        view
+        returns (
+            uint96 pricePerMembership,
+            uint96 votingPowerPerMembership,
+            uint96 totalContributions,
+            uint96 totalMembershipsForSale,
+            uint16 fundingSplitBps,
+            address payable fundingSplitRecipient,
+            uint40 expiry,
+            IGateKeeper gateKeeper,
+            bytes12 gateKeeperId
+        )
+    {
+        SaleState memory opts = _saleStates[party][saleId];
+        pricePerMembership = opts.minContribution;
+        votingPowerPerMembership = _convertContributionToVotingPower(
+            pricePerMembership,
+            opts.exchangeRateBps
+        );
+        totalContributions = opts.totalContributions;
+        totalMembershipsForSale = opts.maxTotalContributions / opts.minContribution;
+        fundingSplitBps = opts.fundingSplitBps;
+        fundingSplitRecipient = opts.fundingSplitRecipient;
+        expiry = opts.expiry;
+        gateKeeper = opts.gateKeeper;
+        gateKeeperId = opts.gateKeeperId;
+    }
+
+    function getFlexibleMembershipSaleInfo(
+        Party party,
+        uint256 saleId
+    )
+        external
+        view
+        returns (
+            uint96 minContribution,
+            uint96 maxContribution,
+            uint96 totalContributions,
+            uint96 maxTotalContributions,
+            uint16 exchangeRateBps,
+            uint16 fundingSplitBps,
+            address payable fundingSplitRecipient,
+            uint40 expiry,
+            IGateKeeper gateKeeper,
+            bytes12 gateKeeperId
+        )
+    {
+        SaleState memory opts = _saleStates[party][saleId];
+        minContribution = opts.minContribution;
+        maxContribution = opts.maxContribution;
+        totalContributions = opts.totalContributions;
+        maxTotalContributions = opts.maxTotalContributions;
+        exchangeRateBps = opts.exchangeRateBps;
+        fundingSplitBps = opts.fundingSplitBps;
+        fundingSplitRecipient = opts.fundingSplitRecipient;
+        expiry = opts.expiry;
+        gateKeeper = opts.gateKeeper;
+        gateKeeperId = opts.gateKeeperId;
+    }
+
     function isSaleActive(Party party, uint256 saleId) external view returns (bool) {
-        SaleState memory opts = saleStates[party][saleId];
+        SaleState memory opts = _saleStates[party][saleId];
         return _isSaleActive(opts.expiry, opts.totalContributions, opts.maxTotalContributions);
     }
 
