@@ -1274,7 +1274,7 @@ contract PartyGovernanceNFTTest is LintJSON, TestUtils {
         _lintEncodedJSON(tokenURI);
 
         // Uncomment for testing rendering:
-        console.log(tokenURI);
+        // console.log(tokenURI);
 
         assertTrue(bytes(tokenURI).length > 0);
     }
