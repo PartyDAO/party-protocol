@@ -689,22 +689,18 @@ contract PartyNFTRenderer is RendererBase {
                 ++distributionId
             ) {
                 if (!distributor.hasPartyTokenIdClaimed(party, tokenId, distributionId)) {
-                    // Check if token is allowed to claim, or if
-                    // `TokenIdAboveMaxError` will prevent it.
                     TokenDistributor.DistributionInfo memory info;
                     info.party = party;
                     info.distributionId = distributionId;
-                    (, bytes memory response) = address(distributor).staticcall(
+
+                    // `TokenIdAboveMaxError` may prevent it from being claimed.
+                    (bool success, bytes memory response) = address(distributor).staticcall(
                         abi.encodeCall(TokenDistributor.getClaimAmount, (info, tokenId))
                     );
-                    if (response.length >= 4) {
-                        bytes4 selector;
-                        assembly {
-                            selector := mload(add(response, 32))
-                        }
-                        if (selector != TokenDistributor.TokenIdAboveMaxError.selector) {
-                            return true;
-                        }
+
+                    if (success) {
+                        uint128 amount = abi.decode(response, (uint128));
+                        if (amount != 0) return true;
                     }
                 }
             }
