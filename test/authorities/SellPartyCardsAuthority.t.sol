@@ -194,6 +194,111 @@ contract SellPartyCardsAuthorityTest is SetupPartyHelper {
         sellPartyCardsAuthority.contribute{ value: 0.0005 ether }(party, saleId, buyer, "");
     }
 
+    function testSellPartyCards_createSale_minAboveMax() public {
+        SellPartyCardsAuthority.FlexibleMembershipSaleOpts memory opts = SellPartyCardsAuthority
+            .FlexibleMembershipSaleOpts({
+                minContribution: 3 ether,
+                maxContribution: 2 ether,
+                maxTotalContributions: 3 ether,
+                exchangeRateBps: 1e4,
+                fundingSplitBps: 0,
+                fundingSplitRecipient: payable(address(0)),
+                duration: 100,
+                gateKeeper: IGateKeeper(address(0)),
+                gateKeeperId: bytes12(0)
+            });
+
+        vm.prank(address(party));
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                SellPartyCardsAuthority.MinGreaterThanMaxError.selector,
+                3 ether,
+                2 ether
+            )
+        );
+        sellPartyCardsAuthority.createFlexibleMembershipSale(opts);
+    }
+
+    function testSellPartyCards_createSale_totalContributionsZero() public {
+        SellPartyCardsAuthority.FlexibleMembershipSaleOpts memory opts = SellPartyCardsAuthority
+            .FlexibleMembershipSaleOpts({
+                minContribution: 1 ether,
+                maxContribution: 2 ether,
+                maxTotalContributions: 0 ether,
+                exchangeRateBps: 1e4,
+                fundingSplitBps: 0,
+                fundingSplitRecipient: payable(address(0)),
+                duration: 100,
+                gateKeeper: IGateKeeper(address(0)),
+                gateKeeperId: bytes12(0)
+            });
+
+        vm.prank(address(party));
+        vm.expectRevert(SellPartyCardsAuthority.ZeroMaxTotalContributionsError.selector);
+        sellPartyCardsAuthority.createFlexibleMembershipSale(opts);
+    }
+
+    function testSellPartyCards_createSale_zeroExchangeRate() public {
+        SellPartyCardsAuthority.FlexibleMembershipSaleOpts memory opts = SellPartyCardsAuthority
+            .FlexibleMembershipSaleOpts({
+                minContribution: 1 ether,
+                maxContribution: 2 ether,
+                maxTotalContributions: 5 ether,
+                exchangeRateBps: 0,
+                fundingSplitBps: 0,
+                fundingSplitRecipient: payable(address(0)),
+                duration: 100,
+                gateKeeper: IGateKeeper(address(0)),
+                gateKeeperId: bytes12(0)
+            });
+
+        vm.prank(address(party));
+        vm.expectRevert(SellPartyCardsAuthority.ZeroExchangeRateBpsError.selector);
+        sellPartyCardsAuthority.createFlexibleMembershipSale(opts);
+    }
+
+    function testSellPartyCards_createSale_invalidFundingSplit() public {
+        SellPartyCardsAuthority.FlexibleMembershipSaleOpts memory opts = SellPartyCardsAuthority
+            .FlexibleMembershipSaleOpts({
+                minContribution: 1 ether,
+                maxContribution: 2 ether,
+                maxTotalContributions: 5 ether,
+                exchangeRateBps: 1e4,
+                fundingSplitBps: 10001,
+                fundingSplitRecipient: payable(address(this)),
+                duration: 100,
+                gateKeeper: IGateKeeper(address(0)),
+                gateKeeperId: bytes12(0)
+            });
+
+        vm.prank(address(party));
+        vm.expectRevert(
+            abi.encodeWithSelector(SellPartyCardsAuthority.InvalidBpsError.selector, 10001)
+        );
+        sellPartyCardsAuthority.createFlexibleMembershipSale(opts);
+    }
+
+    function testSellPartyCards_contributeFor() public {
+        uint256 saleId = _createNewFixedSale();
+
+        address buyer = _randomAddress();
+        vm.deal(buyer, 1 ether);
+        address receiver = _randomAddress();
+
+        vm.prank(buyer);
+        vm.expectEmit(true, true, true, true);
+        emit Contributed(buyer, receiver, 1 ether, receiver);
+        sellPartyCardsAuthority.contributeFor{ value: 1 ether }(
+            party,
+            saleId,
+            receiver,
+            receiver,
+            ""
+        );
+
+        assertEq(party.balanceOf(receiver), 1);
+    }
+
     function _createNewFixedSale() internal returns (uint256) {
         SellPartyCardsAuthority.FixedMembershipSaleOpts memory opts = SellPartyCardsAuthority
             .FixedMembershipSaleOpts({
