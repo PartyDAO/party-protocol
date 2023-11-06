@@ -6,7 +6,12 @@ import { SellPartyCardsAuthority } from "contracts/authorities/SellPartyCardsAut
 import { IGateKeeper } from "contracts/gatekeepers/IGateKeeper.sol";
 
 contract SellPartyCardsAuthorityTest is SetupPartyHelper {
-    event Contributed(address sender, address contributor, uint96 amount, address delegate);
+    event Contributed(
+        address indexed sender,
+        address indexed contributor,
+        uint96 amount,
+        address delegate
+    );
 
     constructor() SetupPartyHelper(false) {}
 
