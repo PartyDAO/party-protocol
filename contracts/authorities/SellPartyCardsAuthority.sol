@@ -162,9 +162,19 @@ contract SellPartyCardsAuthority {
         _assertIsAllowedByGatekeeper(state.gateKeeper, state.gateKeeperId, gateData);
 
         // TODO: Check that _contribute here works as expected
-        votingPower = _contribute(party, saleId, state, msg.sender, delegate, uint96(msg.value));
+        (votingPower, ) = _contribute(
+            party,
+            saleId,
+            state,
+            msg.sender,
+            delegate,
+            uint96(msg.value)
+        );
 
         if (votingPower == 0) revert ZeroVotingPowerError();
+
+        // Revert if the transfer fails.
+        payable(address(party)).transferEth(address(this).balance);
 
         // Mint contributor a new party card.
         party.increaseTotalVotingPower(votingPower);
@@ -182,7 +192,7 @@ contract SellPartyCardsAuthority {
 
         _assertIsAllowedByGatekeeper(state.gateKeeper, state.gateKeeperId, gateData);
 
-        votingPower = _contribute(
+        (votingPower, ) = _contribute(
             party,
             saleId,
             state,
@@ -192,6 +202,9 @@ contract SellPartyCardsAuthority {
         );
 
         if (votingPower == 0) revert ZeroVotingPowerError();
+
+        // Revert if the transfer fails.
+        payable(address(party)).transferEth(address(this).balance);
 
         // Mint contributor a new party card.
         party.increaseTotalVotingPower(votingPower);
@@ -212,7 +225,8 @@ contract SellPartyCardsAuthority {
         for (uint256 i; i < numOfContributions; ++i) {
             uint96 value = args.values[i];
             // TODO: Check that _contribute works with this
-            uint96 votingPower = votingPowers[i] = _contribute(
+            uint96 votingPower;
+            (votingPower, state.totalContributions) = _contribute(
                 args.party,
                 args.saleId,
                 state,
@@ -223,11 +237,16 @@ contract SellPartyCardsAuthority {
 
             if (votingPower == 0) revert ZeroVotingPowerError();
 
+            votingPowers[i] = votingPower;
+
             totalValue += value;
             totalVotingPower += votingPower;
         }
 
         if (msg.value != totalValue) revert InvalidMessageValue();
+
+        // Revert if the transfer fails.
+        payable(address(args.party)).transferEth(address(this).balance);
 
         args.party.increaseTotalVotingPower(totalVotingPower);
 
@@ -251,7 +270,8 @@ contract SellPartyCardsAuthority {
         for (uint256 i; i < numOfContributions; ++i) {
             uint96 value = args.values[i];
             // TODO: Check that _contribute works with this
-            uint96 votingPower = votingPowers[i] = _contribute(
+            uint96 votingPower;
+            (votingPower, state.totalContributions) = _contribute(
                 args.party,
                 args.saleId,
                 state,
@@ -262,11 +282,16 @@ contract SellPartyCardsAuthority {
 
             if (votingPower == 0) revert ZeroVotingPowerError();
 
+            votingPowers[i] = votingPower;
+
             totalValue += value;
             totalVotingPower += votingPower;
         }
 
         if (msg.value != totalValue) revert InvalidMessageValue();
+
+        // Revert if the transfer fails.
+        payable(address(args.party)).transferEth(address(this).balance);
 
         args.party.increaseTotalVotingPower(totalVotingPower);
 
@@ -299,6 +324,8 @@ contract SellPartyCardsAuthority {
         }
     }
 
+    /// @dev `totalContributions` is updated and returned for use in
+    ///      `batchContribute` and `batchContributeFor`.
     function _contribute(
         Party party,
         uint256 saleId,
@@ -306,9 +333,9 @@ contract SellPartyCardsAuthority {
         address contributor,
         address delegate,
         uint96 amount
-    ) private returns (uint96 votingPower) {
+    ) private returns (uint96 votingPower, uint96 totalContributions) {
         // Check sale is active.
-        uint96 totalContributions = state.totalContributions;
+        totalContributions = state.totalContributions;
         uint96 maxTotalContributions = state.maxTotalContributions;
         if (
             !_isSaleActive(
@@ -331,7 +358,8 @@ contract SellPartyCardsAuthority {
         if (newTotalContributions >= maxTotalContributions) {
             // This occurs before refunding excess contribution to act as a
             // reentrancy guard.
-            _saleStates[party][saleId].totalContributions = maxTotalContributions;
+            _saleStates[party][saleId]
+                .totalContributions = totalContributions = maxTotalContributions;
 
             // Finalize the crowdfund.
             emit Finalized(party, saleId);
@@ -344,7 +372,8 @@ contract SellPartyCardsAuthority {
                 payable(msg.sender).transferEth(refundAmount);
             }
         } else {
-            _saleStates[party][saleId].totalContributions = newTotalContributions;
+            _saleStates[party][saleId]
+                .totalContributions = totalContributions = newTotalContributions;
         }
 
         // Check that the contribution amount is at or above the minimum. This
