@@ -62,7 +62,7 @@ contract SellPartyCardsAuthority {
         Party party;
         uint256 saleId;
         address[] recipients;
-        address[] initialDelegates;
+        address[] delegates;
         uint96[] values;
         bytes gateData;
     }
@@ -159,15 +159,7 @@ contract SellPartyCardsAuthority {
     ) external payable returns (uint96 votingPower) {
         SaleState memory state = _saleStates[party][saleId];
 
-        // TODO: Check that _beforeContribute here works as expected
-        delegate = _beforeContribute(
-            party,
-            msg.sender,
-            delegate,
-            state.gateKeeper,
-            state.gateKeeperId,
-            gateData
-        );
+        _assertIsAllowedByGatekeeper(state.gateKeeper, state.gateKeeperId, gateData);
 
         // TODO: Check that _contribute here works as expected
         votingPower = _contribute(party, saleId, state, msg.sender, delegate, uint96(msg.value));
@@ -183,26 +175,19 @@ contract SellPartyCardsAuthority {
         Party party,
         uint256 saleId,
         address recipient,
-        address initialDelegate,
+        address delegate,
         bytes calldata gateData
     ) external payable returns (uint96 votingPower) {
         SaleState memory state = _saleStates[party][saleId];
 
-        initialDelegate = _beforeContribute(
-            party,
-            recipient,
-            initialDelegate,
-            state.gateKeeper,
-            state.gateKeeperId,
-            gateData
-        );
+        _assertIsAllowedByGatekeeper(state.gateKeeper, state.gateKeeperId, gateData);
 
         votingPower = _contribute(
             party,
             saleId,
             state,
             recipient,
-            initialDelegate,
+            delegate,
             msg.value.safeCastUint256ToUint96()
         );
 
@@ -210,7 +195,7 @@ contract SellPartyCardsAuthority {
 
         // Mint contributor a new party card.
         party.increaseTotalVotingPower(votingPower);
-        party.mint(recipient, votingPower, initialDelegate);
+        party.mint(recipient, votingPower, delegate);
     }
 
     function batchContribute(
@@ -218,15 +203,7 @@ contract SellPartyCardsAuthority {
     ) external payable returns (uint96[] memory votingPowers) {
         SaleState memory state = _saleStates[args.party][args.saleId];
 
-        // TODO: Check that _beforeContribute here works as expected
-        args.delegate = _beforeContribute(
-            args.party,
-            msg.sender,
-            args.delegate,
-            state.gateKeeper,
-            state.gateKeeperId,
-            args.gateData
-        );
+        _assertIsAllowedByGatekeeper(state.gateKeeper, state.gateKeeperId, args.gateData);
 
         uint256 numOfContributions = args.values.length;
         uint96 totalValue;
@@ -265,15 +242,7 @@ contract SellPartyCardsAuthority {
     ) external payable returns (uint96[] memory votingPowers) {
         SaleState memory state = _saleStates[args.party][args.saleId];
 
-        // TODO: Check that _beforeContribute here works as expected
-        args.initialDelegates = _beforeContribute(
-            args.party,
-            args.recipients,
-            args.initialDelegates,
-            state.gateKeeper,
-            state.gateKeeperId,
-            args.gateData
-        );
+        _assertIsAllowedByGatekeeper(state.gateKeeper, state.gateKeeperId, args.gateData);
 
         uint256 numOfContributions = args.values.length;
         uint96 totalValue;
@@ -287,7 +256,7 @@ contract SellPartyCardsAuthority {
                 args.saleId,
                 state,
                 args.recipients[i],
-                args.initialDelegates[i],
+                args.delegates[i],
                 value
             );
 
@@ -302,7 +271,7 @@ contract SellPartyCardsAuthority {
         args.party.increaseTotalVotingPower(totalVotingPower);
 
         for (uint256 i; i < numOfContributions; ++i) {
-            args.party.mint(args.recipients[i], votingPowers[i], args.initialDelegates[i]);
+            args.party.mint(args.recipients[i], votingPowers[i], args.delegates[i]);
         }
     }
 
@@ -321,60 +290,6 @@ contract SellPartyCardsAuthority {
             // Already finalized.
             revert SaleInactiveError();
         }
-    }
-
-    function _beforeContribute(
-        Party party,
-        address contributor,
-        address delegate,
-        IGateKeeper gateKeeper,
-        bytes12 gateKeeperId,
-        bytes memory gateData
-    ) private view returns (address) {
-        address[] memory contributors = new address[](1);
-        contributors[0] = contributor;
-        address[] memory delegates = new address[](1);
-        delegates[0] = delegate;
-
-        delegates = _beforeContribute(
-            party,
-            contributors,
-            delegates,
-            gateKeeper,
-            gateKeeperId,
-            gateData
-        );
-
-        return delegates[0];
-    }
-
-    function _beforeContribute(
-        Party party,
-        address[] memory contributors,
-        address[] memory delegates,
-        IGateKeeper gateKeeper,
-        bytes12 gateKeeperId,
-        bytes memory gateData
-    ) private view returns (address[] memory) {
-        // Require a non-null delegate.
-        for (uint256 i; i < delegates.length; ++i) {
-            if (delegates[i] == address(0)) revert InvalidDelegateError();
-
-            // Prevent changing another's delegate if already delegated.
-            address oldDelegate = party.delegationsByVoter(contributors[i]);
-            if (msg.sender != contributors[i] && oldDelegate != address(0)) {
-                delegates[i] = oldDelegate;
-            }
-        }
-
-        // Must not be blocked by gatekeeper.
-        if (gateKeeper != IGateKeeper(address(0))) {
-            if (!gateKeeper.isAllowed(msg.sender, gateKeeperId, gateData)) {
-                revert NotAllowedByGateKeeperError(msg.sender, gateKeeper, gateKeeperId, gateData);
-            }
-        }
-
-        return delegates;
     }
 
     function _contribute(
@@ -446,6 +361,19 @@ contract SellPartyCardsAuthority {
         votingPower = _convertContributionToVotingPower(amount, state.exchangeRateBps);
 
         emit Contributed(msg.sender, contributor, amount, delegate);
+    }
+
+    function _assertIsAllowedByGatekeeper(
+        IGateKeeper gateKeeper,
+        bytes12 gateKeeperId,
+        bytes memory gateData
+    ) private view {
+        // Must not be blocked by gatekeeper.
+        if (gateKeeper != IGateKeeper(address(0))) {
+            if (!gateKeeper.isAllowed(msg.sender, gateKeeperId, gateData)) {
+                revert NotAllowedByGateKeeperError(msg.sender, gateKeeper, gateKeeperId, gateData);
+            }
+        }
     }
 
     function convertContributionToVotingPower(
