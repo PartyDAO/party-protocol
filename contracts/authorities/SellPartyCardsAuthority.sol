@@ -94,7 +94,7 @@ contract SellPartyCardsAuthority {
         bytes12 gateKeeperId,
         bytes gateData
     );
-    error OutOfBoundsContributionsError(uint96 amount, uint96 limit);
+    error OutOfBoundsContributionsError(uint96 amount, uint96 bound);
 
     function createFixedMembershipSale(
         FixedMembershipSaleOpts calldata opts
@@ -279,7 +279,14 @@ contract SellPartyCardsAuthority {
         SaleState memory state = _saleStates[party][saleId];
 
         // Check that the sale is active.
-        if (_isSaleActive(state.expiry, state.totalContributions, state.maxTotalContributions)) {
+        if (
+            _isSaleActive(
+                state.expiry,
+                state.totalContributions,
+                state.minContribution,
+                state.maxTotalContributions
+            )
+        ) {
             // Allow host to finalize sale early.
             if (!party.isHost(msg.sender)) revert OnlyPartyHostError();
 
@@ -303,7 +310,14 @@ contract SellPartyCardsAuthority {
         // Check sale is active.
         uint96 totalContributions = state.totalContributions;
         uint96 maxTotalContributions = state.maxTotalContributions;
-        if (!_isSaleActive(state.expiry, totalContributions, maxTotalContributions)) {
+        if (
+            !_isSaleActive(
+                state.expiry,
+                totalContributions,
+                state.minContribution,
+                maxTotalContributions
+            )
+        ) {
             revert SaleInactiveError();
         }
 
@@ -475,12 +489,19 @@ contract SellPartyCardsAuthority {
 
     function isSaleActive(Party party, uint256 saleId) external view returns (bool) {
         SaleState memory opts = _saleStates[party][saleId];
-        return _isSaleActive(opts.expiry, opts.totalContributions, opts.maxTotalContributions);
+        return
+            _isSaleActive(
+                opts.expiry,
+                opts.totalContributions,
+                opts.minContribution,
+                opts.maxTotalContributions
+            );
     }
 
     function _isSaleActive(
         uint40 expiry,
         uint96 totalContributions,
+        uint96 minContribution,
         uint96 maxTotalContributions
     ) private view returns (bool) {
         return
