@@ -393,8 +393,6 @@ contract SellPartyCardsAuthority {
             revert SaleInactiveError();
         }
 
-        emit Contributed(msg.sender, contributor, amount, delegate);
-
         // Check that the contribution amount is at or below the maximum.
         uint96 maxContribution = state.maxContribution;
         if (amount > maxContribution) {
@@ -447,6 +445,8 @@ contract SellPartyCardsAuthority {
 
         // Calculate voting power.
         votingPower = _convertContributionToVotingPower(amount, state.exchangeRateBps);
+
+        emit Contributed(msg.sender, contributor, amount, delegate);
     }
 
     function convertContributionToVotingPower(
