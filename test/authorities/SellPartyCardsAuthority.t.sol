@@ -170,7 +170,7 @@ contract SellPartyCardsAuthorityTest is SetupPartyHelper {
         vm.prank(buyer);
         vm.expectRevert(
             abi.encodeWithSelector(
-                SellPartyCardsAuthority.AboveMaximumContributionsError.selector,
+                SellPartyCardsAuthority.OutOfBoundsContributionsError.selector,
                 2.5 ether,
                 2 ether
             )
@@ -186,7 +186,7 @@ contract SellPartyCardsAuthorityTest is SetupPartyHelper {
         vm.prank(buyer);
         vm.expectRevert(
             abi.encodeWithSelector(
-                SellPartyCardsAuthority.BelowMinimumContributionsError.selector,
+                SellPartyCardsAuthority.OutOfBoundsContributionsError.selector,
                 0.0005 ether,
                 0.001 ether
             )
