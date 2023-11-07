@@ -94,8 +94,7 @@ contract SellPartyCardsAuthority {
         bytes12 gateKeeperId,
         bytes gateData
     );
-    error AboveMaximumContributionsError(uint96 amount, uint96 maxContribution);
-    error BelowMinimumContributionsError(uint96 amount, uint96 minContribution);
+    error OutOfBoundsContributionsError(uint96 amount, uint96 limit);
 
     function createFixedMembershipSale(
         FixedMembershipSaleOpts calldata opts
@@ -396,7 +395,7 @@ contract SellPartyCardsAuthority {
         // Check that the contribution amount is at or below the maximum.
         uint96 maxContribution = state.maxContribution;
         if (amount > maxContribution) {
-            revert AboveMaximumContributionsError(amount, maxContribution);
+            revert OutOfBoundsContributionsError(amount, maxContribution);
         }
 
         uint96 newTotalContributions = totalContributions + amount;
@@ -424,7 +423,7 @@ contract SellPartyCardsAuthority {
         // contribution.
         uint96 minContribution = state.minContribution;
         if (amount < minContribution) {
-            revert BelowMinimumContributionsError(amount, minContribution);
+            revert OutOfBoundsContributionsError(amount, minContribution);
         }
 
         // Subtract fee from contribution amount if applicable.
