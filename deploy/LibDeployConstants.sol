@@ -59,7 +59,7 @@ library LibDeployConstants {
             networkName: "goerli",
             deployedNounsMarketWrapper: 0x0000000000000000000000000000000000000000,
             contributionRouterInitialFee: 0.00055 ether,
-            tokenDistributorV1: address(0),
+            tokenDistributorV1: 0xE6F58B31344404E3479d81fB8f9dD592feB37965,
             tokenDistributorV2: 0x8714EA9C2BC5a8f2d26D7c3F86558331c16145B5,
             baseExternalURL: "https://party.app/party/"
         });
