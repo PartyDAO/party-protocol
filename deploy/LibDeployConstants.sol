@@ -60,7 +60,7 @@ library LibDeployConstants {
             deployedNounsMarketWrapper: 0x0000000000000000000000000000000000000000,
             contributionRouterInitialFee: 0.00055 ether,
             tokenDistributorV1: address(0),
-            tokenDistributorV2: address(0),
+            tokenDistributorV2: 0x8714EA9C2BC5a8f2d26D7c3F86558331c16145B5,
             baseExternalURL: "https://party.app/party/"
         });
 
@@ -95,7 +95,7 @@ library LibDeployConstants {
             deployedNounsMarketWrapper: 0x0000000000000000000000000000000000000000,
             contributionRouterInitialFee: 0.00055 ether,
             tokenDistributorV1: address(0),
-            tokenDistributorV2: address(0),
+            tokenDistributorV2: 0x55D2463cf5b6743F279Fe9BcbF32415f575B953d,
             baseExternalURL: "https://base.party.app/party/"
         });
 
