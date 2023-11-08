@@ -114,7 +114,6 @@ contract SellPartyCardsAuthorityTest is SetupPartyHelper {
 
         address buyer = _randomAddress();
         vm.deal(buyer, 3 ether);
-        vm.prank(buyer);
 
         uint96[] memory values = new uint96[](3);
         for (uint i = 0; i < 3; i++) {
@@ -132,8 +131,10 @@ contract SellPartyCardsAuthorityTest is SetupPartyHelper {
 
         // First try with incorrect value
         vm.expectRevert(SellPartyCardsAuthority.InvalidMessageValue.selector);
+        vm.prank(buyer);
         sellPartyCardsAuthority.batchContribute{ value: 2 ether }(args);
 
+        vm.prank(buyer);
         sellPartyCardsAuthority.batchContribute{ value: 3 ether }(args);
         assertEq(
             originalTotalVotingPower + 0.003 ether,
