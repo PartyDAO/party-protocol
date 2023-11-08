@@ -4,6 +4,7 @@ pragma solidity ^0.8;
 import { SetupPartyHelper } from "../utils/SetupPartyHelper.sol";
 import { SellPartyCardsAuthority } from "contracts/authorities/SellPartyCardsAuthority.sol";
 import { IGateKeeper } from "contracts/gatekeepers/IGateKeeper.sol";
+import { ContributionRouter } from "../../contracts/crowdfund/ContributionRouter.sol";
 
 contract SellPartyCardsAuthorityTest is SetupPartyHelper {
     event Contributed(
@@ -16,6 +17,7 @@ contract SellPartyCardsAuthorityTest is SetupPartyHelper {
     constructor() SetupPartyHelper(false) {}
 
     SellPartyCardsAuthority internal sellPartyCardsAuthority;
+    ContributionRouter internal router;
 
     function setUp() public override {
         super.setUp();
@@ -23,10 +25,12 @@ contract SellPartyCardsAuthorityTest is SetupPartyHelper {
 
         vm.prank(address(party));
         party.addAuthority(address(sellPartyCardsAuthority));
+        router = new ContributionRouter(address(this), 0.0001 ether);
     }
 
     function testSellPartyCards_createNewFixedSaleAndBuyOut() public {
         uint96 originalTotalVotingPower = party.getGovernanceValues().totalVotingPower;
+        uint256 originalPartyBalance = address(party).balance;
         uint256 saleId = _createNewFixedSale();
         assertEq(originalTotalVotingPower, party.getGovernanceValues().totalVotingPower);
 
@@ -46,6 +50,8 @@ contract SellPartyCardsAuthorityTest is SetupPartyHelper {
             vm.warp(block.timestamp + 1);
             assertEq(party.getVotingPowerAt(buyer, uint40(block.timestamp)), 0.001 ether);
         }
+
+        assertEq(address(party).balance, originalPartyBalance + 3 ether);
 
         // Don't allow further contributions
         address buyer = _randomAddress();
@@ -96,6 +102,7 @@ contract SellPartyCardsAuthorityTest is SetupPartyHelper {
         // Don't allow further contributions
         buyer = _randomAddress();
         vm.prank(buyer);
+        vm.deal(buyer, 1 ether);
         vm.expectRevert(SellPartyCardsAuthority.SaleInactiveError.selector);
         sellPartyCardsAuthority.contribute{ value: 1 ether }(party, saleId, buyer, "");
     }
@@ -122,6 +129,10 @@ contract SellPartyCardsAuthorityTest is SetupPartyHelper {
                 gateData: "",
                 values: values
             });
+
+        // First try with incorrect value
+        vm.expectRevert(SellPartyCardsAuthority.InvalidMessageValue.selector);
+        sellPartyCardsAuthority.batchContribute{ value: 2 ether }(args);
 
         sellPartyCardsAuthority.batchContribute{ value: 3 ether }(args);
         assertEq(
@@ -297,6 +308,56 @@ contract SellPartyCardsAuthorityTest is SetupPartyHelper {
         );
 
         assertEq(party.balanceOf(receiver), 1);
+    }
+
+    function testSellPartyCards_batchContributeForThroughRouter() public {
+        uint256 originalPartyBalance = address(party).balance;
+        uint256 saleId = _createNewFixedSale();
+
+        address buyer = _randomAddress();
+        vm.deal(buyer, 4 ether);
+
+        address receiver = _randomAddress();
+
+        address[] memory recipients = new address[](3);
+        address[] memory delegates = new address[](3);
+        uint96[] memory values = new uint96[](3);
+
+        for (uint i = 0; i < 3; i++) {
+            recipients[i] = delegates[i] = _randomAddress();
+            values[i] = 1 ether;
+        }
+
+        SellPartyCardsAuthority.BatchContributeForArgs memory args = SellPartyCardsAuthority
+            .BatchContributeForArgs({
+                party: party,
+                saleId: saleId,
+                recipients: recipients,
+                delegates: delegates,
+                gateData: "",
+                values: values
+            });
+
+        uint256 feePerMint = router.feePerMint();
+        bytes memory data = abi.encodeCall(SellPartyCardsAuthority.batchContributeFor, args);
+
+        vm.expectRevert(SellPartyCardsAuthority.InvalidMessageValue.selector);
+        vm.prank(buyer);
+        address(router).call{ value: 3 ether }(abi.encodePacked(data, sellPartyCardsAuthority));
+
+        vm.prank(buyer);
+        (bool success, ) = address(router).call{ value: 3 ether + 3 * feePerMint }(
+            abi.encodePacked(data, sellPartyCardsAuthority)
+        );
+
+        assertTrue(success);
+        for (uint i = 0; i < 3; i++) {
+            assertEq(party.balanceOf(recipients[i]), 1);
+            assertEq(party.getVotingPowerAt(recipients[i], uint40(block.timestamp)), 0.001 ether);
+        }
+
+        assertEq(address(router).balance, 3 * feePerMint);
+        assertEq(address(party).balance, originalPartyBalance + 3 ether);
     }
 
     function _createNewFixedSale() internal returns (uint256) {
