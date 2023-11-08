@@ -535,6 +535,6 @@ contract SellPartyCardsAuthority {
     ) private view returns (bool) {
         return
             block.timestamp < expiry &&
-            maxTotalContributions - totalContributions < minContribution;
+            maxTotalContributions - totalContributions >= minContribution;
     }
 }
