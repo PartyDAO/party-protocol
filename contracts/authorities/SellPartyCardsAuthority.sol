@@ -1,13 +1,10 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.20;
 
-import "contracts/party/Party.sol";
-import "contracts/gatekeepers/IGateKeeper.sol";
-
-// TODO: Use named imports
-// TODO: Update contribution router to support batch contributions
-// TODO: Document that exchangeRateBps may be greater than 1e4 (100%)
-// TODO: Add natspec
+import { Party } from "contracts/party/Party.sol";
+import { IGateKeeper } from "contracts/gatekeepers/IGateKeeper.sol";
+import { LibSafeCast } from "contracts/utils/LibSafeCast.sol";
+import { LibAddress } from "contracts/utils/LibAddress.sol";
 
 contract SellPartyCardsAuthority {
     using LibSafeCast for uint96;
@@ -15,59 +12,104 @@ contract SellPartyCardsAuthority {
     using LibAddress for address payable;
 
     struct FixedMembershipSaleOpts {
+        // The price for each membership minted.
         uint96 pricePerMembership;
+        // The voting power for each membership minted.
         uint96 votingPowerPerMembership;
+        // The total number of memberships for sale.
         uint96 totalMembershipsForSale;
+        // The split from each contribution to be received by the
+        // fundingSplitRecipient, in basis points.
         uint16 fundingSplitBps;
+        // The recipient of the funding split.
         address payable fundingSplitRecipient;
+        // The duration of the sale.
         uint40 duration;
+        // The gatekeeper contract.
         IGateKeeper gateKeeper;
+        // The ID of the gatekeeper.
         bytes12 gateKeeperId;
     }
 
     struct FlexibleMembershipSaleOpts {
+        // The minimum amount that can be contributed.
         uint96 minContribution;
+        // The maximum amount that can be contributed.
         uint96 maxContribution;
+        // The maximum total amount that can be contributed for the sale.
         uint96 maxTotalContributions;
+        // The exchange rate from contribution amount to voting power, in basis
+        // points. May be greater than 1e4 (100%).
         uint16 exchangeRateBps;
+        // The split from each contribution to be received by the
+        // fundingSplitRecipient, in basis points.
         uint16 fundingSplitBps;
+        // The recipient of the funding split.
         address payable fundingSplitRecipient;
+        // The duration of the sale.
         uint40 duration;
+        // The gatekeeper contract.
         IGateKeeper gateKeeper;
+        // The ID of the gatekeeper.
         bytes12 gateKeeperId;
     }
 
     struct SaleState {
+        // The minimum amount that can be contributed.
         uint96 minContribution;
+        // The maximum amount that can be contributed.
         uint96 maxContribution;
+        // The total amount that has been contributed.
         uint96 totalContributions;
+        // The maximum total amount that can be contributed for the sale.
         uint96 maxTotalContributions;
+        // The exchange rate from contribution amount to voting power, in basis
+        // points. May be greater than 1e4 (100%).
         uint16 exchangeRateBps;
+        // The split from each contribution to be received by the
+        // fundingSplitRecipient, in basis points.
         uint16 fundingSplitBps;
+        // The recipient of the funding split.
         address payable fundingSplitRecipient;
+        // The duration of the sale.
         uint40 expiry;
+        // The gatekeeper contract.
         IGateKeeper gateKeeper;
+        // The ID of the gatekeeper.
         bytes12 gateKeeperId;
     }
 
     struct BatchContributeArgs {
+        // The party to contribute to.
         Party party;
+        // The ID of the sale to contribute to.
         uint256 saleId;
+        // The delegate to use for all contributions.
         address delegate;
+        // The contribution amounts.
         uint96[] values;
+        // Data to pass to the gatekeeper.
         bytes gateData;
     }
 
     struct BatchContributeForArgs {
+        // The party to contribute to.
         Party party;
+        // The ID of the sale to contribute to.
         uint256 saleId;
+        // The recipients of the contributions.
         address[] recipients;
+        // The delegates to use for each contributions.
         address[] delegates;
+        // The contribution amounts.
         uint96[] values;
+        // Data to pass to the gatekeeper.
         bytes gateData;
     }
 
+    /// @notice The ID of the last sale for each Party.
     mapping(Party party => uint256 lastId) public lastSaleId;
+    // Details of each sale.
     mapping(Party party => mapping(uint256 id => SaleState opts)) private _saleStates;
 
     event CreatedSale(Party indexed party, uint256 indexed saleId, SaleState state);
@@ -78,7 +120,7 @@ contract SellPartyCardsAuthority {
         uint256 indexed tokenId,
         address sender,
         address contributor,
-        uint96 amount,
+        uint96 contribution,
         address delegate
     );
 
@@ -99,6 +141,9 @@ contract SellPartyCardsAuthority {
     );
     error OutOfBoundsContributionsError(uint96 amount, uint96 bound);
 
+    /// @notice Create a new fixed membership sale.
+    /// @param opts Options used to initialize the sale.
+    /// @return saleId The ID of the sale created.
     function createFixedMembershipSale(
         FixedMembershipSaleOpts calldata opts
     ) external returns (uint256 saleId) {
@@ -120,6 +165,9 @@ contract SellPartyCardsAuthority {
             );
     }
 
+    /// @notice Create a new flexible membership sale.
+    /// @param opts Options used to initialize the sale.
+    /// @return saleId The ID of the sale created.
     function createFlexibleMembershipSale(
         FlexibleMembershipSaleOpts calldata opts
     ) external returns (uint256 saleId) {
@@ -154,6 +202,12 @@ contract SellPartyCardsAuthority {
         emit CreatedSale(party, saleId, state);
     }
 
+    /// @notice Contribute to a sale and receive a minted NFT from the Party.
+    /// @param party The Party to contribute to.
+    /// @param saleId The ID of the sale to contribute to.
+    /// @param delegate The delegate to use for the contribution.
+    /// @param gateData Data to pass to the gatekeeper.
+    /// @return votingPower The voting power received from the contribution.
     function contribute(
         Party party,
         uint256 saleId,
@@ -164,14 +218,12 @@ contract SellPartyCardsAuthority {
 
         _assertIsAllowedByGatekeeper(state.gateKeeper, state.gateKeeperId, gateData);
 
-        // TODO: Check that _contribute here works as expected
-        (votingPower, ) = _contribute(
+        uint96 contribution;
+        (votingPower, contribution, ) = _contribute(
             party,
             saleId,
             state,
-            msg.sender,
-            delegate,
-            uint96(msg.value)
+            msg.value.safeCastUint256ToUint96()
         );
 
         if (votingPower == 0) revert ZeroVotingPowerError();
@@ -181,9 +233,16 @@ contract SellPartyCardsAuthority {
 
         // Mint contributor a new party card.
         party.increaseTotalVotingPower(votingPower);
-        _mint(party, saleId, msg.sender, votingPower, delegate);
+        _mint(party, saleId, msg.sender, contribution, votingPower, delegate);
     }
 
+    /// @notice Contribute to a sale and receive a minted NFT from the Party.
+    /// @param party The Party to contribute to.
+    /// @param saleId The ID of the sale to contribute to.
+    /// @param recipient The recipient of the minted NFT.
+    /// @param delegate The delegate to use for the contribution.
+    /// @param gateData Data to pass to the gatekeeper.
+    /// @return votingPower The voting power received from the contribution.
     function contributeFor(
         Party party,
         uint256 saleId,
@@ -195,12 +254,11 @@ contract SellPartyCardsAuthority {
 
         _assertIsAllowedByGatekeeper(state.gateKeeper, state.gateKeeperId, gateData);
 
-        (votingPower, ) = _contribute(
+        uint96 contribution;
+        (votingPower, contribution, ) = _contribute(
             party,
             saleId,
             state,
-            recipient,
-            delegate,
             msg.value.safeCastUint256ToUint96()
         );
 
@@ -211,9 +269,12 @@ contract SellPartyCardsAuthority {
 
         // Mint contributor a new party card.
         party.increaseTotalVotingPower(votingPower);
-        _mint(party, saleId, recipient, votingPower, delegate);
+        _mint(party, saleId, recipient, contribution, votingPower, delegate);
     }
 
+    /// @notice Contribute to a sale and receive a minted NFT from the Party.
+    /// @param args Arguments for the batch contribution.
+    /// @return votingPowers The voting powers received from each contribution.
     function batchContribute(
         BatchContributeArgs memory args
     ) external payable returns (uint96[] memory votingPowers) {
@@ -224,17 +285,15 @@ contract SellPartyCardsAuthority {
         uint256 numOfContributions = args.values.length;
         uint96 totalValue;
         uint96 totalVotingPower;
+        uint96[] memory contributions = new uint96[](numOfContributions);
         votingPowers = new uint96[](numOfContributions);
         for (uint256 i; i < numOfContributions; ++i) {
             uint96 value = args.values[i];
-            // TODO: Check that _contribute works with this
             uint96 votingPower;
-            (votingPower, state.totalContributions) = _contribute(
+            (votingPower, contributions[i], state.totalContributions) = _contribute(
                 args.party,
                 args.saleId,
                 state,
-                msg.sender,
-                args.delegate,
                 value
             );
 
@@ -254,11 +313,20 @@ contract SellPartyCardsAuthority {
         args.party.increaseTotalVotingPower(totalVotingPower);
 
         for (uint256 i; i < numOfContributions; ++i) {
-            _mint(args.party, args.saleId, msg.sender, votingPowers[i], args.delegate);
+            _mint(
+                args.party,
+                args.saleId,
+                msg.sender,
+                contributions[i],
+                votingPowers[i],
+                args.delegate
+            );
         }
     }
 
-    // TODO: Check that _contribute works with this
+    /// @notice Contribute to a sale and receive a minted NFT from the Party.
+    /// @param args Arguments for the batch contribution.
+    /// @return votingPowers The voting powers received from each contribution.
     function batchContributeFor(
         BatchContributeForArgs memory args
     ) external payable returns (uint96[] memory votingPowers) {
@@ -269,17 +337,15 @@ contract SellPartyCardsAuthority {
         uint256 numOfContributions = args.values.length;
         uint96 totalValue;
         uint96 totalVotingPower;
+        uint96[] memory contributions = new uint96[](numOfContributions);
         votingPowers = new uint96[](numOfContributions);
         for (uint256 i; i < numOfContributions; ++i) {
             uint96 value = args.values[i];
-            // TODO: Check that _contribute works with this
             uint96 votingPower;
-            (votingPower, state.totalContributions) = _contribute(
+            (votingPower, contributions[i], state.totalContributions) = _contribute(
                 args.party,
                 args.saleId,
                 state,
-                args.recipients[i],
-                args.delegates[i],
                 value
             );
 
@@ -299,10 +365,20 @@ contract SellPartyCardsAuthority {
         args.party.increaseTotalVotingPower(totalVotingPower);
 
         for (uint256 i; i < numOfContributions; ++i) {
-            _mint(args.party, args.saleId, args.recipients[i], votingPowers[i], args.delegates[i]);
+            _mint(
+                args.party,
+                args.saleId,
+                args.recipients[i],
+                contributions[i],
+                votingPowers[i],
+                args.delegates[i]
+            );
         }
     }
 
+    /// @notice Finalize a sale.
+    /// @param party The Party to finalize the sale for.
+    /// @param saleId The ID of the sale to finalize.
     function finalize(Party party, uint256 saleId) external {
         SaleState memory state = _saleStates[party][saleId];
 
@@ -333,10 +409,8 @@ contract SellPartyCardsAuthority {
         Party party,
         uint256 saleId,
         SaleState memory state,
-        address contributor,
-        address delegate,
         uint96 amount
-    ) private returns (uint96 votingPower, uint96 totalContributions) {
+    ) private returns (uint96 votingPower, uint96 contribution, uint96 totalContributions) {
         // Check sale is active.
         totalContributions = state.totalContributions;
         uint96 maxTotalContributions = state.maxTotalContributions;
@@ -405,6 +479,8 @@ contract SellPartyCardsAuthority {
 
         // Calculate voting power.
         votingPower = _convertContributionToVotingPower(amount, state.exchangeRateBps);
+
+        contribution = amount;
     }
 
     function _assertIsAllowedByGatekeeper(
@@ -424,13 +500,20 @@ contract SellPartyCardsAuthority {
         Party party,
         uint256 saleId,
         address recipient,
+        uint96 contribution,
         uint96 votingPower,
         address delegate
     ) private returns (uint256 tokenId) {
         tokenId = party.mint(recipient, votingPower, delegate);
-        emit MintedFromSale(party, saleId, tokenId, msg.sender, recipient, votingPower, delegate);
+        emit MintedFromSale(party, saleId, tokenId, msg.sender, recipient, contribution, delegate);
     }
 
+    /// @notice Convert a contribution amount to voting power.
+    /// @param party The Party that created the sale.
+    /// @param saleId The ID of the sale.
+    /// @param contribution The contribution amount.
+    /// @return votingPower The voting power amount that would be received from
+    ///                     the contribution.
     function convertContributionToVotingPower(
         Party party,
         uint256 saleId,
@@ -440,6 +523,12 @@ contract SellPartyCardsAuthority {
         return _convertContributionToVotingPower(contribution, exchangeRateBps);
     }
 
+    /// @notice Convert a voting power amount to a contribution amount.
+    /// @param party The Party that created the sale.
+    /// @param saleId The ID of the sale.
+    /// @param votingPower The voting power amount.
+    /// @return contribution The contribution amount that would be required to
+    ///                      receive the voting power.
     function convertVotingPowerToContribution(
         Party party,
         uint256 saleId,
@@ -463,6 +552,21 @@ contract SellPartyCardsAuthority {
         return (votingPower * 1e4) / exchangeRateBps;
     }
 
+    /// @notice Get the details of a fixed membership sale.
+    /// @param party The Party that created the sale.
+    /// @param saleId The ID of the sale.
+    /// @return pricePerMembership The price for each membership minted.
+    /// @return votingPowerPerMembership The voting power for each membership
+    ///                                  minted.
+    /// @return totalContributions The total amount that has been contributed.
+    /// @return totalMembershipsForSale The total number of memberships for
+    ///                                 sale.
+    /// @return fundingSplitBps The split from each contribution to be received
+    ///                         by the fundingSplitRecipient, in basis points.
+    /// @return fundingSplitRecipient The recipient of the funding split.
+    /// @return expiry The duration of the sale.
+    /// @return gateKeeper The gatekeeper contract.
+    /// @return gateKeeperId The ID of the gatekeeper.
     function getFixedMembershipSaleInfo(
         Party party,
         uint256 saleId
@@ -496,6 +600,22 @@ contract SellPartyCardsAuthority {
         gateKeeperId = opts.gateKeeperId;
     }
 
+    /// @notice Get the details of a flexible membership sale.
+    /// @param party The Party that created the sale.
+    /// @param saleId The ID of the sale.
+    /// @return minContribution The minimum amount that can be contributed.
+    /// @return maxContribution The maximum amount that can be contributed.
+    /// @return totalContributions The total amount that has been contributed.
+    /// @return maxTotalContributions The maximum total amount that can be
+    ///                               contributed for the sale.
+    /// @return exchangeRateBps The exchange rate from contribution amount to
+    ///                         voting power, in basis points.
+    /// @return fundingSplitBps The split from each contribution to be received
+    ///                         by the fundingSplitRecipient, in basis points.
+    /// @return fundingSplitRecipient The recipient of the funding split.
+    /// @return expiry The duration of the sale.
+    /// @return gateKeeper The gatekeeper contract.
+    /// @return gateKeeperId The ID of the gatekeeper.
     function getFlexibleMembershipSaleInfo(
         Party party,
         uint256 saleId
@@ -528,6 +648,10 @@ contract SellPartyCardsAuthority {
         gateKeeperId = opts.gateKeeperId;
     }
 
+    /// @notice Check if a sale is active.
+    /// @param party The Party that created the sale.
+    /// @param saleId The ID of the sale.
+    /// @return status Whether the sale is active or not.
     function isSaleActive(Party party, uint256 saleId) external view returns (bool) {
         SaleState memory opts = _saleStates[party][saleId];
         return

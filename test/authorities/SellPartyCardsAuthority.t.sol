@@ -1,16 +1,19 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8;
 
-import { SetupPartyHelper } from "../utils/SetupPartyHelper.sol";
+import { Party, SetupPartyHelper } from "../utils/SetupPartyHelper.sol";
 import { SellPartyCardsAuthority } from "contracts/authorities/SellPartyCardsAuthority.sol";
 import { IGateKeeper } from "contracts/gatekeepers/IGateKeeper.sol";
 import { ContributionRouter } from "../../contracts/crowdfund/ContributionRouter.sol";
 
 contract SellPartyCardsAuthorityTest is SetupPartyHelper {
-    event Contributed(
-        address indexed sender,
-        address indexed contributor,
-        uint96 amount,
+    event MintedFromSale(
+        Party indexed party,
+        uint256 indexed saledId,
+        uint256 indexed tokenId,
+        address sender,
+        address contributor,
+        uint96 contribution,
         address delegate
     );
 
@@ -19,6 +22,8 @@ contract SellPartyCardsAuthorityTest is SetupPartyHelper {
     SellPartyCardsAuthority internal sellPartyCardsAuthority;
     ContributionRouter internal router;
 
+    uint256 lastTokenId;
+
     function setUp() public override {
         super.setUp();
         sellPartyCardsAuthority = new SellPartyCardsAuthority();
@@ -26,6 +31,8 @@ contract SellPartyCardsAuthorityTest is SetupPartyHelper {
         vm.prank(address(party));
         party.addAuthority(address(sellPartyCardsAuthority));
         router = new ContributionRouter(address(this), 0.0001 ether);
+
+        lastTokenId = party.tokenCount();
     }
 
     function testSellPartyCards_createNewFixedSaleAndBuyOut() public {
@@ -39,7 +46,7 @@ contract SellPartyCardsAuthorityTest is SetupPartyHelper {
             vm.deal(buyer, 1 ether);
             vm.prank(buyer);
             vm.expectEmit(true, true, true, true);
-            emit Contributed(buyer, buyer, 1 ether, buyer);
+            emit MintedFromSale(party, saleId, lastTokenId + i + 1, buyer, buyer, 1 ether, buyer);
             sellPartyCardsAuthority.contribute{ value: 1 ether }(party, saleId, buyer, "");
             assertEq(
                 originalTotalVotingPower + (1 + i) * 0.001 ether,
@@ -68,23 +75,16 @@ contract SellPartyCardsAuthorityTest is SetupPartyHelper {
 
         for (uint i = 0; i < 3; i++) {
             address buyer = _randomAddress();
+            uint96 amount = uint96(0.001 ether + i * 0.998 ether);
             vm.deal(buyer, 2 ether);
             vm.prank(buyer);
             vm.expectEmit(true, true, true, true);
-            emit Contributed(buyer, buyer, uint96(0.001 ether + i * 0.998 ether), buyer);
-            sellPartyCardsAuthority.contribute{ value: 0.001 ether + i * 0.998 ether }(
-                party,
-                saleId,
-                buyer,
-                ""
-            );
+            emit MintedFromSale(party, saleId, lastTokenId + i + 1, buyer, buyer, amount, buyer);
+            sellPartyCardsAuthority.contribute{ value: amount }(party, saleId, buyer, "");
             assertEq(party.balanceOf(buyer), 1);
             vm.roll(block.number + 1);
             vm.warp(block.timestamp + 1);
-            assertEq(
-                party.getVotingPowerAt(buyer, uint40(block.timestamp)),
-                0.001 ether + i * 0.998 ether
-            );
+            assertEq(party.getVotingPowerAt(buyer, uint40(block.timestamp)), amount);
         }
         assertEq(
             originalTotalVotingPower + 2.997 ether,
@@ -96,7 +96,7 @@ contract SellPartyCardsAuthorityTest is SetupPartyHelper {
         vm.deal(buyer, 1 ether);
         vm.prank(buyer);
         vm.expectEmit(true, true, true, true);
-        emit Contributed(buyer, buyer, 0.003 ether, buyer);
+        emit MintedFromSale(party, saleId, lastTokenId + 4, buyer, buyer, 0.003 ether, buyer);
         sellPartyCardsAuthority.contribute{ value: 1 ether }(party, saleId, buyer, "");
 
         // Don't allow further contributions
@@ -299,7 +299,7 @@ contract SellPartyCardsAuthorityTest is SetupPartyHelper {
 
         vm.prank(buyer);
         vm.expectEmit(true, true, true, true);
-        emit Contributed(buyer, receiver, 1 ether, receiver);
+        emit MintedFromSale(party, saleId, lastTokenId + 1, buyer, receiver, 1 ether, receiver);
         sellPartyCardsAuthority.contributeFor{ value: 1 ether }(
             party,
             saleId,
