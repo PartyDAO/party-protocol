@@ -72,9 +72,12 @@ contract SellPartyCardsAuthority {
 
     event CreatedSale(Party indexed party, uint256 indexed saleId, SaleState state);
     event Finalized(Party indexed party, uint256 indexed saleId);
-    event Contributed(
-        address indexed sender,
-        address indexed contributor,
+    event MintedFromSale(
+        Party indexed party,
+        uint256 indexed saledId,
+        uint256 indexed tokenId,
+        address sender,
+        address contributor,
         uint96 amount,
         address delegate
     );
@@ -178,7 +181,7 @@ contract SellPartyCardsAuthority {
 
         // Mint contributor a new party card.
         party.increaseTotalVotingPower(votingPower);
-        party.mint(msg.sender, votingPower, delegate);
+        _mint(party, saleId, msg.sender, votingPower, delegate);
     }
 
     function contributeFor(
@@ -208,7 +211,7 @@ contract SellPartyCardsAuthority {
 
         // Mint contributor a new party card.
         party.increaseTotalVotingPower(votingPower);
-        party.mint(recipient, votingPower, delegate);
+        _mint(party, saleId, recipient, votingPower, delegate);
     }
 
     function batchContribute(
@@ -251,7 +254,7 @@ contract SellPartyCardsAuthority {
         args.party.increaseTotalVotingPower(totalVotingPower);
 
         for (uint256 i; i < numOfContributions; ++i) {
-            args.party.mint(msg.sender, votingPowers[i], args.delegate);
+            _mint(args.party, args.saleId, msg.sender, votingPowers[i], args.delegate);
         }
     }
 
@@ -296,7 +299,7 @@ contract SellPartyCardsAuthority {
         args.party.increaseTotalVotingPower(totalVotingPower);
 
         for (uint256 i; i < numOfContributions; ++i) {
-            args.party.mint(args.recipients[i], votingPowers[i], args.delegates[i]);
+            _mint(args.party, args.saleId, args.recipients[i], votingPowers[i], args.delegates[i]);
         }
     }
 
@@ -402,8 +405,6 @@ contract SellPartyCardsAuthority {
 
         // Calculate voting power.
         votingPower = _convertContributionToVotingPower(amount, state.exchangeRateBps);
-
-        emit Contributed(msg.sender, contributor, amount, delegate);
     }
 
     function _assertIsAllowedByGatekeeper(
@@ -417,6 +418,17 @@ contract SellPartyCardsAuthority {
                 revert NotAllowedByGateKeeperError(msg.sender, gateKeeper, gateKeeperId, gateData);
             }
         }
+    }
+
+    function _mint(
+        Party party,
+        uint256 saleId,
+        address recipient,
+        uint96 votingPower,
+        address delegate
+    ) private returns (uint256 tokenId) {
+        tokenId = party.mint(recipient, votingPower, delegate);
+        emit MintedFromSale(party, saleId, tokenId, msg.sender, recipient, votingPower, delegate);
     }
 
     function convertContributionToVotingPower(
