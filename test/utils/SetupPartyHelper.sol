@@ -102,7 +102,7 @@ abstract contract SetupPartyHelper is TestUtils, ERC721Receiver {
 
         Party.PartyOptions memory opts;
         address[] memory hosts = new address[](1);
-        hosts[0] = address(420);
+        hosts[0] = address(this);
         opts.name = "PARTY";
         opts.symbol = "PR-T";
         opts.governance.hosts = hosts;
