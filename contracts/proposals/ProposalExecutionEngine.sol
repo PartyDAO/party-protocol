@@ -11,6 +11,7 @@ import "./ListOnOpenseaAdvancedProposal.sol";
 import "./ListOnZoraProposal.sol";
 import "./FractionalizeProposal.sol";
 import "./ArbitraryCallsProposal.sol";
+import "./RentalProposal.sol";
 import "./ProposalStorage.sol";
 import "./DistributeProposal.sol";
 import "./AddAuthorityProposal.sol";
@@ -27,6 +28,7 @@ contract ProposalExecutionEngine is
     ListOnZoraProposal,
     FractionalizeProposal,
     ArbitraryCallsProposal,
+    RentalProposal,
     DistributeProposal,
     AddAuthorityProposal,
     OperatorProposal
@@ -45,6 +47,7 @@ contract ProposalExecutionEngine is
         ListOnZora,
         Fractionalize,
         ArbitraryCalls,
+        Rental,
         UpgradeProposalEngineImpl,
         ListOnOpenseaAdvanced,
         Distribute,
@@ -105,6 +108,7 @@ contract ProposalExecutionEngine is
         ListOnZoraProposal(globals, zora)
         FractionalizeProposal(fractionalVaultFactory)
         ArbitraryCallsProposal(zora)
+        // RentalProposal(globals)  TODO: Uncomment when rental is ready
     {
         _GLOBALS = globals;
     }
@@ -232,6 +236,10 @@ contract ProposalExecutionEngine is
                 params,
                 _getSharedProposalStorage().opts.allowArbCallsToSpendPartyEth
             );
+        } else if (pt == ProposalType.Rental) {
+            // # TODO: Uncomment when rental logic is ready
+            // params
+            // nextProgressData = _executeRental(params);
         } else if (pt == ProposalType.Distribute) {
             if (!_getSharedProposalStorage().opts.distributionsRequireVote) {
                 revert ProposalDisabled(pt);
