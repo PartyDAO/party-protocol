@@ -692,6 +692,8 @@ contract PartyNFTRenderer is RendererBase {
                     TokenDistributor.DistributionInfo memory info;
                     info.party = party;
                     info.distributionId = distributionId;
+                    info.totalShares = 1; // low amount to avoid div by 0
+                    info.memberSupply = 1e18; // arbitrary amount
 
                     // `TokenIdAboveMaxError` may prevent it from being claimed.
                     (bool success, bytes memory response) = address(distributor).staticcall(
