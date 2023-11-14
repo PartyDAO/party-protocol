@@ -76,19 +76,14 @@ contract ContributionRouter {
         assembly {
             target := shr(96, calldataload(sub(calldatasize(), 20)))
         }
-        if (msg.sig == InitialETHCrowdfund.batchContributeFor.selector) {
+        if (
+            msg.sig == InitialETHCrowdfund.batchContributeFor.selector ||
+            msg.sig == SellPartyCardsAuthority.batchContributeFor.selector
+        ) {
             uint256 numOfMints;
             assembly {
-                // 196 is the offset of the length of `tokenIds` in the
-                // calldata.
+                // 196 is the offset of the array length in the calldata.
                 numOfMints := calldataload(196)
-            }
-            feeAmount *= numOfMints;
-        } else if (msg.sig == SellPartyCardsAuthority.batchContributeFor.selector) {
-            uint256 numOfMints;
-            assembly {
-                // 228 is the offset of the length of `recipients` in the
-                numOfMints := calldataload(228)
             }
             feeAmount *= numOfMints;
         }

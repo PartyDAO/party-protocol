@@ -123,22 +123,13 @@ contract SellPartyCardsAuthorityTest is SetupPartyHelper {
             values[i] = 1 ether;
         }
 
-        SellPartyCardsAuthority.BatchContributeArgs memory args = SellPartyCardsAuthority
-            .BatchContributeArgs({
-                party: party,
-                saleId: saleId,
-                delegate: buyer,
-                gateData: "",
-                values: values
-            });
-
         // First try with incorrect value
         vm.expectRevert(SellPartyCardsAuthority.InvalidMessageValue.selector);
         vm.prank(buyer);
-        sellPartyCardsAuthority.batchContribute{ value: 2 ether }(args);
+        sellPartyCardsAuthority.batchContribute{ value: 2 ether }(party, saleId, buyer, values, "");
 
         vm.prank(buyer);
-        sellPartyCardsAuthority.batchContribute{ value: 3 ether }(args);
+        sellPartyCardsAuthority.batchContribute{ value: 3 ether }(party, saleId, buyer, values, "");
         assertEq(
             originalTotalVotingPower + 0.003 ether,
             party.getGovernanceValues().totalVotingPower
@@ -332,18 +323,11 @@ contract SellPartyCardsAuthorityTest is SetupPartyHelper {
             values[i] = 1 ether;
         }
 
-        SellPartyCardsAuthority.BatchContributeForArgs memory args = SellPartyCardsAuthority
-            .BatchContributeForArgs({
-                party: party,
-                saleId: saleId,
-                recipients: recipients,
-                delegates: delegates,
-                gateData: "",
-                values: values
-            });
-
         uint256 feePerMint = router.feePerMint();
-        bytes memory data = abi.encodeCall(SellPartyCardsAuthority.batchContributeFor, args);
+        bytes memory data = abi.encodeCall(
+            SellPartyCardsAuthority.batchContributeFor,
+            (party, saleId, recipients, delegates, values, "")
+        );
 
         vm.expectRevert(SellPartyCardsAuthority.InvalidMessageValue.selector);
         vm.prank(buyer);

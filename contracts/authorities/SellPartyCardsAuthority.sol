@@ -79,34 +79,6 @@ contract SellPartyCardsAuthority {
         bytes12 gateKeeperId;
     }
 
-    struct BatchContributeArgs {
-        // The party to contribute to.
-        Party party;
-        // The ID of the sale to contribute to.
-        uint256 saleId;
-        // The delegate to use for all contributions.
-        address delegate;
-        // The contribution amounts.
-        uint96[] values;
-        // Data to pass to the gatekeeper.
-        bytes gateData;
-    }
-
-    struct BatchContributeForArgs {
-        // The party to contribute to.
-        Party party;
-        // The ID of the sale to contribute to.
-        uint256 saleId;
-        // The recipients of the contributions.
-        address[] recipients;
-        // The delegates to use for each contributions.
-        address[] delegates;
-        // The contribution amounts.
-        uint96[] values;
-        // Data to pass to the gatekeeper.
-        bytes gateData;
-    }
-
     /// @notice The ID of the last sale for each Party.
     mapping(Party party => uint256 lastId) public lastSaleId;
     // Details of each sale.
@@ -214,26 +186,10 @@ contract SellPartyCardsAuthority {
         address delegate,
         bytes calldata gateData
     ) external payable returns (uint96 votingPower) {
-        SaleState memory state = _saleStates[party][saleId];
+        uint96 contribution = msg.value.safeCastUint256ToUint96();
 
-        _assertIsAllowedByGatekeeper(state.gateKeeper, state.gateKeeperId, gateData);
+        (votingPower, contribution) = _contribute(party, saleId, contribution, gateData);
 
-        uint96 contribution;
-        (votingPower, contribution, ) = _contribute(
-            party,
-            saleId,
-            state,
-            msg.value.safeCastUint256ToUint96()
-        );
-
-        if (votingPower == 0) revert ZeroVotingPowerError();
-
-        // Transfer amount due to the Party. Do not revert if the transfer
-        // fails.
-        payable(address(party)).transferEth(contribution);
-
-        // Mint contributor a new party card.
-        party.increaseTotalVotingPower(votingPower);
         _mint(party, saleId, msg.sender, contribution, votingPower, delegate);
     }
 
@@ -251,142 +207,54 @@ contract SellPartyCardsAuthority {
         address delegate,
         bytes calldata gateData
     ) external payable returns (uint96 votingPower) {
-        SaleState memory state = _saleStates[party][saleId];
+        uint96 contribution = msg.value.safeCastUint256ToUint96();
 
-        _assertIsAllowedByGatekeeper(state.gateKeeper, state.gateKeeperId, gateData);
+        (votingPower, contribution) = _contribute(party, saleId, contribution, gateData);
 
-        uint96 contribution;
-        (votingPower, contribution, ) = _contribute(
-            party,
-            saleId,
-            state,
-            msg.value.safeCastUint256ToUint96()
-        );
-
-        if (votingPower == 0) revert ZeroVotingPowerError();
-
-        // Transfer amount due to the Party. Do not revert if the transfer
-        // fails.
-        payable(address(party)).transferEth(contribution);
-
-        // Mint contributor a new party card.
-        party.increaseTotalVotingPower(votingPower);
         _mint(party, saleId, recipient, contribution, votingPower, delegate);
     }
 
     /// @notice Contribute to a sale and receive a minted NFT from the Party.
-    /// @param args Arguments for the batch contribution.
+    /// @param party The Party to contribute to.
+    /// @param saleId The ID of the sale to contribute to.
+    /// @param delegate The delegate to use for all contributions.
+    /// @param contributions The amounts of each contribution.
+    /// @param gateData Data to pass to the gatekeeper.
     /// @return votingPowers The voting powers received from each contribution.
     function batchContribute(
-        BatchContributeArgs memory args
+        Party party,
+        uint256 saleId,
+        address delegate,
+        uint96[] memory contributions,
+        bytes calldata gateData
     ) external payable returns (uint96[] memory votingPowers) {
-        SaleState memory state = _saleStates[args.party][args.saleId];
+        (votingPowers, contributions) = _batchContribute(party, saleId, contributions, gateData);
 
-        _assertIsAllowedByGatekeeper(state.gateKeeper, state.gateKeeperId, args.gateData);
-
-        uint256 numOfContributions = args.values.length;
-        uint96 totalValue;
-        uint96 totalVotingPower;
-        uint96 totalContribution;
-        uint96[] memory contributions = new uint96[](numOfContributions);
-        votingPowers = new uint96[](numOfContributions);
-        for (uint256 i; i < numOfContributions; ++i) {
-            uint96 value = args.values[i];
-            uint96 votingPower;
-            uint96 contribution;
-
-            (votingPower, contribution, state.totalContributions) = _contribute(
-                args.party,
-                args.saleId,
-                state,
-                value
-            );
-
-            if (votingPower == 0) revert ZeroVotingPowerError();
-
-            votingPowers[i] = votingPower;
-            contributions[i] = contribution;
-
-            totalValue += value;
-            totalVotingPower += votingPower;
-            totalContribution += contribution;
-        }
-
-        if (msg.value != totalValue) revert InvalidMessageValue();
-
-        // Transfer amount due to the Party. Do not revert if the transfer
-        // fails.
-        payable(address(args.party)).transferEth(totalContribution);
-
-        args.party.increaseTotalVotingPower(totalVotingPower);
-
-        for (uint256 i; i < numOfContributions; ++i) {
-            _mint(
-                args.party,
-                args.saleId,
-                msg.sender,
-                contributions[i],
-                votingPowers[i],
-                args.delegate
-            );
+        for (uint256 i; i < contributions.length; ++i) {
+            _mint(party, saleId, msg.sender, contributions[i], votingPowers[i], delegate);
         }
     }
 
     /// @notice Contribute to a sale and receive a minted NFT from the Party.
-    /// @param args Arguments for the batch contribution.
+    /// @param party The Party to contribute to.
+    /// @param saleId The ID of the sale to contribute to.
+    /// @param recipients The recipients of the minted NFTs.
+    /// @param delegates The delegates to use for each contribution.
+    /// @param contributions The amounts of each contribution.
+    /// @param gateData Data to pass to the gatekeeper.
     /// @return votingPowers The voting powers received from each contribution.
     function batchContributeFor(
-        BatchContributeForArgs memory args
+        Party party,
+        uint256 saleId,
+        address[] calldata recipients,
+        address[] calldata delegates,
+        uint96[] memory contributions,
+        bytes calldata gateData
     ) external payable returns (uint96[] memory votingPowers) {
-        SaleState memory state = _saleStates[args.party][args.saleId];
+        (votingPowers, contributions) = _batchContribute(party, saleId, contributions, gateData);
 
-        _assertIsAllowedByGatekeeper(state.gateKeeper, state.gateKeeperId, args.gateData);
-
-        uint256 numOfContributions = args.values.length;
-        uint96 totalValue;
-        uint96 totalVotingPower;
-        uint96 totalContribution;
-        uint96[] memory contributions = new uint96[](numOfContributions);
-        votingPowers = new uint96[](numOfContributions);
-        for (uint256 i; i < numOfContributions; ++i) {
-            uint96 value = args.values[i];
-            uint96 votingPower;
-            uint96 contribution;
-
-            (votingPower, contribution, state.totalContributions) = _contribute(
-                args.party,
-                args.saleId,
-                state,
-                value
-            );
-
-            if (votingPower == 0) revert ZeroVotingPowerError();
-
-            votingPowers[i] = votingPower;
-            contributions[i] = contribution;
-
-            totalValue += value;
-            totalVotingPower += votingPower;
-            totalContribution += contribution;
-        }
-
-        if (msg.value != totalValue) revert InvalidMessageValue();
-
-        // Transfer amount due to the Party. Do not revert if the transfer
-        // fails.
-        payable(address(args.party)).transferEth(totalContribution);
-
-        args.party.increaseTotalVotingPower(totalVotingPower);
-
-        for (uint256 i; i < numOfContributions; ++i) {
-            _mint(
-                args.party,
-                args.saleId,
-                args.recipients[i],
-                contributions[i],
-                votingPowers[i],
-                args.delegates[i]
-            );
+        for (uint256 i; i < contributions.length; ++i) {
+            _mint(party, saleId, recipients[i], contributions[i], votingPowers[i], delegates[i]);
         }
     }
 
@@ -415,111 +283,6 @@ contract SellPartyCardsAuthority {
             // Already finalized.
             revert SaleInactiveError();
         }
-    }
-
-    /// @dev `totalContributions` is updated and returned for use in
-    ///      `batchContribute` and `batchContributeFor`.
-    function _contribute(
-        Party party,
-        uint256 saleId,
-        SaleState memory state,
-        uint96 amount
-    ) private returns (uint96 votingPower, uint96 contribution, uint96 totalContributions) {
-        totalContributions = state.totalContributions;
-        uint96 maxTotalContributions = state.maxTotalContributions;
-
-        // Check sale is active.
-        if (
-            !_isSaleActive(
-                state.expiry,
-                totalContributions,
-                state.minContribution,
-                maxTotalContributions
-            )
-        ) {
-            revert SaleInactiveError();
-        }
-
-        // Check that the contribution amount is at or below the maximum.
-        uint96 maxContribution = state.maxContribution;
-        if (amount > maxContribution) {
-            revert OutOfBoundsContributionsError(amount, maxContribution);
-        }
-
-        uint96 newTotalContributions = totalContributions + amount;
-        if (newTotalContributions >= maxTotalContributions) {
-            // This occurs before refunding excess contribution to act as a
-            // reentrancy guard.
-            _saleStates[party][saleId]
-                .totalContributions = totalContributions = maxTotalContributions;
-
-            // Finalize the crowdfund.
-            emit Finalized(party, saleId);
-
-            // Refund excess contribution.
-            uint96 refundAmount = newTotalContributions - maxTotalContributions;
-            if (refundAmount > 0) {
-                amount -= refundAmount;
-                // Revert if the refund fails.
-                payable(msg.sender).transferEth(refundAmount);
-            }
-        } else {
-            _saleStates[party][saleId]
-                .totalContributions = totalContributions = newTotalContributions;
-        }
-
-        // Check that the contribution amount is at or above the minimum. This
-        // is done after `amount` is potentially reduced if refunding excess
-        // contribution.
-        uint96 minContribution = state.minContribution;
-        if (amount < minContribution) {
-            revert OutOfBoundsContributionsError(amount, minContribution);
-        }
-
-        // Subtract split from contribution amount if applicable.
-        address payable fundingSplitRecipient = state.fundingSplitRecipient;
-        uint16 fundingSplitBps = state.fundingSplitBps;
-        if (fundingSplitRecipient != address(0) && fundingSplitBps > 0) {
-            // Calculate funding split in a way that avoids rounding errors for
-            // very small contributions <1e4 wei.
-            uint96 fundingSplit = (amount * fundingSplitBps) / 1e4;
-
-            amount -= fundingSplit;
-
-            // Transfer contribution to funding split recipient if applicable. Do not
-            // revert if the transfer fails.
-            fundingSplitRecipient.call{ value: fundingSplit }("");
-        }
-
-        // Calculate voting power.
-        votingPower = _convertContributionToVotingPower(amount, state.exchangeRateBps);
-
-        contribution = amount;
-    }
-
-    function _assertIsAllowedByGatekeeper(
-        IGateKeeper gateKeeper,
-        bytes12 gateKeeperId,
-        bytes memory gateData
-    ) private view {
-        // Must not be blocked by gatekeeper.
-        if (gateKeeper != IGateKeeper(address(0))) {
-            if (!gateKeeper.isAllowed(msg.sender, gateKeeperId, gateData)) {
-                revert NotAllowedByGateKeeperError(msg.sender, gateKeeper, gateKeeperId, gateData);
-            }
-        }
-    }
-
-    function _mint(
-        Party party,
-        uint256 saleId,
-        address recipient,
-        uint96 contribution,
-        uint96 votingPower,
-        address delegate
-    ) private returns (uint256 tokenId) {
-        tokenId = party.mint(recipient, votingPower, delegate);
-        emit MintedFromSale(party, saleId, tokenId, msg.sender, recipient, contribution, delegate);
     }
 
     /// @notice Get the details of a fixed membership sale.
@@ -633,19 +396,6 @@ contract SellPartyCardsAuthority {
             );
     }
 
-    function _isSaleActive(
-        uint40 expiry,
-        uint96 totalContributions,
-        uint96 minContribution,
-        uint96 maxTotalContributions
-    ) private view returns (bool) {
-        return
-            // Check this condition first because it is more likely to change
-            // within the same call. Expiry more likely to remain constant.
-            maxTotalContributions - totalContributions >= minContribution &&
-            block.timestamp < expiry;
-    }
-
     /// @notice Convert a contribution amount to voting power.
     /// @param party The Party that created the sale.
     /// @param saleId The ID of the sale.
@@ -676,6 +426,177 @@ contract SellPartyCardsAuthority {
         return _convertVotingPowerToContribution(votingPower, exchangeRateBps);
     }
 
+    function _contribute(
+        Party party,
+        uint256 saleId,
+        uint96 contribution,
+        bytes calldata gateData
+    ) private returns (uint96 votingPower, uint96 /* contribution */) {
+        SaleState memory state = _validateContribution(party, saleId, gateData);
+
+        (votingPower, contribution, ) = _processContribution(party, saleId, state, contribution);
+
+        // Transfer amount due to the Party. Revert if the transfer fails.
+        payable(address(party)).transferEth(address(this).balance);
+
+        // Mint contributor a new party card.
+        party.increaseTotalVotingPower(votingPower);
+
+        return (votingPower, contribution);
+    }
+
+    function _batchContribute(
+        Party party,
+        uint256 saleId,
+        uint96[] memory contributions,
+        bytes calldata gateData
+    ) private returns (uint96[] memory votingPowers, uint96[] memory /* contributions */) {
+        SaleState memory state = _validateContribution(party, saleId, gateData);
+
+        uint256 numOfContributions = contributions.length;
+        uint96 totalValue;
+        uint96 totalVotingPower;
+        votingPowers = new uint96[](numOfContributions);
+        for (uint256 i; i < numOfContributions; ++i) {
+            uint96 contribution = contributions[i];
+            uint96 votingPower;
+
+            (votingPower, contributions[i], state.totalContributions) = _processContribution(
+                party,
+                saleId,
+                state,
+                contribution
+            );
+
+            votingPowers[i] = votingPower;
+
+            totalValue += contribution;
+            totalVotingPower += votingPower;
+        }
+
+        if (msg.value != totalValue) revert InvalidMessageValue();
+
+        // Transfer amount due to the Party. Revert if the transfer fails.
+        payable(address(party)).transferEth(address(this).balance);
+
+        party.increaseTotalVotingPower(totalVotingPower);
+
+        return (votingPowers, contributions);
+    }
+
+    /// @dev `totalContributions` is updated and returned for use in
+    ///      `batchContribute` and `batchContributeFor`.
+    function _processContribution(
+        Party party,
+        uint256 saleId,
+        SaleState memory state,
+        uint96 amount
+    ) private returns (uint96 votingPower, uint96 contribution, uint96 totalContributions) {
+        totalContributions = state.totalContributions;
+        uint96 maxTotalContributions = state.maxTotalContributions;
+
+        // Check sale is active.
+        if (
+            !_isSaleActive(
+                state.expiry,
+                totalContributions,
+                state.minContribution,
+                maxTotalContributions
+            )
+        ) {
+            revert SaleInactiveError();
+        }
+
+        // Check that the contribution amount is at or below the maximum.
+        uint96 maxContribution = state.maxContribution;
+        if (amount > maxContribution) {
+            revert OutOfBoundsContributionsError(amount, maxContribution);
+        }
+
+        uint96 newTotalContributions = totalContributions + amount;
+        if (newTotalContributions >= maxTotalContributions) {
+            // This occurs before refunding excess contribution to act as a
+            // reentrancy guard.
+            _saleStates[party][saleId]
+                .totalContributions = totalContributions = maxTotalContributions;
+
+            // Finalize the crowdfund.
+            emit Finalized(party, saleId);
+
+            // Refund excess contribution.
+            uint96 refundAmount = newTotalContributions - maxTotalContributions;
+            if (refundAmount > 0) {
+                amount -= refundAmount;
+                // Revert if the refund fails.
+                payable(msg.sender).transferEth(refundAmount);
+            }
+        } else {
+            _saleStates[party][saleId]
+                .totalContributions = totalContributions = newTotalContributions;
+        }
+
+        // Check that the contribution amount is at or above the minimum. This
+        // is done after `amount` is potentially reduced if refunding excess
+        // contribution.
+        uint96 minContribution = state.minContribution;
+        if (amount < minContribution) {
+            revert OutOfBoundsContributionsError(amount, minContribution);
+        }
+
+        // Return actual contribution amount used (before split is applied).
+        // Will be emitted in MintedFromSale event.
+        contribution = amount;
+
+        // Subtract split from contribution amount if applicable.
+        address payable fundingSplitRecipient = state.fundingSplitRecipient;
+        uint16 fundingSplitBps = state.fundingSplitBps;
+        if (fundingSplitRecipient != address(0) && fundingSplitBps > 0) {
+            // Calculate funding split in a way that avoids rounding errors for
+            // very small contributions <1e4 wei.
+            uint96 fundingSplit = (amount * fundingSplitBps) / 1e4;
+
+            amount -= fundingSplit;
+
+            // Transfer contribution to funding split recipient if applicable. Do not
+            // revert if the transfer fails.
+            fundingSplitRecipient.call{ value: fundingSplit }("");
+        }
+
+        // Calculate voting power.
+        votingPower = _convertContributionToVotingPower(amount, state.exchangeRateBps);
+
+        if (votingPower == 0) revert ZeroVotingPowerError();
+    }
+
+    function _validateContribution(
+        Party party,
+        uint256 saleId,
+        bytes calldata gateData
+    ) private view returns (SaleState memory state) {
+        state = _saleStates[party][saleId];
+
+        // Must not be blocked by gatekeeper.
+        IGateKeeper gateKeeper = state.gateKeeper;
+        bytes12 gateKeeperId = state.gateKeeperId;
+        if (gateKeeper != IGateKeeper(address(0))) {
+            if (!gateKeeper.isAllowed(msg.sender, gateKeeperId, gateData)) {
+                revert NotAllowedByGateKeeperError(msg.sender, gateKeeper, gateKeeperId, gateData);
+            }
+        }
+    }
+
+    function _mint(
+        Party party,
+        uint256 saleId,
+        address recipient,
+        uint96 contribution,
+        uint96 votingPower,
+        address delegate
+    ) private returns (uint256 tokenId) {
+        tokenId = party.mint(recipient, votingPower, delegate);
+        emit MintedFromSale(party, saleId, tokenId, msg.sender, recipient, contribution, delegate);
+    }
+
     function _convertContributionToVotingPower(
         uint96 contribution,
         uint16 exchangeRateBps
@@ -688,5 +609,18 @@ contract SellPartyCardsAuthority {
         uint16 exchangeRateBps
     ) private pure returns (uint96) {
         return (votingPower * 1e4) / exchangeRateBps;
+    }
+
+    function _isSaleActive(
+        uint40 expiry,
+        uint96 totalContributions,
+        uint96 minContribution,
+        uint96 maxTotalContributions
+    ) private view returns (bool) {
+        return
+            // Check this condition first because it is more likely to change
+            // within the same call. Expiry more likely to remain constant.
+            maxTotalContributions - totalContributions >= minContribution &&
+            block.timestamp < expiry;
     }
 }
