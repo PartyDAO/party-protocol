@@ -177,7 +177,8 @@ contract SellPartyCardsAuthority {
     /// @notice Contribute to a sale and receive a minted NFT from the Party.
     /// @param party The Party to contribute to.
     /// @param saleId The ID of the sale to contribute to.
-    /// @param delegate The delegate to use for the contribution.
+    /// @param delegate The delegate to use for the contribution. This will be
+    ///                 ignored if caller has already set a delegate.
     /// @param gateData Data to pass to the gatekeeper.
     /// @return votingPower The voting power received from the contribution.
     function contribute(
@@ -197,7 +198,8 @@ contract SellPartyCardsAuthority {
     /// @param party The Party to contribute to.
     /// @param saleId The ID of the sale to contribute to.
     /// @param recipient The recipient of the minted NFT.
-    /// @param delegate The delegate to use for the contribution.
+    /// @param delegate The delegate to use for the contribution. This will be
+    ///                 ignored if recipient has already set a delegate.
     /// @param gateData Data to pass to the gatekeeper.
     /// @return votingPower The voting power received from the contribution.
     function contributeFor(
@@ -217,7 +219,8 @@ contract SellPartyCardsAuthority {
     /// @notice Contribute to a sale and receive a minted NFT from the Party.
     /// @param party The Party to contribute to.
     /// @param saleId The ID of the sale to contribute to.
-    /// @param delegate The delegate to use for all contributions.
+    /// @param delegate The delegate to use for all contributions. This will be
+    ///                 ignored if caller has already set a delegate.
     /// @param contributions The amounts of each contribution.
     /// @param gateData Data to pass to the gatekeeper.
     /// @return votingPowers The voting powers received from each contribution.
@@ -239,7 +242,8 @@ contract SellPartyCardsAuthority {
     /// @param party The Party to contribute to.
     /// @param saleId The ID of the sale to contribute to.
     /// @param recipients The recipients of the minted NFTs.
-    /// @param delegates The delegates to use for each contribution.
+    /// @param delegates The delegates to use for each contribution. This will be
+    ///                  ignored if recipient has already set a delegate.
     /// @param contributions The amounts of each contribution.
     /// @param gateData Data to pass to the gatekeeper.
     /// @return votingPowers The voting powers received from each contribution.
