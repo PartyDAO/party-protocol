@@ -96,6 +96,7 @@ contract SellPartyCardsAuthority {
         address delegate
     );
 
+    error NotAuthorizedError();
     error MinGreaterThanMaxError(uint96 minContribution, uint96 maxContribution);
     error ZeroMaxTotalContributionsError();
     error ZeroExchangeRateBpsError();
@@ -168,6 +169,11 @@ contract SellPartyCardsAuthority {
         if (state.fundingSplitBps > 1e4) revert InvalidBpsError(state.fundingSplitBps);
 
         Party party = Party(payable(msg.sender));
+
+        // Ensure that this contract is an authority in the Party.
+        if (!party.isAuthority(address(this))) revert NotAuthorizedError();
+
+        // Create sale.
         saleId = ++lastSaleId[party];
         _saleStates[party][saleId] = state;
 
