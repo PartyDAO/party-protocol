@@ -514,20 +514,15 @@ contract SellPartyCardsAuthorityTest is SetupPartyHelper {
         values[0] = 1 ether;
         values[1] = 0.2 ether;
 
-        {
-            SellPartyCardsAuthority.BatchContributeArgs memory args = SellPartyCardsAuthority
-                .BatchContributeArgs({
-                    party: party,
-                    saleId: saleId,
-                    delegate: buyer,
-                    values: values,
-                    gateData: ""
-                });
-
-            vm.prank(buyer);
-            vm.expectRevert(SellPartyCardsAuthority.ZeroVotingPowerError.selector);
-            sellPartyCardsAuthority.batchContribute{ value: 1.2 ether }(args);
-        }
+        vm.prank(buyer);
+        vm.expectRevert(SellPartyCardsAuthority.ZeroVotingPowerError.selector);
+        sellPartyCardsAuthority.batchContribute{ value: 1.2 ether }(
+            party,
+            saleId,
+            buyer,
+            values,
+            ""
+        );
 
         address[] memory recipients = new address[](3);
         address[] memory delegates = new address[](3);
@@ -535,21 +530,16 @@ contract SellPartyCardsAuthorityTest is SetupPartyHelper {
         recipients[1] = delegates[1] = _randomAddress();
         recipients[2] = delegates[2] = _randomAddress();
 
-        {
-            SellPartyCardsAuthority.BatchContributeForArgs memory args = SellPartyCardsAuthority
-                .BatchContributeForArgs({
-                    party: party,
-                    saleId: saleId,
-                    values: values,
-                    gateData: "",
-                    recipients: recipients,
-                    delegates: delegates
-                });
-
-            vm.prank(buyer);
-            vm.expectRevert(SellPartyCardsAuthority.ZeroVotingPowerError.selector);
-            sellPartyCardsAuthority.batchContributeFor{ value: 1.2 ether }(args);
-        }
+        vm.prank(buyer);
+        vm.expectRevert(SellPartyCardsAuthority.ZeroVotingPowerError.selector);
+        sellPartyCardsAuthority.batchContributeFor{ value: 1.2 ether }(
+            party,
+            saleId,
+            recipients,
+            delegates,
+            values,
+            ""
+        );
     }
 
     function _createNewFixedSale() internal returns (uint256) {
