@@ -14,17 +14,19 @@ const rl = readline.createInterface({
   output: process.stdout,
 });
 
-async function run(command: string) {
+async function run(command: string, { captureOutput = false, throwOnError = true } = {}) {
   const result = childProcess.spawnSync(command, [], {
     shell: true,
-    stdio: "inherit",
+    stdio: captureOutput ? "pipe" : "inherit",
   });
 
-  if (result.status !== 0) {
+  if (throwOnError && result.status !== 0) {
     throw new Error(`Command "${command}" failed with status code ${result.status}`);
   }
 
-  return result.stdout;
+  if (captureOutput) {
+    return result.stdout.toString().trim();
+  }
 }
 
 async function confirm(question: string, defaultValue?: boolean): Promise<boolean> {
@@ -337,6 +339,74 @@ async function main() {
     process.exit(1);
   }
 
+  // Get name of remote branch current branch is tracking
+  const currentBranch = await run("git rev-parse --abbrev-ref HEAD", {
+    captureOutput: true,
+    throwOnError: false,
+  });
+
+  if (currentBranch) {
+    const remoteBranch = `origin/${currentBranch}`;
+
+    // Get number of commits current branch is ahead and behind remote branch
+    const [numOfCommitsBehind, numOfCommitsAhead] = (
+      await run(`git rev-list --left-right --count ${remoteBranch}...HEAD`, {
+        captureOutput: true,
+      })
+    )
+      .split("\t")
+      .map(Number);
+
+    // If current branch is behind remote branch, prompt to pull latest changes
+    if (numOfCommitsBehind > 0) {
+      console.warn(
+        (
+          (numOfCommitsBehind > 1 ? `${numOfCommitsBehind} commits` : `1 commit`) +
+          " behind remote."
+        ).yellow,
+      );
+
+      if (await confirm("Do you want to pull latest changes?", true)) {
+        await run(`git pull origin ${currentBranch}`);
+      }
+    }
+
+    // If current branch is ahead of remote branch, prompt to confirm whether to continue
+    if (numOfCommitsAhead > 0) {
+      console.warn(
+        (
+          (numOfCommitsAhead > 1 ? `${numOfCommitsAhead} commits` : `1 commit`) +
+          " ahead of remote."
+        ).yellow,
+      );
+
+      if (!(await confirm("Do you want to continue?", false))) {
+        process.exit(0);
+      }
+    }
+  }
+
+  // Get private key of deployer address
+  const privateKey = process.env.PRIVATE_KEY;
+  if (!privateKey) {
+    console.error("Missing PRIVATE_KEY environment variable.");
+    process.exit(1);
+  }
+
+  // Check that deployer address is expected address
+  const deployerAddress = await run(`cast wallet address ${privateKey}`, {
+    captureOutput: true,
+  });
+  const expectedDeployerAddress = "0x0e63D6f414b40BaFCa676810ef1aBf05ECc8E459";
+  if (deployerAddress !== expectedDeployerAddress) {
+    console.warn(
+      `Deployer address is ${deployerAddress}, expected ${expectedDeployerAddress}.`.yellow,
+    );
+    if (!(await confirm("Do you want to continue?", false))) {
+      process.exit(0);
+    }
+  }
+
   if (
     await confirm(
       "Do you want to set contract variables to their existing addresses in Deploy.s.sol?",
@@ -349,6 +419,10 @@ async function main() {
     console.warn("Remember to unset variables for contracts that are going to be deployed!".yellow);
   }
 
+  await confirm("Have you updated Deploy.sol to only deploy the contracts you want?", true);
+
+  await confirm("Are there no other changes that should be included into this deploy?", true);
+
   if (
     await confirm(
       "Do you want to check that deploy script variable names match contract names?",
@@ -358,12 +432,11 @@ async function main() {
     await checkDeployContractVariables();
   }
 
-  await confirm("Have you updated Deploy.sol to only deploy the contracts you want?", true);
-
+  // Run dry run deploy and check that it succeeded
   let dryRunSucceeded = false;
   while (!dryRunSucceeded) {
     if (await confirm("Do dry run?", true)) {
-      await run(`yarn deploy:${chain}:dry --private-key ${process.env.PRIVATE_KEY}`);
+      await run(`yarn deploy:${chain}:dry --private-key ${privateKey}`);
       await run("yarn lint:fix > /dev/null");
       await checksumAddresses(`deploy/cache/${chain}.json`);
 
@@ -374,8 +447,6 @@ async function main() {
       break;
     }
 
-    await confirm("Was the deployer the expected address?", true);
-
     await confirm(
       `Does deploy/cache/${chain}.json only contain addresses for contracts that changed?`,
       true,
@@ -384,10 +455,8 @@ async function main() {
     await confirm("Were ABI files in deploy/cache/abis created or changed as you expected?", true);
   }
 
-  await confirm("Are there no other changes that should be included into this deploy?", true);
-
   if (await confirm("Run deploy?", true)) {
-    run(`yarn deploy:${chain} --private-key ${process.env.PRIVATE_KEY}`);
+    run(`yarn deploy:${chain} --private-key ${privateKey}`);
     await run("yarn lint:fix > /dev/null");
     await checksumAddresses(`deploy/cache/${chain}.json`);
 
@@ -409,6 +478,9 @@ async function main() {
     release_name = await new Promise<string>(resolve =>
       rl.question("What is the release name? ", resolve),
     );
+
+    // Format the release name to be lowercase and replace spaces and dashes with underscores
+    release_name = release_name.trim().toLowerCase().replace(/[\s-]/g, "_");
   }
 
   if (await confirm("Copy deploy script to party-addresses?", false)) {
