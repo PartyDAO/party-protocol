@@ -695,7 +695,7 @@ contract DeployScript is Script, Deploy {
         Deploy.deploy(deployConstants);
         vm.stopBroadcast();
 
-        AddressMapping[] memory addressMapping = new AddressMapping[](28);
+        AddressMapping[] memory addressMapping = new AddressMapping[](29);
         addressMapping[0] = AddressMapping("Globals", address(globals));
         addressMapping[1] = AddressMapping("TokenDistributor", address(tokenDistributor));
         addressMapping[2] = AddressMapping(
