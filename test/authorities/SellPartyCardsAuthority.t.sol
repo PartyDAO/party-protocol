@@ -206,7 +206,7 @@ contract SellPartyCardsAuthorityTest is SetupPartyHelper {
                 minContribution: 3 ether,
                 maxContribution: 2 ether,
                 maxTotalContributions: 3 ether,
-                exchangeRateBps: 1e4,
+                exchangeRate: 1e18,
                 fundingSplitBps: 0,
                 fundingSplitRecipient: payable(address(0)),
                 duration: 100,
@@ -231,7 +231,7 @@ contract SellPartyCardsAuthorityTest is SetupPartyHelper {
                 minContribution: 1 ether,
                 maxContribution: 2 ether,
                 maxTotalContributions: 0 ether,
-                exchangeRateBps: 1e4,
+                exchangeRate: 1e18,
                 fundingSplitBps: 0,
                 fundingSplitRecipient: payable(address(0)),
                 duration: 100,
@@ -250,7 +250,7 @@ contract SellPartyCardsAuthorityTest is SetupPartyHelper {
                 minContribution: 1 ether,
                 maxContribution: 2 ether,
                 maxTotalContributions: 5 ether,
-                exchangeRateBps: 0,
+                exchangeRate: 0,
                 fundingSplitBps: 0,
                 fundingSplitRecipient: payable(address(0)),
                 duration: 100,
@@ -259,7 +259,7 @@ contract SellPartyCardsAuthorityTest is SetupPartyHelper {
             });
 
         vm.prank(address(party));
-        vm.expectRevert(SellPartyCardsAuthority.ZeroExchangeRateBpsError.selector);
+        vm.expectRevert(SellPartyCardsAuthority.ZeroExchangeRateError.selector);
         sellPartyCardsAuthority.createFlexibleMembershipSale(opts);
     }
 
@@ -269,7 +269,7 @@ contract SellPartyCardsAuthorityTest is SetupPartyHelper {
                 minContribution: 1 ether,
                 maxContribution: 2 ether,
                 maxTotalContributions: 5 ether,
-                exchangeRateBps: 1e4,
+                exchangeRate: 1e18,
                 fundingSplitBps: 10001,
                 fundingSplitRecipient: payable(address(this)),
                 duration: 100,
@@ -393,7 +393,7 @@ contract SellPartyCardsAuthorityTest is SetupPartyHelper {
             uint96 maxContribution,
             uint96 totalContributions,
             uint96 maxTotalContributions,
-            uint16 exchangeRateBps,
+            uint96 exchangeRate,
             uint16 fundingSplitBps,
             address payable fundingSplitRecipient,
             uint40 expiry,
@@ -405,7 +405,7 @@ contract SellPartyCardsAuthorityTest is SetupPartyHelper {
         assertEq(maxContribution, 2 ether);
         assertEq(totalContributions, 0 ether);
         assertEq(maxTotalContributions, 3 ether);
-        assertEq(exchangeRateBps, 1e4);
+        assertEq(exchangeRate, 1e18);
         assertEq(fundingSplitBps, 0);
         assertEq(fundingSplitRecipient, payable(address(0)));
         assertEq(expiry, uint40(block.timestamp + 100 - 10));
@@ -488,7 +488,7 @@ contract SellPartyCardsAuthorityTest is SetupPartyHelper {
                 minContribution: 0,
                 maxContribution: 2 ether,
                 maxTotalContributions: 3 ether,
-                exchangeRateBps: 1e4,
+                exchangeRate: 1e18,
                 fundingSplitBps: 0,
                 fundingSplitRecipient: payable(address(0)),
                 duration: 100,
@@ -565,7 +565,7 @@ contract SellPartyCardsAuthorityTest is SetupPartyHelper {
                 minContribution: 0.001 ether,
                 maxContribution: 2 ether,
                 maxTotalContributions: 3 ether,
-                exchangeRateBps: 1e4,
+                exchangeRate: 1e18,
                 fundingSplitBps: 0,
                 fundingSplitRecipient: payable(address(0)),
                 duration: 100,
