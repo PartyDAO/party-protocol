@@ -556,7 +556,17 @@ contract SellPartyCardsAuthorityTest is SetupPartyHelper {
             });
 
         vm.prank(address(party));
-        sellPartyCardsAuthority.createFixedMembershipSale(opts);
+        uint256 saleId = sellPartyCardsAuthority.createFixedMembershipSale(opts);
+
+        address buyer = _randomAddress();
+        vm.deal(buyer, 11 ether);
+        vm.prank(buyer);
+        vm.expectEmit(true, true, true, true);
+        emit MintedFromSale(party, saleId, lastTokenId + 1, buyer, buyer, 10 ether, buyer);
+        sellPartyCardsAuthority.contribute{ value: 10 ether }(party, saleId, buyer, "");
+
+        vm.warp(block.timestamp + 10);
+        assertEq(party.getVotingPowerAt(buyer, uint40(block.timestamp)), 10);
     }
 
     function testSellPartyCards_precision_lowerPrice() public {
@@ -573,7 +583,17 @@ contract SellPartyCardsAuthorityTest is SetupPartyHelper {
             });
 
         vm.prank(address(party));
-        sellPartyCardsAuthority.createFixedMembershipSale(opts);
+        uint256 saleId = sellPartyCardsAuthority.createFixedMembershipSale(opts);
+
+        address buyer = _randomAddress();
+        vm.deal(buyer, 1 ether);
+        vm.prank(buyer);
+        vm.expectEmit(true, true, true, true);
+        emit MintedFromSale(party, saleId, lastTokenId + 1, buyer, buyer, 1, buyer);
+        sellPartyCardsAuthority.contribute{ value: 1 }(party, saleId, buyer, "");
+
+        vm.warp(block.timestamp + 10);
+        assertEq(party.getVotingPowerAt(buyer, uint40(block.timestamp)), 10 ether);
     }
 
     function testSellPartyCards_helperFunctions() public {
