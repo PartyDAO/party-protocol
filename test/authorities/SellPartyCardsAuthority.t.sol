@@ -576,6 +576,18 @@ contract SellPartyCardsAuthorityTest is SetupPartyHelper {
         sellPartyCardsAuthority.createFixedMembershipSale(opts);
     }
 
+    function testSellPartyCards_helperFunctions() public {
+        uint256 saleId = _createNewFixedSale();
+        assertEq(
+            sellPartyCardsAuthority.convertContributionToVotingPower(party, saleId, 1 ether),
+            0.001 ether
+        );
+        assertEq(
+            sellPartyCardsAuthority.convertVotingPowerToContribution(party, saleId, 0.001 ether),
+            1 ether
+        );
+    }
+
     function _createNewFixedSale() internal returns (uint256) {
         SellPartyCardsAuthority.FixedMembershipSaleOpts memory opts = SellPartyCardsAuthority
             .FixedMembershipSaleOpts({
