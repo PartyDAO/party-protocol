@@ -621,7 +621,7 @@ contract SellPartyCardsAuthority {
         uint96 votingPower,
         uint96 exchangeRate
     ) private pure returns (uint96) {
-        return uint96(votingPower.mulDivDown(1e18, exchangeRate));
+        return uint96(votingPower.mulDivUp(1e18, exchangeRate));
     }
 
     function _isSaleActive(
