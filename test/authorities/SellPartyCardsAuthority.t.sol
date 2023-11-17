@@ -542,6 +542,40 @@ contract SellPartyCardsAuthorityTest is SetupPartyHelper {
         );
     }
 
+    function testSellPartyCards_precision_upperPrice() public {
+        SellPartyCardsAuthority.FixedMembershipSaleOpts memory opts = SellPartyCardsAuthority
+            .FixedMembershipSaleOpts({
+                pricePerMembership: 10 ether,
+                votingPowerPerMembership: 10, // pricePerMembership/votingPowerPerMembership <= 1e18
+                totalMembershipsForSale: 30,
+                fundingSplitBps: 0,
+                fundingSplitRecipient: payable(address(0)),
+                duration: 100,
+                gateKeeper: IGateKeeper(address(0)),
+                gateKeeperId: bytes12(0)
+            });
+
+        vm.prank(address(party));
+        sellPartyCardsAuthority.createFixedMembershipSale(opts);
+    }
+
+    function testSellPartyCards_precision_lowerPrice() public {
+        SellPartyCardsAuthority.FixedMembershipSaleOpts memory opts = SellPartyCardsAuthority
+            .FixedMembershipSaleOpts({
+                pricePerMembership: 1,
+                votingPowerPerMembership: 10 ether, // votingPowerPerMembership/pricePerMembership can be much greater than 1e18
+                totalMembershipsForSale: 30,
+                fundingSplitBps: 0,
+                fundingSplitRecipient: payable(address(0)),
+                duration: 100,
+                gateKeeper: IGateKeeper(address(0)),
+                gateKeeperId: bytes12(0)
+            });
+
+        vm.prank(address(party));
+        sellPartyCardsAuthority.createFixedMembershipSale(opts);
+    }
+
     function _createNewFixedSale() internal returns (uint256) {
         SellPartyCardsAuthority.FixedMembershipSaleOpts memory opts = SellPartyCardsAuthority
             .FixedMembershipSaleOpts({
