@@ -42,7 +42,7 @@ contract SellPartyCardsAuthority {
         uint96 maxTotalContributions;
         // The exchange rate from contribution amount to voting power. May be
         // greater than 1e18 (100%).
-        uint96 exchangeRate;
+        uint160 exchangeRate;
         // The split from each contribution to be received by the
         // fundingSplitRecipient, in basis points.
         uint16 fundingSplitBps;
@@ -61,20 +61,20 @@ contract SellPartyCardsAuthority {
         uint96 minContribution;
         // The maximum amount that can be contributed.
         uint96 maxContribution;
+        // The time at which the sale expires.
+        uint40 expiry;
+        // The split from each contribution to be received by the
+        // fundingSplitRecipient, in basis points.
+        uint16 fundingSplitBps;
+        // The recipient of the funding split.
+        address payable fundingSplitRecipient;
         // The total amount that has been contributed.
         uint96 totalContributions;
         // The maximum total amount that can be contributed for the sale.
         uint96 maxTotalContributions;
         // The exchange rate from contribution amount to voting power. May be
         // greater than 1e18 (100%).
-        uint96 exchangeRate;
-        // The split from each contribution to be received by the
-        // fundingSplitRecipient, in basis points.
-        uint16 fundingSplitBps;
-        // The recipient of the funding split.
-        address payable fundingSplitRecipient;
-        // The time at which the sale expires.
-        uint40 expiry;
+        uint160 exchangeRate;
         // The gatekeeper contract.
         IGateKeeper gateKeeper;
         // The ID of the gatekeeper.
@@ -130,9 +130,9 @@ contract SellPartyCardsAuthority {
                     maxContribution: opts.pricePerMembership,
                     totalContributions: 0,
                     maxTotalContributions: opts.pricePerMembership * opts.totalMembershipsForSale,
-                    exchangeRate: uint96(
+                    exchangeRate: (
                         opts.votingPowerPerMembership.mulDivDown(1e18, opts.pricePerMembership)
-                    ),
+                    ).safeCastUint256ToUint160(),
                     fundingSplitBps: opts.fundingSplitBps,
                     fundingSplitRecipient: opts.fundingSplitRecipient,
                     expiry: uint40(block.timestamp + opts.duration),
@@ -377,7 +377,7 @@ contract SellPartyCardsAuthority {
             uint96 maxContribution,
             uint96 totalContributions,
             uint96 maxTotalContributions,
-            uint96 exchangeRate,
+            uint160 exchangeRate,
             uint16 fundingSplitBps,
             address payable fundingSplitRecipient,
             uint40 expiry,
@@ -424,7 +424,7 @@ contract SellPartyCardsAuthority {
         uint256 saleId,
         uint96 contribution
     ) external view returns (uint96) {
-        uint96 exchangeRate = _saleStates[party][saleId].exchangeRate;
+        uint160 exchangeRate = _saleStates[party][saleId].exchangeRate;
         return _convertContributionToVotingPower(contribution, exchangeRate);
     }
 
@@ -439,7 +439,7 @@ contract SellPartyCardsAuthority {
         uint256 saleId,
         uint96 votingPower
     ) external view returns (uint96) {
-        uint96 exchangeRate = _saleStates[party][saleId].exchangeRate;
+        uint160 exchangeRate = _saleStates[party][saleId].exchangeRate;
         return _convertVotingPowerToContribution(votingPower, exchangeRate);
     }
 
@@ -616,16 +616,16 @@ contract SellPartyCardsAuthority {
 
     function _convertContributionToVotingPower(
         uint96 contribution,
-        uint96 exchangeRate
+        uint160 exchangeRate
     ) private pure returns (uint96) {
-        return uint96(contribution.mulDivDown(exchangeRate, 1e18));
+        return contribution.mulDivDown(exchangeRate, 1e18).safeCastUint256ToUint96();
     }
 
     function _convertVotingPowerToContribution(
         uint96 votingPower,
-        uint96 exchangeRate
+        uint160 exchangeRate
     ) private pure returns (uint96) {
-        return uint96(votingPower.mulDivUp(1e18, exchangeRate));
+        return votingPower.mulDivUp(1e18, exchangeRate).safeCastUint256ToUint96();
     }
 
     function _isSaleActive(

@@ -393,7 +393,7 @@ contract SellPartyCardsAuthorityTest is SetupPartyHelper {
             uint96 maxContribution,
             uint96 totalContributions,
             uint96 maxTotalContributions,
-            uint96 exchangeRate,
+            uint160 exchangeRate,
             uint16 fundingSplitBps,
             address payable fundingSplitRecipient,
             uint40 expiry,
