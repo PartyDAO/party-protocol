@@ -115,6 +115,7 @@ contract SellPartyCardsAuthority {
         bytes gateData
     );
     error OutOfBoundsContributionsError(uint96 amount, uint96 bound);
+    error ArityMismatch();
 
     /// @notice Create a new fixed membership sale.
     /// @param opts Options used to initialize the sale.
@@ -264,9 +265,12 @@ contract SellPartyCardsAuthority {
         uint96[] memory contributions,
         bytes calldata gateData
     ) external payable returns (uint96[] memory votingPowers) {
+        if (recipients.length != delegates.length || recipients.length != contributions.length)
+            revert ArityMismatch();
+
         (votingPowers, contributions) = _batchContribute(party, saleId, contributions, gateData);
 
-        for (uint256 i; i < contributions.length; ++i) {
+        for (uint256 i; i < recipients.length; ++i) {
             _mint(party, saleId, recipients[i], contributions[i], votingPowers[i], delegates[i]);
         }
     }
