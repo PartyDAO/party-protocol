@@ -40,8 +40,8 @@ contract SellPartyCardsAuthority {
         uint96 maxContribution;
         // The maximum total amount that can be contributed for the sale.
         uint96 maxTotalContributions;
-        // The exchange rate from contribution amount to voting power. May be
-        // greater than 1e18 (100%).
+        // The exchange rate from contribution amount to voting power where
+        // 100% = 1e18. May be greater than 1e18 (100%).
         uint160 exchangeRate;
         // The split from each contribution to be received by the
         // fundingSplitRecipient, in basis points.
@@ -72,8 +72,8 @@ contract SellPartyCardsAuthority {
         uint96 totalContributions;
         // The maximum total amount that can be contributed for the sale.
         uint96 maxTotalContributions;
-        // The exchange rate from contribution amount to voting power. May be
-        // greater than 1e18 (100%).
+        // The exchange rate from contribution amount to voting power where
+        // 100% = 1e18. May be greater than 1e18 (100%).
         uint160 exchangeRate;
         // The gatekeeper contract.
         IGateKeeper gateKeeper;
