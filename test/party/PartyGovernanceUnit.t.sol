@@ -2277,7 +2277,7 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
         gov = _createGovernance(false, 100e18, preciousTokens, preciousTokenIds);
 
         address newHost = _randomAddress();
-         address host = _getRandomDefaultHost();
+        address host = _getRandomDefaultHost();
 
         // Can only transfer to 0 address
         vm.prank(host);
