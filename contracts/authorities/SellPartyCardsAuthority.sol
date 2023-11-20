@@ -451,10 +451,16 @@ contract SellPartyCardsAuthority {
     ) private returns (uint96 votingPower, uint96 /* contribution */) {
         SaleState memory state = _validateContribution(party, saleId, gateData);
 
-        (votingPower, contribution, ) = _processContribution(party, saleId, state, contribution);
+        uint96 contributionToTransfer;
+        (votingPower, contribution, contributionToTransfer, ) = _processContribution(
+            party,
+            saleId,
+            state,
+            contribution
+        );
 
         // Transfer amount due to the Party. Revert if the transfer fails.
-        payable(address(party)).transferEth(address(this).balance);
+        payable(address(party)).transferEth(contributionToTransfer);
 
         // Mint contributor a new party card.
         party.increaseTotalVotingPower(votingPower);
@@ -470,31 +476,28 @@ contract SellPartyCardsAuthority {
     ) private returns (uint96[] memory votingPowers, uint96[] memory /* contributions */) {
         SaleState memory state = _validateContribution(party, saleId, gateData);
 
-        uint256 numOfContributions = contributions.length;
         uint96 totalValue;
         uint96 totalVotingPower;
-        votingPowers = new uint96[](numOfContributions);
-        for (uint256 i; i < numOfContributions; ++i) {
-            uint96 contribution = contributions[i];
-            uint96 votingPower;
+        uint96 totalContributionsToTransfer;
+        votingPowers = new uint96[](contributions.length);
+        for (uint256 i; i < contributions.length; ++i) {
+            uint96 contributionToTransfer;
+            (
+                votingPowers[i],
+                contributions[i],
+                contributionToTransfer,
+                state.totalContributions
+            ) = _processContribution(party, saleId, state, contributions[i]);
 
-            (votingPower, contributions[i], state.totalContributions) = _processContribution(
-                party,
-                saleId,
-                state,
-                contribution
-            );
-
-            votingPowers[i] = votingPower;
-
-            totalValue += contribution;
-            totalVotingPower += votingPower;
+            totalValue += contributions[i];
+            totalVotingPower += votingPowers[i];
+            totalContributionsToTransfer += contributionToTransfer;
         }
 
         if (msg.value != totalValue) revert InvalidMessageValue();
 
         // Transfer amount due to the Party. Revert if the transfer fails.
-        payable(address(party)).transferEth(address(this).balance);
+        payable(address(party)).transferEth(totalContributionsToTransfer);
 
         party.increaseTotalVotingPower(totalVotingPower);
 
@@ -507,8 +510,16 @@ contract SellPartyCardsAuthority {
         Party party,
         uint256 saleId,
         SaleState memory state,
-        uint96 amount
-    ) private returns (uint96 votingPower, uint96 contribution, uint96 totalContributions) {
+        uint96 contribution
+    )
+        private
+        returns (
+            uint96 votingPower,
+            uint96 contributionUsed,
+            uint96 contributionToTransfer,
+            uint96 totalContributions
+        )
+    {
         totalContributions = state.totalContributions;
         uint96 maxTotalContributions = state.maxTotalContributions;
 
@@ -526,11 +537,11 @@ contract SellPartyCardsAuthority {
 
         // Check that the contribution amount is at or below the maximum.
         uint96 maxContribution = state.maxContribution;
-        if (amount > maxContribution) {
-            revert OutOfBoundsContributionsError(amount, maxContribution);
+        if (contribution > maxContribution) {
+            revert OutOfBoundsContributionsError(contribution, maxContribution);
         }
 
-        uint96 newTotalContributions = totalContributions + amount;
+        uint96 newTotalContributions = totalContributions + contribution;
         if (newTotalContributions >= maxTotalContributions) {
             // This occurs before refunding excess contribution to act as a
             // reentrancy guard.
@@ -543,7 +554,7 @@ contract SellPartyCardsAuthority {
             // Refund excess contribution.
             uint96 refundAmount = newTotalContributions - maxTotalContributions;
             if (refundAmount > 0) {
-                amount -= refundAmount;
+                contribution -= refundAmount;
                 // Revert if the refund fails.
                 payable(msg.sender).transferEth(refundAmount);
             }
@@ -556,13 +567,13 @@ contract SellPartyCardsAuthority {
         // is done after `amount` is potentially reduced if refunding excess
         // contribution.
         uint96 minContribution = state.minContribution;
-        if (amount < minContribution) {
-            revert OutOfBoundsContributionsError(amount, minContribution);
+        if (contribution < minContribution) {
+            revert OutOfBoundsContributionsError(contribution, minContribution);
         }
 
-        // Return actual contribution amount used (before split is applied).
-        // Will be emitted in MintedFromSale event.
-        contribution = amount;
+        // Return contribution amount used after refund and including amount
+        // used for funding split. Will be emitted in `MintedFromSale` event.
+        contributionUsed = contribution;
 
         // Subtract split from contribution amount if applicable.
         address payable fundingSplitRecipient = state.fundingSplitRecipient;
@@ -570,17 +581,20 @@ contract SellPartyCardsAuthority {
         if (fundingSplitRecipient != address(0) && fundingSplitBps > 0) {
             // Calculate funding split in a way that avoids rounding errors for
             // very small contributions <1e4 wei.
-            uint96 fundingSplit = (amount * fundingSplitBps) / 1e4;
+            uint96 fundingSplit = (contribution * fundingSplitBps) / 1e4;
 
-            amount -= fundingSplit;
+            contribution -= fundingSplit;
 
             // Transfer contribution to funding split recipient if applicable. Do not
             // revert if the transfer fails.
             fundingSplitRecipient.call{ value: fundingSplit }("");
         }
 
+        // Return contribution amount to transfer to the Party.
+        contributionToTransfer = contribution;
+
         // Calculate voting power.
-        votingPower = _convertContributionToVotingPower(amount, state.exchangeRate);
+        votingPower = _convertContributionToVotingPower(contribution, state.exchangeRate);
 
         if (votingPower == 0) revert ZeroVotingPowerError();
     }
