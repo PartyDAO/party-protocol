@@ -523,6 +523,7 @@ contract SellPartyCardsAuthority {
             revert OutOfBoundsContributionsError(amount, maxContribution);
         }
 
+        uint96 minContribution = state.minContribution;
         uint96 newTotalContributions = totalContributions + amount;
         if (newTotalContributions >= maxTotalContributions) {
             // This occurs before refunding excess contribution to act as a
@@ -543,12 +544,17 @@ contract SellPartyCardsAuthority {
         } else {
             _saleStates[party][saleId]
                 .totalContributions = totalContributions = newTotalContributions;
+
+            // Check if not enough room for another contribution. If so, sale is
+            // finalized.
+            if (minContribution > maxTotalContributions - newTotalContributions) {
+                emit Finalized(party, saleId);
+            }
         }
 
         // Check that the contribution amount is at or above the minimum. This
         // is done after `amount` is potentially reduced if refunding excess
         // contribution.
-        uint96 minContribution = state.minContribution;
         if (amount < minContribution) {
             revert OutOfBoundsContributionsError(amount, minContribution);
         }
