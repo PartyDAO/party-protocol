@@ -458,11 +458,8 @@ abstract contract PartyGovernance is
         _assertHost();
         // 0 is a special case burn address.
         if (newPartyHost != address(0)) {
-            // Cannot transfer host status to an existing host.
-            if (isHost[newPartyHost]) {
-                revert InvalidNewHostError();
-            }
-            isHost[newPartyHost] = true;
+            // Can only abdicate host
+            revert InvalidNewHostError();
         } else {
             // Burned the host status
             --numHosts;
