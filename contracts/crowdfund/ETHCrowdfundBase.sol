@@ -160,7 +160,7 @@ contract ETHCrowdfundBase is Implementation {
         // Set the party crowdfund is for.
         party = opts.party;
         // Set the crowdfund start and end timestamps.
-        expiry = uint40(block.timestamp + opts.duration);
+        expiry = (block.timestamp + opts.duration).safeCastUint256ToUint40();
         // Set the exchange rate.
         if (opts.exchangeRateBps == 0) revert InvalidExchangeRateError(opts.exchangeRateBps);
         exchangeRateBps = opts.exchangeRateBps;
