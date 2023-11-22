@@ -844,7 +844,7 @@ contract InitialETHCrowdfundTest is InitialETHCrowdfundTestBase {
         crowdfund.contribute{ value: 1 ether }(address(0), "");
     }
 
-    function test_batchContribute_works() public {
+    function test_batchContribute_requiresCorrectEth() public {
         InitialETHCrowdfund crowdfund = _createCrowdfund(
             CreateCrowdfundArgs({
                 initialContribution: 0,
@@ -876,7 +876,10 @@ contract InitialETHCrowdfundTest is InitialETHCrowdfundTestBase {
             values[i] = 1 ether;
         }
         bytes[] memory gateDatas = new bytes[](3);
-        uint96[] memory votingPowers = crowdfund.batchContribute{ value: 4 ether }(
+
+        // Too little
+        vm.expectRevert(ETHCrowdfundBase.InvalidMessageValue.selector);
+        crowdfund.batchContribute{ value: 2.5 ether }(
             InitialETHCrowdfund.BatchContributeArgs({
                 tokenIds: tokenIds,
                 delegate: member,
@@ -885,7 +888,27 @@ contract InitialETHCrowdfundTest is InitialETHCrowdfundTestBase {
             })
         );
 
-        assertEq(address(member).balance, 1 ether); // Should be refunded 1 ETH
+        // Too Much
+        vm.expectRevert(ETHCrowdfundBase.InvalidMessageValue.selector);
+        crowdfund.batchContribute{ value: 3.5 ether }(
+            InitialETHCrowdfund.BatchContributeArgs({
+                tokenIds: tokenIds,
+                delegate: member,
+                values: values,
+                gateDatas: gateDatas
+            })
+        );
+
+        vm.prank(member);
+        uint96[] memory votingPowers = crowdfund.batchContribute{ value: 3 ether }(
+            InitialETHCrowdfund.BatchContributeArgs({
+                tokenIds: tokenIds,
+                delegate: member,
+                values: values,
+                gateDatas: gateDatas
+            })
+        );
+
         for (uint256 i; i < values.length; ++i) {
             assertEq(votingPowers[i], 1 ether);
         }
