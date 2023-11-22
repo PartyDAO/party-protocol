@@ -64,6 +64,7 @@ contract InitialETHCrowdfund is ETHCrowdfundBase {
 
     struct BatchContributeArgs {
         // IDs of cards to credit the contributions to. When set to 0, it means
+        // a new one should be minted.
         uint256[] tokenIds;
         // The address to which voting power will be delegated for all contributions.
         address delegate;
