@@ -142,9 +142,10 @@ contract GasBenchmarks is SetupPartyHelper {
                 distProposal
             )
         });
+        uint256 latestSnap = party.findVotingPowerSnapshotIndex(john, uint40(block.timestamp - 1));
         vm.prank(john);
         uint256 gasLeft = gasleft();
-        party.propose(proposal, 0);
+        party.propose(proposal, latestSnap);
         uint256 gasUsed = gasLeft - gasleft();
         emit log_named_uint("Create proposal distribute", gasUsed);
 
@@ -172,6 +173,42 @@ contract GasBenchmarks is SetupPartyHelper {
         tokenDistributor.claim(info, 1);
         gasUsed = gasLeft - gasleft();
         emit log_named_uint("Claim distribution", gasUsed);
+    }
+
+    function testAccept_vanilla() public {
+        ArbitraryCallsProposal.ArbitraryCall[]
+            memory arbCalls = new ArbitraryCallsProposal.ArbitraryCall[](1);
+        arbCalls[0] = ArbitraryCallsProposal.ArbitraryCall({
+            target: _randomAddress(),
+            value: 100,
+            data: "",
+            expectedResultHash: 0
+        });
+        PartyGovernance.Proposal memory proposal = PartyGovernance.Proposal({
+            maxExecutableTime: type(uint40).max,
+            cancelDelay: 0,
+            proposalData: abi.encodeWithSelector(
+                bytes4(uint32(ProposalExecutionEngine.ProposalType.ArbitraryCalls)),
+                arbCalls
+            )
+        });
+
+        vm.prank(john);
+        uint256 proposalId = party.propose(proposal, 0);
+        (, PartyGovernance.ProposalStateValues memory values) = party.getProposalStateInfo(
+            proposalId
+        );
+
+        vm.warp(block.timestamp + 100);
+
+        uint256 snapIndex = party.findVotingPowerSnapshotIndex(danny, values.proposedTime - 1);
+
+        vm.prank(danny);
+        uint256 gasLeft = gasleft();
+        party.accept(proposalId, snapIndex);
+        uint256 gasUsed = gasLeft - gasleft();
+
+        emit log_named_uint("Accept Proposal", gasUsed);
     }
 
     function _setupETHCrowdfund() internal returns (InitialETHCrowdfund) {
