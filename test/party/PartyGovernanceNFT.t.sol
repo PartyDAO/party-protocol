@@ -12,8 +12,8 @@ import "../../contracts/renderers/RendererStorage.sol";
 import "../../contracts/renderers/MetadataRegistry.sol";
 import "../../contracts/renderers/MetadataProvider.sol";
 import "../../contracts/renderers/fonts/PixeldroidConsoleFont.sol";
-import "../proposals/DummySimpleProposalEngineImpl.sol";
-import "../proposals/DummyProposalEngineImpl.sol";
+import "../../contracts/proposals/ProposalExecutionEngine.sol";
+import { MockZoraReserveAuctionCoreEth } from "../proposals/MockZoraReserveAuctionCoreEth.sol";
 import "../TestUtils.sol";
 import "../DummyERC20.sol";
 import "../DummyERC721.sol";
@@ -24,7 +24,7 @@ import { LintJSON } from "../utils/LintJSON.sol";
 contract PartyGovernanceNFTTestBase is LintJSON, TestUtils {
     Party partyImpl;
     PartyFactory partyFactory;
-    DummySimpleProposalEngineImpl eng;
+    ProposalExecutionEngine eng;
     PartyNFTRenderer nftRenderer;
     MetadataRegistry metadataRegistry;
     MetadataProvider metadataProvider;
@@ -49,7 +49,11 @@ contract PartyGovernanceNFTTestBase is LintJSON, TestUtils {
         tokenDistributor = new TestTokenDistributor();
         globalsAdmin.setTokenDistributor(address(tokenDistributor));
 
-        eng = new DummySimpleProposalEngineImpl();
+        eng = new ProposalExecutionEngine(
+            globals,
+            new MockZoraReserveAuctionCoreEth(),
+            IFractionalV1VaultFactory(address(0))
+        );
         globalsAdmin.setProposalEng(address(eng));
 
         partyFactory = new PartyFactory(globals);
@@ -532,6 +536,13 @@ contract PartyGovernanceNFTTest is PartyGovernanceNFTTestBase {
                 rageQuitTimestamp: 0,
                 feeBps: 0,
                 feeRecipient: payable(0)
+            }),
+            ProposalStorage.ProposalEngineOpts({
+                enableAddAuthorityProposal: false,
+                allowArbCallsToSpendPartyEth: false,
+                allowOperators: false,
+                // Needs to be true to set non-zero rageQuitTimestamp
+                distributionsRequireVote: true
             })
         );
         uint40 newTimestamp = uint40(block.timestamp + 1);
@@ -553,6 +564,13 @@ contract PartyGovernanceNFTTest is PartyGovernanceNFTTestBase {
                 rageQuitTimestamp: 0,
                 feeBps: 0,
                 feeRecipient: payable(0)
+            }),
+            ProposalStorage.ProposalEngineOpts({
+                enableAddAuthorityProposal: false,
+                allowArbCallsToSpendPartyEth: false,
+                allowOperators: true,
+                // Needs to be true to set non-zero rageQuitTimestamp
+                distributionsRequireVote: true
             })
         );
         address notHost = _randomAddress();
@@ -574,6 +592,13 @@ contract PartyGovernanceNFTTest is PartyGovernanceNFTTestBase {
                 rageQuitTimestamp: 0,
                 feeBps: 0,
                 feeRecipient: payable(0)
+            }),
+            ProposalStorage.ProposalEngineOpts({
+                enableAddAuthorityProposal: false,
+                allowArbCallsToSpendPartyEth: false,
+                allowOperators: false,
+                // Needs to be true to set non-zero rageQuitTimestamp
+                distributionsRequireVote: true
             })
         );
 
@@ -603,6 +628,13 @@ contract PartyGovernanceNFTTest is PartyGovernanceNFTTestBase {
                 rageQuitTimestamp: DISABLE_RAGEQUIT_PERMANENTLY,
                 feeBps: 0,
                 feeRecipient: payable(0)
+            }),
+            ProposalStorage.ProposalEngineOpts({
+                enableAddAuthorityProposal: false,
+                allowArbCallsToSpendPartyEth: false,
+                allowOperators: false,
+                // Needs to be true to set non-zero rageQuitTimestamp
+                distributionsRequireVote: true
             })
         );
 
@@ -629,6 +661,13 @@ contract PartyGovernanceNFTTest is PartyGovernanceNFTTestBase {
                 rageQuitTimestamp: 0,
                 feeBps: 0,
                 feeRecipient: payable(0)
+            }),
+            ProposalStorage.ProposalEngineOpts({
+                enableAddAuthorityProposal: false,
+                allowArbCallsToSpendPartyEth: false,
+                allowOperators: false,
+                // Needs to be true to set non-zero rageQuitTimestamp
+                distributionsRequireVote: true
             })
         );
 
@@ -650,6 +689,13 @@ contract PartyGovernanceNFTTest is PartyGovernanceNFTTestBase {
                 rageQuitTimestamp: 0,
                 feeBps: 0,
                 feeRecipient: payable(0)
+            }),
+            ProposalStorage.ProposalEngineOpts({
+                enableAddAuthorityProposal: false,
+                allowArbCallsToSpendPartyEth: false,
+                allowOperators: false,
+                // Needs to be true to set non-zero rageQuitTimestamp
+                distributionsRequireVote: true
             })
         );
 
@@ -681,10 +727,14 @@ contract PartyGovernanceNFTTest is PartyGovernanceNFTTestBase {
 
         uint256[] memory minWithdrawAmounts = new uint256[](4);
 
-        uint96[] memory balances = new uint96[](3);
+        uint96[] memory balances = new uint96[](4);
         for (uint256 i; i < balances.length; ++i) {
+            IERC20 token = tokens[i];
+
+            if (address(token) == ETH_ADDRESS) continue;
+
             balances[i] = uint96(_randomRange(10, type(uint96).max));
-            DummyERC20(address(tokens[i])).deal(address(party), balances[i]);
+            DummyERC20(address(token)).deal(address(party), balances[i]);
         }
 
         uint256[] memory tokenIds = new uint256[](1);
@@ -704,6 +754,10 @@ contract PartyGovernanceNFTTest is PartyGovernanceNFTTestBase {
 
         // Checks that all tokens have been moved correctly.
         for (uint256 i; i < balances.length; ++i) {
+            IERC20 token = tokens[i];
+
+            if (address(token) == ETH_ADDRESS) continue;
+
             uint256 balance = balances[i];
             uint256 expectedRecipientBalance = balance / 10;
 
@@ -727,6 +781,13 @@ contract PartyGovernanceNFTTest is PartyGovernanceNFTTestBase {
                 rageQuitTimestamp: 0,
                 feeBps: 0,
                 feeRecipient: payable(0)
+            }),
+            ProposalStorage.ProposalEngineOpts({
+                enableAddAuthorityProposal: false,
+                allowArbCallsToSpendPartyEth: false,
+                allowOperators: false,
+                // Needs to be true to set non-zero rageQuitTimestamp
+                distributionsRequireVote: true
             })
         );
 
@@ -772,10 +833,14 @@ contract PartyGovernanceNFTTest is PartyGovernanceNFTTestBase {
 
         uint256[] memory minWithdrawAmounts = new uint256[](4);
 
-        uint96[] memory balances = new uint96[](3);
+        uint96[] memory balances = new uint96[](4);
         for (uint256 i; i < balances.length; ++i) {
+            IERC20 token = tokens[i];
+
+            if (address(token) == ETH_ADDRESS) continue;
+
             balances[i] = uint96(_randomRange(10, type(uint96).max));
-            DummyERC20(address(tokens[i])).deal(address(party), balances[i]);
+            DummyERC20(address(token)).deal(address(party), balances[i]);
         }
 
         for (uint256 i; i < members.length; ++i) {
@@ -800,13 +865,17 @@ contract PartyGovernanceNFTTest is PartyGovernanceNFTTestBase {
 
             // Checks that all tokens have been moved correctly.
             for (uint256 j; j < balances.length; ++j) {
+                IERC20 token = tokens[j];
+
+                if (address(token) == ETH_ADDRESS) continue;
+
                 uint256 balance = balances[j];
                 uint256 expectedRecipientBalance = (shareOfBalances[i] * balance) /
                     totalVotingPower;
 
                 // Check the balances of the members
                 assertApproxEqRel(
-                    tokens[j].balanceOf(member),
+                    token.balanceOf(member),
                     expectedRecipientBalance,
                     1e6 // 0.0000000001%
                 );
@@ -818,7 +887,11 @@ contract PartyGovernanceNFTTest is PartyGovernanceNFTTestBase {
 
         // Check the balances of all tokens in the party contract.
         for (uint256 i; i < balances.length; ++i) {
-            assertEq(tokens[i].balanceOf(address(party)), 0);
+            IERC20 token = tokens[i];
+
+            if (address(token) == ETH_ADDRESS) continue;
+
+            assertEq(token.balanceOf(address(party)), 0);
         }
 
         // Check global voting power updated.
@@ -843,6 +916,13 @@ contract PartyGovernanceNFTTest is PartyGovernanceNFTTestBase {
                 rageQuitTimestamp: 0,
                 feeBps: feeBps,
                 feeRecipient: feeRecipient
+            }),
+            ProposalStorage.ProposalEngineOpts({
+                enableAddAuthorityProposal: false,
+                allowArbCallsToSpendPartyEth: false,
+                allowOperators: false,
+                // Needs to be true to set non-zero rageQuitTimestamp
+                distributionsRequireVote: true
             })
         );
 
@@ -903,6 +983,13 @@ contract PartyGovernanceNFTTest is PartyGovernanceNFTTestBase {
                 rageQuitTimestamp: 0,
                 feeBps: 0,
                 feeRecipient: payable(0)
+            }),
+            ProposalStorage.ProposalEngineOpts({
+                enableAddAuthorityProposal: false,
+                allowArbCallsToSpendPartyEth: false,
+                allowOperators: false,
+                // Needs to be true to set non-zero rageQuitTimestamp
+                distributionsRequireVote: true
             })
         );
 
@@ -943,10 +1030,14 @@ contract PartyGovernanceNFTTest is PartyGovernanceNFTTestBase {
 
         uint256[] memory minWithdrawAmounts = new uint256[](4);
 
-        uint96[] memory balances = new uint96[](3);
+        uint96[] memory balances = new uint96[](4);
         for (uint256 i; i < balances.length; ++i) {
+            IERC20 token = tokens[i];
+
+            if (address(token) == ETH_ADDRESS) continue;
+
             balances[i] = uint96(_randomRange(10, type(uint96).max));
-            DummyERC20(address(tokens[i])).deal(address(party), balances[i]);
+            DummyERC20(address(token)).deal(address(party), balances[i]);
         }
 
         uint256[] memory tokenIds = new uint256[](1);
@@ -980,6 +1071,13 @@ contract PartyGovernanceNFTTest is PartyGovernanceNFTTestBase {
                 rageQuitTimestamp: 0,
                 feeBps: 0,
                 feeRecipient: payable(0)
+            }),
+            ProposalStorage.ProposalEngineOpts({
+                enableAddAuthorityProposal: false,
+                allowArbCallsToSpendPartyEth: false,
+                allowOperators: false,
+                // Needs to be true to set non-zero rageQuitTimestamp
+                distributionsRequireVote: true
             })
         );
 
@@ -1011,10 +1109,14 @@ contract PartyGovernanceNFTTest is PartyGovernanceNFTTestBase {
 
         uint256[] memory minWithdrawAmounts = new uint256[](4);
 
-        uint96[] memory balances = new uint96[](3);
+        uint96[] memory balances = new uint96[](4);
         for (uint256 i; i < balances.length; ++i) {
+            IERC20 token = tokens[i];
+
+            if (address(token) == ETH_ADDRESS) continue;
+
             balances[i] = uint96(_randomRange(10, type(uint96).max));
-            DummyERC20(address(tokens[i])).deal(address(party), balances[i]);
+            DummyERC20(address(token)).deal(address(party), balances[i]);
         }
 
         uint256[] memory tokenIds = new uint256[](1);
@@ -1024,6 +1126,37 @@ contract PartyGovernanceNFTTest is PartyGovernanceNFTTestBase {
         vm.prank(notOwner);
         vm.expectRevert(PartyGovernance.NotAuthorized.selector);
         party.rageQuit(tokenIds, tokens, minWithdrawAmounts, recipient);
+    }
+
+    function testRageQuit_revertsIfNotDistributionsRequireVote() external {
+        (Party party, , ) = partyAdmin.createParty(
+            partyImpl,
+            PartyAdmin.PartyCreationMinimalOptions({
+                host1: address(this),
+                host2: address(0),
+                passThresholdBps: 5100,
+                totalVotingPower: 100,
+                preciousTokenAddress: address(toadz),
+                preciousTokenId: 1,
+                rageQuitTimestamp: 0,
+                feeBps: 0,
+                feeRecipient: payable(0)
+            }),
+            ProposalStorage.ProposalEngineOpts({
+                enableAddAuthorityProposal: false,
+                allowArbCallsToSpendPartyEth: false,
+                allowOperators: false,
+                // Needs to be true to set non-zero rageQuitTimestamp
+                distributionsRequireVote: false
+            })
+        );
+
+        vm.expectRevert(
+            PartyGovernanceNFT.CannotEnableRageQuitIfNotDistributionsRequireVoteError.selector
+        );
+
+        vm.prank(address(this));
+        party.setRageQuit(uint40(block.timestamp) + 1);
     }
 
     function testRageQuit_ifNotOwner_butAuthority() public {
@@ -1039,6 +1172,13 @@ contract PartyGovernanceNFTTest is PartyGovernanceNFTTestBase {
                 rageQuitTimestamp: 0,
                 feeBps: 0,
                 feeRecipient: payable(0)
+            }),
+            ProposalStorage.ProposalEngineOpts({
+                enableAddAuthorityProposal: false,
+                allowArbCallsToSpendPartyEth: false,
+                allowOperators: false,
+                // Needs to be true to set non-zero rageQuitTimestamp
+                distributionsRequireVote: true
             })
         );
 
@@ -1070,10 +1210,14 @@ contract PartyGovernanceNFTTest is PartyGovernanceNFTTestBase {
 
         uint256[] memory minWithdrawAmounts = new uint256[](4);
 
-        uint96[] memory balances = new uint96[](3);
+        uint96[] memory balances = new uint96[](4);
         for (uint256 i; i < balances.length; ++i) {
+            IERC20 token = tokens[i];
+
+            if (address(token) == ETH_ADDRESS) continue;
+
             balances[i] = uint96(_randomRange(10, type(uint96).max));
-            DummyERC20(address(tokens[i])).deal(address(party), balances[i]);
+            DummyERC20(address(token)).deal(address(party), balances[i]);
         }
 
         uint256[] memory tokenIds = new uint256[](1);
@@ -1097,6 +1241,13 @@ contract PartyGovernanceNFTTest is PartyGovernanceNFTTestBase {
                 rageQuitTimestamp: 0,
                 feeBps: 0,
                 feeRecipient: payable(0)
+            }),
+            ProposalStorage.ProposalEngineOpts({
+                enableAddAuthorityProposal: false,
+                allowArbCallsToSpendPartyEth: false,
+                allowOperators: false,
+                // Needs to be true to set non-zero rageQuitTimestamp
+                distributionsRequireVote: true
             })
         );
 
@@ -1160,6 +1311,13 @@ contract PartyGovernanceNFTTest is PartyGovernanceNFTTestBase {
                 rageQuitTimestamp: 0,
                 feeBps: 0,
                 feeRecipient: payable(0)
+            }),
+            ProposalStorage.ProposalEngineOpts({
+                enableAddAuthorityProposal: false,
+                allowArbCallsToSpendPartyEth: false,
+                allowOperators: false,
+                // Needs to be true to set non-zero rageQuitTimestamp
+                distributionsRequireVote: true
             })
         );
 
@@ -1191,10 +1349,14 @@ contract PartyGovernanceNFTTest is PartyGovernanceNFTTestBase {
 
         uint256[] memory minWithdrawAmounts = new uint256[](4);
 
-        uint96[] memory balances = new uint96[](3);
+        uint96[] memory balances = new uint96[](4);
         for (uint256 i; i < balances.length; ++i) {
+            IERC20 token = tokens[i];
+
+            if (address(token) == ETH_ADDRESS) continue;
+
             balances[i] = uint96(_randomRange(10, type(uint96).max));
-            DummyERC20(address(tokens[i])).deal(address(party), balances[i]);
+            DummyERC20(address(token)).deal(address(party), balances[i]);
         }
 
         uint256[] memory tokenIds = new uint256[](1);
@@ -1214,6 +1376,10 @@ contract PartyGovernanceNFTTest is PartyGovernanceNFTTestBase {
 
         // Checks that all tokens have been moved correctly.
         for (uint256 i; i < balances.length; ++i) {
+            IERC20 token = tokens[i];
+
+            if (address(token) == ETH_ADDRESS) continue;
+
             uint256 balance = balances[i];
             uint256 expectedRecipientBalance = balance / 10;
 
@@ -1236,6 +1402,13 @@ contract PartyGovernanceNFTTest is PartyGovernanceNFTTestBase {
                 rageQuitTimestamp: DISABLE_RAGEQUIT_PERMANENTLY,
                 feeBps: 0,
                 feeRecipient: payable(0)
+            }),
+            ProposalStorage.ProposalEngineOpts({
+                enableAddAuthorityProposal: false,
+                allowArbCallsToSpendPartyEth: false,
+                allowOperators: false,
+                // Needs to be true to set non-zero rageQuitTimestamp
+                distributionsRequireVote: true
             })
         );
 
@@ -1264,10 +1437,14 @@ contract PartyGovernanceNFTTest is PartyGovernanceNFTTestBase {
 
         uint256[] memory minWithdrawAmounts = new uint256[](4);
 
-        uint96[] memory balances = new uint96[](3);
+        uint96[] memory balances = new uint96[](4);
         for (uint256 i; i < balances.length; ++i) {
+            IERC20 token = tokens[i];
+
+            if (address(token) == ETH_ADDRESS) continue;
+
             balances[i] = uint96(_randomRange(10, type(uint96).max));
-            DummyERC20(address(tokens[i])).deal(address(party), balances[i]);
+            DummyERC20(address(token)).deal(address(party), balances[i]);
         }
 
         uint256[] memory tokenIds = new uint256[](1);
@@ -1296,6 +1473,13 @@ contract PartyGovernanceNFTTest is PartyGovernanceNFTTestBase {
                 rageQuitTimestamp: 0,
                 feeBps: 0,
                 feeRecipient: payable(0)
+            }),
+            ProposalStorage.ProposalEngineOpts({
+                enableAddAuthorityProposal: false,
+                allowArbCallsToSpendPartyEth: false,
+                allowOperators: false,
+                // Needs to be true to set non-zero rageQuitTimestamp
+                distributionsRequireVote: true
             })
         );
 
@@ -1327,10 +1511,14 @@ contract PartyGovernanceNFTTest is PartyGovernanceNFTTestBase {
 
         uint256[] memory minWithdrawAmounts = new uint256[](4);
 
-        uint96[] memory balances = new uint96[](3);
+        uint96[] memory balances = new uint96[](4);
         for (uint256 i; i < balances.length; ++i) {
+            IERC20 token = tokens[i];
+
+            if (address(token) == ETH_ADDRESS) continue;
+
             balances[i] = uint96(_randomRange(10, type(uint96).max));
-            DummyERC20(address(tokens[i])).deal(address(party), balances[i]);
+            DummyERC20(address(token)).deal(address(party), balances[i]);
         }
 
         uint256[] memory tokenIds = new uint256[](1);
@@ -1354,6 +1542,13 @@ contract PartyGovernanceNFTTest is PartyGovernanceNFTTestBase {
                 rageQuitTimestamp: 0,
                 feeBps: 0,
                 feeRecipient: payable(0)
+            }),
+            ProposalStorage.ProposalEngineOpts({
+                enableAddAuthorityProposal: false,
+                allowArbCallsToSpendPartyEth: false,
+                allowOperators: false,
+                // Needs to be true to set non-zero rageQuitTimestamp
+                distributionsRequireVote: true
             })
         );
 
@@ -1385,10 +1580,14 @@ contract PartyGovernanceNFTTest is PartyGovernanceNFTTestBase {
 
         uint256[] memory minWithdrawAmounts = new uint256[](4);
 
-        uint96[] memory balances = new uint96[](3);
+        uint96[] memory balances = new uint96[](4);
         for (uint256 i; i < balances.length; ++i) {
+            IERC20 token = tokens[i];
+
+            if (address(token) == ETH_ADDRESS) continue;
+
             balances[i] = uint96(_randomRange(10, type(uint96).max));
-            DummyERC20(address(tokens[i])).deal(address(party), balances[i]);
+            DummyERC20(address(token)).deal(address(party), balances[i]);
         }
 
         uint256[] memory tokenIds = new uint256[](1);
@@ -1412,6 +1611,13 @@ contract PartyGovernanceNFTTest is PartyGovernanceNFTTestBase {
                 rageQuitTimestamp: 0,
                 feeBps: 0,
                 feeRecipient: payable(0)
+            }),
+            ProposalStorage.ProposalEngineOpts({
+                enableAddAuthorityProposal: false,
+                allowArbCallsToSpendPartyEth: false,
+                allowOperators: false,
+                // Needs to be true to set non-zero rageQuitTimestamp
+                distributionsRequireVote: true
             })
         );
 
