@@ -145,7 +145,7 @@ contract ProposalExecutionEngine is
     /// @inheritdoc IProposalExecutionEngine
     function executeProposal(
         ExecuteProposalParams memory params
-    ) external onlyDelegateCall returns (bytes memory nextProgressData) {
+    ) external payable onlyDelegateCall returns (bytes memory nextProgressData) {
         // Must have a valid proposal ID.
         if (params.proposalId == 0) {
             revert ZeroProposalIdError();

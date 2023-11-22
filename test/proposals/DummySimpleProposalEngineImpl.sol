@@ -40,7 +40,7 @@ contract DummySimpleProposalEngineImpl is IProposalExecutionEngine {
 
     function executeProposal(
         ExecuteProposalParams memory params
-    ) external returns (bytes memory nextProgressData) {
+    ) external payable returns (bytes memory nextProgressData) {
         uint256 proposalId = uint256(params.proposalId);
         _getStorage().lastExecutedProposalId = proposalId;
         _getStorage().proposalIdToFlags[proposalId] = uint256(params.flags);

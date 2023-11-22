@@ -19,7 +19,7 @@ contract DummyProposalEngineImpl is IProposalExecutionEngine {
         emit TestInitializeCalled(oldImpl, keccak256(initData));
     }
 
-    function executeProposal(ExecuteProposalParams memory) external pure returns (bytes memory) {
+    function executeProposal(ExecuteProposalParams memory) external payable returns (bytes memory) {
         revert("not implemented");
     }
 
