@@ -257,8 +257,7 @@ contract PartyGovernanceNFT is PartyGovernance, ERC721, IERC2981 {
         _getSharedProposalStorage().governanceValues.totalVotingPower -= votingPower;
     }
 
-    /// @notice Burn governance NFTs and remove their voting power. Can only
-    ///         be called by an authority before the party has started.
+    /// @notice Burn governance NFTs and remove their voting power.
     /// @param tokenIds The IDs of the governance NFTs to burn.
     function burn(uint256[] memory tokenIds) public {
         _assertAuthority();
