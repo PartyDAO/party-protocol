@@ -96,11 +96,11 @@ contract SellPartyCardsAuthorityTest is SetupPartyHelper {
 
         // Reduce contribution to available amount
         address buyer = _randomAddress();
-        vm.deal(buyer, 1 ether);
+        vm.deal(buyer, 0.003 ether);
         vm.prank(buyer);
         vm.expectEmit(true, true, true, true);
         emit MintedFromSale(party, saleId, lastTokenId + 4, buyer, buyer, 0.003 ether, buyer);
-        sellPartyCardsAuthority.contribute{ value: 1 ether }(party, saleId, buyer, "");
+        sellPartyCardsAuthority.contribute{ value: 0.003 ether }(party, saleId, buyer, "");
 
         // Don't allow further contributions
         buyer = _randomAddress();
@@ -198,6 +198,31 @@ contract SellPartyCardsAuthorityTest is SetupPartyHelper {
             )
         );
         sellPartyCardsAuthority.contribute{ value: 0.0005 ether }(party, saleId, buyer, "");
+    }
+
+    function testSellPartyCards_contributeAboveRemaining() public {
+        uint256 saleId = _createNewFlexibleSale();
+
+        address buyer = _randomAddress();
+        vm.deal(buyer, 2 ether);
+        vm.prank(buyer);
+        sellPartyCardsAuthority.contribute{ value: 2 ether }(party, saleId, buyer, "");
+
+        // Contributing above maxTotalContributions (1 ETH remaining) should fail
+        vm.deal(buyer, 1 ether + 1);
+        vm.prank(buyer);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                SellPartyCardsAuthority.ExceedsRemainingContributionsError.selector,
+                1 ether + 1,
+                1 ether
+            )
+        );
+        sellPartyCardsAuthority.contribute{ value: 1 ether + 1 }(party, saleId, buyer, "");
+
+        // Contributing to maxTotalContributions should succeed and finalize sale
+        emit Finalized(party, saleId);
+        sellPartyCardsAuthority.contribute{ value: 1 ether }(party, saleId, buyer, "");
     }
 
     function testSellPartyCards_createSale_minAboveMax() public {

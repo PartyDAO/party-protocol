@@ -115,6 +115,7 @@ contract SellPartyCardsAuthority {
         bytes gateData
     );
     error OutOfBoundsContributionsError(uint96 amount, uint96 bound);
+    error ExceedsRemainingContributionsError(uint96 amount, uint96 remaining);
     error ArityMismatch();
 
     /// @notice Create a new fixed membership sale.
@@ -542,23 +543,12 @@ contract SellPartyCardsAuthority {
         }
 
         uint96 minContribution = state.minContribution;
-        uint96 newTotalContributions = totalContributions + amount;
-        if (newTotalContributions >= maxTotalContributions) {
-            // This occurs before refunding excess contribution to act as a
-            // reentrancy guard.
-            _saleStates[party][saleId]
-                .totalContributions = totalContributions = maxTotalContributions;
-
-            // Finalize the crowdfund.
-            emit Finalized(party, saleId);
-
-            // Refund excess contribution.
-            uint96 refundAmount = newTotalContributions - maxTotalContributions;
-            if (refundAmount > 0) {
-                contribution -= refundAmount;
-                // Revert if the refund fails.
-                payable(msg.sender).transferEth(refundAmount);
-            }
+        uint96 newTotalContributions = totalContributions + contribution;
+        if (newTotalContributions > maxTotalContributions) {
+            revert ExceedsRemainingContributionsError(
+                contribution,
+                maxTotalContributions - totalContributions
+            );
         } else {
             _saleStates[party][saleId]
                 .totalContributions = totalContributions = newTotalContributions;
