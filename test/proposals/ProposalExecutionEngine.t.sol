@@ -217,7 +217,7 @@ contract ProposalExecutionEngineTest is Test, TestUtils {
         IProposalExecutionEngine.ExecuteProposalParams memory executeParams = _createTestProposal(
             _createOneStepProposalData(emitValue)
         );
-        vm.expectEmit(true, false, false, false, address(eng));
+        vm.expectEmit(true, true, true, true, address(eng));
         emit TestEcho(emitValue);
         vm.deal(address(this), 1 ether);
         assertTrue(eng.executeProposal{ value: 1 ether }(executeParams).length == 0);
