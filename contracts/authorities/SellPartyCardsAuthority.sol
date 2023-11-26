@@ -93,7 +93,7 @@ contract SellPartyCardsAuthority {
         address sender,
         address contributor,
         uint96 contribution,
-        address delegate
+        address initialDelegate
     );
 
     error NotAuthorizedError();
@@ -105,7 +105,7 @@ contract SellPartyCardsAuthority {
     error InvalidMessageValue();
     error OnlyPartyHostError();
     error SaleInactiveError();
-    error InvalidDelegateError();
+    error InvalidInitialDelegateError();
     error NotAllowedByGateKeeperError(
         address sender,
         IGateKeeper gateKeeper,
@@ -183,28 +183,28 @@ contract SellPartyCardsAuthority {
     /// @notice Contribute to a sale and receive a minted NFT from the Party.
     /// @param party The Party to contribute to.
     /// @param saleId The ID of the sale to contribute to.
-    /// @param delegate The delegate to use for the contribution. This will be
+    /// @param initialDelegate The delegate to use for the contribution. This will be
     ///                 ignored if caller has already set a delegate.
     /// @param gateData Data to pass to the gatekeeper.
     /// @return votingPower The voting power received from the contribution.
     function contribute(
         Party party,
         uint256 saleId,
-        address delegate,
+        address initialDelegate,
         bytes calldata gateData
     ) external payable returns (uint96 votingPower) {
         uint96 contribution = msg.value.safeCastUint256ToUint96();
 
         (votingPower, contribution) = _contribute(party, saleId, contribution, gateData);
 
-        _mint(party, saleId, msg.sender, contribution, votingPower, delegate);
+        _mint(party, saleId, msg.sender, contribution, votingPower, initialDelegate);
     }
 
     /// @notice Contribute to a sale and receive a minted NFT from the Party.
     /// @param party The Party to contribute to.
     /// @param saleId The ID of the sale to contribute to.
     /// @param recipient The recipient of the minted NFT.
-    /// @param delegate The delegate to use for the contribution. This will be
+    /// @param initialDelegate The delegate to use for the contribution. This will be
     ///                 ignored if recipient has already set a delegate.
     /// @param gateData Data to pass to the gatekeeper.
     /// @return votingPower The voting power received from the contribution.
@@ -212,20 +212,20 @@ contract SellPartyCardsAuthority {
         Party party,
         uint256 saleId,
         address recipient,
-        address delegate,
+        address initialDelegate,
         bytes calldata gateData
     ) external payable returns (uint96 votingPower) {
         uint96 contribution = msg.value.safeCastUint256ToUint96();
 
         (votingPower, contribution) = _contribute(party, saleId, contribution, gateData);
 
-        _mint(party, saleId, recipient, contribution, votingPower, delegate);
+        _mint(party, saleId, recipient, contribution, votingPower, initialDelegate);
     }
 
     /// @notice Contribute to a sale and receive a minted NFT from the Party.
     /// @param party The Party to contribute to.
     /// @param saleId The ID of the sale to contribute to.
-    /// @param delegate The delegate to use for all contributions. This will be
+    /// @param initialDelegate The delegate to use for all contributions. This will be
     ///                 ignored if caller has already set a delegate.
     /// @param contributions The amounts of each contribution.
     /// @param gateData Data to pass to the gatekeeper.
@@ -233,14 +233,14 @@ contract SellPartyCardsAuthority {
     function batchContribute(
         Party party,
         uint256 saleId,
-        address delegate,
+        address initialDelegate,
         uint96[] memory contributions,
         bytes calldata gateData
     ) external payable returns (uint96[] memory votingPowers) {
         (votingPowers, contributions) = _batchContribute(party, saleId, contributions, gateData);
 
         for (uint256 i; i < contributions.length; ++i) {
-            _mint(party, saleId, msg.sender, contributions[i], votingPowers[i], delegate);
+            _mint(party, saleId, msg.sender, contributions[i], votingPowers[i], initialDelegate);
         }
     }
 
@@ -248,7 +248,7 @@ contract SellPartyCardsAuthority {
     /// @param party The Party to contribute to.
     /// @param saleId The ID of the sale to contribute to.
     /// @param recipients The recipients of the minted NFTs.
-    /// @param delegates The delegates to use for each contribution. This will be
+    /// @param initialDelegates The delegates to use for each contribution. This will be
     ///                  ignored if recipient has already set a delegate.
     /// @param contributions The amounts of each contribution.
     /// @param gateData Data to pass to the gatekeeper.
@@ -257,14 +257,21 @@ contract SellPartyCardsAuthority {
         Party party,
         uint256 saleId,
         address[] calldata recipients,
-        address[] calldata delegates,
+        address[] calldata initialDelegates,
         uint96[] memory contributions,
         bytes calldata gateData
     ) external payable returns (uint96[] memory votingPowers) {
         (votingPowers, contributions) = _batchContribute(party, saleId, contributions, gateData);
 
         for (uint256 i; i < contributions.length; ++i) {
-            _mint(party, saleId, recipients[i], contributions[i], votingPowers[i], delegates[i]);
+            _mint(
+                party,
+                saleId,
+                recipients[i],
+                contributions[i],
+                votingPowers[i],
+                initialDelegates[i]
+            );
         }
     }
 
@@ -607,10 +614,18 @@ contract SellPartyCardsAuthority {
         address recipient,
         uint96 contribution,
         uint96 votingPower,
-        address delegate
+        address initialDelegate
     ) private returns (uint256 tokenId) {
-        tokenId = party.mint(recipient, votingPower, delegate);
-        emit MintedFromSale(party, saleId, tokenId, msg.sender, recipient, contribution, delegate);
+        tokenId = party.mint(recipient, votingPower, initialDelegate);
+        emit MintedFromSale(
+            party,
+            saleId,
+            tokenId,
+            msg.sender,
+            recipient,
+            contribution,
+            initialDelegate
+        );
     }
 
     function _convertContributionToVotingPower(
