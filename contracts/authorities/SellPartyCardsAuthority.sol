@@ -5,8 +5,10 @@ import { Party } from "contracts/party/Party.sol";
 import { IGateKeeper } from "contracts/gatekeepers/IGateKeeper.sol";
 import { LibSafeCast } from "contracts/utils/LibSafeCast.sol";
 import { LibAddress } from "contracts/utils/LibAddress.sol";
+import { FixedPointMathLib } from "solmate/utils/FixedPointMathLib.sol";
 
 contract SellPartyCardsAuthority {
+    using FixedPointMathLib for uint96;
     using LibSafeCast for uint96;
     using LibSafeCast for uint256;
     using LibAddress for address payable;
@@ -38,9 +40,9 @@ contract SellPartyCardsAuthority {
         uint96 maxContribution;
         // The maximum total amount that can be contributed for the sale.
         uint96 maxTotalContributions;
-        // The exchange rate from contribution amount to voting power, in basis
-        // points. May be greater than 1e4 (100%).
-        uint16 exchangeRateBps;
+        // The exchange rate from contribution amount to voting power where
+        // 100% = 1e18. May be greater than 1e18 (100%).
+        uint160 exchangeRate;
         // The split from each contribution to be received by the
         // fundingSplitRecipient, in basis points.
         uint16 fundingSplitBps;
@@ -59,20 +61,20 @@ contract SellPartyCardsAuthority {
         uint96 minContribution;
         // The maximum amount that can be contributed.
         uint96 maxContribution;
-        // The total amount that has been contributed.
-        uint96 totalContributions;
-        // The maximum total amount that can be contributed for the sale.
-        uint96 maxTotalContributions;
-        // The exchange rate from contribution amount to voting power, in basis
-        // points. May be greater than 1e4 (100%).
-        uint16 exchangeRateBps;
+        // The time at which the sale expires.
+        uint40 expiry;
         // The split from each contribution to be received by the
         // fundingSplitRecipient, in basis points.
         uint16 fundingSplitBps;
         // The recipient of the funding split.
         address payable fundingSplitRecipient;
-        // The time at which the sale expires.
-        uint40 expiry;
+        // The total amount that has been contributed.
+        uint96 totalContributions;
+        // The maximum total amount that can be contributed for the sale.
+        uint96 maxTotalContributions;
+        // The exchange rate from contribution amount to voting power where
+        // 100% = 1e18. May be greater than 1e18 (100%).
+        uint160 exchangeRate;
         // The gatekeeper contract.
         IGateKeeper gateKeeper;
         // The ID of the gatekeeper.
@@ -99,7 +101,7 @@ contract SellPartyCardsAuthority {
     error NotAuthorizedError();
     error MinGreaterThanMaxError(uint96 minContribution, uint96 maxContribution);
     error ZeroMaxTotalContributionsError();
-    error ZeroExchangeRateBpsError();
+    error ZeroExchangeRateError();
     error InvalidBpsError(uint16 fundingSplitBps);
     error ZeroVotingPowerError();
     error InvalidMessageValue();
@@ -113,6 +115,8 @@ contract SellPartyCardsAuthority {
         bytes gateData
     );
     error OutOfBoundsContributionsError(uint96 amount, uint96 bound);
+    error ExceedsRemainingContributionsError(uint96 amount, uint96 remaining);
+    error ArityMismatch();
 
     /// @notice Create a new fixed membership sale.
     /// @param opts Options used to initialize the sale.
@@ -127,8 +131,9 @@ contract SellPartyCardsAuthority {
                     maxContribution: opts.pricePerMembership,
                     totalContributions: 0,
                     maxTotalContributions: opts.pricePerMembership * opts.totalMembershipsForSale,
-                    exchangeRateBps: ((opts.votingPowerPerMembership * 1e4) /
-                        opts.pricePerMembership).safeCastUint96ToUint16(),
+                    exchangeRate: (
+                        opts.votingPowerPerMembership.mulDivDown(1e18, opts.pricePerMembership)
+                    ).safeCastUint256ToUint160(),
                     fundingSplitBps: opts.fundingSplitBps,
                     fundingSplitRecipient: opts.fundingSplitRecipient,
                     expiry: uint40(block.timestamp + opts.duration),
@@ -151,7 +156,7 @@ contract SellPartyCardsAuthority {
                     maxContribution: opts.maxContribution,
                     totalContributions: 0,
                     maxTotalContributions: opts.maxTotalContributions,
-                    exchangeRateBps: opts.exchangeRateBps,
+                    exchangeRate: opts.exchangeRate,
                     fundingSplitBps: opts.fundingSplitBps,
                     fundingSplitRecipient: opts.fundingSplitRecipient,
                     expiry: uint40(block.timestamp + opts.duration),
@@ -165,7 +170,7 @@ contract SellPartyCardsAuthority {
         if (state.minContribution > state.maxContribution)
             revert MinGreaterThanMaxError(state.minContribution, state.maxContribution);
         if (state.maxTotalContributions == 0) revert ZeroMaxTotalContributionsError();
-        if (state.exchangeRateBps == 0) revert ZeroExchangeRateBpsError();
+        if (state.exchangeRate == 0) revert ZeroExchangeRateError();
         if (state.fundingSplitBps > 1e4) revert InvalidBpsError(state.fundingSplitBps);
 
         Party party = Party(payable(msg.sender));
@@ -261,9 +266,14 @@ contract SellPartyCardsAuthority {
         uint96[] memory contributions,
         bytes calldata gateData
     ) external payable returns (uint96[] memory votingPowers) {
+        if (
+            recipients.length != initialDelegates.length ||
+            recipients.length != contributions.length
+        ) revert ArityMismatch();
+
         (votingPowers, contributions) = _batchContribute(party, saleId, contributions, gateData);
 
-        for (uint256 i; i < contributions.length; ++i) {
+        for (uint256 i; i < recipients.length; ++i) {
             _mint(
                 party,
                 saleId,
@@ -339,7 +349,7 @@ contract SellPartyCardsAuthority {
         pricePerMembership = opts.minContribution;
         votingPowerPerMembership = _convertContributionToVotingPower(
             pricePerMembership,
-            opts.exchangeRateBps
+            opts.exchangeRate
         );
         totalContributions = opts.totalContributions;
         totalMembershipsForSale = opts.maxTotalContributions / opts.minContribution;
@@ -358,8 +368,8 @@ contract SellPartyCardsAuthority {
     /// @return totalContributions The total amount that has been contributed.
     /// @return maxTotalContributions The maximum total amount that can be
     ///                               contributed for the sale.
-    /// @return exchangeRateBps The exchange rate from contribution amount to
-    ///                         voting power, in basis points.
+    /// @return exchangeRate The exchange rate from contribution amount to
+    ///                      voting power.
     /// @return fundingSplitBps The split from each contribution to be received
     ///                         by the fundingSplitRecipient, in basis points.
     /// @return fundingSplitRecipient The recipient of the funding split.
@@ -377,7 +387,7 @@ contract SellPartyCardsAuthority {
             uint96 maxContribution,
             uint96 totalContributions,
             uint96 maxTotalContributions,
-            uint16 exchangeRateBps,
+            uint160 exchangeRate,
             uint16 fundingSplitBps,
             address payable fundingSplitRecipient,
             uint40 expiry,
@@ -390,7 +400,7 @@ contract SellPartyCardsAuthority {
         maxContribution = opts.maxContribution;
         totalContributions = opts.totalContributions;
         maxTotalContributions = opts.maxTotalContributions;
-        exchangeRateBps = opts.exchangeRateBps;
+        exchangeRate = opts.exchangeRate;
         fundingSplitBps = opts.fundingSplitBps;
         fundingSplitRecipient = opts.fundingSplitRecipient;
         expiry = opts.expiry;
@@ -424,8 +434,8 @@ contract SellPartyCardsAuthority {
         uint256 saleId,
         uint96 contribution
     ) external view returns (uint96) {
-        uint16 exchangeRateBps = _saleStates[party][saleId].exchangeRateBps;
-        return _convertContributionToVotingPower(contribution, exchangeRateBps);
+        uint160 exchangeRate = _saleStates[party][saleId].exchangeRate;
+        return _convertContributionToVotingPower(contribution, exchangeRate);
     }
 
     /// @notice Convert a voting power amount to a contribution amount.
@@ -439,8 +449,8 @@ contract SellPartyCardsAuthority {
         uint256 saleId,
         uint96 votingPower
     ) external view returns (uint96) {
-        uint16 exchangeRateBps = _saleStates[party][saleId].exchangeRateBps;
-        return _convertVotingPowerToContribution(votingPower, exchangeRateBps);
+        uint160 exchangeRate = _saleStates[party][saleId].exchangeRate;
+        return _convertVotingPowerToContribution(votingPower, exchangeRate);
     }
 
     function _contribute(
@@ -451,10 +461,16 @@ contract SellPartyCardsAuthority {
     ) private returns (uint96 votingPower, uint96 /* contribution */) {
         SaleState memory state = _validateContribution(party, saleId, gateData);
 
-        (votingPower, contribution, ) = _processContribution(party, saleId, state, contribution);
+        uint96 contributionToTransfer;
+        (votingPower, contribution, contributionToTransfer, ) = _processContribution(
+            party,
+            saleId,
+            state,
+            contribution
+        );
 
         // Transfer amount due to the Party. Revert if the transfer fails.
-        payable(address(party)).transferEth(address(this).balance);
+        payable(address(party)).transferEth(contributionToTransfer);
 
         // Mint contributor a new party card.
         party.increaseTotalVotingPower(votingPower);
@@ -470,31 +486,28 @@ contract SellPartyCardsAuthority {
     ) private returns (uint96[] memory votingPowers, uint96[] memory /* contributions */) {
         SaleState memory state = _validateContribution(party, saleId, gateData);
 
-        uint256 numOfContributions = contributions.length;
         uint96 totalValue;
         uint96 totalVotingPower;
-        votingPowers = new uint96[](numOfContributions);
-        for (uint256 i; i < numOfContributions; ++i) {
-            uint96 contribution = contributions[i];
-            uint96 votingPower;
+        uint96 totalContributionsToTransfer;
+        votingPowers = new uint96[](contributions.length);
+        for (uint256 i; i < contributions.length; ++i) {
+            uint96 contributionToTransfer;
+            (
+                votingPowers[i],
+                contributions[i],
+                contributionToTransfer,
+                state.totalContributions
+            ) = _processContribution(party, saleId, state, contributions[i]);
 
-            (votingPower, contributions[i], state.totalContributions) = _processContribution(
-                party,
-                saleId,
-                state,
-                contribution
-            );
-
-            votingPowers[i] = votingPower;
-
-            totalValue += contribution;
-            totalVotingPower += votingPower;
+            totalValue += contributions[i];
+            totalVotingPower += votingPowers[i];
+            totalContributionsToTransfer += contributionToTransfer;
         }
 
         if (msg.value != totalValue) revert InvalidMessageValue();
 
         // Transfer amount due to the Party. Revert if the transfer fails.
-        payable(address(party)).transferEth(address(this).balance);
+        payable(address(party)).transferEth(totalContributionsToTransfer);
 
         party.increaseTotalVotingPower(totalVotingPower);
 
@@ -507,8 +520,16 @@ contract SellPartyCardsAuthority {
         Party party,
         uint256 saleId,
         SaleState memory state,
-        uint96 amount
-    ) private returns (uint96 votingPower, uint96 contribution, uint96 totalContributions) {
+        uint96 contribution
+    )
+        private
+        returns (
+            uint96 votingPower,
+            uint96 contributionUsed,
+            uint96 contributionToTransfer,
+            uint96 totalContributions
+        )
+    {
         totalContributions = state.totalContributions;
         uint96 maxTotalContributions = state.maxTotalContributions;
 
@@ -526,28 +547,17 @@ contract SellPartyCardsAuthority {
 
         // Check that the contribution amount is at or below the maximum.
         uint96 maxContribution = state.maxContribution;
-        if (amount > maxContribution) {
-            revert OutOfBoundsContributionsError(amount, maxContribution);
+        if (contribution > maxContribution) {
+            revert OutOfBoundsContributionsError(contribution, maxContribution);
         }
 
         uint96 minContribution = state.minContribution;
-        uint96 newTotalContributions = totalContributions + amount;
-        if (newTotalContributions >= maxTotalContributions) {
-            // This occurs before refunding excess contribution to act as a
-            // reentrancy guard.
-            _saleStates[party][saleId]
-                .totalContributions = totalContributions = maxTotalContributions;
-
-            // Finalize the crowdfund.
-            emit Finalized(party, saleId);
-
-            // Refund excess contribution.
-            uint96 refundAmount = newTotalContributions - maxTotalContributions;
-            if (refundAmount > 0) {
-                amount -= refundAmount;
-                // Revert if the refund fails.
-                payable(msg.sender).transferEth(refundAmount);
-            }
+        uint96 newTotalContributions = totalContributions + contribution;
+        if (newTotalContributions > maxTotalContributions) {
+            revert ExceedsRemainingContributionsError(
+                contribution,
+                maxTotalContributions - totalContributions
+            );
         } else {
             _saleStates[party][saleId]
                 .totalContributions = totalContributions = newTotalContributions;
@@ -562,13 +572,13 @@ contract SellPartyCardsAuthority {
         // Check that the contribution amount is at or above the minimum. This
         // is done after `amount` is potentially reduced if refunding excess
         // contribution.
-        if (amount < minContribution) {
-            revert OutOfBoundsContributionsError(amount, minContribution);
+        if (contribution < minContribution) {
+            revert OutOfBoundsContributionsError(contribution, minContribution);
         }
 
-        // Return actual contribution amount used (before split is applied).
-        // Will be emitted in MintedFromSale event.
-        contribution = amount;
+        // Return contribution amount used after refund and including amount
+        // used for funding split. Will be emitted in `MintedFromSale` event.
+        contributionUsed = contribution;
 
         // Subtract split from contribution amount if applicable.
         address payable fundingSplitRecipient = state.fundingSplitRecipient;
@@ -576,17 +586,20 @@ contract SellPartyCardsAuthority {
         if (fundingSplitRecipient != address(0) && fundingSplitBps > 0) {
             // Calculate funding split in a way that avoids rounding errors for
             // very small contributions <1e4 wei.
-            uint96 fundingSplit = (amount * fundingSplitBps) / 1e4;
+            uint96 fundingSplit = (contribution * fundingSplitBps) / 1e4;
 
-            amount -= fundingSplit;
+            contribution -= fundingSplit;
 
             // Transfer contribution to funding split recipient if applicable. Do not
             // revert if the transfer fails.
             fundingSplitRecipient.call{ value: fundingSplit }("");
         }
 
+        // Return contribution amount to transfer to the Party.
+        contributionToTransfer = contribution;
+
         // Calculate voting power.
-        votingPower = _convertContributionToVotingPower(amount, state.exchangeRateBps);
+        votingPower = _convertContributionToVotingPower(contribution, state.exchangeRate);
 
         if (votingPower == 0) revert ZeroVotingPowerError();
     }
@@ -630,16 +643,16 @@ contract SellPartyCardsAuthority {
 
     function _convertContributionToVotingPower(
         uint96 contribution,
-        uint16 exchangeRateBps
+        uint160 exchangeRate
     ) private pure returns (uint96) {
-        return (contribution * exchangeRateBps) / 1e4;
+        return contribution.mulDivDown(exchangeRate, 1e18).safeCastUint256ToUint96();
     }
 
     function _convertVotingPowerToContribution(
         uint96 votingPower,
-        uint16 exchangeRateBps
+        uint160 exchangeRate
     ) private pure returns (uint96) {
-        return (votingPower * 1e4) / exchangeRateBps;
+        return votingPower.mulDivUp(1e18, exchangeRate).safeCastUint256ToUint96();
     }
 
     function _isSaleActive(

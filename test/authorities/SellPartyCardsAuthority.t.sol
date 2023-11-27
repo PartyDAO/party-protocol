@@ -96,11 +96,11 @@ contract SellPartyCardsAuthorityTest is SetupPartyHelper {
 
         // Reduce contribution to available amount
         address buyer = _randomAddress();
-        vm.deal(buyer, 1 ether);
+        vm.deal(buyer, 0.003 ether);
         vm.prank(buyer);
         vm.expectEmit(true, true, true, true);
         emit MintedFromSale(party, saleId, lastTokenId + 4, buyer, buyer, 0.003 ether, buyer);
-        sellPartyCardsAuthority.contribute{ value: 1 ether }(party, saleId, buyer, "");
+        sellPartyCardsAuthority.contribute{ value: 0.003 ether }(party, saleId, buyer, "");
 
         // Don't allow further contributions
         buyer = _randomAddress();
@@ -200,13 +200,38 @@ contract SellPartyCardsAuthorityTest is SetupPartyHelper {
         sellPartyCardsAuthority.contribute{ value: 0.0005 ether }(party, saleId, buyer, "");
     }
 
+    function testSellPartyCards_contributeAboveRemaining() public {
+        uint256 saleId = _createNewFlexibleSale();
+
+        address buyer = _randomAddress();
+        vm.deal(buyer, 2 ether);
+        vm.prank(buyer);
+        sellPartyCardsAuthority.contribute{ value: 2 ether }(party, saleId, buyer, "");
+
+        // Contributing above maxTotalContributions (1 ETH remaining) should fail
+        vm.deal(buyer, 1 ether + 1);
+        vm.prank(buyer);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                SellPartyCardsAuthority.ExceedsRemainingContributionsError.selector,
+                1 ether + 1,
+                1 ether
+            )
+        );
+        sellPartyCardsAuthority.contribute{ value: 1 ether + 1 }(party, saleId, buyer, "");
+
+        // Contributing to maxTotalContributions should succeed and finalize sale
+        emit Finalized(party, saleId);
+        sellPartyCardsAuthority.contribute{ value: 1 ether }(party, saleId, buyer, "");
+    }
+
     function testSellPartyCards_createSale_minAboveMax() public {
         SellPartyCardsAuthority.FlexibleMembershipSaleOpts memory opts = SellPartyCardsAuthority
             .FlexibleMembershipSaleOpts({
                 minContribution: 3 ether,
                 maxContribution: 2 ether,
                 maxTotalContributions: 3 ether,
-                exchangeRateBps: 1e4,
+                exchangeRate: 1e18,
                 fundingSplitBps: 0,
                 fundingSplitRecipient: payable(address(0)),
                 duration: 100,
@@ -231,7 +256,7 @@ contract SellPartyCardsAuthorityTest is SetupPartyHelper {
                 minContribution: 1 ether,
                 maxContribution: 2 ether,
                 maxTotalContributions: 0 ether,
-                exchangeRateBps: 1e4,
+                exchangeRate: 1e18,
                 fundingSplitBps: 0,
                 fundingSplitRecipient: payable(address(0)),
                 duration: 100,
@@ -250,7 +275,7 @@ contract SellPartyCardsAuthorityTest is SetupPartyHelper {
                 minContribution: 1 ether,
                 maxContribution: 2 ether,
                 maxTotalContributions: 5 ether,
-                exchangeRateBps: 0,
+                exchangeRate: 0,
                 fundingSplitBps: 0,
                 fundingSplitRecipient: payable(address(0)),
                 duration: 100,
@@ -259,7 +284,7 @@ contract SellPartyCardsAuthorityTest is SetupPartyHelper {
             });
 
         vm.prank(address(party));
-        vm.expectRevert(SellPartyCardsAuthority.ZeroExchangeRateBpsError.selector);
+        vm.expectRevert(SellPartyCardsAuthority.ZeroExchangeRateError.selector);
         sellPartyCardsAuthority.createFlexibleMembershipSale(opts);
     }
 
@@ -269,7 +294,7 @@ contract SellPartyCardsAuthorityTest is SetupPartyHelper {
                 minContribution: 1 ether,
                 maxContribution: 2 ether,
                 maxTotalContributions: 5 ether,
-                exchangeRateBps: 1e4,
+                exchangeRate: 1e18,
                 fundingSplitBps: 10001,
                 fundingSplitRecipient: payable(address(this)),
                 duration: 100,
@@ -393,7 +418,7 @@ contract SellPartyCardsAuthorityTest is SetupPartyHelper {
             uint96 maxContribution,
             uint96 totalContributions,
             uint96 maxTotalContributions,
-            uint16 exchangeRateBps,
+            uint160 exchangeRate,
             uint16 fundingSplitBps,
             address payable fundingSplitRecipient,
             uint40 expiry,
@@ -405,7 +430,7 @@ contract SellPartyCardsAuthorityTest is SetupPartyHelper {
         assertEq(maxContribution, 2 ether);
         assertEq(totalContributions, 0 ether);
         assertEq(maxTotalContributions, 3 ether);
-        assertEq(exchangeRateBps, 1e4);
+        assertEq(exchangeRate, 1e18);
         assertEq(fundingSplitBps, 0);
         assertEq(fundingSplitRecipient, payable(address(0)));
         assertEq(expiry, uint40(block.timestamp + 100 - 10));
@@ -488,7 +513,7 @@ contract SellPartyCardsAuthorityTest is SetupPartyHelper {
                 minContribution: 0,
                 maxContribution: 2 ether,
                 maxTotalContributions: 3 ether,
-                exchangeRateBps: 1e4,
+                exchangeRate: 1e18,
                 fundingSplitBps: 0,
                 fundingSplitRecipient: payable(address(0)),
                 duration: 100,
@@ -542,6 +567,72 @@ contract SellPartyCardsAuthorityTest is SetupPartyHelper {
         );
     }
 
+    function testSellPartyCards_precision_upperPrice() public {
+        SellPartyCardsAuthority.FixedMembershipSaleOpts memory opts = SellPartyCardsAuthority
+            .FixedMembershipSaleOpts({
+                pricePerMembership: 10 ether,
+                votingPowerPerMembership: 10, // pricePerMembership/votingPowerPerMembership <= 1e18
+                totalMembershipsForSale: 30,
+                fundingSplitBps: 0,
+                fundingSplitRecipient: payable(address(0)),
+                duration: 100,
+                gateKeeper: IGateKeeper(address(0)),
+                gateKeeperId: bytes12(0)
+            });
+
+        vm.prank(address(party));
+        uint256 saleId = sellPartyCardsAuthority.createFixedMembershipSale(opts);
+
+        address buyer = _randomAddress();
+        vm.deal(buyer, 11 ether);
+        vm.prank(buyer);
+        vm.expectEmit(true, true, true, true);
+        emit MintedFromSale(party, saleId, lastTokenId + 1, buyer, buyer, 10 ether, buyer);
+        sellPartyCardsAuthority.contribute{ value: 10 ether }(party, saleId, buyer, "");
+
+        vm.warp(block.timestamp + 10);
+        assertEq(party.getVotingPowerAt(buyer, uint40(block.timestamp)), 10);
+    }
+
+    function testSellPartyCards_precision_lowerPrice() public {
+        SellPartyCardsAuthority.FixedMembershipSaleOpts memory opts = SellPartyCardsAuthority
+            .FixedMembershipSaleOpts({
+                pricePerMembership: 1,
+                votingPowerPerMembership: 10 ether, // votingPowerPerMembership/pricePerMembership can be much greater than 1e18
+                totalMembershipsForSale: 30,
+                fundingSplitBps: 0,
+                fundingSplitRecipient: payable(address(0)),
+                duration: 100,
+                gateKeeper: IGateKeeper(address(0)),
+                gateKeeperId: bytes12(0)
+            });
+
+        vm.prank(address(party));
+        uint256 saleId = sellPartyCardsAuthority.createFixedMembershipSale(opts);
+
+        address buyer = _randomAddress();
+        vm.deal(buyer, 1 ether);
+        vm.prank(buyer);
+        vm.expectEmit(true, true, true, true);
+        emit MintedFromSale(party, saleId, lastTokenId + 1, buyer, buyer, 1, buyer);
+        sellPartyCardsAuthority.contribute{ value: 1 }(party, saleId, buyer, "");
+
+        vm.warp(block.timestamp + 10);
+        assertEq(party.getVotingPowerAt(buyer, uint40(block.timestamp)), 10 ether);
+    }
+
+    function testSellPartyCards_helperFunctions() public {
+        uint256 saleId = _createNewFixedSale();
+        assertEq(
+            sellPartyCardsAuthority.convertContributionToVotingPower(party, saleId, 1 ether),
+            0.001 ether
+        );
+        assertEq(
+            sellPartyCardsAuthority.convertVotingPowerToContribution(party, saleId, 0.001 ether),
+            1 ether
+        );
+    }
+
     function _createNewFixedSale() internal returns (uint256) {
         SellPartyCardsAuthority.FixedMembershipSaleOpts memory opts = SellPartyCardsAuthority
             .FixedMembershipSaleOpts({
@@ -565,7 +656,7 @@ contract SellPartyCardsAuthorityTest is SetupPartyHelper {
                 minContribution: 0.001 ether,
                 maxContribution: 2 ether,
                 maxTotalContributions: 3 ether,
-                exchangeRateBps: 1e4,
+                exchangeRate: 1e18,
                 fundingSplitBps: 0,
                 fundingSplitRecipient: payable(address(0)),
                 duration: 100,
