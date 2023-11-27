@@ -12,13 +12,21 @@ export const getEtherscanApiEndpoint = (chain: string) => {
     return "https://api.basescan.org/api";
   } else if (chain === "base-goerli") {
     return "https://api-goerli.basescan.org/api";
+  } else if (chain === "zora") {
+    return "https://explorer.zora.energy/api\\?";
   } else {
     return `https://api-${chain}.etherscan.io/api`;
   }
 };
 
 export function getEtherscanApiKey(chain: string) {
-  return chain.startsWith("base") ? process.env.BASESCAN_API_KEY : process.env.ETHERSCAN_API_KEY;
+  if (chain.startsWith("base")) {
+    return process.env.BASESCAN_API_KEY;
+  }
+  if (chain === "zora") {
+    return null;
+  }
+  return process.env.ETHERSCAN_API_KEY;
 }
 
 const readJsonFile = (filePath: string) => {
