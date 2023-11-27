@@ -1112,7 +1112,7 @@ abstract contract PartyGovernance is
         uint96 totalVotes,
         uint96 totalVotingPower
     ) private pure returns (bool) {
-        uint256 acceptanceRatio = (totalVotes * 1e4) / totalVotingPower;
+        uint256 acceptanceRatio = (uint256(totalVotes) * 1e4) / totalVotingPower;
         // If >= 99.99% acceptance, consider it unanimous.
         // The minting formula for voting power is a bit lossy, so we check
         // for slightly less than 100%.
