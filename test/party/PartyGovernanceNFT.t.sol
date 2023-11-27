@@ -22,6 +22,9 @@ import "../TestUtils.sol";
 import { LintJSON } from "../utils/LintJSON.sol";
 
 contract PartyGovernanceNFTTestBase is LintJSON, TestUtils {
+    event MetadataUpdate(uint256 _tokenId);
+    event BatchMetadataUpdate(uint256 _fromTokenId, uint256 _toTokenId);
+
     Party partyImpl;
     PartyFactory partyFactory;
     ProposalExecutionEngine eng;
@@ -212,6 +215,9 @@ contract PartyGovernanceNFTTest is PartyGovernanceNFTTestBase {
 
         uint96 votingPower = 10;
 
+        vm.expectEmit(true, true, true, true);
+        emit BatchMetadataUpdate(0, type(uint256).max);
+
         address authority = address(partyAdmin);
         vm.prank(authority);
         party.increaseTotalVotingPower(votingPower);
@@ -260,6 +266,9 @@ contract PartyGovernanceNFTTest is PartyGovernanceNFTTestBase {
         );
 
         uint96 votingPower = 10;
+
+        vm.expectEmit(true, true, true, true);
+        emit BatchMetadataUpdate(0, type(uint256).max);
 
         address authority = address(partyAdmin);
         vm.prank(authority);
@@ -316,6 +325,9 @@ contract PartyGovernanceNFTTest is PartyGovernanceNFTTestBase {
         uint40 timestampAfter = uint40(block.timestamp);
 
         uint96 votingPower = 10;
+
+        vm.expectEmit(true, true, true, true);
+        emit MetadataUpdate(tokenId);
 
         address authority = address(partyAdmin);
         vm.prank(authority);
@@ -408,6 +420,9 @@ contract PartyGovernanceNFTTest is PartyGovernanceNFTTestBase {
         uint40 timestampAfter = uint40(block.timestamp);
 
         uint96 votingPower = 10;
+
+        vm.expectEmit(true, true, true, true);
+        emit MetadataUpdate(tokenId);
 
         address authority = address(partyAdmin);
         vm.prank(authority);
@@ -741,6 +756,9 @@ contract PartyGovernanceNFTTest is PartyGovernanceNFTTestBase {
 
         uint256[] memory tokenIds = new uint256[](1);
         tokenIds[0] = tokenId;
+
+        vm.expectEmit(true, true, true, true);
+        emit BatchMetadataUpdate(0, type(uint256).max);
 
         vm.prank(recipient);
         party.rageQuit(tokenIds, tokens, minWithdrawAmounts, recipient);
