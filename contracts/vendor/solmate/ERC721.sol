@@ -227,7 +227,7 @@ abstract contract ERC721 is IERC721, EIP165 {
             ERC721TokenReceiver(to).onERC721Received(msg.sender, address(0), id, data) !=
             ERC721TokenReceiver.onERC721Received.selector
         ) {
-            revert Unauthorized();
+            revert UnsafeRecipient();
         }
     }
 }
