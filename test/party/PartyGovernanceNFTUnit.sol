@@ -38,7 +38,7 @@ contract TestablePartyGovernanceNFT is PartyGovernanceNFT {
     }
 
     function getCurrentVotingPower(address voter) external view returns (uint96 vp) {
-        return this.getVotingPowerAt(voter, uint40(block.timestamp));
+        return this.getVotingPowerAt(voter, uint40(block.timestamp), 0);
     }
 
     modifier onlyDelegateCall() override {

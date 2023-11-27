@@ -56,8 +56,11 @@ contract OffChainSignatureValidator is IERC1271 {
 
         Party party = Party(payable(msg.sender));
         address signer = ecrecover(hash, v, r, s);
-        uint96 signerVotingPowerBps = party.getVotingPowerAt(signer, uint40(block.timestamp)) *
-            10000;
+        uint96 signerVotingPowerBps = party.getVotingPowerAt(
+            signer,
+            uint40(block.timestamp),
+            type(uint256).max
+        ) * 10000;
 
         if (signerVotingPowerBps == 0 && party.balanceOf(signer) == 0) {
             // Must own a party card or be delegatated voting power

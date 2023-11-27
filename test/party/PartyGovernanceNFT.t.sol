@@ -162,7 +162,7 @@ contract PartyGovernanceNFTTest is PartyGovernanceNFTTestBase {
         address recipient = _randomAddress();
         vm.prank(address(partyAdmin));
         party.mint(recipient, 101, recipient);
-        assertEq(party.getVotingPowerAt(recipient, uint40(block.timestamp)), 100);
+        assertEq(party.getVotingPowerAt(recipient, uint40(block.timestamp), 0), 100);
     }
 
     function testMint_cannotMintBeyondTotalVotingPower_twoMints() external {
@@ -183,11 +183,11 @@ contract PartyGovernanceNFTTest is PartyGovernanceNFTTestBase {
         address recipient = _randomAddress();
         vm.prank(address(partyAdmin));
         party.mint(recipient, 99, recipient);
-        assertEq(party.getVotingPowerAt(recipient, uint40(block.timestamp)), 99);
+        assertEq(party.getVotingPowerAt(recipient, uint40(block.timestamp), 0), 99);
         recipient = _randomAddress();
         vm.prank(address(partyAdmin));
         party.mint(recipient, 2, recipient);
-        assertEq(party.getVotingPowerAt(recipient, uint40(block.timestamp)), 1);
+        assertEq(party.getVotingPowerAt(recipient, uint40(block.timestamp), 0), 1);
     }
 
     function testIncreaseTotalVotingPower_works() external {
@@ -319,8 +319,8 @@ contract PartyGovernanceNFTTest is PartyGovernanceNFTTestBase {
 
         assertEq(party.votingPowerByTokenId(tokenId), 20);
         assertEq(party.mintedVotingPower(), 20);
-        assertEq(party.getVotingPowerAt(recipient, timestampAfter), 20);
-        assertEq(party.getVotingPowerAt(recipient, timestampBefore), 10);
+        assertEq(party.getVotingPowerAt(recipient, timestampAfter, 0), 20);
+        assertEq(party.getVotingPowerAt(recipient, timestampBefore, 0), 10);
     }
 
     function testIncreaseVotingPower_onlyAuthority() external {
@@ -411,8 +411,8 @@ contract PartyGovernanceNFTTest is PartyGovernanceNFTTestBase {
 
         assertEq(party.votingPowerByTokenId(tokenId), 10);
         assertEq(party.mintedVotingPower(), 10);
-        assertEq(party.getVotingPowerAt(recipient, timestampAfter), 10);
-        assertEq(party.getVotingPowerAt(recipient, timestampBefore), 20);
+        assertEq(party.getVotingPowerAt(recipient, timestampAfter, 0), 10);
+        assertEq(party.getVotingPowerAt(recipient, timestampBefore, 0), 20);
     }
 
     function testDecreaseVotingPower_onlyAuthority() external {
@@ -442,6 +442,8 @@ contract PartyGovernanceNFTTest is PartyGovernanceNFTTestBase {
         party.decreaseVotingPower(tokenId, votingPower);
     }
 
+    error NotMinted();
+
     function testBurn_works() external {
         (Party party, , ) = partyAdmin.createParty(
             partyImpl,
@@ -465,7 +467,7 @@ contract PartyGovernanceNFTTest is PartyGovernanceNFTTestBase {
         party.burn(tokenId);
 
         // Check token burned
-        vm.expectRevert("NOT_MINTED");
+        vm.expectRevert(NotMinted.selector);
         party.ownerOf(tokenId);
 
         assertEq(party.votingPowerByTokenId(tokenId), 0);

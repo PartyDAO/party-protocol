@@ -28,7 +28,7 @@ contract Party is PartyGovernanceNFT {
     }
 
     /// @notice Version ID of the party implementation contract.
-    uint16 public constant VERSION_ID = 1;
+    uint16 public constant VERSION_ID = 2;
 
     // Set the `Globals` contract.
     constructor(IGlobals globals) PartyGovernanceNFT(globals) {}
