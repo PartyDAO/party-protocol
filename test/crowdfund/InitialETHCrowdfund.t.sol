@@ -54,6 +54,7 @@ contract InitialETHCrowdfundTest is LintJSON, TestUtils, ERC721Receiver {
             nftRendererStorage,
             font,
             address(0),
+            address(0),
             "https://party.app/party/"
         );
         tokenDistributor = new TokenDistributor(globals, 0);
