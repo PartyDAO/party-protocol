@@ -36,7 +36,7 @@ contract DummyProposalExecutionEngine is IProposalExecutionEngine, ProposalStora
 
     function executeProposal(
         ExecuteProposalParams memory params
-    ) external returns (bytes memory nextProgressData) {
+    ) external payable returns (bytes memory nextProgressData) {
         uint256 numSteps = abi.decode(params.proposalData, (uint256));
         uint256 currStep = params.progressData.length > 0
             ? abi.decode(params.progressData, (uint256))
