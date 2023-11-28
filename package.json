@@ -21,6 +21,7 @@
     "deploy:base:dry": "DRY_RUN=1 forge script ./deploy/Base.s.sol -vvv --rpc-url $BASE_RPC_URL --via-ir --evm-version paris --skip test --optimize --optimizer-runs 0 --ffi",
     "deploy:base-goerli": "DRY_RUN=0 forge script ./deploy/BaseGoerli.s.sol -vvv --rpc-url $BASE_GOERLI_RPC_URL --via-ir --broadcast --etherscan-api-key $BASESCAN_API_KEY --evm-version paris --skip test --optimize --optimizer-runs 0 --ffi --slow",
     "deploy:base-goerli:dry": "DRY_RUN=1 forge script ./deploy/BaseGoerli.s.sol -vvv --rpc-url $BASE_GOERLI_RPC_URL --via-ir --evm-version paris --skip test --optimize --optimizer-runs 0 --ffi",
+    "deploy:zora:dry": "DRY_RUN=1 forge script ./deploy/Zora.s.sol -vvv --rpc-url $ZORA_RPC_URL --via-ir --skip test --optimize --optimizer-runs 95 --ffi",
     "deploy:zora": "DRY_RUN=0 forge script ./deploy/Zora.s.sol -vvv --rpc-url $ZORA_RPC_URL --broadcast --via-ir --skip test --optimize --optimizer-runs 95 --ffi --slow",
     "decode-revert": "node js/decode-revert.js",
     "layout": "node js/gen-storage-layout.js",
