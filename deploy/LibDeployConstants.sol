@@ -187,7 +187,7 @@ library LibDeployConstants {
             minCancelDelay: 6 weeks,
             maxCancelDelay: 12 weeks,
             distributorEmergencyActionAllowedDuration: 365 days,
-            partyDaoMultisig: 0x0e63D6f414b40BaFCa676810ef1aBf05ECc8E459, // Dev wallet for now
+            partyDaoMultisig: 0x1B059499F194B3ec0c754b3c8DEb0Ec91b0e68e9,
             allowedERC20SwapOperatorTargets: allowedERC20SwapOperatorTargets,
             osZone: 0x0000000000000000000000000000000000000000,
             osConduitKey: 0xf984c55ca75735630c1c27d3d06969c1aa6af1df86d22ddc0e3a978ad6138e9f,
