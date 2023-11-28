@@ -6,7 +6,7 @@ import path from "path";
 import axios from "axios";
 import { createHash } from "crypto";
 import { snakeCase, camelCase } from "change-case";
-import { getEtherscanApiEndpoint, getEtherscanApiKey, verify } from "./verify";
+import { getBlockExplorerApiEndpoint, getBlockExporerApiKey, verify } from "./verify";
 import "colors";
 
 const rl = readline.createInterface({
@@ -82,12 +82,12 @@ async function getSourceCode(address: string, chain: string) {
     tries++;
 
     const response = await axios.post(
-      getEtherscanApiEndpoint(chain),
+      getBlockExplorerApiEndpoint(chain),
       {
         module: "contract",
         action: "getsourcecode",
         address,
-        apikey: getEtherscanApiKey(chain),
+        apikey: getBlockExporerApiKey(chain),
       },
       {
         headers: {
@@ -98,7 +98,12 @@ async function getSourceCode(address: string, chain: string) {
 
     const result = response.data.result;
 
-    if (result != "Max rate limit reached") return result[0];
+    if (result == "Max rate limit reached") {
+      console.log("Max rate limit reached. Waiting 5 seconds...".gray);
+      await new Promise(resolve => setTimeout(resolve, 5000));
+    } else {
+      return result[0];
+    }
   }
 }
 
@@ -110,7 +115,10 @@ async function setLatestContractAddresses(chain: string) {
 
   // Check if the head.json file exists
   if (!fs.existsSync(head_path)) {
-    console.error(`Could not find ${head_path}. Skipping.`.yellow);
+    console.error(
+      `Could not find ${head_path}. Run \`forge install\` to install lib/party-addresses. Skipping.`
+        .yellow,
+    );
   }
 
   let head_data = JSON.parse(fs.readFileSync(head_path, "utf8"));
@@ -153,7 +161,7 @@ async function setLatestContractAddresses(chain: string) {
     const pattern = new RegExp(` ${camelCaseKey}`);
     const match = content.match(new RegExp(`(\\w+)\\s+public\\s+${camelCaseKey};`, "m"));
     if (!match) {
-      console.warn(`Skipping ${key}`.grey);
+      console.warn(`Skipping ${key}, not found in ${deployPath}.`.grey);
       continue;
     }
 
@@ -162,23 +170,6 @@ async function setLatestContractAddresses(chain: string) {
 
     // Convert the address to checksum format
     const address = toChecksumAddress(value as string);
-
-    // Check if the address is for the expected contract
-    const sourceCode = await getSourceCode(address, chain);
-    const contractName = sourceCode["ContractName"];
-
-    // Handle errors
-    if (contractName != key) {
-      if (contractName) {
-        console.warn(`Expected ${address} to be for ${key}, not ${contractName}. Skipping`.yellow);
-      } else if (sourceCode["ABI"] === "Contract source code not verified") {
-        console.warn(`Code for ${address} not verified for ${key}. Skipping`.yellow);
-      } else {
-        console.warn(`Could not confirm ${address} is ${key}. Skipping`.yellow);
-      }
-
-      continue;
-    }
 
     // Sets the variable to the corresponding address. Make `payable` to allow
     // compatibility with variables that are expected by compiler to be `address
@@ -190,6 +181,45 @@ async function setLatestContractAddresses(chain: string) {
 
   // Write the updated content to the Deploy.s.sol file
   fs.writeFileSync(deployPath, content);
+}
+
+async function checkDeployContractAddressesAreExpectedContracts(chain: string) {
+  // Get all recently deployed contract addresses
+  const addressesPath = path.join("deploy", "cache", `${chain}.json`);
+  const addressesData = await fs.promises.readFile(addressesPath, "utf8");
+  const addresses: { [key: string]: string } = JSON.parse(addressesData);
+
+  // Iterate over the keys and values in the JSON data
+  for (let [expectedContractName, address] of Object.entries(addresses)) {
+    // Convert the address to checksum format
+    address = toChecksumAddress(address);
+
+    // Check if the address is for the expected contract
+    const sourceCode = await getSourceCode(address, chain);
+
+    if (!sourceCode) {
+      console.warn(
+        `Nothing returned for ${address} from ${getBlockExplorerApiEndpoint(chain)}.`.yellow,
+      );
+      continue;
+    }
+    const contractName = sourceCode["ContractName"];
+
+    if (contractName != expectedContractName) {
+      if (contractName) {
+        console.warn(
+          `Expected ${address} to be for ${expectedContractName}, not ${contractName}! Please investigate to see what went wrong.`
+            .red,
+        );
+      } else if (sourceCode["ABI"] === "Contract source code not verified") {
+        console.warn(`Code for ${address} not verified for ${expectedContractName}.`.yellow);
+      } else {
+        console.warn(`Could not confirm ${address} is ${expectedContractName}.`.yellow);
+      }
+    } else {
+      console.log(`Verified that ${address} is ${expectedContractName}!`.green);
+    }
+  }
 }
 
 async function checksumAddresses(file: string) {
@@ -213,7 +243,7 @@ async function updateReadmeDeployAddresses(chain: string) {
   const content: string[] = (await fs.promises.readFile("README.md", "utf8")).split("\n");
 
   for (const key in data) {
-    // Skip if one of these contracts
+    // Ski.grayp if one of these contracts
     if (["PixeldroidConsoleFont", "RendererStorage", "PartyHelpers"].some(name => name === key)) {
       continue;
     }
@@ -460,11 +490,25 @@ async function main() {
     await run("yarn lint:fix > /dev/null");
     await checksumAddresses(`deploy/cache/${chain}.json`);
 
-    // Wait for contract code to be uploaded to Etherscan
-    console.log("Waiting for Etherscan to index contract code...");
+    console.log("Waiting for block explorer to index contract code...");
     await new Promise(resolve => setTimeout(resolve, 5000));
 
+    // Verify contracts on block explorer
     await verify(chain, true);
+
+    if (
+      await confirm(
+        "Do you want to check that each address is actually the contract it is stored under before proceeding?",
+        true,
+      )
+    ) {
+      console.log("Waiting for block explorer to index contract verification status...");
+      await new Promise(resolve => setTimeout(resolve, 5000));
+
+      // Check that deployed contract addresses stored are actually under
+      // the expected contract names
+      await checkDeployContractAddressesAreExpectedContracts(chain);
+    }
   } else {
     process.exit(0);
   }
