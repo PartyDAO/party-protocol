@@ -76,7 +76,8 @@ contract PartyNFTRenderer is RendererBase {
     IMetadataRegistry1_1 constant OLD_METADATA_REGISTRY =
         IMetadataRegistry1_1(0x175487875F0318EdbAB54BBA442fF53b36e96015);
     /// @notice The old token distributor contract address.
-    address immutable OLD_TOKEN_DISTRIBUTOR;
+    address immutable TOKEN_DISTRIBUTOR_V1;
+    address immutable TOKEN_DISTRIBUTOR_V2;
 
     /// @notice The base url for external URLs. External URL is BASE_EXTERNAL_URL + PARTY_ADDRESS
     /// @dev First byte is the size of the data, the rest is the data (starting from MSB)
@@ -86,11 +87,13 @@ contract PartyNFTRenderer is RendererBase {
         IGlobals globals,
         RendererStorage rendererStorage,
         IFont font,
-        address oldTokenDistributor,
+        address tokenDistributionV1,
+        address tokenDistributionV2,
         string memory baseExternalURL
     ) RendererBase(globals, rendererStorage, font) {
         IMPL = address(this);
-        OLD_TOKEN_DISTRIBUTOR = oldTokenDistributor;
+        TOKEN_DISTRIBUTOR_V1 = tokenDistributionV1;
+        TOKEN_DISTRIBUTOR_V2 = tokenDistributionV2;
 
         bytes memory baseExternalURLBytes = bytes(baseExternalURL);
         if (baseExternalURLBytes.length > 31) {
@@ -219,7 +222,7 @@ contract PartyNFTRenderer is RendererBase {
                             ? generateDescription(PartyGovernanceNFT(address(this)).name(), tokenId)
                             : string.concat(
                                 metadata.description,
-                                " ",
+                                "\\n\\n",
                                 // Append default description.
                                 generateDescription(
                                     PartyGovernanceNFT(address(this)).name(),
@@ -659,14 +662,21 @@ contract PartyNFTRenderer is RendererBase {
         if (address(this) == IMPL) return false;
 
         // There will only be one distributor if old token distributor is not set
-        TokenDistributor[] memory distributors = new TokenDistributor[](1);
-        if (OLD_TOKEN_DISTRIBUTOR != address(0)) {
-            distributors = new TokenDistributor[](2);
-            distributors[1] = TokenDistributor(OLD_TOKEN_DISTRIBUTOR);
-        }
+        TokenDistributor[] memory distributors = new TokenDistributor[](3);
         distributors[0] = TokenDistributor(
             _GLOBALS.getAddress(LibGlobals.GLOBAL_TOKEN_DISTRIBUTOR)
         );
+        uint256 l = 1;
+        if (TOKEN_DISTRIBUTOR_V2 != address(0)) {
+            distributors[l++] = TokenDistributor(TOKEN_DISTRIBUTOR_V2);
+        }
+        if (TOKEN_DISTRIBUTOR_V1 != address(0)) {
+            distributors[l++] = TokenDistributor(TOKEN_DISTRIBUTOR_V1);
+        }
+        assembly {
+            // Update length of `distributors`
+            mstore(distributors, l)
+        }
 
         Party party = Party(payable(address(this)));
         for (uint256 i; i < distributors.length; ++i) {
@@ -679,7 +689,21 @@ contract PartyNFTRenderer is RendererBase {
                 ++distributionId
             ) {
                 if (!distributor.hasPartyTokenIdClaimed(party, tokenId, distributionId)) {
-                    return true;
+                    TokenDistributor.DistributionInfo memory info;
+                    info.party = party;
+                    info.distributionId = distributionId;
+                    info.totalShares = 1; // low amount to avoid div by 0
+                    info.memberSupply = 1e18; // arbitrary amount
+
+                    // `TokenIdAboveMaxError` may prevent it from being claimed.
+                    (bool success, bytes memory response) = address(distributor).staticcall(
+                        abi.encodeCall(TokenDistributor.getClaimAmount, (info, tokenId))
+                    );
+
+                    if (success) {
+                        uint128 amount = abi.decode(response, (uint128));
+                        if (amount != 0) return true;
+                    }
                 }
             }
         }
