@@ -198,7 +198,8 @@ library LibDeployConstants {
             networkName: "zora",
             deployedNounsMarketWrapper: 0x0000000000000000000000000000000000000000,
             contributionRouterInitialFee: 0.00055 ether,
-            oldTokenDistributor: address(0),
+            tokenDistributorV1: address(0),
+            tokenDistributorV2: address(0),
             baseExternalURL: "https://zora.party.app/party/"
         });
 
