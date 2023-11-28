@@ -10,6 +10,7 @@ contract OffChainSignatureValidator is IERC1271 {
     error NotMemberOfParty();
     error InsufficientVotingPower();
     error MessageHashMismatch();
+    error InvalidSignature();
 
     /// @notice Event emmitted when signing threshold updated
     event SigningThresholdBpsSet(
@@ -56,6 +57,10 @@ contract OffChainSignatureValidator is IERC1271 {
 
         Party party = Party(payable(msg.sender));
         address signer = ecrecover(hash, v, r, s);
+
+        if (signer == address(0)) {
+            revert InvalidSignature();
+        }
         uint96 signerVotingPowerBps = party.getVotingPowerAt(
             signer,
             uint40(block.timestamp),
@@ -73,7 +78,7 @@ contract OffChainSignatureValidator is IERC1271 {
         // Either threshold is 0 or signer votes above threshold
         if (
             thresholdBps == 0 ||
-            (signerVotingPowerBps > totalVotingPower &&
+            (signerVotingPowerBps >= totalVotingPower &&
                 signerVotingPowerBps / totalVotingPower >= thresholdBps)
         ) {
             return IERC1271.isValidSignature.selector;

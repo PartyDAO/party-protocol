@@ -186,6 +186,28 @@ contract OffChainSignatureValidatorTest is SetupPartyHelper {
         assertEq(abi.decode(res, (bytes4)), IERC1271.isValidSignature.selector);
     }
 
+    function testOffChainSignatureValidator_invalidSignature() public {
+        string memory message = "Hello, this is my message";
+        bytes memory encondedMessage = abi.encodePacked(message);
+        bytes memory encodedPacket = abi.encodePacked(
+            "\x19Ethereum Signed Message:\n",
+            Strings.toString(encondedMessage.length),
+            encondedMessage
+        );
+        bytes32 messageHash = keccak256(encodedPacket);
+        (, bytes32 r, bytes32 s) = vm.sign(johnPk, messageHash);
+        bytes memory signature = abi.encodePacked(r, s, uint8(0), message);
+
+        bytes memory staticCallData = abi.encodeWithSelector(
+            IERC1271.isValidSignature.selector,
+            messageHash,
+            signature
+        );
+        vm.startPrank(address(0), address(0));
+        vm.expectRevert(OffChainSignatureValidator.InvalidSignature.selector);
+        address(party).staticcall(staticCallData);
+    }
+
     function _signMessage(
         uint256 privateKey,
         string memory message
