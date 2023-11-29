@@ -136,12 +136,10 @@ contract InitialETHCrowdfund is ETHCrowdfundBase {
             })
         );
 
-        // If the deployer passed in some ETH during deployment, credit them
+        // If the creator passed in some ETH during initialization, credit them
         // for the initial contribution.
         uint96 initialContribution = msg.value.safeCastUint256ToUint96();
         if (initialContribution > 0) {
-            // If this contract has ETH, either passed in during deployment or
-            // pre-existing, credit it to the `initialContributor`.
             _contribute(
                 crowdfundOpts.initialContributor,
                 crowdfundOpts.initialDelegate,
