@@ -245,7 +245,7 @@ contract GasBenchmarks is SetupPartyHelper {
 
         InitialETHCrowdfund.BatchContributeArgs memory batchContributeArgs;
         batchContributeArgs.tokenIds = new uint256[](2);
-        batchContributeArgs.delegate = address(this);
+        batchContributeArgs.initialDelegate = address(this);
         batchContributeArgs.values = new uint96[](2);
         batchContributeArgs.values[0] = 0.01 ether;
         batchContributeArgs.values[1] = 0.01 ether;

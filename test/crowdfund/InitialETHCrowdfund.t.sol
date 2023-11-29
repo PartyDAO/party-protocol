@@ -903,7 +903,7 @@ contract InitialETHCrowdfundTest is InitialETHCrowdfundTestBase {
         uint96[] memory votingPowers = crowdfund.batchContribute{ value: 3 ether }(
             InitialETHCrowdfund.BatchContributeArgs({
                 tokenIds: tokenIds,
-                delegate: member,
+                initialDelegate: member,
                 values: values,
                 gateDatas: gateDatas
             })

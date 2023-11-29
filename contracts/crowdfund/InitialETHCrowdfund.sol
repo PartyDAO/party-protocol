@@ -66,8 +66,10 @@ contract InitialETHCrowdfund is ETHCrowdfundBase {
         // IDs of cards to credit the contributions to. When set to 0, it means
         // a new one should be minted.
         uint256[] tokenIds;
-        // The address to which voting power will be delegated for all contributions.
-        address delegate;
+        // The address to which voting power will be delegated for all
+        // contributions. This will be ignored if recipient has already set a
+        // delegate.
+        address initialDelegate;
         // The contribution amounts in wei. The length of this array must be
         // equal to the length of `tokenIds`.
         uint96[] values;
@@ -83,8 +85,8 @@ contract InitialETHCrowdfund is ETHCrowdfundBase {
         // Addresses of to credit the contributions under. Each contribution
         // amount in `values` corresponds to a recipient in this array.
         address payable[] recipients;
-        // The delegate to set for each recipient if they have not delegated
-        // before.
+        // The delegate to set for each recipient. This will be ignored if
+        // recipient has already set a delegate.
         address[] initialDelegates;
         // The contribution amounts in wei. The length of this array must be
         // equal to the length of `recipients`.
@@ -155,19 +157,20 @@ contract InitialETHCrowdfund is ETHCrowdfundBase {
     }
 
     /// @notice Contribute ETH to this crowdfund on behalf of a contributor.
-    /// @param delegate The address to which voting power will be delegated to
-    ///                 during the governance phase.
+    /// @param initialDelegate The address to which voting power will be delegated to
+    ///                        during the governance phase. This will be ignored
+    ///                        if recipient has already set a delegate.
     /// @param gateData Data to pass to the gatekeeper to prove eligibility.
     /// @return votingPower The voting power the contributor receives for their
     ///                     contribution.
     function contribute(
-        address delegate,
+        address initialDelegate,
         bytes memory gateData
     ) public payable onlyDelegateCall returns (uint96 votingPower) {
         return
             _contribute(
                 payable(msg.sender),
-                delegate,
+                initialDelegate,
                 msg.value.safeCastUint256ToUint96(),
                 0, // Mint a new party card for the contributor.
                 gateData
@@ -176,20 +179,21 @@ contract InitialETHCrowdfund is ETHCrowdfundBase {
 
     /// @notice Contribute ETH to this crowdfund on behalf of a contributor.
     /// @param tokenId The ID of the card the contribution is being made towards.
-    /// @param delegate The address to which voting power will be delegated to
-    ///                 during the governance phase.
+    /// @param initialDelegate The address to which voting power will be delegated to
+    ///                        during the governance phase. This will be ignored
+    ///                        if recipient has already set a delegate.
     /// @param gateData Data to pass to the gatekeeper to prove eligibility.
     /// @return votingPower The voting power the contributor receives for their
     ///                     contribution.
     function contribute(
         uint256 tokenId,
-        address delegate,
+        address initialDelegate,
         bytes memory gateData
     ) public payable onlyDelegateCall returns (uint96 votingPower) {
         return
             _contribute(
                 payable(msg.sender),
-                delegate,
+                initialDelegate,
                 msg.value.safeCastUint256ToUint96(),
                 tokenId,
                 gateData
@@ -210,7 +214,7 @@ contract InitialETHCrowdfund is ETHCrowdfundBase {
         for (uint256 i; i < numContributions; ++i) {
             votingPowers[i] = _contribute(
                 payable(msg.sender),
-                args.delegate,
+                args.initialDelegate,
                 args.values[i],
                 args.tokenIds[i],
                 args.gateDatas[i]
@@ -226,8 +230,9 @@ contract InitialETHCrowdfund is ETHCrowdfundBase {
     /// @param tokenId The ID of the token to credit the contribution to, or
     ///                zero to mint a new party card for the recipient
     /// @param recipient The address to record the contribution under
-    /// @param initialDelegate The address to delegate to for the governance
-    ///                        phase if recipient hasn't delegated
+    /// @param initialDelegate The address to which voting power will be delegated to
+    ///                        during the governance phase. This will be ignored
+    ///                        if recipient has already set a delegate.
     /// @param gateData Data to pass to the gatekeeper to prove eligibility
     /// @return votingPower The voting power received for the contribution
     function contributeFor(
