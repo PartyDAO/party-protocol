@@ -125,12 +125,15 @@ abstract contract PartyGovernance is
         uint96 votes; // -1 == vetoed
         // Number of total voting power at time proposal created.
         uint96 totalVotingPower;
-        /// @notice Number of hosts at time proposal created
+        // Number of hosts at time proposal created
         uint8 numHosts;
-        /// @notice Number of hosts that accepted proposal
+        // Number of hosts that accepted proposal
         uint8 numHostsAccepted;
+        // Cached vote duration from proposal creation.
         uint40 voteDuration;
+        // Cached execution delay from proposal creation.
         uint40 executionDelay;
+        // Cached pass threshold bps from proposal creation.
         uint16 passThresholdBps;
     }
 
