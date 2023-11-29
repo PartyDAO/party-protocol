@@ -11,7 +11,7 @@ contract OffChainSignatureValidator is IERC1271 {
     error InsufficientVotingPower();
     error MessageHashMismatch();
 
-    /// @notice Event emmitted when signing threshold updated
+    /// @notice Event emitted when signing threshold updated
     event SigningThresholdBpsSet(
         Party indexed party,
         uint96 oldThresholdBps,
@@ -19,7 +19,7 @@ contract OffChainSignatureValidator is IERC1271 {
     );
 
     /// @notice Mapping of party to signing threshold BPS
-    mapping(Party party => uint96 thresholdBps) public signingThersholdBps;
+    mapping(Party party => uint96 thresholdBps) public signingThresholdBps;
 
     /// @notice Validate an off-chain signature
     /// @dev This function requires `signature` to be a valid EOA signature from a member in the
@@ -63,12 +63,12 @@ contract OffChainSignatureValidator is IERC1271 {
         ) * 10000;
 
         if (signerVotingPowerBps == 0 && party.balanceOf(signer) == 0) {
-            // Must own a party card or be delegatated voting power
+            // Must own a party card or be delegated voting power
             revert NotMemberOfParty();
         }
 
         uint96 totalVotingPower = party.getGovernanceValues().totalVotingPower;
-        uint96 thresholdBps = signingThersholdBps[party];
+        uint96 thresholdBps = signingThresholdBps[party];
 
         // Either threshold is 0 or signer votes above threshold
         if (
@@ -86,7 +86,7 @@ contract OffChainSignatureValidator is IERC1271 {
     /// @param thresholdBps The new threshold BPS
     function setSigningThresholdBps(uint96 thresholdBps) external {
         Party party = Party(payable(msg.sender));
-        emit SigningThresholdBpsSet(party, signingThersholdBps[party], thresholdBps);
-        signingThersholdBps[party] = thresholdBps;
+        emit SigningThresholdBpsSet(party, signingThresholdBps[party], thresholdBps);
+        signingThresholdBps[party] = thresholdBps;
     }
 }
