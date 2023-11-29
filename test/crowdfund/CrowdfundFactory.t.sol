@@ -15,11 +15,17 @@ import "contracts/globals/Globals.sol";
 import "contracts/globals/LibGlobals.sol";
 import "contracts/renderers/MetadataRegistry.sol";
 import "contracts/renderers/MetadataProvider.sol";
+import { FixedPointMathLib } from "solmate/utils/FixedPointMathLib.sol";
+import { LibSafeCast } from "contracts/utils/LibSafeCast.sol";
 
 import "forge-std/Test.sol";
 import "../TestUtils.sol";
 
 contract CrowdfundFactoryTest is Test, TestUtils {
+    using FixedPointMathLib for uint40;
+    using FixedPointMathLib for uint256;
+    using LibSafeCast for uint256;
+
     Globals globals = new Globals(address(this));
     CrowdfundFactory partyCrowdfundFactory = new CrowdfundFactory();
     PartyFactory partyFactory = new PartyFactory(globals);
@@ -649,12 +655,16 @@ contract CrowdfundFactoryTest is Test, TestUtils {
         uint96 initialContribution;
         InitialETHCrowdfund.InitialETHCrowdfundOptions memory crowdfundOpts;
         {
-            uint16 exchangeRateBps = randomBps != 0 ? randomBps : 1;
-            // Only pass in initial contribution amount if it will not overflow.
-            if (randomUint40 > type(uint96).max / exchangeRateBps) {
-                // Only pass in initial contribution amount if results in non-zero voting power.
-                if ((randomUint40 * exchangeRateBps) / 1e4 != 0) {
-                    initialContribution = (randomUint40 * exchangeRateBps) / 1e4;
+            uint160 exchangeRate = randomUint96;
+
+            {
+                // Only pass in initial contribution amount if it will not overflow
+                // or result in zero voting power.
+                uint256 contribution = randomUint40;
+                contribution -= contribution.mulDivUp(randomBps, 1e4);
+                uint256 expectedVotingPower = contribution.mulDivDown(exchangeRate, 1e18);
+                if (expectedVotingPower < type(uint96).max && expectedVotingPower != 0) {
+                    initialContribution = randomUint40;
                 }
             }
 
@@ -678,7 +688,7 @@ contract CrowdfundFactoryTest is Test, TestUtils {
                 maxTotalContributions: initialContribution > randomUint96
                     ? initialContribution + 1 // Ensure initial contribution does not finalize the crowdfund.
                     : randomUint96 + 1,
-                exchangeRateBps: exchangeRateBps,
+                exchangeRate: exchangeRate,
                 fundingSplitBps: randomBps,
                 fundingSplitRecipient: payable(_randomAddress()),
                 // This is to avoid overflows when adding to `block.timestamp`.
@@ -732,7 +742,7 @@ contract CrowdfundFactoryTest is Test, TestUtils {
         );
         assertEq(inst.minTotalContributions(), crowdfundOpts.minTotalContributions);
         assertEq(inst.maxTotalContributions(), crowdfundOpts.maxTotalContributions);
-        assertEq(inst.exchangeRateBps(), crowdfundOpts.exchangeRateBps);
+        assertEq(inst.exchangeRate(), crowdfundOpts.exchangeRate);
         assertEq(inst.fundingSplitBps(), crowdfundOpts.fundingSplitBps);
         assertEq(inst.fundingSplitRecipient(), crowdfundOpts.fundingSplitRecipient);
         assertEq(inst.totalContributions(), initialContribution);
@@ -753,12 +763,16 @@ contract CrowdfundFactoryTest is Test, TestUtils {
         uint96 initialContribution;
         InitialETHCrowdfund.InitialETHCrowdfundOptions memory crowdfundOpts;
         {
-            uint16 exchangeRateBps = randomBps != 0 ? randomBps : 1;
-            // Only pass in initial contribution amount if it will not overflow.
-            if (randomUint40 > type(uint96).max / exchangeRateBps) {
-                // Only pass in initial contribution amount if results in non-zero voting power.
-                if ((randomUint40 * exchangeRateBps) / 1e4 != 0) {
-                    initialContribution = (randomUint40 * exchangeRateBps) / 1e4;
+            uint160 exchangeRate = randomUint96;
+
+            {
+                // Only pass in initial contribution amount if it will not overflow
+                // or result in zero voting power.
+                uint256 contribution = randomUint40;
+                contribution -= contribution.mulDivUp(randomBps, 1e4);
+                uint256 expectedVotingPower = contribution.mulDivDown(exchangeRate, 1e18);
+                if (expectedVotingPower < type(uint96).max && expectedVotingPower != 0) {
+                    initialContribution = randomUint40;
                 }
             }
 
@@ -782,7 +796,7 @@ contract CrowdfundFactoryTest is Test, TestUtils {
                 maxTotalContributions: initialContribution > randomUint96
                     ? initialContribution + 1 // Ensure initial contribution does not finalize the crowdfund.
                     : randomUint96 + 1,
-                exchangeRateBps: exchangeRateBps,
+                exchangeRate: exchangeRate,
                 fundingSplitBps: randomBps,
                 fundingSplitRecipient: payable(_randomAddress()),
                 // This is to avoid overflows when adding to `block.timestamp`.
@@ -803,7 +817,7 @@ contract CrowdfundFactoryTest is Test, TestUtils {
                 voteDuration: randomUint40,
                 executionDelay: randomUint40,
                 passThresholdBps: randomBps,
-                feeBps: randomBps,
+                feeBps: 1e4,
                 feeRecipient: payable(_randomAddress())
             }),
             proposalEngineOpts: ProposalStorage.ProposalEngineOpts({
@@ -833,7 +847,7 @@ contract CrowdfundFactoryTest is Test, TestUtils {
         );
         assertEq(inst.minTotalContributions(), crowdfundOpts.minTotalContributions);
         assertEq(inst.maxTotalContributions(), crowdfundOpts.maxTotalContributions);
-        assertEq(inst.exchangeRateBps(), crowdfundOpts.exchangeRateBps);
+        assertEq(inst.exchangeRate(), crowdfundOpts.exchangeRate);
         assertEq(inst.fundingSplitBps(), crowdfundOpts.fundingSplitBps);
         assertEq(inst.fundingSplitRecipient(), crowdfundOpts.fundingSplitRecipient);
         assertEq(inst.totalContributions(), initialContribution);
@@ -864,13 +878,16 @@ contract CrowdfundFactoryTest is Test, TestUtils {
             bytes memory createGateCallData
         ) = _randomGateKeeper();
 
-        uint16 exchangeRateBps = randomBps != 0 ? randomBps : 1;
+        uint160 exchangeRate = randomUint96;
         uint96 initialContribution;
-        // Only pass in initial contribution amount if it will not overflow.
-        if (randomUint40 > type(uint96).max / exchangeRateBps) {
-            // Only pass in initial contribution amount if results in non-zero voting power.
-            if ((randomUint40 * exchangeRateBps) / 1e4 != 0) {
-                initialContribution = (randomUint40 * exchangeRateBps) / 1e4;
+        {
+            // Only pass in initial contribution amount if it will not overflow
+            // or result in zero voting power.
+            uint256 contribution = randomUint40;
+            contribution -= contribution.mulDivUp(randomBps, 1e4);
+            uint256 expectedVotingPower = contribution.mulDivDown(exchangeRate, 1e18);
+            if (expectedVotingPower < type(uint96).max && expectedVotingPower != 0) {
+                initialContribution = randomUint40;
             }
         }
 
@@ -895,7 +912,7 @@ contract CrowdfundFactoryTest is Test, TestUtils {
             maxTotalContributions: initialContribution > randomUint96
                 ? initialContribution + 1 // Ensure initial contribution does not finalize the crowdfund.
                 : randomUint96 + 1,
-            exchangeRateBps: exchangeRateBps,
+            exchangeRate: exchangeRate,
             fundingSplitBps: randomBps,
             fundingSplitRecipient: payable(_randomAddress()),
             // This is to avoid overflows when adding to `block.timestamp`.
@@ -920,7 +937,7 @@ contract CrowdfundFactoryTest is Test, TestUtils {
         );
         assertEq(inst.minTotalContributions(), opts.minTotalContributions);
         assertEq(inst.maxTotalContributions(), opts.maxTotalContributions);
-        assertEq(inst.exchangeRateBps(), opts.exchangeRateBps);
+        assertEq(inst.exchangeRate(), opts.exchangeRate);
         assertEq(inst.fundingSplitBps(), opts.fundingSplitBps);
         assertEq(inst.fundingSplitRecipient(), opts.fundingSplitRecipient);
         assertEq(inst.totalContributions(), initialContribution);

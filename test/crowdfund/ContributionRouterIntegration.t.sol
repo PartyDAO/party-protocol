@@ -45,7 +45,7 @@ contract ContributionRouterIntegrationTest is TestUtils {
         ethCrowdfundOpts.maxContribution = type(uint96).max;
         ethCrowdfundOpts.maxTotalContributions = type(uint96).max;
         ethCrowdfundOpts.duration = 7 days;
-        ethCrowdfundOpts.exchangeRateBps = 1e4;
+        ethCrowdfundOpts.exchangeRate = 1e18;
 
         InitialETHCrowdfund.ETHPartyOptions memory partyOpts;
         partyOpts.name = "Test Party";

@@ -338,7 +338,7 @@ contract CrowdfundNFTRenderer is RendererBase {
     function getCrowdfundType() private view returns (CrowdfundType) {
         // If this function does not exist, then it is an NFT crowdfund.
         (bool success, bytes memory res) = address(this).staticcall(
-            abi.encodeWithSignature("exchangeRateBps()")
+            abi.encodeWithSignature("exchangeRate()")
         );
 
         if (success && res.length == 32) {

@@ -31,7 +31,7 @@ contract InitialETHCrowdfund is ETHCrowdfundBase {
         bool disableContributingForExistingCard;
         uint96 minTotalContributions;
         uint96 maxTotalContributions;
-        uint16 exchangeRateBps;
+        uint160 exchangeRate;
         uint16 fundingSplitBps;
         address payable fundingSplitRecipient;
         uint40 duration;
@@ -129,7 +129,7 @@ contract InitialETHCrowdfund is ETHCrowdfundBase {
                     .disableContributingForExistingCard,
                 minTotalContributions: crowdfundOpts.minTotalContributions,
                 maxTotalContributions: crowdfundOpts.maxTotalContributions,
-                exchangeRateBps: crowdfundOpts.exchangeRateBps,
+                exchangeRate: crowdfundOpts.exchangeRate,
                 fundingSplitBps: crowdfundOpts.fundingSplitBps,
                 fundingSplitRecipient: crowdfundOpts.fundingSplitRecipient,
                 duration: crowdfundOpts.duration,
