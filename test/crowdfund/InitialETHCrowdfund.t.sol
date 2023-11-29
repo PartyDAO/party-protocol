@@ -882,7 +882,7 @@ contract InitialETHCrowdfundTest is InitialETHCrowdfundTestBase {
         crowdfund.batchContribute{ value: 2.5 ether }(
             InitialETHCrowdfund.BatchContributeArgs({
                 tokenIds: tokenIds,
-                delegate: member,
+                initialDelegate: member,
                 values: values,
                 gateDatas: gateDatas
             })
@@ -893,7 +893,7 @@ contract InitialETHCrowdfundTest is InitialETHCrowdfundTestBase {
         crowdfund.batchContribute{ value: 3.5 ether }(
             InitialETHCrowdfund.BatchContributeArgs({
                 tokenIds: tokenIds,
-                delegate: member,
+                initialDelegate: member,
                 values: values,
                 gateDatas: gateDatas
             })
