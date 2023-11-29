@@ -643,6 +643,11 @@ abstract contract Crowdfund is Implementation, ERC721Receiver, CrowdfundNFT {
         {
             IGateKeeper _gateKeeper = gateKeeper;
             if (_gateKeeper != IGateKeeper(address(0))) {
+                // Checking msg.sender here instead of contributor is intentional to
+                // allow someone who's allowed by a gatekeeper to invite others
+                // into the Party. For example, to allow another contract, and
+                // only that contract, to process contributions on behalf of
+                // contributors.
                 if (!_gateKeeper.isAllowed(msg.sender, gateKeeperId, gateData)) {
                     revert NotAllowedByGateKeeperError(
                         msg.sender,
