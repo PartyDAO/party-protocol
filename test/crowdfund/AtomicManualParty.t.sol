@@ -92,8 +92,8 @@ contract AtomicManualPartyTest is SetupPartyHelper {
         assertEq(atomicParty.getGovernanceValues().totalVotingPower, 180);
 
         // Ensure holders match input
-        assertEq(atomicParty.getVotingPowerAt(john, uint40(block.timestamp)), 100);
-        assertEq(atomicParty.getVotingPowerAt(danny, uint40(block.timestamp)), 80);
+        assertEq(atomicParty.getVotingPowerAt(john, uint40(block.timestamp), 0), 100);
+        assertEq(atomicParty.getVotingPowerAt(danny, uint40(block.timestamp), 0), 80);
     }
 
     function test_createAtomicManualPartyWithMetadata() public {
@@ -141,8 +141,8 @@ contract AtomicManualPartyTest is SetupPartyHelper {
         assertFalse(party.isAuthority(address(atomicManualParty)));
 
         // Ensure holders match input
-        assertEq(atomicParty.getVotingPowerAt(john, uint40(block.timestamp)), 100);
-        assertEq(atomicParty.getVotingPowerAt(danny, uint40(block.timestamp)), 80);
+        assertEq(atomicParty.getVotingPowerAt(john, uint40(block.timestamp), 0), 100);
+        assertEq(atomicParty.getVotingPowerAt(danny, uint40(block.timestamp), 0), 80);
     }
 
     function test_createAtomicManualPartyArityMismatch() public {
@@ -249,8 +249,8 @@ contract AtomicManualPartyTest is SetupPartyHelper {
         assertEq(atomicParty.ownerOf(3), john);
 
         // Ensure holders match input
-        assertEq(atomicParty.getVotingPowerAt(john, uint40(block.timestamp)), 180);
-        assertEq(atomicParty.getVotingPowerAt(danny, uint40(block.timestamp)), 80);
+        assertEq(atomicParty.getVotingPowerAt(john, uint40(block.timestamp), 0), 180);
+        assertEq(atomicParty.getVotingPowerAt(danny, uint40(block.timestamp), 0), 80);
     }
 
     function test_atomicManualParty_invalidPartyMember() public {
