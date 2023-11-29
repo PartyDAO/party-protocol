@@ -68,6 +68,7 @@ abstract contract ETHCrowdfundBase is Implementation {
     error MaxTotalContributionsCannotBeZeroError(uint96 maxTotalContributions);
     error BelowMinimumContributionsError(uint96 contributions, uint96 minContributions);
     error AboveMaximumContributionsError(uint96 contributions, uint96 maxContributions);
+    error ExceedsRemainingContributionsError(uint96 amount, uint96 remaining);
     error InvalidExchangeRateError(uint160 exchangeRate);
     error ContributingForExistingCardDisabledError();
     error ZeroVotingPowerError();
@@ -175,7 +176,8 @@ abstract contract ETHCrowdfundBase is Implementation {
 
     /// @notice Get the current lifecycle of the crowdfund.
     function getCrowdfundLifecycle() public view returns (CrowdfundLifecycle lifecycle) {
-        if (maxTotalContributions == 0) {
+        uint96 maxTotalContributions_ = maxTotalContributions;
+        if (maxTotalContributions_ == 0) {
             return CrowdfundLifecycle.Invalid;
         }
 
@@ -226,35 +228,26 @@ abstract contract ETHCrowdfundBase is Implementation {
             revert AboveMaximumContributionsError(contribution, maxContribution_);
         }
 
+        uint96 minContribution_ = minContribution;
         uint96 newTotalContributions = totalContributions + contribution;
         uint96 maxTotalContributions_ = maxTotalContributions;
-        if (newTotalContributions >= maxTotalContributions_) {
-            totalContributions = maxTotalContributions_;
-
-            // Finalize the crowdfund.
-            // This occurs before refunding excess contribution to act as a
-            // reentrancy guard.
-            _finalize(maxTotalContributions_);
-
-            // Refund excess contribution.
-            uint96 refundAmount = newTotalContributions - maxTotalContributions;
-            if (refundAmount > 0) {
-                contribution -= refundAmount;
-                payable(msg.sender).transferEth(refundAmount);
-            }
+        if (newTotalContributions > maxTotalContributions_) {
+            revert ExceedsRemainingContributionsError(
+                contribution,
+                maxTotalContributions_ - totalContributions
+            );
         } else {
             totalContributions = newTotalContributions;
+
+            if (
+                maxTotalContributions_ == newTotalContributions ||
+                minContribution_ > maxTotalContributions_ - newTotalContributions
+            ) {
+                _finalize(newTotalContributions);
+            }
         }
 
-        // Check that the contribution amount is at or above the minimum. This
-        // is done after `amount` is potentially reduced if refunding excess
-        // contribution. There is a case where this prevents a crowdfunds from
-        // reaching `maxTotalContributions` if the `minContribution` is greater
-        // than the difference between `maxTotalContributions` and the current
-        // `totalContributions`. In this scenario users will have to wait until
-        // the crowdfund expires or a host finalizes after
-        // `minTotalContribution` has been reached by calling `finalize()`.
-        uint96 minContribution_ = minContribution;
+        // Check that the contribution amount is at or above the minimum.
         if (contribution < minContribution_) {
             revert BelowMinimumContributionsError(contribution, minContribution_);
         }

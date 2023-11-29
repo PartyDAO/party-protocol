@@ -686,7 +686,7 @@ contract CrowdfundFactoryTest is Test, TestUtils {
                     : randomUint96 - 1,
                 // Ensure that `maxTotalContributions` is greater than initial contribution.
                 maxTotalContributions: initialContribution > randomUint96
-                    ? initialContribution + 1 // Ensure initial contribution does not finalize the crowdfund.
+                    ? initialContribution
                     : randomUint96 + 1,
                 exchangeRate: exchangeRate,
                 fundingSplitBps: randomBps,
@@ -733,7 +733,12 @@ contract CrowdfundFactoryTest is Test, TestUtils {
         // Check that value are initialized to what we expect.
         assertEq(party_.name(), partyOpts.name);
         assertEq(party_.symbol(), partyOpts.symbol);
-        assertEq(inst.expiry(), uint40(block.timestamp + crowdfundOpts.duration));
+        assertEq(
+            inst.expiry(),
+            inst.getCrowdfundLifecycle() == ETHCrowdfundBase.CrowdfundLifecycle.Active
+                ? uint40(block.timestamp + crowdfundOpts.duration)
+                : 0 // Crowdfund is finalized.
+        );
         assertEq(inst.minContribution(), crowdfundOpts.minContribution);
         assertEq(inst.maxContribution(), crowdfundOpts.maxContribution);
         assertEq(
@@ -794,7 +799,7 @@ contract CrowdfundFactoryTest is Test, TestUtils {
                     : randomUint96 - 1,
                 // Ensure that `maxTotalContributions` is greater than initial contribution.
                 maxTotalContributions: initialContribution > randomUint96
-                    ? initialContribution + 1 // Ensure initial contribution does not finalize the crowdfund.
+                    ? initialContribution
                     : randomUint96 + 1,
                 exchangeRate: exchangeRate,
                 fundingSplitBps: randomBps,
@@ -838,7 +843,12 @@ contract CrowdfundFactoryTest is Test, TestUtils {
         }(initialETHCrowdfund, crowdfundOpts, partyOpts, metadataProvider, randomBytes, "");
 
         // Check that value are initialized to what we expect.
-        assertEq(inst.expiry(), uint40(block.timestamp + crowdfundOpts.duration));
+        assertEq(
+            inst.expiry(),
+            inst.getCrowdfundLifecycle() == ETHCrowdfundBase.CrowdfundLifecycle.Active
+                ? uint40(block.timestamp + crowdfundOpts.duration)
+                : 0 // Crowdfund is finalized.
+        );
         assertEq(inst.minContribution(), crowdfundOpts.minContribution);
         assertEq(inst.maxContribution(), crowdfundOpts.maxContribution);
         assertEq(
@@ -910,7 +920,7 @@ contract CrowdfundFactoryTest is Test, TestUtils {
                 : randomUint96 - 1,
             // Ensure that `maxTotalContributions` is greater than initial contribution.
             maxTotalContributions: initialContribution > randomUint96
-                ? initialContribution + 1 // Ensure initial contribution does not finalize the crowdfund.
+                ? initialContribution
                 : randomUint96 + 1,
             exchangeRate: exchangeRate,
             fundingSplitBps: randomBps,
@@ -928,7 +938,12 @@ contract CrowdfundFactoryTest is Test, TestUtils {
 
         // Check that value are initialized to what we expect.
         assertEq(address(inst.party()), address(opts.party));
-        assertEq(inst.expiry(), uint40(block.timestamp + opts.duration));
+        assertEq(
+            inst.expiry(),
+            inst.getCrowdfundLifecycle() == ETHCrowdfundBase.CrowdfundLifecycle.Active
+                ? uint40(block.timestamp + opts.duration)
+                : 0 // Crowdfund is finalized.
+        );
         assertEq(inst.minContribution(), opts.minContribution);
         assertEq(inst.maxContribution(), opts.maxContribution);
         assertEq(
@@ -1079,6 +1094,10 @@ contract CrowdfundFactoryTest is Test, TestUtils {
 contract MockParty {
     string public name;
     string public symbol;
+
+    function increaseTotalVotingPower(uint96 amount) external {}
+
+    receive() external payable {}
 }
 
 contract MockRendererStorage {

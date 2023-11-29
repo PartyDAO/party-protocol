@@ -587,57 +587,14 @@ contract InitialETHCrowdfundTest is InitialETHCrowdfundTestBase {
 
         // Contribute
         vm.prank(member);
-        crowdfund.contribute{ value: 2 ether }(member, "");
-
-        assertTrue(
-            crowdfund.getCrowdfundLifecycle() == ETHCrowdfundBase.CrowdfundLifecycle.Finalized
-        );
-
-        assertEq(address(member).balance, 1 ether); // Check refunded amount
-        assertEq(address(party).balance, 1 ether);
-        assertEq(crowdfund.totalContributions(), 1 ether);
-        assertEq(party.getGovernanceValues().totalVotingPower, 1 ether);
-    }
-
-    function test_contribute_aboveMaxTotalContributionWhenWhenContributionBelowMinContributionAfterRefund()
-        public
-    {
-        InitialETHCrowdfund crowdfund = _createCrowdfund(
-            CreateCrowdfundArgs({
-                initialContribution: 0,
-                initialContributor: payable(address(0)),
-                initialDelegate: address(0),
-                minContributions: 1 ether,
-                maxContributions: type(uint96).max,
-                disableContributingForExistingCard: false,
-                minTotalContributions: 0,
-                maxTotalContributions: 2 ether,
-                duration: 7 days,
-                exchangeRate: 1e18,
-                fundingSplitBps: 0,
-                fundingSplitRecipient: payable(address(0)),
-                gateKeeper: IGateKeeper(address(0)),
-                gateKeeperId: bytes12(0)
-            })
-        );
-
-        address member = _randomAddress();
-        vm.deal(member, 3 ether);
-
-        // Contribute
-        vm.prank(member);
-        crowdfund.contribute{ value: 1.5 ether }(member, "");
-
-        // Contribute again but amount after refund (0.5 ether) is below min contribution
         vm.expectRevert(
             abi.encodeWithSelector(
-                ETHCrowdfundBase.BelowMinimumContributionsError.selector,
-                0.5 ether,
+                ETHCrowdfundBase.ExceedsRemainingContributionsError.selector,
+                2 ether,
                 1 ether
             )
         );
-        vm.prank(member);
-        crowdfund.contribute{ value: 1.5 ether }(member, "");
+        crowdfund.contribute{ value: 2 ether }(member, "");
     }
 
     function test_contribute_aboveMaxContribution() public {
