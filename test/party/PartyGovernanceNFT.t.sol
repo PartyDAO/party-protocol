@@ -1402,11 +1402,30 @@ contract PartyGovernanceNFTTest is PartyGovernanceNFTTestBase {
     }
 
     function testRageQuit_cannotReenter() external {
+        // Set reentering contract as the host for exploit to allow reentering
+        // contract to attempt to `setRageQuit` to get past the reentrancy
+        // guard.
+        address reenteringContractAddress = (
+            address(
+                uint160(
+                    uint256(
+                        keccak256(
+                            abi.encodePacked(
+                                bytes1(0xd6),
+                                bytes1(0x94),
+                                address(this),
+                                bytes1(uint8(vm.getNonce(address(this))))
+                            )
+                        )
+                    )
+                )
+            )
+        );
         (Party party, , ) = partyAdmin.createParty(
             partyImpl,
             PartyAdmin.PartyCreationMinimalOptions({
                 host1: address(this),
-                host2: address(0),
+                host2: reenteringContractAddress,
                 passThresholdBps: 5100,
                 totalVotingPower: 100,
                 preciousTokenAddress: address(toadz),
@@ -1417,16 +1436,9 @@ contract PartyGovernanceNFTTest is PartyGovernanceNFTTestBase {
             })
         );
 
-        vm.prank(address(this));
         party.setRageQuit(uint40(block.timestamp) + 1);
 
         ReenteringContract reenteringContract = new ReenteringContract(party, 1);
-
-        // Set reentering contract as the host for exploit to allow reentering
-        // contract to attempt to `setRageQuit` to get past the reentrancy
-        // guard.
-        vm.prank(address(this));
-        party.abdicateHost(address(reenteringContract));
 
         vm.prank(address(partyAdmin));
         party.mint(address(reenteringContract), 50, address(reenteringContract));
