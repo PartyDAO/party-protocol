@@ -212,6 +212,18 @@ contract ProposalExecutionEngineTest is Test, TestUtils {
         _executeProposal(executeParams);
     }
 
+    function test_executeProposal_isPayable() public {
+        uint256 emitValue = _randomUint256();
+        IProposalExecutionEngine.ExecuteProposalParams memory executeParams = _createTestProposal(
+            _createOneStepProposalData(emitValue)
+        );
+        vm.expectEmit(true, true, true, true, address(eng));
+        emit TestEcho(emitValue);
+        vm.deal(address(this), 1 ether);
+        assertTrue(eng.executeProposal{ value: 1 ether }(executeParams).length == 0);
+        assertEq(address(eng).balance, 1 ether);
+    }
+
     // Execute a two-step proposal, then try to cancel a different one.
     function test_cancelProposal_cannotCancelNonCurrentProposal() public {
         IProposalExecutionEngine.ExecuteProposalParams memory executeParams = _createTestProposal(
