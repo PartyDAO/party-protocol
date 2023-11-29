@@ -64,6 +64,7 @@ contract InitialETHCrowdfund is ETHCrowdfundBase {
 
     struct BatchContributeArgs {
         // IDs of cards to credit the contributions to. When set to 0, it means
+        // a new one should be minted.
         uint256[] tokenIds;
         // The address to which voting power will be delegated for all contributions.
         address delegate;
@@ -135,12 +136,10 @@ contract InitialETHCrowdfund is ETHCrowdfundBase {
             })
         );
 
-        // If the deployer passed in some ETH during deployment, credit them
+        // If the creator passed in some ETH during initialization, credit them
         // for the initial contribution.
         uint96 initialContribution = msg.value.safeCastUint256ToUint96();
         if (initialContribution > 0) {
-            // If this contract has ETH, either passed in during deployment or
-            // pre-existing, credit it to the `initialContributor`.
             _contribute(
                 crowdfundOpts.initialContributor,
                 crowdfundOpts.initialDelegate,
@@ -206,11 +205,9 @@ contract InitialETHCrowdfund is ETHCrowdfundBase {
     ) external payable onlyDelegateCall returns (uint96[] memory votingPowers) {
         uint256 numContributions = args.tokenIds.length;
         votingPowers = new uint96[](numContributions);
+        uint256 valuesSum;
 
-        uint256 ethAvailable = msg.value;
         for (uint256 i; i < numContributions; ++i) {
-            ethAvailable -= args.values[i];
-
             votingPowers[i] = _contribute(
                 payable(msg.sender),
                 args.delegate,
@@ -218,10 +215,11 @@ contract InitialETHCrowdfund is ETHCrowdfundBase {
                 args.tokenIds[i],
                 args.gateDatas[i]
             );
+            valuesSum += args.values[i];
         }
-
-        // Refund any unused ETH.
-        if (ethAvailable > 0) payable(msg.sender).transfer(ethAvailable);
+        if (msg.value != valuesSum) {
+            revert InvalidMessageValue();
+        }
     }
 
     /// @notice Contribute to this crowdfund on behalf of another address.
@@ -255,9 +253,11 @@ contract InitialETHCrowdfund is ETHCrowdfundBase {
     function batchContributeFor(
         BatchContributeForArgs calldata args
     ) external payable onlyDelegateCall returns (uint96[] memory votingPowers) {
+        uint256 numContributions = args.tokenIds.length;
         votingPowers = new uint96[](args.recipients.length);
         uint256 valuesSum;
-        for (uint256 i; i < args.recipients.length; ++i) {
+
+        for (uint256 i; i < numContributions; ++i) {
             votingPowers[i] = _contribute(
                 args.recipients[i],
                 args.initialDelegates[i],

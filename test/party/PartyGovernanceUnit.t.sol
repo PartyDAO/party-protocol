@@ -36,7 +36,7 @@ contract DummyProposalExecutionEngine is IProposalExecutionEngine, ProposalStora
 
     function executeProposal(
         ExecuteProposalParams memory params
-    ) external returns (bytes memory nextProgressData) {
+    ) external payable returns (bytes memory nextProgressData) {
         uint256 numSteps = abi.decode(params.proposalData, (uint256));
         uint256 currStep = params.progressData.length > 0
             ? abi.decode(params.progressData, (uint256))
@@ -2277,18 +2277,20 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
         gov = _createGovernance(false, 100e18, preciousTokens, preciousTokenIds);
 
         address newHost = _randomAddress();
+        address host = _getRandomDefaultHost();
+
+        // Can only transfer to 0 address
+        vm.prank(host);
+        vm.expectRevert((PartyGovernance.InvalidNewHostError.selector));
+        gov.abdicateHost(newHost);
 
         // Transfer host status to another address
-        address host = _getRandomDefaultHost();
         vm.prank(host);
-        _expectHostStatusTransferredEvent(host, newHost);
-        gov.abdicateHost(newHost);
+        _expectHostStatusTransferredEvent(host, address(0));
+        gov.abdicateHost(address(0));
 
         // Assert old host is no longer host
         assertEq(gov.isHost(host), false);
-
-        // Assert new host is host
-        assertEq(gov.isHost(newHost), true);
     }
 
     // You cannot transfer host status to an existing host
@@ -2336,12 +2338,8 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
 
         assertEq(gov.numHosts(), 2);
         vm.prank(defaultGovernanceOpts.hosts[0]);
-        gov.abdicateHost(address(this));
-        assertFalse(gov.isHost(defaultGovernanceOpts.hosts[0]));
-        assertTrue(gov.isHost(address(this)));
-        assertEq(gov.numHosts(), 2);
         gov.abdicateHost(address(0));
-        assertFalse(gov.isHost(address(this)));
+        assertFalse(gov.isHost(defaultGovernanceOpts.hosts[0]));
         assertEq(gov.numHosts(), 1);
     }
 

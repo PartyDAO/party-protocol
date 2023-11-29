@@ -6,7 +6,7 @@ import "../utils/LibSafeCast.sol";
 import "../party/Party.sol";
 import "../gatekeepers/IGateKeeper.sol";
 
-contract ETHCrowdfundBase is Implementation {
+abstract contract ETHCrowdfundBase is Implementation {
     using LibRawResult for bytes;
     using LibSafeCast for uint256;
     using LibAddress for address payable;
@@ -135,8 +135,7 @@ contract ETHCrowdfundBase is Implementation {
         _GLOBALS = globals;
     }
 
-    // Initialize storage for proxy contracts, credit initial contribution (if
-    // any), and setup gatekeeper.
+    // Initialize storage for proxy contract
     function _initialize(ETHCrowdfundOptions memory opts) internal {
         // Set the minimum and maximum contribution amounts.
         if (opts.minContribution > opts.maxContribution) {
@@ -160,7 +159,7 @@ contract ETHCrowdfundBase is Implementation {
         // Set the party crowdfund is for.
         party = opts.party;
         // Set the crowdfund start and end timestamps.
-        expiry = uint40(block.timestamp + opts.duration);
+        expiry = (block.timestamp + opts.duration).safeCastUint256ToUint40();
         // Set the exchange rate.
         if (opts.exchangeRateBps == 0) revert InvalidExchangeRateError(opts.exchangeRateBps);
         exchangeRateBps = opts.exchangeRateBps;

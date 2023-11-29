@@ -101,7 +101,7 @@ contract PartyFactoryTest is Test, TestUtils {
             preciousTokenIds,
             randomUint40
         );
-        assertEq(party.VERSION_ID(), 1);
+        assertEq(party.VERSION_ID(), 2);
         assertEq(party.name(), opts.name);
         assertEq(party.symbol(), opts.symbol);
         assertTrue(party.isAuthority(authority));
@@ -165,7 +165,7 @@ contract PartyFactoryTest is Test, TestUtils {
             metadata
         );
 
-        assertEq(party.VERSION_ID(), 1);
+        assertEq(party.VERSION_ID(), 2);
         assertEq(party.name(), opts.name);
         assertEq(party.symbol(), opts.symbol);
         assertTrue(party.isAuthority(authority));

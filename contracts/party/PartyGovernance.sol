@@ -80,7 +80,7 @@ abstract contract PartyGovernance is
         uint96 totalVotingPower;
         // Fee bps for distributions.
         uint16 feeBps;
-        // Fee recipeint for distributions.
+        // Fee recipient for distributions.
         address payable feeRecipient;
     }
 
@@ -348,17 +348,6 @@ abstract contract PartyGovernance is
         return _getSharedProposalStorage().opts;
     }
 
-    /// @notice Get the total voting power of `voter` at a `timestamp`.
-    /// @param voter The address of the voter.
-    /// @param timestamp The timestamp to get the voting power at.
-    /// @return votingPower The total voting power of `voter` at `timestamp`.
-    function getVotingPowerAt(
-        address voter,
-        uint40 timestamp
-    ) external view returns (uint96 votingPower) {
-        return getVotingPowerAt(voter, timestamp, type(uint256).max);
-    }
-
     /// @notice Get the total voting power of `voter` at a snapshot `snapIndex`, with checks to
     ///         make sure it is the latest voting snapshot =< `timestamp`.
     /// @param voter The address of the voter.
@@ -458,11 +447,8 @@ abstract contract PartyGovernance is
         _assertHost();
         // 0 is a special case burn address.
         if (newPartyHost != address(0)) {
-            // Cannot transfer host status to an existing host.
-            if (isHost[newPartyHost]) {
-                revert InvalidNewHostError();
-            }
-            isHost[newPartyHost] = true;
+            // Can only abdicate host
+            revert InvalidNewHostError();
         } else {
             // Burned the host status
             --numHosts;
@@ -515,9 +501,8 @@ abstract contract PartyGovernance is
             _GLOBALS.getAddress(LibGlobals.GLOBAL_TOKEN_DISTRIBUTOR)
         );
         emit DistributionCreated(tokenType, token, tokenId);
-        // Notify third-party platforms that the governance NFT metadata has
-        // updated for all tokens.
-        emit BatchMetadataUpdate(0, type(uint256).max);
+        _emitMetadataUpdateEvent();
+
         // Create a native token distribution.
         address payable feeRecipient_ = feeRecipient;
         uint16 feeBps_ = feeBps;
@@ -575,10 +560,7 @@ abstract contract PartyGovernance is
         );
         emit Proposed(proposalId, msg.sender, proposal);
         accept(proposalId, latestSnapIndex);
-
-        // Notify third-party platforms that the governance NFT metadata has
-        // updated for all tokens.
-        emit BatchMetadataUpdate(0, type(uint256).max);
+        _emitMetadataUpdateEvent();
     }
 
     /// @notice Vote to support a proposed proposal.
@@ -642,17 +624,12 @@ abstract contract PartyGovernance is
         // Update the proposal status if it has reached the pass threshold.
         if (
             values.passedTime == 0 &&
-            _areVotesPassing(
-                values.votes,
-                values.totalVotingPower,
-                _getSharedProposalStorage().governanceValues.passThresholdBps
-            )
+            (uint256(values.votes) * 1e4) / uint256(values.totalVotingPower) >=
+            uint256(_getSharedProposalStorage().governanceValues.passThresholdBps)
         ) {
             info.values.passedTime = uint40(block.timestamp);
             emit ProposalPassed(proposalId);
-            // Notify third-party platforms that the governance NFT metadata has
-            // updated for all tokens.
-            emit BatchMetadataUpdate(0, type(uint256).max);
+            _emitMetadataUpdateEvent();
         }
         return values.votes;
     }
@@ -683,9 +660,7 @@ abstract contract PartyGovernance is
         // -1 indicates veto.
         info.values.votes = VETO_VALUE;
         emit ProposalVetoed(proposalId, msg.sender);
-        // Notify third-party platforms that the governance NFT metadata has
-        // updated for all tokens.
-        emit BatchMetadataUpdate(0, type(uint256).max);
+        _emitMetadataUpdateEvent();
     }
 
     /// @notice Executes a proposal that has passed governance.
@@ -828,9 +803,7 @@ abstract contract PartyGovernance is
             }
         }
         emit ProposalCancelled(proposalId);
-        // Notify third-party platforms that the governance NFT metadata has
-        // updated for all tokens.
-        emit BatchMetadataUpdate(0, type(uint256).max);
+        _emitMetadataUpdateEvent();
     }
 
     /// @notice As the DAO, execute an arbitrary function call from this contract.
@@ -842,7 +815,7 @@ abstract contract PartyGovernance is
         address targetAddress,
         bytes calldata targetCallData,
         uint256 amountEth
-    ) external payable onlyPartyDao onlyWhenEmergencyExecuteAllowed onlyDelegateCall {
+    ) external payable onlyPartyDao onlyWhenEmergencyExecuteAllowed {
         (bool success, bytes memory res) = targetAddress.call{ value: amountEth }(targetCallData);
         if (!success) {
             res.rawRevert();
@@ -892,9 +865,7 @@ abstract contract PartyGovernance is
             nextProgressData = abi.decode(resultData, (bytes));
         }
         emit ProposalExecuted(proposalId, msg.sender, nextProgressData);
-        // Notify third-party platforms that the governance NFT metadata has
-        // updated for all tokens.
-        emit BatchMetadataUpdate(0, type(uint256).max);
+        _emitMetadataUpdateEvent();
         // If the returned progress data is empty, then the proposal completed
         // and it should not be executed again.
         return nextProgressData.length == 0;
@@ -1112,7 +1083,7 @@ abstract contract PartyGovernance is
         uint96 totalVotes,
         uint96 totalVotingPower
     ) private pure returns (bool) {
-        uint256 acceptanceRatio = (totalVotes * 1e4) / totalVotingPower;
+        uint256 acceptanceRatio = (uint256(totalVotes) * 1e4) / totalVotingPower;
         // If >= 99.99% acceptance, consider it unanimous.
         // The minting formula for voting power is a bit lossy, so we check
         // for slightly less than 100%.
@@ -1160,6 +1131,10 @@ abstract contract PartyGovernance is
             mstore(0x20, keccak256(add(preciousTokenIds, 0x20), mul(mload(preciousTokenIds), 0x20)))
             h := keccak256(0x00, 0x40)
         }
+    }
+
+    function _emitMetadataUpdateEvent() internal {
+        emit BatchMetadataUpdate(0, type(uint256).max);
     }
 
     // Assert that the hash of a proposal matches expectedHash.
