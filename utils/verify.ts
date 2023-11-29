@@ -13,7 +13,7 @@ export const getEtherscanApiEndpoint = (chain: string) => {
   } else if (chain === "base-goerli") {
     return "https://api-goerli.basescan.org/api";
   } else if (chain === "zora") {
-    return "https://explorer.zora.energy/api\\?";
+    return "https://api.routescan.io/v2/network/mainnet/evm/7777777/etherscan/api";
   } else {
     return `https://api-${chain}.etherscan.io/api`;
   }
@@ -53,7 +53,11 @@ const getEncodedConstructorArgs = (args: any[], types: string[]) => {
     if (type.startsWith("uint")) {
       arg = parseInt(arg.match(/\d+/)[0]);
     } else if (type.includes("[]")) {
-      arg = arg.slice(1, -1).split(", ");
+      if (arg !== "[]") {
+        arg = arg.slice(1, -1).split(", ");
+      } else {
+        arg = [];
+      }
     }
 
     constructorArgs.push(arg);
@@ -72,7 +76,9 @@ const generateStandardJson = (
   evmVersion: string,
   libraries: string[],
 ) => {
-  let cmd = `forge verify-contract ${contractAddress} ${contractName} --chain ${chain} --optimizer-runs ${optimizerRuns} --constructor-args '${constructorArgs}' --compiler-version ${compilerVersion}`;
+  let cmd = `forge verify-contract ${contractAddress} ${contractName} --chain-id ${getChainId(
+    chain,
+  )} --optimizer-runs ${optimizerRuns} --constructor-args '${constructorArgs}' --compiler-version ${compilerVersion}`;
 
   if (libraries.length > 0) {
     cmd += ` --libraries ${libraries.join(" ")}`;
@@ -204,6 +210,8 @@ const getChainId = (chain: string) => {
     return 8453;
   } else if (chain === "base-goerli") {
     return 84531;
+  } else if (chain === "zora") {
+    return 7777777;
   } else {
     throw new Error(`Unknown chain ID for "${chain}". Please add to getChainId() function.`);
   }
