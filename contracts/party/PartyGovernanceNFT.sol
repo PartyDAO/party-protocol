@@ -276,10 +276,6 @@ contract PartyGovernanceNFT is PartyGovernance, ERC721, IERC2981 {
     function burn(uint256[] memory tokenIds) public {
         _assertAuthority();
         _burnAndUpdateVotingPower(tokenIds, false);
-
-        // Notify third-party platforms that the party NFT metadata has updated
-        // for all tokens.
-        emit BatchMetadataUpdate(0, type(uint256).max);
     }
 
     function _burnAndUpdateVotingPower(
@@ -319,6 +315,8 @@ contract PartyGovernanceNFT is PartyGovernance, ERC721, IERC2981 {
 
         // Update minted voting power.
         mintedVotingPower -= totalVotingPowerBurned;
+
+        emit BatchMetadataUpdate(0, type(uint256).max);
     }
 
     /// @notice Burn governance NFT and remove its voting power. Can only be
@@ -462,10 +460,6 @@ contract PartyGovernanceNFT is PartyGovernance, ERC721, IERC2981 {
         rageQuitTimestamp = currentRageQuitTimestamp;
 
         emit RageQuit(msg.sender, tokenIds, withdrawTokens, receiver);
-
-        // Notify third-party platforms that the party NFT metadata has updated
-        // for all tokens.
-        emit BatchMetadataUpdate(0, type(uint256).max);
     }
 
     /// @inheritdoc ERC721
