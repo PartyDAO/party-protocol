@@ -80,7 +80,7 @@ abstract contract PartyGovernance is
         uint96 totalVotingPower;
         // Fee bps for distributions.
         uint16 feeBps;
-        // Fee recipeint for distributions.
+        // Fee recipient for distributions.
         address payable feeRecipient;
     }
 
