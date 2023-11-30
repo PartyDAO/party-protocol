@@ -4,7 +4,7 @@ pragma solidity ^0.8;
 import "forge-std/Test.sol";
 
 import "../../contracts/proposals/AddAuthorityProposal.sol";
-import "../../contracts/crowdfund/ReraiseETHCrowdfund.sol";
+import "../../contracts/crowdfund/InitialETHCrowdfund.sol";
 
 import "../TestUtils.sol";
 
@@ -34,16 +34,16 @@ contract TestableAddAuthorityProposal is AddAuthorityProposal {
 }
 
 contract MockCrowdfundFactory {
-    ReraiseETHCrowdfund public expectedCrowdfund;
+    InitialETHCrowdfund public expectedCrowdfund;
 
-    constructor(ReraiseETHCrowdfund expectedCrowdfund_) {
+    constructor(InitialETHCrowdfund expectedCrowdfund_) {
         expectedCrowdfund = expectedCrowdfund_;
     }
 
-    function createReraiseETHCrowdfund(
+    function createInitialETHCrowdfund(
         ETHCrowdfundBase.ETHCrowdfundOptions memory,
         bytes memory
-    ) public payable returns (ReraiseETHCrowdfund inst) {
+    ) public payable returns (InitialETHCrowdfund inst) {
         return expectedCrowdfund;
     }
 }
@@ -51,11 +51,11 @@ contract MockCrowdfundFactory {
 contract AddAuthorityProposalTest is Test, TestUtils {
     TestableAddAuthorityProposal proposal;
     MockCrowdfundFactory crowdfundFactory;
-    ReraiseETHCrowdfund expectedCrowdfund;
+    InitialETHCrowdfund expectedCrowdfund;
 
     constructor() {
         proposal = new TestableAddAuthorityProposal();
-        expectedCrowdfund = new ReraiseETHCrowdfund(IGlobals(address(0)));
+        expectedCrowdfund = new InitialETHCrowdfund(IGlobals(address(0)));
         crowdfundFactory = new MockCrowdfundFactory(expectedCrowdfund);
     }
 
@@ -89,7 +89,7 @@ contract AddAuthorityProposalTest is Test, TestUtils {
         AddAuthorityProposal.AddAuthorityProposalData memory data = AddAuthorityProposal
             .AddAuthorityProposalData({
                 target: address(crowdfundFactory),
-                callData: abi.encodeCall(crowdfundFactory.createReraiseETHCrowdfund, (callData, ""))
+                callData: abi.encodeCall(crowdfundFactory.createInitialETHCrowdfund, (callData, ""))
             });
 
         // Execute the proposal.

@@ -38,7 +38,6 @@ contract CrowdfundFactoryTest is Test, TestUtils {
     CollectionBatchBuyCrowdfund collectionBatchBuyCrowdfund =
         new CollectionBatchBuyCrowdfund(globals);
     InitialETHCrowdfund initialETHCrowdfund = new InitialETHCrowdfund(globals);
-    ReraiseETHCrowdfund reraiseETHCrowdfund = new ReraiseETHCrowdfund(globals);
     AllowListGateKeeper allowListGateKeeper = new AllowListGateKeeper(address(0));
     TokenGateKeeper tokenGateKeeper = new TokenGateKeeper(address(0));
     MetadataRegistry metadataRegistry =
@@ -868,94 +867,6 @@ contract CrowdfundFactoryTest is Test, TestUtils {
             );
             assertEq(metadataProvider.getMetadata(address(inst.party()), 0), randomBytes);
         }
-    }
-
-    function testCreateReraiseETHCrowdfund(
-        uint40 randomUint40,
-        uint96 randomUint96,
-        uint16 randomBps,
-        bool randomBool
-    ) external {
-        vm.assume(randomUint40 != type(uint40).max); // Prevent overflow.
-        vm.assume(randomUint96 != type(uint96).max); // Prevent overflow.
-        vm.assume(randomUint96 != 0);
-        vm.assume(randomBps <= 1e4);
-
-        // Generate random gatekeeper.
-        (
-            IGateKeeper gateKeeper,
-            bytes12 gateKeeperId,
-            bytes memory createGateCallData
-        ) = _randomGateKeeper();
-
-        uint160 exchangeRate = randomUint96;
-        uint96 initialContribution;
-        {
-            // Only pass in initial contribution amount if it will not overflow
-            // or result in zero voting power.
-            uint256 contribution = randomUint40;
-            contribution -= contribution.mulDivUp(randomBps, 1e4);
-            uint256 expectedVotingPower = contribution.mulDivDown(exchangeRate, 1e18);
-            if (expectedVotingPower < type(uint96).max && expectedVotingPower != 0) {
-                initialContribution = randomUint40;
-            }
-        }
-
-        ETHCrowdfundBase.ETHCrowdfundOptions memory opts = ETHCrowdfundBase.ETHCrowdfundOptions({
-            party: Party(payable(address(new MockParty()))),
-            initialContributor: _randomAddress(),
-            initialDelegate: _randomAddress(),
-            // Ensure that `minContribution` is less than initial contribution.
-            minContribution: initialContribution < randomUint96
-                ? initialContribution
-                : randomUint96 - 1,
-            disableContributingForExistingCard: randomBool,
-            // Ensure that `maxContribution` is greater than initial contribution.
-            maxContribution: initialContribution > randomUint96
-                ? initialContribution
-                : randomUint96 + 1,
-            // Ensure that `minTotalContributions` is less than initial contribution.
-            minTotalContributions: initialContribution < randomUint96
-                ? initialContribution
-                : randomUint96 - 1,
-            // Ensure that `maxTotalContributions` is greater than initial contribution.
-            maxTotalContributions: initialContribution > randomUint96
-                ? initialContribution
-                : randomUint96 + 1,
-            exchangeRate: exchangeRate,
-            fundingSplitBps: randomBps,
-            fundingSplitRecipient: payable(_randomAddress()),
-            // This is to avoid overflows when adding to `block.timestamp`.
-            duration: uint40(_randomRange(1, type(uint40).max - block.timestamp)),
-            gateKeeper: gateKeeper,
-            gateKeeperId: gateKeeperId
-        });
-
-        vm.deal(address(this), initialContribution);
-        ReraiseETHCrowdfund inst = partyCrowdfundFactory.createReraiseETHCrowdfund{
-            value: initialContribution
-        }(reraiseETHCrowdfund, opts, createGateCallData);
-
-        // Check that value are initialized to what we expect.
-        assertEq(address(inst.party()), address(opts.party));
-        assertEq(
-            inst.expiry(),
-            inst.getCrowdfundLifecycle() == ETHCrowdfundBase.CrowdfundLifecycle.Active
-                ? uint40(block.timestamp + opts.duration)
-                : 0 // Crowdfund is finalized.
-        );
-        assertEq(inst.minContribution(), opts.minContribution);
-        assertEq(inst.maxContribution(), opts.maxContribution);
-        assertEq(
-            inst.disableContributingForExistingCard(),
-            opts.disableContributingForExistingCard
-        );
-        assertEq(inst.minTotalContributions(), opts.minTotalContributions);
-        assertEq(inst.maxTotalContributions(), opts.maxTotalContributions);
-        assertEq(inst.exchangeRate(), opts.exchangeRate);
-        assertEq(inst.fundingSplitBps(), opts.fundingSplitBps);
-        assertEq(inst.fundingSplitRecipient(), opts.fundingSplitRecipient);
-        assertEq(inst.totalContributions(), initialContribution);
     }
 
     function testCreateCollectionBatchBuyCrowdfund(
