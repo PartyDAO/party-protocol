@@ -9,8 +9,6 @@ import { Base64 } from "../utils/vendor/Base64.sol";
 import { RendererBase } from "./RendererBase.sol";
 import { RendererStorage } from "./RendererStorage.sol";
 import { Crowdfund } from "../crowdfund/Crowdfund.sol";
-import { ReraiseETHCrowdfund } from "../crowdfund/ReraiseETHCrowdfund.sol";
-import { ETHCrowdfundBase } from "../crowdfund/ETHCrowdfundBase.sol";
 import { IFont } from "./fonts/IFont.sol";
 import { IGlobals } from "../globals/IGlobals.sol";
 
@@ -290,61 +288,24 @@ contract CrowdfundNFTRenderer is RendererBase {
 
     function getContribution(address owner) private view returns (string memory amount) {
         uint256 ethContributed;
-        if (getCrowdfundType() == CrowdfundType.NFT) {
-            (ethContributed, , , ) = Crowdfund(address(this)).getContributorInfo(owner);
-        } else {
-            uint96 votingPower = ReraiseETHCrowdfund(address(this)).pendingVotingPower(owner);
-
-            ethContributed = ReraiseETHCrowdfund(address(this)).convertVotingPowerToContribution(
-                votingPower
-            );
-        }
+        (ethContributed, , , ) = Crowdfund(address(this)).getContributorInfo(owner);
 
         return LibRenderer.formatAsDecimalString(ethContributed, 18, 4);
     }
 
     function getCrowdfundStatus() private view returns (CrowdfundStatus) {
-        if (getCrowdfundType() == CrowdfundType.NFT) {
-            Crowdfund.CrowdfundLifecycle lifecycle = Crowdfund(payable(address(this)))
-                .getCrowdfundLifecycle();
+        Crowdfund.CrowdfundLifecycle lifecycle = Crowdfund(payable(address(this)))
+            .getCrowdfundLifecycle();
 
-            if (lifecycle == Crowdfund.CrowdfundLifecycle.Won) {
-                return CrowdfundStatus.WON;
-            } else if (
-                lifecycle == Crowdfund.CrowdfundLifecycle.Lost ||
-                lifecycle == Crowdfund.CrowdfundLifecycle.Expired
-            ) {
-                return CrowdfundStatus.LOST;
-            } else {
-                return CrowdfundStatus.LIVE;
-            }
+        if (lifecycle == Crowdfund.CrowdfundLifecycle.Won) {
+            return CrowdfundStatus.WON;
+        } else if (
+            lifecycle == Crowdfund.CrowdfundLifecycle.Lost ||
+            lifecycle == Crowdfund.CrowdfundLifecycle.Expired
+        ) {
+            return CrowdfundStatus.LOST;
         } else {
-            ETHCrowdfundBase.CrowdfundLifecycle lifecycle = ETHCrowdfundBase(payable(address(this)))
-                .getCrowdfundLifecycle();
-
-            if (
-                lifecycle == ETHCrowdfundBase.CrowdfundLifecycle.Won ||
-                lifecycle == ETHCrowdfundBase.CrowdfundLifecycle.Finalized
-            ) {
-                return CrowdfundStatus.WON;
-            } else if (lifecycle == ETHCrowdfundBase.CrowdfundLifecycle.Lost) {
-                return CrowdfundStatus.LOST;
-            } else {
-                return CrowdfundStatus.LIVE;
-            }
-        }
-    }
-
-    function getCrowdfundType() private view returns (CrowdfundType) {
-        // If this function does not exist, then it is an NFT crowdfund.
-        (bool success, bytes memory res) = address(this).staticcall(
-            abi.encodeWithSignature("exchangeRateBps()")
-        );
-
-        if (success && res.length == 32) {
-            return CrowdfundType.ETH;
-        } else {
-            return CrowdfundType.NFT;
+            return CrowdfundStatus.LIVE;
         }
     }
 
