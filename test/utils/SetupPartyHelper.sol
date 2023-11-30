@@ -47,7 +47,7 @@ abstract contract SetupPartyHelper is TestUtils, ERC721Receiver {
     uint96 internal thisVotes;
     IERC721[] internal preciousTokens = new IERC721[](0);
     uint256[] internal preciousTokenIds = new uint256[](0);
-    uint40 internal constant _EXECUTION_DELAY = 300;
+    uint40 internal constant _EXECUTION_DELAY = 99;
 
     constructor(bool isForked) {
         _isForked = isForked;
@@ -106,7 +106,7 @@ abstract contract SetupPartyHelper is TestUtils, ERC721Receiver {
         opts.name = "PARTY";
         opts.symbol = "PR-T";
         opts.governance.hosts = hosts;
-        opts.governance.voteDuration = 99;
+        opts.governance.voteDuration = 300;
         opts.governance.executionDelay = _EXECUTION_DELAY;
         opts.governance.passThresholdBps = 1000;
         opts.proposalEngine.allowArbCallsToSpendPartyEth = true;
