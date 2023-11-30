@@ -478,6 +478,9 @@ contract PartyGovernanceNFTTest is PartyGovernanceNFTTestBase {
         vm.prank(address(partyAdmin));
         uint256 tokenId = party.mint(recipient, 10, recipient);
 
+        vm.expectEmit(true, true, true, true);
+        emit BatchMetadataUpdate(0, type(uint256).max);
+
         vm.prank(address(partyAdmin));
         party.burn(tokenId);
 
@@ -487,29 +490,6 @@ contract PartyGovernanceNFTTest is PartyGovernanceNFTTestBase {
 
         assertEq(party.votingPowerByTokenId(tokenId), 0);
         assertEq(party.mintedVotingPower(), 0);
-    }
-
-    function testBurn_beforePartyStarted() external {
-        (Party party, , ) = partyAdmin.createParty(
-            partyImpl,
-            PartyAdmin.PartyCreationMinimalOptions({
-                host1: address(this),
-                host2: address(0),
-                passThresholdBps: 5100,
-                totalVotingPower: 0,
-                preciousTokenAddress: address(toadz),
-                preciousTokenId: 1,
-                rageQuitTimestamp: 0,
-                feeBps: 0,
-                feeRecipient: payable(0)
-            })
-        );
-        address recipient = _randomAddress();
-        vm.prank(address(partyAdmin));
-        uint256 tokenId = party.mint(recipient, 10, recipient);
-
-        vm.prank(address(partyAdmin));
-        party.burn(tokenId);
     }
 
     function testBurn_onlyAuthority() external {
