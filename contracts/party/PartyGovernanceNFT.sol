@@ -20,6 +20,7 @@ contract PartyGovernanceNFT is PartyGovernance, ERC721, IERC2981 {
     error FixedRageQuitTimestampError(uint40 rageQuitTimestamp);
     error CannotRageQuitError(uint40 rageQuitTimestamp);
     error CannotDisableRageQuitAfterInitializationError();
+    error CannotEnableRageQuitIfNotDistributionsRequireVoteError();
     error InvalidTokenOrderError();
     error BelowMinWithdrawAmountError(uint256 amount, uint256 minAmount);
     error NothingToBurnError();
@@ -97,7 +98,13 @@ contract PartyGovernanceNFT is PartyGovernance, ERC721, IERC2981 {
         );
         name = name_;
         symbol = symbol_;
-        rageQuitTimestamp = rageQuitTimestamp_;
+        if (rageQuitTimestamp_ != 0) {
+            if (!proposalEngineOpts.distributionsRequireVote) {
+                revert CannotEnableRageQuitIfNotDistributionsRequireVoteError();
+            }
+
+            rageQuitTimestamp = rageQuitTimestamp_;
+        }
         unchecked {
             for (uint256 i; i < authorities.length; ++i) {
                 isAuthority[authorities[i]] = true;
@@ -321,6 +328,10 @@ contract PartyGovernanceNFT is PartyGovernance, ERC721, IERC2981 {
             revert CannotDisableRageQuitAfterInitializationError();
         }
 
+        // Prevent enabling ragequit if distributions can be created without a vote.
+        if (!_getSharedProposalStorage().opts.distributionsRequireVote)
+            revert CannotEnableRageQuitIfNotDistributionsRequireVoteError();
+
         uint40 oldRageQuitTimestamp = rageQuitTimestamp;
 
         // Prevent setting timestamp if it is permanently enabled/disabled.
@@ -331,7 +342,9 @@ contract PartyGovernanceNFT is PartyGovernance, ERC721, IERC2981 {
             revert FixedRageQuitTimestampError(oldRageQuitTimestamp);
         }
 
-        emit RageQuitSet(oldRageQuitTimestamp, rageQuitTimestamp = newRageQuitTimestamp);
+        rageQuitTimestamp = newRageQuitTimestamp;
+
+        emit RageQuitSet(oldRageQuitTimestamp, newRageQuitTimestamp);
     }
 
     /// @notice Burn a governance NFT and withdraw a fair share of fungible tokens from the party.
