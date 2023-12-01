@@ -71,6 +71,7 @@ abstract contract ETHCrowdfundBase is Implementation {
     error FundingSplitAlreadyPaidError();
     error FundingSplitNotConfiguredError();
     error InvalidMessageValue();
+    error ArityMismatch();
 
     event Contributed(
         address indexed sender,
