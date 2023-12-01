@@ -208,6 +208,13 @@ contract InitialETHCrowdfund is ETHCrowdfundBase {
         BatchContributeArgs calldata args
     ) external payable onlyDelegateCall returns (uint96[] memory votingPowers) {
         uint256 numContributions = args.tokenIds.length;
+        uint256 numValues = args.values.length;
+        uint256 numGateDatas = args.gateDatas.length;
+
+        if (numContributions != numValues || numContributions != numGateDatas) {
+            revert ArityMismatch();
+        }
+
         votingPowers = new uint96[](numContributions);
         uint256 valuesSum;
 
@@ -259,6 +266,13 @@ contract InitialETHCrowdfund is ETHCrowdfundBase {
         BatchContributeForArgs calldata args
     ) external payable onlyDelegateCall returns (uint96[] memory votingPowers) {
         uint256 numContributions = args.tokenIds.length;
+        uint256 numValues = args.values.length;
+        uint256 numGateDatas = args.gateDatas.length;
+
+        if (numContributions != numValues || numContributions != numGateDatas) {
+            revert ArityMismatch();
+        }
+
         votingPowers = new uint96[](args.recipients.length);
         uint256 valuesSum;
 
