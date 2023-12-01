@@ -292,10 +292,8 @@ abstract contract PartyGovernance is
             IProposalExecutionEngine(_GLOBALS.getAddress(LibGlobals.GLOBAL_PROPOSAL_ENGINE_IMPL)),
             abi.encode(proposalEngineOpts)
         );
-        if (govOpts.voteDuration != 0) {
-            if (govOpts.voteDuration < 1 hours) {
-                revert InvalidGovernanceParameter(govOpts.voteDuration);
-            }
+        if (govOpts.voteDuration < 1 hours) {
+            revert InvalidGovernanceParameter(govOpts.voteDuration);
         }
         // Set the governance parameters.
         _getSharedProposalStorage().governanceValues = GovernanceValues({
