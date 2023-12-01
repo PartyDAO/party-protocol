@@ -52,6 +52,7 @@ contract PartyGovernanceNFTUnitTest is TestUtils {
     ProposalStorage.ProposalEngineOpts defaultProposalEngineOpts;
 
     function _initGovernance() private {
+        defaultGovernanceOpts.voteDuration = 1 hours;
         defaultGovernanceOpts.totalVotingPower = 1e18;
         nft.initialize(
             "TEST",
