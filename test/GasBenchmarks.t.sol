@@ -29,7 +29,7 @@ contract GasBenchmarks is SetupPartyHelper {
         opts.name = "PARTY";
         opts.symbol = "PR-T";
         opts.governance.hosts = hosts;
-        opts.governance.voteDuration = 99;
+        opts.governance.voteDuration = 1 hours;
         opts.governance.executionDelay = _EXECUTION_DELAY;
         opts.governance.passThresholdBps = 1000;
         opts.governance.totalVotingPower = 301;
@@ -51,7 +51,7 @@ contract GasBenchmarks is SetupPartyHelper {
         opts.name = "PARTY";
         opts.symbol = "PR-T";
         opts.governance.hosts = hosts;
-        opts.governance.voteDuration = 99;
+        opts.governance.voteDuration = 1 hours;
         opts.governance.executionDelay = _EXECUTION_DELAY;
         opts.governance.passThresholdBps = 1000;
         opts.governance.totalVotingPower = 301;
@@ -227,7 +227,7 @@ contract GasBenchmarks is SetupPartyHelper {
         partyOpts.name = "PARTY";
         partyOpts.symbol = "PR-T";
         partyOpts.governanceOpts.hosts = hosts;
-        partyOpts.governanceOpts.voteDuration = 99;
+        partyOpts.governanceOpts.voteDuration = 1 hours;
         partyOpts.governanceOpts.executionDelay = _EXECUTION_DELAY;
         partyOpts.governanceOpts.passThresholdBps = 1000;
         partyOpts.governanceOpts.partyFactory = partyFactory;

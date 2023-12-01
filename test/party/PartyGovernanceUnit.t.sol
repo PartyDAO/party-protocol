@@ -1485,7 +1485,7 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
             uint256[] memory preciousTokenIds
         ) = _createPreciousTokens(2);
         defaultGovernanceOpts.executionDelay = 60;
-        defaultGovernanceOpts.voteDuration = 61;
+        defaultGovernanceOpts.voteDuration = 1 hours;
         TestablePartyGovernance gov = _createGovernance(
             false,
             100e18,

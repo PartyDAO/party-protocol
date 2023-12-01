@@ -41,7 +41,7 @@ contract AtomicManualPartyTest is SetupPartyHelper {
         Party.PartyOptions memory opts;
         opts.name = "PARTY";
         opts.symbol = "PR-T";
-        opts.governance.voteDuration = 99;
+        opts.governance.voteDuration = 1 hours;
         opts.governance.executionDelay = _EXECUTION_DELAY;
         opts.governance.passThresholdBps = 1000;
         opts.governance.totalVotingPower = 180;
@@ -100,7 +100,7 @@ contract AtomicManualPartyTest is SetupPartyHelper {
         Party.PartyOptions memory opts;
         opts.name = "PARTY";
         opts.symbol = "PR-T";
-        opts.governance.voteDuration = 99;
+        opts.governance.voteDuration = 1 hours;
         opts.governance.executionDelay = _EXECUTION_DELAY;
         opts.governance.passThresholdBps = 1000;
         opts.governance.totalVotingPower = 180;
@@ -149,7 +149,7 @@ contract AtomicManualPartyTest is SetupPartyHelper {
         Party.PartyOptions memory opts;
         opts.name = "PARTY";
         opts.symbol = "PR-T";
-        opts.governance.voteDuration = 99;
+        opts.governance.voteDuration = 1 hours;
         opts.governance.executionDelay = _EXECUTION_DELAY;
         opts.governance.passThresholdBps = 1000;
         opts.governance.totalVotingPower = 180;
@@ -181,7 +181,7 @@ contract AtomicManualPartyTest is SetupPartyHelper {
         Party.PartyOptions memory opts;
         opts.name = "PARTY";
         opts.symbol = "PR-T";
-        opts.governance.voteDuration = 99;
+        opts.governance.voteDuration = 1 hours;
         opts.governance.executionDelay = _EXECUTION_DELAY;
         opts.governance.passThresholdBps = 1000;
         opts.governance.totalVotingPower = 180;
@@ -206,7 +206,7 @@ contract AtomicManualPartyTest is SetupPartyHelper {
         Party.PartyOptions memory opts;
         opts.name = "PARTY";
         opts.symbol = "PR-T";
-        opts.governance.voteDuration = 99;
+        opts.governance.voteDuration = 1 hours;
         opts.governance.executionDelay = _EXECUTION_DELAY;
         opts.governance.passThresholdBps = 1000;
         opts.governance.totalVotingPower = 260;
@@ -257,7 +257,7 @@ contract AtomicManualPartyTest is SetupPartyHelper {
         Party.PartyOptions memory opts;
         opts.name = "PARTY";
         opts.symbol = "PR-T";
-        opts.governance.voteDuration = 99;
+        opts.governance.voteDuration = 1 hours;
         opts.governance.executionDelay = _EXECUTION_DELAY;
         opts.governance.passThresholdBps = 1000;
         opts.governance.totalVotingPower = 180;
@@ -289,7 +289,7 @@ contract AtomicManualPartyTest is SetupPartyHelper {
         Party.PartyOptions memory opts;
         opts.name = "PARTY";
         opts.symbol = "PR-T";
-        opts.governance.voteDuration = 99;
+        opts.governance.voteDuration = 1 hours;
         opts.governance.executionDelay = _EXECUTION_DELAY;
         opts.governance.passThresholdBps = 1000;
         opts.governance.totalVotingPower = 180;
