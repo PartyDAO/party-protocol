@@ -218,7 +218,7 @@ contract GasBenchmarks is SetupPartyHelper {
         crowdfundOpts.disableContributingForExistingCard = true;
         crowdfundOpts.maxTotalContributions = 10 ether;
         crowdfundOpts.minTotalContributions = 0.01 ether;
-        crowdfundOpts.exchangeRateBps = 10000;
+        crowdfundOpts.exchangeRate = 1e18;
         crowdfundOpts.duration = 100;
 
         InitialETHCrowdfund.ETHPartyOptions memory partyOpts;

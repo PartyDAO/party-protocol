@@ -96,7 +96,7 @@ contract InitialETHCrowdfundTestBase is LintJSON, TestUtils, ERC721Receiver {
         uint96 minTotalContributions;
         uint96 maxTotalContributions;
         uint40 duration;
-        uint16 exchangeRateBps;
+        uint160 exchangeRate;
         uint16 fundingSplitBps;
         address payable fundingSplitRecipient;
         IGateKeeper gateKeeper;
@@ -115,7 +115,7 @@ contract InitialETHCrowdfundTestBase is LintJSON, TestUtils, ERC721Receiver {
         crowdfundOpts.minTotalContributions = args.minTotalContributions;
         crowdfundOpts.maxTotalContributions = args.maxTotalContributions;
         crowdfundOpts.duration = args.duration;
-        crowdfundOpts.exchangeRateBps = args.exchangeRateBps;
+        crowdfundOpts.exchangeRate = args.exchangeRate;
         crowdfundOpts.fundingSplitBps = args.fundingSplitBps;
         crowdfundOpts.fundingSplitRecipient = args.fundingSplitRecipient;
         crowdfundOpts.gateKeeper = args.gateKeeper;
@@ -164,7 +164,7 @@ contract InitialETHCrowdfundTest is InitialETHCrowdfundTestBase {
                 minTotalContributions: 0,
                 maxTotalContributions: type(uint96).max,
                 duration: 7 days,
-                exchangeRateBps: 1e4,
+                exchangeRate: 1e18,
                 fundingSplitBps: 0,
                 fundingSplitRecipient: payable(address(0)),
                 gateKeeper: IGateKeeper(address(0)),
@@ -199,7 +199,7 @@ contract InitialETHCrowdfundTest is InitialETHCrowdfundTestBase {
                 minTotalContributions: minTotalContributions,
                 maxTotalContributions: maxTotalContributions,
                 duration: 7 days,
-                exchangeRateBps: 1e4,
+                exchangeRate: 1e18,
                 fundingSplitBps: 0,
                 fundingSplitRecipient: payable(address(0)),
                 gateKeeper: IGateKeeper(address(0)),
@@ -230,7 +230,7 @@ contract InitialETHCrowdfundTest is InitialETHCrowdfundTestBase {
                 minTotalContributions: 0,
                 maxTotalContributions: maxTotalContributions,
                 duration: 7 days,
-                exchangeRateBps: 1e4,
+                exchangeRate: 1e18,
                 fundingSplitBps: 0,
                 fundingSplitRecipient: payable(address(0)),
                 gateKeeper: IGateKeeper(address(0)),
@@ -264,7 +264,7 @@ contract InitialETHCrowdfundTest is InitialETHCrowdfundTestBase {
                 minTotalContributions: 3 ether,
                 maxTotalContributions: 5 ether,
                 duration: 7 days,
-                exchangeRateBps: 1e4,
+                exchangeRate: 1e18,
                 fundingSplitBps: 0,
                 fundingSplitRecipient: payable(address(0)),
                 gateKeeper: IGateKeeper(address(0)),
@@ -302,7 +302,7 @@ contract InitialETHCrowdfundTest is InitialETHCrowdfundTestBase {
                 minTotalContributions: initialContribution,
                 maxTotalContributions: initialContribution,
                 duration: 7 days,
-                exchangeRateBps: 1e4,
+                exchangeRate: 1e18,
                 fundingSplitBps: 0,
                 fundingSplitRecipient: payable(address(0)),
                 gateKeeper: IGateKeeper(address(0)),
@@ -330,7 +330,7 @@ contract InitialETHCrowdfundTest is InitialETHCrowdfundTestBase {
                 minTotalContributions: 3 ether,
                 maxTotalContributions: 5 ether,
                 duration: 7 days,
-                exchangeRateBps: 1e4,
+                exchangeRate: 1e18,
                 fundingSplitBps: 0,
                 fundingSplitRecipient: payable(address(0)),
                 gateKeeper: IGateKeeper(address(0)),
@@ -370,7 +370,7 @@ contract InitialETHCrowdfundTest is InitialETHCrowdfundTestBase {
                 minTotalContributions: 3 ether,
                 maxTotalContributions: 5 ether,
                 duration: 7 days,
-                exchangeRateBps: 1e4,
+                exchangeRate: 1e18,
                 fundingSplitBps: 0,
                 fundingSplitRecipient: payable(address(0)),
                 gateKeeper: IGateKeeper(address(0)),
@@ -400,7 +400,7 @@ contract InitialETHCrowdfundTest is InitialETHCrowdfundTestBase {
                 minTotalContributions: 3 ether,
                 maxTotalContributions: 5 ether,
                 duration: 7 days,
-                exchangeRateBps: 1e4,
+                exchangeRate: 1e18,
                 fundingSplitBps: 0,
                 fundingSplitRecipient: payable(address(0)),
                 gateKeeper: IGateKeeper(address(0)),
@@ -442,7 +442,7 @@ contract InitialETHCrowdfundTest is InitialETHCrowdfundTestBase {
                 minTotalContributions: 3 ether,
                 maxTotalContributions: 5 ether,
                 duration: 7 days,
-                exchangeRateBps: 1e4,
+                exchangeRate: 1e18,
                 fundingSplitBps: 0.5e4,
                 fundingSplitRecipient: fundingSplitRecipient,
                 gateKeeper: IGateKeeper(address(0)),
@@ -477,7 +477,7 @@ contract InitialETHCrowdfundTest is InitialETHCrowdfundTestBase {
                 minTotalContributions: 3 ether,
                 maxTotalContributions: 5 ether,
                 duration: 7 days,
-                exchangeRateBps: 1e4,
+                exchangeRate: 1e18,
                 fundingSplitBps: 0,
                 fundingSplitRecipient: payable(address(0)),
                 gateKeeper: IGateKeeper(address(0)),
@@ -506,7 +506,7 @@ contract InitialETHCrowdfundTest is InitialETHCrowdfundTestBase {
                 minTotalContributions: 3 ether,
                 maxTotalContributions: 5 ether,
                 duration: 7 days,
-                exchangeRateBps: 1,
+                exchangeRate: 1,
                 fundingSplitBps: 0,
                 fundingSplitRecipient: payable(address(0)),
                 gateKeeper: IGateKeeper(address(0)),
@@ -535,7 +535,7 @@ contract InitialETHCrowdfundTest is InitialETHCrowdfundTestBase {
                 minTotalContributions: 1 ether,
                 maxTotalContributions: 1 ether,
                 duration: 7 days,
-                exchangeRateBps: 1e4,
+                exchangeRate: 1e18,
                 fundingSplitBps: 0,
                 fundingSplitRecipient: payable(address(0)),
                 gateKeeper: IGateKeeper(address(0)),
@@ -573,7 +573,7 @@ contract InitialETHCrowdfundTest is InitialETHCrowdfundTestBase {
                 minTotalContributions: 0,
                 maxTotalContributions: 1 ether,
                 duration: 7 days,
-                exchangeRateBps: 1e4,
+                exchangeRate: 1e18,
                 fundingSplitBps: 0,
                 fundingSplitRecipient: payable(address(0)),
                 gateKeeper: IGateKeeper(address(0)),
@@ -587,57 +587,14 @@ contract InitialETHCrowdfundTest is InitialETHCrowdfundTestBase {
 
         // Contribute
         vm.prank(member);
-        crowdfund.contribute{ value: 2 ether }(member, "");
-
-        assertTrue(
-            crowdfund.getCrowdfundLifecycle() == ETHCrowdfundBase.CrowdfundLifecycle.Finalized
-        );
-
-        assertEq(address(member).balance, 1 ether); // Check refunded amount
-        assertEq(address(party).balance, 1 ether);
-        assertEq(crowdfund.totalContributions(), 1 ether);
-        assertEq(party.getGovernanceValues().totalVotingPower, 1 ether);
-    }
-
-    function test_contribute_aboveMaxTotalContributionWhenWhenContributionBelowMinContributionAfterRefund()
-        public
-    {
-        InitialETHCrowdfund crowdfund = _createCrowdfund(
-            CreateCrowdfundArgs({
-                initialContribution: 0,
-                initialContributor: payable(address(0)),
-                initialDelegate: address(0),
-                minContributions: 1 ether,
-                maxContributions: type(uint96).max,
-                disableContributingForExistingCard: false,
-                minTotalContributions: 0,
-                maxTotalContributions: 2 ether,
-                duration: 7 days,
-                exchangeRateBps: 1e4,
-                fundingSplitBps: 0,
-                fundingSplitRecipient: payable(address(0)),
-                gateKeeper: IGateKeeper(address(0)),
-                gateKeeperId: bytes12(0)
-            })
-        );
-
-        address member = _randomAddress();
-        vm.deal(member, 3 ether);
-
-        // Contribute
-        vm.prank(member);
-        crowdfund.contribute{ value: 1.5 ether }(member, "");
-
-        // Contribute again but amount after refund (0.5 ether) is below min contribution
         vm.expectRevert(
             abi.encodeWithSelector(
-                ETHCrowdfundBase.BelowMinimumContributionsError.selector,
-                0.5 ether,
+                ETHCrowdfundBase.ExceedsRemainingContributionsError.selector,
+                2 ether,
                 1 ether
             )
         );
-        vm.prank(member);
-        crowdfund.contribute{ value: 1.5 ether }(member, "");
+        crowdfund.contribute{ value: 2 ether }(member, "");
     }
 
     function test_contribute_aboveMaxContribution() public {
@@ -653,7 +610,7 @@ contract InitialETHCrowdfundTest is InitialETHCrowdfundTestBase {
                 minTotalContributions: 3 ether,
                 maxTotalContributions: 5 ether,
                 duration: 7 days,
-                exchangeRateBps: 1e4,
+                exchangeRate: 1e18,
                 fundingSplitBps: 0,
                 fundingSplitRecipient: payable(address(0)),
                 gateKeeper: IGateKeeper(address(0)),
@@ -690,7 +647,7 @@ contract InitialETHCrowdfundTest is InitialETHCrowdfundTestBase {
                 minTotalContributions: 3 ether,
                 maxTotalContributions: 5 ether,
                 duration: 7 days,
-                exchangeRateBps: 1e4,
+                exchangeRate: 1e18,
                 fundingSplitBps: 0,
                 fundingSplitRecipient: payable(address(0)),
                 gateKeeper: IGateKeeper(address(0)),
@@ -732,7 +689,7 @@ contract InitialETHCrowdfundTest is InitialETHCrowdfundTestBase {
                 minTotalContributions: 3 ether,
                 maxTotalContributions: 5 ether,
                 duration: 7 days,
-                exchangeRateBps: 1e4,
+                exchangeRate: 1e18,
                 fundingSplitBps: 0,
                 fundingSplitRecipient: payable(address(0)),
                 gateKeeper: gatekeeper,
@@ -792,7 +749,7 @@ contract InitialETHCrowdfundTest is InitialETHCrowdfundTestBase {
                 minTotalContributions: 3 ether,
                 maxTotalContributions: 5 ether,
                 duration: 7 days,
-                exchangeRateBps: 1e4,
+                exchangeRate: 1e18,
                 fundingSplitBps: 0.2e4,
                 fundingSplitRecipient: fundingSplitRecipient,
                 gateKeeper: IGateKeeper(address(0)),
@@ -827,7 +784,7 @@ contract InitialETHCrowdfundTest is InitialETHCrowdfundTestBase {
                 minTotalContributions: 3 ether,
                 maxTotalContributions: 5 ether,
                 duration: 7 days,
-                exchangeRateBps: 1e4,
+                exchangeRate: 1e18,
                 fundingSplitBps: 0,
                 fundingSplitRecipient: payable(address(0)),
                 gateKeeper: IGateKeeper(address(0)),
@@ -856,7 +813,7 @@ contract InitialETHCrowdfundTest is InitialETHCrowdfundTestBase {
                 minTotalContributions: 3 ether,
                 maxTotalContributions: 5 ether,
                 duration: 7 days,
-                exchangeRateBps: 1e4,
+                exchangeRate: 1e18,
                 fundingSplitBps: 0,
                 fundingSplitRecipient: payable(address(0)),
                 gateKeeper: IGateKeeper(address(0)),
@@ -930,7 +887,7 @@ contract InitialETHCrowdfundTest is InitialETHCrowdfundTestBase {
                 minTotalContributions: 3 ether,
                 maxTotalContributions: 5 ether,
                 duration: 7 days,
-                exchangeRateBps: 1e4,
+                exchangeRate: 1e18,
                 fundingSplitBps: 0,
                 fundingSplitRecipient: payable(address(0)),
                 gateKeeper: IGateKeeper(address(0)),
@@ -972,7 +929,7 @@ contract InitialETHCrowdfundTest is InitialETHCrowdfundTestBase {
                 minTotalContributions: 3 ether,
                 maxTotalContributions: 5 ether,
                 duration: 7 days,
-                exchangeRateBps: 1e4,
+                exchangeRate: 1e18,
                 fundingSplitBps: 0,
                 fundingSplitRecipient: payable(address(0)),
                 gateKeeper: IGateKeeper(address(0)),
@@ -1013,7 +970,7 @@ contract InitialETHCrowdfundTest is InitialETHCrowdfundTestBase {
                 minTotalContributions: 3 ether,
                 maxTotalContributions: 5 ether,
                 duration: 7 days,
-                exchangeRateBps: 1e4,
+                exchangeRate: 1e18,
                 fundingSplitBps: 0,
                 fundingSplitRecipient: payable(address(0)),
                 gateKeeper: IGateKeeper(address(0)),
@@ -1072,7 +1029,7 @@ contract InitialETHCrowdfundTest is InitialETHCrowdfundTestBase {
                 minTotalContributions: 3 ether,
                 maxTotalContributions: 5 ether,
                 duration: 7 days,
-                exchangeRateBps: 1e4,
+                exchangeRate: 1e18,
                 fundingSplitBps: 0,
                 fundingSplitRecipient: payable(address(0)),
                 gateKeeper: IGateKeeper(address(0)),
@@ -1120,7 +1077,7 @@ contract InitialETHCrowdfundTest is InitialETHCrowdfundTestBase {
                 minTotalContributions: 3 ether,
                 maxTotalContributions: 5 ether,
                 duration: 7 days,
-                exchangeRateBps: 1e4,
+                exchangeRate: 1e18,
                 fundingSplitBps: 0,
                 fundingSplitRecipient: payable(address(0)),
                 gateKeeper: IGateKeeper(address(0)),
@@ -1160,7 +1117,7 @@ contract InitialETHCrowdfundTest is InitialETHCrowdfundTestBase {
                 minTotalContributions: 3 ether,
                 maxTotalContributions: 5 ether,
                 duration: 7 days,
-                exchangeRateBps: 1e4,
+                exchangeRate: 1e18,
                 fundingSplitBps: 0,
                 fundingSplitRecipient: payable(address(0)),
                 gateKeeper: IGateKeeper(address(0)),
@@ -1196,7 +1153,7 @@ contract InitialETHCrowdfundTest is InitialETHCrowdfundTestBase {
                 minTotalContributions: 3 ether,
                 maxTotalContributions: 5 ether,
                 duration: 7 days,
-                exchangeRateBps: 1e4,
+                exchangeRate: 1e18,
                 fundingSplitBps: 0,
                 fundingSplitRecipient: payable(address(0)),
                 gateKeeper: IGateKeeper(address(0)),
@@ -1232,7 +1189,7 @@ contract InitialETHCrowdfundTest is InitialETHCrowdfundTestBase {
                 minTotalContributions: 3 ether,
                 maxTotalContributions: 5 ether,
                 duration: 7 days,
-                exchangeRateBps: 1e4,
+                exchangeRate: 1e18,
                 fundingSplitBps: 0,
                 fundingSplitRecipient: payable(address(0)),
                 gateKeeper: IGateKeeper(address(0)),
@@ -1274,7 +1231,7 @@ contract InitialETHCrowdfundTest is InitialETHCrowdfundTestBase {
                 minTotalContributions: 3 ether,
                 maxTotalContributions: 6 ether,
                 duration: 7 days,
-                exchangeRateBps: 1e4,
+                exchangeRate: 1e18,
                 fundingSplitBps: 0.2e4,
                 fundingSplitRecipient: fundingSplitRecipient,
                 gateKeeper: IGateKeeper(address(0)),
@@ -1315,7 +1272,7 @@ contract InitialETHCrowdfundTest is InitialETHCrowdfundTestBase {
                 minTotalContributions: 3 ether,
                 maxTotalContributions: 5 ether,
                 duration: 7 days,
-                exchangeRateBps: 1e4,
+                exchangeRate: 1e18,
                 fundingSplitBps: 0,
                 fundingSplitRecipient: payable(address(0)),
                 gateKeeper: IGateKeeper(address(0)),
@@ -1348,7 +1305,7 @@ contract InitialETHCrowdfundTest is InitialETHCrowdfundTestBase {
                 minTotalContributions: 3 ether,
                 maxTotalContributions: 5 ether,
                 duration: 7 days,
-                exchangeRateBps: 1e4,
+                exchangeRate: 1e18,
                 fundingSplitBps: 0,
                 fundingSplitRecipient: payable(address(0)),
                 gateKeeper: IGateKeeper(address(0)),
@@ -1384,7 +1341,7 @@ contract InitialETHCrowdfundTest is InitialETHCrowdfundTestBase {
                 minTotalContributions: 3 ether,
                 maxTotalContributions: 5 ether,
                 duration: 7 days,
-                exchangeRateBps: 1e4,
+                exchangeRate: 1e18,
                 fundingSplitBps: 0,
                 fundingSplitRecipient: payable(address(0)),
                 gateKeeper: IGateKeeper(address(0)),
@@ -1429,7 +1386,7 @@ contract InitialETHCrowdfundTest is InitialETHCrowdfundTestBase {
                 minTotalContributions: 3 ether,
                 maxTotalContributions: 5 ether,
                 duration: 7 days,
-                exchangeRateBps: 1e4,
+                exchangeRate: 1e18,
                 fundingSplitBps: 0,
                 fundingSplitRecipient: payable(address(0)),
                 gateKeeper: IGateKeeper(address(0)),
@@ -1488,7 +1445,7 @@ contract InitialETHCrowdfundTest is InitialETHCrowdfundTestBase {
                 minTotalContributions: 3 ether,
                 maxTotalContributions: 5 ether,
                 duration: 7 days,
-                exchangeRateBps: 1e4,
+                exchangeRate: 1e18,
                 fundingSplitBps: 0,
                 fundingSplitRecipient: payable(address(0)),
                 gateKeeper: IGateKeeper(address(0)),
@@ -1536,7 +1493,7 @@ contract InitialETHCrowdfundTest is InitialETHCrowdfundTestBase {
                 minTotalContributions: 4 ether,
                 maxTotalContributions: 5 ether,
                 duration: 7 days,
-                exchangeRateBps: 1e4,
+                exchangeRate: 1e18,
                 fundingSplitBps: 0,
                 fundingSplitRecipient: payable(address(0)),
                 gateKeeper: IGateKeeper(address(0)),
@@ -1584,7 +1541,7 @@ contract InitialETHCrowdfundTest is InitialETHCrowdfundTestBase {
                 minTotalContributions: 3 ether,
                 maxTotalContributions: 5 ether,
                 duration: 7 days,
-                exchangeRateBps: 1e4,
+                exchangeRate: 1e18,
                 fundingSplitBps: 0.2e4,
                 fundingSplitRecipient: fundingSplitRecipient,
                 gateKeeper: IGateKeeper(address(0)),
@@ -1627,7 +1584,7 @@ contract InitialETHCrowdfundTest is InitialETHCrowdfundTestBase {
                 minTotalContributions: 1 ether,
                 maxTotalContributions: 1 ether,
                 duration: 7 days,
-                exchangeRateBps: 1e4,
+                exchangeRate: 1e18,
                 fundingSplitBps: 0.2e4,
                 fundingSplitRecipient: fundingSplitRecipient,
                 gateKeeper: IGateKeeper(address(0)),
@@ -1668,7 +1625,7 @@ contract InitialETHCrowdfundTest is InitialETHCrowdfundTestBase {
                 minTotalContributions: 1 ether,
                 maxTotalContributions: 1 ether,
                 duration: 7 days,
-                exchangeRateBps: 1e4,
+                exchangeRate: 1e18,
                 fundingSplitBps: 0.2e4,
                 fundingSplitRecipient: fundingSplitRecipient,
                 gateKeeper: IGateKeeper(address(0)),
@@ -1715,7 +1672,7 @@ contract InitialETHCrowdfundTest is InitialETHCrowdfundTestBase {
                 minTotalContributions: 1 ether,
                 maxTotalContributions: 1 ether,
                 duration: 7 days,
-                exchangeRateBps: 1e4,
+                exchangeRate: 1e18,
                 fundingSplitBps: 0.2e4,
                 fundingSplitRecipient: fundingSplitRecipient,
                 gateKeeper: IGateKeeper(address(0)),
@@ -1754,7 +1711,7 @@ contract InitialETHCrowdfundTest is InitialETHCrowdfundTestBase {
                 minTotalContributions: 1 ether,
                 maxTotalContributions: 1 ether,
                 duration: 7 days,
-                exchangeRateBps: 1e4,
+                exchangeRate: 1e18,
                 fundingSplitBps: 0,
                 fundingSplitRecipient: payable(address(0)),
                 gateKeeper: IGateKeeper(address(0)),
@@ -1794,7 +1751,7 @@ contract InitialETHCrowdfundTest is InitialETHCrowdfundTestBase {
                 disableContributingForExistingCard: true,
                 minTotalContributions: 0,
                 maxTotalContributions: 10 ether,
-                exchangeRateBps: 10000,
+                exchangeRate: 1e18,
                 fundingSplitBps: 0,
                 fundingSplitRecipient: payable(0),
                 duration: 1 days,
@@ -1860,7 +1817,7 @@ contract InitialETHCrowdfundForkedTest is InitialETHCrowdfundTestBase {
                 minTotalContributions: 3 ether,
                 maxTotalContributions: 5 ether,
                 duration: 7 days,
-                exchangeRateBps: 1e4,
+                exchangeRate: 1e18,
                 fundingSplitBps: 0,
                 fundingSplitRecipient: payable(address(0)),
                 gateKeeper: IGateKeeper(address(0)),
@@ -1900,7 +1857,7 @@ contract InitialETHCrowdfundForkedTest is InitialETHCrowdfundTestBase {
                 minTotalContributions: 1 ether,
                 maxTotalContributions: 5 ether,
                 duration: 7 days,
-                exchangeRateBps: 1e4,
+                exchangeRate: 1e18,
                 fundingSplitBps: 0,
                 fundingSplitRecipient: payable(address(0)),
                 gateKeeper: IGateKeeper(address(0)),
@@ -1942,7 +1899,7 @@ contract InitialETHCrowdfundForkedTest is InitialETHCrowdfundTestBase {
                 minTotalContributions: 3 ether,
                 maxTotalContributions: 5 ether,
                 duration: 7 days,
-                exchangeRateBps: 1e4,
+                exchangeRate: 1e18,
                 fundingSplitBps: 0,
                 fundingSplitRecipient: payable(address(0)),
                 gateKeeper: IGateKeeper(address(0)),
@@ -1984,7 +1941,7 @@ contract InitialETHCrowdfundForkedTest is InitialETHCrowdfundTestBase {
                 minTotalContributions: 1 ether,
                 maxTotalContributions: 1 ether,
                 duration: 7 days,
-                exchangeRateBps: 1e4,
+                exchangeRate: 1e18,
                 fundingSplitBps: 0,
                 fundingSplitRecipient: payable(address(0)),
                 gateKeeper: IGateKeeper(address(0)),
