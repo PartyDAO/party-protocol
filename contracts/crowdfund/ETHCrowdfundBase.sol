@@ -222,13 +222,18 @@ abstract contract ETHCrowdfundBase is Implementation {
             revert WrongLifecycleError(lc);
         }
 
+        // Check that the contribution amount is at or above the minimum.
+        uint96 minContribution_ = minContribution;
+        if (contribution < minContribution_) {
+            revert BelowMinimumContributionsError(contribution, minContribution_);
+        }
+
         // Check that the contribution amount is at or below the maximum.
         uint96 maxContribution_ = maxContribution;
         if (contribution > maxContribution_) {
             revert AboveMaximumContributionsError(contribution, maxContribution_);
         }
 
-        uint96 minContribution_ = minContribution;
         uint96 newTotalContributions = totalContributions + contribution;
         uint96 maxTotalContributions_ = maxTotalContributions;
         if (newTotalContributions > maxTotalContributions_) {
@@ -245,11 +250,6 @@ abstract contract ETHCrowdfundBase is Implementation {
             ) {
                 _finalize(newTotalContributions);
             }
-        }
-
-        // Check that the contribution amount is at or above the minimum.
-        if (contribution < minContribution_) {
-            revert BelowMinimumContributionsError(contribution, minContribution_);
         }
 
         // Calculate voting power.
