@@ -20,6 +20,7 @@ contract PartyGovernanceNFT is PartyGovernance, ERC721, IERC2981 {
     error FixedRageQuitTimestampError(uint40 rageQuitTimestamp);
     error CannotRageQuitError(uint40 rageQuitTimestamp);
     error CannotDisableRageQuitAfterInitializationError();
+    error CannotEnableRageQuitIfNotDistributionsRequireVoteError();
     error InvalidTokenOrderError();
     error BelowMinWithdrawAmountError(uint256 amount, uint256 minAmount);
     error NothingToBurnError();
@@ -97,7 +98,13 @@ contract PartyGovernanceNFT is PartyGovernance, ERC721, IERC2981 {
         );
         name = name_;
         symbol = symbol_;
-        rageQuitTimestamp = rageQuitTimestamp_;
+        if (rageQuitTimestamp_ != 0) {
+            if (!proposalEngineOpts.distributionsRequireVote) {
+                revert CannotEnableRageQuitIfNotDistributionsRequireVoteError();
+            }
+
+            rageQuitTimestamp = rageQuitTimestamp_;
+        }
         unchecked {
             for (uint256 i; i < authorities.length; ++i) {
                 isAuthority[authorities[i]] = true;
@@ -227,6 +234,9 @@ contract PartyGovernanceNFT is PartyGovernance, ERC721, IERC2981 {
         emit PartyCardIntrinsicVotingPowerSet(tokenId, newIntrinsicVotingPower);
 
         _adjustVotingPower(ownerOf(tokenId), votingPower.safeCastUint96ToInt192(), address(0));
+
+        // Notify third-party platforms that the party NFT metadata has updated.
+        emit MetadataUpdate(tokenId);
     }
 
     /// @notice Remove voting power from an existing NFT. Only callable by an
@@ -239,6 +249,9 @@ contract PartyGovernanceNFT is PartyGovernance, ERC721, IERC2981 {
         votingPowerByTokenId[tokenId] -= votingPower;
 
         _adjustVotingPower(ownerOf(tokenId), -votingPower.safeCastUint96ToInt192(), address(0));
+
+        // Notify third-party platforms that the party NFT metadata has updated.
+        emit MetadataUpdate(tokenId);
     }
 
     /// @notice Increase the total voting power of the party. Only callable by
@@ -247,6 +260,10 @@ contract PartyGovernanceNFT is PartyGovernance, ERC721, IERC2981 {
     function increaseTotalVotingPower(uint96 votingPower) external {
         _assertAuthority();
         _getSharedProposalStorage().governanceValues.totalVotingPower += votingPower;
+
+        // Notify third-party platforms that the party NFT metadata has updated
+        // for all tokens.
+        emit BatchMetadataUpdate(0, type(uint256).max);
     }
 
     /// @notice Decrease the total voting power of the party. Only callable by
@@ -255,6 +272,10 @@ contract PartyGovernanceNFT is PartyGovernance, ERC721, IERC2981 {
     function decreaseTotalVotingPower(uint96 votingPower) external {
         _assertAuthority();
         _getSharedProposalStorage().governanceValues.totalVotingPower -= votingPower;
+
+        // Notify third-party platforms that the party NFT metadata has updated
+        // for all tokens.
+        emit BatchMetadataUpdate(0, type(uint256).max);
     }
 
     /// @notice Burn governance NFTs and remove their voting power.
@@ -301,6 +322,8 @@ contract PartyGovernanceNFT is PartyGovernance, ERC721, IERC2981 {
 
         // Update minted voting power.
         mintedVotingPower -= totalVotingPowerBurned;
+
+        emit BatchMetadataUpdate(0, type(uint256).max);
     }
 
     /// @notice Burn governance NFT and remove its voting power. Can only be
@@ -321,6 +344,10 @@ contract PartyGovernanceNFT is PartyGovernance, ERC721, IERC2981 {
             revert CannotDisableRageQuitAfterInitializationError();
         }
 
+        // Prevent enabling ragequit if distributions can be created without a vote.
+        if (!_getSharedProposalStorage().opts.distributionsRequireVote)
+            revert CannotEnableRageQuitIfNotDistributionsRequireVoteError();
+
         uint40 oldRageQuitTimestamp = rageQuitTimestamp;
 
         // Prevent setting timestamp if it is permanently enabled/disabled.
@@ -331,7 +358,9 @@ contract PartyGovernanceNFT is PartyGovernance, ERC721, IERC2981 {
             revert FixedRageQuitTimestampError(oldRageQuitTimestamp);
         }
 
-        emit RageQuitSet(oldRageQuitTimestamp, rageQuitTimestamp = newRageQuitTimestamp);
+        rageQuitTimestamp = newRageQuitTimestamp;
+
+        emit RageQuitSet(oldRageQuitTimestamp, newRageQuitTimestamp);
     }
 
     /// @notice Burn a governance NFT and withdraw a fair share of fungible tokens from the party.

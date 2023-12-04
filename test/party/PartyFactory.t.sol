@@ -76,7 +76,7 @@ contract PartyFactoryTest is Test, TestUtils {
         Party.PartyOptions memory opts = Party.PartyOptions({
             governance: PartyGovernance.GovernanceOpts({
                 hosts: _toAddressArray(_randomAddress()),
-                voteDuration: randomUint40,
+                voteDuration: randomUint40 < 1 hours ? 1 hours : randomUint40,
                 executionDelay: randomUint40,
                 passThresholdBps: randomBps,
                 totalVotingPower: randomUint96,
@@ -87,7 +87,8 @@ contract PartyFactoryTest is Test, TestUtils {
                 enableAddAuthorityProposal: randomBool,
                 allowArbCallsToSpendPartyEth: randomBool,
                 allowOperators: randomBool,
-                distributionsRequireVote: randomBool
+                // Needs to be true to set non-zero rageQuitTimestamp
+                distributionsRequireVote: true
             }),
             name: randomStr,
             symbol: randomStr,
@@ -118,7 +119,7 @@ contract PartyFactoryTest is Test, TestUtils {
             .getProposalEngineOpts();
         assertEq(proposalEngineOpts.allowArbCallsToSpendPartyEth, randomBool);
         assertEq(proposalEngineOpts.allowOperators, randomBool);
-        assertEq(proposalEngineOpts.distributionsRequireVote, randomBool);
+        assertEq(proposalEngineOpts.distributionsRequireVote, true);
         assertEq(party.preciousListHash(), _hashPreciousList(preciousTokens, preciousTokenIds));
     }
 
@@ -137,7 +138,7 @@ contract PartyFactoryTest is Test, TestUtils {
         Party.PartyOptions memory opts = Party.PartyOptions({
             governance: PartyGovernance.GovernanceOpts({
                 hosts: _toAddressArray(_randomAddress()),
-                voteDuration: randomUint40,
+                voteDuration: randomUint40 < 1 hours ? 1 hours : randomUint40,
                 executionDelay: randomUint40,
                 passThresholdBps: randomBps,
                 totalVotingPower: randomUint96,
@@ -148,7 +149,8 @@ contract PartyFactoryTest is Test, TestUtils {
                 enableAddAuthorityProposal: randomBool,
                 allowArbCallsToSpendPartyEth: randomBool,
                 allowOperators: randomBool,
-                distributionsRequireVote: randomBool
+                // Needs to be true to set non-zero rageQuitTimestamp
+                distributionsRequireVote: true
             }),
             name: randomStr,
             symbol: randomStr,
@@ -182,7 +184,7 @@ contract PartyFactoryTest is Test, TestUtils {
             .getProposalEngineOpts();
         assertEq(proposalEngineOpts.allowArbCallsToSpendPartyEth, randomBool);
         assertEq(proposalEngineOpts.allowOperators, randomBool);
-        assertEq(proposalEngineOpts.distributionsRequireVote, randomBool);
+        assertEq(proposalEngineOpts.distributionsRequireVote, true);
         assertEq(party.preciousListHash(), _hashPreciousList(preciousTokens, preciousTokenIds));
         assertEq(address(registry.getProvider(address(party))), address(provider));
         assertEq(provider.getMetadata(address(party), 0), metadata);
@@ -212,6 +214,26 @@ contract PartyFactoryTest is Test, TestUtils {
             preciousTokens,
             preciousTokenIds,
             0
+        );
+    }
+
+    function testCreateParty_revertIfRagequitEnabledAndNotDistributionsRequireVote() external {
+        address authority = _randomAddress();
+        (IERC721[] memory preciousTokens, uint256[] memory preciousTokenIds) = _createPreciouses(3);
+
+        Party.PartyOptions memory opts = defaultPartyOptions;
+        uint40 ragequitTimestamp = 1;
+
+        vm.expectRevert(
+            PartyGovernanceNFT.CannotEnableRageQuitIfNotDistributionsRequireVoteError.selector
+        );
+        factory.createParty(
+            partyImpl,
+            _toAddressArray(authority),
+            opts,
+            preciousTokens,
+            preciousTokenIds,
+            ragequitTimestamp
         );
     }
 }

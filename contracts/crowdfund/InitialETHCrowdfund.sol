@@ -156,10 +156,9 @@ contract InitialETHCrowdfund is ETHCrowdfundBase {
         gateKeeperId = crowdfundOpts.gateKeeperId;
     }
 
-    /// @notice Contribute ETH to this crowdfund on behalf of a contributor.
-    /// @param initialDelegate The address to which voting power will be delegated to
-    ///                        during the governance phase. This will be ignored
-    ///                        if recipient has already set a delegate.
+    /// @notice Contribute ETH to this crowdfund.
+    /// @param initialDelegate The address to which voting power will be
+    ///                        delegated to during the governance phase.
     /// @param gateData Data to pass to the gatekeeper to prove eligibility.
     /// @return votingPower The voting power the contributor receives for their
     ///                     contribution.
@@ -177,7 +176,7 @@ contract InitialETHCrowdfund is ETHCrowdfundBase {
             );
     }
 
-    /// @notice Contribute ETH to this crowdfund on behalf of a contributor.
+    /// @notice Contribute ETH to this crowdfund.
     /// @param tokenId The ID of the card the contribution is being made towards.
     /// @param initialDelegate The address to which voting power will be delegated to
     ///                        during the governance phase. This will be ignored
@@ -208,6 +207,13 @@ contract InitialETHCrowdfund is ETHCrowdfundBase {
         BatchContributeArgs calldata args
     ) external payable onlyDelegateCall returns (uint96[] memory votingPowers) {
         uint256 numContributions = args.tokenIds.length;
+        uint256 numValues = args.values.length;
+        uint256 numGateDatas = args.gateDatas.length;
+
+        if (numContributions != numValues || numContributions != numGateDatas) {
+            revert ArityMismatch();
+        }
+
         votingPowers = new uint96[](numContributions);
         uint256 valuesSum;
 
@@ -259,6 +265,13 @@ contract InitialETHCrowdfund is ETHCrowdfundBase {
         BatchContributeForArgs calldata args
     ) external payable onlyDelegateCall returns (uint96[] memory votingPowers) {
         uint256 numContributions = args.tokenIds.length;
+        uint256 numValues = args.values.length;
+        uint256 numGateDatas = args.gateDatas.length;
+
+        if (numContributions != numValues || numContributions != numGateDatas) {
+            revert ArityMismatch();
+        }
+
         votingPowers = new uint96[](args.recipients.length);
         uint256 valuesSum;
 

@@ -125,10 +125,16 @@ abstract contract PartyGovernance is
         uint96 votes; // -1 == vetoed
         // Number of total voting power at time proposal created.
         uint96 totalVotingPower;
-        /// @notice Number of hosts at time proposal created
+        // Number of hosts at time proposal created
         uint8 numHosts;
-        /// @notice Number of hosts that accepted proposal
+        // Number of hosts that accepted proposal
         uint8 numHostsAccepted;
+        // Cached vote duration from proposal creation.
+        uint40 voteDuration;
+        // Cached execution delay from proposal creation.
+        uint40 executionDelay;
+        // Cached pass threshold bps from proposal creation.
+        uint16 passThresholdBps;
     }
 
     // Storage states for a proposal.
@@ -178,6 +184,7 @@ abstract contract PartyGovernance is
     error InvalidNewHostError();
     error ProposalCannotBeCancelledYetError(uint40 currentTime, uint40 cancelTime);
     error InvalidBpsError(uint16 bps);
+    error InvalidGovernanceParameter(uint256 value);
     error DistributionsRequireVoteError();
     error PartyNotStartedError();
     error CannotRageQuitAndAcceptError();
@@ -285,6 +292,9 @@ abstract contract PartyGovernance is
             IProposalExecutionEngine(_GLOBALS.getAddress(LibGlobals.GLOBAL_PROPOSAL_ENGINE_IMPL)),
             abi.encode(proposalEngineOpts)
         );
+        if (govOpts.voteDuration < 1 hours) {
+            revert InvalidGovernanceParameter(govOpts.voteDuration);
+        }
         // Set the governance parameters.
         _getSharedProposalStorage().governanceValues = GovernanceValues({
             voteDuration: govOpts.voteDuration,
@@ -541,6 +551,9 @@ abstract contract PartyGovernance is
     ) external returns (uint256 proposalId) {
         _assertActiveMember();
         proposalId = ++lastProposalId;
+
+        ProposalStorage.GovernanceValues memory gv = _getSharedProposalStorage().governanceValues;
+
         // Store the time the proposal was created and the proposal hash.
         (
             _proposalStateByProposalId[proposalId].values,
@@ -552,9 +565,12 @@ abstract contract PartyGovernance is
                 executedTime: 0,
                 completedTime: 0,
                 votes: 0,
-                totalVotingPower: _getSharedProposalStorage().governanceValues.totalVotingPower,
+                totalVotingPower: gv.totalVotingPower,
                 numHosts: numHosts,
-                numHostsAccepted: 0
+                numHostsAccepted: 0,
+                voteDuration: gv.voteDuration,
+                executionDelay: gv.executionDelay,
+                passThresholdBps: gv.passThresholdBps
             }),
             getProposalHash(proposal)
         );
@@ -625,7 +641,7 @@ abstract contract PartyGovernance is
         if (
             values.passedTime == 0 &&
             (uint256(values.votes) * 1e4) / uint256(values.totalVotingPower) >=
-            uint256(_getSharedProposalStorage().governanceValues.passThresholdBps)
+            uint256(values.passThresholdBps)
         ) {
             info.values.passedTime = uint40(block.timestamp);
             emit ProposalPassed(proposalId);
@@ -1055,10 +1071,9 @@ abstract contract PartyGovernance is
             return ProposalStatus.Defeated;
         }
         uint40 t = uint40(block.timestamp);
-        GovernanceValues memory gv = _getSharedProposalStorage().governanceValues;
         if (pv.passedTime != 0) {
             // Ready.
-            if (pv.passedTime + gv.executionDelay <= t) {
+            if (pv.passedTime + pv.executionDelay <= t) {
                 return ProposalStatus.Ready;
             }
             // If unanimous, we skip the execution delay.
@@ -1073,7 +1088,7 @@ abstract contract PartyGovernance is
             return ProposalStatus.Passed;
         }
         // Voting window expired.
-        if (pv.proposedTime + gv.voteDuration <= t) {
+        if (pv.proposedTime + pv.voteDuration <= t) {
             return ProposalStatus.Defeated;
         }
         return ProposalStatus.Voting;

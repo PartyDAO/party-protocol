@@ -11,10 +11,11 @@ contract SetGovernanceParameterProposalTest is SetupPartyHelper {
     event VoteDurationSet(uint256 oldValue, uint256 newValue);
     event ExecutionDelaySet(uint256 oldValue, uint256 newValue);
     event PassThresholdBpsSet(uint256 oldValue, uint256 newValue);
+    event ProposalPassed(uint256 indexed proposalId);
 
     uint256 oldPassThresholdBps = 1000;
-    uint256 oldVoteDuration = 99;
-    uint256 oldExecutionDelay = 300;
+    uint256 oldVoteDuration = 1 hours;
+    uint256 oldExecutionDelay = 99;
 
     function testGovernanceParameterProposal_multiple() public {
         uint16 newPassThresholdBps = 2000;
@@ -43,6 +44,12 @@ contract SetGovernanceParameterProposalTest is SetupPartyHelper {
         assertEq(party.getGovernanceValues().passThresholdBps, newPassThresholdBps);
         assertEq(party.getGovernanceValues().voteDuration, newVoteDuration);
         assertEq(party.getGovernanceValues().executionDelay, newExecutionDelay);
+
+        (, PartyGovernance.ProposalStateValues memory proposalStateValues) = party
+            .getProposalStateInfo(proposalId);
+        assertEq(proposalStateValues.passThresholdBps, oldPassThresholdBps);
+        assertEq(proposalStateValues.voteDuration, oldVoteDuration);
+        assertEq(proposalStateValues.executionDelay, oldExecutionDelay);
     }
 
     function testGovernanceParameterProposal_passThresholdBps() public {
@@ -105,6 +112,29 @@ contract SetGovernanceParameterProposalTest is SetupPartyHelper {
         assertEq(party.getGovernanceValues().executionDelay, newExecutionDelay);
         assertEq(party.getGovernanceValues().passThresholdBps, oldPassThresholdBps);
         assertEq(party.getGovernanceValues().voteDuration, oldVoteDuration);
+    }
+
+    function testGovernanceParameterProposal_governanceUsesCachedValues() public {
+        // Propose to reduce back to 10% pass threshold.
+        PartyGovernance.Proposal memory reduceThresholdProposal = _createTestProposal(0, 0, 1000);
+        vm.prank(john);
+        uint256 reduceThresholdProposalId = party.propose(reduceThresholdProposal, 0);
+
+        // Set to 50% pass threshold for test. Need vote duration longer than execution delay for test.
+        _proposePassAndExecuteProposal(_createTestProposal(0, 0, 5000));
+
+        // Create proposal and then change governance parameters. Old proposal retains initial parameters.
+        PartyGovernance.Proposal memory testProposal = _createTestProposal(0, 0, 1000);
+        vm.prank(john);
+        uint256 testProposalId = party.propose(testProposal, 0);
+
+        vm.warp(block.timestamp + 100);
+        _executeProposal(reduceThresholdProposalId, reduceThresholdProposal);
+
+        vm.prank(steve);
+        vm.expectEmit(true, true, true, true);
+        emit ProposalPassed(testProposalId); // will only pass now
+        party.accept(testProposalId, 0);
     }
 
     function _createTestProposal(

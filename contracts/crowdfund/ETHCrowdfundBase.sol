@@ -70,11 +70,13 @@ abstract contract ETHCrowdfundBase is Implementation {
     error AboveMaximumContributionsError(uint96 contributions, uint96 maxContributions);
     error ExceedsRemainingContributionsError(uint96 amount, uint96 remaining);
     error InvalidExchangeRateError(uint160 exchangeRate);
+    error InvalidFundingSplitRecipient();
     error ContributingForExistingCardDisabledError();
     error ZeroVotingPowerError();
     error FundingSplitAlreadyPaidError();
     error FundingSplitNotConfiguredError();
     error InvalidMessageValue();
+    error ArityMismatch();
 
     event Contributed(
         address indexed sender,
@@ -170,6 +172,9 @@ abstract contract ETHCrowdfundBase is Implementation {
         // Set the funding split and its recipient.
         fundingSplitBps = opts.fundingSplitBps;
         fundingSplitRecipient = opts.fundingSplitRecipient;
+        if (opts.fundingSplitBps > 0 && opts.fundingSplitRecipient == address(0)) {
+            revert InvalidFundingSplitRecipient();
+        }
         // Set whether to disable contributing for existing card.
         disableContributingForExistingCard = opts.disableContributingForExistingCard;
     }
