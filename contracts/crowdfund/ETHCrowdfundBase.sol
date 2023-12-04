@@ -181,8 +181,7 @@ abstract contract ETHCrowdfundBase is Implementation {
 
     /// @notice Get the current lifecycle of the crowdfund.
     function getCrowdfundLifecycle() public view returns (CrowdfundLifecycle lifecycle) {
-        uint96 maxTotalContributions_ = maxTotalContributions;
-        if (maxTotalContributions_ == 0) {
+        if (maxTotalContributions == 0) {
             return CrowdfundLifecycle.Invalid;
         }
 
