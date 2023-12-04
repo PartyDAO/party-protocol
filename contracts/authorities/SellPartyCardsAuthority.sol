@@ -462,7 +462,7 @@ contract SellPartyCardsAuthority {
         SaleState memory state = _validateContribution(party, saleId, gateData);
 
         uint96 contributionToTransfer;
-        (votingPower, contribution, contributionToTransfer, ) = _processContribution(
+        (votingPower, contributionToTransfer, ) = _processContribution(
             party,
             saleId,
             state,
@@ -494,7 +494,6 @@ contract SellPartyCardsAuthority {
             uint96 contributionToTransfer;
             (
                 votingPowers[i],
-                contributions[i],
                 contributionToTransfer,
                 state.totalContributions
             ) = _processContribution(party, saleId, state, contributions[i]);
@@ -523,12 +522,7 @@ contract SellPartyCardsAuthority {
         uint96 contribution
     )
         private
-        returns (
-            uint96 votingPower,
-            uint96 contributionUsed,
-            uint96 contributionToTransfer,
-            uint96 totalContributions
-        )
+        returns (uint96 votingPower, uint96 contributionToTransfer, uint96 totalContributions)
     {
         totalContributions = state.totalContributions;
         uint96 maxTotalContributions = state.maxTotalContributions;
@@ -569,16 +563,10 @@ contract SellPartyCardsAuthority {
             }
         }
 
-        // Check that the contribution amount is at or above the minimum. This
-        // is done after `amount` is potentially reduced if refunding excess
-        // contribution.
+        // Check that the contribution amount is at or above the minimum.
         if (contribution < minContribution) {
             revert OutOfBoundsContributionsError(contribution, minContribution);
         }
-
-        // Return contribution amount used after refund and including amount
-        // used for funding split. Will be emitted in `MintedFromSale` event.
-        contributionUsed = contribution;
 
         // Subtract split from contribution amount if applicable.
         address payable fundingSplitRecipient = state.fundingSplitRecipient;
