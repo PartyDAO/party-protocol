@@ -539,6 +539,11 @@ contract SellPartyCardsAuthority {
             revert SaleInactiveError();
         }
 
+        // Check that the contribution amount is at or above the minimum.
+        if (contribution < minContribution) {
+            revert OutOfBoundsContributionsError(contribution, minContribution);
+        }
+
         // Check that the contribution amount is at or below the maximum.
         uint96 maxContribution = state.maxContribution;
         if (contribution > maxContribution) {
@@ -561,11 +566,6 @@ contract SellPartyCardsAuthority {
             if (minContribution > maxTotalContributions - newTotalContributions) {
                 emit Finalized(party, saleId);
             }
-        }
-
-        // Check that the contribution amount is at or above the minimum.
-        if (contribution < minContribution) {
-            revert OutOfBoundsContributionsError(contribution, minContribution);
         }
 
         // Subtract split from contribution amount if applicable.
