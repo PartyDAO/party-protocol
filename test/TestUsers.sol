@@ -119,7 +119,7 @@ contract PartyAdmin is Test {
             Party.PartyOptions({
                 governance: PartyGovernance.GovernanceOpts({
                     hosts: hosts,
-                    voteDuration: 99,
+                    voteDuration: 1 hours,
                     executionDelay: 300,
                     passThresholdBps: partyOpts.passThresholdBps,
                     totalVotingPower: partyOpts.totalVotingPower,

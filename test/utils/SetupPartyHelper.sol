@@ -106,7 +106,7 @@ abstract contract SetupPartyHelper is TestUtils, ERC721Receiver {
         opts.name = "PARTY";
         opts.symbol = "PR-T";
         opts.governance.hosts = hosts;
-        opts.governance.voteDuration = 300;
+        opts.governance.voteDuration = 1 hours;
         opts.governance.executionDelay = _EXECUTION_DELAY;
         opts.governance.passThresholdBps = 1000;
         opts.proposalEngine.allowArbCallsToSpendPartyEth = true;

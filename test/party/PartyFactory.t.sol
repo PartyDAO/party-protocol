@@ -76,7 +76,7 @@ contract PartyFactoryTest is Test, TestUtils {
         Party.PartyOptions memory opts = Party.PartyOptions({
             governance: PartyGovernance.GovernanceOpts({
                 hosts: _toAddressArray(_randomAddress()),
-                voteDuration: randomUint40,
+                voteDuration: randomUint40 < 1 hours ? 1 hours : randomUint40,
                 executionDelay: randomUint40,
                 passThresholdBps: randomBps,
                 totalVotingPower: randomUint96,
@@ -138,7 +138,7 @@ contract PartyFactoryTest is Test, TestUtils {
         Party.PartyOptions memory opts = Party.PartyOptions({
             governance: PartyGovernance.GovernanceOpts({
                 hosts: _toAddressArray(_randomAddress()),
-                voteDuration: randomUint40,
+                voteDuration: randomUint40 < 1 hours ? 1 hours : randomUint40,
                 executionDelay: randomUint40,
                 passThresholdBps: randomBps,
                 totalVotingPower: randomUint96,

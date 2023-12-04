@@ -156,10 +156,9 @@ contract InitialETHCrowdfund is ETHCrowdfundBase {
         gateKeeperId = crowdfundOpts.gateKeeperId;
     }
 
-    /// @notice Contribute ETH to this crowdfund on behalf of a contributor.
-    /// @param initialDelegate The address to which voting power will be delegated to
-    ///                        during the governance phase. This will be ignored
-    ///                        if recipient has already set a delegate.
+    /// @notice Contribute ETH to this crowdfund.
+    /// @param initialDelegate The address to which voting power will be
+    ///                        delegated to during the governance phase.
     /// @param gateData Data to pass to the gatekeeper to prove eligibility.
     /// @return votingPower The voting power the contributor receives for their
     ///                     contribution.
@@ -177,7 +176,7 @@ contract InitialETHCrowdfund is ETHCrowdfundBase {
             );
     }
 
-    /// @notice Contribute ETH to this crowdfund on behalf of a contributor.
+    /// @notice Contribute ETH to this crowdfund.
     /// @param tokenId The ID of the card the contribution is being made towards.
     /// @param initialDelegate The address to which voting power will be delegated to
     ///                        during the governance phase. This will be ignored

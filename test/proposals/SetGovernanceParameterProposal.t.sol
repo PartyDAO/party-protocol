@@ -14,7 +14,7 @@ contract SetGovernanceParameterProposalTest is SetupPartyHelper {
     event ProposalPassed(uint256 indexed proposalId);
 
     uint256 oldPassThresholdBps = 1000;
-    uint256 oldVoteDuration = 300;
+    uint256 oldVoteDuration = 1 hours;
     uint256 oldExecutionDelay = 99;
 
     function testGovernanceParameterProposal_multiple() public {

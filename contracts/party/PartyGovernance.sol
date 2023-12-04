@@ -184,6 +184,7 @@ abstract contract PartyGovernance is
     error InvalidNewHostError();
     error ProposalCannotBeCancelledYetError(uint40 currentTime, uint40 cancelTime);
     error InvalidBpsError(uint16 bps);
+    error InvalidGovernanceParameter(uint256 value);
     error DistributionsRequireVoteError();
     error PartyNotStartedError();
     error CannotRageQuitAndAcceptError();
@@ -291,6 +292,9 @@ abstract contract PartyGovernance is
             IProposalExecutionEngine(_GLOBALS.getAddress(LibGlobals.GLOBAL_PROPOSAL_ENGINE_IMPL)),
             abi.encode(proposalEngineOpts)
         );
+        if (govOpts.voteDuration < 1 hours) {
+            revert InvalidGovernanceParameter(govOpts.voteDuration);
+        }
         // Set the governance parameters.
         _getSharedProposalStorage().governanceValues = GovernanceValues({
             voteDuration: govOpts.voteDuration,
