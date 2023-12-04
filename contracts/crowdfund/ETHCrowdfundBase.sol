@@ -267,7 +267,7 @@ abstract contract ETHCrowdfundBase is Implementation {
         uint96 contribution
     ) public view returns (uint96 votingPower) {
         contribution = _removeFundingSplitFromContribution(contribution);
-        votingPower = _convertContributionToVotingPower(contribution);
+        votingPower = _calculateContributionToVotingPower(contribution);
     }
 
     /// @notice Calculate the contribution amount from the given voting power.
@@ -276,15 +276,19 @@ abstract contract ETHCrowdfundBase is Implementation {
     function convertVotingPowerToContribution(
         uint96 votingPower
     ) public view returns (uint96 contribution) {
-        contribution = _convertVotingPowerToContribution(votingPower);
+        contribution = _calculateVotingPowerToContribution(votingPower);
         contribution = _addFundingSplitToContribution(contribution);
     }
 
-    function _convertContributionToVotingPower(uint96 contribution) private view returns (uint96) {
+    function _calculateContributionToVotingPower(
+        uint96 contribution
+    ) private view returns (uint96) {
         return contribution.mulDivDown(exchangeRate, 1e18).safeCastUint256ToUint96();
     }
 
-    function _convertVotingPowerToContribution(uint96 votingPower) internal view returns (uint96) {
+    function _calculateVotingPowerToContribution(
+        uint96 votingPower
+    ) internal view returns (uint96) {
         return votingPower.mulDivUp(1e18, exchangeRate).safeCastUint256ToUint96();
     }
 
@@ -346,7 +350,7 @@ abstract contract ETHCrowdfundBase is Implementation {
         }
 
         // Update the party's total voting power.
-        uint96 newVotingPower = _convertContributionToVotingPower(totalContributions_);
+        uint96 newVotingPower = _calculateContributionToVotingPower(totalContributions_);
         party.increaseTotalVotingPower(newVotingPower);
 
         // Transfer ETH to the party.
