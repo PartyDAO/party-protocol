@@ -301,6 +301,9 @@ export const verify = async (chain: string, skip: boolean) => {
   }
 
   if (verificationResults.length > 0) {
+    if (chain === "zora") {
+      return; // current explorer not compatible with `verify-check`
+    }
     const timeToWait = Math.max(20 * verificationResults.length, 20);
 
     console.log();
