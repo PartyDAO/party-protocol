@@ -94,8 +94,7 @@ contract CollectionBatchBuyCrowdfund is BuyCrowdfundBase {
     // Set the `Globals` contract.
     constructor(IGlobals globals) BuyCrowdfundBase(globals) {}
 
-    /// @notice Initializer to be delegatecalled by `Proxy` constructor. Will
-    ///         revert if called outside the constructor.
+    /// @notice Initializer to be called prior to using the contract.
     /// @param opts Options used to initialize the crowdfund. These are fixed
     ///             and cannot be changed later.
     function initialize(
