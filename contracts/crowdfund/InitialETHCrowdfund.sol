@@ -98,8 +98,7 @@ contract InitialETHCrowdfund is ETHCrowdfundBase {
     // Set the `Globals` contract.
     constructor(IGlobals globals) ETHCrowdfundBase(globals) {}
 
-    /// @notice Initializer to be delegatecalled by `Proxy` constructor. Will
-    ///         revert if called outside the constructor.
+    /// @notice Initializer to be called prior to using the contract.
     /// @param crowdfundOpts Options to initialize the crowdfund with.
     /// @param partyOpts Options to initialize the party with.
     /// @param customMetadataProvider Optional provider to use for the party for
