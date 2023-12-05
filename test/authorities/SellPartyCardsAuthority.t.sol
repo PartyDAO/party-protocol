@@ -5,7 +5,7 @@ import { Party, SetupPartyHelper } from "../utils/SetupPartyHelper.sol";
 import { SellPartyCardsAuthority } from "contracts/authorities/SellPartyCardsAuthority.sol";
 import { IGateKeeper } from "contracts/gatekeepers/IGateKeeper.sol";
 import { ContributionRouter } from "../../contracts/crowdfund/ContributionRouter.sol";
-import { TokenGateKeeper, Token } from "contracts/gatekeepers/TokenGateKeeper.sol";
+import { TokenGateKeeper } from "contracts/gatekeepers/TokenGateKeeper.sol";
 import { DummyERC20 } from "../DummyERC20.sol";
 
 contract SellPartyCardsAuthorityTest is SetupPartyHelper {
@@ -472,7 +472,7 @@ contract SellPartyCardsAuthorityTest is SetupPartyHelper {
 
         address buyer = _randomAddress();
         vm.deal(buyer, 2 ether);
-        bytes12 gatekeeperId = gatekeeper.createGate(Token(address(token)), 0.01 ether);
+        bytes12 gatekeeperId = gatekeeper.createGate(address(token), 0.01 ether);
         token.deal(buyer, 0.001 ether);
 
         SellPartyCardsAuthority.FixedMembershipSaleOpts memory opts = SellPartyCardsAuthority

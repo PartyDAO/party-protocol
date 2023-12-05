@@ -8,7 +8,7 @@ import "contracts/crowdfund/AuctionCrowdfund.sol";
 import "contracts/market-wrapper/IMarketWrapper.sol";
 import "contracts/crowdfund/Crowdfund.sol";
 import "contracts/gatekeepers/AllowListGateKeeper.sol";
-import "contracts/gatekeepers/TokenGateKeeper.sol";
+import { TokenGateKeeper } from "contracts/gatekeepers/TokenGateKeeper.sol";
 import "contracts/tokens/IERC721.sol";
 import "./MockMarketWrapper.sol";
 import "contracts/globals/Globals.sol";
@@ -78,9 +78,10 @@ contract CrowdfundFactoryTest is Test, TestUtils {
         }
         if (x == 1) {
             // Use `TokenGateKeeper`.
-            createGateCallData = abi.encodeCall(
-                TokenGateKeeper.createGate,
-                (Token(_randomAddress()), _randomUint256())
+            createGateCallData = abi.encodeWithSelector(
+                bytes4(keccak256("createGate(address,uint256)")),
+                _randomAddress(),
+                _randomUint256()
             );
             return (IGateKeeper(address(tokenGateKeeper)), bytes12(0), createGateCallData);
         }

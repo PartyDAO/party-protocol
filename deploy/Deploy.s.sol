@@ -14,7 +14,7 @@ import "../contracts/crowdfund/ReraiseETHCrowdfund.sol";
 import "../contracts/crowdfund/CrowdfundFactory.sol";
 import "../contracts/distribution/TokenDistributor.sol";
 import "../contracts/gatekeepers/AllowListGateKeeper.sol";
-import "../contracts/gatekeepers/TokenGateKeeper.sol";
+import { TokenGateKeeper } from "../contracts/gatekeepers/TokenGateKeeper.sol";
 import "../contracts/gatekeepers/IGateKeeper.sol";
 import "../contracts/globals/Globals.sol";
 import "../contracts/globals/LibGlobals.sol";

@@ -6,7 +6,7 @@ import "../../contracts/party/PartyFactory.sol";
 import "../../contracts/crowdfund/InitialETHCrowdfund.sol";
 import "../../contracts/crowdfund/ContributionRouter.sol";
 import "./TestableCrowdfund.sol";
-import { TokenGateKeeper, Token } from "../../contracts/gatekeepers/TokenGateKeeper.sol";
+import { TokenGateKeeper } from "../../contracts/gatekeepers/TokenGateKeeper.sol";
 import { DummyERC20 } from "../DummyERC20.sol";
 
 import "../TestUtils.sol";
@@ -34,7 +34,7 @@ contract ContributionRouterIntegrationTest is TestUtils {
 
         gateKeeper = new TokenGateKeeper(address(router));
         gatekeepToken = new DummyERC20();
-        bytes12 gateKeeperId = gateKeeper.createGate(Token(address(gatekeepToken)), 100);
+        bytes12 gateKeeperId = gateKeeper.createGate(address(gatekeepToken), 100);
 
         InitialETHCrowdfund initialETHCrowdfundImpl = new InitialETHCrowdfund(globals);
 
