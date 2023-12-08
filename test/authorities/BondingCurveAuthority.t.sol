@@ -10,11 +10,11 @@ import { ArbitraryCallsProposal } from "../../contracts/proposals/ArbitraryCalls
 contract BondingCurveAuthorityTest is SetupPartyHelper {
     constructor() SetupPartyHelper(false) {}
 
-    BondingCurveAuthority authority;
+    MockBondingCurveAuthority authority;
 
     function setUp() public override {
         super.setUp();
-        authority = new BondingCurveAuthority(payable(address(this)), 100, 100);
+        authority = new MockBondingCurveAuthority(payable(address(this)), 100, 100);
     }
 
     function test_checkBondingCurvePrice_firstMints() public {
@@ -34,7 +34,7 @@ contract BondingCurveAuthorityTest is SetupPartyHelper {
             emit log_named_uint("Num items to price for", i);
             emit log_uint(expectedBondingCurvePrice);
 
-            assertEq(authority._getBondingCurvePrice(previousSupply, i), expectedBondingCurvePrice);
+            assertEq(authority.getBondingCurvePrice(previousSupply, i), expectedBondingCurvePrice);
         }
     }
 
@@ -54,7 +54,22 @@ contract BondingCurveAuthorityTest is SetupPartyHelper {
             emit log_named_uint("Previous supply", previousSupply);
             emit log_uint(expectedBondingCurvePrice);
 
-            assertEq(authority._getBondingCurvePrice(previousSupply, 3), expectedBondingCurvePrice);
+            assertEq(authority.getBondingCurvePrice(previousSupply, 3), expectedBondingCurvePrice);
         }
+    }
+}
+
+contract MockBondingCurveAuthority is BondingCurveAuthority {
+    constructor(
+        address payable partyDao,
+        uint16 initialPartyDaoFeeBps,
+        uint16 initialTreasuryFeeBps
+    ) BondingCurveAuthority(partyDao, initialPartyDaoFeeBps, initialTreasuryFeeBps) {}
+
+    function getBondingCurvePrice(
+        uint256 lowerSupply,
+        uint256 amount
+    ) external pure returns (uint256) {
+        return super._getBondingCurvePrice(lowerSupply, amount);
     }
 }
