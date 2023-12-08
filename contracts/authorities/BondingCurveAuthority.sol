@@ -236,7 +236,7 @@ contract BondingCurveAuthority {
     function _getBondingCurvePrice(
         uint256 lowerSupply,
         uint256 amount
-    ) public pure returns (uint256) {
+    ) internal pure returns (uint256) {
         // Using the function 1 ether * x ** 2 / 50_000 + 0.001 eth
         uint256 amountSquared = amount * amount;
         return
