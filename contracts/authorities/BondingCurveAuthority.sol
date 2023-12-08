@@ -6,17 +6,22 @@ import { PartyGovernanceNFT } from "../party/PartyGovernanceNFT.sol";
 import { PartyFactory } from "../party/PartyFactory.sol";
 import { IERC721 } from "../tokens/IERC721.sol";
 import { MetadataProvider } from "../renderers/MetadataProvider.sol";
+import { LibSafeCast } from "contracts/utils/LibSafeCast.sol";
 
 contract BondingCurveAuthority {
+    using LibSafeCast for uint256;
+
     error InvalidMessageValue();
     error Unauthorized();
     error InvalidCreatorFee();
     error PartyNotSupported();
 
     mapping(Party => PartyInfo) public partyInfos;
-    uint16 private partyDaoFeeBps;
-    uint16 private treasuryFeeBps;
-    uint256 private constant PARTY_CARD_VOTING_POWER = 0.1 ether;
+    uint16 public partyDaoFeeBps;
+    uint16 public treasuryFeeBps;
+    uint96 private partyDaoFeeClaimable;
+
+    uint96 private constant PARTY_CARD_VOTING_POWER = uint80(0.1 ether);
     address payable private immutable PARTY_DAO;
     uint16 private constant BPS = 10_000;
 
@@ -125,7 +130,9 @@ contract BondingCurveAuthority {
 
         payable(address(party)).transfer(treasuryFee);
         if (creatorFee != 0) partyInfo.creator.transfer(creatorFee);
+        partyDaoFeeClaimable += partyDaoFee.safeCastUint256ToUint96();
 
+        party.increaseTotalVotingPower(PARTY_CARD_VOTING_POWER * amount);
         for (uint256 i = 0; i < amount; i++) {
             party.mint(msg.sender, PARTY_CARD_VOTING_POWER, address(0));
         }
@@ -138,13 +145,13 @@ contract BondingCurveAuthority {
             revert PartyNotSupported();
         }
 
-        uint256 amount = tokenIds.length;
+        uint80 amount = uint80(tokenIds.length);
         uint256 bondingCurvePrice = _getBondingCurvePrice(partyInfo.supply - amount, amount);
         uint256 partyDaoFee = (bondingCurvePrice * partyDaoFeeBps) / BPS;
         uint256 treasuryFee = (bondingCurvePrice * treasuryFeeBps) / BPS;
         uint256 creatorFee = (bondingCurvePrice * partyInfo.creatorFee) / BPS;
 
-        partyInfos[party].supply = uint80(partyInfo.supply - amount);
+        partyInfos[party].supply = partyInfo.supply - amount;
 
         for (uint256 i = 0; i < amount; i++) {
             if (party.ownerOf(tokenIds[i]) != msg.sender) {
@@ -152,10 +159,12 @@ contract BondingCurveAuthority {
             }
             party.burn(tokenIds[i]);
         }
+        party.decreaseTotalVotingPower(PARTY_CARD_VOTING_POWER * amount);
 
         if (creatorFee != 0) partyInfo.creator.transfer(partyDaoFee);
         payable(address(party)).transfer(treasuryFee);
         payable(msg.sender).transfer(bondingCurvePrice - partyDaoFee - treasuryFee - creatorFee);
+        partyDaoFeeClaimable += partyDaoFee.safeCastUint256ToUint96();
     }
 
     function getPriceToSell(Party party, uint256 amount) external view returns (uint256) {
@@ -178,6 +187,7 @@ contract BondingCurveAuthority {
         uint256 lowerSupply,
         uint256 amount
     ) public pure returns (uint256) {
+        // Using the function 1 ether * x ** 2 / 50_000 + 0.001 eth
         uint256 amountSquared = amount * amount;
         return
             (1 ether *
@@ -218,6 +228,7 @@ contract BondingCurveAuthority {
         if (msg.sender != PARTY_DAO) {
             revert Unauthorized();
         }
-        PARTY_DAO.transfer(address(this).balance);
+        partyDaoFeeClaimable = 0;
+        PARTY_DAO.transfer(partyDaoFeeClaimable);
     }
 }
