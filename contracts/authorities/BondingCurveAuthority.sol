@@ -139,7 +139,7 @@ contract BondingCurveAuthority {
         }
 
         uint256 amount = tokenIds.length;
-        uint256 bondingCurvePrice = _getBondingCurvePrice(partyInfo.supply, amount);
+        uint256 bondingCurvePrice = _getBondingCurvePrice(partyInfo.supply - amount, amount);
         uint256 partyDaoFee = (bondingCurvePrice * partyDaoFeeBps) / BPS;
         uint256 treasuryFee = (bondingCurvePrice * treasuryFeeBps) / BPS;
         uint256 creatorFee = (bondingCurvePrice * partyInfo.creatorFee) / BPS;
@@ -160,7 +160,7 @@ contract BondingCurveAuthority {
 
     function getPriceToSell(Party party, uint256 amount) external view returns (uint256) {
         PartyInfo memory partyInfo = partyInfos[party];
-        uint256 bondingCurvePrice = _getBondingCurvePrice(partyInfo.supply, amount);
+        uint256 bondingCurvePrice = _getBondingCurvePrice(partyInfo.supply - amount, amount);
         return
             (bondingCurvePrice * (BPS - partyDaoFeeBps - treasuryFeeBps - partyInfo.creatorFee)) /
             BPS;
@@ -175,15 +175,22 @@ contract BondingCurveAuthority {
     }
 
     function _getBondingCurvePrice(
-        uint256 previousSupply,
+        uint256 lowerSupply,
         uint256 amount
-    ) private pure returns (uint256) {
-        uint256 totalPrice = 0.001 ether * amount;
-
-        for (uint i = 0; i < amount; i++) {
-            totalPrice += ((previousSupply + i) * (previousSupply + i) * 1 ether) / 50_000;
-        }
-        return totalPrice;
+    ) public pure returns (uint256) {
+        uint256 amountSquared = amount * amount;
+        return
+            (1 ether *
+                (amount *
+                    lowerSupply *
+                    lowerSupply +
+                    (amountSquared - amount) *
+                    lowerSupply +
+                    (2 * amountSquared * amount + amount - 3 * amountSquared) /
+                    6)) /
+            50_000 +
+            amount *
+            0.001 ether;
     }
 
     function setTreasuryFee(uint16 newTreasuryFeeBps) external {
