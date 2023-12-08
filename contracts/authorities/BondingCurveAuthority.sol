@@ -193,7 +193,12 @@ contract BondingCurveAuthority {
         partyInfos[party].supply = partyInfo.supply - amount;
 
         for (uint256 i = 0; i < amount; i++) {
-            if (party.ownerOf(tokenIds[i]) != msg.sender) {
+            address tokenOwner = party.ownerOf(tokenIds[i]);
+            if (
+                tokenOwner != msg.sender &&
+                party.isApprovedForAll(tokenOwner, msg.sender) != true &&
+                party.getApproved(tokenIds[i]) != msg.sender
+            ) {
                 revert Unauthorized();
             }
             party.burn(tokenIds[i]);
