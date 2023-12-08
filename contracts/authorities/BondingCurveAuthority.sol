@@ -16,6 +16,27 @@ contract BondingCurveAuthority {
     error InvalidCreatorFee();
     error PartyNotSupported();
 
+    event TreasuryFeeUpdated(uint16 previousTreasuryFee, uint16 newTreasuryFee);
+    event PartyDaoFeeUpdated(uint16 previousPartyDaoFee, uint16 newPartyDaoFee);
+    event PartyCardsBought(
+        Party indexed party,
+        address indexed buyer,
+        uint256[] tokenIds,
+        uint256 totalPrice,
+        uint256 partyDaoFee,
+        uint256 treasuryFee,
+        uint256 creatorFee
+    );
+    event PartyCardsSold(
+        Party indexed party,
+        address indexed seller,
+        uint256[] tokenIds,
+        uint256 sellerProceeds,
+        uint256 partyDaoFee,
+        uint256 treasuryFee,
+        uint256 creatorFee
+    );
+
     mapping(Party => PartyInfo) public partyInfos;
     uint16 public partyDaoFeeBps;
     uint16 public treasuryFeeBps;
@@ -36,6 +57,13 @@ contract BondingCurveAuthority {
         address payable creator;
         uint80 supply;
         uint16 creatorFee;
+    }
+
+    modifier onlyPartyDao() {
+        if (msg.sender != PARTY_DAO) {
+            revert Unauthorized();
+        }
+        _;
     }
 
     constructor(
@@ -73,7 +101,7 @@ contract BondingCurveAuthority {
             creatorFee: partyOpts.creatorFee
         });
 
-        buyPartyCards(party, 1);
+        buyPartyCards(party, 1, address(0));
     }
 
     function createPartyWithMetadata(
@@ -105,10 +133,10 @@ contract BondingCurveAuthority {
             creatorFee: partyOpts.creatorFee
         });
 
-        buyPartyCards(party, 1);
+        buyPartyCards(party, 1, address(0));
     }
 
-    function buyPartyCards(Party party, uint80 amount) public payable {
+    function buyPartyCards(Party party, uint80 amount, address initialDelegate) public payable {
         PartyInfo memory partyInfo = partyInfos[party];
 
         if (partyInfo.creator == address(0)) {
@@ -133,9 +161,20 @@ contract BondingCurveAuthority {
         partyDaoFeeClaimable += partyDaoFee.safeCastUint256ToUint96();
 
         party.increaseTotalVotingPower(PARTY_CARD_VOTING_POWER * amount);
+        uint256[] memory tokenIds = new uint256[](amount);
         for (uint256 i = 0; i < amount; i++) {
-            party.mint(msg.sender, PARTY_CARD_VOTING_POWER, address(0));
+            tokenIds[i] = party.mint(msg.sender, PARTY_CARD_VOTING_POWER, initialDelegate);
         }
+
+        emit PartyCardsBought(
+            party,
+            msg.sender,
+            tokenIds,
+            msg.value,
+            partyDaoFee,
+            treasuryFee,
+            creatorFee
+        );
     }
 
     function sellPartyCards(Party party, uint256[] memory tokenIds) external {
@@ -161,13 +200,24 @@ contract BondingCurveAuthority {
         }
         party.decreaseTotalVotingPower(PARTY_CARD_VOTING_POWER * amount);
 
+        uint256 sellerProceeds = bondingCurvePrice - partyDaoFee - treasuryFee - creatorFee;
         if (creatorFee != 0) partyInfo.creator.transfer(partyDaoFee);
         payable(address(party)).transfer(treasuryFee);
-        payable(msg.sender).transfer(bondingCurvePrice - partyDaoFee - treasuryFee - creatorFee);
+        payable(msg.sender).transfer(sellerProceeds);
         partyDaoFeeClaimable += partyDaoFee.safeCastUint256ToUint96();
+
+        emit PartyCardsSold(
+            party,
+            msg.sender,
+            tokenIds,
+            sellerProceeds,
+            partyDaoFee,
+            treasuryFee,
+            creatorFee
+        );
     }
 
-    function getPriceToSell(Party party, uint256 amount) external view returns (uint256) {
+    function getSaleProceeds(Party party, uint256 amount) external view returns (uint256) {
         PartyInfo memory partyInfo = partyInfos[party];
         uint256 bondingCurvePrice = _getBondingCurvePrice(partyInfo.supply - amount, amount);
         return
@@ -203,17 +253,13 @@ contract BondingCurveAuthority {
             0.001 ether;
     }
 
-    function setTreasuryFee(uint16 newTreasuryFeeBps) external {
-        if (msg.sender != PARTY_DAO) {
-            revert Unauthorized();
-        }
+    function setTreasuryFee(uint16 newTreasuryFeeBps) external onlyPartyDao {
+        emit TreasuryFeeUpdated(treasuryFeeBps, newTreasuryFeeBps);
         treasuryFeeBps = newTreasuryFeeBps;
     }
 
-    function setPartyDaoFee(uint16 newPartyDaoFeeBps) external {
-        if (msg.sender != PARTY_DAO) {
-            revert Unauthorized();
-        }
+    function setPartyDaoFee(uint16 newPartyDaoFeeBps) external onlyPartyDao {
+        emit PartyDaoFeeUpdated(partyDaoFeeBps, newPartyDaoFeeBps);
         partyDaoFeeBps = newPartyDaoFeeBps;
     }
 
@@ -224,10 +270,7 @@ contract BondingCurveAuthority {
         partyInfos[party].creatorFee = newCreatorFee;
     }
 
-    function claimPartyDaoFee() external {
-        if (msg.sender != PARTY_DAO) {
-            revert Unauthorized();
-        }
+    function claimPartyDaoFees() external onlyPartyDao {
         partyDaoFeeClaimable = 0;
         PARTY_DAO.transfer(partyDaoFeeClaimable);
     }
