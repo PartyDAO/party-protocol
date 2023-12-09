@@ -14,6 +14,8 @@ contract BondingCurveAuthority {
     error InvalidMessageValue();
     error Unauthorized();
     error InvalidCreatorFee();
+    error InvalidTreasuryFee();
+    error InvalidPartyDaoFee();
     error PartyNotSupported();
 
     event TreasuryFeeUpdated(uint16 previousTreasuryFee, uint16 newTreasuryFee);
@@ -40,11 +42,14 @@ contract BondingCurveAuthority {
     mapping(Party => PartyInfo) public partyInfos;
     uint16 public partyDaoFeeBps;
     uint16 public treasuryFeeBps;
-    uint96 private partyDaoFeeClaimable;
+    uint96 public partyDaoFeeClaimable;
 
     uint96 private constant PARTY_CARD_VOTING_POWER = uint80(0.1 ether);
     address payable private immutable PARTY_DAO;
     uint16 private constant BPS = 10_000;
+    uint16 private constant MAX_CREATOR_FEE = 250;
+    uint16 private constant MAX_TREASURY_FEE = 1000;
+    uint16 private constant MAX_PARTY_DAO_FEE = 250;
 
     struct BondingCurvePartyOptions {
         PartyFactory partyFactory;
@@ -71,6 +76,12 @@ contract BondingCurveAuthority {
         uint16 initialPartyDaoFeeBps,
         uint16 initialTreasuryFeeBps
     ) {
+        if (initialPartyDaoFeeBps > MAX_PARTY_DAO_FEE) {
+            revert InvalidPartyDaoFee();
+        }
+        if (initialTreasuryFeeBps > MAX_TREASURY_FEE) {
+            revert InvalidTreasuryFee();
+        }
         partyDaoFeeBps = initialPartyDaoFeeBps;
         treasuryFeeBps = initialTreasuryFeeBps;
         PARTY_DAO = partyDao;
@@ -259,16 +270,25 @@ contract BondingCurveAuthority {
     }
 
     function setTreasuryFee(uint16 newTreasuryFeeBps) external onlyPartyDao {
+        if (newTreasuryFeeBps > MAX_TREASURY_FEE) {
+            revert InvalidTreasuryFee();
+        }
         emit TreasuryFeeUpdated(treasuryFeeBps, newTreasuryFeeBps);
         treasuryFeeBps = newTreasuryFeeBps;
     }
 
     function setPartyDaoFee(uint16 newPartyDaoFeeBps) external onlyPartyDao {
+        if (newPartyDaoFeeBps > MAX_PARTY_DAO_FEE) {
+            revert InvalidPartyDaoFee();
+        }
         emit PartyDaoFeeUpdated(partyDaoFeeBps, newPartyDaoFeeBps);
         partyDaoFeeBps = newPartyDaoFeeBps;
     }
 
     function setCreatorFee(Party party, uint16 newCreatorFee) external {
+        if (newCreatorFee > MAX_CREATOR_FEE) {
+            revert InvalidCreatorFee();
+        }
         if (msg.sender != partyInfos[party].creator) {
             revert Unauthorized();
         }
