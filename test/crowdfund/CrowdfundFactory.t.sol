@@ -141,7 +141,7 @@ contract CrowdfundFactoryTest is Test, TestUtils {
                     partyFactory: partyFactory,
                     hosts: _toAddressArray(_randomAddress()),
                     voteDuration: randomUint40 < 1 hours ? 1 hours : randomUint40,
-                    executionDelay: randomUint40,
+                    executionDelay: randomUint40 > 30 days ? 30 days : randomUint40,
                     passThresholdBps: randomBps,
                     feeBps: randomBps,
                     feeRecipient: payable(_randomAddress())
@@ -229,7 +229,7 @@ contract CrowdfundFactoryTest is Test, TestUtils {
                     partyFactory: partyFactory,
                     hosts: _toAddressArray(_randomAddress()),
                     voteDuration: randomUint40 < 1 hours ? 1 hours : randomUint40,
-                    executionDelay: randomUint40,
+                    executionDelay: randomUint40 > 30 days ? 30 days : randomUint40,
                     passThresholdBps: randomBps,
                     feeBps: randomBps,
                     feeRecipient: payable(_randomAddress())
@@ -440,7 +440,7 @@ contract CrowdfundFactoryTest is Test, TestUtils {
                 partyFactory: partyFactory,
                 hosts: _toAddressArray(_randomAddress()),
                 voteDuration: randomUint40 < 1 hours ? 1 hours : randomUint40,
-                executionDelay: randomUint40,
+                executionDelay: randomUint40 > 30 days ? 30 days : randomUint40,
                 passThresholdBps: randomBps,
                 feeBps: randomBps,
                 feeRecipient: payable(_randomAddress())
@@ -516,7 +516,7 @@ contract CrowdfundFactoryTest is Test, TestUtils {
                     partyFactory: partyFactory,
                     hosts: _toAddressArray(_randomAddress()),
                     voteDuration: randomUint40 < 1 hours ? 1 hours : randomUint40,
-                    executionDelay: randomUint40,
+                    executionDelay: randomUint40 > 30 days ? 30 days : randomUint40,
                     passThresholdBps: randomBps,
                     feeBps: randomBps,
                     feeRecipient: payable(_randomAddress())
@@ -595,7 +595,7 @@ contract CrowdfundFactoryTest is Test, TestUtils {
                     partyFactory: partyFactory,
                     hosts: _toAddressArray(_randomAddress()),
                     voteDuration: randomUint40 < 1 hours ? 1 hours : randomUint40,
-                    executionDelay: randomUint40,
+                    executionDelay: randomUint40 > 30 days ? 30 days : randomUint40,
                     passThresholdBps: randomBps,
                     feeBps: randomBps,
                     feeRecipient: payable(_randomAddress())
@@ -706,7 +706,7 @@ contract CrowdfundFactoryTest is Test, TestUtils {
                 partyFactory: partyFactory,
                 hosts: _toAddressArray(_randomAddress()),
                 voteDuration: randomUint40 < 1 hours ? 1 hours : randomUint40,
-                executionDelay: randomUint40,
+                executionDelay: randomUint40 > 30 days ? 30 days : randomUint40,
                 passThresholdBps: randomBps,
                 feeBps: randomBps,
                 feeRecipient: payable(_randomAddress())
@@ -819,7 +819,7 @@ contract CrowdfundFactoryTest is Test, TestUtils {
                 partyFactory: partyFactory,
                 hosts: _toAddressArray(_randomAddress()),
                 voteDuration: randomUint40 < 1 hours ? 1 hours : randomUint40,
-                executionDelay: randomUint40,
+                executionDelay: randomUint40 > 30 days ? 30 days : randomUint40,
                 passThresholdBps: randomBps,
                 feeBps: 1e4,
                 feeRecipient: payable(_randomAddress())
@@ -911,7 +911,7 @@ contract CrowdfundFactoryTest is Test, TestUtils {
                     partyFactory: partyFactory,
                     hosts: _toAddressArray(_randomAddress()),
                     voteDuration: randomUint40 < 1 hours ? 1 hours : randomUint40,
-                    executionDelay: randomUint40,
+                    executionDelay: randomUint40 > 30 days ? 30 days : randomUint40,
                     passThresholdBps: randomBps,
                     feeBps: randomBps,
                     feeRecipient: payable(_randomAddress())

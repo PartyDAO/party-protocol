@@ -287,14 +287,17 @@ abstract contract PartyGovernance is
         if (govOpts.passThresholdBps > 1e4) {
             revert InvalidBpsError(govOpts.passThresholdBps);
         }
+        if (govOpts.voteDuration < 1 hours) {
+            revert InvalidGovernanceParameter(govOpts.voteDuration);
+        }
+        if (govOpts.executionDelay > 30 days) {
+            revert InvalidGovernanceParameter(govOpts.executionDelay);
+        }
         // Initialize the proposal execution engine.
         _initProposalImpl(
             IProposalExecutionEngine(_GLOBALS.getAddress(LibGlobals.GLOBAL_PROPOSAL_ENGINE_IMPL)),
             abi.encode(proposalEngineOpts)
         );
-        if (govOpts.voteDuration < 1 hours) {
-            revert InvalidGovernanceParameter(govOpts.voteDuration);
-        }
         // Set the governance parameters.
         _getSharedProposalStorage().governanceValues = GovernanceValues({
             voteDuration: govOpts.voteDuration,
