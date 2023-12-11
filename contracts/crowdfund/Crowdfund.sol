@@ -111,6 +111,7 @@ abstract contract Crowdfund is Implementation, ERC721Receiver, CrowdfundNFT {
     error BelowMinimumContributionsError(uint96 contributions, uint96 minContributions);
     error AboveMaximumContributionsError(uint96 contributions, uint96 maxContributions);
     error InvalidMessageValue();
+    error ArityMismatch();
 
     event Burned(address contributor, uint256 ethUsed, uint256 ethOwed, uint256 votingPower);
     event Contributed(
@@ -373,6 +374,16 @@ abstract contract Crowdfund is Implementation, ERC721Receiver, CrowdfundNFT {
         uint96[] memory values,
         bytes[] memory gateDatas
     ) external payable {
+        uint256 numRecipients = recipients.length;
+
+        if (
+            numRecipients != initialDelegates.length ||
+            numRecipients != values.length ||
+            numRecipients != gateDatas.length
+        ) {
+            revert ArityMismatch();
+        }
+
         uint256 valuesSum;
         for (uint256 i; i < recipients.length; ++i) {
             _setDelegate(recipients[i], initialDelegates[i]);
