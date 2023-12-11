@@ -326,8 +326,7 @@ contract PartyGovernanceNFT is PartyGovernance, ERC721, IERC2981 {
         emit BatchMetadataUpdate(0, type(uint256).max);
     }
 
-    /// @notice Burn governance NFT and remove its voting power. Can only be
-    ///         called by an authority before the party has started.
+    /// @notice Burn governance NFT and remove its voting power.
     /// @param tokenId The ID of the governance NFTs to burn.
     function burn(uint256 tokenId) external {
         uint256[] memory tokenIds = new uint256[](1);
