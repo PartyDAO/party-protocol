@@ -193,7 +193,7 @@ abstract contract Crowdfund is Implementation, ERC721Receiver, CrowdfundNFT {
         // Set the minimum and maximum contribution amounts.
         minContribution = opts.minContribution;
         maxContribution = opts.maxContribution;
-        // If the deployer passed in some ETH during deployment, credit them
+        // If the creator passed in some ETH during initialization, credit them
         // for the initial contribution.
         uint96 initialContribution = msg.value.safeCastUint256ToUint96();
         if (initialContribution > 0) {
