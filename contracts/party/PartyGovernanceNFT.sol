@@ -11,7 +11,7 @@ import "./PartyGovernance.sol";
 import "../renderers/RendererStorage.sol";
 
 /// @notice ERC721 functionality built on top of `PartyGovernance`.
-contract PartyGovernanceNFT is PartyGovernance, ERC721, IERC2981 {
+abstract contract PartyGovernanceNFT is PartyGovernance, ERC721, IERC2981 {
     using LibSafeCast for uint256;
     using LibSafeCast for uint96;
     using LibERC20Compat for IERC20;
