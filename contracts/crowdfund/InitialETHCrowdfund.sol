@@ -157,8 +157,9 @@ contract InitialETHCrowdfund is ETHCrowdfundBase {
     }
 
     /// @notice Contribute ETH to this crowdfund.
-    /// @param initialDelegate The address to which voting power will be
-    ///                        delegated to during the governance phase.
+    /// @param initialDelegate The address to which voting power will be delegated to
+    ///                        during the governance phase. This will be ignored
+    ///                        if recipient has already set a delegate.
     /// @param gateData Data to pass to the gatekeeper to prove eligibility.
     /// @return votingPower The voting power the contributor receives for their
     ///                     contribution.
