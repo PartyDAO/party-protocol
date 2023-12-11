@@ -300,7 +300,10 @@ abstract contract ETHCrowdfundBase is Implementation {
         address payable fundingSplitRecipient_ = fundingSplitRecipient;
         uint16 fundingSplitBps_ = fundingSplitBps;
         if (fundingSplitRecipient_ != address(0) && fundingSplitBps_ > 0) {
-            contribution = (contribution * 1e4) / (1e4 - fundingSplitBps_);
+            // Downcast is safe since `contribution` cannot exceed
+            // type(uint96).max. When the contribution is made, it cannot exceed
+            // type(uint96).max, neither can `totalContributions` exceed it.
+            contribution = uint96(uint256(contribution) * 1e4) / (1e4 - fundingSplitBps_);
         }
         return contribution;
     }
@@ -311,7 +314,8 @@ abstract contract ETHCrowdfundBase is Implementation {
         address payable fundingSplitRecipient_ = fundingSplitRecipient;
         uint16 fundingSplitBps_ = fundingSplitBps;
         if (fundingSplitRecipient_ != address(0) && fundingSplitBps_ > 0) {
-            contribution = (contribution * (1e4 - fundingSplitBps_)) / 1e4;
+            // Safe since contribution initially fits into uint96 and cannot get bigger
+            contribution = uint96((uint256(contribution) * (1e4 - fundingSplitBps_)) / 1e4);
         }
         return contribution;
     }
@@ -350,7 +354,8 @@ abstract contract ETHCrowdfundBase is Implementation {
         address payable fundingSplitRecipient_ = fundingSplitRecipient;
         uint16 fundingSplitBps_ = fundingSplitBps;
         if (fundingSplitRecipient_ != address(0) && fundingSplitBps_ > 0) {
-            totalContributions_ -= (totalContributions_ * fundingSplitBps_) / 1e4;
+            // Assuming fundingSplitBps_ <= 1e4, this cannot overflow uint96
+            totalContributions_ -= uint96((uint256(totalContributions_) * fundingSplitBps_) / 1e4);
         }
 
         // Update the party's total voting power.
@@ -380,6 +385,7 @@ abstract contract ETHCrowdfundBase is Implementation {
         fundingSplitPaid = true;
 
         // Transfer funding split to recipient.
+        // Assuming fundingSplitBps_ <= 1e4, this cannot overflow uint96
         splitAmount = (totalContributions * fundingSplitBps_) / 1e4;
         payable(fundingSplitRecipient_).transferEth(splitAmount);
 

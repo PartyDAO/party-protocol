@@ -62,7 +62,7 @@ contract OffChainSignatureValidator is IERC1271 {
             revert InvalidSignature();
         }
 
-        uint96 signerVotingPowerBps = party.getVotingPowerAt(
+        uint256 signerVotingPowerBps = party.getVotingPowerAt(
             signer,
             uint40(block.timestamp),
             type(uint256).max
