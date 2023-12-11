@@ -297,9 +297,8 @@ abstract contract ETHCrowdfundBase is Implementation {
     }
 
     function _addFundingSplitToContribution(uint96 contribution) internal view returns (uint96) {
-        address payable fundingSplitRecipient_ = fundingSplitRecipient;
         uint16 fundingSplitBps_ = fundingSplitBps;
-        if (fundingSplitRecipient_ != address(0) && fundingSplitBps_ > 0) {
+        if (fundingSplitBps_ > 0) {
             // Downcast is safe since `contribution` cannot exceed
             // type(uint96).max. When the contribution is made, it cannot exceed
             // type(uint96).max, neither can `totalContributions` exceed it.
@@ -311,9 +310,8 @@ abstract contract ETHCrowdfundBase is Implementation {
     function _removeFundingSplitFromContribution(
         uint96 contribution
     ) internal view returns (uint96) {
-        address payable fundingSplitRecipient_ = fundingSplitRecipient;
         uint16 fundingSplitBps_ = fundingSplitBps;
-        if (fundingSplitRecipient_ != address(0) && fundingSplitBps_ > 0) {
+        if (fundingSplitBps_ > 0) {
             // Safe since contribution initially fits into uint96 and cannot get bigger
             contribution = uint96((uint256(contribution) * (1e4 - fundingSplitBps_)) / 1e4);
         }
@@ -351,9 +349,8 @@ abstract contract ETHCrowdfundBase is Implementation {
         delete expiry;
 
         // Transfer funding split to recipient if applicable.
-        address payable fundingSplitRecipient_ = fundingSplitRecipient;
         uint16 fundingSplitBps_ = fundingSplitBps;
-        if (fundingSplitRecipient_ != address(0) && fundingSplitBps_ > 0) {
+        if (fundingSplitBps_ > 0) {
             // Assuming fundingSplitBps_ <= 1e4, this cannot overflow uint96
             totalContributions_ -= uint96((uint256(totalContributions_) * fundingSplitBps_) / 1e4);
         }
@@ -376,9 +373,8 @@ abstract contract ETHCrowdfundBase is Implementation {
 
         if (fundingSplitPaid) revert FundingSplitAlreadyPaidError();
 
-        address payable fundingSplitRecipient_ = fundingSplitRecipient;
         uint16 fundingSplitBps_ = fundingSplitBps;
-        if (fundingSplitRecipient_ == address(0) || fundingSplitBps_ == 0) {
+        if (fundingSplitBps_ == 0) {
             revert FundingSplitNotConfiguredError();
         }
 
@@ -386,6 +382,7 @@ abstract contract ETHCrowdfundBase is Implementation {
 
         // Transfer funding split to recipient.
         // Assuming fundingSplitBps_ <= 1e4, this cannot overflow uint96
+        address payable fundingSplitRecipient_ = fundingSplitRecipient;
         splitAmount = (totalContributions * fundingSplitBps_) / 1e4;
         payable(fundingSplitRecipient_).transferEth(splitAmount);
 
