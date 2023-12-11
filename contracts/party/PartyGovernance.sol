@@ -451,20 +451,12 @@ abstract contract PartyGovernance is
         _adjustVotingPower(msg.sender, 0, delegate);
     }
 
-    /// @notice Transfer party host status to another.
-    /// @param newPartyHost The address of the new host.
-    function abdicateHost(address newPartyHost) external {
+    /// @notice Remove host privileges from yourself.
+    function abdicateHost() external {
         _assertHost();
-        // 0 is a special case burn address.
-        if (newPartyHost != address(0)) {
-            // Can only abdicate host
-            revert InvalidNewHostError();
-        } else {
-            // Burned the host status
-            --numHosts;
-        }
+        --numHosts;
         isHost[msg.sender] = false;
-        emit HostStatusTransferred(msg.sender, newPartyHost);
+        emit HostStatusTransferred(msg.sender, address(0));
     }
 
     /// @notice Create a token distribution by moving the party's entire balance

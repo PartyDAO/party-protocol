@@ -2267,66 +2267,6 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
         assertEq(gov.getVotingPowerAt(voter2, uint40(block.timestamp), 0), 25e18);
     }
 
-    // Hosts can transfer their host status to another address
-    function testHostPower_transferHostStatus() external {
-        TestablePartyGovernance gov;
-        (
-            IERC721[] memory preciousTokens,
-            uint256[] memory preciousTokenIds
-        ) = _createPreciousTokens(2);
-        gov = _createGovernance(false, 100e18, preciousTokens, preciousTokenIds);
-
-        address newHost = _randomAddress();
-        address host = _getRandomDefaultHost();
-
-        // Can only transfer to 0 address
-        vm.prank(host);
-        vm.expectRevert((PartyGovernance.InvalidNewHostError.selector));
-        gov.abdicateHost(newHost);
-
-        // Transfer host status to another address
-        vm.prank(host);
-        _expectHostStatusTransferredEvent(host, address(0));
-        gov.abdicateHost(address(0));
-
-        // Assert old host is no longer host
-        assertEq(gov.isHost(host), false);
-    }
-
-    // You cannot transfer host status to an existing host
-    function testHostPower_cannotTransferHostStatusToExistingHost() external {
-        TestablePartyGovernance gov;
-        (
-            IERC721[] memory preciousTokens,
-            uint256[] memory preciousTokenIds
-        ) = _createPreciousTokens(2);
-        gov = _createGovernance(false, 100e18, preciousTokens, preciousTokenIds);
-
-        address host = _getRandomDefaultHost();
-
-        // try to transfer host status to an existing host
-        vm.prank(host);
-        vm.expectRevert(abi.encodeWithSelector(PartyGovernance.InvalidNewHostError.selector));
-        gov.abdicateHost(host);
-    }
-
-    // Cannot transfer host status as a non-host
-    function testHostPower_cannotTransferHostAsNonHost() external {
-        TestablePartyGovernance gov;
-        (
-            IERC721[] memory preciousTokens,
-            uint256[] memory preciousTokenIds
-        ) = _createPreciousTokens(2);
-        gov = _createGovernance(false, 100e18, preciousTokens, preciousTokenIds);
-
-        address nonHost = _randomAddress();
-        address nonHost2 = _randomAddress();
-
-        vm.prank(nonHost);
-        vm.expectRevert(PartyGovernance.NotAuthorized.selector);
-        gov.abdicateHost(nonHost2);
-    }
-
     // Demonstrate correct functionality of abidacte host along with the `numHost` counter.
     function testHostPower_canAbidacteHost() external {
         TestablePartyGovernance gov;
@@ -2338,7 +2278,7 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
 
         assertEq(gov.numHosts(), 2);
         vm.prank(defaultGovernanceOpts.hosts[0]);
-        gov.abdicateHost(address(0));
+        gov.abdicateHost();
         assertFalse(gov.isHost(defaultGovernanceOpts.hosts[0]));
         assertEq(gov.numHosts(), 1);
     }

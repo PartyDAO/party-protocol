@@ -498,7 +498,7 @@ contract PartyGovernanceTest is Test, TestUtils {
         party.accept(1, 0);
 
         // Remove second host
-        party.abdicateHost(address(0));
+        party.abdicateHost();
         assertEq(party.numHosts(), 1);
 
         // Still need to wait for the second host
