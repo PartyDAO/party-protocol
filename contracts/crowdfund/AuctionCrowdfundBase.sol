@@ -126,7 +126,7 @@ abstract contract AuctionCrowdfundBase is Crowdfund {
         nftContract = opts.nftContract;
         nftTokenId = opts.nftTokenId;
         market = opts.market;
-        expiry = uint40(opts.duration + block.timestamp);
+        expiry = (opts.duration + block.timestamp).safeCastUint256ToUint40();
         auctionId = opts.auctionId;
         maximumBid = opts.maximumBid;
         onlyHostCanBid = opts.onlyHostCanBid;
