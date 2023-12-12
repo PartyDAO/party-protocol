@@ -77,11 +77,7 @@ contract OffChainSignatureValidator is IERC1271 {
         uint96 thresholdBps = signingThresholdBps[party];
 
         // Either threshold is 0 or signer votes above threshold
-        if (
-            thresholdBps == 0 ||
-            (signerVotingPowerBps >= totalVotingPower &&
-                signerVotingPowerBps / totalVotingPower >= thresholdBps)
-        ) {
+        if (thresholdBps == 0 || (signerVotingPowerBps / totalVotingPower >= thresholdBps)) {
             return IERC1271.isValidSignature.selector;
         }
 
