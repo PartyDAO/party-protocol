@@ -44,7 +44,7 @@ contract BondingCurveAuthority {
     uint16 public treasuryFeeBps;
     uint96 public partyDaoFeeClaimable;
 
-    uint96 private constant PARTY_CARD_VOTING_POWER = uint80(0.1 ether);
+    uint96 private constant PARTY_CARD_VOTING_POWER = uint96(0.1 ether);
     address payable private immutable PARTY_DAO;
     uint16 private constant BPS = 10_000;
     uint16 private constant MAX_CREATOR_FEE = 250;
@@ -296,7 +296,8 @@ contract BondingCurveAuthority {
     }
 
     function claimPartyDaoFees() external onlyPartyDao {
+        uint96 _partyDaoFeeClaimable = partyDaoFeeClaimable;
         partyDaoFeeClaimable = 0;
-        PARTY_DAO.transfer(partyDaoFeeClaimable);
+        PARTY_DAO.transfer(_partyDaoFeeClaimable);
     }
 }
