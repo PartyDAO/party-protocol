@@ -20,6 +20,7 @@ contract BondingCurveAuthority {
 
     event TreasuryFeeUpdated(uint16 previousTreasuryFee, uint16 newTreasuryFee);
     event PartyDaoFeeUpdated(uint16 previousPartyDaoFee, uint16 newPartyDaoFee);
+    event CreatorFeeUpdated(uint16 previousCreatorFee, uint16 newCreatorFee);
     event PartyCardsBought(
         Party indexed party,
         address indexed buyer,
@@ -42,6 +43,7 @@ contract BondingCurveAuthority {
     mapping(Party => PartyInfo) public partyInfos;
     uint16 public partyDaoFeeBps;
     uint16 public treasuryFeeBps;
+    uint16 public creatorFeeBps;
     uint96 public partyDaoFeeClaimable;
 
     uint96 private constant PARTY_CARD_VOTING_POWER = uint96(0.1 ether);
@@ -55,13 +57,13 @@ contract BondingCurveAuthority {
         PartyFactory partyFactory;
         Party partyImpl;
         Party.PartyOptions opts;
-        uint16 creatorFee;
+        bool creatorFeeOn;
     }
 
     struct PartyInfo {
         address payable creator;
         uint80 supply;
-        uint16 creatorFee;
+        bool creatorFeeOn;
     }
 
     modifier onlyPartyDao() {
@@ -87,13 +89,14 @@ contract BondingCurveAuthority {
         PARTY_DAO = partyDao;
     }
 
+    /**
+     * @notice Create a new party that will have a dynamic price
+     * @param partyOpts options specified for creating the party
+     * @return party The address of the newly created party
+     */
     function createParty(
         BondingCurvePartyOptions memory partyOpts
     ) external payable returns (Party party) {
-        if (partyOpts.creatorFee > 500) {
-            revert InvalidCreatorFee();
-        }
-
         address[] memory authorities = new address[](1);
         authorities[0] = address(this);
 
@@ -109,21 +112,24 @@ contract BondingCurveAuthority {
         partyInfos[party] = PartyInfo({
             creator: payable(msg.sender),
             supply: 0,
-            creatorFee: partyOpts.creatorFee
+            creatorFeeOn: partyOpts.creatorFeeOn
         });
 
         buyPartyCards(party, 1, address(0));
     }
 
+    /**
+     * @notice Create a new party with metadata that will have a dynamic price
+     * @param partyOpts options specified for creating the party
+     * @param customMetadataProvider the metadata provider to use for the party
+     * @param customMetadata the metadata to use for the party
+     * @return party The address of the newly created party
+     */
     function createPartyWithMetadata(
         BondingCurvePartyOptions memory partyOpts,
         MetadataProvider customMetadataProvider,
         bytes memory customMetadata
     ) external payable returns (Party party) {
-        if (partyOpts.creatorFee > 500) {
-            revert InvalidCreatorFee();
-        }
-
         address[] memory authorities = new address[](1);
         authorities[0] = address(this);
 
@@ -141,12 +147,18 @@ contract BondingCurveAuthority {
         partyInfos[party] = PartyInfo({
             creator: payable(msg.sender),
             supply: 0,
-            creatorFee: partyOpts.creatorFee
+            creatorFeeOn: partyOpts.creatorFeeOn
         });
 
         buyPartyCards(party, 1, address(0));
     }
 
+    /**
+     * @notice Buy party cards from the bonding curve
+     * @param party The party to buy cards for
+     * @param amount The amount of cards to buy
+     * @param initialDelegate The initial delegate for governance
+     */
     function buyPartyCards(Party party, uint80 amount, address initialDelegate) public payable {
         PartyInfo memory partyInfo = partyInfos[party];
 
@@ -157,7 +169,8 @@ contract BondingCurveAuthority {
         uint256 bondingCurvePrice = _getBondingCurvePrice(partyInfo.supply, amount);
         uint256 partyDaoFee = (bondingCurvePrice * partyDaoFeeBps) / BPS;
         uint256 treasuryFee = (bondingCurvePrice * treasuryFeeBps) / BPS;
-        uint256 creatorFee = (bondingCurvePrice * partyInfo.creatorFee) / BPS;
+        uint256 creatorFee = (bondingCurvePrice * (partyInfo.creatorFeeOn ? creatorFeeBps : 0)) /
+            BPS;
 
         if (
             amount == 0 || msg.value != bondingCurvePrice + partyDaoFee + treasuryFee + creatorFee
@@ -188,6 +201,11 @@ contract BondingCurveAuthority {
         );
     }
 
+    /**
+     * @notice Sell party cards to the bonding curve
+     * @param party The party to sell cards for
+     * @param tokenIds The token ids to sell
+     */
     function sellPartyCards(Party party, uint256[] memory tokenIds) external {
         PartyInfo memory partyInfo = partyInfos[party];
 
@@ -199,7 +217,8 @@ contract BondingCurveAuthority {
         uint256 bondingCurvePrice = _getBondingCurvePrice(partyInfo.supply - amount, amount);
         uint256 partyDaoFee = (bondingCurvePrice * partyDaoFeeBps) / BPS;
         uint256 treasuryFee = (bondingCurvePrice * treasuryFeeBps) / BPS;
-        uint256 creatorFee = (bondingCurvePrice * partyInfo.creatorFee) / BPS;
+        uint256 creatorFee = (bondingCurvePrice * (partyInfo.creatorFeeOn ? creatorFeeBps : 0)) /
+            BPS;
 
         partyInfos[party].supply = partyInfo.supply - amount;
 
@@ -233,20 +252,38 @@ contract BondingCurveAuthority {
         );
     }
 
+    /**
+     * @notice Get the sale proceeds for a given amount of cards
+     * @param party The party to get the sale proceeds for
+     * @param amount The amount of cards that would be sold
+     * @return The sale proceeds for the given amount of cards that would be sent to the seller
+     */
     function getSaleProceeds(Party party, uint256 amount) external view returns (uint256) {
         PartyInfo memory partyInfo = partyInfos[party];
         uint256 bondingCurvePrice = _getBondingCurvePrice(partyInfo.supply - amount, amount);
         return
-            (bondingCurvePrice * (BPS - partyDaoFeeBps - treasuryFeeBps - partyInfo.creatorFee)) /
-            BPS;
+            (bondingCurvePrice *
+                (BPS -
+                    partyDaoFeeBps -
+                    treasuryFeeBps -
+                    (partyInfo.creatorFeeOn ? creatorFeeBps : 0))) / BPS;
     }
 
+    /**
+     * @notice Get the price to buy a given amount of cards
+     * @param party The party to get the price for
+     * @param amount The amount of cards that would be bought
+     * @return The price to buy the given amount of cards
+     */
     function getPriceToBuy(Party party, uint256 amount) external view returns (uint256) {
         PartyInfo memory partyInfo = partyInfos[party];
         uint256 bondingCurvePrice = _getBondingCurvePrice(partyInfo.supply, amount);
         return
-            (bondingCurvePrice * (BPS + partyDaoFeeBps + treasuryFeeBps + partyInfo.creatorFee)) /
-            BPS;
+            (bondingCurvePrice *
+                (BPS +
+                    partyDaoFeeBps +
+                    treasuryFeeBps +
+                    (partyInfo.creatorFeeOn ? creatorFeeBps : 0))) / BPS;
     }
 
     function _getBondingCurvePrice(
@@ -269,6 +306,10 @@ contract BondingCurveAuthority {
             0.001 ether;
     }
 
+    /**
+     * @notice Set the treasury fee. Only callable by party dao.
+     * @param newTreasuryFeeBps The new treasury fee
+     */
     function setTreasuryFee(uint16 newTreasuryFeeBps) external onlyPartyDao {
         if (newTreasuryFeeBps > MAX_TREASURY_FEE) {
             revert InvalidTreasuryFee();
@@ -277,6 +318,10 @@ contract BondingCurveAuthority {
         treasuryFeeBps = newTreasuryFeeBps;
     }
 
+    /**
+     * @notice Set the party dao fee. Only callable by party dao.
+     * @param newPartyDaoFeeBps The new party dao fee
+     */
     function setPartyDaoFee(uint16 newPartyDaoFeeBps) external onlyPartyDao {
         if (newPartyDaoFeeBps > MAX_PARTY_DAO_FEE) {
             revert InvalidPartyDaoFee();
@@ -285,16 +330,21 @@ contract BondingCurveAuthority {
         partyDaoFeeBps = newPartyDaoFeeBps;
     }
 
-    function setCreatorFee(Party party, uint16 newCreatorFee) external {
-        if (newCreatorFee > MAX_CREATOR_FEE) {
+    /**
+     * @notice Set the creator fee for all parties. Can only be called by party dao.
+     * @param newCreatorFeeBps The new creator fee
+     */
+    function setCreatorFee(uint16 newCreatorFeeBps) external onlyPartyDao {
+        if (newCreatorFeeBps > MAX_CREATOR_FEE) {
             revert InvalidCreatorFee();
         }
-        if (msg.sender != partyInfos[party].creator) {
-            revert Unauthorized();
-        }
-        partyInfos[party].creatorFee = newCreatorFee;
+        emit CreatorFeeUpdated(creatorFeeBps, newCreatorFeeBps);
+        creatorFeeBps = newCreatorFeeBps;
     }
 
+    /**
+     * @notice Claim the party dao fees. Only callable by party dao.
+     */
     function claimPartyDaoFees() external onlyPartyDao {
         uint96 _partyDaoFeeClaimable = partyDaoFeeClaimable;
         partyDaoFeeClaimable = 0;
