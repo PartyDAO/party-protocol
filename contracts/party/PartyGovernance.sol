@@ -187,7 +187,7 @@ abstract contract PartyGovernance is
     error InvalidGovernanceParameter(uint256 value);
     error DistributionsRequireVoteError();
     error PartyNotStartedError();
-    error CannotRageQuitAndAcceptError();
+    error CannotModifyTotalVotingPowerAndAcceptError();
     error TooManyHosts();
 
     uint256 private constant UINT40_HIGH_BIT = 1 << 39;
@@ -203,8 +203,8 @@ abstract contract PartyGovernance is
     uint16 public feeBps;
     /// @notice Distribution fee recipient.
     address payable public feeRecipient;
-    /// @notice The timestamp of the last time `rageQuit()` was called.
-    uint40 public lastRageQuitTimestamp;
+    /// @notice The timestamp of the last time total voting power changed in the party.
+    uint40 public lastTotalVotingPowerChangeTimestamp;
     /// @notice The hash of the list of precious NFTs guarded by the party.
     bytes32 public preciousListHash;
     /// @notice The last proposal ID that was used. 0 means no proposals have been made.
@@ -605,15 +605,15 @@ abstract contract PartyGovernance is
             }
         }
 
-        // Prevent voting in the same block as the last rage quit timestamp.
-        // This is to prevent an exploit where a member can rage quit to reduce
-        // the total voting power of the party, then propose and vote in the
-        // same block since `getVotingPowerAt()` uses `values.proposedTime - 1`.
-        // This would allow them to use the voting power snapshot just before
-        // their card was burned to vote, potentially passing a proposal that
-        // would have otherwise not passed.
-        if (lastRageQuitTimestamp == block.timestamp) {
-            revert CannotRageQuitAndAcceptError();
+        // Prevent voting in the same block as the last total voting power
+        // change. This is to prevent an exploit where a member can, for
+        // example, rage quit to reduce the total voting power of the party,
+        // then propose and vote in the same block since `getVotingPowerAt()`
+        // uses `values.proposedTime - 1`. This would allow them to use the
+        // voting power snapshot just before their card was burned to vote,
+        // potentially passing a proposal that would have otherwise not passed.
+        if (lastTotalVotingPowerChangeTimestamp == block.timestamp) {
+            revert CannotModifyTotalVotingPowerAndAcceptError();
         }
 
         // Cannot vote twice.

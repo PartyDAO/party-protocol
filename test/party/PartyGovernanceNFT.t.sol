@@ -1047,7 +1047,7 @@ contract PartyGovernanceNFTTest is PartyGovernanceNFTTestBase {
         party.rageQuit(tokenIds, tokens, minWithdrawAmounts, recipient);
 
         vm.prank(recipient);
-        vm.expectRevert(PartyGovernance.CannotRageQuitAndAcceptError.selector);
+        vm.expectRevert(PartyGovernance.CannotModifyTotalVotingPowerAndAcceptError.selector);
         party.propose(
             PartyGovernance.Proposal({
                 maxExecutableTime: uint40(type(uint40).max),

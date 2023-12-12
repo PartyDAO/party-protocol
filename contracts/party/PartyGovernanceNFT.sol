@@ -260,6 +260,7 @@ abstract contract PartyGovernanceNFT is PartyGovernance, ERC721, IERC2981 {
     function increaseTotalVotingPower(uint96 votingPower) external {
         _assertAuthority();
         _getSharedProposalStorage().governanceValues.totalVotingPower += votingPower;
+        lastTotalVotingPowerChangeTimestamp == uint40(block.timestamp);
 
         // Notify third-party platforms that the party NFT metadata has updated
         // for all tokens.
@@ -395,8 +396,7 @@ abstract contract PartyGovernanceNFT is PartyGovernance, ERC721, IERC2981 {
         // Used as a reentrancy guard. Will be updated back after ragequit.
         rageQuitTimestamp = DISABLE_RAGEQUIT_PERMANENTLY;
 
-        // Update last rage quit timestamp.
-        lastRageQuitTimestamp = uint40(block.timestamp);
+        lastTotalVotingPowerChangeTimestamp = uint40(block.timestamp);
 
         // Sum up total amount of each token to withdraw.
         uint256[] memory withdrawAmounts = new uint256[](withdrawTokens.length);
