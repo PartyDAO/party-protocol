@@ -450,14 +450,13 @@ abstract contract PartyGovernanceNFT is PartyGovernance, ERC721, IERC2981 {
                     }
                 }
 
+                // Check amount is at least minimum.
+                uint256 minAmount = minWithdrawAmounts[i];
+                if (amount < minAmount) {
+                    revert BelowMinWithdrawAmountError(amount, minAmount);
+                }
+
                 if (amount > 0) {
-                    uint256 minAmount = minWithdrawAmounts[i];
-
-                    // Check amount is at least minimum.
-                    if (amount < minAmount) {
-                        revert BelowMinWithdrawAmountError(amount, minAmount);
-                    }
-
                     // Transfer token from party to recipient.
                     if (address(token) == ETH_ADDRESS) {
                         payable(receiver).transferEth(amount);
