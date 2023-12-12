@@ -98,10 +98,19 @@ contract BondingCurveAuthorityTest is TestUtils {
 
     function test_buyPartyCards_works()
         public
-        returns (Party party, address buyer, uint256 expectedBondingCurvePrice)
+        returns (
+            Party party,
+            address payable creator,
+            uint256 initialBalanceExcludingPartyDaoFee,
+            address buyer,
+            uint256 expectedBondingCurvePrice
+        )
     {
-        address payable creator;
         (party, creator, ) = _createParty(CREATOR_FEE_BPS);
+
+        initialBalanceExcludingPartyDaoFee =
+            address(authority).balance -
+            authority.partyDaoFeeClaimable();
 
         uint256 expectedPriceToBuy = authority.getPriceToBuy(party, 10);
         expectedBondingCurvePrice =
@@ -138,12 +147,24 @@ contract BondingCurveAuthorityTest is TestUtils {
     function test_sellPartyCards_works() public {
         (
             Party party,
+            address payable creator,
+            uint256 initialBalanceExcludingPartyDaoFee,
             address buyer,
             uint256 expectedBondingCurvePrice
         ) = test_buyPartyCards_works();
 
         uint256[] memory tokenIds = new uint256[](10);
         for (uint256 i = 0; i < 10; i++) tokenIds[i] = i + 2;
+
+        uint256 expectedSaleProceeds = authority.getSaleProceeds(party, 10);
+        expectedBondingCurvePrice =
+            (expectedSaleProceeds * 1e4) /
+            (1e4 - TREASURY_FEE_BPS - PARTY_DAO_FEE_BPS - CREATOR_FEE_BPS);
+        uint256 expectedTreasuryFee = (expectedBondingCurvePrice * TREASURY_FEE_BPS) / 1e4;
+        uint256 expectedCreatorFee = (expectedBondingCurvePrice * CREATOR_FEE_BPS) / 1e4;
+
+        uint256 beforePartyBalance = address(party).balance;
+        uint256 beforeCreatorBalance = creator.balance;
 
         vm.prank(buyer);
         authority.sellPartyCards(party, tokenIds);
@@ -152,7 +173,16 @@ contract BondingCurveAuthorityTest is TestUtils {
 
         assertEq(supply, 1);
         assertEq(party.balanceOf(buyer), 0);
-        assertEq(buyer.balance, expectedBondingCurvePrice);
+        // assertEq(party.getVotingPowerAt(buyer, uint40(block.timestamp), 0), 0);
+        assertEq(buyer.balance, expectedSaleProceeds);
+        assertEq(
+            address(authority).balance,
+            // Should only be the initial balance and the unclaimed Party DAO
+            // fees leftover.
+            initialBalanceExcludingPartyDaoFee + authority.partyDaoFeeClaimable()
+        );
+        assertEq(address(party).balance - beforePartyBalance, expectedTreasuryFee);
+        assertEq(creator.balance - beforeCreatorBalance, expectedCreatorFee);
     }
 
     function test_setTreasuryFee_works(uint16 newTreasuryFee) public {
