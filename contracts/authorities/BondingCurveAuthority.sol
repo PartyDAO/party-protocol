@@ -17,6 +17,7 @@ contract BondingCurveAuthority {
     error InvalidTreasuryFee();
     error InvalidPartyDaoFee();
     error PartyNotSupported();
+    error InvalidTotalVotingPower();
 
     event TreasuryFeeUpdated(uint16 previousTreasuryFee, uint16 newTreasuryFee);
     event PartyDaoFeeUpdated(uint16 previousPartyDaoFee, uint16 newPartyDaoFee);
@@ -113,6 +114,10 @@ contract BondingCurveAuthority {
         address[] memory authorities = new address[](1);
         authorities[0] = address(this);
 
+        if (partyOpts.opts.governance.totalVotingPower != 0) {
+            revert InvalidTotalVotingPower();
+        }
+
         party = partyOpts.partyFactory.createParty(
             partyOpts.partyImpl,
             authorities,
@@ -145,6 +150,10 @@ contract BondingCurveAuthority {
     ) external payable returns (Party party) {
         address[] memory authorities = new address[](1);
         authorities[0] = address(this);
+
+        if (partyOpts.opts.governance.totalVotingPower != 0) {
+            revert InvalidTotalVotingPower();
+        }
 
         party = partyOpts.partyFactory.createPartyWithMetadata(
             partyOpts.partyImpl,
