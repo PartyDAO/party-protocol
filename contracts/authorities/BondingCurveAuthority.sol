@@ -21,6 +21,7 @@ contract BondingCurveAuthority {
     event TreasuryFeeUpdated(uint16 previousTreasuryFee, uint16 newTreasuryFee);
     event PartyDaoFeeUpdated(uint16 previousPartyDaoFee, uint16 newPartyDaoFee);
     event CreatorFeeUpdated(uint16 previousCreatorFee, uint16 newCreatorFee);
+    event PartyDaoFeesClaimed(uint96 amount);
     event PartyCardsBought(
         Party indexed party,
         address indexed buyer,
@@ -369,5 +370,6 @@ contract BondingCurveAuthority {
         uint96 _partyDaoFeeClaimable = partyDaoFeeClaimable;
         partyDaoFeeClaimable = 0;
         PARTY_DAO.transfer(_partyDaoFeeClaimable);
+        emit PartyDaoFeesClaimed(_partyDaoFeeClaimable);
     }
 }
