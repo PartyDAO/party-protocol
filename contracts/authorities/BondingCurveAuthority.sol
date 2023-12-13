@@ -40,12 +40,18 @@ contract BondingCurveAuthority {
         uint256 creatorFee
     );
 
+    /// @notice Info for each party controlled by this authority
     mapping(Party => PartyInfo) public partyInfos;
+    /// @notice The global party dao fee basis points
     uint16 public partyDaoFeeBps;
+    /// @notice The global treasury fee basis points
     uint16 public treasuryFeeBps;
+    /// @notice The global creator fee basis points
     uint16 public creatorFeeBps;
+    /// @notice The amount of party dao fees claimable
     uint96 public partyDaoFeeClaimable;
 
+    /// @notice The intrinsic voting power of party cards minted by this contract
     uint96 private constant PARTY_CARD_VOTING_POWER = uint96(0.1 ether);
     address payable private immutable PARTY_DAO;
     uint16 private constant BPS = 10_000;
@@ -57,6 +63,7 @@ contract BondingCurveAuthority {
         PartyFactory partyFactory;
         Party partyImpl;
         Party.PartyOptions opts;
+        // boolean specifying if creator fees are collected
         bool creatorFeeOn;
     }
 
@@ -76,7 +83,8 @@ contract BondingCurveAuthority {
     constructor(
         address payable partyDao,
         uint16 initialPartyDaoFeeBps,
-        uint16 initialTreasuryFeeBps
+        uint16 initialTreasuryFeeBps,
+        uint16 initialCreatorFeeBps
     ) {
         if (initialPartyDaoFeeBps > MAX_PARTY_DAO_FEE) {
             revert InvalidPartyDaoFee();
@@ -84,8 +92,12 @@ contract BondingCurveAuthority {
         if (initialTreasuryFeeBps > MAX_TREASURY_FEE) {
             revert InvalidTreasuryFee();
         }
+        if (initialCreatorFeeBps > MAX_CREATOR_FEE) {
+            revert InvalidCreatorFee();
+        }
         partyDaoFeeBps = initialPartyDaoFeeBps;
         treasuryFeeBps = initialTreasuryFeeBps;
+        creatorFeeBps = initialCreatorFeeBps;
         PARTY_DAO = partyDao;
     }
 
@@ -286,6 +298,14 @@ contract BondingCurveAuthority {
                     (partyInfo.creatorFeeOn ? creatorFeeBps : 0))) / BPS;
     }
 
+    /**
+     * @notice Returns the bonding curve price for a given amount of cards
+     *         for a given lower supply.
+     * @param lowerSupply The lower supply of either the start supply or end supply
+     *        For example: if burning, this would be the supply after burning.
+     * @param amount The number of cards to calculate the price for
+     * @return The bonding curve price for these cards
+     */
     function _getBondingCurvePrice(
         uint256 lowerSupply,
         uint256 amount
