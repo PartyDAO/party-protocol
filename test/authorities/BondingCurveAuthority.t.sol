@@ -1,13 +1,12 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8;
 
-import { Globals } from "../../contracts/globals/Globals.sol";
 import { Party } from "../../contracts/party/Party.sol";
 import { PartyFactory } from "../../contracts/party/PartyFactory.sol";
 import { BondingCurveAuthority } from "../../contracts/authorities/BondingCurveAuthority.sol";
-import "../TestUtils.sol";
+import { SetupPartyHelper } from "../utils/SetupPartyHelper.sol";
 
-contract BondingCurveAuthorityTest is TestUtils {
+contract BondingCurveAuthorityTest is SetupPartyHelper {
     event TreasuryFeeUpdated(uint16 previousTreasuryFee, uint16 newTreasuryFee);
     event PartyDaoFeeUpdated(uint16 previousPartyDaoFee, uint16 newPartyDaoFee);
     event PartyCardsBought(
@@ -29,25 +28,24 @@ contract BondingCurveAuthorityTest is TestUtils {
         uint256 creatorFee
     );
 
-    Globals globals;
     MockBondingCurveAuthority authority;
-    Party partyImpl;
-    PartyFactory factory;
-
     Party.PartyOptions opts;
 
-    address payable PARTY_DAO;
     uint16 TREASURY_FEE_BPS = 0.1e4; // 10%
     uint16 PARTY_DAO_FEE_BPS = 0.025e4; // 2.5%
     uint16 CREATOR_FEE_BPS = 0.025e4; // 2.5%
 
-    function setUp() public {
-        PARTY_DAO = _randomAddress();
+    constructor() SetupPartyHelper(false) {}
 
-        globals = new Globals(PARTY_DAO);
-        authority = new MockBondingCurveAuthority(PARTY_DAO, 100, 100);
-        partyImpl = new Party(globals);
-        factory = new PartyFactory(globals);
+    function setUp() public override {
+        super.setUp();
+
+        authority = new MockBondingCurveAuthority(
+            globalDaoWalletAddress,
+            PARTY_DAO_FEE_BPS,
+            TREASURY_FEE_BPS,
+            CREATOR_FEE_BPS
+        );
 
         address[] memory hosts = new address[](1);
         hosts[0] = _randomAddress();
@@ -60,33 +58,36 @@ contract BondingCurveAuthorityTest is TestUtils {
         opts.governance.totalVotingPower = 301;
 
         // Set a default treasury fee
-        vm.prank(PARTY_DAO);
+        vm.prank(globalDaoWalletAddress);
         authority.setTreasuryFee(TREASURY_FEE_BPS);
 
         // Set a default Party DAO fee
-        vm.prank(PARTY_DAO);
+        vm.prank(globalDaoWalletAddress);
         authority.setPartyDaoFee(PARTY_DAO_FEE_BPS);
     }
 
     function _createParty(
-        uint16 creatorFee
+        bool creatorFeeOn
     ) internal returns (Party party, address payable creator, uint256 initialPrice) {
         creator = _randomAddress();
 
         initialPrice = 0.001 ether;
         initialPrice =
             (initialPrice *
-                (1e4 + authority.treasuryFeeBps() + authority.partyDaoFeeBps() + creatorFee)) /
+                (1e4 +
+                    authority.treasuryFeeBps() +
+                    authority.partyDaoFeeBps() +
+                    (creatorFeeOn ? authority.creatorFeeBps() : 0))) /
             1e4;
 
         vm.deal(creator, initialPrice);
         vm.prank(creator);
         party = authority.createParty{ value: initialPrice }(
             BondingCurveAuthority.BondingCurvePartyOptions({
-                partyFactory: factory,
+                partyFactory: partyFactory,
                 partyImpl: partyImpl,
                 opts: opts,
-                creatorFee: creatorFee
+                creatorFeeOn: creatorFeeOn
             })
         );
     }
@@ -94,30 +95,40 @@ contract BondingCurveAuthorityTest is TestUtils {
     function test_initialize_revertIfGreaterThanMaxPartyDaoFee() public {
         uint16 maxPartyDaoFeeBps = 250;
         vm.expectRevert(BondingCurveAuthority.InvalidPartyDaoFee.selector);
-        new BondingCurveAuthority(PARTY_DAO, maxPartyDaoFeeBps + 1, TREASURY_FEE_BPS);
+        new BondingCurveAuthority(
+            globalDaoWalletAddress,
+            maxPartyDaoFeeBps + 1,
+            TREASURY_FEE_BPS,
+            CREATOR_FEE_BPS
+        );
     }
 
     function test_initialize_revertIfGreaterThanMaxTreasuryFee() public {
         uint16 maxTreasuryFeeBps = 1000;
         vm.expectRevert(BondingCurveAuthority.InvalidTreasuryFee.selector);
-        new BondingCurveAuthority(PARTY_DAO, PARTY_DAO_FEE_BPS, maxTreasuryFeeBps + 1);
+        new BondingCurveAuthority(
+            globalDaoWalletAddress,
+            PARTY_DAO_FEE_BPS,
+            maxTreasuryFeeBps + 1,
+            CREATOR_FEE_BPS
+        );
     }
 
     function test_createParty_works() public {
-        (Party party, address payable creator, ) = _createParty(CREATOR_FEE_BPS);
+        (Party party, address payable creator, ) = _createParty(true);
 
         uint256 expectedBondingCurvePrice = 0.001 ether;
         uint256 expectedPartyDaoFee = (expectedBondingCurvePrice * PARTY_DAO_FEE_BPS) / 1e4;
         uint256 expectedTreasuryFee = (expectedBondingCurvePrice * TREASURY_FEE_BPS) / 1e4;
         uint256 expectedCreatorFee = (expectedBondingCurvePrice * CREATOR_FEE_BPS) / 1e4;
 
-        (address payable partyCreator, uint80 supply, uint16 creatorFee) = authority.partyInfos(
+        (address payable partyCreator, uint80 supply, bool creatorFeeOn) = authority.partyInfos(
             party
         );
 
         assertEq(partyCreator, creator);
+        assertTrue(creatorFeeOn);
         assertEq(supply, 1);
-        assertEq(creatorFee, CREATOR_FEE_BPS);
         assertEq(party.balanceOf(creator), 1);
         assertEq(party.getVotingPowerAt(creator, uint40(block.timestamp), 0), 0.1 ether);
         assertEq(address(party).balance, expectedTreasuryFee);
@@ -126,19 +137,6 @@ contract BondingCurveAuthorityTest is TestUtils {
             address(authority).balance,
             // Creator fee is held in BondingCurveAuthority until claimed.
             expectedBondingCurvePrice + expectedPartyDaoFee
-        );
-    }
-
-    function test_createParty_revertIfGreaterThanMaxCreatorFee() public {
-        uint16 maxCreatorFeeBps = 500;
-        vm.expectRevert(BondingCurveAuthority.InvalidCreatorFee.selector);
-        authority.createParty(
-            BondingCurveAuthority.BondingCurvePartyOptions({
-                partyFactory: factory,
-                partyImpl: partyImpl,
-                opts: opts,
-                creatorFee: maxCreatorFeeBps + 1
-            })
         );
     }
 
@@ -152,7 +150,7 @@ contract BondingCurveAuthorityTest is TestUtils {
             uint256 expectedBondingCurvePrice
         )
     {
-        (party, creator, ) = _createParty(CREATOR_FEE_BPS);
+        (party, creator, ) = _createParty(true);
 
         initialBalanceExcludingPartyDaoFee =
             address(authority).balance -
@@ -213,7 +211,7 @@ contract BondingCurveAuthorityTest is TestUtils {
     }
 
     function test_buyPartyCards_revertIfGreaterThanPriceToBuy() public {
-        (Party party, , ) = _createParty(CREATOR_FEE_BPS);
+        (Party party, , ) = _createParty(true);
 
         uint256 priceToBuy = authority.getPriceToBuy(party, 10);
 
@@ -222,7 +220,7 @@ contract BondingCurveAuthorityTest is TestUtils {
     }
 
     function test_buyPartyCards_revertIfLessThanPriceToBuy() public {
-        (Party party, , ) = _createParty(CREATOR_FEE_BPS);
+        (Party party, , ) = _createParty(true);
 
         uint256 priceToBuy = authority.getPriceToBuy(party, 10);
 
@@ -231,7 +229,7 @@ contract BondingCurveAuthorityTest is TestUtils {
     }
 
     function test_buyPartyCards_revertIfZeroAmount() public {
-        (Party party, , ) = _createParty(CREATOR_FEE_BPS);
+        (Party party, , ) = _createParty(true);
 
         vm.expectRevert(BondingCurveAuthority.InvalidMessageValue.selector);
         authority.buyPartyCards(party, 0, address(0));
@@ -351,7 +349,7 @@ contract BondingCurveAuthorityTest is TestUtils {
         vm.expectEmit(true, true, true, true);
         emit TreasuryFeeUpdated(authority.treasuryFeeBps(), newTreasuryFee);
 
-        vm.prank(PARTY_DAO);
+        vm.prank(globalDaoWalletAddress);
         authority.setTreasuryFee(newTreasuryFee);
 
         assertEq(authority.treasuryFeeBps(), newTreasuryFee);
@@ -369,7 +367,7 @@ contract BondingCurveAuthorityTest is TestUtils {
         vm.expectEmit(true, true, true, true);
         emit PartyDaoFeeUpdated(authority.partyDaoFeeBps(), newPartyDaoFee);
 
-        vm.prank(PARTY_DAO);
+        vm.prank(globalDaoWalletAddress);
         authority.setPartyDaoFee(newPartyDaoFee);
 
         assertEq(authority.partyDaoFeeBps(), newPartyDaoFee);
@@ -381,37 +379,17 @@ contract BondingCurveAuthorityTest is TestUtils {
         authority.setPartyDaoFee(0);
     }
 
-    function test_setCreatorFee_works(uint16 newCreatorFee) public {
-        vm.assume(newCreatorFee <= 250);
-
-        (Party party, address payable creator, ) = _createParty(CREATOR_FEE_BPS);
-
-        vm.prank(creator);
-        authority.setCreatorFee(party, newCreatorFee);
-
-        (, , uint16 creatorFee) = authority.partyInfos(party);
-        assertEq(creatorFee, newCreatorFee);
-    }
-
-    function test_setCreatorFee_revertIfNotCreator() public {
-        (Party party, , ) = _createParty(CREATOR_FEE_BPS);
-
-        vm.prank(_randomAddress());
-        vm.expectRevert(BondingCurveAuthority.Unauthorized.selector);
-        authority.setCreatorFee(party, 0);
-    }
-
     function test_claimPartyDaoFees_works() public {
-        _createParty(CREATOR_FEE_BPS);
+        _createParty(true);
 
         uint256 expectedBondingCurvePrice = 0.001 ether;
         uint256 expectedPartyDaoFee = (expectedBondingCurvePrice * PARTY_DAO_FEE_BPS) / 1e4;
 
-        vm.prank(PARTY_DAO);
+        vm.prank(globalDaoWalletAddress);
         authority.claimPartyDaoFees();
 
         assertEq(address(authority).balance, expectedBondingCurvePrice);
-        assertEq(PARTY_DAO.balance, expectedPartyDaoFee);
+        assertEq(globalDaoWalletAddress.balance, expectedPartyDaoFee);
     }
 
     function test_claimPartyDaoFees_revertIfNotPartyDAO() public {
@@ -425,8 +403,16 @@ contract MockBondingCurveAuthority is BondingCurveAuthority {
     constructor(
         address payable partyDao,
         uint16 initialPartyDaoFeeBps,
-        uint16 initialTreasuryFeeBps
-    ) BondingCurveAuthority(partyDao, initialPartyDaoFeeBps, initialTreasuryFeeBps) {}
+        uint16 initialTreasuryFeeBps,
+        uint16 initialCreatorFeeBps
+    )
+        BondingCurveAuthority(
+            partyDao,
+            initialPartyDaoFeeBps,
+            initialTreasuryFeeBps,
+            initialCreatorFeeBps
+        )
+    {}
 
     function getBondingCurvePrice(
         uint256 lowerSupply,
