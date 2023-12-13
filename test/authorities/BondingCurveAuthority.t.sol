@@ -9,6 +9,7 @@ import { SetupPartyHelper } from "../utils/SetupPartyHelper.sol";
 contract BondingCurveAuthorityTest is SetupPartyHelper {
     event TreasuryFeeUpdated(uint16 previousTreasuryFee, uint16 newTreasuryFee);
     event PartyDaoFeeUpdated(uint16 previousPartyDaoFee, uint16 newPartyDaoFee);
+    event CreatorFeeUpdated(uint16 previousCreatorFee, uint16 newCreatorFee);
     event PartyCardsBought(
         Party indexed party,
         address indexed buyer,
@@ -114,6 +115,17 @@ contract BondingCurveAuthorityTest is SetupPartyHelper {
         );
     }
 
+    function test_initialize_revertIfGreaterThanMaxCreatorFee() public {
+        uint16 maxCreatorFeeBps = 250;
+        vm.expectRevert(BondingCurveAuthority.InvalidCreatorFee.selector);
+        new BondingCurveAuthority(
+            globalDaoWalletAddress,
+            PARTY_DAO_FEE_BPS,
+            TREASURY_FEE_BPS,
+            maxCreatorFeeBps + 1
+        );
+    }
+
     function test_createParty_works() public {
         (Party party, address payable creator, ) = _createParty(true);
 
@@ -137,6 +149,32 @@ contract BondingCurveAuthorityTest is SetupPartyHelper {
             address(authority).balance,
             // Creator fee is held in BondingCurveAuthority until claimed.
             expectedBondingCurvePrice + expectedPartyDaoFee
+        );
+    }
+
+    function test_createParty_revertsIfTotalVotingPowerNonZero() public {
+        address creator = _randomAddress();
+
+        uint256 initialPrice = 0.001 ether;
+        initialPrice =
+            (initialPrice *
+                (1e4 +
+                    authority.treasuryFeeBps() +
+                    authority.partyDaoFeeBps() +
+                    authority.creatorFeeBps())) /
+            1e4;
+
+        vm.deal(creator, initialPrice);
+        vm.prank(creator);
+        vm.expectRevert(BondingCurveAuthority.InvalidTotalVotingPower.selector);
+        opts.governance.totalVotingPower = 100;
+        party = authority.createParty{ value: initialPrice }(
+            BondingCurveAuthority.BondingCurvePartyOptions({
+                partyFactory: partyFactory,
+                partyImpl: partyImpl,
+                opts: opts,
+                creatorFeeOn: true
+            })
         );
     }
 
@@ -301,6 +339,11 @@ contract BondingCurveAuthorityTest is SetupPartyHelper {
         assertEq(creator.balance - beforeCreatorBalance, expectedCreatorFee);
     }
 
+    function test_sellPartyCards_partyNotRecognized() public {
+        vm.expectRevert(BondingCurveAuthority.PartyNotSupported.selector);
+        authority.sellPartyCards(Party(payable(_randomAddress())), new uint256[](1));
+    }
+
     function test_sellPartyCards_isApprovedForAll() public {
         (Party party, , , address buyer, ) = test_buyPartyCards_works();
 
@@ -359,6 +402,24 @@ contract BondingCurveAuthorityTest is SetupPartyHelper {
         vm.prank(_randomAddress());
         vm.expectRevert(BondingCurveAuthority.Unauthorized.selector);
         authority.setTreasuryFee(0);
+    }
+
+    function test_setCreatorFee_works(uint16 newCreatorFee) public {
+        vm.assume(newCreatorFee <= 250);
+
+        vm.expectEmit(true, true, true, true);
+        emit CreatorFeeUpdated(authority.creatorFeeBps(), newCreatorFee);
+
+        vm.prank(globalDaoWalletAddress);
+        authority.setCreatorFee(newCreatorFee);
+
+        assertEq(authority.creatorFeeBps(), newCreatorFee);
+    }
+
+    function test_setCreatorFee_revertItNotPartyDAO() public {
+        vm.prank(_randomAddress());
+        vm.expectRevert(BondingCurveAuthority.Unauthorized.selector);
+        authority.setCreatorFee(0);
     }
 
     function test_setPartyDaoFee_works(uint16 newPartyDaoFee) public {
