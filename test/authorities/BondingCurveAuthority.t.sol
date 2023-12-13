@@ -55,7 +55,7 @@ contract BondingCurveAuthorityTest is SetupPartyHelper {
         opts.governance.voteDuration = 1 hours;
         opts.governance.executionDelay = 1 hours;
         opts.governance.passThresholdBps = 1000;
-        opts.governance.totalVotingPower = 301;
+        opts.governance.totalVotingPower = 0;
 
         // Set a default treasury fee
         vm.prank(globalDaoWalletAddress);
@@ -396,6 +396,42 @@ contract BondingCurveAuthorityTest is SetupPartyHelper {
         vm.prank(_randomAddress());
         vm.expectRevert(BondingCurveAuthority.Unauthorized.selector);
         authority.claimPartyDaoFees();
+    }
+
+    // Check bonding curve pricing calculations
+    function test_checkBondingCurvePrice_firstMints() public {
+        uint256 previousSupply = 0;
+
+        for (uint i = 1; i < 10; i++) {
+            // Check if buying i works as expected
+            uint256 expectedBondingCurvePrice = 0;
+
+            for (uint j = 1; j <= i; j++) {
+                expectedBondingCurvePrice +=
+                    (1 ether * (previousSupply + j - 1) * (previousSupply + j - 1)) /
+                    50_000 +
+                    0.001 ether;
+            }
+
+            assertEq(authority.getBondingCurvePrice(previousSupply, i), expectedBondingCurvePrice);
+        }
+    }
+
+    function test_checkBondingCurvePrice_existingSupply() public {
+        for (uint i = 0; i < 10; i++) {
+            // Check if buying 3 works as expected with random existing supply 10 times
+            uint256 expectedBondingCurvePrice = 0;
+            uint256 previousSupply = _randomRange(1, 100);
+
+            for (uint j = 1; j <= 3; j++) {
+                expectedBondingCurvePrice +=
+                    (1 ether * (previousSupply + j - 1) * (previousSupply + j - 1)) /
+                    50_000 +
+                    0.001 ether;
+            }
+
+            assertEq(authority.getBondingCurvePrice(previousSupply, 3), expectedBondingCurvePrice);
+        }
     }
 }
 
