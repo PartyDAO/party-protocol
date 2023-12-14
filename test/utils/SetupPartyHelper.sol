@@ -34,6 +34,7 @@ abstract contract SetupPartyHelper is TestUtils, ERC721Receiver {
     Party internal partyImpl;
     Globals internal globals;
     PartyFactory internal partyFactory;
+    MetadataRegistry internal metadataRegistry;
     TokenDistributor internal tokenDistributor;
     uint256 internal johnPk = 0xa11ce;
     uint256 internal dannyPk = 0xb0b;
@@ -48,6 +49,7 @@ abstract contract SetupPartyHelper is TestUtils, ERC721Receiver {
     IERC721[] internal preciousTokens = new IERC721[](0);
     uint256[] internal preciousTokenIds = new uint256[](0);
     uint40 internal constant _EXECUTION_DELAY = 99;
+    address payable globalDaoWalletAddress = payable(address(420));
 
     constructor(bool isForked) {
         _isForked = isForked;
@@ -65,7 +67,6 @@ abstract contract SetupPartyHelper is TestUtils, ERC721Receiver {
         globalsAdmin = new GlobalsAdmin();
         globals = globalsAdmin.globals();
         partyImpl = new Party(globals);
-        address globalDaoWalletAddress = address(420);
         globalsAdmin.setGlobalDaoWallet(globalDaoWalletAddress);
 
         ProposalExecutionEngine pe = new ProposalExecutionEngine(
@@ -89,7 +90,7 @@ abstract contract SetupPartyHelper is TestUtils, ERC721Receiver {
         address[] memory registrars = new address[](2);
         registrars[0] = address(this);
         registrars[1] = address(partyFactory);
-        MetadataRegistry metadataRegistry = new MetadataRegistry(globals, registrars);
+        metadataRegistry = new MetadataRegistry(globals, registrars);
         globalsAdmin.setMetadataRegistry(address(metadataRegistry));
 
         OffChainSignatureValidator offChainGlobalValidator = new OffChainSignatureValidator();
