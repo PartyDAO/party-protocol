@@ -65,6 +65,7 @@ abstract contract ETHCrowdfundBase is Implementation {
     error InvalidDelegateError();
     error NotEnoughContributionsError(uint96 totalContribution, uint96 minTotalContributions);
     error MinGreaterThanMaxError(uint96 min, uint96 max);
+    error MinMaxDifferenceTooSmall(uint96 min, uint96 max);
     error MaxTotalContributionsCannotBeZeroError(uint96 maxTotalContributions);
     error BelowMinimumContributionsError(uint96 contributions, uint96 minContributions);
     error AboveMaximumContributionsError(uint96 contributions, uint96 maxContributions);
@@ -143,16 +144,16 @@ abstract contract ETHCrowdfundBase is Implementation {
 
     // Initialize storage for proxy contract
     function _initialize(ETHCrowdfundOptions memory opts) internal {
-        // Set the minimum and maximum contribution amounts.
         if (opts.minContribution > opts.maxContribution) {
             revert MinGreaterThanMaxError(opts.minContribution, opts.maxContribution);
         }
+        if (opts.maxTotalContributions - opts.minTotalContributions + 1 < opts.minContribution) {
+            revert MinMaxDifferenceTooSmall(opts.minTotalContributions, opts.maxTotalContributions);
+        }
+        // Set the minimum and maximum contribution amounts.
         minContribution = opts.minContribution;
         maxContribution = opts.maxContribution;
         // Set the min total contributions.
-        if (opts.minTotalContributions > opts.maxTotalContributions) {
-            revert MinGreaterThanMaxError(opts.minTotalContributions, opts.maxTotalContributions);
-        }
         minTotalContributions = opts.minTotalContributions;
         // Set the max total contributions.
         if (opts.maxTotalContributions == 0) {
@@ -177,6 +178,12 @@ abstract contract ETHCrowdfundBase is Implementation {
         }
         // Set whether to disable contributing for existing card.
         disableContributingForExistingCard = opts.disableContributingForExistingCard;
+
+        // Check that the voting power that one receives from a contribution of
+        // size minContribution is not equal to zero
+        if (convertContributionToVotingPower(opts.minContribution) == 0) {
+            revert ZeroVotingPowerError();
+        }
     }
 
     /// @notice Get the current lifecycle of the crowdfund.
