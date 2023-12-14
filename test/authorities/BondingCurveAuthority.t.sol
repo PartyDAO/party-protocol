@@ -206,6 +206,18 @@ contract BondingCurveAuthorityTest is SetupPartyHelper {
                 creatorFeeOn: true
             })
         );
+
+        vm.expectRevert(BondingCurveAuthority.InvalidTotalVotingPower.selector);
+        party = authority.createPartyWithMetadata{ value: initialPrice }(
+            BondingCurveAuthority.BondingCurvePartyOptions({
+                partyFactory: partyFactory,
+                partyImpl: partyImpl,
+                opts: opts,
+                creatorFeeOn: true
+            }),
+            MetadataProvider(address(0)),
+            ""
+        );
     }
 
     function test_buyPartyCards_works()
@@ -276,6 +288,21 @@ contract BondingCurveAuthorityTest is SetupPartyHelper {
         );
         assertEq(address(party).balance - beforePartyBalance, expectedTreasuryFee);
         assertEq(creator.balance - beforeCreatorBalance, expectedCreatorFee);
+    }
+
+    function test_buyPartyCards_noCreatorFee()
+        public
+        returns (Party party, address payable creator, address buyer)
+    {
+        (party, creator, ) = _createParty(false);
+        uint256 expectedPriceToBuy = authority.getPriceToBuy(party, 3);
+
+        buyer = _randomAddress();
+        vm.deal(buyer, expectedPriceToBuy);
+        vm.prank(buyer);
+        authority.buyPartyCards{ value: expectedPriceToBuy }(party, 3, address(0));
+
+        assertEq(creator.balance, 0);
     }
 
     function test_buyPartyCards_revertIfGreaterThanPriceToBuy() public {
@@ -414,6 +441,34 @@ contract BondingCurveAuthorityTest is SetupPartyHelper {
         vm.prank(_randomAddress());
         vm.expectRevert(BondingCurveAuthority.Unauthorized.selector);
         authority.sellPartyCards(party, tokenIds);
+    }
+
+    function test_sellPartyCards_noCreatorFee() public {
+        (Party party, address payable creator, address buyer) = test_buyPartyCards_noCreatorFee();
+
+        uint256[] memory tokenIds = new uint256[](3);
+        for (uint256 i = 0; i < 3; i++) tokenIds[i] = i + 2;
+
+        uint256 saleProceeds = authority.getSaleProceeds(party, 3);
+        uint256 expectedBondingCurvePrice = (saleProceeds * 1e4) /
+            (1e4 - TREASURY_FEE_BPS - PARTY_DAO_FEE_BPS);
+        uint256 expectedPartyDaoFee = (expectedBondingCurvePrice * PARTY_DAO_FEE_BPS) / 1e4;
+        uint256 expectedTreasuryFee = (expectedBondingCurvePrice * TREASURY_FEE_BPS) / 1e4;
+
+        vm.prank(buyer);
+        vm.expectEmit(true, true, true, true);
+        emit PartyCardsSold(
+            party,
+            buyer,
+            tokenIds,
+            saleProceeds,
+            expectedPartyDaoFee,
+            expectedTreasuryFee,
+            0
+        );
+        authority.sellPartyCards(party, tokenIds);
+
+        assertEq(address(creator).balance, 0);
     }
 
     function test_setTreasuryFee_works(uint16 newTreasuryFee) public {
