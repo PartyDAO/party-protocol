@@ -34,6 +34,7 @@ abstract contract SetupPartyHelper is TestUtils, ERC721Receiver {
     Party internal partyImpl;
     Globals internal globals;
     PartyFactory internal partyFactory;
+    MetadataRegistry internal metadataRegistry;
     TokenDistributor internal tokenDistributor;
     uint256 internal johnPk = 0xa11ce;
     uint256 internal dannyPk = 0xb0b;
@@ -89,7 +90,7 @@ abstract contract SetupPartyHelper is TestUtils, ERC721Receiver {
         address[] memory registrars = new address[](2);
         registrars[0] = address(this);
         registrars[1] = address(partyFactory);
-        MetadataRegistry metadataRegistry = new MetadataRegistry(globals, registrars);
+        metadataRegistry = new MetadataRegistry(globals, registrars);
         globalsAdmin.setMetadataRegistry(address(metadataRegistry));
 
         OffChainSignatureValidator offChainGlobalValidator = new OffChainSignatureValidator();

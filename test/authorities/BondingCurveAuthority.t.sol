@@ -5,11 +5,13 @@ import { Party } from "../../contracts/party/Party.sol";
 import { PartyFactory } from "../../contracts/party/PartyFactory.sol";
 import { BondingCurveAuthority } from "../../contracts/authorities/BondingCurveAuthority.sol";
 import { SetupPartyHelper } from "../utils/SetupPartyHelper.sol";
+import { MetadataProvider } from "contracts/renderers/MetadataProvider.sol";
 
 contract BondingCurveAuthorityTest is SetupPartyHelper {
     event TreasuryFeeUpdated(uint16 previousTreasuryFee, uint16 newTreasuryFee);
     event PartyDaoFeeUpdated(uint16 previousPartyDaoFee, uint16 newPartyDaoFee);
     event CreatorFeeUpdated(uint16 previousCreatorFee, uint16 newCreatorFee);
+    event PartyDaoFeesClaimed(uint96 amount);
     event PartyCardsBought(
         Party indexed party,
         address indexed buyer,
@@ -150,6 +152,34 @@ contract BondingCurveAuthorityTest is SetupPartyHelper {
             // Creator fee is held in BondingCurveAuthority until claimed.
             expectedBondingCurvePrice + expectedPartyDaoFee
         );
+    }
+
+    function test_createPartyWithMetadata_works() public {
+        MetadataProvider metadataProvider = new MetadataProvider(globals);
+        bytes memory metadata = abi.encodePacked("custom_metadata");
+
+        address payable creator = _randomAddress();
+
+        uint256 initialPrice = 0.001 ether;
+        initialPrice =
+            (initialPrice * (1e4 + authority.treasuryFeeBps() + authority.partyDaoFeeBps())) /
+            1e4;
+
+        vm.deal(creator, initialPrice);
+        vm.prank(creator);
+        Party party = authority.createPartyWithMetadata{ value: initialPrice }(
+            BondingCurveAuthority.BondingCurvePartyOptions({
+                partyFactory: partyFactory,
+                partyImpl: partyImpl,
+                opts: opts,
+                creatorFeeOn: false
+            }),
+            metadataProvider,
+            metadata
+        );
+
+        assertEq(address(metadataRegistry.getProvider(address(party))), address(metadataProvider));
+        assertEq(metadataProvider.getMetadata(address(party), 1), metadata);
     }
 
     function test_createParty_revertsIfTotalVotingPowerNonZero() public {
@@ -445,6 +475,9 @@ contract BondingCurveAuthorityTest is SetupPartyHelper {
 
         uint256 expectedBondingCurvePrice = 0.001 ether;
         uint256 expectedPartyDaoFee = (expectedBondingCurvePrice * PARTY_DAO_FEE_BPS) / 1e4;
+
+        vm.expectEmit(true, true, true, true);
+        emit PartyDaoFeesClaimed(uint96(expectedPartyDaoFee));
 
         vm.prank(globalDaoWalletAddress);
         authority.claimPartyDaoFees();
