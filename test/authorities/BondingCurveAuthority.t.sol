@@ -483,10 +483,16 @@ contract BondingCurveAuthorityTest is SetupPartyHelper {
         assertEq(authority.treasuryFeeBps(), newTreasuryFee);
     }
 
-    function test_setTreasuryFee_revertItNotPartyDAO() public {
+    function test_setTreasuryFee_revertIfNotPartyDAO() public {
         vm.prank(_randomAddress());
         vm.expectRevert(BondingCurveAuthority.Unauthorized.selector);
         authority.setTreasuryFee(0);
+    }
+
+    function test_setTreasuryFee_revertIfOutOfBounds() public {
+        vm.prank(globalDaoWalletAddress);
+        vm.expectRevert(BondingCurveAuthority.InvalidTreasuryFee.selector);
+        authority.setTreasuryFee(TREASURY_FEE_BPS + 1);
     }
 
     function test_setCreatorFee_works(uint16 newCreatorFee) public {
@@ -501,10 +507,16 @@ contract BondingCurveAuthorityTest is SetupPartyHelper {
         assertEq(authority.creatorFeeBps(), newCreatorFee);
     }
 
-    function test_setCreatorFee_revertItNotPartyDAO() public {
+    function test_setCreatorFee_revertIfNotPartyDAO() public {
         vm.prank(_randomAddress());
         vm.expectRevert(BondingCurveAuthority.Unauthorized.selector);
         authority.setCreatorFee(0);
+    }
+
+    function test_setCreatorFee_revertIfOutOfBounds() public {
+        vm.prank(globalDaoWalletAddress);
+        vm.expectRevert(BondingCurveAuthority.InvalidCreatorFee.selector);
+        authority.setCreatorFee(CREATOR_FEE_BPS + 1);
     }
 
     function test_setPartyDaoFee_works(uint16 newPartyDaoFee) public {
@@ -519,7 +531,13 @@ contract BondingCurveAuthorityTest is SetupPartyHelper {
         assertEq(authority.partyDaoFeeBps(), newPartyDaoFee);
     }
 
-    function test_setPartyDaoFee_revertItNotPartyDAO() public {
+    function test_setPartyDaoFee_revertIfOutOfBounds() public {
+        vm.prank(globalDaoWalletAddress);
+        vm.expectRevert(BondingCurveAuthority.InvalidPartyDaoFee.selector);
+        authority.setPartyDaoFee(PARTY_DAO_FEE_BPS + 1);
+    }
+
+    function test_setPartyDaoFee_revertIfNotPartyDAO() public {
         vm.prank(_randomAddress());
         vm.expectRevert(BondingCurveAuthority.Unauthorized.selector);
         authority.setPartyDaoFee(0);

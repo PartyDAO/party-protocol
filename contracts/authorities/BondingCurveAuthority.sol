@@ -203,7 +203,9 @@ contract BondingCurveAuthority {
         partyInfos[party].supply = partyInfo.supply + amount;
 
         payable(address(party)).transfer(treasuryFee);
-        if (creatorFee != 0) partyInfo.creator.transfer(creatorFee);
+        if (creatorFee != 0) {
+            partyInfo.creator.transfer(creatorFee);
+        }
         partyDaoFeeClaimable += partyDaoFee.safeCastUint256ToUint96();
 
         party.increaseTotalVotingPower(PARTY_CARD_VOTING_POWER * amount);
@@ -258,7 +260,9 @@ contract BondingCurveAuthority {
         party.decreaseTotalVotingPower(PARTY_CARD_VOTING_POWER * amount);
 
         uint256 sellerProceeds = bondingCurvePrice - partyDaoFee - treasuryFee - creatorFee;
-        if (creatorFee != 0) partyInfo.creator.transfer(partyDaoFee);
+        if (creatorFee != 0) {
+            partyInfo.creator.transfer(partyDaoFee);
+        }
         payable(address(party)).transfer(treasuryFee);
         payable(msg.sender).transfer(sellerProceeds);
         partyDaoFeeClaimable += partyDaoFee.safeCastUint256ToUint96();
