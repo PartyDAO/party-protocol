@@ -95,9 +95,7 @@ abstract contract CrowdfundNFT is IERC721, IERC4906, EIP165, ReadOnlyDelegateCal
         return
             super.supportsInterface(interfaceId) ||
             // ERC721 interface ID
-            interfaceId == 0x80ac58cd ||
-            // ERC4906 interface ID
-            interfaceId == 0x49064906;
+            interfaceId == 0x80ac58cd;
     }
 
     /// @notice Returns a URI to render the NFT.
