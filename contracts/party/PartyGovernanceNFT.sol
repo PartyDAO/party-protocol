@@ -273,6 +273,7 @@ abstract contract PartyGovernanceNFT is PartyGovernance, ERC721, IERC2981 {
     function decreaseTotalVotingPower(uint96 votingPower) external {
         _assertAuthority();
         _getSharedProposalStorage().governanceValues.totalVotingPower -= votingPower;
+        lastTotalVotingPowerChangeTimestamp == uint40(block.timestamp);
 
         // Notify third-party platforms that the party NFT metadata has updated
         // for all tokens.
