@@ -20,6 +20,10 @@ import { Implementation } from "../utils/Implementation.sol";
 import { Party } from "./Party.sol";
 
 /// @notice Base contract for a Party encapsulating all governance functionality.
+/// @dev This contract uses IERC4906 however does not comply with the standard
+///      since it does emit metadata events when distributions are claimed or
+///      when a MetadaProvider changes its URI. This decision was made
+///      intentionally which is why ERC4906 is not included in `supportsInterface`.
 abstract contract PartyGovernance is
     ProposalStorage,
     Implementation,
@@ -346,9 +350,7 @@ abstract contract PartyGovernance is
     function supportsInterface(bytes4 interfaceId) public pure virtual returns (bool) {
         return
             interfaceId == type(IERC721Receiver).interfaceId ||
-            interfaceId == type(ERC1155TokenReceiverBase).interfaceId ||
-            // ERC4906 interface ID
-            interfaceId == 0x49064906;
+            interfaceId == type(ERC1155TokenReceiverBase).interfaceId;
     }
 
     /// @notice Get the current `ProposalExecutionEngine` instance.
