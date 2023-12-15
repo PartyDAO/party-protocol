@@ -288,13 +288,13 @@ abstract contract PartyGovernance is
         if (govOpts.feeBps > 1e4) {
             revert InvalidBpsError(govOpts.feeBps);
         }
-        if (govOpts.passThresholdBps > 1e4) {
-            revert InvalidBpsError(govOpts.passThresholdBps);
-        }
         if (govOpts.voteDuration < 1 hours) {
             revert InvalidGovernanceParameter(govOpts.voteDuration);
         }
-        if (govOpts.executionDelay > 30 days) {
+        if (govOpts.passThresholdBps == 0 || govOpts.passThresholdBps > 1e4) {
+            revert InvalidBpsError(govOpts.passThresholdBps);
+        }
+        if (govOpts.executionDelay == 0 || govOpts.executionDelay > 30 days) {
             revert InvalidGovernanceParameter(govOpts.executionDelay);
         }
         // Initialize the proposal execution engine.
