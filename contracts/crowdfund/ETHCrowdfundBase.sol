@@ -309,7 +309,7 @@ abstract contract ETHCrowdfundBase is Implementation {
             // Downcast is safe since `contribution` cannot exceed
             // type(uint96).max. When the contribution is made, it cannot exceed
             // type(uint96).max, neither can `totalContributions` exceed it.
-            contribution = uint96(uint256(contribution) * 1e4) / (1e4 - fundingSplitBps_);
+            contribution = uint96((uint256(contribution) * 1e4) / (1e4 - fundingSplitBps_));
         }
         return contribution;
     }
@@ -390,7 +390,7 @@ abstract contract ETHCrowdfundBase is Implementation {
         // Transfer funding split to recipient.
         // Assuming fundingSplitBps_ <= 1e4, this cannot overflow uint96
         address payable fundingSplitRecipient_ = fundingSplitRecipient;
-        splitAmount = (totalContributions * fundingSplitBps_) / 1e4;
+        splitAmount = uint96((uint256(totalContributions) * fundingSplitBps_) / 1e4);
         payable(fundingSplitRecipient_).transferEth(splitAmount);
 
         emit FundingSplitSent(fundingSplitRecipient_, splitAmount);
