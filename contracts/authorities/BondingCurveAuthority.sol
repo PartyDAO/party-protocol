@@ -2,7 +2,7 @@
 pragma solidity 0.8.20;
 
 import { Party } from "../party/Party.sol";
-import { PartyGovernanceNFT } from "../party/PartyGovernanceNFT.sol";
+import { PartyGovernanceNFT, PartyGovernance } from "../party/Party.sol";
 import { PartyFactory } from "../party/PartyFactory.sol";
 import { IERC721 } from "../tokens/IERC721.sol";
 import { MetadataProvider } from "../renderers/MetadataProvider.sol";
@@ -18,6 +18,7 @@ contract BondingCurveAuthority {
     error InvalidPartyDaoFee();
     error PartyNotSupported();
     error InvalidTotalVotingPower();
+    error ExecutionDelayTooShort();
 
     event TreasuryFeeUpdated(uint16 previousTreasuryFee, uint16 newTreasuryFee);
     event PartyDaoFeeUpdated(uint16 previousPartyDaoFee, uint16 newPartyDaoFee);
@@ -60,6 +61,7 @@ contract BondingCurveAuthority {
     uint16 private constant MAX_CREATOR_FEE = 250;
     uint16 private constant MAX_TREASURY_FEE = 1000;
     uint16 private constant MAX_PARTY_DAO_FEE = 250;
+    uint40 private constant MIN_EXECUTION_DELAY = 3 days;
 
     struct BondingCurvePartyOptions {
         PartyFactory partyFactory;
@@ -114,9 +116,7 @@ contract BondingCurveAuthority {
         address[] memory authorities = new address[](1);
         authorities[0] = address(this);
 
-        if (partyOpts.opts.governance.totalVotingPower != 0) {
-            revert InvalidTotalVotingPower();
-        }
+        _validateGovernanceOpts(partyOpts.opts.governance);
 
         party = partyOpts.partyFactory.createParty(
             partyOpts.partyImpl,
@@ -151,9 +151,7 @@ contract BondingCurveAuthority {
         address[] memory authorities = new address[](1);
         authorities[0] = address(this);
 
-        if (partyOpts.opts.governance.totalVotingPower != 0) {
-            revert InvalidTotalVotingPower();
-        }
+        _validateGovernanceOpts(partyOpts.opts.governance);
 
         party = partyOpts.partyFactory.createPartyWithMetadata(
             partyOpts.partyImpl,
@@ -173,6 +171,17 @@ contract BondingCurveAuthority {
         });
 
         buyPartyCards(party, 1, address(0));
+    }
+
+    function _validateGovernanceOpts(
+        PartyGovernance.GovernanceOpts memory governanceOpts
+    ) internal pure {
+        if (governanceOpts.totalVotingPower != 0) {
+            revert InvalidTotalVotingPower();
+        }
+        if (governanceOpts.executionDelay < MIN_EXECUTION_DELAY) {
+            revert ExecutionDelayTooShort();
+        }
     }
 
     /**

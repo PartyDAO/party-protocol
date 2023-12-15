@@ -56,7 +56,7 @@ contract BondingCurveAuthorityTest is SetupPartyHelper {
         opts.symbol = "PRT";
         opts.governance.hosts = hosts;
         opts.governance.voteDuration = 1 hours;
-        opts.governance.executionDelay = 1 hours;
+        opts.governance.executionDelay = 4 days;
         opts.governance.passThresholdBps = 1000;
         opts.governance.totalVotingPower = 0;
 
