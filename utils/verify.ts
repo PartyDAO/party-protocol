@@ -5,7 +5,7 @@ import * as ethers from "ethers";
 import axios from "axios";
 import { camelCase } from "change-case";
 
-export const getEtherscanApiEndpoint = (chain: string) => {
+export const getBlockExplorerApiEndpoint = (chain: string) => {
   if (chain === "mainnet") {
     return "https://api.etherscan.io/api";
   } else if (chain === "base") {
@@ -19,7 +19,7 @@ export const getEtherscanApiEndpoint = (chain: string) => {
   }
 };
 
-export function getEtherscanApiKey(chain: string) {
+export function getBlockExporerApiKey(chain: string) {
   if (chain.startsWith("base")) {
     return process.env.BASESCAN_API_KEY;
   }
@@ -120,7 +120,7 @@ const getHighestCompilerVersion = () => {
   return highestVersionString.replace(/\.Darwin\.appleclang/, "");
 };
 
-const uploadToEtherscan = async (
+const uploadToBlockExplorer = async (
   chain: string,
   jsonData: string,
   contractName: string,
@@ -132,7 +132,7 @@ const uploadToEtherscan = async (
   apiKey: string,
 ) => {
   const response = await axios.post(
-    getEtherscanApiEndpoint(chain),
+    getBlockExplorerApiEndpoint(chain),
     {
       apikey: apiKey,
       module: "contract",
@@ -237,7 +237,7 @@ export const verify = async (chain: string, skip: boolean) => {
     (transaction: any) => transaction["transactionType"] === "CREATE",
   );
 
-  const apiKey = getEtherscanApiKey(chain);
+  const apiKey = getBlockExporerApiKey(chain);
 
   const contractNames = getContractNames(chain, runLatestData["libraries"]);
 
@@ -277,7 +277,7 @@ export const verify = async (chain: string, skip: boolean) => {
       contract["arguments"],
       contractTypes[contractName],
     );
-    const response = await uploadToEtherscan(
+    const response = await uploadToBlockExplorer(
       chain,
       jsonData,
       contractName,
