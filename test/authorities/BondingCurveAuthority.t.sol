@@ -300,7 +300,17 @@ contract BondingCurveAuthorityTest is SetupPartyHelper {
         buyer = _randomAddress();
         vm.deal(buyer, expectedPriceToBuy);
         vm.prank(buyer);
-        authority.buyPartyCards{ value: expectedPriceToBuy }(party, 3, address(0));
+        uint256[] memory tokenIds = authority.buyPartyCards{ value: expectedPriceToBuy }(
+            party,
+            3,
+            address(0)
+        );
+
+        uint256[] memory expectedTokenIds = new uint256[](3);
+        expectedTokenIds[0] = 2;
+        expectedTokenIds[1] = 3;
+        expectedTokenIds[2] = 4;
+        assertEq(tokenIds, expectedTokenIds);
 
         assertEq(creator.balance, 0);
     }
