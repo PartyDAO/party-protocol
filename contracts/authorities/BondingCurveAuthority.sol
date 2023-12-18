@@ -59,7 +59,7 @@ contract BondingCurveAuthority {
     address payable private immutable PARTY_DAO;
     uint16 private constant BPS = 10_000;
     uint16 private constant MAX_CREATOR_FEE = 250; // 2.5%
-    uint16 private constant MAX_TREASURY_FEE = 1000;
+    uint16 private constant MAX_TREASURY_FEE = 1000; // 10%
     uint16 private constant MAX_PARTY_DAO_FEE = 250;
     uint40 private constant MIN_EXECUTION_DELAY = 3 days;
 
