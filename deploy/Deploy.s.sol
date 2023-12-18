@@ -32,6 +32,7 @@ import { ContributionRouter } from "../contracts/crowdfund/ContributionRouter.so
 import { AddPartyCardsAuthority } from "../contracts/authorities/AddPartyCardsAuthority.sol";
 import { SSTORE2MetadataProvider } from "../contracts/renderers/SSTORE2MetadataProvider.sol";
 import { BasicMetadataProvider } from "../contracts/renderers/BasicMetadataProvider.sol";
+import { BondingCurveAuthority } from "../contracts/authorities/BondingCurveAuthority.sol";
 import "./LibDeployConstants.sol";
 
 abstract contract Deploy {
@@ -79,6 +80,7 @@ abstract contract Deploy {
     AtomicManualParty public atomicManualParty;
     ContributionRouter public contributionRouter;
     AddPartyCardsAuthority public addPartyCardsAuthority;
+    BondingCurveAuthority public bondingCurveAuthority;
 
     function deploy(LibDeployConstants.DeployConstants memory deployConstants) public virtual {
         _switchDeployer(DeployerRole.Default);
@@ -333,6 +335,20 @@ abstract contract Deploy {
         addPartyCardsAuthority = new AddPartyCardsAuthority();
         _trackDeployerGasAfter();
         console.log("  Deployed - AddPartyCardsAuthority", address(addPartyCardsAuthority));
+
+        // Deploy_BONDING_CURVE_AUTHORITY
+        console.log("");
+        console.log("### BondingCurveAuthority");
+        console.log("  Deploying - BondingCurveAuthority");
+        _trackDeployerGasBefore();
+        bondingCurveAuthority = new BondingCurveAuthority(
+            payable(deployConstants.partyDaoMultisig),
+            250,
+            1000,
+            250
+        );
+        _trackDeployerGasAfter();
+        console.log("  Deployed - BondingCurveAuthority", address(bondingCurveAuthority));
 
         // DEPLOY_BATCH_BUY_OPERATOR
         console.log("");
@@ -666,7 +682,7 @@ contract DeployScript is Script, Deploy {
         Deploy.deploy(deployConstants);
         vm.stopBroadcast();
 
-        AddressMapping[] memory addressMapping = new AddressMapping[](27);
+        AddressMapping[] memory addressMapping = new AddressMapping[](28);
         addressMapping[0] = AddressMapping("Globals", address(globals));
         addressMapping[1] = AddressMapping("TokenDistributor", address(tokenDistributor));
         addressMapping[2] = AddressMapping(
@@ -720,6 +736,10 @@ contract DeployScript is Script, Deploy {
         addressMapping[26] = AddressMapping(
             "AddPartyCardsAuthority",
             address(addPartyCardsAuthority)
+        );
+        addressMapping[27] = AddressMapping(
+            "BondingCurveAuthority",
+            address(bondingCurveAuthority)
         );
 
         console.log("");
