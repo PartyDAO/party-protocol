@@ -359,7 +359,7 @@ async function updateHeadJson(chain: string, releaseName: string) {
 
 async function main() {
   const chain = process.argv[2];
-  const validChains = ["mainnet", "goerli", "base", "base-goerli", "zora"];
+  const validChains = ["mainnet", "goerli", "sepolia", "base", "base-goerli", "zora"];
 
   if (!chain) {
     console.error(`Missing chain argument. Valid chains are: ${validChains.join(", ")}`);

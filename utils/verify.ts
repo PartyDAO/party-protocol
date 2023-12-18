@@ -206,6 +206,8 @@ const getChainId = (chain: string) => {
     return 1;
   } else if (chain === "goerli") {
     return 5;
+  } else if (chain === "sepolia") {
+    return 11155111;
   } else if (chain === "base") {
     return 8453;
   } else if (chain === "base-goerli") {
