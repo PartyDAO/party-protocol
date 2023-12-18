@@ -19,7 +19,6 @@ const RELEVANT_ABIS = [
   "PartyNFTRenderer",
   "CrowdfundNFTRenderer",
   "InitialETHCrowdfund",
-  "ReraiseETHCrowdfund",
   "CollectionBatchBuyOperator",
   "PixeldroidConsoleFont",
   "Globals",

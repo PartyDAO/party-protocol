@@ -29,7 +29,7 @@ contract GasBenchmarks is SetupPartyHelper {
         opts.name = "PARTY";
         opts.symbol = "PR-T";
         opts.governance.hosts = hosts;
-        opts.governance.voteDuration = 99;
+        opts.governance.voteDuration = 1 hours;
         opts.governance.executionDelay = _EXECUTION_DELAY;
         opts.governance.passThresholdBps = 1000;
         opts.governance.totalVotingPower = 301;
@@ -51,7 +51,7 @@ contract GasBenchmarks is SetupPartyHelper {
         opts.name = "PARTY";
         opts.symbol = "PR-T";
         opts.governance.hosts = hosts;
-        opts.governance.voteDuration = 99;
+        opts.governance.voteDuration = 1 hours;
         opts.governance.executionDelay = _EXECUTION_DELAY;
         opts.governance.passThresholdBps = 1000;
         opts.governance.totalVotingPower = 301;
@@ -218,7 +218,7 @@ contract GasBenchmarks is SetupPartyHelper {
         crowdfundOpts.disableContributingForExistingCard = true;
         crowdfundOpts.maxTotalContributions = 10 ether;
         crowdfundOpts.minTotalContributions = 0.01 ether;
-        crowdfundOpts.exchangeRateBps = 10000;
+        crowdfundOpts.exchangeRate = 1e18;
         crowdfundOpts.duration = 100;
 
         InitialETHCrowdfund.ETHPartyOptions memory partyOpts;
@@ -227,7 +227,7 @@ contract GasBenchmarks is SetupPartyHelper {
         partyOpts.name = "PARTY";
         partyOpts.symbol = "PR-T";
         partyOpts.governanceOpts.hosts = hosts;
-        partyOpts.governanceOpts.voteDuration = 99;
+        partyOpts.governanceOpts.voteDuration = 1 hours;
         partyOpts.governanceOpts.executionDelay = _EXECUTION_DELAY;
         partyOpts.governanceOpts.passThresholdBps = 1000;
         partyOpts.governanceOpts.partyFactory = partyFactory;
@@ -245,7 +245,7 @@ contract GasBenchmarks is SetupPartyHelper {
 
         InitialETHCrowdfund.BatchContributeArgs memory batchContributeArgs;
         batchContributeArgs.tokenIds = new uint256[](2);
-        batchContributeArgs.delegate = address(this);
+        batchContributeArgs.initialDelegate = address(this);
         batchContributeArgs.values = new uint96[](2);
         batchContributeArgs.values[0] = 0.01 ether;
         batchContributeArgs.values[1] = 0.01 ether;

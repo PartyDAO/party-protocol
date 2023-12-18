@@ -47,7 +47,7 @@ contract AddPartyCardsAuthorityTest is SetupPartyHelper {
         );
         assertEq(party.votingPowerByTokenId(party.tokenCount()), newPartyMemberVotingPowers[0]);
         assertEq(
-            party.getVotingPowerAt(initialDelegates[0], uint40(block.timestamp)),
+            party.getVotingPowerAt(initialDelegates[0], uint40(block.timestamp), 0),
             newPartyMemberVotingPowers[0]
         );
         assertEq(party.delegationsByVoter(newPartyMembers[0]), initialDelegates[0]);
@@ -84,7 +84,7 @@ contract AddPartyCardsAuthorityTest is SetupPartyHelper {
 
             assertEq(party.votingPowerByTokenId(tokenId), newPartyMemberVotingPowers[i]);
             assertEq(
-                party.getVotingPowerAt(newPartyMembers[i], uint40(block.timestamp)),
+                party.getVotingPowerAt(newPartyMembers[i], uint40(block.timestamp), 0),
                 newPartyMemberVotingPowers[i]
             );
         }
@@ -129,7 +129,7 @@ contract AddPartyCardsAuthorityTest is SetupPartyHelper {
             assertEq(party.delegationsByVoter(newPartyMembers[i]), initialDelegates[0]);
         }
         assertEq(
-            party.getVotingPowerAt(initialDelegates[0], uint40(block.timestamp)),
+            party.getVotingPowerAt(initialDelegates[0], uint40(block.timestamp), 0),
             totalVotingPowerAdded
         );
         assertEq(
@@ -233,7 +233,7 @@ contract AddPartyCardsAuthorityTest is SetupPartyHelper {
 
             assertEq(party.votingPowerByTokenId(tokenId), newPartyMemberVotingPowers[i]);
             assertEq(
-                party.getVotingPowerAt(newPartyMembers[i], uint40(block.timestamp)),
+                party.getVotingPowerAt(newPartyMembers[i], uint40(block.timestamp), 0),
                 newPartyMemberVotingPowers[i]
             );
         }

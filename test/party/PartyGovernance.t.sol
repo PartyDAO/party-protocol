@@ -925,7 +925,7 @@ contract PartyGovernanceTest is Test, TestUtils {
 
         _assertProposalStatus(party, 1, PartyGovernance.ProposalStatus.Voting, 50);
 
-        vm.warp(block.timestamp + 98);
+        vm.warp(block.timestamp + 1 hours - 1);
         _assertProposalStatus(party, 1, PartyGovernance.ProposalStatus.Voting, 50);
 
         // ensure defeated

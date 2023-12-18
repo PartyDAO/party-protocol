@@ -38,7 +38,7 @@ contract TestablePartyGovernanceNFT is PartyGovernanceNFT {
     }
 
     function getCurrentVotingPower(address voter) external view returns (uint96 vp) {
-        return this.getVotingPowerAt(voter, uint40(block.timestamp));
+        return this.getVotingPowerAt(voter, uint40(block.timestamp), 0);
     }
 
     modifier onlyDelegateCall() override {
@@ -52,7 +52,10 @@ contract PartyGovernanceNFTUnitTest is TestUtils {
     ProposalStorage.ProposalEngineOpts defaultProposalEngineOpts;
 
     function _initGovernance() private {
+        defaultGovernanceOpts.voteDuration = 1 hours;
         defaultGovernanceOpts.totalVotingPower = 1e18;
+        defaultGovernanceOpts.passThresholdBps = 1;
+        defaultGovernanceOpts.executionDelay = 1 hours;
         nft.initialize(
             "TEST",
             "TST",
