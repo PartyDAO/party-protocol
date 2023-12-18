@@ -2,7 +2,7 @@
 pragma solidity 0.8.20;
 
 import { Party } from "../party/Party.sol";
-import { PartyGovernanceNFT, PartyGovernance } from "../party/Party.sol";
+import { PartyGovernance } from "../party/Party.sol";
 import { PartyFactory } from "../party/PartyFactory.sol";
 import { IERC721 } from "../tokens/IERC721.sol";
 import { MetadataProvider } from "../renderers/MetadataProvider.sol";
