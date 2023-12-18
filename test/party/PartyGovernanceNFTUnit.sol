@@ -54,6 +54,8 @@ contract PartyGovernanceNFTUnitTest is TestUtils {
     function _initGovernance() private {
         defaultGovernanceOpts.voteDuration = 1 hours;
         defaultGovernanceOpts.totalVotingPower = 1e18;
+        defaultGovernanceOpts.passThresholdBps = 1;
+        defaultGovernanceOpts.executionDelay = 1 hours;
         nft.initialize(
             "TEST",
             "TST",

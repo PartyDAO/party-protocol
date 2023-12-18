@@ -157,8 +157,9 @@ contract InitialETHCrowdfund is ETHCrowdfundBase {
     }
 
     /// @notice Contribute ETH to this crowdfund.
-    /// @param initialDelegate The address to which voting power will be
-    ///                        delegated to during the governance phase.
+    /// @param initialDelegate The address to which voting power will be delegated to
+    ///                        during the governance phase. This will be ignored
+    ///                        if recipient has already set a delegate.
     /// @param gateData Data to pass to the gatekeeper to prove eligibility.
     /// @return votingPower The voting power the contributor receives for their
     ///                     contribution.
@@ -207,10 +208,8 @@ contract InitialETHCrowdfund is ETHCrowdfundBase {
         BatchContributeArgs calldata args
     ) external payable onlyDelegateCall returns (uint96[] memory votingPowers) {
         uint256 numContributions = args.tokenIds.length;
-        uint256 numValues = args.values.length;
-        uint256 numGateDatas = args.gateDatas.length;
 
-        if (numContributions != numValues || numContributions != numGateDatas) {
+        if (numContributions != args.values.length || numContributions != args.gateDatas.length) {
             revert ArityMismatch();
         }
 
@@ -265,14 +264,16 @@ contract InitialETHCrowdfund is ETHCrowdfundBase {
         BatchContributeForArgs calldata args
     ) external payable onlyDelegateCall returns (uint96[] memory votingPowers) {
         uint256 numContributions = args.tokenIds.length;
-        uint256 numValues = args.values.length;
-        uint256 numGateDatas = args.gateDatas.length;
 
-        if (numContributions != numValues || numContributions != numGateDatas) {
+        if (
+            numContributions != args.values.length ||
+            numContributions != args.gateDatas.length ||
+            numContributions != args.recipients.length
+        ) {
             revert ArityMismatch();
         }
 
-        votingPowers = new uint96[](args.recipients.length);
+        votingPowers = new uint96[](numContributions);
         uint256 valuesSum;
 
         for (uint256 i; i < numContributions; ++i) {

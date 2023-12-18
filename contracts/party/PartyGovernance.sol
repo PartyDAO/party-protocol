@@ -20,6 +20,10 @@ import { Implementation } from "../utils/Implementation.sol";
 import { Party } from "./Party.sol";
 
 /// @notice Base contract for a Party encapsulating all governance functionality.
+/// @dev This contract uses IERC4906 however does not comply with the standard
+///      since it does emit metadata events when distributions are claimed or
+///      when a MetadaProvider changes its URI. This decision was made
+///      intentionally which is why ERC4906 is not included in `supportsInterface`.
 abstract contract PartyGovernance is
     ProposalStorage,
     Implementation,
@@ -187,7 +191,7 @@ abstract contract PartyGovernance is
     error InvalidGovernanceParameter(uint256 value);
     error DistributionsRequireVoteError();
     error PartyNotStartedError();
-    error CannotRageQuitAndAcceptError();
+    error CannotModifyTotalVotingPowerAndAcceptError();
     error TooManyHosts();
 
     uint256 private constant UINT40_HIGH_BIT = 1 << 39;
@@ -203,8 +207,8 @@ abstract contract PartyGovernance is
     uint16 public feeBps;
     /// @notice Distribution fee recipient.
     address payable public feeRecipient;
-    /// @notice The timestamp of the last time `rageQuit()` was called.
-    uint40 public lastRageQuitTimestamp;
+    /// @notice The timestamp of the last time total voting power changed in the party.
+    uint40 public lastTotalVotingPowerChangeTimestamp;
     /// @notice The hash of the list of precious NFTs guarded by the party.
     bytes32 public preciousListHash;
     /// @notice The last proposal ID that was used. 0 means no proposals have been made.
@@ -284,17 +288,20 @@ abstract contract PartyGovernance is
         if (govOpts.feeBps > 1e4) {
             revert InvalidBpsError(govOpts.feeBps);
         }
-        if (govOpts.passThresholdBps > 1e4) {
+        if (govOpts.voteDuration < 1 hours) {
+            revert InvalidGovernanceParameter(govOpts.voteDuration);
+        }
+        if (govOpts.passThresholdBps == 0 || govOpts.passThresholdBps > 1e4) {
             revert InvalidBpsError(govOpts.passThresholdBps);
+        }
+        if (govOpts.executionDelay == 0 || govOpts.executionDelay > 30 days) {
+            revert InvalidGovernanceParameter(govOpts.executionDelay);
         }
         // Initialize the proposal execution engine.
         _initProposalImpl(
             IProposalExecutionEngine(_GLOBALS.getAddress(LibGlobals.GLOBAL_PROPOSAL_ENGINE_IMPL)),
             abi.encode(proposalEngineOpts)
         );
-        if (govOpts.voteDuration < 1 hours) {
-            revert InvalidGovernanceParameter(govOpts.voteDuration);
-        }
         // Set the governance parameters.
         _getSharedProposalStorage().governanceValues = GovernanceValues({
             voteDuration: govOpts.voteDuration,
@@ -343,9 +350,7 @@ abstract contract PartyGovernance is
     function supportsInterface(bytes4 interfaceId) public pure virtual returns (bool) {
         return
             interfaceId == type(IERC721Receiver).interfaceId ||
-            interfaceId == type(ERC1155TokenReceiverBase).interfaceId ||
-            // ERC4906 interface ID
-            interfaceId == 0x49064906;
+            interfaceId == type(ERC1155TokenReceiverBase).interfaceId;
     }
 
     /// @notice Get the current `ProposalExecutionEngine` instance.
@@ -610,15 +615,15 @@ abstract contract PartyGovernance is
             }
         }
 
-        // Prevent voting in the same block as the last rage quit timestamp.
-        // This is to prevent an exploit where a member can rage quit to reduce
-        // the total voting power of the party, then propose and vote in the
-        // same block since `getVotingPowerAt()` uses `values.proposedTime - 1`.
-        // This would allow them to use the voting power snapshot just before
-        // their card was burned to vote, potentially passing a proposal that
-        // would have otherwise not passed.
-        if (lastRageQuitTimestamp == block.timestamp) {
-            revert CannotRageQuitAndAcceptError();
+        // Prevent voting in the same block as the last total voting power
+        // change. This is to prevent an exploit where a member can, for
+        // example, rage quit to reduce the total voting power of the party,
+        // then propose and vote in the same block since `getVotingPowerAt()`
+        // uses `values.proposedTime - 1`. This would allow them to use the
+        // voting power snapshot just before their card was burned to vote,
+        // potentially passing a proposal that would have otherwise not passed.
+        if (lastTotalVotingPowerChangeTimestamp == block.timestamp) {
+            revert CannotModifyTotalVotingPowerAndAcceptError();
         }
 
         // Cannot vote twice.

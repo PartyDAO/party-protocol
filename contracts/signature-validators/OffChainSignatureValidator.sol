@@ -62,10 +62,8 @@ contract OffChainSignatureValidator is IERC1271 {
             revert InvalidSignature();
         }
 
-        uint96 signerVotingPowerBps = party.getVotingPowerAt(
-            signer,
-            uint40(block.timestamp),
-            type(uint256).max
+        uint256 signerVotingPowerBps = uint256(
+            party.getVotingPowerAt(signer, uint40(block.timestamp), type(uint256).max)
         ) * 10000;
 
         if (signerVotingPowerBps == 0 && party.balanceOf(signer) == 0) {
@@ -77,11 +75,7 @@ contract OffChainSignatureValidator is IERC1271 {
         uint96 thresholdBps = signingThresholdBps[party];
 
         // Either threshold is 0 or signer votes above threshold
-        if (
-            thresholdBps == 0 ||
-            (signerVotingPowerBps >= totalVotingPower &&
-                signerVotingPowerBps / totalVotingPower >= thresholdBps)
-        ) {
+        if (thresholdBps == 0 || (signerVotingPowerBps / totalVotingPower >= thresholdBps)) {
             return IERC1271.isValidSignature.selector;
         }
 

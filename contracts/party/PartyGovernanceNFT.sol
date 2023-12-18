@@ -11,7 +11,7 @@ import "./PartyGovernance.sol";
 import "../renderers/RendererStorage.sol";
 
 /// @notice ERC721 functionality built on top of `PartyGovernance`.
-contract PartyGovernanceNFT is PartyGovernance, ERC721, IERC2981 {
+abstract contract PartyGovernanceNFT is PartyGovernance, ERC721, IERC2981 {
     using LibSafeCast for uint256;
     using LibSafeCast for uint96;
     using LibERC20Compat for IERC20;
@@ -260,6 +260,7 @@ contract PartyGovernanceNFT is PartyGovernance, ERC721, IERC2981 {
     function increaseTotalVotingPower(uint96 votingPower) external {
         _assertAuthority();
         _getSharedProposalStorage().governanceValues.totalVotingPower += votingPower;
+        lastTotalVotingPowerChangeTimestamp == uint40(block.timestamp);
 
         // Notify third-party platforms that the party NFT metadata has updated
         // for all tokens.
@@ -272,6 +273,7 @@ contract PartyGovernanceNFT is PartyGovernance, ERC721, IERC2981 {
     function decreaseTotalVotingPower(uint96 votingPower) external {
         _assertAuthority();
         _getSharedProposalStorage().governanceValues.totalVotingPower -= votingPower;
+        lastTotalVotingPowerChangeTimestamp == uint40(block.timestamp);
 
         // Notify third-party platforms that the party NFT metadata has updated
         // for all tokens.
@@ -326,8 +328,7 @@ contract PartyGovernanceNFT is PartyGovernance, ERC721, IERC2981 {
         emit BatchMetadataUpdate(0, type(uint256).max);
     }
 
-    /// @notice Burn governance NFT and remove its voting power. Can only be
-    ///         called by an authority before the party has started.
+    /// @notice Burn governance NFT and remove its voting power.
     /// @param tokenId The ID of the governance NFTs to burn.
     function burn(uint256 tokenId) external {
         uint256[] memory tokenIds = new uint256[](1);
@@ -396,8 +397,7 @@ contract PartyGovernanceNFT is PartyGovernance, ERC721, IERC2981 {
         // Used as a reentrancy guard. Will be updated back after ragequit.
         rageQuitTimestamp = DISABLE_RAGEQUIT_PERMANENTLY;
 
-        // Update last rage quit timestamp.
-        lastRageQuitTimestamp = uint40(block.timestamp);
+        lastTotalVotingPowerChangeTimestamp = uint40(block.timestamp);
 
         // Sum up total amount of each token to withdraw.
         uint256[] memory withdrawAmounts = new uint256[](withdrawTokens.length);
@@ -451,14 +451,13 @@ contract PartyGovernanceNFT is PartyGovernance, ERC721, IERC2981 {
                     }
                 }
 
+                // Check amount is at least minimum.
+                uint256 minAmount = minWithdrawAmounts[i];
+                if (amount < minAmount) {
+                    revert BelowMinWithdrawAmountError(amount, minAmount);
+                }
+
                 if (amount > 0) {
-                    uint256 minAmount = minWithdrawAmounts[i];
-
-                    // Check amount is at least minimum.
-                    if (amount < minAmount) {
-                        revert BelowMinWithdrawAmountError(amount, minAmount);
-                    }
-
                     // Transfer token from party to recipient.
                     if (address(token) == ETH_ADDRESS) {
                         payable(receiver).transferEth(amount);
