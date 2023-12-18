@@ -1,8 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0
 pragma solidity 0.8.20;
 
-import { Party } from "../party/Party.sol";
-import { PartyGovernance } from "../party/Party.sol";
+import { Party, PartyGovernance } from "../party/Party.sol";
 import { PartyFactory } from "../party/PartyFactory.sol";
 import { IERC721 } from "../tokens/IERC721.sol";
 import { MetadataProvider } from "../renderers/MetadataProvider.sol";
@@ -63,17 +62,25 @@ contract BondingCurveAuthority {
     uint16 private constant MAX_PARTY_DAO_FEE = 250; // 2.5%
     uint40 private constant MIN_EXECUTION_DELAY = 3 days;
 
+    /// @notice Struct containing options for creating a party
     struct BondingCurvePartyOptions {
+        // The party factory address to use
         PartyFactory partyFactory;
+        // The party implementation address to use
         Party partyImpl;
+        // Options for the party. See `Party.sol` for more info
         Party.PartyOptions opts;
         // boolean specifying if creator fees are collected
         bool creatorFeeOn;
     }
 
+    /// @notice Struct containing info stored for a party
     struct PartyInfo {
+        // The original creator of the party
         address payable creator;
+        // The supply of party cards tracked by this contract
         uint80 supply;
+        // boolean specifying if creator fees are collected
         bool creatorFeeOn;
     }
 
@@ -189,8 +196,13 @@ contract BondingCurveAuthority {
      * @param party The party to buy cards for
      * @param amount The amount of cards to buy
      * @param initialDelegate The initial delegate for governance
+     * @return tokenIds The token ids of the party cards that were bought
      */
-    function buyPartyCards(Party party, uint80 amount, address initialDelegate) public payable {
+    function buyPartyCards(
+        Party party,
+        uint80 amount,
+        address initialDelegate
+    ) public payable returns (uint256[] memory tokenIds) {
         PartyInfo memory partyInfo = partyInfos[party];
 
         if (partyInfo.creator == address(0)) {
@@ -218,7 +230,7 @@ contract BondingCurveAuthority {
         partyDaoFeeClaimable += partyDaoFee.safeCastUint256ToUint96();
 
         party.increaseTotalVotingPower(PARTY_CARD_VOTING_POWER * amount);
-        uint256[] memory tokenIds = new uint256[](amount);
+        tokenIds = new uint256[](amount);
         for (uint256 i = 0; i < amount; i++) {
             tokenIds[i] = party.mint(msg.sender, PARTY_CARD_VOTING_POWER, initialDelegate);
         }
