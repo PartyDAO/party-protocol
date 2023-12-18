@@ -6,6 +6,7 @@ import "../../utils/EIP165.sol";
 
 /// @notice Modern, minimalist, and gas efficient ERC-721 implementation.
 /// @author Solmate (https://github.com/Rari-Capital/solmate/blob/main/src/tokens/ERC721.sol)
+/// @dev Modified from Solmate
 abstract contract ERC721 is IERC721, EIP165 {
     error NotMinted();
     error ZeroAddress();
