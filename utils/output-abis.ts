@@ -31,6 +31,7 @@ const RELEVANT_ABIS = [
   "AddPartyCardsAuthority",
   "SellPartyCardsAuthority",
   "OffChainSignatureValidator",
+  "BondingCurveAuthority",
 ];
 
 // AFileName -> a_file_name

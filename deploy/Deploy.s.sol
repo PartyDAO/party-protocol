@@ -34,6 +34,7 @@ import { SellPartyCardsAuthority } from "../contracts/authorities/SellPartyCards
 import { SSTORE2MetadataProvider } from "../contracts/renderers/SSTORE2MetadataProvider.sol";
 import { BasicMetadataProvider } from "../contracts/renderers/BasicMetadataProvider.sol";
 import { OffChainSignatureValidator } from "../contracts/signature-validators/OffChainSignatureValidator.sol";
+import { BondingCurveAuthority } from "../contracts/authorities/BondingCurveAuthority.sol";
 import "./LibDeployConstants.sol";
 
 abstract contract Deploy {
@@ -83,6 +84,7 @@ abstract contract Deploy {
     AddPartyCardsAuthority public addPartyCardsAuthority;
     SellPartyCardsAuthority public sellPartyCardsAuthority;
     OffChainSignatureValidator public offChainSignatureValidator;
+    BondingCurveAuthority public bondingCurveAuthority;
 
     function deploy(LibDeployConstants.DeployConstants memory deployConstants) public virtual {
         _switchDeployer(DeployerRole.Default);
@@ -347,6 +349,20 @@ abstract contract Deploy {
         sellPartyCardsAuthority = new SellPartyCardsAuthority();
         _trackDeployerGasAfter();
         console.log("  Deployed - SellPartyCardsAuthority", address(sellPartyCardsAuthority));
+
+        // Deploy_BONDING_CURVE_AUTHORITY
+        console.log("");
+        console.log("### BondingCurveAuthority");
+        console.log("  Deploying - BondingCurveAuthority");
+        _trackDeployerGasBefore();
+        bondingCurveAuthority = new BondingCurveAuthority(
+            payable(deployConstants.partyDaoMultisig),
+            250,
+            1000,
+            250
+        );
+        _trackDeployerGasAfter();
+        console.log("  Deployed - BondingCurveAuthority", address(bondingCurveAuthority));
 
         // DEPLOY_BATCH_BUY_OPERATOR
         console.log("");
@@ -750,6 +766,10 @@ contract DeployScript is Script, Deploy {
         addressMapping[26] = AddressMapping(
             "AddPartyCardsAuthority",
             address(addPartyCardsAuthority)
+        );
+        addressMapping[27] = AddressMapping(
+            "BondingCurveAuthority",
+            address(bondingCurveAuthority)
         );
         addressMapping[28] = AddressMapping(
             "SellPartyCardsAuthority",
