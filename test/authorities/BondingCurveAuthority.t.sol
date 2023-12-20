@@ -90,7 +90,9 @@ contract BondingCurveAuthorityTest is SetupPartyHelper {
                 partyFactory: partyFactory,
                 partyImpl: partyImpl,
                 opts: opts,
-                creatorFeeOn: creatorFeeOn
+                creatorFeeOn: creatorFeeOn,
+                a: 50_000,
+                b: uint80(0.001 ether)
             })
         );
     }
@@ -136,7 +138,7 @@ contract BondingCurveAuthorityTest is SetupPartyHelper {
         uint256 expectedTreasuryFee = (expectedBondingCurvePrice * TREASURY_FEE_BPS) / 1e4;
         uint256 expectedCreatorFee = (expectedBondingCurvePrice * CREATOR_FEE_BPS) / 1e4;
 
-        (address payable partyCreator, uint80 supply, bool creatorFeeOn) = authority.partyInfos(
+        (address payable partyCreator, uint80 supply, bool creatorFeeOn, , ) = authority.partyInfos(
             party
         );
 
@@ -172,7 +174,9 @@ contract BondingCurveAuthorityTest is SetupPartyHelper {
                 partyFactory: partyFactory,
                 partyImpl: partyImpl,
                 opts: opts,
-                creatorFeeOn: false
+                creatorFeeOn: false,
+                a: 50_000,
+                b: uint80(0.001 ether)
             }),
             metadataProvider,
             metadata
@@ -203,7 +207,9 @@ contract BondingCurveAuthorityTest is SetupPartyHelper {
                 partyFactory: partyFactory,
                 partyImpl: partyImpl,
                 opts: opts,
-                creatorFeeOn: true
+                creatorFeeOn: true,
+                a: 50_000,
+                b: uint80(0.001 ether)
             })
         );
 
@@ -213,7 +219,9 @@ contract BondingCurveAuthorityTest is SetupPartyHelper {
                 partyFactory: partyFactory,
                 partyImpl: partyImpl,
                 opts: opts,
-                creatorFeeOn: true
+                creatorFeeOn: true,
+                a: 50_000,
+                b: uint80(0.001 ether)
             }),
             MetadataProvider(address(0)),
             ""
@@ -271,7 +279,7 @@ contract BondingCurveAuthorityTest is SetupPartyHelper {
 
         authority.buyPartyCards{ value: expectedPriceToBuy }(party, 10, address(0));
 
-        (, uint80 supply, ) = authority.partyInfos(party);
+        (, uint80 supply, , , ) = authority.partyInfos(party);
 
         assertEq(party.balanceOf(buyer), 10);
         assertEq(
@@ -361,7 +369,7 @@ contract BondingCurveAuthorityTest is SetupPartyHelper {
 
         uint256 expectedSaleProceeds = authority.getSaleProceeds(party, 10);
         expectedBondingCurvePrice =
-            (expectedSaleProceeds * 1e4) /
+            ((expectedSaleProceeds + tokenIds.length) * 1e4) /
             (1e4 - TREASURY_FEE_BPS - PARTY_DAO_FEE_BPS - CREATOR_FEE_BPS);
         uint256 expectedPartyDaoFee = (expectedBondingCurvePrice * PARTY_DAO_FEE_BPS) / 1e4;
         uint256 expectedTreasuryFee = (expectedBondingCurvePrice * TREASURY_FEE_BPS) / 1e4;
@@ -386,7 +394,7 @@ contract BondingCurveAuthorityTest is SetupPartyHelper {
 
         authority.sellPartyCards(party, tokenIds);
 
-        (, uint80 supply, ) = authority.partyInfos(party);
+        (, uint80 supply, , , ) = authority.partyInfos(party);
 
         assertEq(supply, 1);
         assertEq(party.balanceOf(buyer), 0);
@@ -396,11 +404,12 @@ contract BondingCurveAuthorityTest is SetupPartyHelper {
         );
         assertEq(party.getVotingPowerAt(buyer, uint40(block.timestamp), 0), 0);
         assertEq(buyer.balance, expectedSaleProceeds);
-        assertEq(
+        assertApproxEqAbs(
             address(authority).balance,
             // Should only be the initial balance and the unclaimed Party DAO
             // fees leftover.
-            initialBalanceExcludingPartyDaoFee + authority.partyDaoFeeClaimable()
+            initialBalanceExcludingPartyDaoFee + authority.partyDaoFeeClaimable(),
+            10
         );
         assertEq(address(party).balance - beforePartyBalance, expectedTreasuryFee);
         assertEq(creator.balance - beforeCreatorBalance, expectedCreatorFee);
@@ -460,7 +469,7 @@ contract BondingCurveAuthorityTest is SetupPartyHelper {
         for (uint256 i = 0; i < 3; i++) tokenIds[i] = i + 2;
 
         uint256 saleProceeds = authority.getSaleProceeds(party, 3);
-        uint256 expectedBondingCurvePrice = (saleProceeds * 1e4) /
+        uint256 expectedBondingCurvePrice = ((saleProceeds + tokenIds.length) * 1e4) /
             (1e4 - TREASURY_FEE_BPS - PARTY_DAO_FEE_BPS);
         uint256 expectedPartyDaoFee = (expectedBondingCurvePrice * PARTY_DAO_FEE_BPS) / 1e4;
         uint256 expectedTreasuryFee = (expectedBondingCurvePrice * TREASURY_FEE_BPS) / 1e4;
@@ -575,6 +584,45 @@ contract BondingCurveAuthorityTest is SetupPartyHelper {
         authority.claimPartyDaoFees();
     }
 
+    function test_buyThenSellPartyCards() public {
+        address buyer1 = _randomAddress();
+        address buyer2 = _randomAddress();
+
+        (Party party, address payable creator, ) = _createParty(true);
+
+        vm.prank(creator);
+        uint256[] memory creatorToken = new uint256[](1);
+        creatorToken[0] = 1;
+        authority.sellPartyCards(party, creatorToken);
+
+        uint256[] memory buyer1Tokens = new uint256[](10);
+        uint256[] memory buyer2Tokens = new uint256[](7);
+
+        for (uint256 i = 0; i < 10; i++) {
+            if (i < 7) {
+                uint256 price = authority.getPriceToBuy(party, 1);
+                vm.deal(buyer2, price);
+                vm.prank(buyer2);
+                buyer2Tokens[i] = authority.buyPartyCards{ value: price }(party, 1, address(0))[0];
+            }
+            uint256 price = authority.getPriceToBuy(party, 1);
+            vm.deal(buyer1, price);
+            vm.prank(buyer1);
+            buyer1Tokens[i] = authority.buyPartyCards{ value: price }(party, 1, address(0))[0];
+        }
+
+        vm.prank(buyer2);
+        authority.sellPartyCards(party, buyer2Tokens);
+
+        vm.prank(buyer1);
+        authority.sellPartyCards(party, buyer1Tokens);
+
+        vm.prank(globalDaoWalletAddress);
+        authority.claimPartyDaoFees();
+
+        assertApproxEqAbs(address(authority).balance, 0, 18);
+    }
+
     // Check bonding curve pricing calculations
     function test_checkBondingCurvePrice_firstMints() public {
         uint256 previousSupply = 0;
@@ -590,7 +638,10 @@ contract BondingCurveAuthorityTest is SetupPartyHelper {
                     0.001 ether;
             }
 
-            assertEq(authority.getBondingCurvePrice(previousSupply, i), expectedBondingCurvePrice);
+            assertEq(
+                authority.getBondingCurvePrice(previousSupply, i, 50_000, uint80(0.001 ether)),
+                expectedBondingCurvePrice
+            );
         }
     }
 
@@ -607,8 +658,59 @@ contract BondingCurveAuthorityTest is SetupPartyHelper {
                     0.001 ether;
             }
 
-            assertEq(authority.getBondingCurvePrice(previousSupply, 3), expectedBondingCurvePrice);
+            assertEq(
+                authority.getBondingCurvePrice(previousSupply, 3, 50_000, uint80(0.001 ether)),
+                expectedBondingCurvePrice
+            );
         }
+    }
+
+    function test_checkBondingCurvePrice_random_checkPrice(
+        uint16 amount,
+        uint16 previousSupply,
+        uint32 a,
+        uint80 b
+    ) public {
+        vm.assume(a > 0);
+        vm.assume(amount < 200);
+
+        uint256 expectedBondingCurvePrice = 0;
+
+        for (uint i = 1; i <= amount; i++) {
+            expectedBondingCurvePrice +=
+                (1 ether * (previousSupply + i - 1) * (previousSupply + i - 1)) /
+                a +
+                b;
+        }
+
+        assertApproxEqAbs(
+            authority.getBondingCurvePrice(previousSupply, amount, a, b),
+            expectedBondingCurvePrice,
+            amount
+        );
+    }
+
+    function test_checkBondingCurvePrice_randomAAndB_ensureSumMatches(
+        uint16 amount,
+        uint16 previousSupply,
+        uint32 a,
+        uint80 b
+    ) public {
+        vm.assume(a > 0);
+        vm.assume(amount < 200);
+
+        uint256 expectedBondingCurvePrice = 0;
+
+        uint256 aggregatePrice = 0;
+        for (uint i = 0; i < amount; i++) {
+            aggregatePrice += authority.getBondingCurvePrice(previousSupply + i, 1, a, b);
+        }
+
+        assertApproxEqAbs(
+            aggregatePrice,
+            authority.getBondingCurvePrice(previousSupply, amount, a, b),
+            amount
+        );
     }
 }
 
@@ -629,8 +731,10 @@ contract MockBondingCurveAuthority is BondingCurveAuthority {
 
     function getBondingCurvePrice(
         uint256 lowerSupply,
-        uint256 amount
+        uint256 amount,
+        uint32 a,
+        uint80 b
     ) external pure returns (uint256) {
-        return super._getBondingCurvePrice(lowerSupply, amount);
+        return super._getBondingCurvePrice(lowerSupply, amount, a, b);
     }
 }
