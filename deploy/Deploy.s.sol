@@ -112,6 +112,9 @@ abstract contract Deploy {
         console.log("");
         console.log("### ProposalExecutionEngine");
         console.log("  Deploying - ProposalExecutionEngine");
+        if (deployConstants.zoraReserveAuctionCoreEth == address(0)) {
+            revert("zoraReserveAuctionCoreEth address cannot be 0");
+        }
         IReserveAuctionCoreEth zora = IReserveAuctionCoreEth(
             deployConstants.zoraReserveAuctionCoreEth
         );
