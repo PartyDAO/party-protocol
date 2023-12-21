@@ -60,7 +60,8 @@ contract BondingCurveAuthority {
     uint16 private constant MAX_CREATOR_FEE = 250; // 2.5%
     uint16 private constant MAX_TREASURY_FEE = 1000; // 10%
     uint16 private constant MAX_PARTY_DAO_FEE = 250; // 2.5%
-    uint40 private constant MIN_EXECUTION_DELAY = 3 days;
+    /// @notice The minimum execution delay for party governance
+    uint40 private constant MIN_EXECUTION_DELAY = 1 seconds;
 
     /// @notice Struct containing options for creating a party
     struct BondingCurvePartyOptions {
@@ -72,6 +73,10 @@ contract BondingCurveAuthority {
         Party.PartyOptions opts;
         // boolean specifying if creator fees are collected
         bool creatorFeeOn;
+        // The a value for the party
+        uint32 a;
+        // The b value for the party
+        uint80 b;
     }
 
     /// @notice Struct containing info stored for a party
@@ -82,6 +87,10 @@ contract BondingCurveAuthority {
         uint80 supply;
         // boolean specifying if creator fees are collected
         bool creatorFeeOn;
+        // The a value for the party
+        uint32 a;
+        // The b value for the party
+        uint80 b;
     }
 
     modifier onlyPartyDao() {
@@ -137,7 +146,9 @@ contract BondingCurveAuthority {
         partyInfos[party] = PartyInfo({
             creator: payable(msg.sender),
             supply: 0,
-            creatorFeeOn: partyOpts.creatorFeeOn
+            creatorFeeOn: partyOpts.creatorFeeOn,
+            a: partyOpts.a,
+            b: partyOpts.b
         });
 
         buyPartyCards(party, 1, address(0));
@@ -174,7 +185,9 @@ contract BondingCurveAuthority {
         partyInfos[party] = PartyInfo({
             creator: payable(msg.sender),
             supply: 0,
-            creatorFeeOn: partyOpts.creatorFeeOn
+            creatorFeeOn: partyOpts.creatorFeeOn,
+            a: partyOpts.a,
+            b: partyOpts.b
         });
 
         buyPartyCards(party, 1, address(0));
@@ -186,6 +199,10 @@ contract BondingCurveAuthority {
         if (governanceOpts.totalVotingPower != 0) {
             revert InvalidTotalVotingPower();
         }
+        // Note: while the `executionDelay` is not enforce to be over 1 second,
+        //       it is strongly recommended for it to be a long period
+        //       (greater than 1 day). This prevents an attacker from buying cards,
+        //       draining the party and then selling before a host can react.
         if (governanceOpts.executionDelay < MIN_EXECUTION_DELAY) {
             revert ExecutionDelayTooShort();
         }
@@ -209,7 +226,12 @@ contract BondingCurveAuthority {
             revert PartyNotSupported();
         }
 
-        uint256 bondingCurvePrice = _getBondingCurvePrice(partyInfo.supply, amount);
+        uint256 bondingCurvePrice = _getBondingCurvePrice(
+            partyInfo.supply,
+            amount,
+            partyInfo.a,
+            partyInfo.b
+        );
         uint256 partyDaoFee = (bondingCurvePrice * partyDaoFeeBps) / BPS;
         uint256 treasuryFee = (bondingCurvePrice * treasuryFeeBps) / BPS;
         uint256 creatorFee = (bondingCurvePrice * (partyInfo.creatorFeeOn ? creatorFeeBps : 0)) /
@@ -259,7 +281,12 @@ contract BondingCurveAuthority {
         }
 
         uint80 amount = uint80(tokenIds.length);
-        uint256 bondingCurvePrice = _getBondingCurvePrice(partyInfo.supply - amount, amount);
+        uint256 bondingCurvePrice = _getBondingCurvePrice(
+            partyInfo.supply - amount,
+            amount,
+            partyInfo.a,
+            partyInfo.b
+        );
         uint256 partyDaoFee = (bondingCurvePrice * partyDaoFeeBps) / BPS;
         uint256 treasuryFee = (bondingCurvePrice * treasuryFeeBps) / BPS;
         uint256 creatorFee = (bondingCurvePrice * (partyInfo.creatorFeeOn ? creatorFeeBps : 0)) /
@@ -280,7 +307,12 @@ contract BondingCurveAuthority {
         }
         party.decreaseTotalVotingPower(PARTY_CARD_VOTING_POWER * amount);
 
-        uint256 sellerProceeds = bondingCurvePrice - partyDaoFee - treasuryFee - creatorFee;
+        // Note: 1 is subtracted for each NFT to account for rounding errors
+        uint256 sellerProceeds = bondingCurvePrice -
+            partyDaoFee -
+            treasuryFee -
+            creatorFee -
+            amount;
         if (creatorFee != 0) {
             partyInfo.creator.transfer(partyDaoFee);
         }
@@ -307,13 +339,21 @@ contract BondingCurveAuthority {
      */
     function getSaleProceeds(Party party, uint256 amount) external view returns (uint256) {
         PartyInfo memory partyInfo = partyInfos[party];
-        uint256 bondingCurvePrice = _getBondingCurvePrice(partyInfo.supply - amount, amount);
+        uint256 bondingCurvePrice = _getBondingCurvePrice(
+            partyInfo.supply - amount,
+            amount,
+            partyInfo.a,
+            partyInfo.b
+        );
+        // Note: 1 is subtracted for each NFT to account for rounding errors
         return
             (bondingCurvePrice *
                 (BPS -
                     partyDaoFeeBps -
                     treasuryFeeBps -
-                    (partyInfo.creatorFeeOn ? creatorFeeBps : 0))) / BPS;
+                    (partyInfo.creatorFeeOn ? creatorFeeBps : 0))) /
+            BPS -
+            amount;
     }
 
     /**
@@ -324,7 +364,12 @@ contract BondingCurveAuthority {
      */
     function getPriceToBuy(Party party, uint256 amount) external view returns (uint256) {
         PartyInfo memory partyInfo = partyInfos[party];
-        uint256 bondingCurvePrice = _getBondingCurvePrice(partyInfo.supply, amount);
+        uint256 bondingCurvePrice = _getBondingCurvePrice(
+            partyInfo.supply,
+            amount,
+            partyInfo.a,
+            partyInfo.b
+        );
         return
             (bondingCurvePrice *
                 (BPS +
@@ -343,9 +388,11 @@ contract BondingCurveAuthority {
      */
     function _getBondingCurvePrice(
         uint256 lowerSupply,
-        uint256 amount
+        uint256 amount,
+        uint32 a,
+        uint80 b
     ) internal pure returns (uint256) {
-        // Using the function 1 ether * x ** 2 / 50_000 + 0.001 eth
+        // Using the function 1 ether * x ** 2 / a + b
         uint256 amountSquared = amount * amount;
         return
             (1 ether *
@@ -356,9 +403,9 @@ contract BondingCurveAuthority {
                     lowerSupply +
                     (2 * amountSquared * amount + amount - 3 * amountSquared) /
                     6)) /
-            50_000 +
+            uint256(a) +
             amount *
-            0.001 ether;
+            uint256(b);
     }
 
     /**
