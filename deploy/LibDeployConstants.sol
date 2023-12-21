@@ -27,7 +27,8 @@ library LibDeployConstants {
         string networkName;
         address deployedNounsMarketWrapper;
         uint96 contributionRouterInitialFee;
-        address oldTokenDistributor;
+        address tokenDistributorV1;
+        address tokenDistributorV2;
         string baseExternalURL;
     }
 
@@ -58,7 +59,8 @@ library LibDeployConstants {
             networkName: "goerli",
             deployedNounsMarketWrapper: 0x0000000000000000000000000000000000000000,
             contributionRouterInitialFee: 0.00055 ether,
-            oldTokenDistributor: address(0),
+            tokenDistributorV1: 0xE6F58B31344404E3479d81fB8f9dD592feB37965,
+            tokenDistributorV2: 0x8714EA9C2BC5a8f2d26D7c3F86558331c16145B5,
             baseExternalURL: "https://party.app/party/"
         });
 
@@ -92,7 +94,8 @@ library LibDeployConstants {
             networkName: "base-goerli",
             deployedNounsMarketWrapper: 0x0000000000000000000000000000000000000000,
             contributionRouterInitialFee: 0.00055 ether,
-            oldTokenDistributor: address(0),
+            tokenDistributorV1: address(0),
+            tokenDistributorV2: 0x55D2463cf5b6743F279Fe9BcbF32415f575B953d,
             baseExternalURL: "https://base.party.app/party/"
         });
 
@@ -126,7 +129,8 @@ library LibDeployConstants {
             networkName: "mainnet",
             deployedNounsMarketWrapper: 0x9319DAd8736D752C5c72DB229f8e1b280DC80ab1,
             contributionRouterInitialFee: 0.00055 ether,
-            oldTokenDistributor: 0x1CA2007a81F8A7491BB6E11D8e357FD810896454,
+            tokenDistributorV1: 0x1CA2007a81F8A7491BB6E11D8e357FD810896454,
+            tokenDistributorV2: 0x49a3caab781f711aD74C9d2F34c3cbD835d6A608,
             baseExternalURL: "https://party.app/party/"
         });
 
@@ -160,8 +164,43 @@ library LibDeployConstants {
             networkName: "base",
             deployedNounsMarketWrapper: 0x0000000000000000000000000000000000000000,
             contributionRouterInitialFee: 0.00055 ether,
-            oldTokenDistributor: address(0),
+            tokenDistributorV1: address(0),
+            tokenDistributorV2: 0xf0560F963538017CAA5081D96f839FE5D265acCB,
             baseExternalURL: "https://base.party.app/party/"
+        });
+
+        return deployConstants;
+    }
+
+    function zora() internal pure returns (DeployConstants memory) {
+        address[] memory allowedERC20SwapOperatorTargets = new address[](0);
+
+        DeployConstants memory deployConstants = DeployConstants({
+            seaportExchangeAddress: 0x00000000000000ADc04C56Bf30aC9d3c0aAF14dC,
+            osZoraAuctionDuration: 1 days,
+            osZoraAuctionTimeout: 1 days,
+            osMinOrderDuration: 1 hours,
+            osMaxOrderDuration: 4 weeks,
+            zoraMinAuctionDuration: 1 days,
+            zoraMaxAuctionDuration: 4 weeks,
+            zoraMaxAuctionTimeout: 2 weeks,
+            minCancelDelay: 6 weeks,
+            maxCancelDelay: 12 weeks,
+            distributorEmergencyActionAllowedDuration: 365 days,
+            partyDaoMultisig: 0x1B059499F194B3ec0c754b3c8DEb0Ec91b0e68e9,
+            allowedERC20SwapOperatorTargets: allowedERC20SwapOperatorTargets,
+            osZone: 0x0000000000000000000000000000000000000000,
+            osConduitKey: 0xf984c55ca75735630c1c27d3d06969c1aa6af1df86d22ddc0e3a978ad6138e9f,
+            osConduitController: 0x00000000F9490004C11Cef243f5400493c00Ad63,
+            fractionalVaultFactory: 0x0000000000000000000000000000000000000000,
+            nounsAuctionHouse: 0x0000000000000000000000000000000000000000,
+            zoraReserveAuctionCoreEth: 0x0000000000000000000000000000000000000000,
+            networkName: "zora",
+            deployedNounsMarketWrapper: 0x0000000000000000000000000000000000000000,
+            contributionRouterInitialFee: 0.00055 ether,
+            tokenDistributorV1: address(0),
+            tokenDistributorV2: address(0),
+            baseExternalURL: "https://zora.party.app/party/"
         });
 
         return deployConstants;

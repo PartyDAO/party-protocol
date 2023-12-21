@@ -77,6 +77,7 @@ contract PartyGovernanceNFTTestBase is LintJSON, TestUtils {
             nftRendererStorage,
             font,
             address(0),
+            address(0),
             "https://party.app/party/"
         );
         globalsAdmin.setGovernanceNftRendererAddress(address(nftRenderer));

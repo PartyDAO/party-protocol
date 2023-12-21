@@ -5,20 +5,28 @@ import * as ethers from "ethers";
 import axios from "axios";
 import { camelCase } from "change-case";
 
-export const getEtherscanApiEndpoint = (chain: string) => {
+export const getBlockExplorerApiEndpoint = (chain: string) => {
   if (chain === "mainnet") {
     return "https://api.etherscan.io/api";
   } else if (chain === "base") {
     return "https://api.basescan.org/api";
   } else if (chain === "base-goerli") {
     return "https://api-goerli.basescan.org/api";
+  } else if (chain === "zora") {
+    return "https://api.routescan.io/v2/network/mainnet/evm/7777777/etherscan/api";
   } else {
     return `https://api-${chain}.etherscan.io/api`;
   }
 };
 
-export function getEtherscanApiKey(chain: string) {
-  return chain.startsWith("base") ? process.env.BASESCAN_API_KEY : process.env.ETHERSCAN_API_KEY;
+export function getBlockExporerApiKey(chain: string) {
+  if (chain.startsWith("base")) {
+    return process.env.BASESCAN_API_KEY;
+  }
+  if (chain === "zora") {
+    return null;
+  }
+  return process.env.ETHERSCAN_API_KEY;
 }
 
 const readJsonFile = (filePath: string) => {
@@ -45,7 +53,11 @@ const getEncodedConstructorArgs = (args: any[], types: string[]) => {
     if (type.startsWith("uint")) {
       arg = parseInt(arg.match(/\d+/)[0]);
     } else if (type.includes("[]")) {
-      arg = arg.slice(1, -1).split(", ");
+      if (arg !== "[]") {
+        arg = arg.slice(1, -1).split(", ");
+      } else {
+        arg = [];
+      }
     }
 
     constructorArgs.push(arg);
@@ -64,7 +76,9 @@ const generateStandardJson = (
   evmVersion: string,
   libraries: string[],
 ) => {
-  let cmd = `forge verify-contract ${contractAddress} ${contractName} --chain ${chain} --optimizer-runs ${optimizerRuns} --constructor-args '${constructorArgs}' --compiler-version ${compilerVersion}`;
+  let cmd = `forge verify-contract ${contractAddress} ${contractName} --chain-id ${getChainId(
+    chain,
+  )} --optimizer-runs ${optimizerRuns} --constructor-args '${constructorArgs}' --compiler-version ${compilerVersion}`;
 
   if (libraries.length > 0) {
     cmd += ` --libraries ${libraries.join(" ")}`;
@@ -106,7 +120,7 @@ const getHighestCompilerVersion = () => {
   return highestVersionString.replace(/\.Darwin\.appleclang/, "");
 };
 
-const uploadToEtherscan = async (
+const uploadToBlockExplorer = async (
   chain: string,
   jsonData: string,
   contractName: string,
@@ -118,7 +132,7 @@ const uploadToEtherscan = async (
   apiKey: string,
 ) => {
   const response = await axios.post(
-    getEtherscanApiEndpoint(chain),
+    getBlockExplorerApiEndpoint(chain),
     {
       apikey: apiKey,
       module: "contract",
@@ -196,6 +210,8 @@ const getChainId = (chain: string) => {
     return 8453;
   } else if (chain === "base-goerli") {
     return 84531;
+  } else if (chain === "zora") {
+    return 7777777;
   } else {
     throw new Error(`Unknown chain ID for "${chain}". Please add to getChainId() function.`);
   }
@@ -221,7 +237,7 @@ export const verify = async (chain: string, skip: boolean) => {
     (transaction: any) => transaction["transactionType"] === "CREATE",
   );
 
-  const apiKey = getEtherscanApiKey(chain);
+  const apiKey = getBlockExporerApiKey(chain);
 
   const contractNames = getContractNames(chain, runLatestData["libraries"]);
 
@@ -261,7 +277,7 @@ export const verify = async (chain: string, skip: boolean) => {
       contract["arguments"],
       contractTypes[contractName],
     );
-    const response = await uploadToEtherscan(
+    const response = await uploadToBlockExplorer(
       chain,
       jsonData,
       contractName,
@@ -285,6 +301,9 @@ export const verify = async (chain: string, skip: boolean) => {
   }
 
   if (verificationResults.length > 0) {
+    if (chain === "zora") {
+      return; // current explorer not compatible with `verify-check`
+    }
     const timeToWait = Math.max(20 * verificationResults.length, 20);
 
     console.log();

@@ -30,6 +30,7 @@ import "../contracts/market-wrapper/NounsMarketWrapper.sol";
 import { AtomicManualParty } from "../contracts/crowdfund/AtomicManualParty.sol";
 import { ContributionRouter } from "../contracts/crowdfund/ContributionRouter.sol";
 import { AddPartyCardsAuthority } from "../contracts/authorities/AddPartyCardsAuthority.sol";
+import { SellPartyCardsAuthority } from "../contracts/authorities/SellPartyCardsAuthority.sol";
 import { SSTORE2MetadataProvider } from "../contracts/renderers/SSTORE2MetadataProvider.sol";
 import { BasicMetadataProvider } from "../contracts/renderers/BasicMetadataProvider.sol";
 import "./LibDeployConstants.sol";
@@ -79,6 +80,7 @@ abstract contract Deploy {
     AtomicManualParty public atomicManualParty;
     ContributionRouter public contributionRouter;
     AddPartyCardsAuthority public addPartyCardsAuthority;
+    SellPartyCardsAuthority public sellPartyCardsAuthority;
 
     function deploy(LibDeployConstants.DeployConstants memory deployConstants) public virtual {
         _switchDeployer(DeployerRole.Default);
@@ -319,7 +321,8 @@ abstract contract Deploy {
             globals,
             rendererStorage,
             IFont(address(pixeldroidConsoleFont)),
-            deployConstants.oldTokenDistributor,
+            deployConstants.tokenDistributorV1,
+            deployConstants.tokenDistributorV2,
             deployConstants.baseExternalURL
         );
         _trackDeployerGasAfter();
@@ -333,6 +336,15 @@ abstract contract Deploy {
         addPartyCardsAuthority = new AddPartyCardsAuthority();
         _trackDeployerGasAfter();
         console.log("  Deployed - AddPartyCardsAuthority", address(addPartyCardsAuthority));
+
+        // DEPLOY_SELL_PARTY_CARDS_AUTHORITY
+        console.log("");
+        console.log("### SellPartyCardsAuthority");
+        console.log("  Deploying - SellPartyCardsAuthority");
+        _trackDeployerGasBefore();
+        sellPartyCardsAuthority = new SellPartyCardsAuthority();
+        _trackDeployerGasAfter();
+        console.log("  Deployed - SellPartyCardsAuthority", address(sellPartyCardsAuthority));
 
         // DEPLOY_BATCH_BUY_OPERATOR
         console.log("");
@@ -666,7 +678,7 @@ contract DeployScript is Script, Deploy {
         Deploy.deploy(deployConstants);
         vm.stopBroadcast();
 
-        AddressMapping[] memory addressMapping = new AddressMapping[](27);
+        AddressMapping[] memory addressMapping = new AddressMapping[](29);
         addressMapping[0] = AddressMapping("Globals", address(globals));
         addressMapping[1] = AddressMapping("TokenDistributor", address(tokenDistributor));
         addressMapping[2] = AddressMapping(
@@ -720,6 +732,10 @@ contract DeployScript is Script, Deploy {
         addressMapping[26] = AddressMapping(
             "AddPartyCardsAuthority",
             address(addPartyCardsAuthority)
+        );
+        addressMapping[28] = AddressMapping(
+            "SellPartyCardsAuthority",
+            address(sellPartyCardsAuthority)
         );
 
         console.log("");

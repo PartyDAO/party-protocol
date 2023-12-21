@@ -29,6 +29,7 @@ const RELEVANT_ABIS = [
   "AtomicManualParty",
   "ContributionRouter",
   "AddPartyCardsAuthority",
+  "SellPartyCardsAuthority",
 ];
 
 // AFileName -> a_file_name
