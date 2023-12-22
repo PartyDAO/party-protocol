@@ -11,6 +11,7 @@ contract OffChainSignatureValidator is IERC1271 {
     error InsufficientVotingPower();
     error MessageHashMismatch();
     error InvalidSignature();
+    error InvalidBps();
 
     /// @notice Event emitted when signing threshold updated
     event SigningThresholdBpsSet(
@@ -85,6 +86,10 @@ contract OffChainSignatureValidator is IERC1271 {
     /// @notice Set the signing threshold BPS for the party to validate off-chain signatures
     /// @param thresholdBps The new threshold BPS
     function setSigningThresholdBps(uint96 thresholdBps) external {
+        if (thresholdBps > 10_000) {
+            revert InvalidBps();
+        }
+
         Party party = Party(payable(msg.sender));
         emit SigningThresholdBpsSet(party, signingThresholdBps[party], thresholdBps);
         signingThresholdBps[party] = thresholdBps;
