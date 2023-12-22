@@ -33,6 +33,7 @@ import { AddPartyCardsAuthority } from "../contracts/authorities/AddPartyCardsAu
 import { SellPartyCardsAuthority } from "../contracts/authorities/SellPartyCardsAuthority.sol";
 import { SSTORE2MetadataProvider } from "../contracts/renderers/SSTORE2MetadataProvider.sol";
 import { BasicMetadataProvider } from "../contracts/renderers/BasicMetadataProvider.sol";
+import { OffChainSignatureValidator } from "../contracts/signature-validators/OffChainSignatureValidator.sol";
 import "./LibDeployConstants.sol";
 
 abstract contract Deploy {
@@ -81,6 +82,7 @@ abstract contract Deploy {
     ContributionRouter public contributionRouter;
     AddPartyCardsAuthority public addPartyCardsAuthority;
     SellPartyCardsAuthority public sellPartyCardsAuthority;
+    OffChainSignatureValidator public offChainSignatureValidator;
 
     function deploy(LibDeployConstants.DeployConstants memory deployConstants) public virtual {
         _switchDeployer(DeployerRole.Default);
@@ -390,6 +392,15 @@ abstract contract Deploy {
         _trackDeployerGasAfter();
         console.log("  Deployed - ContributionRouter", address(contributionRouter));
 
+        // Deploy OFF_CHAIN_SIGNATURE_VALIDATOR
+        console.log("");
+        console.log("### OffChainSignatureValidator");
+        console.log("  Deploying - OffChainSignatureValidator");
+        _trackDeployerGasBefore();
+        offChainSignatureValidator = new OffChainSignatureValidator();
+        _trackDeployerGasAfter();
+        console.log("  Deployed - OffChainSignatureValidator", address(offChainSignatureValidator));
+
         // DEPLOY_GATE_KEEPRS
         console.log("");
         console.log("### GateKeepers");
@@ -564,6 +575,13 @@ abstract contract Deploy {
                 globals.setAddress,
                 (LibGlobals.GLOBAL_METADATA_REGISTRY, address(metadataRegistry))
             );
+            multicallData[n++] = abi.encodeCall(
+                globals.setAddress,
+                (
+                    LibGlobals.GLOBAL_OFF_CHAIN_SIGNATURE_VALIDATOR,
+                    address(offChainSignatureValidator)
+                )
+            );
             // transfer ownership of Globals to multisig
             if (this.getDeployer() != deployConstants.partyDaoMultisig) {
                 multicallData[n++] = abi.encodeCall(
@@ -678,7 +696,7 @@ contract DeployScript is Script, Deploy {
         Deploy.deploy(deployConstants);
         vm.stopBroadcast();
 
-        AddressMapping[] memory addressMapping = new AddressMapping[](29);
+        AddressMapping[] memory addressMapping = new AddressMapping[](30);
         addressMapping[0] = AddressMapping("Globals", address(globals));
         addressMapping[1] = AddressMapping("TokenDistributor", address(tokenDistributor));
         addressMapping[2] = AddressMapping(
@@ -736,6 +754,10 @@ contract DeployScript is Script, Deploy {
         addressMapping[28] = AddressMapping(
             "SellPartyCardsAuthority",
             address(sellPartyCardsAuthority)
+        );
+        addressMapping[29] = AddressMapping(
+            "OffChainSignatureValidator",
+            address(offChainSignatureValidator)
         );
 
         console.log("");

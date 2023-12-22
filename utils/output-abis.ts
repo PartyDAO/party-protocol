@@ -30,6 +30,7 @@ const RELEVANT_ABIS = [
   "ContributionRouter",
   "AddPartyCardsAuthority",
   "SellPartyCardsAuthority",
+  "OffChainSignatureValidator",
 ];
 
 // AFileName -> a_file_name
