@@ -44,21 +44,28 @@ contract AtomicManualParty {
         uint256[] memory preciousTokenIds,
         uint40 rageQuitTimestamp,
         address[] memory partyMembers,
-        uint96[] memory partyMemberVotingPowers
+        uint96[] memory partyMemberVotingPowers,
+        address[] memory authorities
     ) public returns (Party party) {
         uint96 totalVotingPower = _validateAtomicManualPartyArrays(
             partyMembers,
             partyMemberVotingPowers
         );
-
-        address[] memory authorities = new address[](1);
-        authorities[0] = address(this);
-
         opts.governance.totalVotingPower = totalVotingPower;
+
+        address[] memory authorities_;
+        {
+            uint256 authoritiesLength = authorities.length + 1;
+            authorities_ = new address[](authoritiesLength);
+            for (uint i = 0; i < authoritiesLength - 1; ++i) {
+                authorities_[i] = authorities[i];
+            }
+            authorities_[authoritiesLength - 1] = address(this);
+        }
 
         party = PARTY_FACTORY.createParty(
             partyImpl,
-            authorities,
+            authorities_,
             opts,
             preciousTokens,
             preciousTokenIds,
@@ -89,21 +96,28 @@ contract AtomicManualParty {
         MetadataProvider provider,
         bytes memory metadata,
         address[] memory partyMembers,
-        uint96[] memory partyMemberVotingPowers
+        uint96[] memory partyMemberVotingPowers,
+        address[] memory authorities
     ) external returns (Party party) {
         uint96 totalVotingPower = _validateAtomicManualPartyArrays(
             partyMembers,
             partyMemberVotingPowers
         );
-
-        address[] memory authorities = new address[](1);
-        authorities[0] = address(this);
-
         opts.governance.totalVotingPower = totalVotingPower;
+
+        address[] memory authorities_;
+        {
+            uint256 authoritiesLength = authorities.length + 1;
+            authorities_ = new address[](authoritiesLength);
+            for (uint i = 0; i < authoritiesLength - 1; ++i) {
+                authorities_[i] = authorities[i];
+            }
+            authorities_[authoritiesLength - 1] = address(this);
+        }
 
         party = PARTY_FACTORY.createPartyWithMetadata(
             partyImpl,
-            authorities,
+            authorities_,
             opts,
             preciousTokens,
             preciousTokenIds,
