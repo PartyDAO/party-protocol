@@ -76,7 +76,8 @@ contract BondingCurveAuthority {
         // The value of a in the bonding curve formula 1 ether * x ** 2 / a + b
         // used by the Party to price cards
         uint32 a;
-        // The b value for the party
+        // The value of b in the bonding curve formula 1 ether * x ** 2 / a + b
+        // used by the Party to price cards
         uint80 b;
     }
 
