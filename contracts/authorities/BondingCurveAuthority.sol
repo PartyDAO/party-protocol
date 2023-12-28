@@ -201,7 +201,7 @@ contract BondingCurveAuthority {
         if (governanceOpts.totalVotingPower != 0) {
             revert InvalidTotalVotingPower();
         }
-        // Note: while the `executionDelay` is not enforce to be over 1 second,
+        // Note: while the `executionDelay` is not enforced to be over 1 second,
         //       it is strongly recommended for it to be a long period
         //       (greater than 1 day). This prevents an attacker from buying cards,
         //       draining the party and then selling before a host can react.
