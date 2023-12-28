@@ -73,7 +73,8 @@ contract BondingCurveAuthority {
         Party.PartyOptions opts;
         // boolean specifying if creator fees are collected
         bool creatorFeeOn;
-        // The a value for the party
+        // The value of a in the bonding curve formula 1 ether * x ** 2 / a + b
+        // used by the Party to price cards
         uint32 a;
         // The b value for the party
         uint80 b;
