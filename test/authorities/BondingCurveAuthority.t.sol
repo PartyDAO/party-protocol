@@ -70,18 +70,18 @@ contract BondingCurveAuthorityTest is SetupPartyHelper {
     }
 
     function _createParty(
+        uint80 initialBuyAmount,
         bool creatorFeeOn
     ) internal returns (Party party, address payable creator, uint256 initialPrice) {
         creator = _randomAddress();
 
-        initialPrice = 0.001 ether;
-        initialPrice =
-            (initialPrice *
-                (1e4 +
-                    authority.treasuryFeeBps() +
-                    authority.partyDaoFeeBps() +
-                    (creatorFeeOn ? authority.creatorFeeBps() : 0))) /
-            1e4;
+        initialPrice = authority.getPriceToBuy(
+            0,
+            initialBuyAmount,
+            50_000,
+            uint80(0.001 ether),
+            creatorFeeOn
+        );
 
         vm.deal(creator, initialPrice);
         vm.prank(creator);
@@ -93,7 +93,8 @@ contract BondingCurveAuthorityTest is SetupPartyHelper {
                 creatorFeeOn: creatorFeeOn,
                 a: 50_000,
                 b: uint80(0.001 ether)
-            })
+            }),
+            initialBuyAmount
         );
     }
 
@@ -131,7 +132,7 @@ contract BondingCurveAuthorityTest is SetupPartyHelper {
     }
 
     function test_createParty_works() public {
-        (Party party, address payable creator, ) = _createParty(true);
+        (Party party, address payable creator, ) = _createParty(1, true);
 
         uint256 expectedBondingCurvePrice = 0.001 ether;
         uint256 expectedPartyDaoFee = (expectedBondingCurvePrice * PARTY_DAO_FEE_BPS) / 1e4;
@@ -154,6 +155,20 @@ contract BondingCurveAuthorityTest is SetupPartyHelper {
             // Creator fee is held in BondingCurveAuthority until claimed.
             expectedBondingCurvePrice + expectedPartyDaoFee
         );
+    }
+
+    function test_createParty_moreThanOnePartyCard() public {
+        (Party party, address payable creator, ) = _createParty(5, true);
+
+        (address payable partyCreator, uint80 supply, bool creatorFeeOn, , ) = authority.partyInfos(
+            party
+        );
+
+        assertEq(partyCreator, creator);
+        assertTrue(creatorFeeOn);
+        assertEq(supply, 5);
+        assertEq(party.balanceOf(creator), 5);
+        assertEq(party.getVotingPowerAt(creator, uint40(block.timestamp), 0), 0.5 ether);
     }
 
     function test_createPartyWithMetadata_works() public {
@@ -179,7 +194,8 @@ contract BondingCurveAuthorityTest is SetupPartyHelper {
                 b: uint80(0.001 ether)
             }),
             metadataProvider,
-            metadata
+            metadata,
+            1
         );
 
         assertEq(address(metadataRegistry.getProvider(address(party))), address(metadataProvider));
@@ -210,7 +226,8 @@ contract BondingCurveAuthorityTest is SetupPartyHelper {
                 creatorFeeOn: true,
                 a: 50_000,
                 b: uint80(0.001 ether)
-            })
+            }),
+            1
         );
 
         vm.expectRevert(BondingCurveAuthority.InvalidTotalVotingPower.selector);
@@ -224,7 +241,8 @@ contract BondingCurveAuthorityTest is SetupPartyHelper {
                 b: uint80(0.001 ether)
             }),
             MetadataProvider(address(0)),
-            ""
+            "",
+            1
         );
     }
 
@@ -238,7 +256,7 @@ contract BondingCurveAuthorityTest is SetupPartyHelper {
             uint256 expectedBondingCurvePrice
         )
     {
-        (party, creator, ) = _createParty(true);
+        (party, creator, ) = _createParty(1, true);
 
         initialBalanceExcludingPartyDaoFee =
             address(authority).balance -
@@ -302,7 +320,7 @@ contract BondingCurveAuthorityTest is SetupPartyHelper {
         public
         returns (Party party, address payable creator, address buyer)
     {
-        (party, creator, ) = _createParty(false);
+        (party, creator, ) = _createParty(1, false);
         uint256 expectedPriceToBuy = authority.getPriceToBuy(party, 3);
 
         buyer = _randomAddress();
@@ -324,7 +342,7 @@ contract BondingCurveAuthorityTest is SetupPartyHelper {
     }
 
     function test_buyPartyCards_revertIfGreaterThanPriceToBuy() public {
-        (Party party, , ) = _createParty(true);
+        (Party party, , ) = _createParty(1, true);
 
         uint256 priceToBuy = authority.getPriceToBuy(party, 10);
 
@@ -333,7 +351,7 @@ contract BondingCurveAuthorityTest is SetupPartyHelper {
     }
 
     function test_buyPartyCards_revertIfLessThanPriceToBuy() public {
-        (Party party, , ) = _createParty(true);
+        (Party party, , ) = _createParty(1, true);
 
         uint256 priceToBuy = authority.getPriceToBuy(party, 10);
 
@@ -342,7 +360,7 @@ contract BondingCurveAuthorityTest is SetupPartyHelper {
     }
 
     function test_buyPartyCards_revertIfZeroAmount() public {
-        (Party party, , ) = _createParty(true);
+        (Party party, , ) = _createParty(1, true);
 
         vm.expectRevert(BondingCurveAuthority.InvalidMessageValue.selector);
         authority.buyPartyCards(party, 0, address(0));
@@ -563,7 +581,7 @@ contract BondingCurveAuthorityTest is SetupPartyHelper {
     }
 
     function test_claimPartyDaoFees_works() public {
-        _createParty(true);
+        _createParty(1, true);
 
         uint256 expectedBondingCurvePrice = 0.001 ether;
         uint256 expectedPartyDaoFee = (expectedBondingCurvePrice * PARTY_DAO_FEE_BPS) / 1e4;
@@ -588,7 +606,7 @@ contract BondingCurveAuthorityTest is SetupPartyHelper {
         address buyer1 = _randomAddress();
         address buyer2 = _randomAddress();
 
-        (Party party, address payable creator, ) = _createParty(true);
+        (Party party, address payable creator, ) = _createParty(1, true);
 
         vm.prank(creator);
         uint256[] memory creatorToken = new uint256[](1);
