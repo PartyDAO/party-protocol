@@ -129,10 +129,12 @@ contract BondingCurveAuthority {
     /**
      * @notice Create a new party that will have a dynamic price
      * @param partyOpts options specified for creating the party
+     * @param amountToBuy The amount of party cards the creator buys initially
      * @return party The address of the newly created party
      */
     function createParty(
-        BondingCurvePartyOptions memory partyOpts
+        BondingCurvePartyOptions memory partyOpts,
+        uint80 amountToBuy
     ) external payable returns (Party party) {
         address[] memory authorities = new address[](1);
         authorities[0] = address(this);
@@ -156,7 +158,7 @@ contract BondingCurveAuthority {
             b: partyOpts.b
         });
 
-        buyPartyCards(party, 1, address(0));
+        buyPartyCards(party, amountToBuy, address(0));
     }
 
     /**
@@ -164,12 +166,14 @@ contract BondingCurveAuthority {
      * @param partyOpts options specified for creating the party
      * @param customMetadataProvider the metadata provider to use for the party
      * @param customMetadata the metadata to use for the party
+     * @param amountToBuy The amount of party cards the creator buys initially
      * @return party The address of the newly created party
      */
     function createPartyWithMetadata(
         BondingCurvePartyOptions memory partyOpts,
         MetadataProvider customMetadataProvider,
-        bytes memory customMetadata
+        bytes memory customMetadata,
+        uint80 amountToBuy
     ) external payable returns (Party party) {
         address[] memory authorities = new address[](1);
         authorities[0] = address(this);
@@ -195,7 +199,7 @@ contract BondingCurveAuthority {
             b: partyOpts.b
         });
 
-        buyPartyCards(party, 1, address(0));
+        buyPartyCards(party, amountToBuy, address(0));
     }
 
     function _validateGovernanceOpts(
@@ -381,20 +385,38 @@ contract BondingCurveAuthority {
      * @param amount The amount of cards that would be bought
      * @return The price to buy the given amount of cards
      */
-    function getPriceToBuy(Party party, uint256 amount) external view returns (uint256) {
+    function getPriceToBuy(Party party, uint80 amount) external view returns (uint256) {
         PartyInfo memory partyInfo = partyInfos[party];
-        uint256 bondingCurvePrice = _getBondingCurvePrice(
-            partyInfo.supply,
-            amount,
-            partyInfo.a,
-            partyInfo.b
-        );
+        return
+            getPriceToBuy(
+                partyInfo.supply,
+                amount,
+                partyInfo.a,
+                partyInfo.b,
+                partyInfo.creatorFeeOn
+            );
+    }
+
+    /**
+     * @notice Get the price to buy a given amount of cards
+     * @param supply The current supply of the party
+     * @param amount The amount of cards that would be bought
+     * @param a The value of a in the bonding curve formula 1 ether * x ** 2 / a + b
+     * @param b The value of b in the bonding curve formula 1 ether * x ** 2 / a + b
+     * @param creatorFeeOn boolean specifying if creator fees are collected
+     * @return The price to buy the given amount of cards
+     */
+    function getPriceToBuy(
+        uint80 supply,
+        uint80 amount,
+        uint32 a,
+        uint80 b,
+        bool creatorFeeOn
+    ) public view returns (uint256) {
+        uint256 bondingCurvePrice = _getBondingCurvePrice(supply, amount, a, b);
         return
             (bondingCurvePrice *
-                (BPS +
-                    partyDaoFeeBps +
-                    treasuryFeeBps +
-                    (partyInfo.creatorFeeOn ? creatorFeeBps : 0))) / BPS;
+                (BPS + partyDaoFeeBps + treasuryFeeBps + (creatorFeeOn ? creatorFeeBps : 0))) / BPS;
     }
 
     /**
