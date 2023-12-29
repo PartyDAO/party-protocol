@@ -18,6 +18,7 @@ contract BondingCurveAuthority {
     error PartyNotSupported();
     error InvalidTotalVotingPower();
     error ExecutionDelayTooShort();
+    error EthTransferFailed();
 
     event TreasuryFeeUpdated(uint16 previousTreasuryFee, uint16 newTreasuryFee);
     event PartyDaoFeeUpdated(uint16 previousPartyDaoFee, uint16 newPartyDaoFee);
@@ -249,9 +250,14 @@ contract BondingCurveAuthority {
 
         partyInfos[party].supply = partyInfo.supply + amount;
 
-        payable(address(party)).transfer(treasuryFee);
+        (bool success, ) = address(party).call{ value: treasuryFee }("");
+        if (!success) {
+            revert EthTransferFailed();
+        }
+
         if (creatorFee != 0) {
-            partyInfo.creator.transfer(creatorFee);
+            // Creator fee payment can fail
+            partyInfo.creator.call{ value: creatorFee }("");
         }
         partyDaoFeeClaimable += partyDaoFee.safeCastUint256ToUint96();
 
@@ -317,11 +323,20 @@ contract BondingCurveAuthority {
             treasuryFee -
             creatorFee -
             amount;
-        if (creatorFee != 0) {
-            partyInfo.creator.transfer(partyDaoFee);
+        (bool success, ) = address(party).call{ value: treasuryFee }("");
+        if (!success) {
+            revert EthTransferFailed();
         }
-        payable(address(party)).transfer(treasuryFee);
-        payable(msg.sender).transfer(sellerProceeds);
+
+        if (creatorFee != 0) {
+            // Creator fee payment can fail
+            partyInfo.creator.call{ value: creatorFee }("");
+        }
+
+        (success, ) = msg.sender.call{ value: sellerProceeds }("");
+        if (!success) {
+            revert EthTransferFailed();
+        }
         partyDaoFeeClaimable += partyDaoFee.safeCastUint256ToUint96();
 
         emit PartyCardsSold(
@@ -454,7 +469,10 @@ contract BondingCurveAuthority {
     function claimPartyDaoFees() external onlyPartyDao {
         uint96 _partyDaoFeeClaimable = partyDaoFeeClaimable;
         partyDaoFeeClaimable = 0;
-        PARTY_DAO.transfer(_partyDaoFeeClaimable);
+        (bool success, ) = PARTY_DAO.call{ value: _partyDaoFeeClaimable }("");
+        if (!success) {
+            revert EthTransferFailed();
+        }
         emit PartyDaoFeesClaimed(_partyDaoFeeClaimable);
     }
 }
