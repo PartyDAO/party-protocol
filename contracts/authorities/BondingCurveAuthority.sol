@@ -19,6 +19,7 @@ contract BondingCurveAuthority {
     error InvalidTotalVotingPower();
     error ExecutionDelayTooShort();
     error EthTransferFailed();
+    error ExcessSlippage();
 
     event TreasuryFeeUpdated(uint16 previousTreasuryFee, uint16 newTreasuryFee);
     event PartyDaoFeeUpdated(uint16 previousPartyDaoFee, uint16 newPartyDaoFee);
@@ -245,10 +246,9 @@ contract BondingCurveAuthority {
         uint256 treasuryFee = (bondingCurvePrice * treasuryFeeBps) / BPS;
         uint256 creatorFee = (bondingCurvePrice * (partyInfo.creatorFeeOn ? creatorFeeBps : 0)) /
             BPS;
+        uint256 totalCost = bondingCurvePrice + partyDaoFee + treasuryFee + creatorFee;
 
-        if (
-            amount == 0 || msg.value != bondingCurvePrice + partyDaoFee + treasuryFee + creatorFee
-        ) {
+        if (amount == 0 || msg.value < totalCost) {
             revert InvalidMessageValue();
         }
 
@@ -280,6 +280,14 @@ contract BondingCurveAuthority {
             treasuryFee,
             creatorFee
         );
+
+        // Refund excess ETH
+        if (msg.value > totalCost) {
+            (success, ) = msg.sender.call{ value: msg.value - totalCost }("");
+            if (!success) {
+                revert EthTransferFailed();
+            }
+        }
     }
 
     /**
@@ -287,7 +295,7 @@ contract BondingCurveAuthority {
      * @param party The party to sell cards for
      * @param tokenIds The token ids to sell
      */
-    function sellPartyCards(Party party, uint256[] memory tokenIds) external {
+    function sellPartyCards(Party party, uint256[] memory tokenIds, uint256 minProceeds) external {
         PartyInfo memory partyInfo = partyInfos[party];
 
         if (partyInfo.creator == address(0)) {
@@ -306,6 +314,16 @@ contract BondingCurveAuthority {
         uint256 creatorFee = (bondingCurvePrice * (partyInfo.creatorFeeOn ? creatorFeeBps : 0)) /
             BPS;
 
+        // Note: 1 is subtracted for each NFT to account for rounding errors
+        uint256 sellerProceeds = bondingCurvePrice -
+            partyDaoFee -
+            treasuryFee -
+            creatorFee -
+            amount;
+        if (sellerProceeds < minProceeds) {
+            revert ExcessSlippage();
+        }
+
         partyInfos[party].supply = partyInfo.supply - amount;
 
         for (uint256 i = 0; i < amount; i++) {
@@ -321,12 +339,6 @@ contract BondingCurveAuthority {
         }
         party.decreaseTotalVotingPower(PARTY_CARD_VOTING_POWER * amount);
 
-        // Note: 1 is subtracted for each NFT to account for rounding errors
-        uint256 sellerProceeds = bondingCurvePrice -
-            partyDaoFee -
-            treasuryFee -
-            creatorFee -
-            amount;
         (bool success, ) = address(party).call{ value: treasuryFee }("");
         if (!success) {
             revert EthTransferFailed();

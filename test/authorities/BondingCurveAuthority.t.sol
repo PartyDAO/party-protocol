@@ -341,13 +341,15 @@ contract BondingCurveAuthorityTest is SetupPartyHelper {
         assertEq(creator.balance, 0);
     }
 
-    function test_buyPartyCards_revertIfGreaterThanPriceToBuy() public {
+    function test_buyPartyCards_refundIfGreaterThanPriceToBuy() public {
         (Party party, , ) = _createParty(1, true);
 
         uint256 priceToBuy = authority.getPriceToBuy(party, 10);
 
-        vm.expectRevert(BondingCurveAuthority.InvalidMessageValue.selector);
+        uint256 balanceBefore = address(this).balance;
         authority.buyPartyCards{ value: priceToBuy + 1 }(party, 10, address(0));
+
+        assertEq(address(this).balance, balanceBefore - priceToBuy);
     }
 
     function test_buyPartyCards_revertIfLessThanPriceToBuy() public {
@@ -410,7 +412,7 @@ contract BondingCurveAuthorityTest is SetupPartyHelper {
             expectedCreatorFee
         );
 
-        authority.sellPartyCards(party, tokenIds);
+        authority.sellPartyCards(party, tokenIds, 0);
 
         (, uint80 supply, , , ) = authority.partyInfos(party);
 
@@ -433,9 +435,33 @@ contract BondingCurveAuthorityTest is SetupPartyHelper {
         assertEq(creator.balance - beforeCreatorBalance, expectedCreatorFee);
     }
 
+    function test_sellPartyCards_revertIfTooMuchSlippage() public {
+        (
+            Party party,
+            address payable creator,
+            uint256 initialBalanceExcludingPartyDaoFee,
+            address buyer,
+            uint256 expectedBondingCurvePrice
+        ) = test_buyPartyCards_works();
+
+        uint256[] memory tokenIds = new uint256[](10);
+        for (uint256 i = 0; i < 10; i++) tokenIds[i] = i + 2;
+
+        uint256 expectedSaleProceeds = authority.getSaleProceeds(party, 10);
+
+        uint256[] memory creatorTokenIds = new uint256[](1);
+        creatorTokenIds[0] = 1;
+        vm.prank(creator);
+        authority.sellPartyCards(party, creatorTokenIds, 0);
+
+        vm.prank(buyer);
+        vm.expectRevert(BondingCurveAuthority.ExcessSlippage.selector);
+        authority.sellPartyCards(party, tokenIds, expectedSaleProceeds);
+    }
+
     function test_sellPartyCards_partyNotRecognized() public {
         vm.expectRevert(BondingCurveAuthority.PartyNotSupported.selector);
-        authority.sellPartyCards(Party(payable(_randomAddress())), new uint256[](1));
+        authority.sellPartyCards(Party(payable(_randomAddress())), new uint256[](1), 0);
     }
 
     function test_sellPartyCards_isApprovedForAll() public {
@@ -450,7 +476,7 @@ contract BondingCurveAuthorityTest is SetupPartyHelper {
         for (uint256 i = 0; i < 10; i++) tokenIds[i] = i + 2;
 
         vm.prank(approved);
-        authority.sellPartyCards(party, tokenIds);
+        authority.sellPartyCards(party, tokenIds, 0);
     }
 
     function test_sellPartyCards_getApproved() public {
@@ -466,7 +492,7 @@ contract BondingCurveAuthorityTest is SetupPartyHelper {
         tokenIds[0] = tokenId;
 
         vm.prank(approved);
-        authority.sellPartyCards(party, tokenIds);
+        authority.sellPartyCards(party, tokenIds, 0);
     }
 
     function test_sellPartyCards_revertIfNotApproved() public {
@@ -477,7 +503,7 @@ contract BondingCurveAuthorityTest is SetupPartyHelper {
 
         vm.prank(_randomAddress());
         vm.expectRevert(BondingCurveAuthority.Unauthorized.selector);
-        authority.sellPartyCards(party, tokenIds);
+        authority.sellPartyCards(party, tokenIds, 0);
     }
 
     function test_sellPartyCards_noCreatorFee() public {
@@ -503,7 +529,7 @@ contract BondingCurveAuthorityTest is SetupPartyHelper {
             expectedTreasuryFee,
             0
         );
-        authority.sellPartyCards(party, tokenIds);
+        authority.sellPartyCards(party, tokenIds, 0);
 
         assertEq(address(creator).balance, 0);
     }
@@ -611,7 +637,7 @@ contract BondingCurveAuthorityTest is SetupPartyHelper {
         vm.prank(creator);
         uint256[] memory creatorToken = new uint256[](1);
         creatorToken[0] = 1;
-        authority.sellPartyCards(party, creatorToken);
+        authority.sellPartyCards(party, creatorToken, 0);
 
         uint256[] memory buyer1Tokens = new uint256[](10);
         uint256[] memory buyer2Tokens = new uint256[](7);
@@ -630,10 +656,10 @@ contract BondingCurveAuthorityTest is SetupPartyHelper {
         }
 
         vm.prank(buyer2);
-        authority.sellPartyCards(party, buyer2Tokens);
+        authority.sellPartyCards(party, buyer2Tokens, 0);
 
         vm.prank(buyer1);
-        authority.sellPartyCards(party, buyer1Tokens);
+        authority.sellPartyCards(party, buyer1Tokens, 0);
 
         vm.prank(globalDaoWalletAddress);
         authority.claimPartyDaoFees();
@@ -730,6 +756,7 @@ contract BondingCurveAuthorityTest is SetupPartyHelper {
             amount
         );
     }
+    receive() external payable {}
 }
 
 contract MockBondingCurveAuthority is BondingCurveAuthority {
