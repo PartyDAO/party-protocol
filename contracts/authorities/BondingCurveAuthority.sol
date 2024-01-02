@@ -16,10 +16,12 @@ contract BondingCurveAuthority {
     error InvalidTreasuryFee();
     error InvalidPartyDaoFee();
     error PartyNotSupported();
+    error ExistingParty();
     error InvalidTotalVotingPower();
     error ExecutionDelayTooShort();
     error EthTransferFailed();
     error ExcessSlippage();
+    error AddAuthorityProposalNotSupported();
 
     event TreasuryFeeUpdated(uint16 previousTreasuryFee, uint16 newTreasuryFee);
     event PartyDaoFeeUpdated(uint16 previousPartyDaoFee, uint16 newPartyDaoFee);
@@ -151,6 +153,10 @@ contract BondingCurveAuthority {
             0
         );
 
+        if (partyInfos[party].creator != address(0)) {
+            revert ExistingParty();
+        }
+
         partyInfos[party] = PartyInfo({
             creator: payable(msg.sender),
             supply: 0,
@@ -192,6 +198,10 @@ contract BondingCurveAuthority {
             customMetadata
         );
 
+        if (partyInfos[party].creator != address(0)) {
+            revert ExistingParty();
+        }
+
         partyInfos[party] = PartyInfo({
             creator: payable(msg.sender),
             supply: 0,
@@ -213,6 +223,10 @@ contract BondingCurveAuthority {
         //       draining the party and then selling before a host can react.
         if (partyOpts.governance.executionDelay < MIN_EXECUTION_DELAY) {
             revert ExecutionDelayTooShort();
+        }
+
+        if (partyOpts.proposalEngine.enableAddAuthorityProposal) {
+            revert AddAuthorityProposalNotSupported();
         }
     }
 
@@ -246,10 +260,6 @@ contract BondingCurveAuthority {
             BPS;
         uint256 totalCost = bondingCurvePrice + partyDaoFee + treasuryFee + creatorFee;
 
-        if (amount == 0 || msg.value < totalCost) {
-            revert InvalidMessageValue();
-        }
-
         partyInfos[party].supply = partyInfo.supply + amount;
 
         (bool success, ) = address(party).call{ value: treasuryFee }("");
@@ -259,10 +269,17 @@ contract BondingCurveAuthority {
 
         if (creatorFee != 0) {
             // Creator fee payment can fail
-            partyInfo.creator.call{ value: creatorFee }("");
+            (bool creatorFeeSucceeded, ) = partyInfo.creator.call{ value: creatorFee }("");
+            if (!creatorFeeSucceeded) {
+                totalCost -= creatorFee;
+            }
         }
-        partyDaoFeeClaimable += partyDaoFee.safeCastUint256ToUint96();
 
+        if (amount == 0 || msg.value < totalCost) {
+            revert InvalidMessageValue();
+        }
+
+        partyDaoFeeClaimable += partyDaoFee.safeCastUint256ToUint96();
         party.increaseTotalVotingPower(PARTY_CARD_VOTING_POWER * amount);
         tokenIds = new uint256[](amount);
         for (uint256 i = 0; i < amount; i++) {
@@ -344,7 +361,10 @@ contract BondingCurveAuthority {
 
         if (creatorFee != 0) {
             // Creator fee payment can fail
-            partyInfo.creator.call{ value: creatorFee }("");
+            (bool creatorFeeSucceeded, ) = partyInfo.creator.call{ value: creatorFee }("");
+            if (!creatorFeeSucceeded) {
+                sellerProceeds += creatorFee;
+            }
         }
 
         (success, ) = msg.sender.call{ value: sellerProceeds }("");

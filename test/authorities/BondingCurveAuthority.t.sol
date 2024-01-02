@@ -157,6 +157,40 @@ contract BondingCurveAuthorityTest is SetupPartyHelper {
         );
     }
 
+    function test_creatorParty_revertAddAuthorityProposalNotSupported() external {
+        opts.proposalEngine.enableAddAuthorityProposal = true;
+
+        vm.expectRevert(BondingCurveAuthority.AddAuthorityProposalNotSupported.selector);
+        authority.createParty(
+            BondingCurveAuthority.BondingCurvePartyOptions({
+                partyFactory: partyFactory,
+                partyImpl: partyImpl,
+                opts: opts,
+                creatorFeeOn: true,
+                a: 50_000,
+                b: uint80(0.001 ether)
+            }),
+            1
+        );
+    }
+
+    function test_creatorParty_revertBelowMinExecutionDelay() external {
+        opts.governance.executionDelay = 0;
+
+        vm.expectRevert(BondingCurveAuthority.ExecutionDelayTooShort.selector);
+        authority.createParty(
+            BondingCurveAuthority.BondingCurvePartyOptions({
+                partyFactory: partyFactory,
+                partyImpl: partyImpl,
+                opts: opts,
+                creatorFeeOn: true,
+                a: 50_000,
+                b: uint80(0.001 ether)
+            }),
+            1
+        );
+    }
+
     function test_createParty_moreThanOnePartyCard() public {
         (Party party, address payable creator, ) = _createParty(5, true);
 
@@ -339,6 +373,30 @@ contract BondingCurveAuthorityTest is SetupPartyHelper {
         assertEq(tokenIds, expectedTokenIds);
 
         assertEq(creator.balance, 0);
+    }
+
+    function test_buyPartyCards_creatorFeeFails() public {
+        (Party party, address creator, ) = _createParty(1, true);
+        uint256 creatorBalanceBefore = creator.balance;
+
+        // Store this code to creator will cause eth transfer to revert
+        vm.etch(creator, address(authority).code);
+
+        uint256 expectedPriceToBuy = authority.getPriceToBuy(party, 3);
+        uint256 expectedBondingCurvePrice = (expectedPriceToBuy * 1e4) /
+            (1e4 + TREASURY_FEE_BPS + PARTY_DAO_FEE_BPS + CREATOR_FEE_BPS);
+        uint256 expectedCreatorFee = (expectedBondingCurvePrice * CREATOR_FEE_BPS) / 1e4;
+
+        address buyer = _randomAddress();
+        vm.deal(buyer, expectedPriceToBuy);
+        vm.prank(buyer);
+        uint256[] memory tokenIds = authority.buyPartyCards{ value: expectedPriceToBuy }(
+            party,
+            3,
+            address(0)
+        );
+        assertEq(buyer.balance, expectedCreatorFee); // got back creator fee
+        assertEq(creator.balance, creatorBalanceBefore);
     }
 
     function test_buyPartyCards_refundIfGreaterThanPriceToBuy() public {
@@ -532,6 +590,28 @@ contract BondingCurveAuthorityTest is SetupPartyHelper {
         authority.sellPartyCards(party, tokenIds, 0);
 
         assertEq(address(creator).balance, 0);
+    }
+
+    function test_sellPartyCards_creatorFeeFails() public {
+        (Party party, address payable creator, , address buyer, ) = test_buyPartyCards_works();
+
+        // Store this code to creator will cause eth transfer to revert
+        vm.etch(creator, address(authority).code);
+
+        uint256[] memory tokenIds = new uint256[](3);
+        for (uint256 i = 0; i < 3; i++) tokenIds[i] = i + 2;
+
+        uint256 saleProceeds = authority.getSaleProceeds(party, 3);
+        uint256 expectedBondingCurvePrice = ((saleProceeds + tokenIds.length) * 1e4) /
+            (1e4 - TREASURY_FEE_BPS - PARTY_DAO_FEE_BPS - CREATOR_FEE_BPS);
+        uint256 expectedCreatorFee = (expectedBondingCurvePrice * CREATOR_FEE_BPS) / 1e4;
+
+        uint256 beforeBuyerBalance = buyer.balance;
+        vm.prank(buyer);
+        authority.sellPartyCards(party, tokenIds, 0);
+
+        // Ensure buyer gets the creator fee as well
+        assertEq(buyer.balance, beforeBuyerBalance + expectedCreatorFee + saleProceeds);
     }
 
     function test_setTreasuryFee_works(uint16 newTreasuryFee) public {
@@ -756,6 +836,7 @@ contract BondingCurveAuthorityTest is SetupPartyHelper {
             amount
         );
     }
+
     receive() external payable {}
 }
 
