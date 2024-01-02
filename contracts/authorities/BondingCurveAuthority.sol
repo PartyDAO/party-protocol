@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0
 pragma solidity 0.8.20;
 
-import { Party, PartyGovernance } from "../party/Party.sol";
+import { Party } from "../party/Party.sol";
 import { PartyFactory } from "../party/PartyFactory.sol";
 import { IERC721 } from "../tokens/IERC721.sol";
 import { MetadataProvider } from "../renderers/MetadataProvider.sol";
@@ -140,7 +140,7 @@ contract BondingCurveAuthority {
         address[] memory authorities = new address[](1);
         authorities[0] = address(this);
 
-        _validateGovernanceOpts(partyOpts.opts.governance);
+        _validateGovernanceOpts(partyOpts.opts);
 
         party = partyOpts.partyFactory.createParty(
             partyOpts.partyImpl,
@@ -179,7 +179,7 @@ contract BondingCurveAuthority {
         address[] memory authorities = new address[](1);
         authorities[0] = address(this);
 
-        _validateGovernanceOpts(partyOpts.opts.governance);
+        _validateGovernanceOpts(partyOpts.opts);
 
         party = partyOpts.partyFactory.createPartyWithMetadata(
             partyOpts.partyImpl,
@@ -203,17 +203,15 @@ contract BondingCurveAuthority {
         buyPartyCards(party, amountToBuy, address(0));
     }
 
-    function _validateGovernanceOpts(
-        PartyGovernance.GovernanceOpts memory governanceOpts
-    ) internal pure {
-        if (governanceOpts.totalVotingPower != 0) {
+    function _validateGovernanceOpts(Party.PartyOptions memory partyOpts) internal pure {
+        if (partyOpts.governance.totalVotingPower != 0) {
             revert InvalidTotalVotingPower();
         }
         // Note: while the `executionDelay` is not enforced to be over 1 second,
         //       it is strongly recommended for it to be a long period
         //       (greater than 1 day). This prevents an attacker from buying cards,
         //       draining the party and then selling before a host can react.
-        if (governanceOpts.executionDelay < MIN_EXECUTION_DELAY) {
+        if (partyOpts.governance.executionDelay < MIN_EXECUTION_DELAY) {
             revert ExecutionDelayTooShort();
         }
     }
