@@ -300,7 +300,7 @@ contract BondingCurveAuthority {
             party,
             msg.sender,
             tokenIds,
-            msg.value,
+            totalCost,
             partyDaoFee,
             treasuryFee,
             creatorFee
@@ -412,15 +412,12 @@ contract BondingCurveAuthority {
             partyInfo.a,
             partyInfo.b
         );
+        uint256 partyDaoFee = (bondingCurvePrice * partyDaoFeeBps) / BPS;
+        uint256 treasuryFee = (bondingCurvePrice * treasuryFeeBps) / BPS;
+        uint256 creatorFee = (bondingCurvePrice * (partyInfo.creatorFeeOn ? creatorFeeBps : 0)) /
+            BPS;
         // Note: 1 is subtracted for each NFT to account for rounding errors
-        return
-            (bondingCurvePrice *
-                (BPS -
-                    partyDaoFeeBps -
-                    treasuryFeeBps -
-                    (partyInfo.creatorFeeOn ? creatorFeeBps : 0))) /
-            BPS -
-            amount;
+        return bondingCurvePrice - partyDaoFee - treasuryFee - creatorFee - amount;
     }
 
     /**
@@ -458,9 +455,10 @@ contract BondingCurveAuthority {
         bool creatorFeeOn
     ) public view returns (uint256) {
         uint256 bondingCurvePrice = _getBondingCurvePrice(supply, amount, a, b);
-        return
-            (bondingCurvePrice *
-                (BPS + partyDaoFeeBps + treasuryFeeBps + (creatorFeeOn ? creatorFeeBps : 0))) / BPS;
+        uint256 partyDaoFee = (bondingCurvePrice * partyDaoFeeBps) / BPS;
+        uint256 treasuryFee = (bondingCurvePrice * treasuryFeeBps) / BPS;
+        uint256 creatorFee = (bondingCurvePrice * (creatorFeeOn ? creatorFeeBps : 0)) / BPS;
+        return bondingCurvePrice + partyDaoFee + treasuryFee + creatorFee;
     }
 
     /**

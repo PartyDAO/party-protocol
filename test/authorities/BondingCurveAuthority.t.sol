@@ -424,9 +424,28 @@ contract BondingCurveAuthorityTest is SetupPartyHelper {
         (Party party, , ) = _createParty(1, true);
 
         uint256 priceToBuy = authority.getPriceToBuy(party, 10);
+        uint256 expectedBondingCurvePrice = (priceToBuy * 1e4) /
+            (1e4 + TREASURY_FEE_BPS + PARTY_DAO_FEE_BPS + CREATOR_FEE_BPS);
+        uint256 expectedPartyDaoFee = (expectedBondingCurvePrice * PARTY_DAO_FEE_BPS) / 1e4;
+        uint256 expectedTreasuryFee = (expectedBondingCurvePrice * TREASURY_FEE_BPS) / 1e4;
+        uint256 expectedCreatorFee = (expectedBondingCurvePrice * CREATOR_FEE_BPS) / 1e4;
+
+        uint256[] memory tokenIds = new uint256[](10);
+        for (uint256 i = 0; i < 10; i++) tokenIds[i] = i + 2;
 
         uint256 balanceBefore = address(this).balance;
-        authority.buyPartyCards{ value: priceToBuy + 1 }(party, 10, address(0));
+        vm.expectEmit(true, true, true, true);
+        emit PartyCardsBought(
+            party,
+            address(this),
+            tokenIds,
+            priceToBuy,
+            expectedPartyDaoFee,
+            expectedTreasuryFee,
+            expectedCreatorFee
+        );
+
+        authority.buyPartyCards{ value: priceToBuy + 100 }(party, 10, address(0));
 
         assertEq(address(this).balance, balanceBefore - priceToBuy);
     }
@@ -727,6 +746,21 @@ contract BondingCurveAuthorityTest is SetupPartyHelper {
         vm.prank(_randomAddress());
         vm.expectRevert(BondingCurveAuthority.Unauthorized.selector);
         authority.claimPartyDaoFees();
+    }
+
+    function test_claimPartyDaoFees_revertIfTransferFails() public {
+        _createParty(1, true);
+
+        uint256 expectedBondingCurvePrice = 0.001 ether;
+        uint256 expectedPartyDaoFee = (expectedBondingCurvePrice * PARTY_DAO_FEE_BPS) / 1e4;
+
+        // Cause transfer to fail
+        vm.etch(address(globalDaoWalletAddress), address(authority).code);
+        vm.prank(globalDaoWalletAddress);
+        vm.expectRevert(BondingCurveAuthority.EthTransferFailed.selector);
+        authority.claimPartyDaoFees();
+
+        assertEq(authority.partyDaoFeeClaimable(), expectedPartyDaoFee);
     }
 
     function test_buyThenSellPartyCards() public {
