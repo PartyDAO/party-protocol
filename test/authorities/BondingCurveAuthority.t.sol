@@ -157,7 +157,7 @@ contract BondingCurveAuthorityTest is SetupPartyHelper {
         assertEq(
             address(authority).balance,
             // Creator fee is held in BondingCurveAuthority until claimed.
-            expectedBondingCurvePrice + expectedPartyDaoFee
+            expectedBondingCurvePrice + expectedPartyDaoFee + 1
         );
     }
 
@@ -278,7 +278,8 @@ contract BondingCurveAuthorityTest is SetupPartyHelper {
         uint256 initialPrice = 0.001 ether;
         initialPrice =
             (initialPrice * (1e4 + authority.treasuryFeeBps() + authority.partyDaoFeeBps())) /
-            1e4;
+            1e4 +
+            1;
 
         vm.deal(creator, initialPrice);
         vm.prank(creator);
@@ -362,7 +363,7 @@ contract BondingCurveAuthorityTest is SetupPartyHelper {
 
         uint256 expectedPriceToBuy = authority.getPriceToBuy(party, 10);
         expectedBondingCurvePrice =
-            (expectedPriceToBuy * 1e4) /
+            ((expectedPriceToBuy - 10) * 1e4) /
             (1e4 + TREASURY_FEE_BPS + PARTY_DAO_FEE_BPS + CREATOR_FEE_BPS);
         uint256 expectedPartyDaoFee = (expectedBondingCurvePrice * PARTY_DAO_FEE_BPS) / 1e4;
         uint256 expectedTreasuryFee = (expectedBondingCurvePrice * TREASURY_FEE_BPS) / 1e4;
@@ -408,7 +409,7 @@ contract BondingCurveAuthorityTest is SetupPartyHelper {
         assertEq(
             address(authority).balance - beforeAuthorityBalance,
             // Creator fee is held in BondingCurveAuthority until claimed.
-            expectedBondingCurvePrice + expectedPartyDaoFee
+            expectedBondingCurvePrice + expectedPartyDaoFee + 10
         );
         assertEq(address(party).balance - beforePartyBalance, expectedTreasuryFee);
         assertEq(creator.balance - beforeCreatorBalance, expectedCreatorFee);
@@ -530,7 +531,7 @@ contract BondingCurveAuthorityTest is SetupPartyHelper {
 
         uint256 expectedSaleProceeds = authority.getSaleProceeds(party, 10);
         expectedBondingCurvePrice =
-            ((expectedSaleProceeds + tokenIds.length) * 1e4) /
+            (expectedSaleProceeds * 1e4) /
             (1e4 - TREASURY_FEE_BPS - PARTY_DAO_FEE_BPS - CREATOR_FEE_BPS);
         uint256 expectedPartyDaoFee = (expectedBondingCurvePrice * PARTY_DAO_FEE_BPS) / 1e4;
         uint256 expectedTreasuryFee = (expectedBondingCurvePrice * TREASURY_FEE_BPS) / 1e4;
@@ -786,7 +787,7 @@ contract BondingCurveAuthorityTest is SetupPartyHelper {
         vm.prank(globalDaoWalletAddress);
         authority.claimPartyDaoFees();
 
-        assertEq(address(authority).balance, expectedBondingCurvePrice);
+        assertEq(address(authority).balance, expectedBondingCurvePrice + 1);
         assertEq(globalDaoWalletAddress.balance, expectedPartyDaoFee);
     }
 

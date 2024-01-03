@@ -268,7 +268,8 @@ contract BondingCurveAuthority {
         uint256 treasuryFee = (bondingCurvePrice * treasuryFeeBps) / BPS;
         uint256 creatorFee = (bondingCurvePrice * (partyInfo.creatorFeeOn ? creatorFeeBps : 0)) /
             BPS;
-        uint256 totalCost = bondingCurvePrice + partyDaoFee + treasuryFee + creatorFee;
+        // Note: 1 is added for each NFT to account for rounding errors
+        uint256 totalCost = bondingCurvePrice + partyDaoFee + treasuryFee + creatorFee + amount;
 
         partyInfos[party].supply = partyInfo.supply + amount;
 
@@ -343,12 +344,7 @@ contract BondingCurveAuthority {
         uint256 creatorFee = (bondingCurvePrice * (partyInfo.creatorFeeOn ? creatorFeeBps : 0)) /
             BPS;
 
-        // Note: 1 is subtracted for each NFT to account for rounding errors
-        uint256 sellerProceeds = bondingCurvePrice -
-            partyDaoFee -
-            treasuryFee -
-            creatorFee -
-            amount;
+        uint256 sellerProceeds = bondingCurvePrice - partyDaoFee - treasuryFee - creatorFee;
         if (sellerProceeds < minProceeds) {
             revert ExcessSlippage();
         }
@@ -416,8 +412,7 @@ contract BondingCurveAuthority {
         uint256 treasuryFee = (bondingCurvePrice * treasuryFeeBps) / BPS;
         uint256 creatorFee = (bondingCurvePrice * (partyInfo.creatorFeeOn ? creatorFeeBps : 0)) /
             BPS;
-        // Note: 1 is subtracted for each NFT to account for rounding errors
-        return bondingCurvePrice - partyDaoFee - treasuryFee - creatorFee - amount;
+        return bondingCurvePrice - partyDaoFee - treasuryFee - creatorFee;
     }
 
     /**
@@ -458,7 +453,8 @@ contract BondingCurveAuthority {
         uint256 partyDaoFee = (bondingCurvePrice * partyDaoFeeBps) / BPS;
         uint256 treasuryFee = (bondingCurvePrice * treasuryFeeBps) / BPS;
         uint256 creatorFee = (bondingCurvePrice * (creatorFeeOn ? creatorFeeBps : 0)) / BPS;
-        return bondingCurvePrice + partyDaoFee + treasuryFee + creatorFee;
+        // Note: 1 is added for each NFT to account for rounding errors
+        return bondingCurvePrice + partyDaoFee + treasuryFee + creatorFee + amount;
     }
 
     /**
