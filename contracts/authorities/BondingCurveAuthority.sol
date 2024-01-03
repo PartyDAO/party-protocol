@@ -22,6 +22,7 @@ contract BondingCurveAuthority {
     error EthTransferFailed();
     error ExcessSlippage();
     error AddAuthorityProposalNotSupported();
+    error SellZeroPartyCards();
 
     event TreasuryFeeUpdated(uint16 previousTreasuryFee, uint16 newTreasuryFee);
     event PartyDaoFeeUpdated(uint16 previousPartyDaoFee, uint16 newPartyDaoFee);
@@ -311,6 +312,10 @@ contract BondingCurveAuthority {
      * @param tokenIds The token ids to sell
      */
     function sellPartyCards(Party party, uint256[] memory tokenIds, uint256 minProceeds) external {
+        if (tokenIds.length == 0) {
+            revert SellZeroPartyCards();
+        }
+
         PartyInfo memory partyInfo = partyInfos[party];
 
         if (partyInfo.creator == address(0)) {
