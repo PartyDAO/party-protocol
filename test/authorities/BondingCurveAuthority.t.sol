@@ -7,6 +7,8 @@ import { BondingCurveAuthority } from "../../contracts/authorities/BondingCurveA
 import { SetupPartyHelper } from "../utils/SetupPartyHelper.sol";
 import { MetadataProvider } from "contracts/renderers/MetadataProvider.sol";
 import { ProposalStorage } from "../../contracts/proposals/ProposalStorage.sol";
+import { Test } from "forge-std/Test.sol";
+import { IERC721 } from "contracts/tokens/IERC721.sol";
 
 contract BondingCurveAuthorityTest is SetupPartyHelper {
     event TreasuryFeeUpdated(uint16 previousTreasuryFee, uint16 newTreasuryFee);
@@ -224,6 +226,47 @@ contract BondingCurveAuthorityTest is SetupPartyHelper {
         assertEq(supply, 5);
         assertEq(party.balanceOf(creator), 5);
         assertEq(party.getVotingPowerAt(creator, uint40(block.timestamp), 0), 0.5 ether);
+    }
+
+    function test_createParty_alreadyExists() external {
+        // Create party to attempt to take over
+        _createParty(1, true);
+
+        PartyFactory trickFactory = PartyFactory(address(new TrickFactory(address(partyFactory))));
+
+        address creator = _randomAddress();
+        uint256 initialPrice = authority.getPriceToBuy(0, 2, 50_000, uint80(0.001 ether), true);
+
+        vm.deal(creator, initialPrice);
+        vm.prank(creator);
+        vm.expectRevert(BondingCurveAuthority.ExistingParty.selector);
+        Party party = authority.createParty{ value: initialPrice }(
+            BondingCurveAuthority.BondingCurvePartyOptions({
+                partyFactory: trickFactory,
+                partyImpl: partyImpl,
+                opts: opts,
+                creatorFeeOn: true,
+                a: 50_000,
+                b: uint80(0.001 ether)
+            }),
+            2
+        );
+
+        vm.prank(creator);
+        vm.expectRevert(BondingCurveAuthority.ExistingParty.selector);
+        Party party2 = authority.createPartyWithMetadata{ value: initialPrice }(
+            BondingCurveAuthority.BondingCurvePartyOptions({
+                partyFactory: trickFactory,
+                partyImpl: partyImpl,
+                opts: opts,
+                creatorFeeOn: true,
+                a: 50_000,
+                b: uint80(0.001 ether)
+            }),
+            MetadataProvider(address(0)),
+            "",
+            2
+        );
     }
 
     function test_createPartyWithMetadata_works() public {
@@ -917,5 +960,134 @@ contract MockBondingCurveAuthority is BondingCurveAuthority {
         uint80 b
     ) external pure returns (uint256) {
         return super._getBondingCurvePrice(lowerSupply, amount, a, b);
+    }
+}
+
+contract TrickFactory is Test {
+    address realFactory;
+
+    constructor(address realFactory_) {
+        realFactory = realFactory_;
+    }
+
+    function createParty(
+        Party,
+        address[] memory,
+        Party.PartyOptions memory,
+        IERC721[] memory,
+        uint256[] memory,
+        uint40
+    ) external returns (Party party) {
+        return Party(payable(contractAddressFrom(realFactory, vm.getNonce(realFactory) - 1)));
+    }
+
+    function createPartyWithMetadata(
+        Party,
+        address[] memory,
+        Party.PartyOptions memory,
+        IERC721[] memory,
+        uint256[] memory,
+        uint40,
+        MetadataProvider,
+        bytes memory
+    ) external returns (Party party) {
+        return Party(payable(contractAddressFrom(realFactory, vm.getNonce(realFactory) - 1)));
+    }
+
+    function contractAddressFrom(address deployer, uint256 nonce) internal pure returns (address) {
+        if (nonce == 0x00)
+            return
+                address(
+                    uint160(
+                        uint256(
+                            keccak256(
+                                abi.encodePacked(bytes1(0xd6), bytes1(0x94), deployer, bytes1(0x80))
+                            )
+                        )
+                    )
+                );
+        if (nonce <= 0x7f)
+            return
+                address(
+                    uint160(
+                        uint256(
+                            keccak256(
+                                abi.encodePacked(
+                                    bytes1(0xd6),
+                                    bytes1(0x94),
+                                    deployer,
+                                    bytes1(uint8(nonce))
+                                )
+                            )
+                        )
+                    )
+                );
+        if (nonce <= 0xff)
+            return
+                address(
+                    uint160(
+                        uint256(
+                            keccak256(
+                                abi.encodePacked(
+                                    bytes1(0xd7),
+                                    bytes1(0x94),
+                                    deployer,
+                                    bytes1(0x81),
+                                    uint8(nonce)
+                                )
+                            )
+                        )
+                    )
+                );
+        if (nonce <= 0xffff)
+            return
+                address(
+                    uint160(
+                        uint256(
+                            keccak256(
+                                abi.encodePacked(
+                                    bytes1(0xd8),
+                                    bytes1(0x94),
+                                    deployer,
+                                    bytes1(0x82),
+                                    uint16(nonce)
+                                )
+                            )
+                        )
+                    )
+                );
+        if (nonce <= 0xffffff)
+            return
+                address(
+                    uint160(
+                        uint256(
+                            keccak256(
+                                abi.encodePacked(
+                                    bytes1(0xd9),
+                                    bytes1(0x94),
+                                    deployer,
+                                    bytes1(0x83),
+                                    uint24(nonce)
+                                )
+                            )
+                        )
+                    )
+                );
+        return
+            address(
+                uint160(
+                    uint256(
+                        keccak256(
+                            abi.encodePacked(
+                                bytes1(0xda),
+                                bytes1(0x94),
+                                deployer,
+                                bytes1(0x84),
+                                uint32(nonce)
+                            )
+                        )
+                    )
+                )
+            );
     }
 }
