@@ -6,6 +6,7 @@ import { PartyFactory } from "../party/PartyFactory.sol";
 import { IERC721 } from "../tokens/IERC721.sol";
 import { MetadataProvider } from "../renderers/MetadataProvider.sol";
 import { LibSafeCast } from "contracts/utils/LibSafeCast.sol";
+import { ProposalStorage } from "contracts/proposals/ProposalStorage.sol";
 
 contract BondingCurveAuthority {
     using LibSafeCast for uint256;
@@ -23,6 +24,7 @@ contract BondingCurveAuthority {
     error ExcessSlippage();
     error AddAuthorityProposalNotSupported();
     error SellZeroPartyCards();
+    error DistributionsNotSupported();
 
     event TreasuryFeeUpdated(uint16 previousTreasuryFee, uint16 newTreasuryFee);
     event PartyDaoFeeUpdated(uint16 previousPartyDaoFee, uint16 newPartyDaoFee);
@@ -228,6 +230,13 @@ contract BondingCurveAuthority {
 
         if (partyOpts.proposalEngine.enableAddAuthorityProposal) {
             revert AddAuthorityProposalNotSupported();
+        }
+
+        if (
+            partyOpts.proposalEngine.distributionsConfig !=
+            ProposalStorage.DistributionsConfig.NotAllowed
+        ) {
+            revert DistributionsNotSupported();
         }
     }
 
