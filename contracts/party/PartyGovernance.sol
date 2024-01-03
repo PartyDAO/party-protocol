@@ -498,7 +498,10 @@ abstract contract PartyGovernance is
             // Must not require a vote to create a distribution, otherwise
             // distributions can only be created through a distribution
             // proposal.
-            if (_getSharedProposalStorage().opts.distributionsConfig != 0) {
+            if (
+                _getSharedProposalStorage().opts.distributionsConfig !=
+                DistributionsConfig.AllowedWithoutVote
+            ) {
                 revert DistributionsRequireVoteError();
             }
             // Must be an active member.

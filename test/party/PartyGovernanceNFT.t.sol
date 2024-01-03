@@ -540,7 +540,7 @@ contract PartyGovernanceNFTTest is PartyGovernanceNFTTestBase {
                 allowArbCallsToSpendPartyEth: false,
                 allowOperators: false,
                 // Needs to be true to set non-zero rageQuitTimestamp
-                distributionsConfig: 1
+                distributionsConfig: ProposalStorage.DistributionsConfig.AllowedWithVote
             })
         );
         uint40 newTimestamp = uint40(block.timestamp + 1);
@@ -568,7 +568,7 @@ contract PartyGovernanceNFTTest is PartyGovernanceNFTTestBase {
                 allowArbCallsToSpendPartyEth: false,
                 allowOperators: true,
                 // Needs to be true to set non-zero rageQuitTimestamp
-                distributionsConfig: 1
+                distributionsConfig: ProposalStorage.DistributionsConfig.AllowedWithVote
             })
         );
         address notHost = _randomAddress();
@@ -596,7 +596,7 @@ contract PartyGovernanceNFTTest is PartyGovernanceNFTTestBase {
                 allowArbCallsToSpendPartyEth: false,
                 allowOperators: false,
                 // Needs to be true to set non-zero rageQuitTimestamp
-                distributionsConfig: 1
+                distributionsConfig: ProposalStorage.DistributionsConfig.AllowedWithVote
             })
         );
 
@@ -632,7 +632,7 @@ contract PartyGovernanceNFTTest is PartyGovernanceNFTTestBase {
                 allowArbCallsToSpendPartyEth: false,
                 allowOperators: false,
                 // Needs to be true to set non-zero rageQuitTimestamp
-                distributionsConfig: 1
+                distributionsConfig: ProposalStorage.DistributionsConfig.AllowedWithVote
             })
         );
 
@@ -665,7 +665,7 @@ contract PartyGovernanceNFTTest is PartyGovernanceNFTTestBase {
                 allowArbCallsToSpendPartyEth: false,
                 allowOperators: false,
                 // Needs to be true to set non-zero rageQuitTimestamp
-                distributionsConfig: 1
+                distributionsConfig: ProposalStorage.DistributionsConfig.AllowedWithVote
             })
         );
 
@@ -693,7 +693,7 @@ contract PartyGovernanceNFTTest is PartyGovernanceNFTTestBase {
                 allowArbCallsToSpendPartyEth: false,
                 allowOperators: false,
                 // Needs to be true to set non-zero rageQuitTimestamp
-                distributionsConfig: 1
+                distributionsConfig: ProposalStorage.DistributionsConfig.AllowedWithVote
             })
         );
 
@@ -788,7 +788,7 @@ contract PartyGovernanceNFTTest is PartyGovernanceNFTTestBase {
                 allowArbCallsToSpendPartyEth: false,
                 allowOperators: false,
                 // Needs to be true to set non-zero rageQuitTimestamp
-                distributionsConfig: 1
+                distributionsConfig: ProposalStorage.DistributionsConfig.AllowedWithVote
             })
         );
 
@@ -923,7 +923,7 @@ contract PartyGovernanceNFTTest is PartyGovernanceNFTTestBase {
                 allowArbCallsToSpendPartyEth: false,
                 allowOperators: false,
                 // Needs to be true to set non-zero rageQuitTimestamp
-                distributionsConfig: 1
+                distributionsConfig: ProposalStorage.DistributionsConfig.AllowedWithVote
             })
         );
 
@@ -990,7 +990,7 @@ contract PartyGovernanceNFTTest is PartyGovernanceNFTTestBase {
                 allowArbCallsToSpendPartyEth: false,
                 allowOperators: false,
                 // Needs to be true to set non-zero rageQuitTimestamp
-                distributionsConfig: 1
+                distributionsConfig: ProposalStorage.DistributionsConfig.AllowedWithVote
             })
         );
 
@@ -1078,7 +1078,7 @@ contract PartyGovernanceNFTTest is PartyGovernanceNFTTestBase {
                 allowArbCallsToSpendPartyEth: false,
                 allowOperators: false,
                 // Needs to be true to set non-zero rageQuitTimestamp
-                distributionsConfig: 1
+                distributionsConfig: ProposalStorage.DistributionsConfig.AllowedWithVote
             })
         );
 
@@ -1148,7 +1148,7 @@ contract PartyGovernanceNFTTest is PartyGovernanceNFTTestBase {
                 allowArbCallsToSpendPartyEth: false,
                 allowOperators: false,
                 // Needs to be true to set non-zero rageQuitTimestamp
-                distributionsConfig: 0
+                distributionsConfig: ProposalStorage.DistributionsConfig.AllowedWithoutVote
             })
         );
 
@@ -1179,7 +1179,7 @@ contract PartyGovernanceNFTTest is PartyGovernanceNFTTestBase {
                 allowArbCallsToSpendPartyEth: false,
                 allowOperators: false,
                 // Needs to be true to set non-zero rageQuitTimestamp
-                distributionsConfig: 1
+                distributionsConfig: ProposalStorage.DistributionsConfig.AllowedWithVote
             })
         );
 
@@ -1248,7 +1248,7 @@ contract PartyGovernanceNFTTest is PartyGovernanceNFTTestBase {
                 allowArbCallsToSpendPartyEth: false,
                 allowOperators: false,
                 // Needs to be true to set non-zero rageQuitTimestamp
-                distributionsConfig: 1
+                distributionsConfig: ProposalStorage.DistributionsConfig.AllowedWithVote
             })
         );
 
@@ -1318,7 +1318,7 @@ contract PartyGovernanceNFTTest is PartyGovernanceNFTTestBase {
                 allowArbCallsToSpendPartyEth: false,
                 allowOperators: false,
                 // Needs to be true to set non-zero rageQuitTimestamp
-                distributionsConfig: 1
+                distributionsConfig: ProposalStorage.DistributionsConfig.AllowedWithVote
             })
         );
 
@@ -1409,7 +1409,7 @@ contract PartyGovernanceNFTTest is PartyGovernanceNFTTestBase {
                 allowArbCallsToSpendPartyEth: false,
                 allowOperators: false,
                 // Needs to be true to set non-zero rageQuitTimestamp
-                distributionsConfig: 1
+                distributionsConfig: ProposalStorage.DistributionsConfig.AllowedWithVote
             })
         );
 
@@ -1480,7 +1480,7 @@ contract PartyGovernanceNFTTest is PartyGovernanceNFTTestBase {
                 allowArbCallsToSpendPartyEth: false,
                 allowOperators: false,
                 // Needs to be true to set non-zero rageQuitTimestamp
-                distributionsConfig: 1
+                distributionsConfig: ProposalStorage.DistributionsConfig.AllowedWithVote
             })
         );
 
@@ -1549,7 +1549,7 @@ contract PartyGovernanceNFTTest is PartyGovernanceNFTTestBase {
                 allowArbCallsToSpendPartyEth: false,
                 allowOperators: false,
                 // Needs to be true to set non-zero rageQuitTimestamp
-                distributionsConfig: 1
+                distributionsConfig: ProposalStorage.DistributionsConfig.AllowedWithVote
             })
         );
 
@@ -1637,7 +1637,7 @@ contract PartyGovernanceNFTTest is PartyGovernanceNFTTestBase {
                 allowArbCallsToSpendPartyEth: false,
                 allowOperators: false,
                 // Needs to be true to set non-zero rageQuitTimestamp
-                distributionsConfig: 1
+                distributionsConfig: ProposalStorage.DistributionsConfig.AllowedWithVote
             })
         );
 

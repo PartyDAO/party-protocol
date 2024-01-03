@@ -263,7 +263,10 @@ contract ProposalExecutionEngine is
                 _getSharedProposalStorage().opts.allowArbCallsToSpendPartyEth
             );
         } else if (pt == ProposalType.Distribute) {
-            if (_getSharedProposalStorage().opts.distributionsConfig != 1) {
+            if (
+                _getSharedProposalStorage().opts.distributionsConfig !=
+                DistributionsConfig.AllowedWithVote
+            ) {
                 revert ProposalDisabled(pt);
             }
 

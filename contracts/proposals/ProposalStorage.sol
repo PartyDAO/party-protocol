@@ -24,6 +24,12 @@ abstract contract ProposalStorage {
         uint96 totalVotingPower;
     }
 
+    enum DistributionsConfig {
+        AllowedWithoutVote,
+        AllowedWithVote,
+        NotAllowed
+    }
+
     struct ProposalEngineOpts {
         // Whether the party can add new authorities with the add authority proposal.
         bool enableAddAuthorityProposal;
@@ -32,8 +38,8 @@ abstract contract ProposalStorage {
         bool allowArbCallsToSpendPartyEth;
         // Whether operators can be used.
         bool allowOperators;
-        // 0 = allowed without vote. 1 = allowed with vote. 2 = not allowed.
-        uint8 distributionsConfig;
+        // Distributions config for the party.
+        DistributionsConfig distributionsConfig;
     }
 
     uint256 internal constant PROPOSAL_FLAG_UNANIMOUS = 0x1;

@@ -82,7 +82,7 @@ contract PartyFactoryTest is Test, TestUtils {
                 enableAddAuthorityProposal: true,
                 allowArbCallsToSpendPartyEth: true,
                 allowOperators: true,
-                distributionsConfig: 1
+                distributionsConfig: ProposalStorage.DistributionsConfig.AllowedWithVote
             })
         });
         uint40 rageQuitTimestamp = uint40(block.timestamp + 30 days);
@@ -111,7 +111,10 @@ contract PartyFactoryTest is Test, TestUtils {
             .getProposalEngineOpts();
         assertEq(proposalEngineOpts.allowArbCallsToSpendPartyEth, true);
         assertEq(proposalEngineOpts.allowOperators, true);
-        assertEq(proposalEngineOpts.distributionsConfig, 1);
+        assertEq(
+            uint8(proposalEngineOpts.distributionsConfig),
+            uint8(ProposalStorage.DistributionsConfig.AllowedWithVote)
+        );
         assertEq(party.preciousListHash(), _hashPreciousList(preciousTokens, preciousTokenIds));
     }
 
@@ -135,7 +138,7 @@ contract PartyFactoryTest is Test, TestUtils {
                 enableAddAuthorityProposal: true,
                 allowArbCallsToSpendPartyEth: true,
                 allowOperators: true,
-                distributionsConfig: 1
+                distributionsConfig: ProposalStorage.DistributionsConfig.AllowedWithVote
             })
         });
         bytes memory customMetadata = abi.encodePacked(_randomBytes32());
@@ -168,7 +171,10 @@ contract PartyFactoryTest is Test, TestUtils {
             .getProposalEngineOpts();
         assertEq(proposalEngineOpts.allowArbCallsToSpendPartyEth, true);
         assertEq(proposalEngineOpts.allowOperators, true);
-        assertEq(proposalEngineOpts.distributionsConfig, 1);
+        assertEq(
+            uint8(proposalEngineOpts.distributionsConfig),
+            uint8(ProposalStorage.DistributionsConfig.AllowedWithVote)
+        );
         assertEq(party.preciousListHash(), _hashPreciousList(preciousTokens, preciousTokenIds));
         assertEq(address(registry.getProvider(address(party))), address(provider));
         assertEq(provider.getMetadata(address(party), 0), customMetadata);
