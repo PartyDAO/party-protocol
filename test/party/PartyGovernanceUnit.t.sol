@@ -296,7 +296,9 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
         uint256[] memory preciousTokenIds
     ) private returns (TestablePartyGovernance gov) {
         defaultGovernanceOpts.totalVotingPower = totalVotingPower;
-        defaultProposalEngineOpts.distributionsRequireVote = distributionsRequireVote;
+        defaultProposalEngineOpts.distributionsConfig = ProposalStorage.DistributionsConfig(
+            distributionsRequireVote ? 1 : 0
+        );
 
         return
             new TestablePartyGovernance(

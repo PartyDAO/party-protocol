@@ -6,6 +6,7 @@ import { PartyFactory } from "../../contracts/party/PartyFactory.sol";
 import { BondingCurveAuthority } from "../../contracts/authorities/BondingCurveAuthority.sol";
 import { SetupPartyHelper } from "../utils/SetupPartyHelper.sol";
 import { MetadataProvider } from "contracts/renderers/MetadataProvider.sol";
+import { ProposalStorage } from "../../contracts/proposals/ProposalStorage.sol";
 
 contract BondingCurveAuthorityTest is SetupPartyHelper {
     event TreasuryFeeUpdated(uint16 previousTreasuryFee, uint16 newTreasuryFee);
@@ -59,6 +60,7 @@ contract BondingCurveAuthorityTest is SetupPartyHelper {
         opts.governance.executionDelay = 4 days;
         opts.governance.passThresholdBps = 1000;
         opts.governance.totalVotingPower = 0;
+        opts.proposalEngine.distributionsConfig = ProposalStorage.DistributionsConfig.NotAllowed;
 
         // Set a default treasury fee
         vm.prank(globalDaoWalletAddress);
@@ -157,7 +159,7 @@ contract BondingCurveAuthorityTest is SetupPartyHelper {
         );
     }
 
-    function test_creatorParty_revertAddAuthorityProposalNotSupported() external {
+    function test_createParty_revertAddAuthorityProposalNotSupported() external {
         opts.proposalEngine.enableAddAuthorityProposal = true;
 
         vm.expectRevert(BondingCurveAuthority.AddAuthorityProposalNotSupported.selector);
@@ -174,7 +176,26 @@ contract BondingCurveAuthorityTest is SetupPartyHelper {
         );
     }
 
-    function test_creatorParty_revertBelowMinExecutionDelay() external {
+    function test_createParty_revertDistributionsNotSupported() external {
+        opts.proposalEngine.distributionsConfig = ProposalStorage
+            .DistributionsConfig
+            .AllowedWithoutVote;
+
+        vm.expectRevert(BondingCurveAuthority.DistributionsNotSupported.selector);
+        authority.createParty(
+            BondingCurveAuthority.BondingCurvePartyOptions({
+                partyFactory: partyFactory,
+                partyImpl: partyImpl,
+                opts: opts,
+                creatorFeeOn: true,
+                a: 50_000,
+                b: uint80(0.001 ether)
+            }),
+            1
+        );
+    }
+
+    function test_createParty_revertBelowMinExecutionDelay() external {
         opts.governance.executionDelay = 0;
 
         vm.expectRevert(BondingCurveAuthority.ExecutionDelayTooShort.selector);

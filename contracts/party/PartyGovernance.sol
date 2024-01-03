@@ -498,7 +498,10 @@ abstract contract PartyGovernance is
             // Must not require a vote to create a distribution, otherwise
             // distributions can only be created through a distribution
             // proposal.
-            if (_getSharedProposalStorage().opts.distributionsRequireVote) {
+            if (
+                _getSharedProposalStorage().opts.distributionsConfig !=
+                DistributionsConfig.AllowedWithoutVote
+            ) {
                 revert DistributionsRequireVoteError();
             }
             // Must be an active member.
@@ -1115,14 +1118,6 @@ abstract contract PartyGovernance is
         uint8 numHostsAccepted
     ) private pure returns (bool) {
         return snapshotNumHosts > 0 && snapshotNumHosts == numHostsAccepted;
-    }
-
-    function _areVotesPassing(
-        uint96 voteCount,
-        uint96 totalVotingPower,
-        uint16 passThresholdBps
-    ) private pure returns (bool) {
-        return (uint256(voteCount) * 1e4) / uint256(totalVotingPower) >= uint256(passThresholdBps);
     }
 
     function _setPreciousList(
