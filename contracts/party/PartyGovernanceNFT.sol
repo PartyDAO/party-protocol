@@ -99,7 +99,7 @@ abstract contract PartyGovernanceNFT is PartyGovernance, ERC721, IERC2981 {
         name = name_;
         symbol = symbol_;
         if (rageQuitTimestamp_ != 0) {
-            if (!proposalEngineOpts.distributionsRequireVote) {
+            if (proposalEngineOpts.distributionsConfig == 0) {
                 revert CannotEnableRageQuitIfNotDistributionsRequireVoteError();
             }
 
@@ -346,7 +346,7 @@ abstract contract PartyGovernanceNFT is PartyGovernance, ERC721, IERC2981 {
         }
 
         // Prevent enabling ragequit if distributions can be created without a vote.
-        if (!_getSharedProposalStorage().opts.distributionsRequireVote)
+        if (_getSharedProposalStorage().opts.distributionsConfig == 0)
             revert CannotEnableRageQuitIfNotDistributionsRequireVoteError();
 
         uint40 oldRageQuitTimestamp = rageQuitTimestamp;

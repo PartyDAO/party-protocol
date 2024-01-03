@@ -32,8 +32,8 @@ abstract contract ProposalStorage {
         bool allowArbCallsToSpendPartyEth;
         // Whether operators can be used.
         bool allowOperators;
-        // Whether distributions require a vote or can be executed by any active member.
-        bool distributionsRequireVote;
+        // 0 = allowed without vote. 1 = allowed with vote. 2 = not allowed.
+        uint8 distributionsConfig;
     }
 
     uint256 internal constant PROPOSAL_FLAG_UNANIMOUS = 0x1;

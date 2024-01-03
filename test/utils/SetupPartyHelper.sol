@@ -111,7 +111,7 @@ abstract contract SetupPartyHelper is TestUtils, ERC721Receiver {
         opts.governance.executionDelay = _EXECUTION_DELAY;
         opts.governance.passThresholdBps = 1000;
         opts.proposalEngine.allowArbCallsToSpendPartyEth = true;
-        opts.proposalEngine.distributionsRequireVote = true;
+        opts.proposalEngine.distributionsConfig = 1;
         opts.governance.totalVotingPower = johnVotes + dannyVotes + steveVotes + thisVotes;
 
         address[] memory authorities = new address[](1);

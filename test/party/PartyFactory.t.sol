@@ -82,7 +82,7 @@ contract PartyFactoryTest is Test, TestUtils {
                 enableAddAuthorityProposal: true,
                 allowArbCallsToSpendPartyEth: true,
                 allowOperators: true,
-                distributionsRequireVote: true
+                distributionsConfig: 1
             })
         });
         uint40 rageQuitTimestamp = uint40(block.timestamp + 30 days);
@@ -111,7 +111,7 @@ contract PartyFactoryTest is Test, TestUtils {
             .getProposalEngineOpts();
         assertEq(proposalEngineOpts.allowArbCallsToSpendPartyEth, true);
         assertEq(proposalEngineOpts.allowOperators, true);
-        assertEq(proposalEngineOpts.distributionsRequireVote, true);
+        assertEq(proposalEngineOpts.distributionsConfig, 1);
         assertEq(party.preciousListHash(), _hashPreciousList(preciousTokens, preciousTokenIds));
     }
 
@@ -135,7 +135,7 @@ contract PartyFactoryTest is Test, TestUtils {
                 enableAddAuthorityProposal: true,
                 allowArbCallsToSpendPartyEth: true,
                 allowOperators: true,
-                distributionsRequireVote: true
+                distributionsConfig: 1
             })
         });
         bytes memory customMetadata = abi.encodePacked(_randomBytes32());
@@ -168,7 +168,7 @@ contract PartyFactoryTest is Test, TestUtils {
             .getProposalEngineOpts();
         assertEq(proposalEngineOpts.allowArbCallsToSpendPartyEth, true);
         assertEq(proposalEngineOpts.allowOperators, true);
-        assertEq(proposalEngineOpts.distributionsRequireVote, true);
+        assertEq(proposalEngineOpts.distributionsConfig, 1);
         assertEq(party.preciousListHash(), _hashPreciousList(preciousTokens, preciousTokenIds));
         assertEq(address(registry.getProvider(address(party))), address(provider));
         assertEq(provider.getMetadata(address(party), 0), customMetadata);
