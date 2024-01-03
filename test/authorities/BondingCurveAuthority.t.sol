@@ -605,6 +605,11 @@ contract BondingCurveAuthorityTest is SetupPartyHelper {
         authority.sellPartyCards(Party(payable(_randomAddress())), new uint256[](1), 0);
     }
 
+    function test_sellPartyCards_cantSellZero() public {
+        vm.expectRevert(BondingCurveAuthority.SellZeroPartyCards.selector);
+        authority.sellPartyCards(Party(payable(_randomAddress())), new uint256[](0), 0);
+    }
+
     function test_sellPartyCards_isApprovedForAll() public {
         (Party party, , , address buyer, ) = test_buyPartyCards_works();
 
