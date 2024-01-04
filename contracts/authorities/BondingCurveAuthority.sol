@@ -280,7 +280,11 @@ contract BondingCurveAuthority {
 
         if (creatorFee != 0) {
             // Creator fee payment can fail
-            (bool creatorFeeSucceeded, ) = partyInfo.creator.call{ value: creatorFee }("");
+            // Gas limit is set to 100k to prevent consuming all gas
+            (bool creatorFeeSucceeded, ) = partyInfo.creator.call{
+                value: creatorFee,
+                gas: 100_000
+            }("");
             if (!creatorFeeSucceeded) {
                 totalCost -= creatorFee;
             }
@@ -371,7 +375,11 @@ contract BondingCurveAuthority {
 
         if (creatorFee != 0) {
             // Creator fee payment can fail
-            (bool creatorFeeSucceeded, ) = partyInfo.creator.call{ value: creatorFee }("");
+            // Gas limit is set to 100k to prevent consuming all gas
+            (bool creatorFeeSucceeded, ) = partyInfo.creator.call{
+                value: creatorFee,
+                gas: 100_000
+            }("");
             if (!creatorFeeSucceeded) {
                 sellerProceeds += creatorFee;
             }
