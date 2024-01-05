@@ -15,6 +15,8 @@
     "deploy": "node js/deploy.js",
     "deploy:goerli": "DRY_RUN=0 forge script ./deploy/Goerli.s.sol -vvv --rpc-url $GOERLI_RPC_URL --broadcast --etherscan-api-key $ETHERSCAN_API_KEY --via-ir --skip test --optimize --optimizer-runs 95 --ffi --slow",
     "deploy:goerli:dry": "DRY_RUN=1 forge script ./deploy/Goerli.s.sol -vvv --rpc-url $GOERLI_RPC_URL --via-ir --skip test --optimize --optimizer-runs 95 --ffi",
+    "deploy:sepolia": "DRY_RUN=0 forge script ./deploy/Sepolia.s.sol -vvv --rpc-url $SEPOLIA_RPC_URL --broadcast --etherscan-api-key $ETHERSCAN_API_KEY --via-ir --skip test --optimize --optimizer-runs 95 --ffi --slow",
+    "deploy:sepolia:dry": "DRY_RUN=1 forge script ./deploy/Sepolia.s.sol -vvv --rpc-url $SEPOLIA_RPC_URL --via-ir --skip test --optimize --optimizer-runs 95 --ffi",
     "deploy:mainnet": "DRY_RUN=0 forge script ./deploy/Mainnet.s.sol -vvv --rpc-url $ETH_RPC_URL --broadcast --etherscan-api-key $ETHERSCAN_API_KEY --via-ir --skip test --optimize --optimizer-runs 95 --ffi --slow",
     "deploy:mainnet:dry": "DRY_RUN=1 forge script ./deploy/Mainnet.s.sol -vvv --rpc-url $ETH_RPC_URL --via-ir --skip test --optimize --optimizer-runs 95 --ffi",
     "deploy:base": "DRY_RUN=0 forge script ./deploy/Base.s.sol -vvv --rpc-url $BASE_RPC_URL --via-ir --broadcast --etherscan-api-key $BASESCAN_API_KEY --evm-version paris --skip test --optimize --optimizer-runs 0 --ffi --slow",

@@ -14,6 +14,8 @@ export const getBlockExplorerApiEndpoint = (chain: string) => {
     return "https://api-goerli.basescan.org/api";
   } else if (chain === "zora") {
     return "https://api.routescan.io/v2/network/mainnet/evm/7777777/etherscan/api";
+  } else if (chain === "base-sepolia") {
+    return "https://api-sepolia.basescan.org/api";
   } else {
     return `https://api-${chain}.etherscan.io/api`;
   }
@@ -222,6 +224,10 @@ const getChainId = (chain: string) => {
     return 84531;
   } else if (chain === "zora") {
     return 7777777;
+  } else if (chain === "sepolia") {
+    return 11155111;
+  } else if (chain === "base-sepolia") {
+    return 84532;
   } else {
     throw new Error(`Unknown chain ID for "${chain}". Please add to getChainId() function.`);
   }
