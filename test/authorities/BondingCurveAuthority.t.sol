@@ -214,6 +214,22 @@ contract BondingCurveAuthorityTest is SetupPartyHelper {
         );
     }
 
+    function test_createParty_revertNeedAtLeastOneHost() external {
+        opts.governance.hosts = new address[](0);
+        vm.expectRevert(BondingCurveAuthority.NeedAtLeastOneHost.selector);
+        authority.createParty(
+            BondingCurveAuthority.BondingCurvePartyOptions({
+                partyFactory: partyFactory,
+                partyImpl: partyImpl,
+                opts: opts,
+                creatorFeeOn: true,
+                a: 50_000,
+                b: uint80(0.001 ether)
+            }),
+            1
+        );
+    }
+
     function test_createParty_moreThanOnePartyCard() public {
         (Party party, address payable creator, ) = _createParty(5, true);
 

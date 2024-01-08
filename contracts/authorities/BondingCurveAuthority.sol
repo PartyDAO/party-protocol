@@ -25,6 +25,7 @@ contract BondingCurveAuthority {
     error AddAuthorityProposalNotSupported();
     error SellZeroPartyCards();
     error DistributionsNotSupported();
+    error NeedAtLeastOneHost();
 
     event TreasuryFeeUpdated(uint16 previousTreasuryFee, uint16 newTreasuryFee);
     event PartyDaoFeeUpdated(uint16 previousPartyDaoFee, uint16 newPartyDaoFee);
@@ -68,7 +69,7 @@ contract BondingCurveAuthority {
     uint16 private constant MAX_TREASURY_FEE = 1000; // 10%
     uint16 private constant MAX_PARTY_DAO_FEE = 250; // 2.5%
     /// @notice The minimum execution delay for party governance
-    uint40 private constant MIN_EXECUTION_DELAY = 1 seconds;
+    uint40 private constant MIN_EXECUTION_DELAY = 1 hours;
 
     /// @notice Struct containing options for creating a party
     struct BondingCurvePartyOptions {
@@ -220,7 +221,7 @@ contract BondingCurveAuthority {
         if (partyOpts.governance.totalVotingPower != 0) {
             revert InvalidTotalVotingPower();
         }
-        // Note: while the `executionDelay` is not enforced to be over 1 second,
+        // Note: while the `executionDelay` is not enforced to be over 1 hour,
         //       it is strongly recommended for it to be a long period
         //       (greater than 1 day). This prevents an attacker from buying cards,
         //       draining the party and then selling before a host can react.
@@ -237,6 +238,10 @@ contract BondingCurveAuthority {
             ProposalStorage.DistributionsConfig.NotAllowed
         ) {
             revert DistributionsNotSupported();
+        }
+
+        if (partyOpts.governance.hosts.length == 0) {
+            revert NeedAtLeastOneHost();
         }
     }
 
