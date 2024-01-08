@@ -347,11 +347,7 @@ contract BondingCurveAuthority {
         uint256 treasuryFee = (bondingCurvePrice * treasuryFeeBps) / BPS;
         uint256 creatorFee = (bondingCurvePrice * (partyInfo.creatorFeeOn ? creatorFeeBps : 0)) /
             BPS;
-
         uint256 sellerProceeds = bondingCurvePrice - partyDaoFee - treasuryFee - creatorFee;
-        if (sellerProceeds < minProceeds) {
-            revert ExcessSlippage();
-        }
 
         partyInfos[party].supply = partyInfo.supply - amount;
 
@@ -385,10 +381,15 @@ contract BondingCurveAuthority {
             }
         }
 
+        if (sellerProceeds < minProceeds) {
+            revert ExcessSlippage();
+        }
+
         (success, ) = msg.sender.call{ value: sellerProceeds }("");
         if (!success) {
             revert EthTransferFailed();
         }
+
         partyDaoFeeClaimable += partyDaoFee.safeCastUint256ToUint96();
 
         emit PartyCardsSold(
