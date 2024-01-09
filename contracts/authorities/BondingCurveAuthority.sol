@@ -6,6 +6,7 @@ import { PartyFactory } from "../party/PartyFactory.sol";
 import { IERC721 } from "../tokens/IERC721.sol";
 import { MetadataProvider } from "../renderers/MetadataProvider.sol";
 import { LibSafeCast } from "contracts/utils/LibSafeCast.sol";
+import { ProposalStorage } from "contracts/proposals/ProposalStorage.sol";
 
 contract BondingCurveAuthority {
     using LibSafeCast for uint256;
@@ -16,10 +17,15 @@ contract BondingCurveAuthority {
     error InvalidTreasuryFee();
     error InvalidPartyDaoFee();
     error PartyNotSupported();
+    error ExistingParty();
     error InvalidTotalVotingPower();
     error ExecutionDelayTooShort();
     error EthTransferFailed();
     error ExcessSlippage();
+    error AddAuthorityProposalNotSupported();
+    error SellZeroPartyCards();
+    error DistributionsNotSupported();
+    error NeedAtLeastOneHost();
 
     event TreasuryFeeUpdated(uint16 previousTreasuryFee, uint16 newTreasuryFee);
     event PartyDaoFeeUpdated(uint16 previousPartyDaoFee, uint16 newPartyDaoFee);
@@ -63,7 +69,7 @@ contract BondingCurveAuthority {
     uint16 private constant MAX_TREASURY_FEE = 1000; // 10%
     uint16 private constant MAX_PARTY_DAO_FEE = 250; // 2.5%
     /// @notice The minimum execution delay for party governance
-    uint40 private constant MIN_EXECUTION_DELAY = 1 seconds;
+    uint40 private constant MIN_EXECUTION_DELAY = 1 hours;
 
     /// @notice Struct containing options for creating a party
     struct BondingCurvePartyOptions {
@@ -151,6 +157,10 @@ contract BondingCurveAuthority {
             0
         );
 
+        if (partyInfos[party].creator != address(0)) {
+            revert ExistingParty();
+        }
+
         partyInfos[party] = PartyInfo({
             creator: payable(msg.sender),
             supply: 0,
@@ -192,6 +202,10 @@ contract BondingCurveAuthority {
             customMetadata
         );
 
+        if (partyInfos[party].creator != address(0)) {
+            revert ExistingParty();
+        }
+
         partyInfos[party] = PartyInfo({
             creator: payable(msg.sender),
             supply: 0,
@@ -207,12 +221,27 @@ contract BondingCurveAuthority {
         if (partyOpts.governance.totalVotingPower != 0) {
             revert InvalidTotalVotingPower();
         }
-        // Note: while the `executionDelay` is not enforced to be over 1 second,
+        // Note: while the `executionDelay` is not enforced to be over 1 hour,
         //       it is strongly recommended for it to be a long period
         //       (greater than 1 day). This prevents an attacker from buying cards,
         //       draining the party and then selling before a host can react.
         if (partyOpts.governance.executionDelay < MIN_EXECUTION_DELAY) {
             revert ExecutionDelayTooShort();
+        }
+
+        if (partyOpts.proposalEngine.enableAddAuthorityProposal) {
+            revert AddAuthorityProposalNotSupported();
+        }
+
+        if (
+            partyOpts.proposalEngine.distributionsConfig !=
+            ProposalStorage.DistributionsConfig.NotAllowed
+        ) {
+            revert DistributionsNotSupported();
+        }
+
+        if (partyOpts.governance.hosts.length == 0) {
+            revert NeedAtLeastOneHost();
         }
     }
 
@@ -244,11 +273,8 @@ contract BondingCurveAuthority {
         uint256 treasuryFee = (bondingCurvePrice * treasuryFeeBps) / BPS;
         uint256 creatorFee = (bondingCurvePrice * (partyInfo.creatorFeeOn ? creatorFeeBps : 0)) /
             BPS;
-        uint256 totalCost = bondingCurvePrice + partyDaoFee + treasuryFee + creatorFee;
-
-        if (amount == 0 || msg.value < totalCost) {
-            revert InvalidMessageValue();
-        }
+        // Note: 1 is added for each NFT to account for rounding errors
+        uint256 totalCost = bondingCurvePrice + partyDaoFee + treasuryFee + creatorFee + amount;
 
         partyInfos[party].supply = partyInfo.supply + amount;
 
@@ -259,10 +285,21 @@ contract BondingCurveAuthority {
 
         if (creatorFee != 0) {
             // Creator fee payment can fail
-            partyInfo.creator.call{ value: creatorFee }("");
+            // Gas limit is set to 100k to prevent consuming all gas
+            (bool creatorFeeSucceeded, ) = partyInfo.creator.call{
+                value: creatorFee,
+                gas: 100_000
+            }("");
+            if (!creatorFeeSucceeded) {
+                totalCost -= creatorFee;
+            }
         }
-        partyDaoFeeClaimable += partyDaoFee.safeCastUint256ToUint96();
 
+        if (amount == 0 || msg.value < totalCost) {
+            revert InvalidMessageValue();
+        }
+
+        partyDaoFeeClaimable += partyDaoFee.safeCastUint256ToUint96();
         party.increaseTotalVotingPower(PARTY_CARD_VOTING_POWER * amount);
         tokenIds = new uint256[](amount);
         for (uint256 i = 0; i < amount; i++) {
@@ -273,7 +310,7 @@ contract BondingCurveAuthority {
             party,
             msg.sender,
             tokenIds,
-            msg.value,
+            totalCost,
             partyDaoFee,
             treasuryFee,
             creatorFee
@@ -294,6 +331,10 @@ contract BondingCurveAuthority {
      * @param tokenIds The token ids to sell
      */
     function sellPartyCards(Party party, uint256[] memory tokenIds, uint256 minProceeds) external {
+        if (tokenIds.length == 0) {
+            revert SellZeroPartyCards();
+        }
+
         PartyInfo memory partyInfo = partyInfos[party];
 
         if (partyInfo.creator == address(0)) {
@@ -311,16 +352,7 @@ contract BondingCurveAuthority {
         uint256 treasuryFee = (bondingCurvePrice * treasuryFeeBps) / BPS;
         uint256 creatorFee = (bondingCurvePrice * (partyInfo.creatorFeeOn ? creatorFeeBps : 0)) /
             BPS;
-
-        // Note: 1 is subtracted for each NFT to account for rounding errors
-        uint256 sellerProceeds = bondingCurvePrice -
-            partyDaoFee -
-            treasuryFee -
-            creatorFee -
-            amount;
-        if (sellerProceeds < minProceeds) {
-            revert ExcessSlippage();
-        }
+        uint256 sellerProceeds = bondingCurvePrice - partyDaoFee - treasuryFee - creatorFee;
 
         partyInfos[party].supply = partyInfo.supply - amount;
 
@@ -344,13 +376,25 @@ contract BondingCurveAuthority {
 
         if (creatorFee != 0) {
             // Creator fee payment can fail
-            partyInfo.creator.call{ value: creatorFee }("");
+            // Gas limit is set to 100k to prevent consuming all gas
+            (bool creatorFeeSucceeded, ) = partyInfo.creator.call{
+                value: creatorFee,
+                gas: 100_000
+            }("");
+            if (!creatorFeeSucceeded) {
+                sellerProceeds += creatorFee;
+            }
+        }
+
+        if (sellerProceeds < minProceeds) {
+            revert ExcessSlippage();
         }
 
         (success, ) = msg.sender.call{ value: sellerProceeds }("");
         if (!success) {
             revert EthTransferFailed();
         }
+
         partyDaoFeeClaimable += partyDaoFee.safeCastUint256ToUint96();
 
         emit PartyCardsSold(
@@ -378,15 +422,11 @@ contract BondingCurveAuthority {
             partyInfo.a,
             partyInfo.b
         );
-        // Note: 1 is subtracted for each NFT to account for rounding errors
-        return
-            (bondingCurvePrice *
-                (BPS -
-                    partyDaoFeeBps -
-                    treasuryFeeBps -
-                    (partyInfo.creatorFeeOn ? creatorFeeBps : 0))) /
-            BPS -
-            amount;
+        uint256 partyDaoFee = (bondingCurvePrice * partyDaoFeeBps) / BPS;
+        uint256 treasuryFee = (bondingCurvePrice * treasuryFeeBps) / BPS;
+        uint256 creatorFee = (bondingCurvePrice * (partyInfo.creatorFeeOn ? creatorFeeBps : 0)) /
+            BPS;
+        return bondingCurvePrice - partyDaoFee - treasuryFee - creatorFee;
     }
 
     /**
@@ -424,9 +464,11 @@ contract BondingCurveAuthority {
         bool creatorFeeOn
     ) public view returns (uint256) {
         uint256 bondingCurvePrice = _getBondingCurvePrice(supply, amount, a, b);
-        return
-            (bondingCurvePrice *
-                (BPS + partyDaoFeeBps + treasuryFeeBps + (creatorFeeOn ? creatorFeeBps : 0))) / BPS;
+        uint256 partyDaoFee = (bondingCurvePrice * partyDaoFeeBps) / BPS;
+        uint256 treasuryFee = (bondingCurvePrice * treasuryFeeBps) / BPS;
+        uint256 creatorFee = (bondingCurvePrice * (creatorFeeOn ? creatorFeeBps : 0)) / BPS;
+        // Note: 1 is added for each NFT to account for rounding errors
+        return bondingCurvePrice + partyDaoFee + treasuryFee + creatorFee + amount;
     }
 
     /**
