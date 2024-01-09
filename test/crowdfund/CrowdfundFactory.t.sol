@@ -14,6 +14,7 @@ import "./MockMarketWrapper.sol";
 import "contracts/globals/Globals.sol";
 import "contracts/globals/LibGlobals.sol";
 import "contracts/renderers/MetadataRegistry.sol";
+import { ProposalStorage } from "contracts/proposals/ProposalStorage.sol";
 import "contracts/renderers/MetadataProvider.sol";
 import { FixedPointMathLib } from "solmate/utils/FixedPointMathLib.sol";
 import { LibSafeCast } from "contracts/utils/LibSafeCast.sol";
@@ -141,7 +142,7 @@ contract CrowdfundFactoryTest is Test, TestUtils {
                     enableAddAuthorityProposal: true,
                     allowArbCallsToSpendPartyEth: true,
                     allowOperators: true,
-                    distributionsRequireVote: true
+                    distributionsConfig: ProposalStorage.DistributionsConfig.AllowedWithVote
                 })
             });
 
@@ -219,7 +220,7 @@ contract CrowdfundFactoryTest is Test, TestUtils {
                     enableAddAuthorityProposal: true,
                     allowArbCallsToSpendPartyEth: true,
                     allowOperators: true,
-                    distributionsRequireVote: true
+                    distributionsConfig: ProposalStorage.DistributionsConfig.AllowedWithVote
                 })
             });
 
@@ -422,7 +423,7 @@ contract CrowdfundFactoryTest is Test, TestUtils {
                 enableAddAuthorityProposal: true,
                 allowArbCallsToSpendPartyEth: true,
                 allowOperators: true,
-                distributionsRequireVote: true
+                distributionsConfig: ProposalStorage.DistributionsConfig.AllowedWithVote
             })
         });
 
@@ -495,7 +496,7 @@ contract CrowdfundFactoryTest is Test, TestUtils {
                     enableAddAuthorityProposal: true,
                     allowArbCallsToSpendPartyEth: true,
                     allowOperators: true,
-                    distributionsRequireVote: true
+                    distributionsConfig: ProposalStorage.DistributionsConfig.AllowedWithVote
                 })
             });
 
@@ -566,7 +567,7 @@ contract CrowdfundFactoryTest is Test, TestUtils {
                     enableAddAuthorityProposal: true,
                     allowArbCallsToSpendPartyEth: true,
                     allowOperators: true,
-                    distributionsRequireVote: true
+                    distributionsConfig: ProposalStorage.DistributionsConfig.AllowedWithVote
                 })
             });
 
@@ -638,7 +639,7 @@ contract CrowdfundFactoryTest is Test, TestUtils {
                 enableAddAuthorityProposal: true,
                 allowArbCallsToSpendPartyEth: true,
                 allowOperators: true,
-                distributionsRequireVote: true
+                distributionsConfig: ProposalStorage.DistributionsConfig.AllowedWithVote
             }),
             preciousTokens: new IERC721[](0),
             preciousTokenIds: new uint256[](0),
@@ -714,7 +715,7 @@ contract CrowdfundFactoryTest is Test, TestUtils {
                 enableAddAuthorityProposal: true,
                 allowArbCallsToSpendPartyEth: true,
                 allowOperators: true,
-                distributionsRequireVote: true
+                distributionsConfig: ProposalStorage.DistributionsConfig.AllowedWithVote
             }),
             preciousTokens: new IERC721[](0),
             preciousTokenIds: new uint256[](0),
@@ -804,7 +805,7 @@ contract CrowdfundFactoryTest is Test, TestUtils {
                 enableAddAuthorityProposal: true,
                 allowArbCallsToSpendPartyEth: true,
                 allowOperators: true,
-                distributionsRequireVote: true
+                distributionsConfig: ProposalStorage.DistributionsConfig.AllowedWithVote
             }),
             preciousTokens: new IERC721[](0),
             preciousTokenIds: new uint256[](0),
@@ -870,7 +871,7 @@ contract CrowdfundFactoryTest is Test, TestUtils {
                 enableAddAuthorityProposal: true,
                 allowArbCallsToSpendPartyEth: true,
                 allowOperators: true,
-                distributionsRequireVote: true
+                distributionsConfig: ProposalStorage.DistributionsConfig.AllowedWithVote
             }),
             preciousTokens: new IERC721[](0),
             preciousTokenIds: new uint256[](0),

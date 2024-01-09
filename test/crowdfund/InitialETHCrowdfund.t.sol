@@ -1748,7 +1748,7 @@ contract InitialETHCrowdfundTest is InitialETHCrowdfundTestBase {
                 enableAddAuthorityProposal: true,
                 allowArbCallsToSpendPartyEth: true,
                 allowOperators: true,
-                distributionsRequireVote: true
+                distributionsConfig: ProposalStorage.DistributionsConfig.AllowedWithVote
             }),
             preciousTokens: new IERC721[](0),
             preciousTokenIds: new uint256[](0),
