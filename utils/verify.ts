@@ -14,6 +14,8 @@ export const getBlockExplorerApiEndpoint = (chain: string) => {
     return "https://api-goerli.basescan.org/api";
   } else if (chain === "zora") {
     return "https://api.routescan.io/v2/network/mainnet/evm/7777777/etherscan/api";
+  } else if (chain === "base-sepolia") {
+    return "https://api-sepolia.basescan.org/api";
   } else {
     return `https://api-${chain}.etherscan.io/api`;
   }
@@ -51,26 +53,31 @@ const getEncodedConstructorArgs = (args: any[], types: string[]) => {
     let arg = args[i];
     const type = types[i];
     if (type.startsWith("uint")) {
+      // Format uint types
       arg = parseInt(arg.match(/\d+/)[0]);
     } else if (type.includes("[]")) {
+      // Handle array types
       if (arg !== "[]") {
         arg = arg.slice(1, -1).split(", ");
       } else {
         arg = [];
       }
+    } else if (type === "string") {
+      // Remove quotes from start and end of string (if present)
+      arg = arg.replace(/^['"](.*)['"]$/, "$1");
     }
 
     constructorArgs.push(arg);
   }
 
-  return ethers.AbiCoder.defaultAbiCoder().encode(types, constructorArgs).slice(2);
+  return ethers.AbiCoder.defaultAbiCoder().encode(types, constructorArgs);
 };
 
 const generateStandardJson = (
   chain: string,
   contractName: string,
   contractAddress: string,
-  constructorArgs: string,
+  constructorArgsEncoded: string,
   optimizerRuns: number,
   compilerVersion: string,
   evmVersion: string,
@@ -78,7 +85,7 @@ const generateStandardJson = (
 ) => {
   let cmd = `forge verify-contract ${contractAddress} ${contractName} --chain-id ${getChainId(
     chain,
-  )} --optimizer-runs ${optimizerRuns} --constructor-args '${constructorArgs}' --compiler-version ${compilerVersion}`;
+  )} --optimizer-runs ${optimizerRuns} --constructor-args '${constructorArgsEncoded}' --compiler-version ${compilerVersion}`;
 
   if (libraries.length > 0) {
     cmd += ` --libraries ${libraries.join(" ")}`;
@@ -131,6 +138,11 @@ const uploadToBlockExplorer = async (
   evmVersion: string,
   apiKey: string,
 ) => {
+  // Remove 0x at the beginning of the encoded constructor args, if present. Etherscan doesn't like it.
+  if (constructorArgsEncoded.startsWith("0x")) {
+    constructorArgsEncoded = constructorArgsEncoded.slice(2);
+  }
+
   const response = await axios.post(
     getBlockExplorerApiEndpoint(chain),
     {
@@ -212,6 +224,10 @@ const getChainId = (chain: string) => {
     return 84531;
   } else if (chain === "zora") {
     return 7777777;
+  } else if (chain === "sepolia") {
+    return 11155111;
+  } else if (chain === "base-sepolia") {
+    return 84532;
   } else {
     throw new Error(`Unknown chain ID for "${chain}". Please add to getChainId() function.`);
   }
@@ -258,7 +274,11 @@ export const verify = async (chain: string, skip: boolean) => {
     });
 
     const contractAddress = contract["contractAddress"];
-    const constructorArgs = getConstructorArgs(contract["arguments"]);
+    const constructorArgsEncoded = getEncodedConstructorArgs(
+      contract["arguments"],
+      contractTypes[contractName],
+    );
+
     const optimizerRuns =
       cacheData["files"][contractFilePath]["solcConfig"]["settings"]["optimizer"]["runs"];
     const evmVersion = cacheData["files"][contractFilePath]["solcConfig"]["settings"]["evmVersion"];
@@ -267,16 +287,13 @@ export const verify = async (chain: string, skip: boolean) => {
       chain,
       contractName,
       contractAddress,
-      constructorArgs,
+      constructorArgsEncoded,
       optimizerRuns,
       getContractVersion(contractName),
       evmVersion,
       runLatestData["libraries"],
     );
-    const constructorArgsEncoded = getEncodedConstructorArgs(
-      contract["arguments"],
-      contractTypes[contractName],
-    );
+
     const response = await uploadToBlockExplorer(
       chain,
       jsonData,
