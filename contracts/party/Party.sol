@@ -28,15 +28,14 @@ contract Party is PartyGovernanceNFT {
     }
 
     /// @notice Version ID of the party implementation contract.
-    uint16 public constant VERSION_ID = 1;
+    uint16 public constant VERSION_ID = 2;
 
     // Set the `Globals` contract.
     constructor(IGlobals globals) PartyGovernanceNFT(globals) {}
 
-    /// @notice Initializer to be delegatecalled by `Proxy` constructor. Will
-    ///         revert if called outside the constructor.
+    /// @notice Initializer to be called prior to using the contract.
     /// @param initData Options used to initialize the party governance.
-    function initialize(PartyInitData memory initData) external onlyConstructor {
+    function initialize(PartyInitData memory initData) external onlyInitialize {
         PartyGovernanceNFT._initialize(
             initData.options.name,
             initData.options.symbol,

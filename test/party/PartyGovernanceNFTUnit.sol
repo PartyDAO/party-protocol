@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: Apache-2.0
+// SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8;
 
 import "forge-std/Test.sol";
@@ -38,7 +38,7 @@ contract TestablePartyGovernanceNFT is PartyGovernanceNFT {
     }
 
     function getCurrentVotingPower(address voter) external view returns (uint96 vp) {
-        return this.getVotingPowerAt(voter, uint40(block.timestamp));
+        return this.getVotingPowerAt(voter, uint40(block.timestamp), 0);
     }
 
     modifier onlyDelegateCall() override {
@@ -52,7 +52,10 @@ contract PartyGovernanceNFTUnitTest is TestUtils {
     ProposalStorage.ProposalEngineOpts defaultProposalEngineOpts;
 
     function _initGovernance() private {
+        defaultGovernanceOpts.voteDuration = 1 hours;
         defaultGovernanceOpts.totalVotingPower = 1e18;
+        defaultGovernanceOpts.passThresholdBps = 1;
+        defaultGovernanceOpts.executionDelay = 1 hours;
         nft.initialize(
             "TEST",
             "TST",
@@ -153,7 +156,7 @@ contract PartyGovernanceNFTUnitTest is TestUtils {
         uint256 vp = _randomUint256() % defaultGovernanceOpts.totalVotingPower;
         address notAuthority = _randomAddress();
         vm.prank(notAuthority);
-        vm.expectRevert(PartyGovernanceNFT.OnlyAuthorityError.selector);
+        vm.expectRevert(PartyGovernance.NotAuthorized.selector);
         nft.mint(from, vp, from);
     }
 

@@ -75,7 +75,7 @@ abstract contract BuyCrowdfundBase is Crowdfund {
 
     // Initialize storage for proxy contracts.
     function _initialize(BuyCrowdfundBaseOptions memory opts) internal {
-        expiry = uint40(opts.duration + block.timestamp);
+        expiry = (opts.duration + block.timestamp).safeCastUint256ToUint40();
         maximumPrice = opts.maximumPrice;
         Crowdfund._initialize(
             CrowdfundOptions({

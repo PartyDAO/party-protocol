@@ -1,12 +1,12 @@
-// SPDX-License-Identifier: Apache-2.0
+// SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8;
 
 import "forge-std/Test.sol";
+import { Clones } from "openzeppelin/contracts/proxy/Clones.sol";
 
 import "../../contracts/crowdfund/BuyCrowdfund.sol";
 import "../../contracts/globals/Globals.sol";
 import "../../contracts/globals/LibGlobals.sol";
-import "../../contracts/utils/Proxy.sol";
 import "../../contracts/gatekeepers/AllowListGateKeeper.sol";
 import "../../contracts/renderers/RendererStorage.sol";
 
@@ -17,6 +17,8 @@ import "./MockPartyFactory.sol";
 import "./TestERC721Vault.sol";
 
 contract BuyCrowdfundTest is Test, TestUtils {
+    using Clones for address;
+
     event BatchMetadataUpdate(uint256 _fromTokenId, uint256 _toTokenId);
 
     event MockPartyFactoryCreateParty(
@@ -85,37 +87,28 @@ contract BuyCrowdfundTest is Test, TestUtils {
         address[] memory hosts
     ) private returns (BuyCrowdfund cf) {
         govOpts.hosts = hosts;
-        cf = BuyCrowdfund(
-            payable(
-                address(
-                    new Proxy{ value: initialContribution }(
-                        buyCrowdfundImpl,
-                        abi.encodeCall(
-                            BuyCrowdfund.initialize,
-                            BuyCrowdfund.BuyCrowdfundOptions({
-                                name: defaultName,
-                                symbol: defaultSymbol,
-                                customizationPresetId: 0,
-                                nftContract: erc721Vault.token(),
-                                nftTokenId: tokenId,
-                                duration: defaultDuration,
-                                maximumPrice: defaultMaxPrice,
-                                splitRecipient: defaultSplitRecipient,
-                                splitBps: defaultSplitBps,
-                                initialContributor: address(this),
-                                initialDelegate: defaultInitialDelegate,
-                                minContribution: 0,
-                                maxContribution: type(uint96).max,
-                                gateKeeper: gateKeeper,
-                                gateKeeperId: gateKeeperId,
-                                onlyHostCanBuy: onlyHostCanBuy,
-                                governanceOpts: govOpts,
-                                proposalEngineOpts: proposalEngineOpts
-                            })
-                        )
-                    )
-                )
-            )
+        cf = BuyCrowdfund(address(buyCrowdfundImpl).clone());
+        cf.initialize{ value: initialContribution }(
+            BuyCrowdfund.BuyCrowdfundOptions({
+                name: defaultName,
+                symbol: defaultSymbol,
+                customizationPresetId: 0,
+                nftContract: erc721Vault.token(),
+                nftTokenId: tokenId,
+                duration: defaultDuration,
+                maximumPrice: defaultMaxPrice,
+                splitRecipient: defaultSplitRecipient,
+                splitBps: defaultSplitBps,
+                initialContributor: address(this),
+                initialDelegate: defaultInitialDelegate,
+                minContribution: 0,
+                maxContribution: type(uint96).max,
+                gateKeeper: gateKeeper,
+                gateKeeperId: gateKeeperId,
+                onlyHostCanBuy: onlyHostCanBuy,
+                governanceOpts: govOpts,
+                proposalEngineOpts: proposalEngineOpts
+            })
         );
     }
 
@@ -509,12 +502,14 @@ contract BuyCrowdfundTest is Test, TestUtils {
     function testCannotReinitialize() public {
         uint256 tokenId = erc721Vault.mint();
         BuyCrowdfund cf = _createCrowdfund(tokenId, 0);
-        vm.expectRevert(abi.encodeWithSelector(Implementation.OnlyConstructorError.selector));
+        vm.expectRevert(abi.encodeWithSelector(Implementation.AlreadyInitialized.selector));
         BuyCrowdfund.BuyCrowdfundOptions memory opts;
         cf.initialize(opts);
     }
 
     function test_creation_initialContribution() public {
+        BuyCrowdfund cf = BuyCrowdfund(address(buyCrowdfundImpl).clone());
+
         uint256 tokenId = erc721Vault.mint();
         uint256 initialContribution = _randomRange(1, 1 ether);
         address initialContributor = _randomAddress();
@@ -527,37 +522,27 @@ contract BuyCrowdfundTest is Test, TestUtils {
             initialDelegate,
             0
         );
-        BuyCrowdfund(
-            payable(
-                address(
-                    new Proxy{ value: initialContribution }(
-                        buyCrowdfundImpl,
-                        abi.encodeCall(
-                            BuyCrowdfund.initialize,
-                            BuyCrowdfund.BuyCrowdfundOptions({
-                                name: defaultName,
-                                symbol: defaultSymbol,
-                                customizationPresetId: 0,
-                                nftContract: erc721Vault.token(),
-                                nftTokenId: tokenId,
-                                duration: defaultDuration,
-                                maximumPrice: defaultMaxPrice,
-                                splitRecipient: defaultSplitRecipient,
-                                splitBps: defaultSplitBps,
-                                initialContributor: initialContributor,
-                                initialDelegate: initialDelegate,
-                                minContribution: 0,
-                                maxContribution: type(uint96).max,
-                                gateKeeper: defaultGateKeeper,
-                                gateKeeperId: defaultGateKeeperId,
-                                onlyHostCanBuy: false,
-                                governanceOpts: govOpts,
-                                proposalEngineOpts: proposalEngineOpts
-                            })
-                        )
-                    )
-                )
-            )
+        cf.initialize{ value: initialContribution }(
+            BuyCrowdfund.BuyCrowdfundOptions({
+                name: defaultName,
+                symbol: defaultSymbol,
+                customizationPresetId: 0,
+                nftContract: erc721Vault.token(),
+                nftTokenId: tokenId,
+                duration: defaultDuration,
+                maximumPrice: defaultMaxPrice,
+                splitRecipient: defaultSplitRecipient,
+                splitBps: defaultSplitBps,
+                initialContributor: initialContributor,
+                initialDelegate: initialDelegate,
+                minContribution: 0,
+                maxContribution: type(uint96).max,
+                gateKeeper: defaultGateKeeper,
+                gateKeeperId: defaultGateKeeperId,
+                onlyHostCanBuy: false,
+                governanceOpts: govOpts,
+                proposalEngineOpts: proposalEngineOpts
+            })
         );
     }
 }

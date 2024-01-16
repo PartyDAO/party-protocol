@@ -48,8 +48,7 @@ contract RollingAuctionCrowdfund is AuctionCrowdfundBase {
     // Set the `Globals` contract.
     constructor(IGlobals globals) AuctionCrowdfundBase(globals) {}
 
-    /// @notice Initializer to be delegatecalled by `Proxy` constructor. Will
-    ///         revert if called outside the constructor.
+    /// @notice Initializer to be called prior to using the contract.
     /// @param opts Options used to initialize the crowdfund. These are fixed
     ///             and cannot be changed later.
     /// @param allowedAuctionsMerkleRoot_ Merkle root of list of allowed next
@@ -58,7 +57,7 @@ contract RollingAuctionCrowdfund is AuctionCrowdfundBase {
     function initialize(
         AuctionCrowdfundBase.AuctionCrowdfundOptions memory opts,
         bytes32 allowedAuctionsMerkleRoot_
-    ) external payable onlyConstructor {
+    ) external payable onlyInitialize {
         // Initialize the base contract.
         AuctionCrowdfundBase._initialize(opts);
 

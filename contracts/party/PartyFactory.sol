@@ -1,19 +1,21 @@
 // SPDX-License-Identifier: GPL-3.0
 pragma solidity 0.8.20;
 
+import { Clones } from "openzeppelin/contracts/proxy/Clones.sol";
+
 import { IERC721 } from "../tokens/IERC721.sol";
-import { Proxy } from "../utils/Proxy.sol";
 
 import { Party } from "./Party.sol";
 import { IPartyFactory } from "./IPartyFactory.sol";
 import { IGlobals } from "../globals/IGlobals.sol";
 import { LibGlobals } from "../globals/LibGlobals.sol";
-import { Implementation } from "../utils/Implementation.sol";
 import { MetadataRegistry } from "../renderers/MetadataRegistry.sol";
 import { MetadataProvider } from "../renderers/MetadataProvider.sol";
 
 /// @notice Factory used to deploy new proxified `Party` instances.
 contract PartyFactory is IPartyFactory {
+    using Clones for address;
+
     error NoAuthorityError();
 
     // The `Globals` contract storing global configuration values. This contract
@@ -46,14 +48,8 @@ contract PartyFactory is IPartyFactory {
             authorities: authorities,
             rageQuitTimestamp: rageQuitTimestamp
         });
-        party = Party(
-            payable(
-                new Proxy(
-                    Implementation(address(partyImpl)),
-                    abi.encodeCall(Party.initialize, (initData))
-                )
-            )
-        );
+        party = Party(payable(address(partyImpl).clone()));
+        party.initialize(initData);
         emit PartyCreated(party, opts, preciousTokens, preciousTokenIds, msg.sender);
     }
 

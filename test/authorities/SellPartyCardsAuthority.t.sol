@@ -58,7 +58,7 @@ contract SellPartyCardsAuthorityTest is SetupPartyHelper {
             assertEq(party.balanceOf(buyer), 1);
             vm.roll(block.number + 1);
             vm.warp(block.timestamp + 1);
-            assertEq(party.getVotingPowerAt(buyer, uint40(block.timestamp)), 0.001 ether);
+            assertEq(party.getVotingPowerAt(buyer, uint40(block.timestamp), 0), 0.001 ether);
         }
 
         assertEq(address(party).balance, originalPartyBalance + 3 ether);
@@ -87,7 +87,7 @@ contract SellPartyCardsAuthorityTest is SetupPartyHelper {
             assertEq(party.balanceOf(buyer), 1);
             vm.roll(block.number + 1);
             vm.warp(block.timestamp + 1);
-            assertEq(party.getVotingPowerAt(buyer, uint40(block.timestamp)), amount);
+            assertEq(party.getVotingPowerAt(buyer, uint40(block.timestamp), 0), amount);
         }
         assertEq(
             originalTotalVotingPower + 2.997 ether,
@@ -137,7 +137,7 @@ contract SellPartyCardsAuthorityTest is SetupPartyHelper {
         assertEq(party.balanceOf(buyer), 3);
         vm.roll(block.number + 1);
         vm.warp(block.timestamp + 1);
-        assertEq(party.getVotingPowerAt(buyer, uint40(block.timestamp)), 0.003 ether);
+        assertEq(party.getVotingPowerAt(buyer, uint40(block.timestamp), 0), 0.003 ether);
     }
 
     function testSellPartyCards_fundingSplit() public {
@@ -366,7 +366,10 @@ contract SellPartyCardsAuthorityTest is SetupPartyHelper {
         assertTrue(success);
         for (uint i = 0; i < 3; i++) {
             assertEq(party.balanceOf(recipients[i]), 1);
-            assertEq(party.getVotingPowerAt(recipients[i], uint40(block.timestamp)), 0.001 ether);
+            assertEq(
+                party.getVotingPowerAt(recipients[i], uint40(block.timestamp), 0),
+                0.001 ether
+            );
         }
 
         assertEq(address(router).balance, 3 * feePerMint);
@@ -591,7 +594,7 @@ contract SellPartyCardsAuthorityTest is SetupPartyHelper {
         sellPartyCardsAuthority.contribute{ value: 10 ether }(party, saleId, buyer, "");
 
         vm.warp(block.timestamp + 10);
-        assertEq(party.getVotingPowerAt(buyer, uint40(block.timestamp)), 10);
+        assertEq(party.getVotingPowerAt(buyer, uint40(block.timestamp), 0), 10);
     }
 
     function testSellPartyCards_precision_lowerPrice() public {
@@ -618,7 +621,7 @@ contract SellPartyCardsAuthorityTest is SetupPartyHelper {
         sellPartyCardsAuthority.contribute{ value: 1 }(party, saleId, buyer, "");
 
         vm.warp(block.timestamp + 10);
-        assertEq(party.getVotingPowerAt(buyer, uint40(block.timestamp)), 10 ether);
+        assertEq(party.getVotingPowerAt(buyer, uint40(block.timestamp), 0), 10 ether);
     }
 
     function testSellPartyCards_helperFunctions() public {

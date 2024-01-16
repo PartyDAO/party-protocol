@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: Apache-2.0
+// SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8;
 
 import "forge-std/Test.sol";
@@ -62,50 +62,43 @@ contract PartyFactoryTest is Test, TestUtils {
         }
     }
 
-    function testCreateParty(
-        string memory randomStr,
-        uint96 randomUint96,
-        uint40 randomUint40,
-        uint16 randomBps,
-        bool randomBool
-    ) external {
-        vm.assume(randomBps <= 1e4);
-
+    function testCreateParty() external {
         address authority = _randomAddress();
         (IERC721[] memory preciousTokens, uint256[] memory preciousTokenIds) = _createPreciouses(3);
         Party.PartyOptions memory opts = Party.PartyOptions({
+            name: "name",
+            symbol: "symbol",
+            customizationPresetId: 0,
             governance: PartyGovernance.GovernanceOpts({
                 hosts: _toAddressArray(_randomAddress()),
-                voteDuration: randomUint40,
-                executionDelay: randomUint40,
-                passThresholdBps: randomBps,
-                totalVotingPower: randomUint96,
-                feeBps: randomBps,
+                voteDuration: 2 days,
+                executionDelay: 1 days,
+                passThresholdBps: 0.5e4,
+                totalVotingPower: 100e18,
+                feeBps: 0.1e4,
                 feeRecipient: payable(_randomAddress())
             }),
             proposalEngine: ProposalStorage.ProposalEngineOpts({
-                enableAddAuthorityProposal: randomBool,
-                allowArbCallsToSpendPartyEth: randomBool,
-                allowOperators: randomBool,
-                distributionsRequireVote: randomBool
-            }),
-            name: randomStr,
-            symbol: randomStr,
-            customizationPresetId: 0
+                enableAddAuthorityProposal: true,
+                allowArbCallsToSpendPartyEth: true,
+                allowOperators: true,
+                distributionsRequireVote: true
+            })
         });
+        uint40 rageQuitTimestamp = uint40(block.timestamp + 30 days);
         Party party = factory.createParty(
             partyImpl,
             _toAddressArray(authority),
             opts,
             preciousTokens,
             preciousTokenIds,
-            randomUint40
+            rageQuitTimestamp
         );
-        assertEq(party.VERSION_ID(), 1);
+        assertEq(party.VERSION_ID(), 2);
         assertEq(party.name(), opts.name);
         assertEq(party.symbol(), opts.symbol);
         assertTrue(party.isAuthority(authority));
-        assertEq(party.rageQuitTimestamp(), randomUint40);
+        assertEq(party.rageQuitTimestamp(), rageQuitTimestamp);
         PartyGovernance.GovernanceValues memory values = party.getGovernanceValues();
         assertEq(values.voteDuration, opts.governance.voteDuration);
         assertEq(values.executionDelay, opts.governance.executionDelay);
@@ -116,60 +109,53 @@ contract PartyFactoryTest is Test, TestUtils {
         assertEq(address(party.getProposalExecutionEngine()), address(eng));
         ProposalStorage.ProposalEngineOpts memory proposalEngineOpts = party
             .getProposalEngineOpts();
-        assertEq(proposalEngineOpts.allowArbCallsToSpendPartyEth, randomBool);
-        assertEq(proposalEngineOpts.allowOperators, randomBool);
-        assertEq(proposalEngineOpts.distributionsRequireVote, randomBool);
+        assertEq(proposalEngineOpts.allowArbCallsToSpendPartyEth, true);
+        assertEq(proposalEngineOpts.allowOperators, true);
+        assertEq(proposalEngineOpts.distributionsRequireVote, true);
         assertEq(party.preciousListHash(), _hashPreciousList(preciousTokens, preciousTokenIds));
     }
 
-    function testCreatePartyWithMetadata(
-        string memory randomStr,
-        uint96 randomUint96,
-        uint40 randomUint40,
-        uint16 randomBps,
-        bool randomBool,
-        bytes memory metadata
-    ) external {
-        vm.assume(randomBps <= 1e4);
-
+    function testCreatePartyWithMetadata() external {
         address authority = _randomAddress();
         (IERC721[] memory preciousTokens, uint256[] memory preciousTokenIds) = _createPreciouses(3);
         Party.PartyOptions memory opts = Party.PartyOptions({
+            name: "name",
+            symbol: "symbol",
+            customizationPresetId: 0,
             governance: PartyGovernance.GovernanceOpts({
                 hosts: _toAddressArray(_randomAddress()),
-                voteDuration: randomUint40,
-                executionDelay: randomUint40,
-                passThresholdBps: randomBps,
-                totalVotingPower: randomUint96,
-                feeBps: randomBps,
+                voteDuration: 2 days,
+                executionDelay: 1 days,
+                passThresholdBps: 0.5e4,
+                totalVotingPower: 100e18,
+                feeBps: 0.1e4,
                 feeRecipient: payable(_randomAddress())
             }),
             proposalEngine: ProposalStorage.ProposalEngineOpts({
-                enableAddAuthorityProposal: randomBool,
-                allowArbCallsToSpendPartyEth: randomBool,
-                allowOperators: randomBool,
-                distributionsRequireVote: randomBool
-            }),
-            name: randomStr,
-            symbol: randomStr,
-            customizationPresetId: 0
+                enableAddAuthorityProposal: true,
+                allowArbCallsToSpendPartyEth: true,
+                allowOperators: true,
+                distributionsRequireVote: true
+            })
         });
+        bytes memory customMetadata = abi.encodePacked(_randomBytes32());
+        uint40 rageQuitTimestamp = uint40(block.timestamp + 30 days);
         Party party = factory.createPartyWithMetadata(
             partyImpl,
             _toAddressArray(authority),
             opts,
             preciousTokens,
             preciousTokenIds,
-            randomUint40,
+            rageQuitTimestamp,
             provider,
-            metadata
+            customMetadata
         );
 
-        assertEq(party.VERSION_ID(), 1);
+        assertEq(party.VERSION_ID(), 2);
         assertEq(party.name(), opts.name);
         assertEq(party.symbol(), opts.symbol);
         assertTrue(party.isAuthority(authority));
-        assertEq(party.rageQuitTimestamp(), randomUint40);
+        assertEq(party.rageQuitTimestamp(), rageQuitTimestamp);
         PartyGovernance.GovernanceValues memory values = party.getGovernanceValues();
         assertEq(values.voteDuration, opts.governance.voteDuration);
         assertEq(values.executionDelay, opts.governance.executionDelay);
@@ -180,12 +166,12 @@ contract PartyFactoryTest is Test, TestUtils {
         assertEq(address(party.getProposalExecutionEngine()), address(eng));
         ProposalStorage.ProposalEngineOpts memory proposalEngineOpts = party
             .getProposalEngineOpts();
-        assertEq(proposalEngineOpts.allowArbCallsToSpendPartyEth, randomBool);
-        assertEq(proposalEngineOpts.allowOperators, randomBool);
-        assertEq(proposalEngineOpts.distributionsRequireVote, randomBool);
+        assertEq(proposalEngineOpts.allowArbCallsToSpendPartyEth, true);
+        assertEq(proposalEngineOpts.allowOperators, true);
+        assertEq(proposalEngineOpts.distributionsRequireVote, true);
         assertEq(party.preciousListHash(), _hashPreciousList(preciousTokens, preciousTokenIds));
         assertEq(address(registry.getProvider(address(party))), address(provider));
-        assertEq(provider.getMetadata(address(party), 0), metadata);
+        assertEq(provider.getMetadata(address(party), 0), customMetadata);
     }
 
     function testCreatePartyWithInvalidBps(uint16 passThresholdBps, uint16 feeBps) external {
@@ -212,6 +198,26 @@ contract PartyFactoryTest is Test, TestUtils {
             preciousTokens,
             preciousTokenIds,
             0
+        );
+    }
+
+    function testCreateParty_revertIfRagequitEnabledAndNotDistributionsRequireVote() external {
+        address authority = _randomAddress();
+        (IERC721[] memory preciousTokens, uint256[] memory preciousTokenIds) = _createPreciouses(3);
+
+        Party.PartyOptions memory opts = defaultPartyOptions;
+        uint40 ragequitTimestamp = 1;
+
+        vm.expectRevert(
+            PartyGovernanceNFT.CannotEnableRageQuitIfNotDistributionsRequireVoteError.selector
+        );
+        factory.createParty(
+            partyImpl,
+            _toAddressArray(authority),
+            opts,
+            preciousTokens,
+            preciousTokenIds,
+            ragequitTimestamp
         );
     }
 }

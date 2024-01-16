@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: Apache-2.0
+// SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8;
 
 import "forge-std/Test.sol";
@@ -36,7 +36,7 @@ contract DummyProposalExecutionEngine is IProposalExecutionEngine, ProposalStora
 
     function executeProposal(
         ExecuteProposalParams memory params
-    ) external returns (bytes memory nextProgressData) {
+    ) external payable returns (bytes memory nextProgressData) {
         uint256 numSteps = abi.decode(params.proposalData, (uint256));
         uint256 currStep = params.progressData.length > 0
             ? abi.decode(params.progressData, (uint256))
@@ -167,11 +167,11 @@ contract TestablePartyGovernance is PartyGovernance {
     }
 
     function increaseTotalVotingPower(uint96 newVotingPower) external {
-        _governanceValues.totalVotingPower += newVotingPower;
+        _getSharedProposalStorage().governanceValues.totalVotingPower += newVotingPower;
     }
 
     function getTotalVotingPower() external view returns (uint96) {
-        return _governanceValues.totalVotingPower;
+        return _getSharedProposalStorage().governanceValues.totalVotingPower;
     }
 
     function transferVotingPower(address from, address to, uint256 power) external {
@@ -1201,7 +1201,7 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
         assertEq(gov.propose(proposal, 0), proposalId);
 
         // Non-host tries to veto.
-        vm.expectRevert(abi.encodeWithSelector(PartyGovernance.OnlyPartyHostError.selector));
+        vm.expectRevert(PartyGovernance.NotAuthorized.selector);
         vm.prank(undelegatedVoter);
         gov.veto(proposalId);
     }
@@ -1485,7 +1485,7 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
             uint256[] memory preciousTokenIds
         ) = _createPreciousTokens(2);
         defaultGovernanceOpts.executionDelay = 60;
-        defaultGovernanceOpts.voteDuration = 61;
+        defaultGovernanceOpts.voteDuration = 1 hours;
         TestablePartyGovernance gov = _createGovernance(
             false,
             100e18,
@@ -2277,18 +2277,20 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
         gov = _createGovernance(false, 100e18, preciousTokens, preciousTokenIds);
 
         address newHost = _randomAddress();
+        address host = _getRandomDefaultHost();
+
+        // Can only transfer to 0 address
+        vm.prank(host);
+        vm.expectRevert((PartyGovernance.InvalidNewHostError.selector));
+        gov.abdicateHost(newHost);
 
         // Transfer host status to another address
-        address host = _getRandomDefaultHost();
         vm.prank(host);
-        _expectHostStatusTransferredEvent(host, newHost);
-        gov.abdicateHost(newHost);
+        _expectHostStatusTransferredEvent(host, address(0));
+        gov.abdicateHost(address(0));
 
         // Assert old host is no longer host
         assertEq(gov.isHost(host), false);
-
-        // Assert new host is host
-        assertEq(gov.isHost(newHost), true);
     }
 
     // You cannot transfer host status to an existing host
@@ -2321,8 +2323,24 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
         address nonHost2 = _randomAddress();
 
         vm.prank(nonHost);
-        vm.expectRevert(abi.encodeWithSelector(PartyGovernance.OnlyPartyHostError.selector));
+        vm.expectRevert(PartyGovernance.NotAuthorized.selector);
         gov.abdicateHost(nonHost2);
+    }
+
+    // Demonstrate correct functionality of abidacte host along with the `numHost` counter.
+    function testHostPower_canAbidacteHost() external {
+        TestablePartyGovernance gov;
+        (
+            IERC721[] memory preciousTokens,
+            uint256[] memory preciousTokenIds
+        ) = _createPreciousTokens(2);
+        gov = _createGovernance(false, 100e18, preciousTokens, preciousTokenIds);
+
+        assertEq(gov.numHosts(), 2);
+        vm.prank(defaultGovernanceOpts.hosts[0]);
+        gov.abdicateHost(address(0));
+        assertFalse(gov.isHost(defaultGovernanceOpts.hosts[0]));
+        assertEq(gov.numHosts(), 1);
     }
 
     // voting power of past member is 0 at current time.
@@ -2582,7 +2600,7 @@ contract PartyGovernanceUnitTest is Test, TestUtils {
 
         // Try to create a distribution.
         vm.deal(address(gov), 1337e18);
-        vm.expectRevert(abi.encodeWithSelector(PartyGovernance.OnlyActiveMemberError.selector));
+        vm.expectRevert(PartyGovernance.NotAuthorized.selector);
         vm.prank(member);
         gov.distribute(address(gov).balance, ITokenDistributor.TokenType.Native, ETH_ADDRESS, 0);
     }

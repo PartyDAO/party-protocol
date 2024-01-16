@@ -1,6 +1,11 @@
 name: Tests
 
-on: push
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+      - dev
 
 env:
   FORK_URL: ${{ secrets.FORK_URL }}
@@ -29,7 +34,30 @@ jobs:
       - name: Install dependencies
         run: forge install
       - name: "Run Foundry tests"
-        run: forge test -vvv --fork-url $FORK_URL --etherscan-api-key $ETHERSCAN_API_KEY --ffi
+        run: forge test -vvv --no-match-contract "ForkedTest" --ffi
+  test-forked:
+    runs-on: ubuntu-latest
+    steps:
+      - name: "Check out the repo"
+        uses: actions/checkout@v3
+        with:
+          submodules: recursive
+      - name: Use Node.js 16.x
+        uses: actions/setup-node@v3
+        with:
+          node-version: 16.x
+      - name: Install yarn dependencies
+        run: yarn install
+      - name: Build ts
+        run: yarn build:ts
+      - name: "Install Foundry"
+        uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: nightly
+      - name: Install dependencies
+        run: forge install
+      - name: "Run Foundry tests"
+        run: forge test -vvv --fork-url $FORK_URL --match-contract "ForkedTest" --ffi
   coverage:
     runs-on: ubuntu-latest
     steps:
@@ -84,6 +112,6 @@ jobs:
       - name: Install dependencies
         run: forge install
       - name: Check contract deployable mainnet
-        run: "node js/contracts-deployable.js --via-ir --optimize --optimizer-runs 95"
+        run: "node js/contracts-deployable.js --via-ir --optimize --optimizer-runs 0"
       - name: Check contracts deployable base
         run: "node js/contracts-deployable.js --via-ir --optimize --optimizer-runs 0 --evm-version paris"

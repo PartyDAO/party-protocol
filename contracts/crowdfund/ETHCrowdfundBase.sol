@@ -5,9 +5,12 @@ import "../utils/LibAddress.sol";
 import "../utils/LibSafeCast.sol";
 import "../party/Party.sol";
 import "../gatekeepers/IGateKeeper.sol";
+import { FixedPointMathLib } from "solmate/utils/FixedPointMathLib.sol";
 
-contract ETHCrowdfundBase is Implementation {
+abstract contract ETHCrowdfundBase is Implementation {
+    using FixedPointMathLib for uint96;
     using LibRawResult for bytes;
+    using LibSafeCast for uint96;
     using LibSafeCast for uint256;
     using LibAddress for address payable;
 
@@ -39,7 +42,7 @@ contract ETHCrowdfundBase is Implementation {
         bool disableContributingForExistingCard;
         uint96 minTotalContributions;
         uint96 maxTotalContributions;
-        uint16 exchangeRateBps;
+        uint160 exchangeRate;
         uint16 fundingSplitBps;
         address payable fundingSplitRecipient;
         uint40 duration;
@@ -62,15 +65,19 @@ contract ETHCrowdfundBase is Implementation {
     error InvalidDelegateError();
     error NotEnoughContributionsError(uint96 totalContribution, uint96 minTotalContributions);
     error MinGreaterThanMaxError(uint96 min, uint96 max);
+    error MinMaxDifferenceTooSmall(uint96 min, uint96 max);
     error MaxTotalContributionsCannotBeZeroError(uint96 maxTotalContributions);
     error BelowMinimumContributionsError(uint96 contributions, uint96 minContributions);
     error AboveMaximumContributionsError(uint96 contributions, uint96 maxContributions);
-    error InvalidExchangeRateError(uint16 exchangeRateBps);
+    error ExceedsRemainingContributionsError(uint96 amount, uint96 remaining);
+    error InvalidExchangeRateError(uint160 exchangeRate);
+    error InvalidFundingSplitRecipient();
     error ContributingForExistingCardDisabledError();
     error ZeroVotingPowerError();
     error FundingSplitAlreadyPaidError();
     error FundingSplitNotConfiguredError();
     error InvalidMessageValue();
+    error ArityMismatch();
 
     event Contributed(
         address indexed sender,
@@ -115,9 +122,9 @@ contract ETHCrowdfundBase is Implementation {
     /// @notice The timestamp at which the crowdfund will end or ended. If 0, the
     ///         crowdfund has finalized.
     uint40 public expiry;
-    /// @notice The exchange rate to use for converting ETH contributions to
-    ///         voting power in basis points (e.g. 10000 = 1:1).
-    uint16 public exchangeRateBps;
+    /// @notice The exchange rate from contribution amount to voting power where
+    ///         100% = 1e18. May be greater than 1e18 (100%).
+    uint160 public exchangeRate;
     /// @notice The portion of contributions to send to the funding recipient in
     ///         basis points (e.g. 100 = 1%).
     uint16 public fundingSplitBps;
@@ -135,19 +142,18 @@ contract ETHCrowdfundBase is Implementation {
         _GLOBALS = globals;
     }
 
-    // Initialize storage for proxy contracts, credit initial contribution (if
-    // any), and setup gatekeeper.
+    // Initialize storage for proxy contract
     function _initialize(ETHCrowdfundOptions memory opts) internal {
-        // Set the minimum and maximum contribution amounts.
         if (opts.minContribution > opts.maxContribution) {
             revert MinGreaterThanMaxError(opts.minContribution, opts.maxContribution);
         }
+        if (opts.maxTotalContributions - opts.minTotalContributions + 1 < opts.minContribution) {
+            revert MinMaxDifferenceTooSmall(opts.minTotalContributions, opts.maxTotalContributions);
+        }
+        // Set the minimum and maximum contribution amounts.
         minContribution = opts.minContribution;
         maxContribution = opts.maxContribution;
         // Set the min total contributions.
-        if (opts.minTotalContributions > opts.maxTotalContributions) {
-            revert MinGreaterThanMaxError(opts.minTotalContributions, opts.maxTotalContributions);
-        }
         minTotalContributions = opts.minTotalContributions;
         // Set the max total contributions.
         if (opts.maxTotalContributions == 0) {
@@ -160,15 +166,24 @@ contract ETHCrowdfundBase is Implementation {
         // Set the party crowdfund is for.
         party = opts.party;
         // Set the crowdfund start and end timestamps.
-        expiry = uint40(block.timestamp + opts.duration);
+        expiry = (block.timestamp + opts.duration).safeCastUint256ToUint40();
         // Set the exchange rate.
-        if (opts.exchangeRateBps == 0) revert InvalidExchangeRateError(opts.exchangeRateBps);
-        exchangeRateBps = opts.exchangeRateBps;
+        if (opts.exchangeRate == 0) revert InvalidExchangeRateError(opts.exchangeRate);
+        exchangeRate = opts.exchangeRate;
         // Set the funding split and its recipient.
         fundingSplitBps = opts.fundingSplitBps;
         fundingSplitRecipient = opts.fundingSplitRecipient;
+        if (opts.fundingSplitBps > 0 && opts.fundingSplitRecipient == address(0)) {
+            revert InvalidFundingSplitRecipient();
+        }
         // Set whether to disable contributing for existing card.
         disableContributingForExistingCard = opts.disableContributingForExistingCard;
+
+        // Check that the voting power that one receives from a contribution of
+        // size minContribution is not equal to zero
+        if (convertContributionToVotingPower(opts.minContribution) == 0) {
+            revert ZeroVotingPowerError();
+        }
     }
 
     /// @notice Get the current lifecycle of the crowdfund.
@@ -196,7 +211,7 @@ contract ETHCrowdfundBase is Implementation {
     function _processContribution(
         address payable contributor,
         address delegate,
-        uint96 amount
+        uint96 contribution
     ) internal returns (uint96 votingPower) {
         address oldDelegate = delegationsByContributor[contributor];
         if (msg.sender == contributor || oldDelegate == address(0)) {
@@ -207,10 +222,10 @@ contract ETHCrowdfundBase is Implementation {
             delegate = oldDelegate;
         }
 
-        emit Contributed(msg.sender, contributor, amount, delegate);
+        emit Contributed(msg.sender, contributor, contribution, delegate);
 
         // OK to contribute with zero just to update delegate.
-        if (amount == 0) return 0;
+        if (contribution == 0) return 0;
 
         // Only allow contributions while the crowdfund is active.
         CrowdfundLifecycle lc = getCrowdfundLifecycle();
@@ -218,74 +233,96 @@ contract ETHCrowdfundBase is Implementation {
             revert WrongLifecycleError(lc);
         }
 
+        // Check that the contribution amount is at or above the minimum.
+        uint96 minContribution_ = minContribution;
+        if (contribution < minContribution_) {
+            revert BelowMinimumContributionsError(contribution, minContribution_);
+        }
+
         // Check that the contribution amount is at or below the maximum.
         uint96 maxContribution_ = maxContribution;
-        if (amount > maxContribution_) {
-            revert AboveMaximumContributionsError(amount, maxContribution_);
+        if (contribution > maxContribution_) {
+            revert AboveMaximumContributionsError(contribution, maxContribution_);
         }
 
-        uint96 newTotalContributions = totalContributions + amount;
+        uint96 newTotalContributions = totalContributions + contribution;
         uint96 maxTotalContributions_ = maxTotalContributions;
-        if (newTotalContributions >= maxTotalContributions_) {
-            totalContributions = maxTotalContributions_;
-
-            // Finalize the crowdfund.
-            // This occurs before refunding excess contribution to act as a
-            // reentrancy guard.
-            _finalize(maxTotalContributions_);
-
-            // Refund excess contribution.
-            uint96 refundAmount = newTotalContributions - maxTotalContributions;
-            if (refundAmount > 0) {
-                amount -= refundAmount;
-                payable(msg.sender).transferEth(refundAmount);
-            }
+        if (newTotalContributions > maxTotalContributions_) {
+            revert ExceedsRemainingContributionsError(
+                contribution,
+                maxTotalContributions_ - totalContributions
+            );
         } else {
             totalContributions = newTotalContributions;
-        }
 
-        // Check that the contribution amount is at or above the minimum. This
-        // is done after `amount` is potentially reduced if refunding excess
-        // contribution. There is a case where this prevents a crowdfunds from
-        // reaching `maxTotalContributions` if the `minContribution` is greater
-        // than the difference between `maxTotalContributions` and the current
-        // `totalContributions`. In this scenario users will have to wait until
-        // the crowdfund expires or a host finalizes after
-        // `minTotalContribution` has been reached by calling `finalize()`.
-        uint96 minContribution_ = minContribution;
-        if (amount < minContribution_) {
-            revert BelowMinimumContributionsError(amount, minContribution_);
-        }
-
-        // Subtract fee from contribution amount if applicable.
-        address payable fundingSplitRecipient_ = fundingSplitRecipient;
-        uint16 fundingSplitBps_ = fundingSplitBps;
-        if (fundingSplitRecipient_ != address(0) && fundingSplitBps_ > 0) {
-            // Removes funding split from contribution amount in a way that
-            // avoids rounding errors for very small contributions <1e4 wei.
-            amount = (amount * (1e4 - fundingSplitBps_)) / 1e4;
+            if (
+                maxTotalContributions_ == newTotalContributions ||
+                minContribution_ > maxTotalContributions_ - newTotalContributions
+            ) {
+                _finalize(newTotalContributions);
+            }
         }
 
         // Calculate voting power.
-        votingPower = (amount * exchangeRateBps) / 1e4;
+        votingPower = convertContributionToVotingPower(contribution);
 
         if (votingPower == 0) revert ZeroVotingPowerError();
     }
 
+    /// @notice Calculate the voting power amount that would be received from
+    ///         the given contribution.
+    /// @param contribution The contribution amount.
+    /// @return votingPower The voting power amount that would be received from
+    ///                     the contribution.
+    function convertContributionToVotingPower(
+        uint96 contribution
+    ) public view returns (uint96 votingPower) {
+        contribution = _removeFundingSplitFromContribution(contribution);
+        votingPower = _calculateContributionToVotingPower(contribution);
+    }
+
     /// @notice Calculate the contribution amount from the given voting power.
     /// @param votingPower The voting power to convert to a contribution amount.
-    /// @return amount The contribution amount.
+    /// @return contribution The contribution amount.
     function convertVotingPowerToContribution(
         uint96 votingPower
-    ) public view returns (uint96 amount) {
-        amount = (votingPower * 1e4) / exchangeRateBps;
+    ) public view returns (uint96 contribution) {
+        contribution = _calculateVotingPowerToContribution(votingPower);
+        contribution = _addFundingSplitToContribution(contribution);
+    }
 
-        // Add back funding split to contribution amount if applicable.
-        address payable fundingSplitRecipient_ = fundingSplitRecipient;
+    function _calculateContributionToVotingPower(
+        uint96 contribution
+    ) private view returns (uint96) {
+        return contribution.mulDivDown(exchangeRate, 1e18).safeCastUint256ToUint96();
+    }
+
+    function _calculateVotingPowerToContribution(
+        uint96 votingPower
+    ) internal view returns (uint96) {
+        return votingPower.mulDivUp(1e18, exchangeRate).safeCastUint256ToUint96();
+    }
+
+    function _addFundingSplitToContribution(uint96 contribution) internal view returns (uint96) {
         uint16 fundingSplitBps_ = fundingSplitBps;
-        if (fundingSplitRecipient_ != address(0) && fundingSplitBps_ > 0) {
-            amount = (amount * 1e4) / (1e4 - fundingSplitBps_);
+        if (fundingSplitBps_ > 0) {
+            // Downcast is safe since `contribution` cannot exceed
+            // type(uint96).max. When the contribution is made, it cannot exceed
+            // type(uint96).max, neither can `totalContributions` exceed it.
+            contribution = uint96((uint256(contribution) * 1e4) / (1e4 - fundingSplitBps_));
         }
+        return contribution;
+    }
+
+    function _removeFundingSplitFromContribution(
+        uint96 contribution
+    ) internal view returns (uint96) {
+        uint16 fundingSplitBps_ = fundingSplitBps;
+        if (fundingSplitBps_ > 0) {
+            // Safe since contribution initially fits into uint96 and cannot get bigger
+            contribution = uint96((uint256(contribution) * (1e4 - fundingSplitBps_)) / 1e4);
+        }
+        return contribution;
     }
 
     function finalize() external {
@@ -319,14 +356,14 @@ contract ETHCrowdfundBase is Implementation {
         delete expiry;
 
         // Transfer funding split to recipient if applicable.
-        address payable fundingSplitRecipient_ = fundingSplitRecipient;
         uint16 fundingSplitBps_ = fundingSplitBps;
-        if (fundingSplitRecipient_ != address(0) && fundingSplitBps_ > 0) {
-            totalContributions_ -= (totalContributions_ * fundingSplitBps_) / 1e4;
+        if (fundingSplitBps_ > 0) {
+            // Assuming fundingSplitBps_ <= 1e4, this cannot overflow uint96
+            totalContributions_ -= uint96((uint256(totalContributions_) * fundingSplitBps_) / 1e4);
         }
 
         // Update the party's total voting power.
-        uint96 newVotingPower = (totalContributions_ * exchangeRateBps) / 1e4;
+        uint96 newVotingPower = _calculateContributionToVotingPower(totalContributions_);
         party.increaseTotalVotingPower(newVotingPower);
 
         // Transfer ETH to the party.
@@ -343,16 +380,17 @@ contract ETHCrowdfundBase is Implementation {
 
         if (fundingSplitPaid) revert FundingSplitAlreadyPaidError();
 
-        address payable fundingSplitRecipient_ = fundingSplitRecipient;
         uint16 fundingSplitBps_ = fundingSplitBps;
-        if (fundingSplitRecipient_ == address(0) || fundingSplitBps_ == 0) {
+        if (fundingSplitBps_ == 0) {
             revert FundingSplitNotConfiguredError();
         }
 
         fundingSplitPaid = true;
 
         // Transfer funding split to recipient.
-        splitAmount = (totalContributions * fundingSplitBps_) / 1e4;
+        // Assuming fundingSplitBps_ <= 1e4, this cannot overflow uint96
+        address payable fundingSplitRecipient_ = fundingSplitRecipient;
+        splitAmount = uint96((uint256(totalContributions) * fundingSplitBps_) / 1e4);
         payable(fundingSplitRecipient_).transferEth(splitAmount);
 
         emit FundingSplitSent(fundingSplitRecipient_, splitAmount);

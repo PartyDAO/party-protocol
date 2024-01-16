@@ -10,7 +10,6 @@ import "../contracts/crowdfund/CollectionBatchBuyCrowdfund.sol";
 import "../contracts/operators/CollectionBatchBuyOperator.sol";
 import "../contracts/operators/ERC20SwapOperator.sol";
 import "../contracts/crowdfund/InitialETHCrowdfund.sol";
-import "../contracts/crowdfund/ReraiseETHCrowdfund.sol";
 import "../contracts/crowdfund/CrowdfundFactory.sol";
 import "../contracts/distribution/TokenDistributor.sol";
 import "../contracts/gatekeepers/AllowListGateKeeper.sol";
@@ -34,6 +33,7 @@ import { AddPartyCardsAuthority } from "../contracts/authorities/AddPartyCardsAu
 import { SellPartyCardsAuthority } from "../contracts/authorities/SellPartyCardsAuthority.sol";
 import { SSTORE2MetadataProvider } from "../contracts/renderers/SSTORE2MetadataProvider.sol";
 import { BasicMetadataProvider } from "../contracts/renderers/BasicMetadataProvider.sol";
+import { OffChainSignatureValidator } from "../contracts/signature-validators/OffChainSignatureValidator.sol";
 import "./LibDeployConstants.sol";
 
 abstract contract Deploy {
@@ -60,7 +60,6 @@ abstract contract Deploy {
     CollectionBuyCrowdfund public collectionBuyCrowdfund;
     CollectionBatchBuyCrowdfund public collectionBatchBuyCrowdfund;
     InitialETHCrowdfund public initialETHCrowdfund;
-    ReraiseETHCrowdfund public reraiseETHCrowdfund;
     CrowdfundFactory public crowdfundFactory;
     Party public party;
     PartyFactory public partyFactory;
@@ -83,6 +82,7 @@ abstract contract Deploy {
     ContributionRouter public contributionRouter;
     AddPartyCardsAuthority public addPartyCardsAuthority;
     SellPartyCardsAuthority public sellPartyCardsAuthority;
+    OffChainSignatureValidator public offChainSignatureValidator;
 
     function deploy(LibDeployConstants.DeployConstants memory deployConstants) public virtual {
         _switchDeployer(DeployerRole.Default);
@@ -205,18 +205,6 @@ abstract contract Deploy {
         console.log(
             "  Deployed - InitialETHCrowdfund crowdfund implementation",
             address(initialETHCrowdfund)
-        );
-
-        // DEPLOY_RERAISE_ETH_CF_IMPLEMENTATION
-        console.log("");
-        console.log("### ReraiseETHCrowdfund crowdfund implementation");
-        console.log("  Deploying - ReraiseETHCrowdfund crowdfund implementation");
-        _trackDeployerGasBefore();
-        reraiseETHCrowdfund = new ReraiseETHCrowdfund(globals);
-        _trackDeployerGasAfter();
-        console.log(
-            "  Deployed - ReraiseETHCrowdfund crowdfund implementation",
-            address(reraiseETHCrowdfund)
         );
 
         // DEPLOY_ROLLING_AUCTION_CF_IMPLEMENTATION
@@ -407,6 +395,15 @@ abstract contract Deploy {
         _trackDeployerGasAfter();
         console.log("  Deployed - ContributionRouter", address(contributionRouter));
 
+        // Deploy OFF_CHAIN_SIGNATURE_VALIDATOR
+        console.log("");
+        console.log("### OffChainSignatureValidator");
+        console.log("  Deploying - OffChainSignatureValidator");
+        _trackDeployerGasBefore();
+        offChainSignatureValidator = new OffChainSignatureValidator();
+        _trackDeployerGasAfter();
+        console.log("  Deployed - OffChainSignatureValidator", address(offChainSignatureValidator));
+
         // DEPLOY_GATE_KEEPRS
         console.log("");
         console.log("### GateKeepers");
@@ -563,10 +560,6 @@ abstract contract Deploy {
             // );
             // multicallData[n++] = abi.encodeCall(
             //     globals.setAddress,
-            //     (LibGlobals.GLOBAL_RERAISE_ETH_CF_IMPL, address(reraiseETHCrowdfund))
-            // );
-            // multicallData[n++] = abi.encodeCall(
-            //     globals.setAddress,
             //     (LibGlobals.GLOBAL_ROLLING_AUCTION_CF_IMPL, address(rollingAuctionCrowdfund))
             // );
             multicallData[n++] = abi.encodeCall(
@@ -584,6 +577,13 @@ abstract contract Deploy {
             multicallData[n++] = abi.encodeCall(
                 globals.setAddress,
                 (LibGlobals.GLOBAL_METADATA_REGISTRY, address(metadataRegistry))
+            );
+            multicallData[n++] = abi.encodeCall(
+                globals.setAddress,
+                (
+                    LibGlobals.GLOBAL_OFF_CHAIN_SIGNATURE_VALIDATOR,
+                    address(offChainSignatureValidator)
+                )
             );
             // transfer ownership of Globals to multisig
             if (this.getDeployer() != deployConstants.partyDaoMultisig) {
@@ -699,7 +699,7 @@ contract DeployScript is Script, Deploy {
         Deploy.deploy(deployConstants);
         vm.stopBroadcast();
 
-        AddressMapping[] memory addressMapping = new AddressMapping[](29);
+        AddressMapping[] memory addressMapping = new AddressMapping[](30);
         addressMapping[0] = AddressMapping("Globals", address(globals));
         addressMapping[1] = AddressMapping("TokenDistributor", address(tokenDistributor));
         addressMapping[2] = AddressMapping(
@@ -723,41 +723,44 @@ contract DeployScript is Script, Deploy {
             address(collectionBatchBuyCrowdfund)
         );
         addressMapping[10] = AddressMapping("InitialETHCrowdfund", address(initialETHCrowdfund));
-        addressMapping[11] = AddressMapping("ReraiseETHCrowdfund", address(reraiseETHCrowdfund));
-        addressMapping[12] = AddressMapping(
+        addressMapping[11] = AddressMapping(
             "CollectionBatchBuyOperator",
             address(collectionBatchBuyOperator)
         );
-        addressMapping[13] = AddressMapping("ERC20SwapOperator", address(swapOperator));
-        addressMapping[14] = AddressMapping("CrowdfundFactory", address(crowdfundFactory));
-        addressMapping[15] = AddressMapping("MetadataRegistry", address(metadataRegistry));
-        addressMapping[16] = AddressMapping(
+        addressMapping[12] = AddressMapping("ERC20SwapOperator", address(swapOperator));
+        addressMapping[13] = AddressMapping("CrowdfundFactory", address(crowdfundFactory));
+        addressMapping[14] = AddressMapping("MetadataRegistry", address(metadataRegistry));
+        addressMapping[15] = AddressMapping(
             "BasicMetadataProvider",
             address(basicMetadataProvider)
         );
-        addressMapping[17] = AddressMapping(
+        addressMapping[16] = AddressMapping(
             "SSTORE2MetadataProvider",
             address(sstore2MetadataProvider)
         );
-        addressMapping[18] = AddressMapping("CrowdfundNFTRenderer", address(crowdfundNFTRenderer));
-        addressMapping[19] = AddressMapping("PartyNFTRenderer", address(partyNFTRenderer));
-        addressMapping[20] = AddressMapping("PartyHelpers", address(partyHelpers));
-        addressMapping[21] = AddressMapping("AllowListGateKeeper", address(allowListGateKeeper));
-        addressMapping[22] = AddressMapping("TokenGateKeeper", address(tokenGateKeeper));
-        addressMapping[23] = AddressMapping("RendererStorage", address(rendererStorage));
-        addressMapping[24] = AddressMapping(
+        addressMapping[17] = AddressMapping("CrowdfundNFTRenderer", address(crowdfundNFTRenderer));
+        addressMapping[18] = AddressMapping("PartyNFTRenderer", address(partyNFTRenderer));
+        addressMapping[19] = AddressMapping("PartyHelpers", address(partyHelpers));
+        addressMapping[20] = AddressMapping("AllowListGateKeeper", address(allowListGateKeeper));
+        addressMapping[21] = AddressMapping("TokenGateKeeper", address(tokenGateKeeper));
+        addressMapping[22] = AddressMapping("RendererStorage", address(rendererStorage));
+        addressMapping[23] = AddressMapping(
             "PixeldroidConsoleFont",
             address(pixeldroidConsoleFont)
         );
-        addressMapping[25] = AddressMapping("AtomicManualParty", address(atomicManualParty));
-        addressMapping[26] = AddressMapping("ContributionRouter", address(contributionRouter));
-        addressMapping[27] = AddressMapping(
+        addressMapping[24] = AddressMapping("AtomicManualParty", address(atomicManualParty));
+        addressMapping[25] = AddressMapping("ContributionRouter", address(contributionRouter));
+        addressMapping[26] = AddressMapping(
             "AddPartyCardsAuthority",
             address(addPartyCardsAuthority)
         );
         addressMapping[28] = AddressMapping(
             "SellPartyCardsAuthority",
             address(sellPartyCardsAuthority)
+        );
+        addressMapping[29] = AddressMapping(
+            "OffChainSignatureValidator",
+            address(offChainSignatureValidator)
         );
 
         console.log("");

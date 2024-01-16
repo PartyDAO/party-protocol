@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: Apache-2.0
+// SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8;
 
 import "forge-std/Test.sol";
@@ -17,6 +17,7 @@ contract TestParty {
         uint40 executionDelay;
         uint16 passThresholdBps;
         uint96 totalVotingPower;
+        uint8 numHosts;
     }
 
     uint96 public tokenCount;

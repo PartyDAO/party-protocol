@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: Apache-2.0
+// SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8;
 
 import "forge-std/Test.sol";
@@ -54,6 +54,10 @@ contract GlobalsAdmin is Test {
     function setGlobalPartyFactory(address partyFactory) public {
         globals.setAddress(LibGlobals.GLOBAL_PARTY_FACTORY, partyFactory);
     }
+
+    function setOffChainSignatureValidator(address signatureValidator) public {
+        globals.setAddress(LibGlobals.GLOBAL_OFF_CHAIN_SIGNATURE_VALIDATOR, signatureValidator);
+    }
 }
 
 contract PartyAdmin is Test {
@@ -83,20 +87,28 @@ contract PartyAdmin is Test {
 
     function createParty(
         Party partyImpl,
-        PartyCreationMinimalOptions calldata opts
+        PartyCreationMinimalOptions calldata partyOpts,
+        ProposalStorage.ProposalEngineOpts memory engineOpts
     )
         public
         returns (Party party, IERC721[] memory preciousTokens, uint256[] memory preciousTokenIds)
     {
-        address[] memory hosts = new address[](2);
-        hosts[0] = opts.host1;
-        hosts[1] = opts.host2;
+        uint256 size = 2 -
+            (partyOpts.host1 == address(0) ? 1 : 0) -
+            (partyOpts.host2 == address(0) ? 1 : 0);
+        address[] memory hosts = new address[](size);
+        if (partyOpts.host1 != address(0)) {
+            hosts[0] = partyOpts.host1;
+        }
+        if (partyOpts.host2 != address(0)) {
+            hosts[1] = partyOpts.host2;
+        }
 
         preciousTokens = new IERC721[](1);
-        preciousTokens[0] = IERC721(opts.preciousTokenAddress);
+        preciousTokens[0] = IERC721(partyOpts.preciousTokenAddress);
 
         preciousTokenIds = new uint256[](1);
-        preciousTokenIds[0] = opts.preciousTokenId;
+        preciousTokenIds[0] = partyOpts.preciousTokenId;
 
         address[] memory authorities = new address[](1);
         authorities[0] = address(this);
@@ -107,23 +119,33 @@ contract PartyAdmin is Test {
             Party.PartyOptions({
                 governance: PartyGovernance.GovernanceOpts({
                     hosts: hosts,
-                    voteDuration: 99,
+                    voteDuration: 1 hours,
                     executionDelay: 300,
-                    passThresholdBps: opts.passThresholdBps,
-                    totalVotingPower: opts.totalVotingPower,
-                    feeRecipient: opts.feeRecipient,
-                    feeBps: opts.feeBps
+                    passThresholdBps: partyOpts.passThresholdBps,
+                    totalVotingPower: partyOpts.totalVotingPower,
+                    feeRecipient: partyOpts.feeRecipient,
+                    feeBps: partyOpts.feeBps
                 }),
-                proposalEngine: proposalEngineOpts,
+                proposalEngine: engineOpts,
                 name: "Dope party",
                 symbol: "DOPE",
                 customizationPresetId: 0
             }),
             preciousTokens,
             preciousTokenIds,
-            opts.rageQuitTimestamp
+            partyOpts.rageQuitTimestamp
         );
         return (party, preciousTokens, preciousTokenIds);
+    }
+
+    function createParty(
+        Party partyImpl,
+        PartyCreationMinimalOptions calldata partyOpts
+    )
+        public
+        returns (Party party, IERC721[] memory preciousTokens, uint256[] memory preciousTokenIds)
+    {
+        return createParty(partyImpl, partyOpts, proposalEngineOpts);
     }
 
     function mintGovNft(

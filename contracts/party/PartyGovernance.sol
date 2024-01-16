@@ -1,28 +1,30 @@
 // SPDX-License-Identifier: GPL-3.0
 pragma solidity 0.8.20;
 
-import "../distribution/ITokenDistributor.sol";
-import "../utils/ReadOnlyDelegateCall.sol";
-import "../tokens/IERC721.sol";
-import "../tokens/IERC20.sol";
-import "../tokens/ERC721Receiver.sol";
-import "../tokens/ERC1155Receiver.sol";
-import "../utils/LibERC20Compat.sol";
-import "../utils/LibRawResult.sol";
-import "../utils/LibSafeCast.sol";
-import "../utils/IERC4906.sol";
-import "../globals/IGlobals.sol";
-import "../globals/LibGlobals.sol";
-import "../proposals/IProposalExecutionEngine.sol";
-import "../proposals/LibProposal.sol";
-import "../proposals/ProposalStorage.sol";
-
-import "./Party.sol";
+import { ITokenDistributor } from "../distribution/ITokenDistributor.sol";
+import { ReadOnlyDelegateCall } from "../utils/ReadOnlyDelegateCall.sol";
+import { IERC721 } from "../tokens/IERC721.sol";
+import { IERC20 } from "../tokens/IERC20.sol";
+import { IERC721Receiver } from "../tokens/IERC721Receiver.sol";
+import { ERC1155TokenReceiverBase } from "../vendor/solmate/ERC1155.sol";
+import { LibERC20Compat } from "../utils/LibERC20Compat.sol";
+import { LibRawResult } from "../utils/LibRawResult.sol";
+import { LibSafeCast } from "../utils/LibSafeCast.sol";
+import { IERC4906 } from "../utils/IERC4906.sol";
+import { IGlobals } from "../globals/IGlobals.sol";
+import { LibGlobals } from "../globals/LibGlobals.sol";
+import { IProposalExecutionEngine } from "../proposals/IProposalExecutionEngine.sol";
+import { LibProposal } from "../proposals/LibProposal.sol";
+import { ProposalStorage } from "../proposals/ProposalStorage.sol";
+import { Implementation } from "../utils/Implementation.sol";
+import { Party } from "./Party.sol";
 
 /// @notice Base contract for a Party encapsulating all governance functionality.
+/// @dev This contract uses IERC4906 however does not comply with the standard
+///      since it does emit metadata events when distributions are claimed or
+///      when a MetadaProvider changes its URI. This decision was made
+///      intentionally which is why ERC4906 is not included in `supportsInterface`.
 abstract contract PartyGovernance is
-    ERC721Receiver,
-    ERC1155Receiver,
     ProposalStorage,
     Implementation,
     IERC4906,
@@ -82,17 +84,8 @@ abstract contract PartyGovernance is
         uint96 totalVotingPower;
         // Fee bps for distributions.
         uint16 feeBps;
-        // Fee recipeint for distributions.
+        // Fee recipient for distributions.
         address payable feeRecipient;
-    }
-
-    // Subset of `GovernanceOpts` that are commonly read together for
-    // efficiency.
-    struct GovernanceValues {
-        uint40 voteDuration;
-        uint40 executionDelay;
-        uint16 passThresholdBps;
-        uint96 totalVotingPower;
     }
 
     // A snapshot of voting power for a member.
@@ -136,6 +129,16 @@ abstract contract PartyGovernance is
         uint96 votes; // -1 == vetoed
         // Number of total voting power at time proposal created.
         uint96 totalVotingPower;
+        // Number of hosts at time proposal created
+        uint8 numHosts;
+        // Number of hosts that accepted proposal
+        uint8 numHostsAccepted;
+        // Cached vote duration from proposal creation.
+        uint40 voteDuration;
+        // Cached execution delay from proposal creation.
+        uint40 executionDelay;
+        // Cached pass threshold bps from proposal creation.
+        uint16 passThresholdBps;
     }
 
     // Storage states for a proposal.
@@ -176,22 +179,20 @@ abstract contract PartyGovernance is
     error BadProposalStatusError(ProposalStatus status);
     error BadProposalHashError(bytes32 proposalHash, bytes32 actualHash);
     error ExecutionTimeExceededError(uint40 maxExecutableTime, uint40 timestamp);
-    error OnlyPartyHostError();
-    error OnlyActiveMemberError();
-    error OnlyTokenDistributorOrSelfError();
+    error NotAuthorized();
     error InvalidDelegateError();
     error BadPreciousListError();
-    error OnlyPartyDaoError(address notDao, address partyDao);
-    error OnlyPartyDaoOrHostError(address notDao, address partyDao);
     error OnlyWhenEmergencyActionsAllowedError();
     error OnlyWhenEnabledError();
     error AlreadyVotedError(address voter);
     error InvalidNewHostError();
     error ProposalCannotBeCancelledYetError(uint40 currentTime, uint40 cancelTime);
     error InvalidBpsError(uint16 bps);
+    error InvalidGovernanceParameter(uint256 value);
     error DistributionsRequireVoteError();
     error PartyNotStartedError();
-    error CannotRageQuitAndAcceptError();
+    error CannotModifyTotalVotingPowerAndAcceptError();
+    error TooManyHosts();
 
     uint256 private constant UINT40_HIGH_BIT = 1 << 39;
     uint96 private constant VETO_VALUE = type(uint96).max;
@@ -206,8 +207,8 @@ abstract contract PartyGovernance is
     uint16 public feeBps;
     /// @notice Distribution fee recipient.
     address payable public feeRecipient;
-    /// @notice The timestamp of the last time `rageQuit()` was called.
-    uint40 public lastRageQuitTimestamp;
+    /// @notice The timestamp of the last time total voting power changed in the party.
+    uint40 public lastTotalVotingPowerChangeTimestamp;
     /// @notice The hash of the list of precious NFTs guarded by the party.
     bytes32 public preciousListHash;
     /// @notice The last proposal ID that was used. 0 means no proposals have been made.
@@ -216,30 +217,25 @@ abstract contract PartyGovernance is
     mapping(address => bool) public isHost;
     /// @notice The last person a voter delegated its voting power to.
     mapping(address => address) public delegationsByVoter;
-    // Governance parameters for this party.
-    GovernanceValues internal _governanceValues;
-    // ProposalState by proposal ID.
+    /// @notice Number of hosts for this party
+    uint8 public numHosts;
+    /// @notice ProposalState by proposal ID.
     mapping(uint256 => ProposalState) private _proposalStateByProposalId;
-    // Snapshots of voting power per user, each sorted by increasing time.
+    /// @notice Snapshots of voting power per user, each sorted by increasing time.
     mapping(address => VotingPowerSnapshot[]) private _votingPowerSnapshotsByVoter;
 
-    modifier onlyHost() {
+    function _assertHost() internal view {
         if (!isHost[msg.sender]) {
-            revert OnlyPartyHostError();
+            revert NotAuthorized();
         }
-        _;
     }
 
-    // Caller must have voting power at the current time.
-    modifier onlyActiveMember() {
-        {
-            VotingPowerSnapshot memory snap = _getLastVotingPowerSnapshotForVoter(msg.sender);
-            // Must have either delegated voting power or intrinsic voting power.
-            if (snap.intrinsicVotingPower == 0 && snap.delegatedVotingPower == 0) {
-                revert OnlyActiveMemberError();
-            }
+    function _assertActiveMember() internal view {
+        VotingPowerSnapshot memory snap = _getLastVotingPowerSnapshotForVoter(msg.sender);
+        // Must have either delegated voting power or intrinsic voting power.
+        if (snap.intrinsicVotingPower == 0 && snap.delegatedVotingPower == 0) {
+            revert NotAuthorized();
         }
-        _;
     }
 
     // Only the party DAO multisig can call.
@@ -247,7 +243,7 @@ abstract contract PartyGovernance is
         {
             address partyDao = _GLOBALS.getAddress(LibGlobals.GLOBAL_DAO_WALLET);
             if (msg.sender != partyDao) {
-                revert OnlyPartyDaoError(msg.sender, partyDao);
+                revert NotAuthorized();
             }
         }
         _;
@@ -257,7 +253,7 @@ abstract contract PartyGovernance is
     modifier onlyPartyDaoOrHost() {
         address partyDao = _GLOBALS.getAddress(LibGlobals.GLOBAL_DAO_WALLET);
         if (msg.sender != partyDao && !isHost[msg.sender]) {
-            revert OnlyPartyDaoOrHostError(msg.sender, partyDao);
+            revert NotAuthorized();
         }
         _;
     }
@@ -270,11 +266,10 @@ abstract contract PartyGovernance is
         _;
     }
 
-    modifier onlyWhenNotGloballyDisabled() {
+    function _assertNotGloballyDisabled() internal view {
         if (_GLOBALS.getBool(LibGlobals.GLOBAL_DISABLE_PARTY_ACTIONS)) {
             revert OnlyWhenEnabledError();
         }
-        _;
     }
 
     // Set the `Globals` contract.
@@ -293,8 +288,14 @@ abstract contract PartyGovernance is
         if (govOpts.feeBps > 1e4) {
             revert InvalidBpsError(govOpts.feeBps);
         }
-        if (govOpts.passThresholdBps > 1e4) {
+        if (govOpts.voteDuration < 1 hours) {
+            revert InvalidGovernanceParameter(govOpts.voteDuration);
+        }
+        if (govOpts.passThresholdBps == 0 || govOpts.passThresholdBps > 1e4) {
             revert InvalidBpsError(govOpts.passThresholdBps);
+        }
+        if (govOpts.executionDelay == 0 || govOpts.executionDelay > 30 days) {
+            revert InvalidGovernanceParameter(govOpts.executionDelay);
         }
         // Initialize the proposal execution engine.
         _initProposalImpl(
@@ -302,18 +303,22 @@ abstract contract PartyGovernance is
             abi.encode(proposalEngineOpts)
         );
         // Set the governance parameters.
-        _governanceValues = GovernanceValues({
+        _getSharedProposalStorage().governanceValues = GovernanceValues({
             voteDuration: govOpts.voteDuration,
             executionDelay: govOpts.executionDelay,
             passThresholdBps: govOpts.passThresholdBps,
             totalVotingPower: govOpts.totalVotingPower
         });
+        numHosts = uint8(govOpts.hosts.length);
         // Set fees.
         feeBps = govOpts.feeBps;
         feeRecipient = govOpts.feeRecipient;
         // Set the precious list.
         _setPreciousList(preciousTokens, preciousTokenIds);
         // Set the party hosts.
+        if (govOpts.hosts.length > type(uint8).max) {
+            revert TooManyHosts();
+        }
         for (uint256 i = 0; i < govOpts.hosts.length; ++i) {
             isHost[govOpts.hosts[i]] = true;
         }
@@ -322,19 +327,30 @@ abstract contract PartyGovernance is
     /// @dev Forward all unknown read-only calls to the proposal execution engine.
     ///      Initial use case is to facilitate eip-1271 signatures.
     fallback() external {
+        bytes4 functionSelector = bytes4(msg.data[0:4]);
+        if (
+            functionSelector == ERC1155TokenReceiverBase.onERC1155BatchReceived.selector ||
+            functionSelector == ERC1155TokenReceiverBase.onERC1155Received.selector ||
+            functionSelector == IERC721Receiver.onERC721Received.selector
+        ) {
+            assembly {
+                let freeMem := mload(0x40)
+                mstore(freeMem, functionSelector)
+                mstore(0x40, add(freeMem, 0x20))
+                return(freeMem, 0x20)
+            }
+        }
         _readOnlyDelegateCall(address(_getSharedProposalStorage().engineImpl), msg.data);
     }
 
-    /// @inheritdoc EIP165
-    /// @dev Combined logic for `ERC721Receiver` and `ERC1155Receiver`.
-    function supportsInterface(
-        bytes4 interfaceId
-    ) public pure virtual override(ERC721Receiver, ERC1155Receiver) returns (bool) {
+    /// @notice Query if a contract implements an interface.
+    /// @param interfaceId The interface identifier, as specified in ERC-165
+    /// @return `true` if the contract implements `interfaceId` and
+    ///         `interfaceId` is not 0xffffffff, `false` otherwise
+    function supportsInterface(bytes4 interfaceId) public pure virtual returns (bool) {
         return
-            ERC721Receiver.supportsInterface(interfaceId) ||
-            ERC1155Receiver.supportsInterface(interfaceId) ||
-            // ERC4906 interface ID
-            interfaceId == 0x49064906;
+            interfaceId == type(IERC721Receiver).interfaceId ||
+            interfaceId == type(ERC1155TokenReceiverBase).interfaceId;
     }
 
     /// @notice Get the current `ProposalExecutionEngine` instance.
@@ -345,17 +361,6 @@ abstract contract PartyGovernance is
     /// @notice Get the current `ProposalEngineOpts` options.
     function getProposalEngineOpts() external view returns (ProposalEngineOpts memory) {
         return _getSharedProposalStorage().opts;
-    }
-
-    /// @notice Get the total voting power of `voter` at a `timestamp`.
-    /// @param voter The address of the voter.
-    /// @param timestamp The timestamp to get the voting power at.
-    /// @return votingPower The total voting power of `voter` at `timestamp`.
-    function getVotingPowerAt(
-        address voter,
-        uint40 timestamp
-    ) external view returns (uint96 votingPower) {
-        return getVotingPowerAt(voter, timestamp, type(uint256).max);
     }
 
     /// @notice Get the total voting power of `voter` at a snapshot `snapIndex`, with checks to
@@ -386,8 +391,8 @@ abstract contract PartyGovernance is
 
     /// @notice Retrieve fixed governance parameters.
     /// @return gv The governance parameters of this party.
-    function getGovernanceValues() external view returns (GovernanceValues memory gv) {
-        return _governanceValues;
+    function getGovernanceValues() external view returns (GovernanceValues memory) {
+        return _getSharedProposalStorage().governanceValues;
     }
 
     /// @notice Get the hash of a proposal.
@@ -453,14 +458,15 @@ abstract contract PartyGovernance is
 
     /// @notice Transfer party host status to another.
     /// @param newPartyHost The address of the new host.
-    function abdicateHost(address newPartyHost) external onlyHost {
+    function abdicateHost(address newPartyHost) external {
+        _assertHost();
         // 0 is a special case burn address.
         if (newPartyHost != address(0)) {
-            // Cannot transfer host status to an existing host.
-            if (isHost[newPartyHost]) {
-                revert InvalidNewHostError();
-            }
-            isHost[newPartyHost] = true;
+            // Can only abdicate host
+            revert InvalidNewHostError();
+        } else {
+            // Burned the host status
+            --numHosts;
         }
         isHost[msg.sender] = false;
         emit HostStatusTransferred(msg.sender, newPartyHost);
@@ -484,11 +490,8 @@ abstract contract PartyGovernance is
         ITokenDistributor.TokenType tokenType,
         address token,
         uint256 tokenId
-    )
-        external
-        onlyWhenNotGloballyDisabled
-        returns (ITokenDistributor.DistributionInfo memory distInfo)
-    {
+    ) external returns (ITokenDistributor.DistributionInfo memory distInfo) {
+        _assertNotGloballyDisabled();
         // Ignore if the party is calling functions on itself, like with
         // `FractionalizeProposal` and `DistributionProposal`.
         if (msg.sender != address(this)) {
@@ -501,11 +504,11 @@ abstract contract PartyGovernance is
             // Must be an active member.
             VotingPowerSnapshot memory snap = _getLastVotingPowerSnapshotForVoter(msg.sender);
             if (snap.intrinsicVotingPower == 0 && snap.delegatedVotingPower == 0) {
-                revert OnlyActiveMemberError();
+                revert NotAuthorized();
             }
         }
         // Prevent creating a distribution if the party has not started.
-        if (_governanceValues.totalVotingPower == 0) {
+        if (_getSharedProposalStorage().governanceValues.totalVotingPower == 0) {
             revert PartyNotStartedError();
         }
         // Get the address of the token distributor.
@@ -513,9 +516,8 @@ abstract contract PartyGovernance is
             _GLOBALS.getAddress(LibGlobals.GLOBAL_TOKEN_DISTRIBUTOR)
         );
         emit DistributionCreated(tokenType, token, tokenId);
-        // Notify third-party platforms that the governance NFT metadata has
-        // updated for all tokens.
-        emit BatchMetadataUpdate(0, type(uint256).max);
+        _emitMetadataUpdateEvent();
+
         // Create a native token distribution.
         address payable feeRecipient_ = feeRecipient;
         uint16 feeBps_ = feeBps;
@@ -551,8 +553,12 @@ abstract contract PartyGovernance is
     function propose(
         Proposal memory proposal,
         uint256 latestSnapIndex
-    ) external onlyActiveMember returns (uint256 proposalId) {
+    ) external returns (uint256 proposalId) {
+        _assertActiveMember();
         proposalId = ++lastProposalId;
+
+        ProposalStorage.GovernanceValues memory gv = _getSharedProposalStorage().governanceValues;
+
         // Store the time the proposal was created and the proposal hash.
         (
             _proposalStateByProposalId[proposalId].values,
@@ -564,16 +570,18 @@ abstract contract PartyGovernance is
                 executedTime: 0,
                 completedTime: 0,
                 votes: 0,
-                totalVotingPower: _governanceValues.totalVotingPower
+                totalVotingPower: gv.totalVotingPower,
+                numHosts: numHosts,
+                numHostsAccepted: 0,
+                voteDuration: gv.voteDuration,
+                executionDelay: gv.executionDelay,
+                passThresholdBps: gv.passThresholdBps
             }),
             getProposalHash(proposal)
         );
         emit Proposed(proposalId, msg.sender, proposal);
         accept(proposalId, latestSnapIndex);
-
-        // Notify third-party platforms that the governance NFT metadata has
-        // updated for all tokens.
-        emit BatchMetadataUpdate(0, type(uint256).max);
+        _emitMetadataUpdateEvent();
     }
 
     /// @notice Vote to support a proposed proposal.
@@ -607,15 +615,15 @@ abstract contract PartyGovernance is
             }
         }
 
-        // Prevent voting in the same block as the last rage quit timestamp.
-        // This is to prevent an exploit where a member can rage quit to reduce
-        // the total voting power of the party, then propose and vote in the
-        // same block since `getVotingPowerAt()` uses `values.proposedTime - 1`.
-        // This would allow them to use the voting power snapshot just before
-        // their card was burned to vote, potentially passing a proposal that
-        // would have otherwise not passed.
-        if (lastRageQuitTimestamp == block.timestamp) {
-            revert CannotRageQuitAndAcceptError();
+        // Prevent voting in the same block as the last total voting power
+        // change. This is to prevent an exploit where a member can, for
+        // example, rage quit to reduce the total voting power of the party,
+        // then propose and vote in the same block since `getVotingPowerAt()`
+        // uses `values.proposedTime - 1`. This would allow them to use the
+        // voting power snapshot just before their card was burned to vote,
+        // potentially passing a proposal that would have otherwise not passed.
+        if (lastTotalVotingPowerChangeTimestamp == block.timestamp) {
+            revert CannotModifyTotalVotingPowerAndAcceptError();
         }
 
         // Cannot vote twice.
@@ -628,23 +636,21 @@ abstract contract PartyGovernance is
         // Increase the total votes that have been cast on this proposal.
         uint96 votingPower = getVotingPowerAt(msg.sender, values.proposedTime - 1, snapIndex);
         values.votes += votingPower;
+        if (isHost[msg.sender]) {
+            ++values.numHostsAccepted;
+        }
         info.values = values;
         emit ProposalAccepted(proposalId, msg.sender, votingPower);
 
         // Update the proposal status if it has reached the pass threshold.
         if (
             values.passedTime == 0 &&
-            _areVotesPassing(
-                values.votes,
-                values.totalVotingPower,
-                _governanceValues.passThresholdBps
-            )
+            (uint256(values.votes) * 1e4) / uint256(values.totalVotingPower) >=
+            uint256(values.passThresholdBps)
         ) {
             info.values.passedTime = uint40(block.timestamp);
             emit ProposalPassed(proposalId);
-            // Notify third-party platforms that the governance NFT metadata has
-            // updated for all tokens.
-            emit BatchMetadataUpdate(0, type(uint256).max);
+            _emitMetadataUpdateEvent();
         }
         return values.votes;
     }
@@ -654,7 +660,8 @@ abstract contract PartyGovernance is
     ///      A proposal that has been already executed at least once (in the `InProgress` status)
     ///      cannot be vetoed.
     /// @param proposalId The ID of the proposal to veto.
-    function veto(uint256 proposalId) external onlyHost {
+    function veto(uint256 proposalId) external {
+        _assertHost();
         // Setting `votes` to -1 indicates a veto.
         ProposalState storage info = _proposalStateByProposalId[proposalId];
         ProposalStateValues memory values = info.values;
@@ -674,9 +681,7 @@ abstract contract PartyGovernance is
         // -1 indicates veto.
         info.values.votes = VETO_VALUE;
         emit ProposalVetoed(proposalId, msg.sender);
-        // Notify third-party platforms that the governance NFT metadata has
-        // updated for all tokens.
-        emit BatchMetadataUpdate(0, type(uint256).max);
+        _emitMetadataUpdateEvent();
     }
 
     /// @notice Executes a proposal that has passed governance.
@@ -701,7 +706,9 @@ abstract contract PartyGovernance is
         uint256[] memory preciousTokenIds,
         bytes calldata progressData,
         bytes calldata extraData
-    ) external payable onlyActiveMember onlyWhenNotGloballyDisabled onlyDelegateCall {
+    ) external payable {
+        _assertNotGloballyDisabled();
+        _assertActiveMember();
         // Get information about the proposal.
         ProposalState storage proposalState = _proposalStateByProposalId[proposalId];
         // Proposal details must remain the same from `propose()`.
@@ -757,7 +764,8 @@ abstract contract PartyGovernance is
     ///      allowed to complete their lifecycle.
     /// @param proposalId The ID of the proposal to cancel.
     /// @param proposal The details of the proposal to cancel.
-    function cancel(uint256 proposalId, Proposal calldata proposal) external onlyActiveMember {
+    function cancel(uint256 proposalId, Proposal calldata proposal) external {
+        _assertActiveMember();
         // Get information about the proposal.
         ProposalState storage proposalState = _proposalStateByProposalId[proposalId];
         // Proposal details must remain the same from `propose()`.
@@ -816,9 +824,7 @@ abstract contract PartyGovernance is
             }
         }
         emit ProposalCancelled(proposalId);
-        // Notify third-party platforms that the governance NFT metadata has
-        // updated for all tokens.
-        emit BatchMetadataUpdate(0, type(uint256).max);
+        _emitMetadataUpdateEvent();
     }
 
     /// @notice As the DAO, execute an arbitrary function call from this contract.
@@ -830,7 +836,7 @@ abstract contract PartyGovernance is
         address targetAddress,
         bytes calldata targetCallData,
         uint256 amountEth
-    ) external payable onlyPartyDao onlyWhenEmergencyExecuteAllowed onlyDelegateCall {
+    ) external payable onlyPartyDao onlyWhenEmergencyExecuteAllowed {
         (bool success, bytes memory res) = targetAddress.call{ value: amountEth }(targetCallData);
         if (!success) {
             res.rawRevert();
@@ -880,9 +886,7 @@ abstract contract PartyGovernance is
             nextProgressData = abi.decode(resultData, (bytes));
         }
         emit ProposalExecuted(proposalId, msg.sender, nextProgressData);
-        // Notify third-party platforms that the governance NFT metadata has
-        // updated for all tokens.
-        emit BatchMetadataUpdate(0, type(uint256).max);
+        _emitMetadataUpdateEvent();
         // If the returned progress data is empty, then the proposal completed
         // and it should not be executed again.
         return nextProgressData.length == 0;
@@ -1039,10 +1043,14 @@ abstract contract PartyGovernance is
     }
 
     function _getProposalFlags(ProposalStateValues memory pv) private pure returns (uint256) {
+        uint256 flags = 0;
         if (_isUnanimousVotes(pv.votes, pv.totalVotingPower)) {
-            return LibProposal.PROPOSAL_FLAG_UNANIMOUS;
+            flags = flags | LibProposal.PROPOSAL_FLAG_UNANIMOUS;
         }
-        return 0;
+        if (_hostsAccepted(pv.numHosts, pv.numHostsAccepted)) {
+            flags = flags | LibProposal.PROPOSAL_FLAG_HOSTS_ACCEPT;
+        }
+        return flags;
     }
 
     function _getProposalStatus(
@@ -1068,21 +1076,24 @@ abstract contract PartyGovernance is
             return ProposalStatus.Defeated;
         }
         uint40 t = uint40(block.timestamp);
-        GovernanceValues memory gv = _governanceValues;
         if (pv.passedTime != 0) {
             // Ready.
-            if (pv.passedTime + gv.executionDelay <= t) {
+            if (pv.passedTime + pv.executionDelay <= t) {
                 return ProposalStatus.Ready;
             }
             // If unanimous, we skip the execution delay.
             if (_isUnanimousVotes(pv.votes, pv.totalVotingPower)) {
                 return ProposalStatus.Ready;
             }
+            // If all hosts voted, skip execution delay
+            if (_hostsAccepted(pv.numHosts, pv.numHostsAccepted)) {
+                return ProposalStatus.Ready;
+            }
             // Passed.
             return ProposalStatus.Passed;
         }
         // Voting window expired.
-        if (pv.proposedTime + gv.voteDuration <= t) {
+        if (pv.proposedTime + pv.voteDuration <= t) {
             return ProposalStatus.Defeated;
         }
         return ProposalStatus.Voting;
@@ -1092,11 +1103,18 @@ abstract contract PartyGovernance is
         uint96 totalVotes,
         uint96 totalVotingPower
     ) private pure returns (bool) {
-        uint256 acceptanceRatio = (totalVotes * 1e4) / totalVotingPower;
+        uint256 acceptanceRatio = (uint256(totalVotes) * 1e4) / totalVotingPower;
         // If >= 99.99% acceptance, consider it unanimous.
         // The minting formula for voting power is a bit lossy, so we check
         // for slightly less than 100%.
         return acceptanceRatio >= 0.9999e4;
+    }
+
+    function _hostsAccepted(
+        uint8 snapshotNumHosts,
+        uint8 numHostsAccepted
+    ) private pure returns (bool) {
+        return snapshotNumHosts > 0 && snapshotNumHosts == numHostsAccepted;
     }
 
     function _areVotesPassing(
@@ -1133,6 +1151,10 @@ abstract contract PartyGovernance is
             mstore(0x20, keccak256(add(preciousTokenIds, 0x20), mul(mload(preciousTokenIds), 0x20)))
             h := keccak256(0x00, 0x40)
         }
+    }
+
+    function _emitMetadataUpdateEvent() internal {
+        emit BatchMetadataUpdate(0, type(uint256).max);
     }
 
     // Assert that the hash of a proposal matches expectedHash.

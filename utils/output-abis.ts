@@ -19,7 +19,6 @@ const RELEVANT_ABIS = [
   "PartyNFTRenderer",
   "CrowdfundNFTRenderer",
   "InitialETHCrowdfund",
-  "ReraiseETHCrowdfund",
   "CollectionBatchBuyOperator",
   "PixeldroidConsoleFont",
   "Globals",
@@ -31,6 +30,7 @@ const RELEVANT_ABIS = [
   "ContributionRouter",
   "AddPartyCardsAuthority",
   "SellPartyCardsAuthority",
+  "OffChainSignatureValidator",
 ];
 
 // AFileName -> a_file_name

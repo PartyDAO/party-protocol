@@ -111,6 +111,7 @@ abstract contract Crowdfund is Implementation, ERC721Receiver, CrowdfundNFT {
     error BelowMinimumContributionsError(uint96 contributions, uint96 minContributions);
     error AboveMaximumContributionsError(uint96 contributions, uint96 maxContributions);
     error InvalidMessageValue();
+    error ArityMismatch();
 
     event Burned(address contributor, uint256 ethUsed, uint256 ethOwed, uint256 votingPower);
     event Contributed(
@@ -193,7 +194,7 @@ abstract contract Crowdfund is Implementation, ERC721Receiver, CrowdfundNFT {
         // Set the minimum and maximum contribution amounts.
         minContribution = opts.minContribution;
         maxContribution = opts.maxContribution;
-        // If the deployer passed in some ETH during deployment, credit them
+        // If the creator passed in some ETH during initialization, credit them
         // for the initial contribution.
         uint96 initialContribution = msg.value.safeCastUint256ToUint96();
         if (initialContribution > 0) {
@@ -373,6 +374,16 @@ abstract contract Crowdfund is Implementation, ERC721Receiver, CrowdfundNFT {
         uint96[] memory values,
         bytes[] memory gateDatas
     ) external payable {
+        uint256 numRecipients = recipients.length;
+
+        if (
+            numRecipients != initialDelegates.length ||
+            numRecipients != values.length ||
+            numRecipients != gateDatas.length
+        ) {
+            revert ArityMismatch();
+        }
+
         uint256 valuesSum;
         for (uint256 i; i < recipients.length; ++i) {
             _setDelegate(recipients[i], initialDelegates[i]);
@@ -643,6 +654,11 @@ abstract contract Crowdfund is Implementation, ERC721Receiver, CrowdfundNFT {
         {
             IGateKeeper _gateKeeper = gateKeeper;
             if (_gateKeeper != IGateKeeper(address(0))) {
+                // Checking msg.sender here instead of contributor is intentional to
+                // allow someone who's allowed by a gatekeeper to invite others
+                // into the Party. For example, to allow another contract, and
+                // only that contract, to process contributions on behalf of
+                // contributors.
                 if (!_gateKeeper.isAllowed(msg.sender, gateKeeperId, gateData)) {
                     revert NotAllowedByGateKeeperError(
                         msg.sender,

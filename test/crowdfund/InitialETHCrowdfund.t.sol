@@ -1,11 +1,11 @@
-// SPDX-License-Identifier: Apache-2.0
+// SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8;
 
 import "forge-std/Test.sol";
+import { Clones } from "openzeppelin/contracts/proxy/Clones.sol";
 
 import "../../contracts/crowdfund/InitialETHCrowdfund.sol";
 import "../../contracts/globals/Globals.sol";
-import "../../contracts/utils/Proxy.sol";
 import "../../contracts/party/PartyFactory.sol";
 import "../../contracts/tokens/ERC721Receiver.sol";
 import "../../contracts/renderers/PartyNFTRenderer.sol";
@@ -18,7 +18,9 @@ import "../../contracts/gatekeepers/AllowListGateKeeper.sol";
 import "../TestUtils.sol";
 import { LintJSON } from "../utils/LintJSON.sol";
 
-contract InitialETHCrowdfundTest is LintJSON, TestUtils, ERC721Receiver {
+contract InitialETHCrowdfundTestBase is LintJSON, TestUtils, ERC721Receiver {
+    using Clones for address;
+
     event Contributed(
         address indexed sender,
         address indexed contributor,
@@ -36,6 +38,9 @@ contract InitialETHCrowdfundTest is LintJSON, TestUtils, ERC721Receiver {
     PartyNFTRenderer nftRenderer;
     RendererStorage nftRendererStorage;
     TokenDistributor tokenDistributor;
+
+    InitialETHCrowdfund.ETHPartyOptions partyOpts;
+    InitialETHCrowdfund.InitialETHCrowdfundOptions crowdfundOpts;
 
     constructor() {
         globals = new Globals(address(this));
@@ -92,7 +97,7 @@ contract InitialETHCrowdfundTest is LintJSON, TestUtils, ERC721Receiver {
         uint96 minTotalContributions;
         uint96 maxTotalContributions;
         uint40 duration;
-        uint16 exchangeRateBps;
+        uint160 exchangeRate;
         uint16 fundingSplitBps;
         address payable fundingSplitRecipient;
         IGateKeeper gateKeeper;
@@ -100,9 +105,9 @@ contract InitialETHCrowdfundTest is LintJSON, TestUtils, ERC721Receiver {
     }
 
     function _createCrowdfund(
-        CreateCrowdfundArgs memory args
-    ) private returns (InitialETHCrowdfund crowdfund) {
-        InitialETHCrowdfund.InitialETHCrowdfundOptions memory crowdfundOpts;
+        CreateCrowdfundArgs memory args,
+        bool initialize
+    ) internal returns (InitialETHCrowdfund crowdfund) {
         crowdfundOpts.initialContributor = args.initialContributor;
         crowdfundOpts.initialDelegate = args.initialDelegate;
         crowdfundOpts.minContribution = args.minContributions;
@@ -111,13 +116,12 @@ contract InitialETHCrowdfundTest is LintJSON, TestUtils, ERC721Receiver {
         crowdfundOpts.minTotalContributions = args.minTotalContributions;
         crowdfundOpts.maxTotalContributions = args.maxTotalContributions;
         crowdfundOpts.duration = args.duration;
-        crowdfundOpts.exchangeRateBps = args.exchangeRateBps;
+        crowdfundOpts.exchangeRate = args.exchangeRate;
         crowdfundOpts.fundingSplitBps = args.fundingSplitBps;
         crowdfundOpts.fundingSplitRecipient = args.fundingSplitRecipient;
         crowdfundOpts.gateKeeper = args.gateKeeper;
         crowdfundOpts.gateKeeperId = args.gateKeeperId;
 
-        InitialETHCrowdfund.ETHPartyOptions memory partyOpts;
         partyOpts.name = "Test Party";
         partyOpts.symbol = "TEST";
         partyOpts.governanceOpts.partyImpl = partyImpl;
@@ -128,18 +132,26 @@ contract InitialETHCrowdfundTest is LintJSON, TestUtils, ERC721Receiver {
         partyOpts.governanceOpts.hosts = new address[](1);
         partyOpts.governanceOpts.hosts[0] = address(this);
 
-        crowdfund = InitialETHCrowdfund(
-            payable(
-                new Proxy{ value: args.initialContribution }(
-                    initialETHCrowdfundImpl,
-                    abi.encodeCall(
-                        InitialETHCrowdfund.initialize,
-                        (crowdfundOpts, partyOpts, MetadataProvider(address(0)), "")
-                    )
-                )
-            )
-        );
+        crowdfund = InitialETHCrowdfund(payable(address(initialETHCrowdfundImpl).clone()));
+        if (initialize) {
+            crowdfund.initialize{ value: args.initialContribution }(
+                crowdfundOpts,
+                partyOpts,
+                MetadataProvider(address(0)),
+                ""
+            );
+        }
     }
+
+    function _createCrowdfund(
+        CreateCrowdfundArgs memory args
+    ) internal returns (InitialETHCrowdfund) {
+        return _createCrowdfund(args, true);
+    }
+}
+
+contract InitialETHCrowdfundTest is InitialETHCrowdfundTestBase {
+    using Clones for address;
 
     function test_initialization_cannotReinitialize() public {
         InitialETHCrowdfund crowdfund = _createCrowdfund(
@@ -147,13 +159,13 @@ contract InitialETHCrowdfundTest is LintJSON, TestUtils, ERC721Receiver {
                 initialContribution: 0,
                 initialContributor: payable(address(0)),
                 initialDelegate: address(0),
-                minContributions: 0,
+                minContributions: 0.01 ether,
                 maxContributions: type(uint96).max,
                 disableContributingForExistingCard: false,
-                minTotalContributions: 0,
+                minTotalContributions: 1 ether,
                 maxTotalContributions: type(uint96).max,
                 duration: 7 days,
-                exchangeRateBps: 1e4,
+                exchangeRate: 1e18,
                 fundingSplitBps: 0,
                 fundingSplitRecipient: payable(address(0)),
                 gateKeeper: IGateKeeper(address(0)),
@@ -161,71 +173,78 @@ contract InitialETHCrowdfundTest is LintJSON, TestUtils, ERC721Receiver {
             })
         );
 
-        InitialETHCrowdfund.InitialETHCrowdfundOptions memory crowdfundOpts;
-        InitialETHCrowdfund.ETHPartyOptions memory partyOpts;
+        InitialETHCrowdfund.InitialETHCrowdfundOptions memory defaultCrowdfundOpts;
+        defaultCrowdfundOpts.minContribution = 0.01 ether;
+        defaultCrowdfundOpts.maxContribution = type(uint96).max;
+        defaultCrowdfundOpts.minTotalContributions = 1 ether;
+        defaultCrowdfundOpts.maxTotalContributions = type(uint96).max;
+        defaultCrowdfundOpts.exchangeRate = 1e18;
+        InitialETHCrowdfund.ETHPartyOptions memory defaultPartyOpts;
 
-        vm.expectRevert(Implementation.OnlyConstructorError.selector);
-        crowdfund.initialize(crowdfundOpts, partyOpts, MetadataProvider(address(0)), "");
+        vm.expectRevert(Implementation.AlreadyInitialized.selector);
+        crowdfund.initialize(
+            defaultCrowdfundOpts,
+            defaultPartyOpts,
+            MetadataProvider(address(0)),
+            ""
+        );
     }
 
     function test_initialization_minTotalContributionsGreaterThanMax() public {
         uint96 minTotalContributions = 5 ether;
         uint96 maxTotalContributions = 3 ether;
 
-        vm.expectRevert(
-            abi.encodeWithSelector(
-                ETHCrowdfundBase.MinGreaterThanMaxError.selector,
-                minTotalContributions,
-                maxTotalContributions
-            )
-        );
-        _createCrowdfund(
+        InitialETHCrowdfund crowdfund = _createCrowdfund(
             CreateCrowdfundArgs({
                 initialContribution: 0,
                 initialContributor: payable(address(0)),
                 initialDelegate: address(0),
-                minContributions: 0,
+                minContributions: 0.01 ether,
                 maxContributions: type(uint96).max,
                 disableContributingForExistingCard: false,
                 minTotalContributions: minTotalContributions,
                 maxTotalContributions: maxTotalContributions,
                 duration: 7 days,
-                exchangeRateBps: 1e4,
+                exchangeRate: 1e18,
                 fundingSplitBps: 0,
                 fundingSplitRecipient: payable(address(0)),
                 gateKeeper: IGateKeeper(address(0)),
                 gateKeeperId: bytes12(0)
-            })
+            }),
+            false
         );
+        vm.expectRevert(stdError.arithmeticError);
+        crowdfund.initialize(crowdfundOpts, partyOpts, MetadataProvider(address(0)), "");
     }
 
     function test_initialization_maxTotalContributionsZero() public {
         uint96 maxTotalContributions = 0;
-
+        InitialETHCrowdfund crowdfund = _createCrowdfund(
+            CreateCrowdfundArgs({
+                initialContribution: 0,
+                initialContributor: payable(address(0)),
+                initialDelegate: address(0),
+                minContributions: 1,
+                maxContributions: type(uint96).max,
+                disableContributingForExistingCard: false,
+                minTotalContributions: 0,
+                maxTotalContributions: maxTotalContributions,
+                duration: 7 days,
+                exchangeRate: 1e18,
+                fundingSplitBps: 0,
+                fundingSplitRecipient: payable(address(0)),
+                gateKeeper: IGateKeeper(address(0)),
+                gateKeeperId: bytes12(0)
+            }),
+            false
+        );
         vm.expectRevert(
             abi.encodeWithSelector(
                 ETHCrowdfundBase.MaxTotalContributionsCannotBeZeroError.selector,
                 maxTotalContributions
             )
         );
-        _createCrowdfund(
-            CreateCrowdfundArgs({
-                initialContribution: 0,
-                initialContributor: payable(address(0)),
-                initialDelegate: address(0),
-                minContributions: 0,
-                maxContributions: type(uint96).max,
-                disableContributingForExistingCard: false,
-                minTotalContributions: 0,
-                maxTotalContributions: maxTotalContributions,
-                duration: 7 days,
-                exchangeRateBps: 1e4,
-                fundingSplitBps: 0,
-                fundingSplitRecipient: payable(address(0)),
-                gateKeeper: IGateKeeper(address(0)),
-                gateKeeperId: bytes12(0)
-            })
-        );
+        crowdfund.initialize(crowdfundOpts, partyOpts, MetadataProvider(address(0)), "");
     }
 
     function test_initialContribution_works() public {
@@ -239,13 +258,13 @@ contract InitialETHCrowdfundTest is LintJSON, TestUtils, ERC721Receiver {
                 initialContribution: initialContribution,
                 initialContributor: initialContributor,
                 initialDelegate: initialDelegate,
-                minContributions: 0,
+                minContributions: 0.01 ether,
                 maxContributions: type(uint96).max,
                 disableContributingForExistingCard: false,
                 minTotalContributions: 3 ether,
                 maxTotalContributions: 5 ether,
                 duration: 7 days,
-                exchangeRateBps: 1e4,
+                exchangeRate: 1e18,
                 fundingSplitBps: 0,
                 fundingSplitRecipient: payable(address(0)),
                 gateKeeper: IGateKeeper(address(0)),
@@ -261,7 +280,7 @@ contract InitialETHCrowdfundTest is LintJSON, TestUtils, ERC721Receiver {
         assertEq(party.ownerOf(1), initialContributor);
         assertEq(party.votingPowerByTokenId(1), initialContribution);
         assertEq(
-            party.getVotingPowerAt(initialDelegate, uint40(block.timestamp)),
+            party.getVotingPowerAt(initialDelegate, uint40(block.timestamp), 0),
             initialContribution
         );
     }
@@ -277,13 +296,13 @@ contract InitialETHCrowdfundTest is LintJSON, TestUtils, ERC721Receiver {
                 initialContribution: initialContribution,
                 initialContributor: initialContributor,
                 initialDelegate: initialDelegate,
-                minContributions: 0,
+                minContributions: 0.01 ether,
                 maxContributions: type(uint96).max,
                 disableContributingForExistingCard: false,
-                minTotalContributions: initialContribution,
+                minTotalContributions: 0,
                 maxTotalContributions: initialContribution,
                 duration: 7 days,
-                exchangeRateBps: 1e4,
+                exchangeRate: 1e18,
                 fundingSplitBps: 0,
                 fundingSplitRecipient: payable(address(0)),
                 gateKeeper: IGateKeeper(address(0)),
@@ -305,13 +324,13 @@ contract InitialETHCrowdfundTest is LintJSON, TestUtils, ERC721Receiver {
                 initialContribution: 0,
                 initialContributor: payable(address(0)),
                 initialDelegate: address(0),
-                minContributions: 0,
+                minContributions: 0.01 ether,
                 maxContributions: type(uint96).max,
                 disableContributingForExistingCard: false,
                 minTotalContributions: 3 ether,
                 maxTotalContributions: 5 ether,
                 duration: 7 days,
-                exchangeRateBps: 1e4,
+                exchangeRate: 1e18,
                 fundingSplitBps: 0,
                 fundingSplitRecipient: payable(address(0)),
                 gateKeeper: IGateKeeper(address(0)),
@@ -345,13 +364,13 @@ contract InitialETHCrowdfundTest is LintJSON, TestUtils, ERC721Receiver {
                 initialContribution: 0,
                 initialContributor: payable(address(0)),
                 initialDelegate: address(0),
-                minContributions: 0,
+                minContributions: 0.01 ether,
                 maxContributions: type(uint96).max,
                 disableContributingForExistingCard: true,
                 minTotalContributions: 3 ether,
                 maxTotalContributions: 5 ether,
                 duration: 7 days,
-                exchangeRateBps: 1e4,
+                exchangeRate: 1e18,
                 fundingSplitBps: 0,
                 fundingSplitRecipient: payable(address(0)),
                 gateKeeper: IGateKeeper(address(0)),
@@ -369,19 +388,19 @@ contract InitialETHCrowdfundTest is LintJSON, TestUtils, ERC721Receiver {
         crowdfund.contribute{ value: 1 ether }(tokenId, member, "");
     }
 
-    function test_contribute_addVotingPowerToExistingCard() public {
+    function test_contribute_increaseVotingPowerToExistingCard() public {
         InitialETHCrowdfund crowdfund = _createCrowdfund(
             CreateCrowdfundArgs({
                 initialContribution: 0,
                 initialContributor: payable(address(0)),
                 initialDelegate: address(0),
-                minContributions: 0,
+                minContributions: 0.01 ether,
                 maxContributions: type(uint96).max,
                 disableContributingForExistingCard: false,
                 minTotalContributions: 3 ether,
                 maxTotalContributions: 5 ether,
                 duration: 7 days,
-                exchangeRateBps: 1e4,
+                exchangeRate: 1e18,
                 fundingSplitBps: 0,
                 fundingSplitRecipient: payable(address(0)),
                 gateKeeper: IGateKeeper(address(0)),
@@ -417,13 +436,13 @@ contract InitialETHCrowdfundTest is LintJSON, TestUtils, ERC721Receiver {
                 initialContribution: 0,
                 initialContributor: payable(address(0)),
                 initialDelegate: address(0),
-                minContributions: 0,
+                minContributions: 2,
                 maxContributions: type(uint96).max,
                 disableContributingForExistingCard: false,
                 minTotalContributions: 3 ether,
                 maxTotalContributions: 5 ether,
                 duration: 7 days,
-                exchangeRateBps: 1e4,
+                exchangeRate: 1e18,
                 fundingSplitBps: 0.5e4,
                 fundingSplitRecipient: fundingSplitRecipient,
                 gateKeeper: IGateKeeper(address(0)),
@@ -452,13 +471,13 @@ contract InitialETHCrowdfundTest is LintJSON, TestUtils, ERC721Receiver {
                 initialContribution: 0,
                 initialContributor: payable(address(0)),
                 initialDelegate: address(0),
-                minContributions: 0,
+                minContributions: 0.01 ether,
                 maxContributions: type(uint96).max,
                 disableContributingForExistingCard: false,
                 minTotalContributions: 3 ether,
                 maxTotalContributions: 5 ether,
                 duration: 7 days,
-                exchangeRateBps: 1e4,
+                exchangeRate: 1e18,
                 fundingSplitBps: 0,
                 fundingSplitRecipient: payable(address(0)),
                 gateKeeper: IGateKeeper(address(0)),
@@ -475,48 +494,19 @@ contract InitialETHCrowdfundTest is LintJSON, TestUtils, ERC721Receiver {
         crowdfund.contribute(member, "");
     }
 
-    function test_contribute_noVotingPower() public {
-        InitialETHCrowdfund crowdfund = _createCrowdfund(
-            CreateCrowdfundArgs({
-                initialContribution: 0,
-                initialContributor: payable(address(0)),
-                initialDelegate: address(0),
-                minContributions: 0,
-                maxContributions: type(uint96).max,
-                disableContributingForExistingCard: false,
-                minTotalContributions: 3 ether,
-                maxTotalContributions: 5 ether,
-                duration: 7 days,
-                exchangeRateBps: 1,
-                fundingSplitBps: 0,
-                fundingSplitRecipient: payable(address(0)),
-                gateKeeper: IGateKeeper(address(0)),
-                gateKeeperId: bytes12(0)
-            })
-        );
-
-        address member = _randomAddress();
-        vm.deal(member, 1);
-
-        // Contribute, should result in 0 voting power
-        vm.prank(member);
-        vm.expectRevert(ETHCrowdfundBase.ZeroVotingPowerError.selector);
-        crowdfund.contribute{ value: 1 }(member, "");
-    }
-
     function test_contribute_afterLost() public {
         InitialETHCrowdfund crowdfund = _createCrowdfund(
             CreateCrowdfundArgs({
                 initialContribution: 0,
                 initialContributor: payable(address(0)),
                 initialDelegate: address(0),
-                minContributions: 0,
+                minContributions: 0.1 ether,
                 maxContributions: type(uint96).max,
                 disableContributingForExistingCard: false,
-                minTotalContributions: 1 ether,
+                minTotalContributions: 0.9 ether,
                 maxTotalContributions: 1 ether,
                 duration: 7 days,
-                exchangeRateBps: 1e4,
+                exchangeRate: 1e18,
                 fundingSplitBps: 0,
                 fundingSplitRecipient: payable(address(0)),
                 gateKeeper: IGateKeeper(address(0)),
@@ -548,13 +538,13 @@ contract InitialETHCrowdfundTest is LintJSON, TestUtils, ERC721Receiver {
                 initialContribution: 0,
                 initialContributor: payable(address(0)),
                 initialDelegate: address(0),
-                minContributions: 0,
+                minContributions: 0.01 ether,
                 maxContributions: type(uint96).max,
                 disableContributingForExistingCard: false,
                 minTotalContributions: 0,
                 maxTotalContributions: 1 ether,
                 duration: 7 days,
-                exchangeRateBps: 1e4,
+                exchangeRate: 1e18,
                 fundingSplitBps: 0,
                 fundingSplitRecipient: payable(address(0)),
                 gateKeeper: IGateKeeper(address(0)),
@@ -568,57 +558,14 @@ contract InitialETHCrowdfundTest is LintJSON, TestUtils, ERC721Receiver {
 
         // Contribute
         vm.prank(member);
-        crowdfund.contribute{ value: 2 ether }(member, "");
-
-        assertTrue(
-            crowdfund.getCrowdfundLifecycle() == ETHCrowdfundBase.CrowdfundLifecycle.Finalized
-        );
-
-        assertEq(address(member).balance, 1 ether); // Check refunded amount
-        assertEq(address(party).balance, 1 ether);
-        assertEq(crowdfund.totalContributions(), 1 ether);
-        assertEq(party.getGovernanceValues().totalVotingPower, 1 ether);
-    }
-
-    function test_contribute_aboveMaxTotalContributionWhenWhenContributionBelowMinContributionAfterRefund()
-        public
-    {
-        InitialETHCrowdfund crowdfund = _createCrowdfund(
-            CreateCrowdfundArgs({
-                initialContribution: 0,
-                initialContributor: payable(address(0)),
-                initialDelegate: address(0),
-                minContributions: 1 ether,
-                maxContributions: type(uint96).max,
-                disableContributingForExistingCard: false,
-                minTotalContributions: 0,
-                maxTotalContributions: 2 ether,
-                duration: 7 days,
-                exchangeRateBps: 1e4,
-                fundingSplitBps: 0,
-                fundingSplitRecipient: payable(address(0)),
-                gateKeeper: IGateKeeper(address(0)),
-                gateKeeperId: bytes12(0)
-            })
-        );
-
-        address member = _randomAddress();
-        vm.deal(member, 3 ether);
-
-        // Contribute
-        vm.prank(member);
-        crowdfund.contribute{ value: 1.5 ether }(member, "");
-
-        // Contribute again but amount after refund (0.5 ether) is below min contribution
         vm.expectRevert(
             abi.encodeWithSelector(
-                ETHCrowdfundBase.BelowMinimumContributionsError.selector,
-                0.5 ether,
+                ETHCrowdfundBase.ExceedsRemainingContributionsError.selector,
+                2 ether,
                 1 ether
             )
         );
-        vm.prank(member);
-        crowdfund.contribute{ value: 1.5 ether }(member, "");
+        crowdfund.contribute{ value: 2 ether }(member, "");
     }
 
     function test_contribute_aboveMaxContribution() public {
@@ -628,13 +575,13 @@ contract InitialETHCrowdfundTest is LintJSON, TestUtils, ERC721Receiver {
                 initialContribution: 0,
                 initialContributor: payable(address(0)),
                 initialDelegate: address(0),
-                minContributions: 0,
+                minContributions: 0.01 ether,
                 maxContributions: maxContribution,
                 disableContributingForExistingCard: false,
                 minTotalContributions: 3 ether,
                 maxTotalContributions: 5 ether,
                 duration: 7 days,
-                exchangeRateBps: 1e4,
+                exchangeRate: 1e18,
                 fundingSplitBps: 0,
                 fundingSplitRecipient: payable(address(0)),
                 gateKeeper: IGateKeeper(address(0)),
@@ -671,7 +618,7 @@ contract InitialETHCrowdfundTest is LintJSON, TestUtils, ERC721Receiver {
                 minTotalContributions: 3 ether,
                 maxTotalContributions: 5 ether,
                 duration: 7 days,
-                exchangeRateBps: 1e4,
+                exchangeRate: 1e18,
                 fundingSplitBps: 0,
                 fundingSplitRecipient: payable(address(0)),
                 gateKeeper: IGateKeeper(address(0)),
@@ -707,13 +654,13 @@ contract InitialETHCrowdfundTest is LintJSON, TestUtils, ERC721Receiver {
                 initialContribution: 0,
                 initialContributor: payable(address(0)),
                 initialDelegate: address(0),
-                minContributions: 0,
+                minContributions: 0.01 ether,
                 maxContributions: type(uint96).max,
                 disableContributingForExistingCard: false,
                 minTotalContributions: 3 ether,
                 maxTotalContributions: 5 ether,
                 duration: 7 days,
-                exchangeRateBps: 1e4,
+                exchangeRate: 1e18,
                 fundingSplitBps: 0,
                 fundingSplitRecipient: payable(address(0)),
                 gateKeeper: gatekeeper,
@@ -767,13 +714,13 @@ contract InitialETHCrowdfundTest is LintJSON, TestUtils, ERC721Receiver {
                 initialContribution: 0,
                 initialContributor: payable(address(0)),
                 initialDelegate: address(0),
-                minContributions: 0,
+                minContributions: 0.01 ether,
                 maxContributions: type(uint96).max,
                 disableContributingForExistingCard: false,
                 minTotalContributions: 3 ether,
                 maxTotalContributions: 5 ether,
                 duration: 7 days,
-                exchangeRateBps: 1e4,
+                exchangeRate: 1e18,
                 fundingSplitBps: 0.2e4,
                 fundingSplitRecipient: fundingSplitRecipient,
                 gateKeeper: IGateKeeper(address(0)),
@@ -802,13 +749,13 @@ contract InitialETHCrowdfundTest is LintJSON, TestUtils, ERC721Receiver {
                 initialContribution: 0,
                 initialContributor: payable(address(0)),
                 initialDelegate: address(0),
-                minContributions: 0,
+                minContributions: 0.01 ether,
                 maxContributions: type(uint96).max,
                 disableContributingForExistingCard: false,
                 minTotalContributions: 3 ether,
                 maxTotalContributions: 5 ether,
                 duration: 7 days,
-                exchangeRateBps: 1e4,
+                exchangeRate: 1e18,
                 fundingSplitBps: 0,
                 fundingSplitRecipient: payable(address(0)),
                 gateKeeper: IGateKeeper(address(0)),
@@ -825,19 +772,19 @@ contract InitialETHCrowdfundTest is LintJSON, TestUtils, ERC721Receiver {
         crowdfund.contribute{ value: 1 ether }(address(0), "");
     }
 
-    function test_batchContribute_works() public {
+    function test_batchContribute_requiresCorrectEth() public {
         InitialETHCrowdfund crowdfund = _createCrowdfund(
             CreateCrowdfundArgs({
                 initialContribution: 0,
                 initialContributor: payable(address(0)),
                 initialDelegate: address(0),
-                minContributions: 0,
+                minContributions: 0.01 ether,
                 maxContributions: type(uint96).max,
                 disableContributingForExistingCard: false,
                 minTotalContributions: 3 ether,
                 maxTotalContributions: 5 ether,
                 duration: 7 days,
-                exchangeRateBps: 1e4,
+                exchangeRate: 1e18,
                 fundingSplitBps: 0,
                 fundingSplitRecipient: payable(address(0)),
                 gateKeeper: IGateKeeper(address(0)),
@@ -857,16 +804,39 @@ contract InitialETHCrowdfundTest is LintJSON, TestUtils, ERC721Receiver {
             values[i] = 1 ether;
         }
         bytes[] memory gateDatas = new bytes[](3);
-        uint96[] memory votingPowers = crowdfund.batchContribute{ value: 4 ether }(
+
+        // Too little
+        vm.expectRevert(ETHCrowdfundBase.InvalidMessageValue.selector);
+        crowdfund.batchContribute{ value: 2.5 ether }(
             InitialETHCrowdfund.BatchContributeArgs({
                 tokenIds: tokenIds,
-                delegate: member,
+                initialDelegate: member,
                 values: values,
                 gateDatas: gateDatas
             })
         );
 
-        assertEq(address(member).balance, 1 ether); // Should be refunded 1 ETH
+        // Too Much
+        vm.expectRevert(ETHCrowdfundBase.InvalidMessageValue.selector);
+        crowdfund.batchContribute{ value: 3.5 ether }(
+            InitialETHCrowdfund.BatchContributeArgs({
+                tokenIds: tokenIds,
+                initialDelegate: member,
+                values: values,
+                gateDatas: gateDatas
+            })
+        );
+
+        vm.prank(member);
+        uint96[] memory votingPowers = crowdfund.batchContribute{ value: 3 ether }(
+            InitialETHCrowdfund.BatchContributeArgs({
+                tokenIds: tokenIds,
+                initialDelegate: member,
+                values: values,
+                gateDatas: gateDatas
+            })
+        );
+
         for (uint256 i; i < values.length; ++i) {
             assertEq(votingPowers[i], 1 ether);
         }
@@ -882,13 +852,13 @@ contract InitialETHCrowdfundTest is LintJSON, TestUtils, ERC721Receiver {
                 initialContribution: 0,
                 initialContributor: payable(address(0)),
                 initialDelegate: address(0),
-                minContributions: 0,
+                minContributions: 0.01 ether,
                 maxContributions: type(uint96).max,
                 disableContributingForExistingCard: false,
                 minTotalContributions: 3 ether,
                 maxTotalContributions: 5 ether,
                 duration: 7 days,
-                exchangeRateBps: 1e4,
+                exchangeRate: 1e18,
                 fundingSplitBps: 0,
                 fundingSplitRecipient: payable(address(0)),
                 gateKeeper: IGateKeeper(address(0)),
@@ -924,13 +894,13 @@ contract InitialETHCrowdfundTest is LintJSON, TestUtils, ERC721Receiver {
                 initialContribution: 0,
                 initialContributor: payable(address(0)),
                 initialDelegate: address(0),
-                minContributions: 0,
+                minContributions: 0.01 ether,
                 maxContributions: type(uint96).max,
                 disableContributingForExistingCard: false,
                 minTotalContributions: 3 ether,
                 maxTotalContributions: 5 ether,
                 duration: 7 days,
-                exchangeRateBps: 1e4,
+                exchangeRate: 1e18,
                 fundingSplitBps: 0,
                 fundingSplitRecipient: payable(address(0)),
                 gateKeeper: IGateKeeper(address(0)),
@@ -971,7 +941,7 @@ contract InitialETHCrowdfundTest is LintJSON, TestUtils, ERC721Receiver {
                 minTotalContributions: 3 ether,
                 maxTotalContributions: 5 ether,
                 duration: 7 days,
-                exchangeRateBps: 1e4,
+                exchangeRate: 1e18,
                 fundingSplitBps: 0,
                 fundingSplitRecipient: payable(address(0)),
                 gateKeeper: IGateKeeper(address(0)),
@@ -1030,7 +1000,7 @@ contract InitialETHCrowdfundTest is LintJSON, TestUtils, ERC721Receiver {
                 minTotalContributions: 3 ether,
                 maxTotalContributions: 5 ether,
                 duration: 7 days,
-                exchangeRateBps: 1e4,
+                exchangeRate: 1e18,
                 fundingSplitBps: 0,
                 fundingSplitRecipient: payable(address(0)),
                 gateKeeper: IGateKeeper(address(0)),
@@ -1055,7 +1025,7 @@ contract InitialETHCrowdfundTest is LintJSON, TestUtils, ERC721Receiver {
         }
         vm.expectRevert(ETHCrowdfundBase.InvalidMessageValue.selector);
         vm.prank(sender);
-        uint96[] memory votingPowers = crowdfund.batchContributeFor{ value: 3 ether - 100 }(
+        crowdfund.batchContributeFor{ value: 3 ether - 100 }(
             InitialETHCrowdfund.BatchContributeForArgs({
                 tokenIds: tokenIds,
                 recipients: recipients,
@@ -1072,13 +1042,13 @@ contract InitialETHCrowdfundTest is LintJSON, TestUtils, ERC721Receiver {
                 initialContribution: 0,
                 initialContributor: payable(address(0)),
                 initialDelegate: address(0),
-                minContributions: 0,
+                minContributions: 0.01 ether,
                 maxContributions: type(uint96).max,
                 disableContributingForExistingCard: false,
                 minTotalContributions: 3 ether,
                 maxTotalContributions: 5 ether,
                 duration: 7 days,
-                exchangeRateBps: 1e4,
+                exchangeRate: 1e18,
                 fundingSplitBps: 0,
                 fundingSplitRecipient: payable(address(0)),
                 gateKeeper: IGateKeeper(address(0)),
@@ -1112,13 +1082,13 @@ contract InitialETHCrowdfundTest is LintJSON, TestUtils, ERC721Receiver {
                 initialContribution: 0,
                 initialContributor: payable(address(0)),
                 initialDelegate: address(0),
-                minContributions: 0,
+                minContributions: 0.01 ether,
                 maxContributions: type(uint96).max,
                 disableContributingForExistingCard: false,
                 minTotalContributions: 3 ether,
                 maxTotalContributions: 5 ether,
                 duration: 7 days,
-                exchangeRateBps: 1e4,
+                exchangeRate: 1e18,
                 fundingSplitBps: 0,
                 fundingSplitRecipient: payable(address(0)),
                 gateKeeper: IGateKeeper(address(0)),
@@ -1148,13 +1118,13 @@ contract InitialETHCrowdfundTest is LintJSON, TestUtils, ERC721Receiver {
                 initialContribution: 0,
                 initialContributor: payable(address(0)),
                 initialDelegate: address(0),
-                minContributions: 0,
+                minContributions: 0.01 ether,
                 maxContributions: type(uint96).max,
                 disableContributingForExistingCard: false,
                 minTotalContributions: 3 ether,
                 maxTotalContributions: 5 ether,
                 duration: 7 days,
-                exchangeRateBps: 1e4,
+                exchangeRate: 1e18,
                 fundingSplitBps: 0,
                 fundingSplitRecipient: payable(address(0)),
                 gateKeeper: IGateKeeper(address(0)),
@@ -1184,13 +1154,13 @@ contract InitialETHCrowdfundTest is LintJSON, TestUtils, ERC721Receiver {
                 initialContribution: 0,
                 initialContributor: payable(address(0)),
                 initialDelegate: address(0),
-                minContributions: 0,
+                minContributions: 0.01 ether,
                 maxContributions: type(uint96).max,
                 disableContributingForExistingCard: false,
                 minTotalContributions: 3 ether,
                 maxTotalContributions: 5 ether,
                 duration: 7 days,
-                exchangeRateBps: 1e4,
+                exchangeRate: 1e18,
                 fundingSplitBps: 0,
                 fundingSplitRecipient: payable(address(0)),
                 gateKeeper: IGateKeeper(address(0)),
@@ -1226,13 +1196,13 @@ contract InitialETHCrowdfundTest is LintJSON, TestUtils, ERC721Receiver {
                 initialContribution: 0,
                 initialContributor: payable(address(0)),
                 initialDelegate: address(0),
-                minContributions: 0,
+                minContributions: 0.01 ether,
                 maxContributions: type(uint96).max,
                 disableContributingForExistingCard: false,
                 minTotalContributions: 3 ether,
                 maxTotalContributions: 6 ether,
                 duration: 7 days,
-                exchangeRateBps: 1e4,
+                exchangeRate: 1e18,
                 fundingSplitBps: 0.2e4,
                 fundingSplitRecipient: fundingSplitRecipient,
                 gateKeeper: IGateKeeper(address(0)),
@@ -1267,13 +1237,13 @@ contract InitialETHCrowdfundTest is LintJSON, TestUtils, ERC721Receiver {
                 initialContribution: 0,
                 initialContributor: payable(address(0)),
                 initialDelegate: address(0),
-                minContributions: 0,
+                minContributions: 0.01 ether,
                 maxContributions: type(uint96).max,
                 disableContributingForExistingCard: false,
                 minTotalContributions: 3 ether,
                 maxTotalContributions: 5 ether,
                 duration: 7 days,
-                exchangeRateBps: 1e4,
+                exchangeRate: 1e18,
                 fundingSplitBps: 0,
                 fundingSplitRecipient: payable(address(0)),
                 gateKeeper: IGateKeeper(address(0)),
@@ -1300,13 +1270,13 @@ contract InitialETHCrowdfundTest is LintJSON, TestUtils, ERC721Receiver {
                 initialContribution: 0,
                 initialContributor: payable(address(0)),
                 initialDelegate: address(0),
-                minContributions: 0,
+                minContributions: 0.01 ether,
                 maxContributions: type(uint96).max,
                 disableContributingForExistingCard: false,
                 minTotalContributions: 3 ether,
                 maxTotalContributions: 5 ether,
                 duration: 7 days,
-                exchangeRateBps: 1e4,
+                exchangeRate: 1e18,
                 fundingSplitBps: 0,
                 fundingSplitRecipient: payable(address(0)),
                 gateKeeper: IGateKeeper(address(0)),
@@ -1328,19 +1298,21 @@ contract InitialETHCrowdfundTest is LintJSON, TestUtils, ERC721Receiver {
         assertTrue(crowdfund.getCrowdfundLifecycle() == ETHCrowdfundBase.CrowdfundLifecycle.Lost);
     }
 
+    error NotMinted();
+
     function test_refund_works() public {
         InitialETHCrowdfund crowdfund = _createCrowdfund(
             CreateCrowdfundArgs({
                 initialContribution: 0,
                 initialContributor: payable(address(0)),
                 initialDelegate: address(0),
-                minContributions: 0,
+                minContributions: 0.01 ether,
                 maxContributions: type(uint96).max,
                 disableContributingForExistingCard: false,
                 minTotalContributions: 3 ether,
                 maxTotalContributions: 5 ether,
                 duration: 7 days,
-                exchangeRateBps: 1e4,
+                exchangeRate: 1e18,
                 fundingSplitBps: 0,
                 fundingSplitRecipient: payable(address(0)),
                 gateKeeper: IGateKeeper(address(0)),
@@ -1367,7 +1339,8 @@ contract InitialETHCrowdfundTest is LintJSON, TestUtils, ERC721Receiver {
         vm.expectEmit(true, true, false, true);
         emit Refunded(member, tokenId, 2 ether);
         crowdfund.refund(tokenId);
-        vm.expectRevert("NOT_MINTED"); // Check token burned
+
+        vm.expectRevert(NotMinted.selector); // Check token burned
         party.ownerOf(tokenId);
         assertEq(address(member).balance, 2 ether);
     }
@@ -1378,13 +1351,13 @@ contract InitialETHCrowdfundTest is LintJSON, TestUtils, ERC721Receiver {
                 initialContribution: 0,
                 initialContributor: payable(address(0)),
                 initialDelegate: address(0),
-                minContributions: 0,
+                minContributions: 0.01 ether,
                 maxContributions: type(uint96).max,
                 disableContributingForExistingCard: false,
                 minTotalContributions: 3 ether,
                 maxTotalContributions: 5 ether,
                 duration: 7 days,
-                exchangeRateBps: 1e4,
+                exchangeRate: 1e18,
                 fundingSplitBps: 0,
                 fundingSplitRecipient: payable(address(0)),
                 gateKeeper: IGateKeeper(address(0)),
@@ -1437,13 +1410,13 @@ contract InitialETHCrowdfundTest is LintJSON, TestUtils, ERC721Receiver {
                 initialContribution: 0,
                 initialContributor: payable(address(0)),
                 initialDelegate: address(0),
-                minContributions: 0,
+                minContributions: 0.01 ether,
                 maxContributions: type(uint96).max,
                 disableContributingForExistingCard: false,
                 minTotalContributions: 3 ether,
                 maxTotalContributions: 5 ether,
                 duration: 7 days,
-                exchangeRateBps: 1e4,
+                exchangeRate: 1e18,
                 fundingSplitBps: 0,
                 fundingSplitRecipient: payable(address(0)),
                 gateKeeper: IGateKeeper(address(0)),
@@ -1485,13 +1458,13 @@ contract InitialETHCrowdfundTest is LintJSON, TestUtils, ERC721Receiver {
                 initialContribution: 0,
                 initialContributor: payable(address(0)),
                 initialDelegate: address(0),
-                minContributions: 0,
+                minContributions: 0.01 ether,
                 maxContributions: type(uint96).max,
                 disableContributingForExistingCard: false,
                 minTotalContributions: 4 ether,
                 maxTotalContributions: 5 ether,
                 duration: 7 days,
-                exchangeRateBps: 1e4,
+                exchangeRate: 1e18,
                 fundingSplitBps: 0,
                 fundingSplitRecipient: payable(address(0)),
                 gateKeeper: IGateKeeper(address(0)),
@@ -1533,13 +1506,13 @@ contract InitialETHCrowdfundTest is LintJSON, TestUtils, ERC721Receiver {
                 initialContribution: 0,
                 initialContributor: payable(address(0)),
                 initialDelegate: address(0),
-                minContributions: 0,
+                minContributions: 0.01 ether,
                 maxContributions: type(uint96).max,
                 disableContributingForExistingCard: false,
                 minTotalContributions: 3 ether,
                 maxTotalContributions: 5 ether,
                 duration: 7 days,
-                exchangeRateBps: 1e4,
+                exchangeRate: 1e18,
                 fundingSplitBps: 0.2e4,
                 fundingSplitRecipient: fundingSplitRecipient,
                 gateKeeper: IGateKeeper(address(0)),
@@ -1576,13 +1549,13 @@ contract InitialETHCrowdfundTest is LintJSON, TestUtils, ERC721Receiver {
                 initialContribution: 0,
                 initialContributor: payable(address(0)),
                 initialDelegate: address(0),
-                minContributions: 0,
+                minContributions: 0.01 ether,
                 maxContributions: type(uint96).max,
                 disableContributingForExistingCard: false,
-                minTotalContributions: 1 ether,
+                minTotalContributions: 0.9 ether,
                 maxTotalContributions: 1 ether,
                 duration: 7 days,
-                exchangeRateBps: 1e4,
+                exchangeRate: 1e18,
                 fundingSplitBps: 0.2e4,
                 fundingSplitRecipient: fundingSplitRecipient,
                 gateKeeper: IGateKeeper(address(0)),
@@ -1617,13 +1590,13 @@ contract InitialETHCrowdfundTest is LintJSON, TestUtils, ERC721Receiver {
                 initialContribution: 0,
                 initialContributor: payable(address(0)),
                 initialDelegate: address(0),
-                minContributions: 0,
+                minContributions: 0.01 ether,
                 maxContributions: type(uint96).max,
                 disableContributingForExistingCard: false,
-                minTotalContributions: 1 ether,
+                minTotalContributions: 0.9 ether,
                 maxTotalContributions: 1 ether,
                 duration: 7 days,
-                exchangeRateBps: 1e4,
+                exchangeRate: 1e18,
                 fundingSplitBps: 0.2e4,
                 fundingSplitRecipient: fundingSplitRecipient,
                 gateKeeper: IGateKeeper(address(0)),
@@ -1664,13 +1637,13 @@ contract InitialETHCrowdfundTest is LintJSON, TestUtils, ERC721Receiver {
                 initialContribution: 0,
                 initialContributor: payable(address(0)),
                 initialDelegate: address(0),
-                minContributions: 0,
+                minContributions: 0.01 ether,
                 maxContributions: type(uint96).max,
                 disableContributingForExistingCard: false,
-                minTotalContributions: 1 ether,
+                minTotalContributions: 0.9 ether,
                 maxTotalContributions: 1 ether,
                 duration: 7 days,
-                exchangeRateBps: 1e4,
+                exchangeRate: 1e18,
                 fundingSplitBps: 0.2e4,
                 fundingSplitRecipient: fundingSplitRecipient,
                 gateKeeper: IGateKeeper(address(0)),
@@ -1703,13 +1676,13 @@ contract InitialETHCrowdfundTest is LintJSON, TestUtils, ERC721Receiver {
                 initialContribution: 0,
                 initialContributor: payable(address(0)),
                 initialDelegate: address(0),
-                minContributions: 0,
+                minContributions: 0.01 ether,
                 maxContributions: type(uint96).max,
                 disableContributingForExistingCard: false,
-                minTotalContributions: 1 ether,
+                minTotalContributions: 0.9 ether,
                 maxTotalContributions: 1 ether,
                 duration: 7 days,
-                exchangeRateBps: 1e4,
+                exchangeRate: 1e18,
                 fundingSplitBps: 0,
                 fundingSplitRecipient: payable(address(0)),
                 gateKeeper: IGateKeeper(address(0)),
@@ -1733,19 +1706,89 @@ contract InitialETHCrowdfundTest is LintJSON, TestUtils, ERC721Receiver {
         crowdfund.sendFundingSplit();
     }
 
+    function test_initialization_multipleAuthorities() public {
+        uint96 initialContribution = 1 ether;
+        address[] memory authorities = new address[](4);
+        for (uint256 i = 0; i < authorities.length; i++) {
+            authorities[i] = _randomAddress();
+        }
+
+        InitialETHCrowdfund.InitialETHCrowdfundOptions memory crowdfundOpts = InitialETHCrowdfund
+            .InitialETHCrowdfundOptions({
+                initialContributor: payable(address(this)),
+                initialDelegate: address(this),
+                minContribution: 1,
+                maxContribution: 2 ether,
+                disableContributingForExistingCard: true,
+                minTotalContributions: 0,
+                maxTotalContributions: 10 ether,
+                exchangeRate: 1e18,
+                fundingSplitBps: 0,
+                fundingSplitRecipient: payable(0),
+                duration: 1 days,
+                gateKeeper: IGateKeeper(address(0)),
+                gateKeeperId: 0
+            });
+
+        InitialETHCrowdfund.ETHPartyOptions memory partyOpts = InitialETHCrowdfund.ETHPartyOptions({
+            name: "Test Party",
+            symbol: "TPARTY",
+            customizationPresetId: 0,
+            governanceOpts: Crowdfund.FixedGovernanceOpts({
+                partyImpl: partyImpl,
+                partyFactory: partyFactory,
+                hosts: new address[](0),
+                voteDuration: 1 days,
+                executionDelay: 1,
+                passThresholdBps: 1000,
+                feeBps: 0,
+                feeRecipient: payable(0)
+            }),
+            proposalEngineOpts: ProposalStorage.ProposalEngineOpts({
+                enableAddAuthorityProposal: true,
+                allowArbCallsToSpendPartyEth: true,
+                allowOperators: true,
+                distributionsRequireVote: true
+            }),
+            preciousTokens: new IERC721[](0),
+            preciousTokenIds: new uint256[](0),
+            rageQuitTimestamp: 0,
+            authorities: authorities
+        });
+
+        vm.deal(address(this), initialContribution);
+        InitialETHCrowdfund crowdfund = InitialETHCrowdfund(
+            payable(address(initialETHCrowdfundImpl).clone())
+        );
+
+        crowdfund.initialize{ value: initialContribution }(
+            crowdfundOpts,
+            partyOpts,
+            MetadataProvider(address(0)),
+            ""
+        );
+
+        Party party_ = crowdfund.party();
+        for (uint i = 0; i < authorities.length; i++) {
+            assertTrue(party_.isAuthority(authorities[i]));
+        }
+    }
+}
+
+contract InitialETHCrowdfundForkedTest is InitialETHCrowdfundTestBase {
     function testForked_partyCardTokenURI_whileCrowdfundActive() public onlyForked {
         InitialETHCrowdfund crowdfund = _createCrowdfund(
             CreateCrowdfundArgs({
                 initialContribution: 0,
                 initialContributor: payable(address(0)),
                 initialDelegate: address(0),
-                minContributions: 0,
+                minContributions: 0.01 ether,
                 maxContributions: type(uint96).max,
                 disableContributingForExistingCard: false,
                 minTotalContributions: 3 ether,
                 maxTotalContributions: 5 ether,
                 duration: 7 days,
-                exchangeRateBps: 1e4,
+                exchangeRate: 1e18,
                 fundingSplitBps: 0,
                 fundingSplitRecipient: payable(address(0)),
                 gateKeeper: IGateKeeper(address(0)),
@@ -1779,13 +1822,13 @@ contract InitialETHCrowdfundTest is LintJSON, TestUtils, ERC721Receiver {
                 initialContribution: 0,
                 initialContributor: payable(address(0)),
                 initialDelegate: address(0),
-                minContributions: 0,
+                minContributions: 0.01 ether,
                 maxContributions: type(uint96).max,
                 disableContributingForExistingCard: false,
                 minTotalContributions: 1 ether,
                 maxTotalContributions: 5 ether,
                 duration: 7 days,
-                exchangeRateBps: 1e4,
+                exchangeRate: 1e18,
                 fundingSplitBps: 0,
                 fundingSplitRecipient: payable(address(0)),
                 gateKeeper: IGateKeeper(address(0)),
@@ -1821,13 +1864,13 @@ contract InitialETHCrowdfundTest is LintJSON, TestUtils, ERC721Receiver {
                 initialContribution: 0,
                 initialContributor: payable(address(0)),
                 initialDelegate: address(0),
-                minContributions: 0,
+                minContributions: 0.01 ether,
                 maxContributions: type(uint96).max,
                 disableContributingForExistingCard: false,
                 minTotalContributions: 3 ether,
                 maxTotalContributions: 5 ether,
                 duration: 7 days,
-                exchangeRateBps: 1e4,
+                exchangeRate: 1e18,
                 fundingSplitBps: 0,
                 fundingSplitRecipient: payable(address(0)),
                 gateKeeper: IGateKeeper(address(0)),
@@ -1863,13 +1906,13 @@ contract InitialETHCrowdfundTest is LintJSON, TestUtils, ERC721Receiver {
                 initialContribution: 0,
                 initialContributor: payable(address(0)),
                 initialDelegate: address(0),
-                minContributions: 0,
+                minContributions: 0.1 ether,
                 maxContributions: type(uint96).max,
                 disableContributingForExistingCard: false,
-                minTotalContributions: 1 ether,
+                minTotalContributions: 0.9 ether,
                 maxTotalContributions: 1 ether,
                 duration: 7 days,
-                exchangeRateBps: 1e4,
+                exchangeRate: 1e18,
                 fundingSplitBps: 0,
                 fundingSplitRecipient: payable(address(0)),
                 gateKeeper: IGateKeeper(address(0)),

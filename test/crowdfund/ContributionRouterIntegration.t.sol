@@ -10,8 +10,11 @@ import { TokenGateKeeper, Token } from "../../contracts/gatekeepers/TokenGateKee
 import { DummyERC20 } from "../DummyERC20.sol";
 
 import "../TestUtils.sol";
+import { Clones } from "openzeppelin/contracts/proxy/Clones.sol";
 
 contract ContributionRouterIntegrationTest is TestUtils {
+    using Clones for address;
+
     InitialETHCrowdfund ethCrowdfund;
     InitialETHCrowdfund gatekeeperEthCrowdfund;
     TestableCrowdfund nftCrowdfund;
@@ -40,9 +43,11 @@ contract ContributionRouterIntegrationTest is TestUtils {
 
         InitialETHCrowdfund.InitialETHCrowdfundOptions memory ethCrowdfundOpts;
         ethCrowdfundOpts.maxContribution = type(uint96).max;
+        ethCrowdfundOpts.minContribution = 1;
+        ethCrowdfundOpts.minTotalContributions = 1 ether;
         ethCrowdfundOpts.maxTotalContributions = type(uint96).max;
         ethCrowdfundOpts.duration = 7 days;
-        ethCrowdfundOpts.exchangeRateBps = 1e4;
+        ethCrowdfundOpts.exchangeRate = 1e18;
 
         InitialETHCrowdfund.ETHPartyOptions memory partyOpts;
         partyOpts.name = "Test Party";
@@ -55,30 +60,19 @@ contract ContributionRouterIntegrationTest is TestUtils {
         partyOpts.governanceOpts.hosts = new address[](1);
         partyOpts.governanceOpts.hosts[0] = address(this);
 
-        ethCrowdfund = InitialETHCrowdfund(
-            payable(
-                new Proxy(
-                    initialETHCrowdfundImpl,
-                    abi.encodeCall(
-                        InitialETHCrowdfund.initialize,
-                        (ethCrowdfundOpts, partyOpts, MetadataProvider(address(0)), "")
-                    )
-                )
-            )
-        );
+        ethCrowdfund = InitialETHCrowdfund(payable(address(initialETHCrowdfundImpl).clone()));
+        ethCrowdfund.initialize(ethCrowdfundOpts, partyOpts, MetadataProvider(address(0)), "");
 
         ethCrowdfundOpts.gateKeeper = gateKeeper;
         ethCrowdfundOpts.gateKeeperId = gateKeeperId;
         gatekeeperEthCrowdfund = InitialETHCrowdfund(
-            payable(
-                new Proxy(
-                    initialETHCrowdfundImpl,
-                    abi.encodeCall(
-                        InitialETHCrowdfund.initialize,
-                        (ethCrowdfundOpts, partyOpts, MetadataProvider(address(0)), "")
-                    )
-                )
-            )
+            payable(address(initialETHCrowdfundImpl).clone())
+        );
+        gatekeeperEthCrowdfund.initialize(
+            ethCrowdfundOpts,
+            partyOpts,
+            MetadataProvider(address(0)),
+            ""
         );
 
         Crowdfund.CrowdfundOptions memory nftCrowdfundOpts;
@@ -86,14 +80,8 @@ contract ContributionRouterIntegrationTest is TestUtils {
         nftCrowdfundOpts.symbol = "TEST";
         nftCrowdfundOpts.maxContribution = type(uint96).max;
 
-        nftCrowdfund = TestableCrowdfund(
-            payable(
-                new Proxy(
-                    Implementation(new TestableCrowdfund(globals)),
-                    abi.encodeCall(TestableCrowdfund.initialize, (nftCrowdfundOpts))
-                )
-            )
-        );
+        nftCrowdfund = TestableCrowdfund(payable(address(new TestableCrowdfund(globals)).clone()));
+        nftCrowdfund.initialize(nftCrowdfundOpts);
     }
 
     function test_contributionFee_ethCrowdfund_withSingleMint() public {

@@ -4,7 +4,6 @@ pragma solidity ^0.8;
 import { SetupPartyHelper } from "../utils/SetupPartyHelper.sol";
 import { AtomicManualParty } from "../../contracts/crowdfund/AtomicManualParty.sol";
 import { Party } from "../../contracts/party/Party.sol";
-import { Proxy } from "../../contracts/utils/Proxy.sol";
 import { IERC721 } from "../../contracts/tokens/IERC721.sol";
 import { MetadataProvider } from "../../contracts/renderers/MetadataProvider.sol";
 import { IMetadataProvider } from "../../contracts/renderers/IMetadataProvider.sol";
@@ -42,7 +41,7 @@ contract AtomicManualPartyTest is SetupPartyHelper {
         Party.PartyOptions memory opts;
         opts.name = "PARTY";
         opts.symbol = "PR-T";
-        opts.governance.voteDuration = 99;
+        opts.governance.voteDuration = 1 hours;
         opts.governance.executionDelay = _EXECUTION_DELAY;
         opts.governance.passThresholdBps = 1000;
         opts.governance.totalVotingPower = 180;
@@ -79,7 +78,7 @@ contract AtomicManualPartyTest is SetupPartyHelper {
         // total voting power ignored
         opts.governance.totalVotingPower = 100;
         Party atomicParty = atomicManualParty.createParty(
-            Party(payable(address(Proxy(payable(address(party))).IMPL()))),
+            Party(payable(address(party.implementation()))),
             opts,
             preciousTokens,
             preciousTokenIds,
@@ -94,15 +93,15 @@ contract AtomicManualPartyTest is SetupPartyHelper {
         assertEq(atomicParty.getGovernanceValues().totalVotingPower, 180);
 
         // Ensure holders match input
-        assertEq(atomicParty.getVotingPowerAt(john, uint40(block.timestamp)), 100);
-        assertEq(atomicParty.getVotingPowerAt(danny, uint40(block.timestamp)), 80);
+        assertEq(atomicParty.getVotingPowerAt(john, uint40(block.timestamp), 0), 100);
+        assertEq(atomicParty.getVotingPowerAt(danny, uint40(block.timestamp), 0), 80);
     }
 
     function test_createAtomicManualPartyWithMetadata() public {
         Party.PartyOptions memory opts;
         opts.name = "PARTY";
         opts.symbol = "PR-T";
-        opts.governance.voteDuration = 99;
+        opts.governance.voteDuration = 1 hours;
         opts.governance.executionDelay = _EXECUTION_DELAY;
         opts.governance.passThresholdBps = 1000;
         opts.governance.totalVotingPower = 180;
@@ -128,7 +127,7 @@ contract AtomicManualPartyTest is SetupPartyHelper {
         vm.expectEmit(false, true, true, true);
         emit ProviderSet(address(0), IMetadataProvider(address(0)));
         Party atomicParty = atomicManualParty.createPartyWithMetadata(
-            Party(payable(address(Proxy(payable(address(party))).IMPL()))),
+            Party(payable(address(party.implementation()))),
             opts,
             preciousTokens,
             preciousTokenIds,
@@ -144,15 +143,15 @@ contract AtomicManualPartyTest is SetupPartyHelper {
         assertFalse(party.isAuthority(address(atomicManualParty)));
 
         // Ensure holders match input
-        assertEq(atomicParty.getVotingPowerAt(john, uint40(block.timestamp)), 100);
-        assertEq(atomicParty.getVotingPowerAt(danny, uint40(block.timestamp)), 80);
+        assertEq(atomicParty.getVotingPowerAt(john, uint40(block.timestamp), 0), 100);
+        assertEq(atomicParty.getVotingPowerAt(danny, uint40(block.timestamp), 0), 80);
     }
 
     function test_createAtomicManualPartyArityMismatch() public {
         Party.PartyOptions memory opts;
         opts.name = "PARTY";
         opts.symbol = "PR-T";
-        opts.governance.voteDuration = 99;
+        opts.governance.voteDuration = 1 hours;
         opts.governance.executionDelay = _EXECUTION_DELAY;
         opts.governance.passThresholdBps = 1000;
         opts.governance.totalVotingPower = 180;
@@ -167,7 +166,7 @@ contract AtomicManualPartyTest is SetupPartyHelper {
         partyMemberVotingPower[0] = 100;
         partyMemberVotingPower[1] = 80;
 
-        Party partyImpl = Party(payable(address(Proxy(payable(address(party))).IMPL())));
+        Party partyImpl = Party(payable(address(party.implementation())));
         vm.expectRevert(AtomicManualParty.PartyMembersArityMismatch.selector);
         atomicManualParty.createParty(
             partyImpl,
@@ -185,7 +184,7 @@ contract AtomicManualPartyTest is SetupPartyHelper {
         Party.PartyOptions memory opts;
         opts.name = "PARTY";
         opts.symbol = "PR-T";
-        opts.governance.voteDuration = 99;
+        opts.governance.voteDuration = 1 hours;
         opts.governance.executionDelay = _EXECUTION_DELAY;
         opts.governance.passThresholdBps = 1000;
         opts.governance.totalVotingPower = 180;
@@ -193,7 +192,7 @@ contract AtomicManualPartyTest is SetupPartyHelper {
         address[] memory partyMembers = new address[](0);
         uint96[] memory partyMemberVotingPower = new uint96[](0);
 
-        Party partyImpl = Party(payable(address(Proxy(payable(address(party))).IMPL())));
+        Party partyImpl = Party(payable(address(party.implementation())));
         vm.expectRevert(AtomicManualParty.NoPartyMembers.selector);
         atomicManualParty.createParty(
             partyImpl,
@@ -211,7 +210,7 @@ contract AtomicManualPartyTest is SetupPartyHelper {
         Party.PartyOptions memory opts;
         opts.name = "PARTY";
         opts.symbol = "PR-T";
-        opts.governance.voteDuration = 99;
+        opts.governance.voteDuration = 1 hours;
         opts.governance.executionDelay = _EXECUTION_DELAY;
         opts.governance.passThresholdBps = 1000;
         opts.governance.totalVotingPower = 260;
@@ -237,7 +236,7 @@ contract AtomicManualPartyTest is SetupPartyHelper {
             address(atomicManualParty)
         );
         Party atomicParty = atomicManualParty.createParty(
-            Party(payable(address(Proxy(payable(address(party))).IMPL()))),
+            Party(payable(address(party.implementation()))),
             opts,
             preciousTokens,
             preciousTokenIds,
@@ -255,15 +254,15 @@ contract AtomicManualPartyTest is SetupPartyHelper {
         assertEq(atomicParty.ownerOf(3), john);
 
         // Ensure holders match input
-        assertEq(atomicParty.getVotingPowerAt(john, uint40(block.timestamp)), 180);
-        assertEq(atomicParty.getVotingPowerAt(danny, uint40(block.timestamp)), 80);
+        assertEq(atomicParty.getVotingPowerAt(john, uint40(block.timestamp), 0), 180);
+        assertEq(atomicParty.getVotingPowerAt(danny, uint40(block.timestamp), 0), 80);
     }
 
     function test_atomicManualParty_invalidPartyMember() public {
         Party.PartyOptions memory opts;
         opts.name = "PARTY";
         opts.symbol = "PR-T";
-        opts.governance.voteDuration = 99;
+        opts.governance.voteDuration = 1 hours;
         opts.governance.executionDelay = _EXECUTION_DELAY;
         opts.governance.passThresholdBps = 1000;
         opts.governance.totalVotingPower = 180;
@@ -277,10 +276,10 @@ contract AtomicManualPartyTest is SetupPartyHelper {
         partyMemberVotingPower[0] = 100;
         partyMemberVotingPower[1] = 80;
 
-        Party partyImpl = Party(payable(address(Proxy(payable(address(party))).IMPL())));
+        Party partyImpl = Party(payable(address(party.implementation())));
 
         vm.expectRevert(AtomicManualParty.InvalidPartyMember.selector);
-        Party atomicParty = atomicManualParty.createParty(
+        atomicManualParty.createParty(
             partyImpl,
             opts,
             preciousTokens,
@@ -296,7 +295,7 @@ contract AtomicManualPartyTest is SetupPartyHelper {
         Party.PartyOptions memory opts;
         opts.name = "PARTY";
         opts.symbol = "PR-T";
-        opts.governance.voteDuration = 99;
+        opts.governance.voteDuration = 1 hours;
         opts.governance.executionDelay = _EXECUTION_DELAY;
         opts.governance.passThresholdBps = 1000;
         opts.governance.totalVotingPower = 180;
@@ -310,10 +309,10 @@ contract AtomicManualPartyTest is SetupPartyHelper {
         partyMemberVotingPower[0] = 100;
         partyMemberVotingPower[1] = 0;
 
-        Party partyImpl = Party(payable(address(Proxy(payable(address(party))).IMPL())));
+        Party partyImpl = Party(payable(address(party.implementation())));
 
         vm.expectRevert(AtomicManualParty.InvalidPartyMemberVotingPower.selector);
-        Party atomicParty = atomicManualParty.createParty(
+        atomicManualParty.createParty(
             partyImpl,
             opts,
             preciousTokens,
@@ -329,7 +328,7 @@ contract AtomicManualPartyTest is SetupPartyHelper {
         Party.PartyOptions memory opts;
         opts.name = "PARTY";
         opts.symbol = "PR-T";
-        opts.governance.voteDuration = 99;
+        opts.governance.voteDuration = 2 hours;
         opts.governance.executionDelay = _EXECUTION_DELAY;
         opts.governance.passThresholdBps = 1000;
         opts.governance.totalVotingPower = 180;
@@ -371,7 +370,7 @@ contract AtomicManualPartyTest is SetupPartyHelper {
         // total voting power ignored
         opts.governance.totalVotingPower = 100;
         Party atomicParty = atomicManualParty.createParty(
-            Party(payable(address(Proxy(payable(address(party))).IMPL()))),
+            partyImpl,
             opts,
             preciousTokens,
             preciousTokenIds,
@@ -391,15 +390,15 @@ contract AtomicManualPartyTest is SetupPartyHelper {
         assertEq(atomicParty.getGovernanceValues().totalVotingPower, 180);
 
         // Ensure holders match input
-        assertEq(atomicParty.getVotingPowerAt(john, uint40(block.timestamp)), 100);
-        assertEq(atomicParty.getVotingPowerAt(danny, uint40(block.timestamp)), 80);
+        assertEq(atomicParty.getVotingPowerAt(john, uint40(block.timestamp), 0), 100);
+        assertEq(atomicParty.getVotingPowerAt(danny, uint40(block.timestamp), 0), 80);
     }
 
     function test_createAtomicManualPartyWithMetadata_additionalAuthorities() public {
         Party.PartyOptions memory opts;
         opts.name = "PARTY";
         opts.symbol = "PR-T";
-        opts.governance.voteDuration = 99;
+        opts.governance.voteDuration = 1 hours;
         opts.governance.executionDelay = _EXECUTION_DELAY;
         opts.governance.passThresholdBps = 1000;
         opts.governance.totalVotingPower = 180;
@@ -429,7 +428,7 @@ contract AtomicManualPartyTest is SetupPartyHelper {
         vm.expectEmit(false, true, true, true);
         emit ProviderSet(address(0), IMetadataProvider(address(0)));
         Party atomicParty = atomicManualParty.createPartyWithMetadata(
-            Party(payable(address(Proxy(payable(address(party))).IMPL()))),
+            partyImpl,
             opts,
             preciousTokens,
             preciousTokenIds,
@@ -450,7 +449,7 @@ contract AtomicManualPartyTest is SetupPartyHelper {
         assertEq(atomicParty.getGovernanceValues().totalVotingPower, 180);
 
         // Ensure holders match input
-        assertEq(atomicParty.getVotingPowerAt(john, uint40(block.timestamp)), 100);
-        assertEq(atomicParty.getVotingPowerAt(danny, uint40(block.timestamp)), 80);
+        assertEq(atomicParty.getVotingPowerAt(john, uint40(block.timestamp), 0), 100);
+        assertEq(atomicParty.getVotingPowerAt(danny, uint40(block.timestamp), 0), 80);
     }
 }

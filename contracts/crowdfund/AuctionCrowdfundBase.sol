@@ -115,8 +115,7 @@ abstract contract AuctionCrowdfundBase is Crowdfund {
     // Set the `Globals` contract.
     constructor(IGlobals globals) Crowdfund(globals) {}
 
-    /// @notice Initializer to be delegatecalled by `Proxy` constructor. Will
-    ///         revert if called outside the constructor.
+    /// @notice Initializer to be called prior to using the contract.
     /// @param opts Options used to initialize the crowdfund. These are fixed
     ///             and cannot be changed later.
     function _initialize(AuctionCrowdfundOptions memory opts) internal {
@@ -126,7 +125,7 @@ abstract contract AuctionCrowdfundBase is Crowdfund {
         nftContract = opts.nftContract;
         nftTokenId = opts.nftTokenId;
         market = opts.market;
-        expiry = uint40(opts.duration + block.timestamp);
+        expiry = (opts.duration + block.timestamp).safeCastUint256ToUint40();
         auctionId = opts.auctionId;
         maximumBid = opts.maximumBid;
         onlyHostCanBid = opts.onlyHostCanBid;

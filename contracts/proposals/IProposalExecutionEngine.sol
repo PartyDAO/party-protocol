@@ -28,7 +28,7 @@ interface IProposalExecutionEngine {
     ///         to indicate the proposal is complete.
     function executeProposal(
         ExecuteProposalParams memory params
-    ) external returns (bytes memory nextProgressData);
+    ) external payable returns (bytes memory nextProgressData);
 
     /// @notice Forcibly cancel an incomplete proposal.
     /// @param proposalId The ID of the proposal to cancel.

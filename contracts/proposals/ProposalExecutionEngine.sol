@@ -4,6 +4,7 @@ pragma solidity 0.8.20;
 import "../utils/Implementation.sol";
 import "../utils/LibRawResult.sol";
 import "../globals/IGlobals.sol";
+import { IERC1271 } from "openzeppelin/contracts/interfaces/IERC1271.sol";
 
 import "./IProposalExecutionEngine.sol";
 import "./ListOnOpenseaProposal.sol";
@@ -15,6 +16,8 @@ import "./ProposalStorage.sol";
 import "./DistributeProposal.sol";
 import "./AddAuthorityProposal.sol";
 import "./OperatorProposal.sol";
+import { SetSignatureValidatorProposal } from "./SetSignatureValidatorProposal.sol";
+import { SetGovernanceParameterProposal } from "./SetGovernanceParameterProposal.sol";
 
 /// @notice Upgradable implementation of proposal execution logic for parties that use it.
 /// @dev This contract will be delegatecall'ed into by `Party` proxy instances.
@@ -29,7 +32,10 @@ contract ProposalExecutionEngine is
     ArbitraryCallsProposal,
     DistributeProposal,
     AddAuthorityProposal,
-    OperatorProposal
+    OperatorProposal,
+    SetSignatureValidatorProposal,
+    SetGovernanceParameterProposal,
+    IERC1271
 {
     using LibRawResult for bytes;
 
@@ -49,7 +55,9 @@ contract ProposalExecutionEngine is
         ListOnOpenseaAdvanced,
         Distribute,
         AddAuthority,
-        Operator
+        Operator,
+        SetSignatureValidatorProposal,
+        SetGovernanceParameterProposal
     }
 
     // Explicit storage bucket for "private" state owned by the `ProposalExecutionEngine`.
@@ -137,7 +145,7 @@ contract ProposalExecutionEngine is
     /// @inheritdoc IProposalExecutionEngine
     function executeProposal(
         ExecuteProposalParams memory params
-    ) external onlyDelegateCall returns (bytes memory nextProgressData) {
+    ) external payable onlyDelegateCall returns (bytes memory nextProgressData) {
         // Must have a valid proposal ID.
         if (params.proposalId == 0) {
             revert ZeroProposalIdError();
@@ -214,6 +222,28 @@ contract ProposalExecutionEngine is
         stor.nextProgressDataHash = 0;
     }
 
+    function isValidSignature(bytes32 hash, bytes memory signature) external view returns (bytes4) {
+        IERC1271 validator = getSignatureValidatorForHash(hash);
+        if (address(validator) == address(1)) {
+            // Signature set by party to be always valid
+            return IERC1271.isValidSignature.selector;
+        }
+        if (address(validator) != address(0)) {
+            return validator.isValidSignature(hash, signature);
+        }
+        if (tx.origin == address(0)) {
+            validator = getSignatureValidatorForHash(0);
+            if (address(validator) == address(0)) {
+                // Use global off-chain signature validator
+                validator = IERC1271(
+                    _GLOBALS.getAddress(LibGlobals.GLOBAL_OFF_CHAIN_SIGNATURE_VALIDATOR)
+                );
+            }
+            return validator.isValidSignature(hash, signature);
+        }
+        return 0;
+    }
+
     // Switch statement used to execute the right proposal.
     function _execute(
         ProposalType pt,
@@ -250,6 +280,10 @@ contract ProposalExecutionEngine is
             }
 
             nextProgressData = _executeOperation(params);
+        } else if (pt == ProposalType.SetSignatureValidatorProposal) {
+            nextProgressData = _executeSetSignatureValidator(params);
+        } else if (pt == ProposalType.SetGovernanceParameterProposal) {
+            nextProgressData = _executeSetGovernanceParameter(params);
         } else if (pt == ProposalType.UpgradeProposalEngineImpl) {
             _executeUpgradeProposalsImplementation(params.proposalData);
         } else {
@@ -294,7 +328,7 @@ contract ProposalExecutionEngine is
             );
         }
         _initProposalImpl(newImpl, initData);
-        emit ProposalEngineImplementationUpgraded(address(IMPL), expectedImpl);
+        emit ProposalEngineImplementationUpgraded(address(implementation), expectedImpl);
     }
 
     // Retrieve the explicit storage bucket for the ProposalExecutionEngine logic.

@@ -11,9 +11,11 @@ import { ProposalExecutionEngine } from "../contracts/proposals/ProposalExecutio
 import { DistributeProposal } from "../contracts/proposals/DistributeProposal.sol";
 import { ITokenDistributor } from "../contracts/distribution/ITokenDistributor.sol";
 import { InitialETHCrowdfund } from "../contracts/crowdfund/InitialETHCrowdfund.sol";
-import { Proxy } from "../contracts/utils/Proxy.sol";
+import { Clones } from "openzeppelin/contracts/proxy/Clones.sol";
 
 contract GasBenchmarks is SetupPartyHelper {
+    using Clones for address;
+
     constructor() SetupPartyHelper(false) {}
 
     /// @notice Gas benchmark the creation of a basic party
@@ -27,7 +29,7 @@ contract GasBenchmarks is SetupPartyHelper {
         opts.name = "PARTY";
         opts.symbol = "PR-T";
         opts.governance.hosts = hosts;
-        opts.governance.voteDuration = 99;
+        opts.governance.voteDuration = 1 hours;
         opts.governance.executionDelay = _EXECUTION_DELAY;
         opts.governance.passThresholdBps = 1000;
         opts.governance.totalVotingPower = 301;
@@ -49,7 +51,7 @@ contract GasBenchmarks is SetupPartyHelper {
         opts.name = "PARTY";
         opts.symbol = "PR-T";
         opts.governance.hosts = hosts;
-        opts.governance.voteDuration = 99;
+        opts.governance.voteDuration = 1 hours;
         opts.governance.executionDelay = _EXECUTION_DELAY;
         opts.governance.passThresholdBps = 1000;
         opts.governance.totalVotingPower = 301;
@@ -140,9 +142,10 @@ contract GasBenchmarks is SetupPartyHelper {
                 distProposal
             )
         });
+        uint256 latestSnap = party.findVotingPowerSnapshotIndex(john, uint40(block.timestamp - 1));
         vm.prank(john);
         uint256 gasLeft = gasleft();
-        party.propose(proposal, 0);
+        party.propose(proposal, latestSnap);
         uint256 gasUsed = gasLeft - gasleft();
         emit log_named_uint("Create proposal distribute", gasUsed);
 
@@ -172,6 +175,42 @@ contract GasBenchmarks is SetupPartyHelper {
         emit log_named_uint("Claim distribution", gasUsed);
     }
 
+    function testAccept_vanilla() public {
+        ArbitraryCallsProposal.ArbitraryCall[]
+            memory arbCalls = new ArbitraryCallsProposal.ArbitraryCall[](1);
+        arbCalls[0] = ArbitraryCallsProposal.ArbitraryCall({
+            target: _randomAddress(),
+            value: 100,
+            data: "",
+            expectedResultHash: 0
+        });
+        PartyGovernance.Proposal memory proposal = PartyGovernance.Proposal({
+            maxExecutableTime: type(uint40).max,
+            cancelDelay: 0,
+            proposalData: abi.encodeWithSelector(
+                bytes4(uint32(ProposalExecutionEngine.ProposalType.ArbitraryCalls)),
+                arbCalls
+            )
+        });
+
+        vm.prank(john);
+        uint256 proposalId = party.propose(proposal, 0);
+        (, PartyGovernance.ProposalStateValues memory values) = party.getProposalStateInfo(
+            proposalId
+        );
+
+        vm.warp(block.timestamp + 100);
+
+        uint256 snapIndex = party.findVotingPowerSnapshotIndex(danny, values.proposedTime - 1);
+
+        vm.prank(danny);
+        uint256 gasLeft = gasleft();
+        party.accept(proposalId, snapIndex);
+        uint256 gasUsed = gasLeft - gasleft();
+
+        emit log_named_uint("Accept Proposal", gasUsed);
+    }
+
     function _setupETHCrowdfund() internal returns (InitialETHCrowdfund) {
         InitialETHCrowdfund.InitialETHCrowdfundOptions memory crowdfundOpts;
         crowdfundOpts.minContribution = 0.01 ether;
@@ -179,7 +218,7 @@ contract GasBenchmarks is SetupPartyHelper {
         crowdfundOpts.disableContributingForExistingCard = true;
         crowdfundOpts.maxTotalContributions = 10 ether;
         crowdfundOpts.minTotalContributions = 0.01 ether;
-        crowdfundOpts.exchangeRateBps = 10000;
+        crowdfundOpts.exchangeRate = 1e18;
         crowdfundOpts.duration = 100;
 
         InitialETHCrowdfund.ETHPartyOptions memory partyOpts;
@@ -188,25 +227,16 @@ contract GasBenchmarks is SetupPartyHelper {
         partyOpts.name = "PARTY";
         partyOpts.symbol = "PR-T";
         partyOpts.governanceOpts.hosts = hosts;
-        partyOpts.governanceOpts.voteDuration = 99;
+        partyOpts.governanceOpts.voteDuration = 1 hours;
         partyOpts.governanceOpts.executionDelay = _EXECUTION_DELAY;
         partyOpts.governanceOpts.passThresholdBps = 1000;
         partyOpts.governanceOpts.partyFactory = partyFactory;
         partyOpts.governanceOpts.partyImpl = partyImpl;
 
         InitialETHCrowdfund crowdfundImpl = new InitialETHCrowdfund(globals);
-        return
-            InitialETHCrowdfund(
-                payable(
-                    new Proxy(
-                        crowdfundImpl,
-                        abi.encodeCall(
-                            InitialETHCrowdfund.initialize,
-                            (crowdfundOpts, partyOpts, MetadataProvider(address(0)), "")
-                        )
-                    )
-                )
-            );
+        InitialETHCrowdfund crowdfund = InitialETHCrowdfund(address(crowdfundImpl).clone());
+        crowdfund.initialize(crowdfundOpts, partyOpts, MetadataProvider(address(0)), "");
+        return crowdfund;
     }
 
     /// @notice Gas benchmark of contributing to an ETHParty membership mint twice
@@ -215,7 +245,7 @@ contract GasBenchmarks is SetupPartyHelper {
 
         InitialETHCrowdfund.BatchContributeArgs memory batchContributeArgs;
         batchContributeArgs.tokenIds = new uint256[](2);
-        batchContributeArgs.delegate = address(this);
+        batchContributeArgs.initialDelegate = address(this);
         batchContributeArgs.values = new uint96[](2);
         batchContributeArgs.values[0] = 0.01 ether;
         batchContributeArgs.values[1] = 0.01 ether;
