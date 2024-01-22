@@ -20,6 +20,7 @@ contract BondingCurveAuthorityTest is SetupPartyHelper {
         address indexed buyer,
         uint256[] tokenIds,
         uint256 totalPrice,
+        uint256 lastBondingCurvePrice,
         uint256 partyDaoFee,
         uint256 treasuryFee,
         uint256 creatorFee
@@ -29,6 +30,7 @@ contract BondingCurveAuthorityTest is SetupPartyHelper {
         address indexed seller,
         uint256[] tokenIds,
         uint256 sellerProceeds,
+        uint256 lastBondingCurvePrice,
         uint256 partyDaoFee,
         uint256 treasuryFee,
         uint256 creatorFee
@@ -392,18 +394,26 @@ contract BondingCurveAuthorityTest is SetupPartyHelper {
 
         buyer = _randomAddress();
         vm.deal(buyer, expectedPriceToBuy);
-        vm.prank(buyer);
 
         {
             uint256[] memory tokenIds = new uint256[](10);
             for (uint256 i = 0; i < 10; i++) tokenIds[i] = i + 2;
 
+            uint256 lastBondingCurvePrice = authority.getBondingCurvePrice(
+                10,
+                1,
+                50_000,
+                uint80(0.001 ether)
+            );
+
+            vm.prank(buyer);
             vm.expectEmit(true, true, true, true);
             emit PartyCardsBought(
                 party,
                 buyer,
                 tokenIds,
                 expectedPriceToBuy,
+                lastBondingCurvePrice,
                 expectedPartyDaoFee,
                 expectedTreasuryFee,
                 expectedCreatorFee
@@ -493,6 +503,13 @@ contract BondingCurveAuthorityTest is SetupPartyHelper {
         uint256[] memory tokenIds = new uint256[](10);
         for (uint256 i = 0; i < 10; i++) tokenIds[i] = i + 2;
 
+        uint256 lastBondingCurvePrice = authority.getBondingCurvePrice(
+            10,
+            1,
+            50_000,
+            uint80(0.001 ether)
+        );
+
         uint256 balanceBefore = address(this).balance;
         vm.expectEmit(true, true, true, true);
         emit PartyCardsBought(
@@ -500,6 +517,7 @@ contract BondingCurveAuthorityTest is SetupPartyHelper {
             address(this),
             tokenIds,
             priceToBuy,
+            lastBondingCurvePrice,
             expectedPartyDaoFee,
             expectedTreasuryFee,
             expectedCreatorFee
@@ -557,21 +575,29 @@ contract BondingCurveAuthorityTest is SetupPartyHelper {
         uint256 beforePartyBalance = address(party).balance;
         uint256 beforeCreatorBalance = creator.balance;
 
-        vm.prank(buyer);
+        {
+            uint256 lastBondingCurvePrice = authority.getBondingCurvePrice(
+                1,
+                1,
+                50_000,
+                uint80(0.001 ether)
+            );
 
-        vm.expectEmit(true, true, true, true);
-        emit PartyCardsSold(
-            party,
-            buyer,
-            tokenIds,
-            expectedSaleProceeds,
-            expectedPartyDaoFee,
-            expectedTreasuryFee,
-            expectedCreatorFee
-        );
+            vm.prank(buyer);
+            vm.expectEmit(true, true, true, true);
+            emit PartyCardsSold(
+                party,
+                buyer,
+                tokenIds,
+                expectedSaleProceeds,
+                lastBondingCurvePrice,
+                expectedPartyDaoFee,
+                expectedTreasuryFee,
+                expectedCreatorFee
+            );
+        }
 
         authority.sellPartyCards(party, tokenIds, 0);
-
         (, uint80 supply, , , ) = authority.partyInfos(party);
 
         assertEq(supply, 1);
@@ -681,6 +707,13 @@ contract BondingCurveAuthorityTest is SetupPartyHelper {
         uint256 expectedPartyDaoFee = (expectedBondingCurvePrice * PARTY_DAO_FEE_BPS) / 1e4;
         uint256 expectedTreasuryFee = (expectedBondingCurvePrice * TREASURY_FEE_BPS) / 1e4;
 
+        uint256 lastBondingCurvePrice = authority.getBondingCurvePrice(
+            1,
+            1,
+            50_000,
+            uint80(0.001 ether)
+        );
+
         vm.prank(buyer);
         vm.expectEmit(true, true, true, true);
         emit PartyCardsSold(
@@ -688,6 +721,7 @@ contract BondingCurveAuthorityTest is SetupPartyHelper {
             buyer,
             tokenIds,
             saleProceeds,
+            lastBondingCurvePrice,
             expectedPartyDaoFee,
             expectedTreasuryFee,
             0

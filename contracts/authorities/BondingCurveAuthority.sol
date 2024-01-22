@@ -36,6 +36,7 @@ contract BondingCurveAuthority {
         address indexed buyer,
         uint256[] tokenIds,
         uint256 totalPrice,
+        uint256 lastBondingCurvePrice,
         uint256 partyDaoFee,
         uint256 treasuryFee,
         uint256 creatorFee
@@ -45,6 +46,7 @@ contract BondingCurveAuthority {
         address indexed seller,
         uint256[] tokenIds,
         uint256 sellerProceeds,
+        uint256 lastBondingCurvePrice,
         uint256 partyDaoFee,
         uint256 treasuryFee,
         uint256 creatorFee
@@ -306,11 +308,19 @@ contract BondingCurveAuthority {
             tokenIds[i] = party.mint(msg.sender, PARTY_CARD_VOTING_POWER, initialDelegate);
         }
 
+        uint256 lastBondingCurvePrice = _getBondingCurvePrice(
+            partyInfo.supply + amount - 1,
+            1,
+            partyInfo.a,
+            partyInfo.b
+        );
+
         emit PartyCardsBought(
             party,
             msg.sender,
             tokenIds,
             totalCost,
+            lastBondingCurvePrice,
             partyDaoFee,
             treasuryFee,
             creatorFee
@@ -397,11 +407,19 @@ contract BondingCurveAuthority {
 
         partyDaoFeeClaimable += partyDaoFee.safeCastUint256ToUint96();
 
+        uint256 lastBondingCurvePrice = _getBondingCurvePrice(
+            partyInfo.supply - amount,
+            1,
+            partyInfo.a,
+            partyInfo.b
+        );
+
         emit PartyCardsSold(
             party,
             msg.sender,
             tokenIds,
             sellerProceeds,
+            lastBondingCurvePrice,
             partyDaoFee,
             treasuryFee,
             creatorFee
