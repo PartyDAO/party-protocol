@@ -11,7 +11,11 @@ import { Test } from "forge-std/Test.sol";
 import { IERC721 } from "contracts/tokens/IERC721.sol";
 
 contract BondingCurveAuthorityTest is SetupPartyHelper {
-    event BondingCurvePartyCreated(Party indexed party, address indexed creator);
+    event BondingCurvePartyCreated(
+        Party indexed party,
+        address indexed creator,
+        BondingCurveAuthority.BondingCurvePartyOptions partyOpts
+    );
     event TreasuryFeeUpdated(uint16 previousTreasuryFee, uint16 newTreasuryFee);
     event PartyDaoFeeUpdated(uint16 previousPartyDaoFee, uint16 newPartyDaoFee);
     event CreatorFeeUpdated(uint16 previousCreatorFee, uint16 newCreatorFee);
@@ -90,21 +94,21 @@ contract BondingCurveAuthorityTest is SetupPartyHelper {
             creatorFeeOn
         );
 
-        vm.deal(creator, initialPrice);
-        vm.expectEmit(false, true, true, true); // Don't check party address so we don't have to derive it
-        emit BondingCurvePartyCreated(Party(payable(address(0))), creator);
-        vm.prank(creator);
-        party = authority.createParty{ value: initialPrice }(
-            BondingCurveAuthority.BondingCurvePartyOptions({
+        BondingCurveAuthority.BondingCurvePartyOptions
+            memory bondingCurveOpts = BondingCurveAuthority.BondingCurvePartyOptions({
                 partyFactory: partyFactory,
                 partyImpl: partyImpl,
                 opts: opts,
                 creatorFeeOn: creatorFeeOn,
                 a: 50_000,
                 b: uint80(0.001 ether)
-            }),
-            initialBuyAmount
-        );
+            });
+
+        vm.deal(creator, initialPrice);
+        vm.expectEmit(false, true, true, true); // Don't check party address so we don't have to derive it
+        emit BondingCurvePartyCreated(Party(payable(address(0))), creator, bondingCurveOpts);
+        vm.prank(creator);
+        party = authority.createParty{ value: initialPrice }(bondingCurveOpts, initialBuyAmount);
     }
 
     function test_initialize_revertIfGreaterThanMaxPartyDaoFee() public {

@@ -27,7 +27,11 @@ contract BondingCurveAuthority {
     error DistributionsNotSupported();
     error NeedAtLeastOneHost();
 
-    event BondingCurvePartyCreated(Party indexed party, address indexed creator);
+    event BondingCurvePartyCreated(
+        Party indexed party,
+        address indexed creator,
+        BondingCurvePartyOptions partyOpts
+    );
     event TreasuryFeeUpdated(uint16 previousTreasuryFee, uint16 newTreasuryFee);
     event PartyDaoFeeUpdated(uint16 previousPartyDaoFee, uint16 newPartyDaoFee);
     event CreatorFeeUpdated(uint16 previousCreatorFee, uint16 newCreatorFee);
@@ -172,7 +176,7 @@ contract BondingCurveAuthority {
             b: partyOpts.b
         });
 
-        emit BondingCurvePartyCreated(party, msg.sender);
+        emit BondingCurvePartyCreated(party, msg.sender, partyOpts);
 
         buyPartyCards(party, amountToBuy, address(0));
     }
@@ -219,7 +223,7 @@ contract BondingCurveAuthority {
             b: partyOpts.b
         });
 
-        emit BondingCurvePartyCreated(party, msg.sender);
+        emit BondingCurvePartyCreated(party, msg.sender, partyOpts);
 
         buyPartyCards(party, amountToBuy, address(0));
     }
