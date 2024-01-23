@@ -115,4 +115,4 @@ jobs:
       - name: Install dependencies
         run: forge install
       - name: Check contract deployable mainnet
-        run: "node js/contracts-deployable.js --via-ir --optimize --optimizer-runs 0"
+        run: "node js/contracts-deployable.js --via-ir --optimize --optimizer-runs 50"
