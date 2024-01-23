@@ -21,6 +21,8 @@
     "deploy:mainnet:dry": "DRY_RUN=1 forge script ./deploy/Mainnet.s.sol -vvv --rpc-url $ETH_RPC_URL --via-ir --skip test --optimize --optimizer-runs 50 --ffi",
     "deploy:base": "DRY_RUN=0 forge script ./deploy/Base.s.sol -vvv --rpc-url $BASE_RPC_URL --via-ir --broadcast --etherscan-api-key $BASESCAN_API_KEY --skip test --optimize --optimizer-runs 50 --ffi --slow",
     "deploy:base:dry": "DRY_RUN=1 forge script ./deploy/Base.s.sol -vvv --rpc-url $BASE_RPC_URL --via-ir --skip test --optimize --optimizer-runs 50 --ffi",
+    "deploy:base-sepolia": "DRY_RUN=0 forge script ./deploy/BaseSepolia.s.sol -vvv --rpc-url $BASE_SEPOLIA_RPC_URL --via-ir --broadcast --etherscan-api-key $BASESCAN_API_KEY --skip test --optimize --optimizer-runs 50 --ffi --slow",
+    "deploy:base-sepolia:dry": "DRY_RUN=1 forge script ./deploy/BaseSepolia.s.sol -vvv --rpc-url $BASE_SEPOLIA_RPC_URL --via-ir --skip test --optimize --optimizer-runs 50 --ffi",
     "deploy:base-goerli": "DRY_RUN=0 forge script ./deploy/BaseGoerli.s.sol -vvv --rpc-url $BASE_GOERLI_RPC_URL --via-ir --broadcast --etherscan-api-key $BASESCAN_API_KEY --skip test --optimize --optimizer-runs 50 --ffi --slow",
     "deploy:base-goerli:dry": "DRY_RUN=1 forge script ./deploy/BaseGoerli.s.sol -vvv --rpc-url $BASE_GOERLI_RPC_URL --via-ir --skip test --optimize --optimizer-runs 50 --ffi",
     "deploy:zora:dry": "DRY_RUN=1 forge script ./deploy/Zora.s.sol -vvv --rpc-url $ZORA_RPC_URL --via-ir --skip test --optimize --optimizer-runs 50 --ffi --priority-gas-price 1",
