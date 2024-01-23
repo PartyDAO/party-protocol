@@ -11,6 +11,7 @@ import { Test } from "forge-std/Test.sol";
 import { IERC721 } from "contracts/tokens/IERC721.sol";
 
 contract BondingCurveAuthorityTest is SetupPartyHelper {
+    event BondingCurvePartyCreated(Party indexed party, address indexed creator);
     event TreasuryFeeUpdated(uint16 previousTreasuryFee, uint16 newTreasuryFee);
     event PartyDaoFeeUpdated(uint16 previousPartyDaoFee, uint16 newPartyDaoFee);
     event CreatorFeeUpdated(uint16 previousCreatorFee, uint16 newCreatorFee);
@@ -90,6 +91,8 @@ contract BondingCurveAuthorityTest is SetupPartyHelper {
         );
 
         vm.deal(creator, initialPrice);
+        vm.expectEmit(false, true, true, true); // Don't check party address so we don't have to derive it
+        emit BondingCurvePartyCreated(Party(payable(address(0))), creator);
         vm.prank(creator);
         party = authority.createParty{ value: initialPrice }(
             BondingCurveAuthority.BondingCurvePartyOptions({
