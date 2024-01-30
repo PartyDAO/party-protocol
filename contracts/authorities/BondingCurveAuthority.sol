@@ -26,6 +26,7 @@ contract BondingCurveAuthority {
     error SellZeroPartyCards();
     error DistributionsNotSupported();
     error NeedAtLeastOneHost();
+    error InvalidDiscount();
 
     event BondingCurvePartyCreated(
         Party indexed party,
@@ -157,6 +158,10 @@ contract BondingCurveAuthority {
         address[] memory authorities = new address[](1);
         authorities[0] = address(this);
 
+        if (partyOpts.firstCardDiscount > partyOpts.b) {
+            revert InvalidDiscount();
+        }
+
         _validateGovernanceOpts(partyOpts.opts);
 
         party = partyOpts.partyFactory.createParty(
@@ -202,6 +207,10 @@ contract BondingCurveAuthority {
     ) external payable returns (Party party) {
         address[] memory authorities = new address[](1);
         authorities[0] = address(this);
+
+        if (partyOpts.firstCardDiscount > partyOpts.b) {
+            revert InvalidDiscount();
+        }
 
         _validateGovernanceOpts(partyOpts.opts);
 
@@ -285,7 +294,7 @@ contract BondingCurveAuthority {
             amount,
             partyInfo.a,
             partyInfo.b,
-            0
+            partyInfo.firstCardDiscount
         );
         uint256 partyDaoFee = (bondingCurvePrice * partyDaoFeeBps) / BPS;
         uint256 treasuryFee = (bondingCurvePrice * treasuryFeeBps) / BPS;
@@ -329,7 +338,7 @@ contract BondingCurveAuthority {
             1,
             partyInfo.a,
             partyInfo.b,
-            0
+            partyInfo.firstCardDiscount
         );
 
         emit PartyCardsBought(
@@ -374,7 +383,7 @@ contract BondingCurveAuthority {
             amount,
             partyInfo.a,
             partyInfo.b,
-            0
+            partyInfo.firstCardDiscount
         );
         uint256 partyDaoFee = (bondingCurvePrice * partyDaoFeeBps) / BPS;
         uint256 treasuryFee = (bondingCurvePrice * treasuryFeeBps) / BPS;
@@ -430,7 +439,7 @@ contract BondingCurveAuthority {
             1,
             partyInfo.a,
             partyInfo.b,
-            0
+            partyInfo.firstCardDiscount
         );
 
         emit PartyCardsSold(
@@ -458,7 +467,7 @@ contract BondingCurveAuthority {
             amount,
             partyInfo.a,
             partyInfo.b,
-            0
+            partyInfo.firstCardDiscount
         );
         uint256 partyDaoFee = (bondingCurvePrice * partyDaoFeeBps) / BPS;
         uint256 treasuryFee = (bondingCurvePrice * treasuryFeeBps) / BPS;
@@ -481,7 +490,8 @@ contract BondingCurveAuthority {
                 amount,
                 partyInfo.a,
                 partyInfo.b,
-                partyInfo.creatorFeeOn
+                partyInfo.creatorFeeOn,
+                partyInfo.firstCardDiscount
             );
     }
 
@@ -499,9 +509,10 @@ contract BondingCurveAuthority {
         uint80 amount,
         uint32 a,
         uint80 b,
-        bool creatorFeeOn
+        bool creatorFeeOn,
+        uint80 firstCardDiscount
     ) public view returns (uint256) {
-        uint256 bondingCurvePrice = _getBondingCurvePrice(supply, amount, a, b, 0);
+        uint256 bondingCurvePrice = _getBondingCurvePrice(supply, amount, a, b, firstCardDiscount);
         uint256 partyDaoFee = (bondingCurvePrice * partyDaoFeeBps) / BPS;
         uint256 treasuryFee = (bondingCurvePrice * treasuryFeeBps) / BPS;
         uint256 creatorFee = (bondingCurvePrice * (creatorFeeOn ? creatorFeeBps : 0)) / BPS;

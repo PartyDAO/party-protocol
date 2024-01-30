@@ -91,7 +91,8 @@ contract BondingCurveAuthorityTest is SetupPartyHelper {
             initialBuyAmount,
             50_000,
             uint80(0.001 ether),
-            creatorFeeOn
+            creatorFeeOn,
+            0
         );
 
         BondingCurveAuthority.BondingCurvePartyOptions
@@ -263,7 +264,7 @@ contract BondingCurveAuthorityTest is SetupPartyHelper {
         PartyFactory trickFactory = PartyFactory(address(new TrickFactory(address(partyFactory))));
 
         address creator = _randomAddress();
-        uint256 initialPrice = authority.getPriceToBuy(0, 2, 50_000, uint80(0.001 ether), true);
+        uint256 initialPrice = authority.getPriceToBuy(0, 2, 50_000, uint80(0.001 ether), true, 0);
 
         vm.deal(creator, initialPrice);
         vm.prank(creator);
@@ -904,6 +905,31 @@ contract BondingCurveAuthorityTest is SetupPartyHelper {
         authority.claimPartyDaoFees();
 
         assertApproxEqAbs(address(authority).balance, 0, 18);
+    }
+
+    function test_firstPartyCardFree() public {
+        Party party = authority.createParty{ value: 1 }(
+            BondingCurveAuthority.BondingCurvePartyOptions({
+                partyFactory: partyFactory,
+                partyImpl: partyImpl,
+                opts: opts,
+                creatorFeeOn: true,
+                a: 50_000,
+                b: uint80(0.001 ether),
+                firstCardDiscount: uint80(0.001 ether)
+            }),
+            1
+        );
+
+        assertEq(authority.getSaleProceeds(party, 1), 0);
+
+        uint256[] memory partyCardsToSell = new uint256[](1);
+        partyCardsToSell[0] = 1;
+
+        uint256 balanceBefore = address(this).balance;
+        authority.sellPartyCards(party, partyCardsToSell, 0);
+        // Ensure no proceeds
+        assertEq(address(this).balance, balanceBefore);
     }
 
     // Check bonding curve pricing calculations
