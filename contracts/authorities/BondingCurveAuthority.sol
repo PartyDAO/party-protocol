@@ -94,6 +94,8 @@ contract BondingCurveAuthority {
         // The value of b in the bonding curve formula 1 ether * x ** 2 / a + b
         // used by the Party to price cards
         uint80 b;
+        // Discount when buying/selling the first card in the party
+        uint80 firstCardDiscount;
     }
 
     /// @notice Struct containing info stored for a party
@@ -110,6 +112,8 @@ contract BondingCurveAuthority {
         // The value of b in the bonding curve formula 1 ether * x ** 2 / a + b
         // used by the Party to price cards
         uint80 b;
+        // Discount when buying/selling the first card in the party
+        uint80 firstCardDiscount;
     }
 
     modifier onlyPartyDao() {
@@ -173,7 +177,8 @@ contract BondingCurveAuthority {
             supply: 0,
             creatorFeeOn: partyOpts.creatorFeeOn,
             a: partyOpts.a,
-            b: partyOpts.b
+            b: partyOpts.b,
+            firstCardDiscount: partyOpts.firstCardDiscount
         });
 
         emit BondingCurvePartyCreated(party, msg.sender, partyOpts);
@@ -220,7 +225,8 @@ contract BondingCurveAuthority {
             supply: 0,
             creatorFeeOn: partyOpts.creatorFeeOn,
             a: partyOpts.a,
-            b: partyOpts.b
+            b: partyOpts.b,
+            firstCardDiscount: partyOpts.firstCardDiscount
         });
 
         emit BondingCurvePartyCreated(party, msg.sender, partyOpts);
@@ -278,7 +284,8 @@ contract BondingCurveAuthority {
             partyInfo.supply,
             amount,
             partyInfo.a,
-            partyInfo.b
+            partyInfo.b,
+            0
         );
         uint256 partyDaoFee = (bondingCurvePrice * partyDaoFeeBps) / BPS;
         uint256 treasuryFee = (bondingCurvePrice * treasuryFeeBps) / BPS;
@@ -321,7 +328,8 @@ contract BondingCurveAuthority {
             partyInfo.supply + amount - 1,
             1,
             partyInfo.a,
-            partyInfo.b
+            partyInfo.b,
+            0
         );
 
         emit PartyCardsBought(
@@ -365,7 +373,8 @@ contract BondingCurveAuthority {
             partyInfo.supply - amount,
             amount,
             partyInfo.a,
-            partyInfo.b
+            partyInfo.b,
+            0
         );
         uint256 partyDaoFee = (bondingCurvePrice * partyDaoFeeBps) / BPS;
         uint256 treasuryFee = (bondingCurvePrice * treasuryFeeBps) / BPS;
@@ -420,7 +429,8 @@ contract BondingCurveAuthority {
             partyInfo.supply - amount,
             1,
             partyInfo.a,
-            partyInfo.b
+            partyInfo.b,
+            0
         );
 
         emit PartyCardsSold(
@@ -447,7 +457,8 @@ contract BondingCurveAuthority {
             partyInfo.supply - amount,
             amount,
             partyInfo.a,
-            partyInfo.b
+            partyInfo.b,
+            0
         );
         uint256 partyDaoFee = (bondingCurvePrice * partyDaoFeeBps) / BPS;
         uint256 treasuryFee = (bondingCurvePrice * treasuryFeeBps) / BPS;
@@ -490,7 +501,7 @@ contract BondingCurveAuthority {
         uint80 b,
         bool creatorFeeOn
     ) public view returns (uint256) {
-        uint256 bondingCurvePrice = _getBondingCurvePrice(supply, amount, a, b);
+        uint256 bondingCurvePrice = _getBondingCurvePrice(supply, amount, a, b, 0);
         uint256 partyDaoFee = (bondingCurvePrice * partyDaoFeeBps) / BPS;
         uint256 treasuryFee = (bondingCurvePrice * treasuryFeeBps) / BPS;
         uint256 creatorFee = (bondingCurvePrice * (creatorFeeOn ? creatorFeeBps : 0)) / BPS;
@@ -510,8 +521,10 @@ contract BondingCurveAuthority {
         uint256 lowerSupply,
         uint256 amount,
         uint32 a,
-        uint80 b
+        uint80 b,
+        uint80 firstCardDiscount
     ) internal pure returns (uint256) {
+        uint256 discount = lowerSupply == 0 ? firstCardDiscount : 0;
         // Using the function 1 ether * x ** 2 / a + b
         uint256 amountSquared = amount * amount;
         return
@@ -525,7 +538,8 @@ contract BondingCurveAuthority {
                     6)) /
             uint256(a) +
             amount *
-            uint256(b);
+            uint256(b) -
+            discount;
     }
 
     /**

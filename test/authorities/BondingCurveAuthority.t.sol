@@ -101,7 +101,8 @@ contract BondingCurveAuthorityTest is SetupPartyHelper {
                 opts: opts,
                 creatorFeeOn: creatorFeeOn,
                 a: 50_000,
-                b: uint80(0.001 ether)
+                b: uint80(0.001 ether),
+                firstCardDiscount: 0
             });
 
         vm.deal(creator, initialPrice);
@@ -152,9 +153,8 @@ contract BondingCurveAuthorityTest is SetupPartyHelper {
         uint256 expectedTreasuryFee = (expectedBondingCurvePrice * TREASURY_FEE_BPS) / 1e4;
         uint256 expectedCreatorFee = (expectedBondingCurvePrice * CREATOR_FEE_BPS) / 1e4;
 
-        (address payable partyCreator, uint80 supply, bool creatorFeeOn, , ) = authority.partyInfos(
-            party
-        );
+        (address payable partyCreator, uint80 supply, bool creatorFeeOn, , , ) = authority
+            .partyInfos(party);
 
         assertEq(partyCreator, creator);
         assertTrue(creatorFeeOn);
@@ -181,7 +181,8 @@ contract BondingCurveAuthorityTest is SetupPartyHelper {
                 opts: opts,
                 creatorFeeOn: true,
                 a: 50_000,
-                b: uint80(0.001 ether)
+                b: uint80(0.001 ether),
+                firstCardDiscount: 0
             }),
             1
         );
@@ -200,7 +201,8 @@ contract BondingCurveAuthorityTest is SetupPartyHelper {
                 opts: opts,
                 creatorFeeOn: true,
                 a: 50_000,
-                b: uint80(0.001 ether)
+                b: uint80(0.001 ether),
+                firstCardDiscount: 0
             }),
             1
         );
@@ -217,7 +219,8 @@ contract BondingCurveAuthorityTest is SetupPartyHelper {
                 opts: opts,
                 creatorFeeOn: true,
                 a: 50_000,
-                b: uint80(0.001 ether)
+                b: uint80(0.001 ether),
+                firstCardDiscount: 0
             }),
             1
         );
@@ -233,7 +236,8 @@ contract BondingCurveAuthorityTest is SetupPartyHelper {
                 opts: opts,
                 creatorFeeOn: true,
                 a: 50_000,
-                b: uint80(0.001 ether)
+                b: uint80(0.001 ether),
+                firstCardDiscount: 0
             }),
             1
         );
@@ -242,9 +246,8 @@ contract BondingCurveAuthorityTest is SetupPartyHelper {
     function test_createParty_moreThanOnePartyCard() public {
         (Party party, address payable creator, ) = _createParty(5, true);
 
-        (address payable partyCreator, uint80 supply, bool creatorFeeOn, , ) = authority.partyInfos(
-            party
-        );
+        (address payable partyCreator, uint80 supply, bool creatorFeeOn, , , ) = authority
+            .partyInfos(party);
 
         assertEq(partyCreator, creator);
         assertTrue(creatorFeeOn);
@@ -265,28 +268,30 @@ contract BondingCurveAuthorityTest is SetupPartyHelper {
         vm.deal(creator, initialPrice);
         vm.prank(creator);
         vm.expectRevert(BondingCurveAuthority.ExistingParty.selector);
-        Party party = authority.createParty{ value: initialPrice }(
+        authority.createParty{ value: initialPrice }(
             BondingCurveAuthority.BondingCurvePartyOptions({
                 partyFactory: trickFactory,
                 partyImpl: partyImpl,
                 opts: opts,
                 creatorFeeOn: true,
                 a: 50_000,
-                b: uint80(0.001 ether)
+                b: uint80(0.001 ether),
+                firstCardDiscount: 0
             }),
             2
         );
 
         vm.prank(creator);
         vm.expectRevert(BondingCurveAuthority.ExistingParty.selector);
-        Party party2 = authority.createPartyWithMetadata{ value: initialPrice }(
+        authority.createPartyWithMetadata{ value: initialPrice }(
             BondingCurveAuthority.BondingCurvePartyOptions({
                 partyFactory: trickFactory,
                 partyImpl: partyImpl,
                 opts: opts,
                 creatorFeeOn: true,
                 a: 50_000,
-                b: uint80(0.001 ether)
+                b: uint80(0.001 ether),
+                firstCardDiscount: 0
             }),
             MetadataProvider(address(0)),
             "",
@@ -315,7 +320,8 @@ contract BondingCurveAuthorityTest is SetupPartyHelper {
                 opts: opts,
                 creatorFeeOn: false,
                 a: 50_000,
-                b: uint80(0.001 ether)
+                b: uint80(0.001 ether),
+                firstCardDiscount: 0
             }),
             metadataProvider,
             metadata,
@@ -349,7 +355,8 @@ contract BondingCurveAuthorityTest is SetupPartyHelper {
                 opts: opts,
                 creatorFeeOn: true,
                 a: 50_000,
-                b: uint80(0.001 ether)
+                b: uint80(0.001 ether),
+                firstCardDiscount: 0
             }),
             1
         );
@@ -362,7 +369,8 @@ contract BondingCurveAuthorityTest is SetupPartyHelper {
                 opts: opts,
                 creatorFeeOn: true,
                 a: 50_000,
-                b: uint80(0.001 ether)
+                b: uint80(0.001 ether),
+                firstCardDiscount: 0
             }),
             MetadataProvider(address(0)),
             "",
@@ -429,7 +437,7 @@ contract BondingCurveAuthorityTest is SetupPartyHelper {
 
         authority.buyPartyCards{ value: expectedPriceToBuy }(party, 10, address(0));
 
-        (, uint80 supply, , , ) = authority.partyInfos(party);
+        (, uint80 supply, , , , ) = authority.partyInfos(party);
 
         assertEq(party.balanceOf(buyer), 10);
         assertEq(
@@ -488,11 +496,7 @@ contract BondingCurveAuthorityTest is SetupPartyHelper {
         address buyer = _randomAddress();
         vm.deal(buyer, expectedPriceToBuy);
         vm.prank(buyer);
-        uint256[] memory tokenIds = authority.buyPartyCards{ value: expectedPriceToBuy }(
-            party,
-            3,
-            address(0)
-        );
+        authority.buyPartyCards{ value: expectedPriceToBuy }(party, 3, address(0));
         assertEq(buyer.balance, expectedCreatorFee); // got back creator fee
         assertEq(creator.balance, creatorBalanceBefore);
     }
@@ -605,7 +609,7 @@ contract BondingCurveAuthorityTest is SetupPartyHelper {
         }
 
         authority.sellPartyCards(party, tokenIds, 0);
-        (, uint80 supply, , , ) = authority.partyInfos(party);
+        (, uint80 supply, , , , ) = authority.partyInfos(party);
 
         assertEq(supply, 1);
         assertEq(party.balanceOf(buyer), 0);
@@ -627,13 +631,7 @@ contract BondingCurveAuthorityTest is SetupPartyHelper {
     }
 
     function test_sellPartyCards_revertIfTooMuchSlippage() public {
-        (
-            Party party,
-            address payable creator,
-            uint256 initialBalanceExcludingPartyDaoFee,
-            address buyer,
-            uint256 expectedBondingCurvePrice
-        ) = test_buyPartyCards_works();
+        (Party party, address payable creator, , address buyer, ) = test_buyPartyCards_works();
 
         uint256[] memory tokenIds = new uint256[](10);
         for (uint256 i = 0; i < 10; i++) tokenIds[i] = i + 2;
@@ -984,8 +982,6 @@ contract BondingCurveAuthorityTest is SetupPartyHelper {
         vm.assume(a > 0);
         vm.assume(amount < 200);
 
-        uint256 expectedBondingCurvePrice = 0;
-
         uint256 aggregatePrice = 0;
         for (uint i = 0; i < amount; i++) {
             aggregatePrice += authority.getBondingCurvePrice(previousSupply + i, 1, a, b);
@@ -1022,7 +1018,7 @@ contract MockBondingCurveAuthority is BondingCurveAuthority {
         uint32 a,
         uint80 b
     ) external pure returns (uint256) {
-        return super._getBondingCurvePrice(lowerSupply, amount, a, b);
+        return super._getBondingCurvePrice(lowerSupply, amount, a, b, 0);
     }
 }
 
@@ -1040,7 +1036,7 @@ contract TrickFactory is Test {
         IERC721[] memory,
         uint256[] memory,
         uint40
-    ) external returns (Party party) {
+    ) external view returns (Party party) {
         return Party(payable(contractAddressFrom(realFactory, vm.getNonce(realFactory) - 1)));
     }
 
@@ -1053,7 +1049,7 @@ contract TrickFactory is Test {
         uint40,
         MetadataProvider,
         bytes memory
-    ) external returns (Party party) {
+    ) external view returns (Party party) {
         return Party(payable(contractAddressFrom(realFactory, vm.getNonce(realFactory) - 1)));
     }
 
