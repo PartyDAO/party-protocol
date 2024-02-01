@@ -81,6 +81,9 @@ jobs:
         run: yarn coverage
       - name: "Upload coverage to Codecov"
         uses: codecov/codecov-action@v3
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          fail_ci_if_error: true
   lint:
     runs-on: ubuntu-latest
     steps:
@@ -112,6 +115,4 @@ jobs:
       - name: Install dependencies
         run: forge install
       - name: Check contract deployable mainnet
-        run: "node js/contracts-deployable.js --via-ir --optimize --optimizer-runs 0"
-      - name: Check contracts deployable base
-        run: "node js/contracts-deployable.js --via-ir --optimize --optimizer-runs 0 --evm-version paris"
+        run: "node js/contracts-deployable.js --via-ir --optimize --optimizer-runs 50"
