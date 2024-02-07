@@ -15,6 +15,8 @@ contract ContributionRouter {
     event ClaimedFees(address indexed partyDao, address indexed recipient, uint256 amount);
 
     error OnlyOwner();
+    /// @notice Thrown if the target is not a smart contract.
+    error InvalidTarget();
 
     /// @notice The address allowed to claim fees from the contract.
     address public immutable OWNER;
@@ -73,9 +75,12 @@ contract ContributionRouter {
         uint256 feeAmount = _storage.feePerMint;
         _storage.caller = msg.sender;
         address target;
+        uint256 targetCodeSize;
         assembly {
             target := shr(96, calldataload(sub(calldatasize(), 20)))
+            targetCodeSize := extcodesize(target)
         }
+        if (targetCodeSize == 0) revert InvalidTarget();
         if (
             msg.sig == InitialETHCrowdfund.batchContributeFor.selector ||
             msg.sig == SellPartyCardsAuthority.batchContributeFor.selector
