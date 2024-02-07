@@ -80,7 +80,9 @@ contract ContributionRouter {
             target := shr(96, calldataload(sub(calldatasize(), 20)))
             targetCodeSize := extcodesize(target)
         }
-        if (targetCodeSize == 0) revert InvalidTarget();
+        if (targetCodeSize == 0) {
+            revert InvalidTarget();
+        }
         if (
             msg.sig == InitialETHCrowdfund.batchContributeFor.selector ||
             msg.sig == SellPartyCardsAuthority.batchContributeFor.selector
