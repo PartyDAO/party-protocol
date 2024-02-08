@@ -15,12 +15,18 @@ contract EZPartyBuilder is ERC721Receiver {
 
     error PartyAlreadyCreated();
 
+    /// @notice Address of the PartyDAO treasury
     address payable immutable TREASURY;
+    /// @notice Address of the BondingCurveAuthority contract
     BondingCurveAuthority public immutable BONDING_CURVE_AUTHORITY;
+    /// @notice Address of the PartyFactory contract to use for creating new Parties
     PartyFactory public immutable PARTY_FACTORY;
+    /// @notice Address of the Party contract to use as the implementation for Parties
     Party public immutable PARTY_IMPLEMENTATION;
+    /// @notice Address of the MetadataProvider contract to set custom metadata
     MetadataProvider public immutable METADATA_PROVIDER;
 
+    /// @notice Mapping of addresses to whether they have already created a Party
     mapping(address => bool) public hasAlreadyCreatedParty;
 
     constructor(
@@ -37,6 +43,15 @@ contract EZPartyBuilder is ERC721Receiver {
         METADATA_PROVIDER = metadataProvider;
     }
 
+    /// @notice Create a new Party with mostly default settings and distribute
+    ///         memberships to initial members.
+    /// @param host Address of the host of the Party
+    /// @param initialMembers Array of addresses of the initial members of the Party
+    ///                       not including the host
+    /// @param partyName Name of the Party
+    /// @param partySymbol Symbol of the Party
+    /// @param imageUri URI of the image to use for the Party
+    /// @return party Address of the newly created Party
     function createPartyAndDistributeMemberships(
         address host,
         address[] calldata initialMembers,
@@ -99,7 +114,7 @@ contract EZPartyBuilder is ERC721Receiver {
         if (address(this).balance > 0) {
             (bool success, bytes memory res) = msg.sender.call{ value: address(this).balance }("");
             if (!success) {
-                // Bubble up revert reasons from plugins
+                // Bubble up revert reason
                 assembly ("memory-safe") {
                     revert(add(res, 32), mload(res))
                 }

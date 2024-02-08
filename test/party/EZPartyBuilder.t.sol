@@ -60,7 +60,7 @@ contract EZPartyBuilderTest is SetupPartyHelper {
             4,
             50_000,
             uint80(0.001 ether),
-            true
+            false
         );
 
         vm.expectEmit(true, true, true, true);
