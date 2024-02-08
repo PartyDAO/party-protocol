@@ -10,6 +10,8 @@ import { PartyNFTRenderer } from "contracts/renderers/PartyNFTRenderer.sol";
 import { MetadataProvider } from "contracts/renderers/MetadataProvider.sol";
 
 contract EZPartyBuilderTest is SetupPartyHelper {
+    event EZPartyCreated(Party indexed party, address host, address[] initialMembers);
+
     EZPartyBuilder builder;
     BondingCurveAuthority bondingCurveAuthority;
     MetadataProvider metadataProvider;
@@ -61,6 +63,12 @@ contract EZPartyBuilderTest is SetupPartyHelper {
             true
         );
 
+        vm.expectEmit(true, true, true, true);
+        emit EZPartyCreated(
+            Party(payable(computeCreateAddress(address(partyFactory), 2))),
+            host,
+            initialMembers
+        );
         Party party = builder.createPartyAndDistributeMemberships{ value: initialPrice }(
             host,
             initialMembers,
@@ -68,6 +76,9 @@ contract EZPartyBuilderTest is SetupPartyHelper {
             partySymbol,
             imageUri
         );
+
+        // Check host has already created a party
+        assertEq(builder.hasAlreadyCreatedParty(host), true);
 
         // Check each member received a card
         assertEq(party.ownerOf(1), host);
@@ -83,6 +94,44 @@ contract EZPartyBuilderTest is SetupPartyHelper {
             (PartyNFTRenderer.Metadata)
         );
         assertEq(metadata.image, imageUri);
+    }
+
+    function test_createPartyAndDistributeMemberships_revertsIfHostAlreadyCreatedParty() public {
+        address host = _randomAddress();
+
+        address[] memory initialMembers = new address[](3);
+        initialMembers[0] = _randomAddress();
+        initialMembers[1] = _randomAddress();
+        initialMembers[2] = _randomAddress();
+
+        string memory partyName = "John John John";
+        string memory partySymbol = "JJJ";
+        string memory imageUri = "www.johnjohnjohn.com";
+
+        uint256 initialPrice = bondingCurveAuthority.getPriceToBuy(
+            0,
+            4,
+            50_000,
+            uint80(0.001 ether),
+            true
+        );
+
+        builder.createPartyAndDistributeMemberships{ value: initialPrice }(
+            host,
+            initialMembers,
+            partyName,
+            partySymbol,
+            imageUri
+        );
+
+        vm.expectRevert(abi.encodeWithSelector(EZPartyBuilder.PartyAlreadyCreated.selector));
+        builder.createPartyAndDistributeMemberships{ value: initialPrice }(
+            host,
+            initialMembers,
+            partyName,
+            partySymbol,
+            imageUri
+        );
     }
 
     receive() external payable {}

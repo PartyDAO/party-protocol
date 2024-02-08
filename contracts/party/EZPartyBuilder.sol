@@ -11,6 +11,8 @@ import { ProposalStorage } from "contracts/proposals/ProposalStorage.sol";
 import { ERC721Receiver } from "contracts/tokens/ERC721Receiver.sol";
 
 contract EZPartyBuilder is ERC721Receiver {
+    event EZPartyCreated(Party indexed party, address host, address[] initialMembers);
+
     error PartyAlreadyCreated();
 
     address payable immutable TREASURY;
@@ -103,6 +105,8 @@ contract EZPartyBuilder is ERC721Receiver {
                 }
             }
         }
+
+        emit EZPartyCreated(party, host, initialMembers);
     }
 
     receive() external payable {}
