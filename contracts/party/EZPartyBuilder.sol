@@ -64,7 +64,9 @@ contract EZPartyBuilder is ERC721Receiver {
         hasAlreadyCreatedParty[host] = true;
 
         PartyNFTRenderer.Metadata memory metadata;
+        metadata.name = metadata.collectionName = partyName;
         metadata.image = imageUri;
+        metadata.renderingMethod = PartyNFTRenderer.RenderingMethod.FixedCrowdfund;
 
         address[] memory hosts = new address[](1);
         hosts[0] = host;

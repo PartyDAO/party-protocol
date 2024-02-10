@@ -93,7 +93,10 @@ contract EZPartyBuilderTest is SetupPartyHelper {
             metadataProvider.getMetadata(address(party), 0),
             (PartyNFTRenderer.Metadata)
         );
+        assertEq(metadata.name, partyName);
+        assertEq(metadata.collectionName, partyName);
         assertEq(metadata.image, imageUri);
+        assertTrue(metadata.renderingMethod == PartyNFTRenderer.RenderingMethod.FixedCrowdfund);
     }
 
     function test_createPartyAndDistributeMemberships_revertsIfHostAlreadyCreatedParty() public {
