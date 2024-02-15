@@ -7,6 +7,45 @@ import { ProposalExecutionEngine } from "contracts/proposals/ProposalExecutionEn
 contract ProposalExecutionEngineIntrinsicVotingPowerTest is SetupPartyHelper {
     constructor() SetupPartyHelper(false) {}
 
+    function testIntrinsicVotingPowerAt_inactiveAddress() public {
+        skip(10);
+
+        assertEq(
+            ProposalExecutionEngine(address(party)).getIntrinsicVotingPowerAt(
+                _randomAddress(),
+                uint40(block.timestamp),
+                0
+            ),
+            0
+        );
+    }
+
+    function testIntrinsicVotingPowerAt_timestampBeforeActive() public {
+        uint40 firstTimestamp = uint40(block.timestamp);
+        skip(100);
+
+        address newUser = _randomAddress();
+        party.mint(newUser, 100, newUser);
+        skip(100);
+
+        assertEq(
+            ProposalExecutionEngine(address(party)).getIntrinsicVotingPowerAt(
+                newUser,
+                firstTimestamp,
+                0
+            ),
+            0
+        );
+        assertEq(
+            ProposalExecutionEngine(address(party)).getIntrinsicVotingPowerAt(
+                newUser,
+                uint40(block.timestamp),
+                100
+            ),
+            0
+        );
+    }
+
     /// @notice All hints are correct
     function testIntrinsicVotingPowerAt_simpleTest() public {
         skip(10);
