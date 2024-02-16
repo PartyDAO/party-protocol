@@ -196,7 +196,16 @@ contract PushDistributorTest is SetupPartyHelper {
 
             uint256 proposalId = _proposeAndPassProposal(proposal);
 
-            vm.expectRevert();
+            vm.expectRevert(
+                abi.encodeWithSelector(
+                    ArbitraryCallsProposal.ArbitraryCallFailedError.selector,
+                    abi.encodeWithSelector(
+                        PushDistributor.NotEnoughETH.selector,
+                        amountToDistribute,
+                        amountToDistribute - 1
+                    )
+                )
+            );
             _executeProposal(proposalId, proposal);
         }
 
