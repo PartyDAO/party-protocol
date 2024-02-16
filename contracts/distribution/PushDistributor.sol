@@ -21,8 +21,8 @@ interface IParty {
 
     function getGovernanceValues() external view returns (GovernanceValues memory);
     function getIntrinsicVotingPowerAt(
-        address member,
-        uint256 timestamp,
+        address voter,
+        uint40 timestamp,
         uint256 hintIndex
     ) external view returns (uint96);
     function getProposalStateInfo(
@@ -42,7 +42,7 @@ contract PushDistributor {
     using LibAddress for address payable;
 
     // Token address used to indicate ETH.
-    address private constant ETH_ADDRESS = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
+    IERC20 private constant ETH_ADDRESS = IERC20(0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE);
 
     function distribute(
         IERC20 token,
@@ -51,7 +51,7 @@ contract PushDistributor {
         uint256 proposalId
     ) external payable {
         IParty party = IParty(payable(msg.sender));
-        if (address(token) == ETH_ADDRESS) {
+        if (token == ETH_ADDRESS) {
             require(msg.value == amount, "Incorrect ETH amount");
         } else {
             require(msg.value == 0, "Unexpected ETH amount");
@@ -67,7 +67,7 @@ contract PushDistributor {
             ) = party.getProposalStateInfo(proposalId);
 
             require(
-                status == PartyGovernance.ProposalStatus.Ready &&
+                status == PartyGovernance.ProposalStatus.Complete &&
                     proposal.executedTime == block.timestamp,
                 "Wrong proposal ID"
             );
@@ -92,17 +92,14 @@ contract PushDistributor {
 
             totalIntrinsicVotingPower += intrinsicVotingPower;
 
-            // We round up here to prevent dust amounts getting trapped in this contract.
-            uint256 shareAmount = ((((intrinsicVotingPower) * 1e18) / totalVotingPower) *
-                amount +
-                (1e18 - 1)) / 1e18;
+            uint256 shareAmount = (amount * intrinsicVotingPower) / totalVotingPower;
 
             if (shareAmount > 0) {
                 // Transfer the share of the distribution to the member.
-                if (address(token) == ETH_ADDRESS) {
-                    payable(member).transferEth(amount);
+                if (token == ETH_ADDRESS) {
+                    payable(member).transferEth(shareAmount);
                 } else {
-                    token.compatTransfer(member, amount);
+                    token.compatTransfer(member, shareAmount);
                 }
             }
         }
