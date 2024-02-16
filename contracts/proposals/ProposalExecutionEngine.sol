@@ -253,7 +253,7 @@ contract ProposalExecutionEngine is
         address voter,
         uint40 timestamp,
         uint256 hintIndex
-    ) public returns (uint96) {
+    ) public view returns (uint96) {
         PartyGovernance.VotingPowerSnapshot[] storage snaps;
 
         // Derive the storage slot for the voting power snapshots mapping.
