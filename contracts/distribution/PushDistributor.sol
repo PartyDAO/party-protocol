@@ -7,10 +7,6 @@ import { LibSafeCast } from "../utils/LibSafeCast.sol";
 import { LibERC20Compat } from "./../utils/LibERC20Compat.sol";
 import { LibAddress } from "./../utils/LibAddress.sol";
 
-// TODO: Add tests
-// TODO: Add events
-// TODO: Add custom errors
-
 interface IParty {
     struct GovernanceValues {
         uint40 voteDuration;
@@ -37,6 +33,14 @@ interface IParty {
 }
 
 contract PushDistributor {
+    event Distributed(IERC20 token, address[] members, uint256 amount);
+
+    error NotEnoughETH(uint256 expectedAmount, uint256 receivedAmount);
+    error UnexpectedETH(uint256 amount);
+    error WrongProposalId(uint256 proposalId);
+    error WrongMembers();
+    error MembersNotSorted();
+
     using LibSafeCast for uint256;
     using LibERC20Compat for IERC20;
     using LibAddress for address payable;
@@ -52,28 +56,23 @@ contract PushDistributor {
     ) external payable {
         IParty party = IParty(payable(msg.sender));
         if (token == ETH_ADDRESS) {
-            require(msg.value == amount, "Incorrect ETH amount");
+            if (msg.value < amount) revert NotEnoughETH(amount, msg.value);
         } else {
-            require(msg.value == 0, "Unexpected ETH amount");
+            if (msg.value != 0) revert UnexpectedETH(msg.value);
             token.compatTransferFrom(msg.sender, address(this), amount);
         }
 
         uint40 proposedTime;
         uint96 totalVotingPower;
         {
-            (
-                PartyGovernance.ProposalStatus status,
-                PartyGovernance.ProposalStateValues memory proposal
-            ) = party.getProposalStateInfo(proposalId);
-
-            require(
-                status == PartyGovernance.ProposalStatus.Complete &&
-                    proposal.executedTime == block.timestamp,
-                "Wrong proposal ID"
+            (, PartyGovernance.ProposalStateValues memory proposal) = party.getProposalStateInfo(
+                proposalId
             );
 
+            if (proposal.executedTime != block.timestamp) revert WrongProposalId(proposalId);
+
             proposedTime = proposal.proposedTime;
-            totalVotingPower = party.getGovernanceValues().totalVotingPower;
+            totalVotingPower = proposal.totalVotingPower;
         }
 
         address prevMember;
@@ -84,7 +83,7 @@ contract PushDistributor {
             // Prevent duplicate members to prevent members array manipulation.
             // For example, a member being replace with another duplicate member
             // that has the same voting power.
-            require(member > prevMember, "Members not sorted");
+            if (member <= prevMember) revert MembersNotSorted();
 
             prevMember = member;
 
@@ -96,14 +95,32 @@ contract PushDistributor {
 
             if (shareAmount > 0) {
                 // Transfer the share of the distribution to the member.
-                if (token == ETH_ADDRESS) {
-                    payable(member).transferEth(shareAmount);
-                } else {
-                    token.compatTransfer(member, shareAmount);
-                }
+                _transfer(token, member, shareAmount);
             }
         }
 
-        require(totalIntrinsicVotingPower == totalVotingPower, "Missing member");
+        // If the total intrinsic voting power is not equal to the total voting power,
+        // it means that the members array is incorrect.
+        if (totalIntrinsicVotingPower != totalVotingPower) revert WrongMembers();
+
+        // Send back any remaining tokens to the sender.
+        uint256 remainingAmount = token == ETH_ADDRESS
+            ? address(this).balance
+            : token.balanceOf(address(this));
+        if (remainingAmount > 0) {
+            _transfer(token, msg.sender, remainingAmount);
+        }
+
+        emit Distributed(token, members, amount);
+    }
+
+    function _transfer(IERC20 token, address to, uint256 amount) internal {
+        if (token == ETH_ADDRESS) {
+            // Do not revert on failure. Set gas to 100k to prevent consuming
+            // all gas.
+            payable(to).call{ value: amount, gas: 100_000 }("");
+        } else {
+            token.compatTransfer(to, amount);
+        }
     }
 }

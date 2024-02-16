@@ -9,8 +9,11 @@ import { PushDistributor } from "./../../contracts/distribution/PushDistributor.
 import { ArbitraryCallsProposal } from "./../../contracts/proposals/ArbitraryCallsProposal.sol";
 import { PartyGovernance } from "./../../contracts/party/PartyGovernance.sol";
 import { ProposalExecutionEngine } from "./../../contracts/proposals/ProposalExecutionEngine.sol";
+import { ERC721Receiver } from "./../../contracts/tokens/ERC721Receiver.sol";
 
 contract PushDistributorTest is SetupPartyHelper {
+    event Distributed(IERC20 token, address[] members, uint256 amount);
+
     PushDistributor pushDistributor;
     IERC20 erc20;
     address[] members;
@@ -92,6 +95,295 @@ contract PushDistributorTest is SetupPartyHelper {
         assertEq(address(this).balance, (1 * amountToDistribute) / 301);
     }
 
+    function test_distribute_withChangingVotingPowerAndTotalVotingPower() public {
+        uint256 amountToDistribute = 100e18;
+
+        // Create a proposal to distribute the tokens
+        PartyGovernance.Proposal memory proposal = _createProposal(erc20, amountToDistribute);
+
+        // Propose the proposal
+        _proposeAndPassProposal(proposal);
+
+        // Mint new members (should not affect the distribution)
+        address brian = _randomAddress();
+        address aryeh = _randomAddress();
+        party.increaseTotalVotingPower(200);
+        party.mint(brian, 100, brian);
+        party.mint(aryeh, 100, aryeh);
+
+        // Execute the proposal
+        _executeProposal(party.lastProposalId(), proposal);
+
+        // Check if the distribution was successful
+        // John, Danny, Steve who each have 100 / 301 voting power at time of
+        // proposal should receive 100 / 301 * 100e18 tokens
+        assertEq(erc20.balanceOf(john), (100 * amountToDistribute) / 301);
+        assertEq(erc20.balanceOf(danny), (100 * amountToDistribute) / 301);
+        assertEq(erc20.balanceOf(steve), (100 * amountToDistribute) / 301);
+        // The contract which has 1 / 301 voting power at time of proposal
+        // should receive 1 / 301 * 100e18 tokens
+        assertEq(erc20.balanceOf(address(this)), (1 * amountToDistribute) / 301);
+        // Brian and Aryeh should not receive any tokens
+        assertEq(erc20.balanceOf(brian), 0);
+        assertEq(erc20.balanceOf(aryeh), 0);
+    }
+
+    function test_distribute_doesNotRevertIfMemberCannotReceive() public {
+        address newMember = address(new CannotReceiveETH());
+
+        party.increaseTotalVotingPower(100);
+        party.mint(newMember, 100, newMember);
+
+        members.push(newMember);
+
+        // Sort the addresses from lowest to highest.
+        for (uint256 i = 0; i < members.length; i++) {
+            for (uint256 j = i + 1; j < members.length; j++) {
+                if (members[i] > members[j]) {
+                    (members[i], members[j]) = (members[j], members[i]);
+                }
+            }
+        }
+
+        uint256 amountToDistribute = 100e18;
+
+        // Create a proposal to distribute the tokens
+        PartyGovernance.Proposal memory proposal = _createProposal(ETH_ADDRESS, amountToDistribute);
+
+        // Propose and execute the proposal
+        _proposePassAndExecuteProposal(proposal);
+
+        // Check if the distribution was successful
+        // John, Danny, Steve who each have 100 / 401 voting power should
+        // receive 100 / 401 * 100e18 tokens
+        assertEq(john.balance, (100 * amountToDistribute) / 401);
+        assertEq(danny.balance, (100 * amountToDistribute) / 401);
+        assertEq(steve.balance, (100 * amountToDistribute) / 401);
+        // The contract which has 1 / 401 voting power should receive
+        // 1 / 401 * 100e18 tokens
+        assertEq(address(this).balance, (1 * amountToDistribute) / 401);
+        // The new member should not receive any tokens because it cannot receive
+        assertEq(newMember.balance, 0);
+        // The Party should receive any remaining tokens
+        assertEq(address(party).balance, (100 * amountToDistribute) / 401 + 1);
+    }
+
+    function test_distribute_revertIfNotEnoughETH() public {
+        uint256 amountToDistribute = 10e18;
+
+        ArbitraryCallsProposal.ArbitraryCall[]
+            memory arbCalls = new ArbitraryCallsProposal.ArbitraryCall[](1);
+
+        arbCalls[0] = ArbitraryCallsProposal.ArbitraryCall({
+            target: payable(address(pushDistributor)),
+            value: amountToDistribute - 1, // Not enough ETH
+            data: abi.encodeCall(
+                PushDistributor.distribute,
+                (ETH_ADDRESS, members, amountToDistribute, party.lastProposalId() + 1)
+            ),
+            expectedResultHash: ""
+        });
+
+        {
+            PartyGovernance.Proposal memory proposal = PartyGovernance.Proposal({
+                maxExecutableTime: type(uint40).max,
+                cancelDelay: 0,
+                proposalData: abi.encodeWithSelector(
+                    bytes4(uint32(ProposalExecutionEngine.ProposalType.ArbitraryCalls)),
+                    arbCalls
+                )
+            });
+
+            uint256 proposalId = _proposeAndPassProposal(proposal);
+
+            vm.expectRevert();
+            _executeProposal(proposalId, proposal);
+        }
+
+        // Try with enough ETH this time and pass
+        {
+            arbCalls[0].value = amountToDistribute;
+            arbCalls[0].data = abi.encodeCall(
+                PushDistributor.distribute,
+                (ETH_ADDRESS, members, amountToDistribute, party.lastProposalId() + 1)
+            );
+            PartyGovernance.Proposal memory proposal = PartyGovernance.Proposal({
+                maxExecutableTime: type(uint40).max,
+                cancelDelay: 0,
+                proposalData: abi.encodeWithSelector(
+                    bytes4(uint32(ProposalExecutionEngine.ProposalType.ArbitraryCalls)),
+                    arbCalls
+                )
+            });
+
+            _proposePassAndExecuteProposal(proposal);
+        }
+    }
+
+    function test_distribute_revertIfUnexpectedETH() public {
+        uint256 amountToDistribute = 100e18;
+
+        ArbitraryCallsProposal.ArbitraryCall[]
+            memory arbCalls = new ArbitraryCallsProposal.ArbitraryCall[](2);
+
+        arbCalls[0] = ArbitraryCallsProposal.ArbitraryCall({
+            target: payable(address(erc20)),
+            value: 0,
+            data: abi.encodeCall(IERC20.approve, (address(pushDistributor), amountToDistribute)),
+            expectedResultHash: ""
+        });
+        arbCalls[1] = ArbitraryCallsProposal.ArbitraryCall({
+            target: payable(address(pushDistributor)),
+            value: 1, // Unexpected ETH
+            data: abi.encodeCall(
+                PushDistributor.distribute,
+                (erc20, members, amountToDistribute, party.lastProposalId() + 1)
+            ),
+            expectedResultHash: ""
+        });
+
+        {
+            PartyGovernance.Proposal memory proposal = PartyGovernance.Proposal({
+                maxExecutableTime: type(uint40).max,
+                cancelDelay: 0,
+                proposalData: abi.encodeWithSelector(
+                    bytes4(uint32(ProposalExecutionEngine.ProposalType.ArbitraryCalls)),
+                    arbCalls
+                )
+            });
+
+            uint256 proposalId = _proposeAndPassProposal(proposal);
+
+            vm.expectRevert();
+            _executeProposal(proposalId, proposal);
+        }
+
+        // Try with no ETH this time and pass
+        {
+            arbCalls[1].value = 0;
+            arbCalls[1].data = abi.encodeCall(
+                PushDistributor.distribute,
+                (erc20, members, amountToDistribute, party.lastProposalId() + 1)
+            );
+            PartyGovernance.Proposal memory proposal = PartyGovernance.Proposal({
+                maxExecutableTime: type(uint40).max,
+                cancelDelay: 0,
+                proposalData: abi.encodeWithSelector(
+                    bytes4(uint32(ProposalExecutionEngine.ProposalType.ArbitraryCalls)),
+                    arbCalls
+                )
+            });
+
+            _proposePassAndExecuteProposal(proposal);
+        }
+    }
+
+    function test_distribute_revertIfWrongProposalId() public {
+        uint256 amountToDistribute = 10e18;
+
+        ArbitraryCallsProposal.ArbitraryCall[]
+            memory arbCalls = new ArbitraryCallsProposal.ArbitraryCall[](1);
+
+        arbCalls[0] = ArbitraryCallsProposal.ArbitraryCall({
+            target: payable(address(pushDistributor)),
+            value: amountToDistribute,
+            data: abi.encodeCall(
+                PushDistributor.distribute,
+                (ETH_ADDRESS, members, amountToDistribute, 2) // Wrong proposal ID
+            ),
+            expectedResultHash: ""
+        });
+
+        {
+            PartyGovernance.Proposal memory proposal = PartyGovernance.Proposal({
+                maxExecutableTime: type(uint40).max,
+                cancelDelay: 0,
+                proposalData: abi.encodeWithSelector(
+                    bytes4(uint32(ProposalExecutionEngine.ProposalType.ArbitraryCalls)),
+                    arbCalls
+                )
+            });
+
+            uint256 proposalId = _proposeAndPassProposal(proposal);
+
+            vm.expectRevert();
+            _executeProposal(proposalId, proposal);
+        }
+
+        // Try with the correct proposal ID this time and pass
+        {
+            arbCalls[0].data = abi.encodeCall(
+                PushDistributor.distribute,
+                (ETH_ADDRESS, members, amountToDistribute, party.lastProposalId() + 1)
+            );
+            PartyGovernance.Proposal memory proposal = PartyGovernance.Proposal({
+                maxExecutableTime: type(uint40).max,
+                cancelDelay: 0,
+                proposalData: abi.encodeWithSelector(
+                    bytes4(uint32(ProposalExecutionEngine.ProposalType.ArbitraryCalls)),
+                    arbCalls
+                )
+            });
+
+            _proposePassAndExecuteProposal(proposal);
+        }
+    }
+
+    function test_distribute_revertIfMembersNotSorted() public {
+        uint256 amountToDistribute = 10e18;
+
+        address[] memory membersNotSorted = members;
+        (membersNotSorted[0], membersNotSorted[1]) = (membersNotSorted[1], membersNotSorted[0]);
+
+        ArbitraryCallsProposal.ArbitraryCall[]
+            memory arbCalls = new ArbitraryCallsProposal.ArbitraryCall[](1);
+
+        arbCalls[0] = ArbitraryCallsProposal.ArbitraryCall({
+            target: payable(address(pushDistributor)),
+            value: amountToDistribute,
+            data: abi.encodeCall(
+                PushDistributor.distribute,
+                // Members not sorted
+                (ETH_ADDRESS, membersNotSorted, amountToDistribute, party.lastProposalId() + 1)
+            ),
+            expectedResultHash: ""
+        });
+
+        {
+            PartyGovernance.Proposal memory proposal = PartyGovernance.Proposal({
+                maxExecutableTime: type(uint40).max,
+                cancelDelay: 0,
+                proposalData: abi.encodeWithSelector(
+                    bytes4(uint32(ProposalExecutionEngine.ProposalType.ArbitraryCalls)),
+                    arbCalls
+                )
+            });
+
+            uint256 proposalId = _proposeAndPassProposal(proposal);
+
+            vm.expectRevert();
+            _executeProposal(proposalId, proposal);
+        }
+
+        // Try with sorted members this time and pass
+        {
+            arbCalls[0].data = abi.encodeCall(
+                PushDistributor.distribute,
+                (ETH_ADDRESS, members, amountToDistribute, party.lastProposalId() + 1)
+            );
+            PartyGovernance.Proposal memory proposal = PartyGovernance.Proposal({
+                maxExecutableTime: type(uint40).max,
+                cancelDelay: 0,
+                proposalData: abi.encodeWithSelector(
+                    bytes4(uint32(ProposalExecutionEngine.ProposalType.ArbitraryCalls)),
+                    arbCalls
+                )
+            });
+
+            _proposePassAndExecuteProposal(proposal);
+        }
+    }
+
     function _createProposal(
         IERC20 token,
         uint256 amount
@@ -152,4 +444,10 @@ contract PushDistributorTest is SetupPartyHelper {
     }
 
     receive() external payable {}
+}
+
+contract CannotReceiveETH is ERC721Receiver {
+    receive() external payable {
+        revert("Cannot receive ETH");
+    }
 }
