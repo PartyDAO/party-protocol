@@ -1,39 +1,16 @@
 // SPDX-License-Identifier: GPL-3.0
 pragma solidity 0.8.20;
 
+import { Party } from "./../party/Party.sol";
 import { PartyGovernance } from "./../party/PartyGovernance.sol";
+import { ProposalExecutionEngine } from "./../proposals/ProposalExecutionEngine.sol";
 import { IERC20 } from "../tokens/IERC20.sol";
 import { LibSafeCast } from "../utils/LibSafeCast.sol";
 import { LibERC20Compat } from "./../utils/LibERC20Compat.sol";
 import { LibAddress } from "./../utils/LibAddress.sol";
 
-interface IParty {
-    struct GovernanceValues {
-        uint40 voteDuration;
-        uint40 executionDelay;
-        uint16 passThresholdBps;
-        uint96 totalVotingPower;
-    }
-
-    function getGovernanceValues() external view returns (GovernanceValues memory);
-    function getIntrinsicVotingPowerAt(
-        address voter,
-        uint40 timestamp,
-        uint256 hintIndex
-    ) external view returns (uint96);
-    function getProposalStateInfo(
-        uint256 proposalId
-    )
-        external
-        view
-        returns (
-            PartyGovernance.ProposalStatus status,
-            PartyGovernance.ProposalStateValues memory values
-        );
-}
-
 contract PushDistributor {
-    event Distributed(IERC20 token, address[] members, uint256 amount);
+    event Distributed(Party party, IERC20 token, address[] members, uint256 amount);
 
     error NotEnoughETH(uint256 expectedAmount, uint256 receivedAmount);
     error UnexpectedETH(uint256 amount);
@@ -54,13 +31,8 @@ contract PushDistributor {
         uint256 amount,
         uint256 proposalId
     ) external payable {
-        IParty party = IParty(payable(msg.sender));
-        if (token == ETH_ADDRESS) {
-            if (msg.value < amount) revert NotEnoughETH(amount, msg.value);
-        } else {
-            if (msg.value != 0) revert UnexpectedETH(msg.value);
-            token.compatTransferFrom(msg.sender, address(this), amount);
-        }
+        Party party = Party(payable(msg.sender));
+        if (token == ETH_ADDRESS && msg.value < amount) revert NotEnoughETH(amount, msg.value);
 
         uint40 proposedTime;
         uint96 totalVotingPower;
@@ -87,7 +59,8 @@ contract PushDistributor {
 
             prevMember = member;
 
-            uint96 intrinsicVotingPower = party.getIntrinsicVotingPowerAt(member, proposedTime, 0);
+            uint96 intrinsicVotingPower = ProposalExecutionEngine(address(party))
+                .getIntrinsicVotingPowerAt(member, proposedTime, 0);
 
             totalIntrinsicVotingPower += intrinsicVotingPower;
 
@@ -103,24 +76,22 @@ contract PushDistributor {
         // it means that the members array is incorrect.
         if (totalIntrinsicVotingPower != totalVotingPower) revert WrongMembers();
 
-        // Send back any remaining tokens to the sender.
-        uint256 remainingAmount = token == ETH_ADDRESS
-            ? address(this).balance
-            : token.balanceOf(address(this));
+        // Send back any remaining ETH to the sender.
+        uint256 remainingAmount = address(this).balance;
         if (remainingAmount > 0) {
-            _transfer(token, msg.sender, remainingAmount);
+            _transfer(ETH_ADDRESS, msg.sender, remainingAmount);
         }
 
-        emit Distributed(token, members, amount);
+        emit Distributed(party, token, members, amount);
     }
 
     function _transfer(IERC20 token, address to, uint256 amount) internal {
         if (token == ETH_ADDRESS) {
             // Do not revert on failure. Set gas to 100k to prevent consuming
             // all gas.
-            payable(to).call{ value: amount, gas: 100_000 }("");
+            to.call{ value: amount, gas: 100_000 }("");
         } else {
-            token.compatTransfer(to, amount);
+            token.compatTransferFrom(msg.sender, to, amount);
         }
     }
 }

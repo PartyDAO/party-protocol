@@ -220,7 +220,7 @@ contract PushDistributorTest is SetupPartyHelper {
         }
     }
 
-    function test_distribute_revertIfUnexpectedETH() public {
+    function test_distribute_withERC20AndETH() public {
         uint256 amountToDistribute = 100e18;
 
         ArbitraryCallsProposal.ArbitraryCall[]
@@ -234,7 +234,7 @@ contract PushDistributorTest is SetupPartyHelper {
         });
         arbCalls[1] = ArbitraryCallsProposal.ArbitraryCall({
             target: payable(address(pushDistributor)),
-            value: 1, // Unexpected ETH
+            value: 10e18, // 10 ETH
             data: abi.encodeCall(
                 PushDistributor.distribute,
                 (erc20, members, amountToDistribute, party.lastProposalId() + 1)
@@ -254,28 +254,11 @@ contract PushDistributorTest is SetupPartyHelper {
 
             uint256 proposalId = _proposeAndPassProposal(proposal);
 
-            vm.expectRevert();
             _executeProposal(proposalId, proposal);
         }
 
-        // Try with no ETH this time and pass
-        {
-            arbCalls[1].value = 0;
-            arbCalls[1].data = abi.encodeCall(
-                PushDistributor.distribute,
-                (erc20, members, amountToDistribute, party.lastProposalId() + 1)
-            );
-            PartyGovernance.Proposal memory proposal = PartyGovernance.Proposal({
-                maxExecutableTime: type(uint40).max,
-                cancelDelay: 0,
-                proposalData: abi.encodeWithSelector(
-                    bytes4(uint32(ProposalExecutionEngine.ProposalType.ArbitraryCalls)),
-                    arbCalls
-                )
-            });
-
-            _proposePassAndExecuteProposal(proposal);
-        }
+        // Check that ETH was sent back
+        assertEq(address(party).balance, 100e18);
     }
 
     function test_distribute_revertIfWrongProposalId() public {
@@ -382,6 +365,29 @@ contract PushDistributorTest is SetupPartyHelper {
 
             _proposePassAndExecuteProposal(proposal);
         }
+    }
+
+    function test_distribute_revertIfWrongMembers() public {
+        address lastMember = members[members.length - 1];
+
+        // Remove the last member
+        members.pop();
+
+        uint256 amountToDistribute = 10e18;
+
+        PartyGovernance.Proposal memory proposal = _createProposal(ETH_ADDRESS, amountToDistribute);
+
+        uint256 proposalId = _proposeAndPassProposal(proposal);
+
+        vm.expectRevert();
+        _executeProposal(proposalId, proposal);
+
+        // Add the last member back and pass
+        members.push(lastMember);
+
+        proposal = _createProposal(ETH_ADDRESS, amountToDistribute);
+
+        _proposePassAndExecuteProposal(proposal);
     }
 
     function _createProposal(
