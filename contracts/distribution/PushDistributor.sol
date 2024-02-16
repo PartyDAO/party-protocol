@@ -13,7 +13,6 @@ contract PushDistributor {
     event Distributed(Party party, IERC20 token, address[] members, uint256 amount);
 
     error NotEnoughETH(uint256 expectedAmount, uint256 receivedAmount);
-    error UnexpectedETH(uint256 amount);
     error WrongProposalId(uint256 proposalId);
     error WrongMembers();
     error MembersNotSorted();

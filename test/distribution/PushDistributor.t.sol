@@ -298,7 +298,12 @@ contract PushDistributorTest is SetupPartyHelper {
 
             uint256 proposalId = _proposeAndPassProposal(proposal);
 
-            vm.expectRevert();
+            vm.expectRevert(
+                abi.encodeWithSelector(
+                    ArbitraryCallsProposal.ArbitraryCallFailedError.selector,
+                    abi.encodeWithSelector(PushDistributor.WrongProposalId.selector, 2)
+                )
+            );
             _executeProposal(proposalId, proposal);
         }
 
@@ -353,7 +358,12 @@ contract PushDistributorTest is SetupPartyHelper {
 
             uint256 proposalId = _proposeAndPassProposal(proposal);
 
-            vm.expectRevert();
+            vm.expectRevert(
+                abi.encodeWithSelector(
+                    ArbitraryCallsProposal.ArbitraryCallFailedError.selector,
+                    abi.encodePacked(PushDistributor.MembersNotSorted.selector)
+                )
+            );
             _executeProposal(proposalId, proposal);
         }
 
@@ -388,7 +398,12 @@ contract PushDistributorTest is SetupPartyHelper {
 
         uint256 proposalId = _proposeAndPassProposal(proposal);
 
-        vm.expectRevert();
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                ArbitraryCallsProposal.ArbitraryCallFailedError.selector,
+                abi.encodePacked(PushDistributor.WrongMembers.selector)
+            )
+        );
         _executeProposal(proposalId, proposal);
 
         // Add the last member back and pass
