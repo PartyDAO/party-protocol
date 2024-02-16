@@ -244,6 +244,11 @@ contract ProposalExecutionEngine is
         return 0;
     }
 
+    /// @notice Get the snapshotted intrinsic voting power for an address at a given timestamp.
+    /// @param voter The address of the voter.
+    /// @param timestamp The timestamp to get the voting power at.
+    /// @param hintIndex The precalculated index for the correct snapshot. Not used if incorrect.
+    /// @return The intrinsic voting power of the address at the given timestamp.
     function getIntrinsicVotingPowerAt(
         address voter,
         uint40 timestamp,
@@ -251,13 +256,15 @@ contract ProposalExecutionEngine is
     ) public returns (uint96) {
         PartyGovernance.VotingPowerSnapshot[] storage snaps;
 
+        // Derive the storage slot for the voting power snapshots mapping.
         bytes32 slotAddress = keccak256(
             abi.encode(voter, 7 /* slot for the voting power snapshots mapping */)
         );
-        assembly {
+        assembly ("memory-safe") {
             snaps.slot := slotAddress
         }
 
+        // Logic copied from https://github.com/PartyDAO/party-protocol/blob/824538633091ebe97c0a0f38c9a28f09900fe173/contracts/party/PartyGovernance.sol#L904-L924
         uint256 snapsLength = snaps.length;
         if (snapsLength != 0) {
             if (
@@ -271,9 +278,7 @@ contract ProposalExecutionEngine is
                 return snaps[hintIndex].intrinsicVotingPower;
             }
 
-            // Hint was wrong, fallback to binary search to find snapshot.
-            // Derived from Open Zeppelin binary search
-            // ref: https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/utils/Checkpoints.sol#L39
+            // Logic copied from https://github.com/PartyDAO/party-protocol/blob/824538633091ebe97c0a0f38c9a28f09900fe173/contracts/party/PartyGovernance.sol#L427-L450
             uint256 high = snapsLength;
             uint256 low = 0;
             while (low < high) {
