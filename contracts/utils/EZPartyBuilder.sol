@@ -97,7 +97,7 @@ contract EZPartyBuilder is ERC721Receiver {
                     customizationPresetId: 0
                 }),
                 creatorFeeOn: false,
-                a: 50_000,
+                a: 200_000,
                 b: 0.001 ether
             }),
             METADATA_PROVIDER,
