@@ -3,7 +3,7 @@ pragma solidity ^0.8;
 
 import "forge-std/Test.sol";
 import { Party } from "../../contracts/party/Party.sol";
-import { EZPartyBuilder } from "../../contracts/party/EZPartyBuilder.sol";
+import { EZPartyBuilder } from "../../contracts/utils/EZPartyBuilder.sol";
 import { BondingCurveAuthority } from "../../contracts/authorities/BondingCurveAuthority.sol";
 import { SetupPartyHelper } from "../utils/SetupPartyHelper.sol";
 import { PartyNFTRenderer } from "contracts/renderers/PartyNFTRenderer.sol";
