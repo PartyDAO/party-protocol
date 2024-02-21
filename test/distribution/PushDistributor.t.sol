@@ -131,19 +131,7 @@ contract PushDistributorTest is SetupPartyHelper {
     function test_distribute_doesNotRevertIfMemberCannotReceive() public {
         address newMember = address(new CannotReceiveETH());
 
-        party.increaseTotalVotingPower(100);
-        party.mint(newMember, 100, newMember);
-
-        members.push(newMember);
-
-        // Sort the addresses from lowest to highest.
-        for (uint256 i = 0; i < members.length; i++) {
-            for (uint256 j = i + 1; j < members.length; j++) {
-                if (members[i] > members[j]) {
-                    (members[i], members[j]) = (members[j], members[i]);
-                }
-            }
-        }
+        _addMember(newMember);
 
         uint256 amountToDistribute = 100e18;
 
@@ -414,6 +402,35 @@ contract PushDistributorTest is SetupPartyHelper {
         _proposePassAndExecuteProposal(proposal);
     }
 
+    function test_distribute_cannotReenter() external {
+        // Deploy a malicious contract that will attempt to re-enter the distribute function
+        address reenteringMember = address(
+            new ReenteringMember(address(pushDistributor), address(erc20), members, 1 ether)
+        );
+
+        // Add the malicious contract as a member to simulate a scenario where it can receive funds and re-enter
+        _addMember(reenteringMember);
+
+        uint256 amountToDistribute = 10e18;
+
+        PartyGovernance.Proposal memory proposal = _createProposal(ETH_ADDRESS, amountToDistribute);
+
+        _proposePassAndExecuteProposal(proposal);
+
+        // Check if the distribution was successful
+        // John, Danny, Steve who each have 100 / 401 voting power should
+        // receive 100 / 401 * 10e18 ETH
+        assertEq(john.balance, (100 * amountToDistribute) / 401);
+        assertEq(danny.balance, (100 * amountToDistribute) / 401);
+        assertEq(steve.balance, (100 * amountToDistribute) / 401);
+        // The contract which has 1 / 401 voting power should receive
+        // 1 / 401 * 10e18 ETH
+        assertEq(address(this).balance, (1 * amountToDistribute) / 401);
+        // The reentering member should not receive any ETH because their
+        // re-entrancy attempt reverted
+        assertEq(reenteringMember.balance, 0);
+    }
+
     function _createProposal(
         IERC20 token,
         uint256 amount
@@ -473,11 +490,53 @@ contract PushDistributorTest is SetupPartyHelper {
         }
     }
 
+    function _addMember(address member) internal {
+        // Update Party state
+        party.increaseTotalVotingPower(100);
+        party.mint(member, 100, member);
+
+        members.push(member);
+
+        // Sort the addresses from lowest to highest.
+        for (uint256 i = 0; i < members.length; i++) {
+            for (uint256 j = i + 1; j < members.length; j++) {
+                if (members[i] > members[j]) {
+                    (members[i], members[j]) = (members[j], members[i]);
+                }
+            }
+        }
+    }
+
     receive() external payable {}
 }
 
 contract CannotReceiveETH is ERC721Receiver {
     receive() external payable {
         revert("Cannot receive ETH");
+    }
+}
+
+contract ReenteringMember is ERC721Receiver {
+    PushDistributor public pushDistributor;
+    IERC20 public token;
+    address[] public members;
+    uint256 public amount;
+
+    constructor(
+        address _pushDistributor,
+        address _token,
+        address[] memory _members,
+        uint256 _amount
+    ) {
+        pushDistributor = PushDistributor(_pushDistributor);
+        token = IERC20(_token);
+        members = _members;
+        amount = _amount;
+    }
+
+    // Fallback function used to attempt re-entrancy
+    receive() external payable {
+        // Should revert so params do not really matter
+        pushDistributor.distribute(token, members, amount, 0);
     }
 }
