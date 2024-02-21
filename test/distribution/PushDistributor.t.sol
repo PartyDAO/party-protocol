@@ -404,9 +404,7 @@ contract PushDistributorTest is SetupPartyHelper {
 
     function test_distribute_cannotReenter() external {
         // Deploy a malicious contract that will attempt to re-enter the distribute function
-        address reenteringMember = address(
-            new ReenteringMember(address(pushDistributor), address(erc20), members, 1 ether)
-        );
+        address reenteringMember = address(new ReenteringMember(address(pushDistributor), 3 ether));
 
         // Add the malicious contract as a member to simulate a scenario where it can receive funds and re-enter
         _addMember(reenteringMember);
@@ -517,26 +515,47 @@ contract CannotReceiveETH is ERC721Receiver {
 }
 
 contract ReenteringMember is ERC721Receiver {
-    PushDistributor public pushDistributor;
-    IERC20 public token;
+    PushDistributor public immutable pushDistributor;
+    IERC20 public constant token = IERC20(0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE);
     address[] public members;
-    uint256 public amount;
+    uint256 public immutable cutoffAmount;
 
-    constructor(
-        address _pushDistributor,
-        address _token,
-        address[] memory _members,
-        uint256 _amount
-    ) {
+    constructor(address _pushDistributor, uint256 _cutoffAmount) {
         pushDistributor = PushDistributor(_pushDistributor);
-        token = IERC20(_token);
-        members = _members;
-        amount = _amount;
+        members = new address[](0);
+        cutoffAmount = _cutoffAmount;
+    }
+
+    function getProposalStateInfo(
+        uint256 proposalId
+    )
+        external
+        view
+        returns (
+            PartyGovernance.ProposalStatus status,
+            PartyGovernance.ProposalStateValues memory values
+        )
+    {
+        values = PartyGovernance.ProposalStateValues({
+            proposedTime: 0,
+            passedTime: 0,
+            executedTime: uint40(block.timestamp),
+            completedTime: 0,
+            votes: 0,
+            totalVotingPower: 0,
+            numHosts: 0,
+            numHostsAccepted: 0,
+            voteDuration: 0,
+            executionDelay: 0,
+            passThresholdBps: 0
+        });
+        status = PartyGovernance.ProposalStatus.Ready;
     }
 
     // Fallback function used to attempt re-entrancy
     receive() external payable {
-        // Should revert so params do not really matter
-        pushDistributor.distribute(token, members, amount, 0);
+        if (msg.value < cutoffAmount) {
+            pushDistributor.distribute(token, members, 0, 0);
+        }
     }
 }
