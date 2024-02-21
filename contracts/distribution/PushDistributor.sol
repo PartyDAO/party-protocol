@@ -8,8 +8,9 @@ import { IERC20 } from "../tokens/IERC20.sol";
 import { LibSafeCast } from "../utils/LibSafeCast.sol";
 import { LibERC20Compat } from "./../utils/LibERC20Compat.sol";
 import { LibAddress } from "./../utils/LibAddress.sol";
+import { ReentrancyGuard } from "openzeppelin/contracts/security/ReentrancyGuard.sol";
 
-contract PushDistributor {
+contract PushDistributor is ReentrancyGuard {
     event Distributed(Party party, IERC20 token, address[] members, uint256 amount);
 
     error NotEnoughETH(uint256 expectedAmount, uint256 receivedAmount);
@@ -29,7 +30,7 @@ contract PushDistributor {
         address[] memory members,
         uint256 amount,
         uint256 proposalId
-    ) external payable {
+    ) external payable nonReentrant {
         Party party = Party(payable(msg.sender));
         if (token == ETH_ADDRESS && msg.value < amount) revert NotEnoughETH(amount, msg.value);
 
