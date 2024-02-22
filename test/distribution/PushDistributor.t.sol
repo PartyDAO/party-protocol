@@ -131,19 +131,7 @@ contract PushDistributorTest is SetupPartyHelper {
     function test_distribute_doesNotRevertIfMemberCannotReceive() public {
         address newMember = address(new CannotReceiveETH());
 
-        party.increaseTotalVotingPower(100);
-        party.mint(newMember, 100, newMember);
-
-        members.push(newMember);
-
-        // Sort the addresses from lowest to highest.
-        for (uint256 i = 0; i < members.length; i++) {
-            for (uint256 j = i + 1; j < members.length; j++) {
-                if (members[i] > members[j]) {
-                    (members[i], members[j]) = (members[j], members[i]);
-                }
-            }
-        }
+        _addMember(newMember);
 
         uint256 amountToDistribute = 100e18;
 
@@ -414,6 +402,33 @@ contract PushDistributorTest is SetupPartyHelper {
         _proposePassAndExecuteProposal(proposal);
     }
 
+    function test_distribute_cannotReenter() external {
+        // Deploy a malicious contract that will attempt to re-enter the distribute function
+        address reenteringMember = address(new ReenteringMember(address(pushDistributor), 3 ether));
+
+        // Add the malicious contract as a member to simulate a scenario where it can receive funds and re-enter
+        _addMember(reenteringMember);
+
+        uint256 amountToDistribute = 10e18;
+
+        PartyGovernance.Proposal memory proposal = _createProposal(ETH_ADDRESS, amountToDistribute);
+
+        _proposePassAndExecuteProposal(proposal);
+
+        // Check if the distribution was successful
+        // John, Danny, Steve who each have 100 / 401 voting power should
+        // receive 100 / 401 * 10e18 ETH
+        assertEq(john.balance, (100 * amountToDistribute) / 401);
+        assertEq(danny.balance, (100 * amountToDistribute) / 401);
+        assertEq(steve.balance, (100 * amountToDistribute) / 401);
+        // The contract which has 1 / 401 voting power should receive
+        // 1 / 401 * 10e18 ETH
+        assertEq(address(this).balance, (1 * amountToDistribute) / 401);
+        // The reentering member should not receive any ETH because their
+        // re-entrancy attempt reverted
+        assertEq(reenteringMember.balance, 0);
+    }
+
     function _createProposal(
         IERC20 token,
         uint256 amount
@@ -473,11 +488,74 @@ contract PushDistributorTest is SetupPartyHelper {
         }
     }
 
+    function _addMember(address member) internal {
+        // Update Party state
+        party.increaseTotalVotingPower(100);
+        party.mint(member, 100, member);
+
+        members.push(member);
+
+        // Sort the addresses from lowest to highest.
+        for (uint256 i = 0; i < members.length; i++) {
+            for (uint256 j = i + 1; j < members.length; j++) {
+                if (members[i] > members[j]) {
+                    (members[i], members[j]) = (members[j], members[i]);
+                }
+            }
+        }
+    }
+
     receive() external payable {}
 }
 
 contract CannotReceiveETH is ERC721Receiver {
     receive() external payable {
         revert("Cannot receive ETH");
+    }
+}
+
+contract ReenteringMember is ERC721Receiver {
+    PushDistributor public immutable pushDistributor;
+    IERC20 public constant token = IERC20(0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE);
+    address[] public members;
+    uint256 public immutable cutoffAmount;
+
+    constructor(address _pushDistributor, uint256 _cutoffAmount) {
+        pushDistributor = PushDistributor(_pushDistributor);
+        members = new address[](0);
+        cutoffAmount = _cutoffAmount;
+    }
+
+    function getProposalStateInfo(
+        uint256 proposalId
+    )
+        external
+        view
+        returns (
+            PartyGovernance.ProposalStatus status,
+            PartyGovernance.ProposalStateValues memory values
+        )
+    {
+        values = PartyGovernance.ProposalStateValues({
+            proposedTime: 0,
+            passedTime: 0,
+            executedTime: uint40(block.timestamp),
+            completedTime: 0,
+            votes: 0,
+            totalVotingPower: 0,
+            numHosts: 0,
+            numHostsAccepted: 0,
+            voteDuration: 0,
+            executionDelay: 0,
+            passThresholdBps: 0
+        });
+        status = PartyGovernance.ProposalStatus.Ready;
+    }
+
+    // Fallback function used to attempt re-entrancy
+    receive() external payable {
+        if (msg.value < cutoffAmount) {
+            pushDistributor.distribute(token, members, 0, 0);
+        }
     }
 }
