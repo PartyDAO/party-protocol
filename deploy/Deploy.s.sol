@@ -35,6 +35,7 @@ import { SSTORE2MetadataProvider } from "../contracts/renderers/SSTORE2MetadataP
 import { BasicMetadataProvider } from "../contracts/renderers/BasicMetadataProvider.sol";
 import { OffChainSignatureValidator } from "../contracts/signature-validators/OffChainSignatureValidator.sol";
 import { BondingCurveAuthority } from "../contracts/authorities/BondingCurveAuthority.sol";
+import { PushDistributor } from "../contracts/distribution/PushDistributor.sol";
 import "./LibDeployConstants.sol";
 
 abstract contract Deploy {
@@ -85,6 +86,7 @@ abstract contract Deploy {
     SellPartyCardsAuthority public sellPartyCardsAuthority;
     OffChainSignatureValidator public offChainSignatureValidator;
     BondingCurveAuthority public bondingCurveAuthority;
+    PushDistributor public pushDistributor;
 
     function deploy(LibDeployConstants.DeployConstants memory deployConstants) public virtual {
         _switchDeployer(DeployerRole.Default);
@@ -109,6 +111,15 @@ abstract contract Deploy {
         _trackDeployerGasAfter();
         console.log("  Deployed - TokenDistributor", address(tokenDistributor));
         _switchDeployer(DeployerRole.Default);
+
+        // DEPLOY_PUSH_DISTRIBUTOR
+        console.log("");
+        console.log("### PushDistributor");
+        console.log("  Deploying - PushDistributor");
+        _trackDeployerGasBefore();
+        pushDistributor = new PushDistributor();
+        _trackDeployerGasAfter();
+        console.log("  Deployed - PushDistributor", address(pushDistributor));
 
         // DEPLOY_PROPOSAL_EXECUTION_ENGINE
         console.log("");
@@ -715,7 +726,7 @@ contract DeployScript is Script, Deploy {
         Deploy.deploy(deployConstants);
         vm.stopBroadcast();
 
-        AddressMapping[] memory addressMapping = new AddressMapping[](30);
+        AddressMapping[] memory addressMapping = new AddressMapping[](31);
         addressMapping[0] = AddressMapping("Globals", address(globals));
         addressMapping[1] = AddressMapping("TokenDistributor", address(tokenDistributor));
         addressMapping[2] = AddressMapping(
@@ -782,6 +793,7 @@ contract DeployScript is Script, Deploy {
             "OffChainSignatureValidator",
             address(offChainSignatureValidator)
         );
+        addressMapping[30] = AddressMapping("PushDistributor", address(pushDistributor));
 
         console.log("");
         console.log("### Deployed addresses");
