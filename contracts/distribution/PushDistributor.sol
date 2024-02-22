@@ -5,9 +5,7 @@ import { Party } from "./../party/Party.sol";
 import { PartyGovernance } from "./../party/PartyGovernance.sol";
 import { ProposalExecutionEngine } from "./../proposals/ProposalExecutionEngine.sol";
 import { IERC20 } from "../tokens/IERC20.sol";
-import { LibSafeCast } from "../utils/LibSafeCast.sol";
 import { LibERC20Compat } from "./../utils/LibERC20Compat.sol";
-import { LibAddress } from "./../utils/LibAddress.sol";
 import { ReentrancyGuard } from "openzeppelin/contracts/security/ReentrancyGuard.sol";
 
 contract PushDistributor is ReentrancyGuard {
@@ -18,9 +16,7 @@ contract PushDistributor is ReentrancyGuard {
     error WrongMembers();
     error MembersNotSorted();
 
-    using LibSafeCast for uint256;
     using LibERC20Compat for IERC20;
-    using LibAddress for address payable;
 
     // Token address used to indicate ETH.
     IERC20 private constant ETH_ADDRESS = IERC20(0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE);
