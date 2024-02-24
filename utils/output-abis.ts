@@ -33,6 +33,7 @@ const RELEVANT_ABIS = [
   "OffChainSignatureValidator",
   "BondingCurveAuthority",
   "PushDistributor",
+  "EZPartyBuilder",
 ];
 
 // AFileName -> a_file_name
@@ -41,6 +42,8 @@ const camelCaseToUnderscoreCase = (camelCaseString: string) => {
     .replace("NFT", "Nft")
     .replace("ERC", "Erc")
     .replace("ETH", "Eth")
+    .replace("EZ", "Ez")
+    .replace("SSTORE", "Sstore")
     .split(/\.?(?=[A-Z])/)
     .join("_")
     .toLowerCase();
