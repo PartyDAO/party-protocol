@@ -244,6 +244,63 @@ contract ProposalExecutionEngine is
         return 0;
     }
 
+    /// @notice Get the snapshotted intrinsic voting power for an address at a given timestamp.
+    /// @param voter The address of the voter.
+    /// @param timestamp The timestamp to get the voting power at.
+    /// @param hintIndex The precalculated index for the correct snapshot. Not used if incorrect.
+    /// @return The intrinsic voting power of the address at the given timestamp.
+    function getIntrinsicVotingPowerAt(
+        address voter,
+        uint40 timestamp,
+        uint256 hintIndex
+    ) public view returns (uint96) {
+        PartyGovernance.VotingPowerSnapshot[] storage snaps;
+
+        // Derive the storage slot for the voting power snapshots mapping.
+        bytes32 slotAddress = keccak256(
+            abi.encode(voter, 7 /* slot for the voting power snapshots mapping */)
+        );
+        assembly ("memory-safe") {
+            snaps.slot := slotAddress
+        }
+
+        // Logic copied from https://github.com/PartyDAO/party-protocol/blob/824538633091ebe97c0a0f38c9a28f09900fe173/contracts/party/PartyGovernance.sol#L904-L924
+        uint256 snapsLength = snaps.length;
+        if (snapsLength != 0) {
+            if (
+                // Hint is within bounds.
+                hintIndex < snapsLength &&
+                // Snapshot is not too recent.
+                snaps[hintIndex].timestamp <= timestamp &&
+                // Snapshot is not too old.
+                (hintIndex == snapsLength - 1 || snaps[hintIndex + 1].timestamp > timestamp)
+            ) {
+                return snaps[hintIndex].intrinsicVotingPower;
+            }
+
+            // Logic copied from https://github.com/PartyDAO/party-protocol/blob/824538633091ebe97c0a0f38c9a28f09900fe173/contracts/party/PartyGovernance.sol#L427-L450
+            uint256 high = snapsLength;
+            uint256 low = 0;
+            while (low < high) {
+                uint256 mid = (low + high) / 2;
+                if (snaps[mid].timestamp > timestamp) {
+                    // Entry is too recent.
+                    high = mid;
+                } else {
+                    // Entry is older. This is our best guess for now.
+                    low = mid + 1;
+                }
+            }
+            hintIndex = high == 0 ? type(uint256).max : high - 1;
+
+            // Check that snapshot was found.
+            if (hintIndex != type(uint256).max) {
+                return snaps[hintIndex].intrinsicVotingPower;
+            }
+        }
+        return 0;
+    }
+
     // Switch statement used to execute the right proposal.
     function _execute(
         ProposalType pt,
