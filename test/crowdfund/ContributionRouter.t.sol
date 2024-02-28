@@ -40,6 +40,22 @@ contract ContributionRouterTest is TestUtils {
         assertEq(address(router).balance, feeAmount);
     }
 
+    function test_invalidTarget() external {
+        MockPayableContract target = new MockPayableContract();
+        uint256 amount = 1 ether;
+        vm.deal(address(this), amount);
+        //vm.expectRevert(ContributionRouter.InvalidTarget.selector);
+        (bool success, bytes memory res) = address(router).call{ value: amount }(
+            abi.encodePacked(
+                abi.encodeWithSelector(MockPayableContract.pay.selector),
+                target,
+                hex"1234"
+            )
+        );
+        assertEq(success, false);
+        assertEq(res, abi.encodePacked(ContributionRouter.InvalidTarget.selector));
+    }
+
     function test_fallback_insufficientFee() public {
         MockPayableContract target = new MockPayableContract();
         uint256 amount = feePerMint - 1;
