@@ -4,7 +4,7 @@ pragma solidity ^0.8.20;
 import { IBlast, YieldMode, GasMode } from "./utils/IBlast.sol";
 import { Party, IGlobals } from "../party/Party.sol";
 
-contract BlastParty is Party {
+contract PartyBlast is Party {
     IBlast immutable BLAST;
 
     constructor(IGlobals globals, address blast) Party(globals) {

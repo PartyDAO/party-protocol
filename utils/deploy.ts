@@ -367,6 +367,7 @@ async function main() {
     "zora",
     "sepolia",
     "base-sepolia",
+    "blast-sepolia",
   ];
 
   if (!chain) {

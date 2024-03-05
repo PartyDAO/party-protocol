@@ -16,6 +16,10 @@ export const getBlockExplorerApiEndpoint = (chain: string) => {
     return "https://api.routescan.io/v2/network/mainnet/evm/7777777/etherscan/api";
   } else if (chain === "base-sepolia") {
     return "https://api-sepolia.basescan.org/api";
+  } else if (chain === "blast-sepolia") {
+    return "https://api-sepolia.blastscan.io/api";
+  } else if (chain === "blast") {
+    return "https://api.blastscan.io/api";
   } else {
     return `https://api-${chain}.etherscan.io/api`;
   }
@@ -228,6 +232,10 @@ const getChainId = (chain: string) => {
     return 11155111;
   } else if (chain === "base-sepolia") {
     return 84532;
+  } else if (chain === "blast-sepolia") {
+    return 168587773;
+  } else if (chain === "blast") {
+    return 81457;
   } else {
     throw new Error(`Unknown chain ID for "${chain}". Please add to getChainId() function.`);
   }

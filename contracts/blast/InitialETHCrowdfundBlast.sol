@@ -1,18 +1,13 @@
 // SPDX-License-Identifier: GPL-3.0
 pragma solidity ^0.8.20;
 
-import { BlastClaimableYield } from "./utils/BlastClaimableYield.sol";
 import { IBlast, YieldMode, GasMode } from "./utils/IBlast.sol";
 import { InitialETHCrowdfund, MetadataProvider, IGlobals } from "../crowdfund/InitialETHCrowdfund.sol";
 import { MetadataProvider } from "../renderers/MetadataProvider.sol";
 
-contract InitialETHCrowdfundBlast is InitialETHCrowdfund, BlastClaimableYield {
+contract InitialETHCrowdfundBlast is InitialETHCrowdfund {
     IBlast immutable BLAST;
-    constructor(
-        IGlobals globals,
-        address blast,
-        address governor
-    ) InitialETHCrowdfund(globals) BlastClaimableYield(blast, governor) {
+    constructor(IGlobals globals, address blast) InitialETHCrowdfund(globals) {
         BLAST = IBlast(blast);
     }
 
