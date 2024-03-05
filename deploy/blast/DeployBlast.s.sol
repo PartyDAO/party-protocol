@@ -35,6 +35,7 @@ import { SSTORE2MetadataProviderBlast } from "contracts/blast/SSTORE2MetadataPro
 import { BasicMetadataProviderBlast } from "contracts/blast/BasicMetadataProviderBlast.sol";
 import { OffChainSignatureValidator } from "contracts/signature-validators/OffChainSignatureValidator.sol";
 import { BondingCurveAuthorityBlast } from "contracts/blast/BondingCurveAuthorityBlast.sol";
+import { MockZoraReserveAuctionCoreEth } from "test/proposals/MockZoraReserveAuctionCoreEth.sol";
 import "../LibDeployConstants.sol";
 
 abstract contract DeployBlast {
@@ -114,7 +115,9 @@ abstract contract DeployBlast {
         console.log("### ProposalExecutionEngine");
         console.log("  Deploying - ProposalExecutionEngine");
         if (deployConstants.zoraReserveAuctionCoreEth == address(0)) {
-            revert("zoraReserveAuctionCoreEth address cannot be 0");
+            deployConstants.zoraReserveAuctionCoreEth = address(
+                new MockZoraReserveAuctionCoreEth()
+            );
         }
         IReserveAuctionCoreEth zora = IReserveAuctionCoreEth(
             deployConstants.zoraReserveAuctionCoreEth
@@ -670,7 +673,7 @@ contract DeployScriptBlast is Script, DeployBlast {
         DeployBlast.deploy(deployConstants);
         vm.stopBroadcast();
 
-        AddressMapping[] memory addressMapping = new AddressMapping[](30);
+        AddressMapping[] memory addressMapping = new AddressMapping[](25);
         addressMapping[0] = AddressMapping("Globals", address(globals));
         addressMapping[1] = AddressMapping("TokenDistributor", address(tokenDistributor));
         addressMapping[2] = AddressMapping(
@@ -706,20 +709,17 @@ contract DeployScriptBlast is Script, DeployBlast {
             address(pixeldroidConsoleFont)
         );
         addressMapping[24] = AddressMapping("AtomicManualParty", address(atomicManualParty));
-        addressMapping[25] = AddressMapping("ContributionRouter", address(contributionRouter));
-        addressMapping[26] = AddressMapping(
+        addressMapping[9] = AddressMapping("ContributionRouter", address(contributionRouter));
+        addressMapping[8] = AddressMapping(
             "AddPartyCardsAuthority",
             address(addPartyCardsAuthority)
         );
-        addressMapping[27] = AddressMapping(
-            "BondingCurveAuthority",
-            address(bondingCurveAuthority)
-        );
-        addressMapping[28] = AddressMapping(
+        addressMapping[7] = AddressMapping("BondingCurveAuthority", address(bondingCurveAuthority));
+        addressMapping[6] = AddressMapping(
             "SellPartyCardsAuthority",
             address(sellPartyCardsAuthority)
         );
-        addressMapping[29] = AddressMapping(
+        addressMapping[5] = AddressMapping(
             "OffChainSignatureValidator",
             address(offChainSignatureValidator)
         );
