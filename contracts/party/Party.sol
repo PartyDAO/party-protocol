@@ -35,7 +35,7 @@ contract Party is PartyGovernanceNFT {
 
     /// @notice Initializer to be called prior to using the contract.
     /// @param initData Options used to initialize the party governance.
-    function initialize(PartyInitData memory initData) external onlyInitialize {
+    function initialize(PartyInitData memory initData) public virtual onlyInitialize {
         PartyGovernanceNFT._initialize(
             initData.options.name,
             initData.options.symbol,
