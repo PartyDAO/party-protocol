@@ -368,6 +368,7 @@ async function main() {
     "sepolia",
     "base-sepolia",
     "blast-sepolia",
+    "blast",
   ];
 
   if (!chain) {

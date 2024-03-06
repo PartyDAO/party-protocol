@@ -57,15 +57,15 @@ abstract contract DeployBlast {
     // temporary variables to store deployed contract addresses
     Globals public globals;
     AuctionCrowdfund public auctionCrowdfund;
-    InitialETHCrowdfundBlast public initialETHCrowdfund;
-    CrowdfundFactoryBlast public crowdfundFactory;
-    PartyBlast public party;
+    InitialETHCrowdfundBlast public initialETHCrowdfundBlast;
+    CrowdfundFactoryBlast public crowdfundFactoryBlast;
+    PartyBlast public partyBlast;
     PartyFactory public partyFactory;
     ProposalExecutionEngine public proposalExecutionEngine;
-    TokenDistributorBlast public tokenDistributor;
-    MetadataRegistryBlast public metadataRegistry;
-    BasicMetadataProviderBlast public basicMetadataProvider;
-    SSTORE2MetadataProviderBlast public sstore2MetadataProvider;
+    TokenDistributorBlast public tokenDistributorBlast;
+    MetadataRegistryBlast public metadataRegistryBlast;
+    BasicMetadataProviderBlast public basicMetadataProviderBlast;
+    SSTORE2MetadataProviderBlast public sstore2MetadataProviderBlast;
     RendererStorage public rendererStorage;
     CrowdfundNFTRenderer public crowdfundNFTRenderer;
     PartyNFTRenderer public partyNFTRenderer;
@@ -76,12 +76,12 @@ abstract contract DeployBlast {
     IGateKeeper public tokenGateKeeper;
     NounsMarketWrapper public nounsMarketWrapper;
     PixeldroidConsoleFont public pixeldroidConsoleFont;
-    AtomicManualPartyBlast public atomicManualParty;
-    ContributionRouterBlast public contributionRouter;
+    AtomicManualPartyBlast public atomicManualPartyBlast;
+    ContributionRouterBlast public contributionRouterBlast;
     AddPartyCardsAuthority public addPartyCardsAuthority;
     SellPartyCardsAuthority public sellPartyCardsAuthority;
     OffChainSignatureValidator public offChainSignatureValidator;
-    BondingCurveAuthorityBlast public bondingCurveAuthority;
+    BondingCurveAuthorityBlast public bondingCurveAuthorityBlast;
     address constant BLAST = 0x4300000000000000000000000000000000000002;
 
     function deploy(LibDeployConstants.DeployConstants memory deployConstants) public virtual {
@@ -100,14 +100,14 @@ abstract contract DeployBlast {
         console.log("  Deploying - TokenDistributorBlast");
         _switchDeployer(DeployerRole.TokenDistributor);
         _trackDeployerGasBefore();
-        tokenDistributor = new TokenDistributorBlast(
+        tokenDistributorBlast = new TokenDistributorBlast(
             globals,
             uint40(block.timestamp) + deployConstants.distributorEmergencyActionAllowedDuration,
             BLAST,
             deployConstants.partyDaoMultisig
         );
         _trackDeployerGasAfter();
-        console.log("  Deployed - TokenDistributorBlast", address(tokenDistributor));
+        console.log("  Deployed - TokenDistributorBlast", address(tokenDistributorBlast));
         _switchDeployer(DeployerRole.Default);
 
         // DEPLOY_PROPOSAL_EXECUTION_ENGINE
@@ -139,9 +139,9 @@ abstract contract DeployBlast {
         console.log("### PartyBlast implementation");
         console.log("  Deploying - PartyBlast implementation");
         _trackDeployerGasBefore();
-        party = new PartyBlast(globals, BLAST);
+        partyBlast = new PartyBlast(globals, BLAST);
         _trackDeployerGasAfter();
-        console.log("  Deployed - PartyBlast implementation", address(party));
+        console.log("  Deployed - PartyBlast implementation", address(partyBlast));
 
         // DEPLOY_PARTY_FACTORY
         console.log("");
@@ -159,11 +159,11 @@ abstract contract DeployBlast {
         console.log("### InitialETHCrowdfundBlast crowdfund implementation");
         console.log("  Deploying - InitialETHCrowdfundBlast crowdfund implementation");
         _trackDeployerGasBefore();
-        initialETHCrowdfund = new InitialETHCrowdfundBlast(globals, BLAST);
+        initialETHCrowdfundBlast = new InitialETHCrowdfundBlast(globals, BLAST);
         _trackDeployerGasAfter();
         console.log(
             "  Deployed - InitialETHCrowdfundBlast crowdfund implementation",
-            address(initialETHCrowdfund)
+            address(initialETHCrowdfundBlast)
         );
 
         // DEPLOY_PARTY_CROWDFUND_FACTORY
@@ -172,9 +172,9 @@ abstract contract DeployBlast {
         console.log("  Deploying - CrowdfundFactoryBlast");
         _switchDeployer(DeployerRole.CrowdfundFactory);
         _trackDeployerGasBefore();
-        crowdfundFactory = new CrowdfundFactoryBlast(BLAST, deployConstants.partyDaoMultisig);
+        crowdfundFactoryBlast = new CrowdfundFactoryBlast(BLAST, deployConstants.partyDaoMultisig);
         _trackDeployerGasAfter();
-        console.log("  Deployed - CrowdfundFactoryBlast", address(crowdfundFactory));
+        console.log("  Deployed - CrowdfundFactoryBlast", address(crowdfundFactoryBlast));
         _switchDeployer(DeployerRole.Default);
 
         // DEPLOY_METADATA_REGISTRY
@@ -186,40 +186,43 @@ abstract contract DeployBlast {
         console.log("### MetadataRegistryBlast");
         console.log("  Deploying - MetadataRegistryBlast");
         _trackDeployerGasBefore();
-        metadataRegistry = new MetadataRegistryBlast(
+        metadataRegistryBlast = new MetadataRegistryBlast(
             globals,
             registrars,
             BLAST,
             deployConstants.partyDaoMultisig
         );
         _trackDeployerGasAfter();
-        console.log("  Deployed - MetadataRegistryBlast", address(metadataRegistry));
+        console.log("  Deployed - MetadataRegistryBlast", address(metadataRegistryBlast));
 
         // DEPLOY_BASIC_METADATA_PROVIDER
         console.log("");
         console.log("### BasicMetadataProviderBlast");
         console.log("  Deploying - BasicMetadataProviderBlast");
         _trackDeployerGasBefore();
-        basicMetadataProvider = new BasicMetadataProviderBlast(
+        basicMetadataProviderBlast = new BasicMetadataProviderBlast(
             globals,
             BLAST,
             deployConstants.partyDaoMultisig
         );
         _trackDeployerGasAfter();
-        console.log("  Deployed - BasicMetadataProviderBlast", address(basicMetadataProvider));
+        console.log("  Deployed - BasicMetadataProviderBlast", address(basicMetadataProviderBlast));
 
         // DEPLOY_SSTORE2_METADATA_PROVIDER
         console.log("");
         console.log("### SSTORE2MetadataProviderBlast");
         console.log("  Deploying - SSTORE2MetadataProviderBlast");
         _trackDeployerGasBefore();
-        sstore2MetadataProvider = new SSTORE2MetadataProviderBlast(
+        sstore2MetadataProviderBlast = new SSTORE2MetadataProviderBlast(
             globals,
             BLAST,
             deployConstants.partyDaoMultisig
         );
         _trackDeployerGasAfter();
-        console.log("  Deployed - SSTORE2MetadataProviderBlast", address(sstore2MetadataProvider));
+        console.log(
+            "  Deployed - SSTORE2MetadataProviderBlast",
+            address(sstore2MetadataProviderBlast)
+        );
 
         // DEPLOY_RENDERER_STORAGE
         console.log("");
@@ -318,7 +321,7 @@ abstract contract DeployBlast {
         console.log("### BondingCurveAuthorityBlast");
         console.log("  Deploying - BondingCurveAuthorityBlast");
         _trackDeployerGasBefore();
-        bondingCurveAuthority = new BondingCurveAuthorityBlast(
+        bondingCurveAuthorityBlast = new BondingCurveAuthorityBlast(
             payable(deployConstants.partyDaoMultisig),
             250,
             1000,
@@ -327,7 +330,7 @@ abstract contract DeployBlast {
             deployConstants.partyDaoMultisig
         );
         _trackDeployerGasAfter();
-        console.log("  Deployed - BondingCurveAuthorityBlast", address(bondingCurveAuthority));
+        console.log("  Deployed - BondingCurveAuthorityBlast", address(bondingCurveAuthorityBlast));
 
         // DEPLOY_BATCH_BUY_OPERATOR
         console.log("");
@@ -366,14 +369,14 @@ abstract contract DeployBlast {
         console.log("### ContributionRouterBlast");
         console.log("  Deploying - ContributionRouterBlast");
         _trackDeployerGasBefore();
-        contributionRouter = new ContributionRouterBlast(
+        contributionRouterBlast = new ContributionRouterBlast(
             deployConstants.partyDaoMultisig,
             deployConstants.contributionRouterInitialFee,
             BLAST,
             deployConstants.partyDaoMultisig
         );
         _trackDeployerGasAfter();
-        console.log("  Deployed - ContributionRouterBlast", address(contributionRouter));
+        console.log("  Deployed - ContributionRouterBlast", address(contributionRouterBlast));
 
         // Deploy OFF_CHAIN_SIGNATURE_VALIDATOR
         console.log("");
@@ -389,14 +392,14 @@ abstract contract DeployBlast {
         console.log("### GateKeepers");
         console.log("  Deploying - AllowListGateKeeper");
         _trackDeployerGasBefore();
-        allowListGateKeeper = new AllowListGateKeeper(address(contributionRouter));
+        allowListGateKeeper = new AllowListGateKeeper(address(contributionRouterBlast));
         _trackDeployerGasAfter();
         console.log("  Deployed - AllowListGateKeeper", address(allowListGateKeeper));
 
         console.log("");
         console.log("  Deploying - TokenGateKeeper");
         _trackDeployerGasBefore();
-        tokenGateKeeper = new TokenGateKeeper(address(contributionRouter));
+        tokenGateKeeper = new TokenGateKeeper(address(contributionRouterBlast));
         _trackDeployerGasAfter();
         console.log("  Deployed - TokenGateKeeper", address(tokenGateKeeper));
 
@@ -416,13 +419,13 @@ abstract contract DeployBlast {
         console.log("");
         console.log("  Deploying - AtomicManualPartyBlast");
         _trackDeployerGasBefore();
-        atomicManualParty = new AtomicManualPartyBlast(
+        atomicManualPartyBlast = new AtomicManualPartyBlast(
             partyFactory,
             BLAST,
             deployConstants.partyDaoMultisig
         );
         _trackDeployerGasAfter();
-        console.log("  Deployed - AtomicManualPartyBlast", address(atomicManualParty));
+        console.log("  Deployed - AtomicManualPartyBlast", address(atomicManualPartyBlast));
 
         // Set Global values and transfer ownership
         {
@@ -443,7 +446,7 @@ abstract contract DeployBlast {
             );
             multicallData[n++] = abi.encodeCall(
                 globals.setAddress,
-                (LibGlobals.GLOBAL_TOKEN_DISTRIBUTOR, address(tokenDistributor))
+                (LibGlobals.GLOBAL_TOKEN_DISTRIBUTOR, address(tokenDistributorBlast))
             );
             multicallData[n++] = abi.encodeCall(
                 globals.setUint256,
@@ -560,7 +563,7 @@ abstract contract DeployBlast {
             );
             multicallData[n++] = abi.encodeCall(
                 globals.setAddress,
-                (LibGlobals.GLOBAL_METADATA_REGISTRY, address(metadataRegistry))
+                (LibGlobals.GLOBAL_METADATA_REGISTRY, address(metadataRegistryBlast))
             );
             multicallData[n++] = abi.encodeCall(
                 globals.setAddress,
@@ -675,28 +678,37 @@ contract DeployScriptBlast is Script, DeployBlast {
 
         AddressMapping[] memory addressMapping = new AddressMapping[](25);
         addressMapping[0] = AddressMapping("Globals", address(globals));
-        addressMapping[1] = AddressMapping("TokenDistributor", address(tokenDistributor));
+        addressMapping[1] = AddressMapping("TokenDistributorBlast", address(tokenDistributorBlast));
         addressMapping[2] = AddressMapping(
             "ProposalExecutionEngine",
             address(proposalExecutionEngine)
         );
-        addressMapping[3] = AddressMapping("Party", address(party));
+        addressMapping[3] = AddressMapping("PartyBlast", address(partyBlast));
         addressMapping[4] = AddressMapping("PartyFactory", address(partyFactory));
-        addressMapping[10] = AddressMapping("InitialETHCrowdfund", address(initialETHCrowdfund));
+        addressMapping[10] = AddressMapping(
+            "InitialETHCrowdfundBlast",
+            address(initialETHCrowdfundBlast)
+        );
         addressMapping[11] = AddressMapping(
             "CollectionBatchBuyOperator",
             address(collectionBatchBuyOperator)
         );
         addressMapping[12] = AddressMapping("ERC20SwapOperator", address(swapOperator));
-        addressMapping[13] = AddressMapping("CrowdfundFactory", address(crowdfundFactory));
-        addressMapping[14] = AddressMapping("MetadataRegistry", address(metadataRegistry));
+        addressMapping[13] = AddressMapping(
+            "CrowdfundFactoryBlast",
+            address(crowdfundFactoryBlast)
+        );
+        addressMapping[14] = AddressMapping(
+            "MetadataRegistryBlast",
+            address(metadataRegistryBlast)
+        );
         addressMapping[15] = AddressMapping(
-            "BasicMetadataProvider",
-            address(basicMetadataProvider)
+            "BasicMetadataProviderBlast",
+            address(basicMetadataProviderBlast)
         );
         addressMapping[16] = AddressMapping(
-            "SSTORE2MetadataProvider",
-            address(sstore2MetadataProvider)
+            "SSTORE2MetadataProviderBlast",
+            address(sstore2MetadataProviderBlast)
         );
         addressMapping[17] = AddressMapping("CrowdfundNFTRenderer", address(crowdfundNFTRenderer));
         addressMapping[18] = AddressMapping("PartyNFTRenderer", address(partyNFTRenderer));
@@ -708,13 +720,22 @@ contract DeployScriptBlast is Script, DeployBlast {
             "PixeldroidConsoleFont",
             address(pixeldroidConsoleFont)
         );
-        addressMapping[24] = AddressMapping("AtomicManualParty", address(atomicManualParty));
-        addressMapping[9] = AddressMapping("ContributionRouter", address(contributionRouter));
+        addressMapping[24] = AddressMapping(
+            "AtomicManualPartyBlast",
+            address(atomicManualPartyBlast)
+        );
+        addressMapping[9] = AddressMapping(
+            "ContributionRouterBlast",
+            address(contributionRouterBlast)
+        );
         addressMapping[8] = AddressMapping(
             "AddPartyCardsAuthority",
             address(addPartyCardsAuthority)
         );
-        addressMapping[7] = AddressMapping("BondingCurveAuthority", address(bondingCurveAuthority));
+        addressMapping[7] = AddressMapping(
+            "BondingCurveAuthorityBlast",
+            address(bondingCurveAuthorityBlast)
+        );
         addressMapping[6] = AddressMapping(
             "SellPartyCardsAuthority",
             address(sellPartyCardsAuthority)

@@ -33,6 +33,16 @@ const RELEVANT_ABIS = [
   "OffChainSignatureValidator",
   "BondingCurveAuthority",
   "EZPartyBuilder",
+  "TokenDistributorBlast",
+  "PartyBlast",
+  "InitialETHCrowdfundBlast",
+  "CrowdfundFactoryBlast",
+  "MetadataRegistryBlast",
+  "BasicMetadataProviderBlast",
+  "SSTORE2MetadataProviderBlast",
+  "AtomicManualPartyBlast",
+  "ContributionRouterBlast",
+  "BondingCurveAuthorityBlast",
 ];
 
 // AFileName -> a_file_name

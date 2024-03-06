@@ -29,6 +29,8 @@
     "deploy:zora": "DRY_RUN=0 forge script ./deploy/Zora.s.sol -vvv --rpc-url $ZORA_RPC_URL --broadcast --via-ir --skip test --optimize --optimizer-runs 50 --ffi --slow  --priority-gas-price 1",
     "deploy:blast-sepolia": "DRY_RUN=0 forge script ./deploy/BlastSepolia.s.sol -vvv --rpc-url $BLAST_SEPOLIA_RPC_URL --via-ir --broadcast --etherscan-api-key $ETHERSCAN_API_KEY --skip test --optimize --optimizer-runs 50 --ffi --slow",
     "deploy:blast-sepolia:dry": "DRY_RUN=1 forge script ./deploy/BlastSepolia.s.sol -vvv --rpc-url $BLAST_SEPOLIA_RPC_URL --via-ir --skip test --optimize --optimizer-runs 50 --ffi",
+    "deploy:blast": "DRY_RUN=0 forge script ./deploy/Blast.s.sol -vvv --rpc-url $BLAST_RPC_URL --via-ir --broadcast --etherscan-api-key $ETHERSCAN_API_KEY --skip test --optimize --optimizer-runs 50 --ffi --slow",
+    "deploy:blast:dry": "DRY_RUN=1 forge script ./deploy/Blast.s.sol -vvv --rpc-url $BLAST_RPC_URL --via-ir --skip test --optimize --optimizer-runs 50 --ffi",
     "decode-revert": "node js/decode-revert.js",
     "layout": "node js/gen-storage-layout.js",
     "coverage": "COVERAGE=true forge coverage --report lcov"
