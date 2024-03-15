@@ -16,7 +16,7 @@ contract InitialETHCrowdfundBlast is InitialETHCrowdfund {
         InitialETHCrowdfund.ETHPartyOptions memory partyOpts,
         MetadataProvider customMetadataProvider,
         bytes memory customMetadata
-    ) public payable override onlyInitialize {
+    ) public payable override {
         super.initialize(crowdfundOpts, partyOpts, customMetadataProvider, customMetadata);
         BLAST.configure(YieldMode.AUTOMATIC, GasMode.CLAIMABLE, address(party));
     }

@@ -11,7 +11,7 @@ contract PartyBlast is Party {
         BLAST = IBlast(blast);
     }
 
-    function initialize(PartyInitData memory initData) public override onlyInitialize {
+    function initialize(PartyInitData memory initData) public override {
         super.initialize(initData);
         BLAST.configure(YieldMode.AUTOMATIC, GasMode.CLAIMABLE, address(this));
     }
