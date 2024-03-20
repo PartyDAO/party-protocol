@@ -16,3 +16,6 @@
 [submodule "lib/v2-core"]
 	path = lib/v2-core
 	url = https://github.com/Uniswap/v2-core
+[submodule "lib/erc20-creator"]
+	path = lib/erc20-creator
+	url = https://github.com/PartyDAO/erc20-creator
