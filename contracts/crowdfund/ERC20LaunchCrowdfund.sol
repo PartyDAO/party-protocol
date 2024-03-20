@@ -74,6 +74,8 @@ contract ERC20LaunchCrowdfund is ETHCrowdfundBase {
         // The symbol of the ERC20 token launched.
         string symbol;
         // The total supply to mint for the ERC20 token.
+        uint256 totalSupply;
+        // The number of tokens to distribute to the party.
         uint256 numTokensForDistribution;
         // The number of tokens to send to an arbitrary recipient.
         uint256 numTokensForRecipient;
