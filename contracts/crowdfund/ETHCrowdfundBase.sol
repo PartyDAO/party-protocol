@@ -351,7 +351,7 @@ abstract contract ETHCrowdfundBase is Implementation {
         _finalize(totalContributions_);
     }
 
-    function _finalize(uint96 totalContributions_) internal {
+    function _finalize(uint96 totalContributions_) internal virtual {
         // Finalize the crowdfund.
         delete expiry;
 

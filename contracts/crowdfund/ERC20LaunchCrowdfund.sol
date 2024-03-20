@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0
 pragma solidity 0.8.20;
 
-import { ERC20CrowdfundBase } from "./ERC20CrowdfundBase.sol";
+import { ETHCrowdfundBase } from "./ETHCrowdfundBase.sol";
 import { ProposalStorage } from "../proposals/ProposalStorage.sol";
 import { LibAddress } from "../utils/LibAddress.sol";
 import { LibRawResult } from "../utils/LibRawResult.sol";
@@ -17,7 +17,7 @@ import { IERC721 } from "../tokens/IERC721.sol";
 ///         Unlike other crowdfunds that are started for the purpose of
 ///         acquiring NFT(s), this crowdfund simply bootstraps a party with
 ///         funds and lets its members coordinate on what to do with it after.
-contract ERC20Crowdfund is ERC20CrowdfundBase {
+contract ERC20LaunchCrowdfund is ETHCrowdfundBase {
     using LibRawResult for bytes;
     using LibSafeCast for uint256;
     using LibAddress for address payable;
@@ -99,7 +99,7 @@ contract ERC20Crowdfund is ERC20CrowdfundBase {
     event Refunded(address indexed contributor, uint256 indexed tokenId, uint256 amount);
 
     // Set the `Globals` contract.
-    constructor(IGlobals globals) ERC20CrowdfundBase(globals) {}
+    constructor(IGlobals globals) ETHCrowdfundBase(globals) {}
 
     /// @notice Initializer to be called prior to using the contract.
     /// @param crowdfundOpts Options to initialize the crowdfund with.
