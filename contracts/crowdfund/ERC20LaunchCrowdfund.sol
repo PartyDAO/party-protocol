@@ -516,7 +516,7 @@ contract ERC20LaunchCrowdfund is ETHCrowdfundBase {
         ERC20LaunchOptions memory _tokenOpts = tokenOpts;
 
         // Create the ERC20 token.
-        ERC20_CREATOR.createToken(
+        ERC20_CREATOR.createToken{ value: totalContributions_ }(
             address(_party),
             _tokenOpts.name,
             _tokenOpts.symbol,
