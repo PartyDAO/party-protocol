@@ -293,7 +293,7 @@ abstract contract ETHCrowdfundBase is Implementation {
 
     function _calculateContributionToVotingPower(
         uint96 contribution
-    ) private view returns (uint96) {
+    ) internal view returns (uint96) {
         return contribution.mulDivDown(exchangeRate, 1e18).safeCastUint256ToUint96();
     }
 

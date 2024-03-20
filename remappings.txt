@@ -1,3 +1,7 @@
 forge-std/=lib/forge-std/src/
 openzeppelin/=lib/openzeppelin-contracts/
 solmate/=lib/solmate/src/
+ds-test/=lib/forge-std/lib/ds-test/src/
+party-addresses/=lib/party-addresses/
+uniswap-v2-core/=lib/v2-core/contracts/
+uniswap-v2-periphery/=lib/v2-periphery/contracts/
