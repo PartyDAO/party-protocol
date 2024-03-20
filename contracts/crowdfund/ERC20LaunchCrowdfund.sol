@@ -9,13 +9,10 @@ import { LibSafeCast } from "../utils/LibSafeCast.sol";
 import { Party, PartyGovernance } from "../party/Party.sol";
 import { Crowdfund } from "../crowdfund/Crowdfund.sol";
 import { MetadataProvider } from "../renderers/MetadataProvider.sol";
-import { GovernableERC20, ERC20 } from "../tokens/GovernableERC20.sol";
 import { IGateKeeper } from "../gatekeepers/IGateKeeper.sol";
 import { IGlobals } from "../globals/IGlobals.sol";
 import { IERC721 } from "../tokens/IERC721.sol";
-import { ITokenDistributor, IERC20 } from "../distribution/ITokenDistributor.sol";
-import { IUniswapV2Router02 } from "uniswap-v2-periphery/interfaces/IUniswapV2Router02.sol";
-import { IUniswapV2Factory } from "uniswap-v2-core/interfaces/IUniswapV2Factory.sol";
+import { IERC20Creator, TokenConfiguration } from "../utils/IERC20Creator.sol";
 
 /// @notice A crowdfund for raising the initial funds for new parties.
 ///         Unlike other crowdfunds that are started for the purpose of
@@ -66,13 +63,13 @@ contract ERC20LaunchCrowdfund is ETHCrowdfundBase {
         address[] authorities;
     }
 
-    // TODO: Add comments
-    // TODO: Pack storage?
     struct ERC20LaunchOptions {
         // The name of the ERC20 token launched.
         string name;
         // The symbol of the ERC20 token launched.
         string symbol;
+        // An arbitrary address to receive ERC20 tokens.
+        address recipient;
         // The total supply to mint for the ERC20 token.
         uint256 totalSupply;
         // The number of tokens to distribute to the party.
@@ -81,7 +78,6 @@ contract ERC20LaunchCrowdfund is ETHCrowdfundBase {
         uint256 numTokensForRecipient;
         // The number of tokens to use for the Uniswap LP pair.
         uint256 numTokensForLP;
-        address recipient;
     }
 
     struct BatchContributeArgs {
@@ -119,35 +115,15 @@ contract ERC20LaunchCrowdfund is ETHCrowdfundBase {
     }
 
     event Refunded(address indexed contributor, uint256 indexed tokenId, uint256 amount);
-    event ERC20Created(ERC20 indexed token, Party indexed party, ERC20LaunchOptions opts);
 
     error InvalidTokenDistribution();
 
-    // TODO: Pack storage?
-    uint16 public immutable FEE_BPS;
-    address payable public immutable FEE_RECIPIENT;
-    ITokenDistributor public immutable TOKEN_DISTRIBUTOR;
-    IUniswapV2Router02 public immutable UNISWAP_V2_ROUTER;
-    IUniswapV2Factory public immutable UNISWAP_V2_FACTORY;
-    address public immutable WETH;
+    IERC20Creator public immutable ERC20_CREATOR;
 
     ERC20LaunchOptions public tokenOpts;
 
-    constructor(
-        IGlobals globals,
-        uint16 feeBps,
-        address payable feeRecipient,
-        ITokenDistributor tokenDistributor,
-        IUniswapV2Router02 uniswapV2Router,
-        IUniswapV2Factory uniswapV2Factory,
-        address weth
-    ) ETHCrowdfundBase(globals) {
-        FEE_BPS = feeBps;
-        FEE_RECIPIENT = feeRecipient;
-        TOKEN_DISTRIBUTOR = tokenDistributor;
-        UNISWAP_V2_ROUTER = uniswapV2Router;
-        UNISWAP_V2_FACTORY = uniswapV2Factory;
-        WETH = weth;
+    constructor(IGlobals globals, IERC20Creator erc20Creator) ETHCrowdfundBase(globals) {
+        ERC20_CREATOR = erc20Creator;
     }
 
     /// @notice Initializer to be called prior to using the contract.
@@ -539,43 +515,18 @@ contract ERC20LaunchCrowdfund is ETHCrowdfundBase {
 
         ERC20LaunchOptions memory _tokenOpts = tokenOpts;
 
-        // Create token
-        ERC20 token = new GovernableERC20(
+        // Create the ERC20 token.
+        ERC20_CREATOR.createToken(
+            address(_party),
             _tokenOpts.name,
             _tokenOpts.symbol,
-            _tokenOpts.totalSupply,
-            address(this)
+            TokenConfiguration({
+                totalSupply: _tokenOpts.totalSupply,
+                numTokensForDistribution: _tokenOpts.numTokensForDistribution,
+                numTokensForRecipient: _tokenOpts.numTokensForRecipient,
+                numTokensForLP: _tokenOpts.numTokensForLP
+            }),
+            _tokenOpts.recipient
         );
-
-        // Create distribution
-        token.transfer(address(TOKEN_DISTRIBUTOR), _tokenOpts.numTokensForDistribution);
-        TOKEN_DISTRIBUTOR.createErc20Distribution(
-            IERC20(address(token)),
-            _party,
-            payable(address(0)),
-            0
-        );
-
-        // Take fee
-        uint256 ethValue = msg.value;
-        uint256 feeAmount = (ethValue * FEE_BPS) / 1e4;
-        payable(FEE_RECIPIENT).transfer(feeAmount);
-
-        // Create locked LP pair
-        uint256 numETHForLP = ethValue - feeAmount;
-        token.approve(address(UNISWAP_V2_ROUTER), _tokenOpts.numTokensForLP);
-        UNISWAP_V2_ROUTER.addLiquidityETH{ value: numETHForLP }(
-            address(token),
-            _tokenOpts.numTokensForLP,
-            _tokenOpts.numTokensForLP,
-            numETHForLP,
-            address(0), // Burn LP position
-            block.timestamp + 10 minutes
-        );
-
-        // Transfer tokens to recipient
-        token.transfer(_tokenOpts.recipient, _tokenOpts.numTokensForRecipient);
-
-        emit ERC20Created(token, _party, _tokenOpts);
     }
 }
