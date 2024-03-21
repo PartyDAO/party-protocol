@@ -2,16 +2,9 @@
 pragma solidity 0.8.20;
 
 import { InitialETHCrowdfund } from "./InitialETHCrowdfund.sol";
-import { ProposalStorage } from "../proposals/ProposalStorage.sol";
-import { LibAddress } from "../utils/LibAddress.sol";
-import { LibRawResult } from "../utils/LibRawResult.sol";
-import { LibSafeCast } from "../utils/LibSafeCast.sol";
-import { Party, PartyGovernance } from "../party/Party.sol";
-import { Crowdfund } from "../crowdfund/Crowdfund.sol";
+import { Party } from "../party/Party.sol";
 import { MetadataProvider } from "../renderers/MetadataProvider.sol";
-import { IGateKeeper } from "../gatekeepers/IGateKeeper.sol";
 import { IGlobals } from "../globals/IGlobals.sol";
-import { IERC721 } from "../tokens/IERC721.sol";
 import { IERC20Creator, TokenConfiguration } from "../utils/IERC20Creator.sol";
 
 /// @notice A crowdfund for raising the initial funds for new parties.
