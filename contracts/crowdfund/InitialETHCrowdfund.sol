@@ -112,7 +112,7 @@ contract InitialETHCrowdfund is ETHCrowdfundBase {
         ETHPartyOptions memory partyOpts,
         MetadataProvider customMetadataProvider,
         bytes memory customMetadata
-    ) external payable onlyInitialize {
+    ) public payable onlyInitialize {
         // Create party the initial crowdfund will be for.
         Party party_ = _createParty(partyOpts, customMetadataProvider, customMetadata);
 
