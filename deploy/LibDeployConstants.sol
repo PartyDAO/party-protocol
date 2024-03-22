@@ -29,6 +29,7 @@ library LibDeployConstants {
         uint96 contributionRouterInitialFee;
         address tokenDistributorV1;
         address tokenDistributorV2;
+        address tokenDistributorV3;
         string baseExternalURL;
     }
 
@@ -60,6 +61,7 @@ library LibDeployConstants {
             contributionRouterInitialFee: 0.00055 ether,
             tokenDistributorV1: 0x0000000000000000000000000000000000000000,
             tokenDistributorV2: 0x0000000000000000000000000000000000000000,
+            tokenDistributorV3: 0x0000000000000000000000000000000000000000,
             baseExternalURL: "https://party.app/party/"
         });
 
@@ -94,6 +96,7 @@ library LibDeployConstants {
             contributionRouterInitialFee: 0.00055 ether,
             tokenDistributorV1: 0x0000000000000000000000000000000000000000,
             tokenDistributorV2: 0x0000000000000000000000000000000000000000,
+            tokenDistributorV3: 0x0000000000000000000000000000000000000000,
             baseExternalURL: "https://party.app/party/"
         });
 
@@ -129,6 +132,7 @@ library LibDeployConstants {
             contributionRouterInitialFee: 0.00055 ether,
             tokenDistributorV1: 0xE6F58B31344404E3479d81fB8f9dD592feB37965,
             tokenDistributorV2: 0x8714EA9C2BC5a8f2d26D7c3F86558331c16145B5,
+            tokenDistributorV3: 0x0000000000000000000000000000000000000000,
             baseExternalURL: "https://party.app/party/"
         });
 
@@ -164,6 +168,7 @@ library LibDeployConstants {
             contributionRouterInitialFee: 0.00055 ether,
             tokenDistributorV1: address(0),
             tokenDistributorV2: 0x55D2463cf5b6743F279Fe9BcbF32415f575B953d,
+            tokenDistributorV3: 0x0000000000000000000000000000000000000000,
             baseExternalURL: "https://base.party.app/party/"
         });
 
@@ -199,6 +204,8 @@ library LibDeployConstants {
             contributionRouterInitialFee: 0.00055 ether,
             tokenDistributorV1: 0x1CA2007a81F8A7491BB6E11D8e357FD810896454,
             tokenDistributorV2: 0x49a3caab781f711aD74C9d2F34c3cbD835d6A608,
+            // TODO: Add token distributor V3 address
+            tokenDistributorV3: 0x0000000000000000000000000000000000000000,
             baseExternalURL: "https://party.app/party/"
         });
 
@@ -234,6 +241,8 @@ library LibDeployConstants {
             contributionRouterInitialFee: 0.00055 ether,
             tokenDistributorV1: address(0),
             tokenDistributorV2: 0xf0560F963538017CAA5081D96f839FE5D265acCB,
+            // TODO: Add token distributor V3 address
+            tokenDistributorV3: 0x0000000000000000000000000000000000000000,
             baseExternalURL: "https://base.party.app/party/"
         });
 
@@ -268,6 +277,8 @@ library LibDeployConstants {
             contributionRouterInitialFee: 0.00055 ether,
             tokenDistributorV1: address(0),
             tokenDistributorV2: address(0),
+            // TODO: Add token distributor V3 address
+            tokenDistributorV3: 0x0000000000000000000000000000000000000000,
             baseExternalURL: "https://zora.party.app/party/"
         });
 
