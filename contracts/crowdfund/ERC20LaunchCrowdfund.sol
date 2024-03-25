@@ -36,7 +36,7 @@ contract ERC20LaunchCrowdfund is InitialETHCrowdfund {
 
     ERC20LaunchOptions public tokenOpts;
 
-    bool isTokenLaunched;
+    bool public isTokenLaunched;
 
     constructor(IGlobals globals, IERC20Creator erc20Creator) InitialETHCrowdfund(globals) {
         ERC20_CREATOR = erc20Creator;
@@ -118,8 +118,6 @@ contract ERC20LaunchCrowdfund is InitialETHCrowdfund {
     }
 
     function _finalize(uint96 totalContributions_) internal override {
-        Party _party = party;
-
         // Finalize the crowdfund.
         delete expiry;
 
@@ -132,7 +130,7 @@ contract ERC20LaunchCrowdfund is InitialETHCrowdfund {
 
         // Update the party's total voting power.
         uint96 newVotingPower = _calculateContributionToVotingPower(totalContributions_);
-        _party.increaseTotalVotingPower(newVotingPower);
+        party.increaseTotalVotingPower(newVotingPower);
 
         emit Finalized();
     }
