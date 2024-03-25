@@ -61,7 +61,7 @@ library LibDeployConstants {
             contributionRouterInitialFee: 0.00055 ether,
             tokenDistributorV1: 0x0000000000000000000000000000000000000000,
             tokenDistributorV2: 0x0000000000000000000000000000000000000000,
-            tokenDistributorV3: 0x0000000000000000000000000000000000000000,
+            tokenDistributorV3: 0xf0560F963538017CAA5081D96f839FE5D265acCB,
             baseExternalURL: "https://party.app/party/"
         });
 
@@ -96,80 +96,8 @@ library LibDeployConstants {
             contributionRouterInitialFee: 0.00055 ether,
             tokenDistributorV1: 0x0000000000000000000000000000000000000000,
             tokenDistributorV2: 0x0000000000000000000000000000000000000000,
-            tokenDistributorV3: 0x0000000000000000000000000000000000000000,
+            tokenDistributorV3: 0x2d451d8317feF4f3fB8798815520202195FE8C7C,
             baseExternalURL: "https://party.app/party/"
-        });
-
-        return deployConstants;
-    }
-
-    function goerli(address multisig) internal pure returns (DeployConstants memory) {
-        address[] memory allowedERC20SwapOperatorTargets = new address[](1);
-        allowedERC20SwapOperatorTargets[0] = 0xF91bB752490473B8342a3E964E855b9f9a2A668e; // 0x Swap Aggregator
-
-        DeployConstants memory deployConstants = DeployConstants({
-            seaportExchangeAddress: 0x00000000000000ADc04C56Bf30aC9d3c0aAF14dC,
-            osZoraAuctionDuration: 2 minutes,
-            osZoraAuctionTimeout: 2 minutes,
-            osMinOrderDuration: 2 minutes,
-            osMaxOrderDuration: 14 days,
-            zoraMinAuctionDuration: 2 minutes,
-            zoraMaxAuctionDuration: 10 days,
-            zoraMaxAuctionTimeout: 7 days,
-            minCancelDelay: 5 minutes,
-            maxCancelDelay: 1 days,
-            distributorEmergencyActionAllowedDuration: 365 days,
-            partyDaoMultisig: multisig,
-            allowedERC20SwapOperatorTargets: allowedERC20SwapOperatorTargets,
-            osZone: 0x0000000000000000000000000000000000000000,
-            osConduitKey: 0xf984c55ca75735630c1c27d3d06969c1aa6af1df86d22ddc0e3a978ad6138e9f,
-            osConduitController: 0x00000000F9490004C11Cef243f5400493c00Ad63,
-            fractionalVaultFactory: 0x014850E83d9D0D1BB0c8624035F09626b967B81c,
-            nounsAuctionHouse: 0x7295e70f2B26986Ba108bD1Bf9E349a181F4a6Ea,
-            zoraReserveAuctionCoreEth: 0x2506D9F5A2b0E1A2619bCCe01CD3e7C289A13163,
-            networkName: "goerli",
-            deployedNounsMarketWrapper: 0x0000000000000000000000000000000000000000,
-            contributionRouterInitialFee: 0.00055 ether,
-            tokenDistributorV1: 0xE6F58B31344404E3479d81fB8f9dD592feB37965,
-            tokenDistributorV2: 0x8714EA9C2BC5a8f2d26D7c3F86558331c16145B5,
-            tokenDistributorV3: 0x0000000000000000000000000000000000000000,
-            baseExternalURL: "https://party.app/party/"
-        });
-
-        return deployConstants;
-    }
-
-    function baseGoerli(address multisig) internal pure returns (DeployConstants memory) {
-        address[] memory allowedERC20SwapOperatorTargets = new address[](1);
-        allowedERC20SwapOperatorTargets[0] = 0xF91bB752490473B8342a3E964E855b9f9a2A668e; // 0x Swap Aggregator
-
-        DeployConstants memory deployConstants = DeployConstants({
-            seaportExchangeAddress: 0x00000000000000ADc04C56Bf30aC9d3c0aAF14dC,
-            osZoraAuctionDuration: 2 minutes,
-            osZoraAuctionTimeout: 2 minutes,
-            osMinOrderDuration: 2 minutes,
-            osMaxOrderDuration: 14 days,
-            zoraMinAuctionDuration: 2 minutes,
-            zoraMaxAuctionDuration: 10 days,
-            zoraMaxAuctionTimeout: 7 days,
-            minCancelDelay: 5 minutes,
-            maxCancelDelay: 1 days,
-            distributorEmergencyActionAllowedDuration: 365 days,
-            partyDaoMultisig: multisig,
-            allowedERC20SwapOperatorTargets: allowedERC20SwapOperatorTargets,
-            osZone: 0x0000000000000000000000000000000000000000,
-            osConduitKey: 0xf984c55ca75735630c1c27d3d06969c1aa6af1df86d22ddc0e3a978ad6138e9f,
-            osConduitController: 0x00000000F9490004C11Cef243f5400493c00Ad63,
-            fractionalVaultFactory: 0x0000000000000000000000000000000000000000,
-            nounsAuctionHouse: 0x0000000000000000000000000000000000000000,
-            zoraReserveAuctionCoreEth: 0x0000000000000000000000000000000000000000,
-            networkName: "base-goerli",
-            deployedNounsMarketWrapper: 0x0000000000000000000000000000000000000000,
-            contributionRouterInitialFee: 0.00055 ether,
-            tokenDistributorV1: address(0),
-            tokenDistributorV2: 0x55D2463cf5b6743F279Fe9BcbF32415f575B953d,
-            tokenDistributorV3: 0x0000000000000000000000000000000000000000,
-            baseExternalURL: "https://base.party.app/party/"
         });
 
         return deployConstants;
@@ -204,8 +132,7 @@ library LibDeployConstants {
             contributionRouterInitialFee: 0.00055 ether,
             tokenDistributorV1: 0x1CA2007a81F8A7491BB6E11D8e357FD810896454,
             tokenDistributorV2: 0x49a3caab781f711aD74C9d2F34c3cbD835d6A608,
-            // TODO: Add token distributor V3 address
-            tokenDistributorV3: 0x0000000000000000000000000000000000000000,
+            tokenDistributorV3: 0x0b7b86DCEAa8015CeD8F625d3b7A961b31fB05FE,
             baseExternalURL: "https://party.app/party/"
         });
 
@@ -241,8 +168,7 @@ library LibDeployConstants {
             contributionRouterInitialFee: 0.00055 ether,
             tokenDistributorV1: address(0),
             tokenDistributorV2: 0xf0560F963538017CAA5081D96f839FE5D265acCB,
-            // TODO: Add token distributor V3 address
-            tokenDistributorV3: 0x0000000000000000000000000000000000000000,
+            tokenDistributorV3: 0x65778953D291DD1e3a97c6b4d8BEea188B650077,
             baseExternalURL: "https://base.party.app/party/"
         });
 
@@ -277,8 +203,7 @@ library LibDeployConstants {
             contributionRouterInitialFee: 0.00055 ether,
             tokenDistributorV1: address(0),
             tokenDistributorV2: address(0),
-            // TODO: Add token distributor V3 address
-            tokenDistributorV3: 0x0000000000000000000000000000000000000000,
+            tokenDistributorV3: 0x5B19016a409a888326b05949391EB8797dD5F75B,
             baseExternalURL: "https://zora.party.app/party/"
         });
 
