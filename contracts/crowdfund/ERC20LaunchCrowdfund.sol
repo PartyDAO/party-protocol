@@ -5,7 +5,7 @@ import { InitialETHCrowdfund } from "./InitialETHCrowdfund.sol";
 import { Party } from "../party/Party.sol";
 import { MetadataProvider } from "../renderers/MetadataProvider.sol";
 import { IGlobals } from "../globals/IGlobals.sol";
-import { IERC20Creator, TokenConfiguration } from "../utils/IERC20Creator.sol";
+import { IERC20Creator, TokenConfiguration, ERC20 } from "../utils/IERC20Creator.sol";
 
 /// @notice A crowdfund for launching ERC20 tokens.
 ///         Unlike other crowdfunds that are started for the purpose of
@@ -78,7 +78,7 @@ contract ERC20LaunchCrowdfund is InitialETHCrowdfund {
     }
 
     /// @notice Launch the ERC20 token for the Party.
-    function launchToken() public {
+    function launchToken() public returns (ERC20 token) {
         if (isTokenLaunched) revert TokenAlreadyLaunched();
 
         CrowdfundLifecycle lc = getCrowdfundLifecycle();
@@ -97,7 +97,7 @@ contract ERC20LaunchCrowdfund is InitialETHCrowdfund {
 
         // Create the ERC20 token.
         ERC20LaunchOptions memory _tokenOpts = tokenOpts;
-        ERC20_CREATOR.createToken{ value: totalContributions_ }(
+        token = ERC20_CREATOR.createToken{ value: totalContributions_ }(
             address(party),
             _tokenOpts.name,
             _tokenOpts.symbol,

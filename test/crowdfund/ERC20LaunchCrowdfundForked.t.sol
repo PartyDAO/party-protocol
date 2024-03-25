@@ -18,6 +18,7 @@ contract ERC20LaunchCrowdfundForkedTest is SetupPartyHelper {
     function setUp() public override onlyForked {
         super.setUp();
 
+        // Existing addresses on Sepolia
         creator = new ERC20Creator(
             ITokenDistributor(address(tokenDistributor)),
             IUniswapV2Router02(0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D),
@@ -74,6 +75,7 @@ contract ERC20LaunchCrowdfundForkedTest is SetupPartyHelper {
         vm.prank(contributor);
         vm.recordLogs();
         launchCrowdfund.contribute{ value: 1 ether }(contributor, "");
+        launchCrowdfund.launchToken();
         Vm.Log[] memory logs = vm.getRecordedLogs();
 
         uint256 balanceBefore = address(this).balance;
@@ -226,6 +228,171 @@ contract ERC20LaunchCrowdfundForkedTest is SetupPartyHelper {
             tokenOpts,
             ""
         );
+    }
+
+    function test_ERC20LaunchCrowdfund_canClaimAsLastMember() public onlyForked {
+        ERC20LaunchCrowdfund.InitialETHCrowdfundOptions memory crowdfundOpts;
+        ERC20LaunchCrowdfund.ETHPartyOptions memory partyOpts;
+        ERC20LaunchCrowdfund.ERC20LaunchOptions memory tokenOpts;
+
+        partyOpts.name = "Test Party";
+        partyOpts.symbol = "TEST";
+        partyOpts.governanceOpts.partyImpl = partyImpl;
+        partyOpts.governanceOpts.partyFactory = partyFactory;
+        partyOpts.governanceOpts.voteDuration = 7 days;
+        partyOpts.governanceOpts.executionDelay = 1 days;
+        partyOpts.governanceOpts.passThresholdBps = 0.5e4;
+        partyOpts.governanceOpts.hosts = new address[](1);
+        partyOpts.governanceOpts.hosts[0] = address(this);
+
+        crowdfundOpts.maxTotalContributions = 1 ether;
+        crowdfundOpts.exchangeRate = 1 ether;
+        crowdfundOpts.minContribution = 0.001 ether;
+        crowdfundOpts.maxContribution = 1 ether;
+        crowdfundOpts.duration = 1 days;
+        crowdfundOpts.fundingSplitRecipient = payable(address(this));
+        crowdfundOpts.fundingSplitBps = 0.1e4;
+
+        tokenOpts.name = "Test ERC20";
+        tokenOpts.symbol = "TEST";
+        tokenOpts.totalSupply = 1e6 ether;
+        tokenOpts.recipient = address(this);
+        tokenOpts.numTokensForDistribution = 5e4 ether;
+        tokenOpts.numTokensForRecipient = 5e4 ether;
+        tokenOpts.numTokensForLP = 9e5 ether;
+
+        ERC20LaunchCrowdfund launchCrowdfund = crowdfundFactory.createERC20LaunchCrowdfund(
+            launchCrowdfundImpl,
+            crowdfundOpts,
+            partyOpts,
+            tokenOpts,
+            ""
+        );
+
+        address contributor1 = _randomAddress();
+        vm.deal(contributor1, 2 ether);
+        vm.prank(contributor1);
+        vm.recordLogs();
+        launchCrowdfund.contribute{ value: 0.5 ether }(contributor1, "");
+        address contributor2 = _randomAddress();
+        vm.deal(contributor2, 2 ether);
+        vm.prank(contributor2);
+        vm.recordLogs();
+        launchCrowdfund.contribute{ value: 0.5 ether }(contributor2, "");
+        launchCrowdfund.launchToken();
+        Vm.Log[] memory logs = vm.getRecordedLogs();
+
+        uint256 balanceBefore = address(this).balance;
+        launchCrowdfund.sendFundingSplit();
+        assertEq(address(this).balance, balanceBefore + 0.1 ether);
+
+        ITokenDistributor.DistributionInfo memory info;
+        for (uint256 i = 0; i < logs.length; i++) {
+            if (logs[i].emitter != address(tokenDistributor)) {
+                continue;
+            }
+            if (
+                logs[i].topics[0] !=
+                keccak256(
+                    "DistributionCreated(address,(uint8,uint256,address,address,address,uint128,uint128,uint96))"
+                )
+            ) {
+                continue;
+            }
+            info = abi.decode(logs[i].data, (ITokenDistributor.DistributionInfo));
+        }
+
+        Party launchParty = launchCrowdfund.party();
+
+        // Increase total voting power so that maxTokenId check in
+        // TokenDistributor is triggered
+        vm.prank(address(launchCrowdfund));
+        launchParty.increaseTotalVotingPower(1 ether);
+
+        // Claim as last contributor
+        vm.prank(contributor2);
+        bytes memory callData = abi.encodeCall(ITokenDistributor.claim, (info, 2));
+        address(tokenDistributor).call(callData);
+
+        assertEq(IERC20(info.token).balanceOf(contributor2), 2.5e4 ether);
+    }
+
+    function test_ERC20LaunchCrowdfund_finalize() public {
+        ERC20LaunchCrowdfund.InitialETHCrowdfundOptions memory crowdfundOpts;
+        ERC20LaunchCrowdfund.ETHPartyOptions memory partyOpts;
+        ERC20LaunchCrowdfund.ERC20LaunchOptions memory tokenOpts;
+
+        partyOpts.name = "Test Party";
+        partyOpts.symbol = "TEST";
+        partyOpts.governanceOpts.partyImpl = partyImpl;
+        partyOpts.governanceOpts.partyFactory = partyFactory;
+        partyOpts.governanceOpts.voteDuration = 7 days;
+        partyOpts.governanceOpts.executionDelay = 1 days;
+        partyOpts.governanceOpts.passThresholdBps = 0.5e4;
+        partyOpts.governanceOpts.hosts = new address[](1);
+        partyOpts.governanceOpts.hosts[0] = address(this);
+
+        crowdfundOpts.maxTotalContributions = 1 ether;
+        crowdfundOpts.exchangeRate = 1 ether;
+        crowdfundOpts.minContribution = 0.001 ether;
+        crowdfundOpts.maxContribution = 1 ether;
+        crowdfundOpts.duration = 1 days;
+        crowdfundOpts.fundingSplitRecipient = payable(address(this));
+        crowdfundOpts.fundingSplitBps = 0.1e4;
+
+        tokenOpts.name = "Test ERC20";
+        tokenOpts.symbol = "TEST";
+        tokenOpts.totalSupply = 1e6 ether;
+        tokenOpts.recipient = address(this);
+        tokenOpts.numTokensForDistribution = 5e4 ether;
+        tokenOpts.numTokensForRecipient = 5e4 ether;
+        tokenOpts.numTokensForLP = 9e5 ether;
+
+        ERC20LaunchCrowdfund launchCrowdfund = crowdfundFactory.createERC20LaunchCrowdfund(
+            launchCrowdfundImpl,
+            crowdfundOpts,
+            partyOpts,
+            tokenOpts,
+            ""
+        );
+
+        address contributor = _randomAddress();
+        vm.deal(contributor, 2 ether);
+        vm.prank(contributor);
+        vm.recordLogs();
+        launchCrowdfund.contribute{ value: 0.5 ether }(contributor, "");
+        skip(crowdfundOpts.duration + 1);
+        launchCrowdfund.finalize();
+
+        Vm.Log[] memory logs = vm.getRecordedLogs();
+
+        uint256 balanceBefore = address(this).balance;
+        launchCrowdfund.sendFundingSplit();
+        assertEq(address(this).balance, balanceBefore + 0.05 ether);
+
+        ITokenDistributor.DistributionInfo memory info;
+        for (uint256 i = 0; i < logs.length; i++) {
+            if (logs[i].emitter != address(tokenDistributor)) {
+                continue;
+            }
+            if (
+                logs[i].topics[0] !=
+                keccak256(
+                    "DistributionCreated(address,(uint8,uint256,address,address,address,uint128,uint128,uint96))"
+                )
+            ) {
+                continue;
+            }
+            info = abi.decode(logs[i].data, (ITokenDistributor.DistributionInfo));
+        }
+
+        vm.prank(contributor);
+
+        bytes memory callData = abi.encodeCall(ITokenDistributor.claim, (info, 1));
+        address(tokenDistributor).call(callData);
+
+        assertEq(IERC20(info.token).balanceOf(contributor), 5e4 ether);
+        assertEq(IERC20(info.token).balanceOf(address(this)), 5e4 ether);
     }
 
     receive() external payable {}
