@@ -47,6 +47,7 @@ contract ERC20LaunchCrowdfundForkedTest is SetupPartyHelper {
         partyOpts.governanceOpts.hosts[0] = address(this);
 
         crowdfundOpts.maxTotalContributions = 1 ether;
+        crowdfundOpts.minTotalContributions = 0.001 ether;
         crowdfundOpts.exchangeRate = 1 ether;
         crowdfundOpts.minContribution = 0.001 ether;
         crowdfundOpts.maxContribution = 1 ether;
@@ -123,6 +124,7 @@ contract ERC20LaunchCrowdfundForkedTest is SetupPartyHelper {
         partyOpts.governanceOpts.hosts[0] = address(this);
 
         crowdfundOpts.maxTotalContributions = 1 ether;
+        crowdfundOpts.minTotalContributions = 0.001 ether;
         crowdfundOpts.exchangeRate = 1 ether;
         crowdfundOpts.minContribution = 0.001 ether;
         crowdfundOpts.maxContribution = 1 ether;
@@ -164,6 +166,7 @@ contract ERC20LaunchCrowdfundForkedTest is SetupPartyHelper {
         partyOpts.governanceOpts.hosts[0] = address(this);
 
         crowdfundOpts.maxTotalContributions = 1 ether;
+        crowdfundOpts.minTotalContributions = 0.001 ether;
         crowdfundOpts.exchangeRate = 1 ether;
         crowdfundOpts.minContribution = 0.001 ether;
         crowdfundOpts.maxContribution = 1 ether;
@@ -205,6 +208,7 @@ contract ERC20LaunchCrowdfundForkedTest is SetupPartyHelper {
         partyOpts.governanceOpts.hosts[0] = address(this);
 
         crowdfundOpts.maxTotalContributions = 1 ether;
+        crowdfundOpts.minTotalContributions = 0.001 ether;
         crowdfundOpts.exchangeRate = 1 ether;
         crowdfundOpts.minContribution = 0.001 ether;
         crowdfundOpts.maxContribution = 1 ether;
@@ -246,6 +250,7 @@ contract ERC20LaunchCrowdfundForkedTest is SetupPartyHelper {
         partyOpts.governanceOpts.hosts[0] = address(this);
 
         crowdfundOpts.maxTotalContributions = 1 ether;
+        crowdfundOpts.minTotalContributions = 0.001 ether;
         crowdfundOpts.exchangeRate = 1 ether;
         crowdfundOpts.minContribution = 0.001 ether;
         crowdfundOpts.maxContribution = 1 ether;
@@ -333,6 +338,7 @@ contract ERC20LaunchCrowdfundForkedTest is SetupPartyHelper {
         partyOpts.governanceOpts.hosts[0] = address(this);
 
         crowdfundOpts.maxTotalContributions = 1 ether;
+        crowdfundOpts.minTotalContributions = 0.001 ether;
         crowdfundOpts.exchangeRate = 1 ether;
         crowdfundOpts.minContribution = 0.001 ether;
         crowdfundOpts.maxContribution = 1 ether;
