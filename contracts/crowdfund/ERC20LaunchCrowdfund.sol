@@ -56,7 +56,8 @@ contract ERC20LaunchCrowdfund is InitialETHCrowdfund {
             _tokenOpts.numTokensForDistribution +
                 _tokenOpts.numTokensForRecipient +
                 _tokenOpts.numTokensForLP !=
-            _tokenOpts.totalSupply
+            _tokenOpts.totalSupply ||
+            _tokenOpts.totalSupply > type(uint112).max
         ) {
             revert InvalidTokenDistribution();
         }
