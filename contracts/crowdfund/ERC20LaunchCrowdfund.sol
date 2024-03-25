@@ -30,10 +30,13 @@ contract ERC20LaunchCrowdfund is InitialETHCrowdfund {
     }
 
     error InvalidTokenDistribution();
+    error TokenAlreadyLaunched();
 
     IERC20Creator public immutable ERC20_CREATOR;
 
     ERC20LaunchOptions public tokenOpts;
+
+    bool isTokenLaunched;
 
     constructor(IGlobals globals, IERC20Creator erc20Creator) InitialETHCrowdfund(globals) {
         ERC20_CREATOR = erc20Creator;
@@ -74,6 +77,46 @@ contract ERC20LaunchCrowdfund is InitialETHCrowdfund {
         );
     }
 
+    /// @notice Launch the ERC20 token for the Party.
+    function launchToken() public {
+        if (isTokenLaunched) revert TokenAlreadyLaunched();
+
+        CrowdfundLifecycle lc = getCrowdfundLifecycle();
+        if (lc != CrowdfundLifecycle.Finalized) revert WrongLifecycleError(lc);
+
+        isTokenLaunched = true;
+
+        // Update the party's total voting power
+        uint96 totalContributions_ = totalContributions;
+
+        uint16 fundingSplitBps_ = fundingSplitBps;
+        if (fundingSplitBps_ > 0) {
+            // Assuming fundingSplitBps_ <= 1e4, this cannot overflow uint96
+            totalContributions_ -= uint96((uint256(totalContributions_) * fundingSplitBps_) / 1e4);
+        }
+
+        // Create the ERC20 token.
+        ERC20LaunchOptions memory _tokenOpts = tokenOpts;
+        ERC20_CREATOR.createToken{ value: totalContributions_ }(
+            address(party),
+            _tokenOpts.name,
+            _tokenOpts.symbol,
+            TokenConfiguration({
+                totalSupply: _tokenOpts.totalSupply,
+                numTokensForDistribution: _tokenOpts.numTokensForDistribution,
+                numTokensForRecipient: _tokenOpts.numTokensForRecipient,
+                numTokensForLP: _tokenOpts.numTokensForLP
+            }),
+            _tokenOpts.recipient
+        );
+    }
+
+    /// @notice Finalize the crowdfund and launch the ERC20 token.
+    function finalize() public override {
+        super.finalize();
+        launchToken();
+    }
+
     function _finalize(uint96 totalContributions_) internal override {
         Party _party = party;
 
@@ -92,21 +135,5 @@ contract ERC20LaunchCrowdfund is InitialETHCrowdfund {
         _party.increaseTotalVotingPower(newVotingPower);
 
         emit Finalized();
-
-        ERC20LaunchOptions memory _tokenOpts = tokenOpts;
-
-        // Create the ERC20 token.
-        ERC20_CREATOR.createToken{ value: totalContributions_ }(
-            address(_party),
-            _tokenOpts.name,
-            _tokenOpts.symbol,
-            TokenConfiguration({
-                totalSupply: _tokenOpts.totalSupply,
-                numTokensForDistribution: _tokenOpts.numTokensForDistribution,
-                numTokensForRecipient: _tokenOpts.numTokensForRecipient,
-                numTokensForLP: _tokenOpts.numTokensForLP
-            }),
-            _tokenOpts.recipient
-        );
     }
 }

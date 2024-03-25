@@ -325,7 +325,8 @@ abstract contract ETHCrowdfundBase is Implementation {
         return contribution;
     }
 
-    function finalize() external {
+    /// @notice Finalize the crowdfund and transfer the funds to the Party.
+    function finalize() public virtual {
         uint96 totalContributions_ = totalContributions;
 
         // Check that the crowdfund is not already finalized.
