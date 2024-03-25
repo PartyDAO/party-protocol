@@ -7,10 +7,10 @@ import { MetadataProvider } from "../renderers/MetadataProvider.sol";
 import { IGlobals } from "../globals/IGlobals.sol";
 import { IERC20Creator, TokenConfiguration } from "../utils/IERC20Creator.sol";
 
-/// @notice A crowdfund for raising the initial funds for new parties.
+/// @notice A crowdfund for launching ERC20 tokens.
 ///         Unlike other crowdfunds that are started for the purpose of
-///         acquiring NFT(s), this crowdfund simply bootstraps a party with
-///         funds and lets its members coordinate on what to do with it after.
+///         acquiring NFT(s), this crowdfund bootstraps an ERC20 token
+///         and sends a share of the total supply to the new party.
 contract ERC20LaunchCrowdfund is InitialETHCrowdfund {
     struct ERC20LaunchOptions {
         // The name of the ERC20 token launched.
