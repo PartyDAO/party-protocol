@@ -85,6 +85,10 @@ const generateStandardJson = (
     chain,
   )} --optimizer-runs ${optimizerRuns} --constructor-args '${constructorArgsEncoded}' --compiler-version ${compilerVersion}`;
 
+  if (chain === "zora") {
+    cmd += " --verifier-url 'https://api.routescan.io/v2/network/mainnet/evm/7777777/etherscan'";
+  }
+
   if (libraries.length > 0) {
     cmd += ` --libraries ${libraries.join(" ")}`;
   }
@@ -326,7 +330,10 @@ export const verify = async (chain: string, skip: boolean) => {
       const contractName = result["contract_name"];
       const guid = result["guid"];
 
-      const cmd = `forge verify-check ${guid} --chain-id ${getChainId(chain)}`;
+      let cmd = `forge verify-check ${guid} --chain-id ${getChainId(chain)}`;
+      if (apiKey) {
+        cmd += ` --etherscan-api-key ${apiKey}`;
+      }
 
       console.log();
       console.log(`Checking verification result for ${contractName}...`);
