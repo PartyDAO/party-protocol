@@ -330,6 +330,7 @@ abstract contract Deploy {
             IFont(address(pixeldroidConsoleFont)),
             deployConstants.tokenDistributorV1,
             deployConstants.tokenDistributorV2,
+            deployConstants.tokenDistributorV3,
             deployConstants.baseExternalURL
         );
         _trackDeployerGasAfter();

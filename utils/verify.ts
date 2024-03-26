@@ -10,8 +10,6 @@ export const getBlockExplorerApiEndpoint = (chain: string) => {
     return "https://api.etherscan.io/api";
   } else if (chain === "base") {
     return "https://api.basescan.org/api";
-  } else if (chain === "base-goerli") {
-    return "https://api-goerli.basescan.org/api";
   } else if (chain === "zora") {
     return "https://api.routescan.io/v2/network/mainnet/evm/7777777/etherscan/api";
   } else if (chain === "base-sepolia") {
@@ -216,12 +214,8 @@ const getContractNames = (chain: string, libraries: string[]) => {
 const getChainId = (chain: string) => {
   if (chain === "mainnet") {
     return 1;
-  } else if (chain === "goerli") {
-    return 5;
   } else if (chain === "base") {
     return 8453;
-  } else if (chain === "base-goerli") {
-    return 84531;
   } else if (chain === "zora") {
     return 7777777;
   } else if (chain === "sepolia") {

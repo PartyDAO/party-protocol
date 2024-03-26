@@ -76,8 +76,10 @@ contract PartyNFTRenderer is RendererBase {
     IMetadataRegistry1_1 constant OLD_METADATA_REGISTRY =
         IMetadataRegistry1_1(0x175487875F0318EdbAB54BBA442fF53b36e96015);
     /// @notice The old token distributor contract address.
+    /// @dev Cannot store immutable arrays...
     address immutable TOKEN_DISTRIBUTOR_V1;
     address immutable TOKEN_DISTRIBUTOR_V2;
+    address immutable TOKEN_DISTRIBUTOR_V3;
 
     /// @notice The base url for external URLs. External URL is BASE_EXTERNAL_URL + PARTY_ADDRESS
     /// @dev First byte is the size of the data, the rest is the data (starting from MSB)
@@ -89,11 +91,13 @@ contract PartyNFTRenderer is RendererBase {
         IFont font,
         address tokenDistributionV1,
         address tokenDistributionV2,
+        address tokenDistributionV3,
         string memory baseExternalURL
     ) RendererBase(globals, rendererStorage, font) {
         IMPL = address(this);
         TOKEN_DISTRIBUTOR_V1 = tokenDistributionV1;
         TOKEN_DISTRIBUTOR_V2 = tokenDistributionV2;
+        TOKEN_DISTRIBUTOR_V3 = tokenDistributionV3;
 
         bytes memory baseExternalURLBytes = bytes(baseExternalURL);
         if (baseExternalURLBytes.length > 31) {
@@ -662,11 +666,14 @@ contract PartyNFTRenderer is RendererBase {
         if (address(this) == IMPL) return false;
 
         // There will only be one distributor if old token distributor is not set
-        TokenDistributor[] memory distributors = new TokenDistributor[](3);
+        TokenDistributor[] memory distributors = new TokenDistributor[](4);
         distributors[0] = TokenDistributor(
             _GLOBALS.getAddress(LibGlobals.GLOBAL_TOKEN_DISTRIBUTOR)
         );
         uint256 l = 1;
+        if (TOKEN_DISTRIBUTOR_V3 != address(0)) {
+            distributors[l++] = TokenDistributor(TOKEN_DISTRIBUTOR_V3);
+        }
         if (TOKEN_DISTRIBUTOR_V2 != address(0)) {
             distributors[l++] = TokenDistributor(TOKEN_DISTRIBUTOR_V2);
         }

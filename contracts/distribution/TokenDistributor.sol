@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0
 pragma solidity 0.8.20;
 
+import "openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "../globals/IGlobals.sol";
 import "../globals/LibGlobals.sol";
 import "../tokens/IERC20.sol";
@@ -12,7 +13,7 @@ import "../utils/LibSafeCast.sol";
 import "./ITokenDistributor.sol";
 
 /// @notice Creates token distributions for parties.
-contract TokenDistributor is ITokenDistributor {
+contract TokenDistributor is ITokenDistributor, ReentrancyGuard {
     using LibAddress for address payable;
     using LibERC20Compat for IERC20;
     using LibRawResult for bytes;
@@ -105,7 +106,7 @@ contract TokenDistributor is ITokenDistributor {
         Party party,
         address payable feeRecipient,
         uint16 feeBps
-    ) external payable returns (DistributionInfo memory info) {
+    ) external payable nonReentrant returns (DistributionInfo memory info) {
         info = _createDistribution(
             CreateDistributionArgs({
                 party: party,
@@ -124,7 +125,7 @@ contract TokenDistributor is ITokenDistributor {
         Party party,
         address payable feeRecipient,
         uint16 feeBps
-    ) external returns (DistributionInfo memory info) {
+    ) external nonReentrant returns (DistributionInfo memory info) {
         info = _createDistribution(
             CreateDistributionArgs({
                 party: party,
@@ -141,7 +142,7 @@ contract TokenDistributor is ITokenDistributor {
     function claim(
         DistributionInfo calldata info,
         uint256 partyTokenId
-    ) public returns (uint128 amountClaimed) {
+    ) public nonReentrant returns (uint128 amountClaimed) {
         // Caller must own the party token.
         {
             address ownerOfPartyToken = info.party.ownerOf(partyTokenId);
@@ -185,7 +186,10 @@ contract TokenDistributor is ITokenDistributor {
     }
 
     /// @inheritdoc ITokenDistributor
-    function claimFee(DistributionInfo calldata info, address payable recipient) public {
+    function claimFee(
+        DistributionInfo calldata info,
+        address payable recipient
+    ) public nonReentrant {
         // DistributionInfo must be correct for this distribution ID.
         DistributionState storage state = _distributionStates[info.party][info.distributionId];
         if (state.distributionHash != _getDistributionHash(info)) {
@@ -364,25 +368,13 @@ contract TokenDistributor is ITokenDistributor {
         uint256 amount
     ) private {
         bytes32 balanceId = _getBalanceId(tokenType, token);
-        // Reduce stored token balance.
-        uint256 storedBalance = _storedBalances[balanceId] - amount;
-        // Temporarily set to max as a reentrancy guard. An interesing attack
-        // could occur if we didn't do this where an attacker could `claim()` and
-        // reenter upon transfer (e.g. in the `tokensToSend` hook of an ERC777) to
-        // `createERC20Distribution()`. Since the `balanceOf(address(this))`
-        // would not of been updated yet, the supply would be miscalculated and
-        // the attacker would create a distribution that essentially steals from
-        // the last distribution they were claiming from. Here, we prevent that
-        // by causing an arithmetic underflow with the supply calculation if
-        // this were to be attempted.
-        _storedBalances[balanceId] = type(uint256).max;
+        _storedBalances[balanceId] -= amount;
         if (tokenType == TokenType.Native) {
             recipient.transferEth(amount);
         } else {
             assert(tokenType == TokenType.Erc20);
             IERC20(token).compatTransfer(recipient, amount);
         }
-        _storedBalances[balanceId] = storedBalance;
     }
 
     function _getDistributionHash(
