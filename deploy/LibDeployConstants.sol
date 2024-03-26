@@ -132,7 +132,7 @@ library LibDeployConstants {
             contributionRouterInitialFee: 0.00055 ether,
             tokenDistributorV1: 0x1CA2007a81F8A7491BB6E11D8e357FD810896454,
             tokenDistributorV2: 0x49a3caab781f711aD74C9d2F34c3cbD835d6A608,
-            tokenDistributorV3: 0x8723b021b008dd370fbec1c791c390a2bc957654,
+            tokenDistributorV3: 0x8723B021b008dD370FBEc1C791C390A2BC957654,
             baseExternalURL: "https://party.app/party/"
         });
 
