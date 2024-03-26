@@ -12,6 +12,7 @@ import { CollectionBuyCrowdfund } from "./CollectionBuyCrowdfund.sol";
 import { RollingAuctionCrowdfund } from "./RollingAuctionCrowdfund.sol";
 import { CollectionBatchBuyCrowdfund } from "./CollectionBatchBuyCrowdfund.sol";
 import { InitialETHCrowdfund, ETHCrowdfundBase } from "./InitialETHCrowdfund.sol";
+import { ERC20LaunchCrowdfund } from "./ERC20LaunchCrowdfund.sol";
 import { MetadataProvider } from "../renderers/MetadataProvider.sol";
 import { Party } from "../party/Party.sol";
 
@@ -52,6 +53,14 @@ contract CrowdfundFactory {
         Party indexed party,
         InitialETHCrowdfund.InitialETHCrowdfundOptions crowdfundOpts,
         InitialETHCrowdfund.ETHPartyOptions partyOpts
+    );
+    event ERC20LaunchCrowdfundCreated(
+        address indexed creator,
+        ERC20LaunchCrowdfund indexed crowdfund,
+        Party indexed party,
+        ERC20LaunchCrowdfund.InitialETHCrowdfundOptions crowdfundOpts,
+        ERC20LaunchCrowdfund.ETHPartyOptions partyOpts,
+        ERC20LaunchCrowdfund.ERC20LaunchOptions tokenOpts
     );
 
     /// @notice Create a new crowdfund to purchase a specific NFT (i.e., with a
@@ -197,6 +206,57 @@ contract CrowdfundFactory {
             customMetadata
         );
         emit InitialETHCrowdfundCreated(msg.sender, inst, inst.party(), crowdfundOpts, partyOpts);
+    }
+
+    function createERC20LaunchCrowdfund(
+        ERC20LaunchCrowdfund crowdfundImpl,
+        ERC20LaunchCrowdfund.InitialETHCrowdfundOptions memory crowdfundOpts,
+        ERC20LaunchCrowdfund.ETHPartyOptions memory partyOpts,
+        ERC20LaunchCrowdfund.ERC20LaunchOptions memory tokenOpts,
+        bytes memory createGateCallData
+    ) external payable returns (ERC20LaunchCrowdfund inst) {
+        return
+            createERC20LaunchCrowdfundWithMetadata(
+                crowdfundImpl,
+                crowdfundOpts,
+                partyOpts,
+                tokenOpts,
+                MetadataProvider(address(0)),
+                "",
+                createGateCallData
+            );
+    }
+
+    function createERC20LaunchCrowdfundWithMetadata(
+        ERC20LaunchCrowdfund crowdfundImpl,
+        ERC20LaunchCrowdfund.InitialETHCrowdfundOptions memory crowdfundOpts,
+        ERC20LaunchCrowdfund.ETHPartyOptions memory partyOpts,
+        ERC20LaunchCrowdfund.ERC20LaunchOptions memory tokenOpts,
+        MetadataProvider customMetadataProvider,
+        bytes memory customMetadata,
+        bytes memory createGateCallData
+    ) public payable returns (ERC20LaunchCrowdfund inst) {
+        crowdfundOpts.gateKeeperId = _prepareGate(
+            crowdfundOpts.gateKeeper,
+            crowdfundOpts.gateKeeperId,
+            createGateCallData
+        );
+        inst = ERC20LaunchCrowdfund(address(crowdfundImpl).clone());
+        inst.initialize{ value: msg.value }(
+            crowdfundOpts,
+            partyOpts,
+            tokenOpts,
+            customMetadataProvider,
+            customMetadata
+        );
+        emit ERC20LaunchCrowdfundCreated(
+            msg.sender,
+            inst,
+            inst.party(),
+            crowdfundOpts,
+            partyOpts,
+            tokenOpts
+        );
     }
 
     function _prepareGate(

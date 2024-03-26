@@ -10,3 +10,12 @@
 [submodule "lib/party-addresses"]
 	path = lib/party-addresses
 	url = https://github.com/PartyDAO/party-addresses
+[submodule "lib/v2-periphery"]
+	path = lib/v2-periphery
+	url = https://github.com/Uniswap/v2-periphery
+[submodule "lib/v2-core"]
+	path = lib/v2-core
+	url = https://github.com/Uniswap/v2-core
+[submodule "lib/erc20-creator"]
+	path = lib/erc20-creator
+	url = https://github.com/PartyDAO/erc20-creator

@@ -293,7 +293,7 @@ abstract contract ETHCrowdfundBase is Implementation {
 
     function _calculateContributionToVotingPower(
         uint96 contribution
-    ) private view returns (uint96) {
+    ) internal view returns (uint96) {
         return contribution.mulDivDown(exchangeRate, 1e18).safeCastUint256ToUint96();
     }
 
@@ -325,7 +325,8 @@ abstract contract ETHCrowdfundBase is Implementation {
         return contribution;
     }
 
-    function finalize() external {
+    /// @notice Finalize the crowdfund and transfer the funds to the Party.
+    function finalize() public virtual {
         uint96 totalContributions_ = totalContributions;
 
         // Check that the crowdfund is not already finalized.
@@ -351,7 +352,7 @@ abstract contract ETHCrowdfundBase is Implementation {
         _finalize(totalContributions_);
     }
 
-    function _finalize(uint96 totalContributions_) internal {
+    function _finalize(uint96 totalContributions_) internal virtual {
         // Finalize the crowdfund.
         delete expiry;
 
