@@ -32,6 +32,8 @@ contract ERC20LaunchCrowdfund is InitialETHCrowdfund {
     error InvalidTokenDistribution();
     error TokenAlreadyLaunched();
 
+    address public constant PARTY_ADDRESS_KEY =
+        address(uint160(uint256(keccak256(abi.encode("party address")))));
     IERC20Creator public immutable ERC20_CREATOR;
 
     ERC20LaunchOptions public tokenOpts;
@@ -96,6 +98,11 @@ contract ERC20LaunchCrowdfund is InitialETHCrowdfund {
             totalContributions_ -= uint96((uint256(totalContributions_) * fundingSplitBps_) / 1e4);
         }
 
+        address tokenRecipient = tokenOpts.recipient;
+        if (tokenRecipient == PARTY_ADDRESS_KEY) {
+            tokenRecipient = address(party);
+        }
+
         // Create the ERC20 token.
         ERC20LaunchOptions memory _tokenOpts = tokenOpts;
         token = ERC20_CREATOR.createToken{ value: totalContributions_ }(
@@ -108,7 +115,7 @@ contract ERC20LaunchCrowdfund is InitialETHCrowdfund {
                 numTokensForRecipient: _tokenOpts.numTokensForRecipient,
                 numTokensForLP: _tokenOpts.numTokensForLP
             }),
-            _tokenOpts.recipient
+            tokenRecipient
         );
     }
 
