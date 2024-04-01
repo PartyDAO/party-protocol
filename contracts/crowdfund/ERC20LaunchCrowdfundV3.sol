@@ -5,8 +5,7 @@ import { InitialETHCrowdfund } from "./InitialETHCrowdfund.sol";
 import { Party } from "../party/Party.sol";
 import { MetadataProvider } from "../renderers/MetadataProvider.sol";
 import { IGlobals } from "../globals/IGlobals.sol";
-import { IERC20Creator, TokenConfiguration, ERC20 } from "../utils/IERC20Creator.sol";
-import { ERC20LaunchCrowdfund } from "./ERC20LaunchCrowdfund.sol";
+import { IERC20CreatorV3, TokenDistributionConfiguration, ERC20, FeeRecipient, PositionParams } from "../utils/IERC20Creator.sol";
 
 /// @notice A crowdfund for launching ERC20 tokens.
 ///         Unlike other crowdfunds that are started for the purpose of
@@ -32,23 +31,29 @@ contract ERC20LaunchCrowdfund is InitialETHCrowdfund {
         uint16 poolFee;
         // Indicates if the first recipient is a distributor.
         bool isFirstRecipientDistributor;
-        // Fee recipients for the Uniswap V3 position fees.
-        FeeRecipient[] recipients;
     }
 
     error InvalidTokenDistribution();
     error TokenAlreadyLaunched();
+    error InvalidPoolFee();
 
-    IERC20Creator public immutable ERC20_CREATOR;
+    // Fee recipients for the Uniswap V3 position fees.
+    FeeRecipient[] internal lpFeeRecipients;
 
-    FeeCollector public immutable FEE_COLLECTOR;
+    IERC20CreatorV3 public immutable ERC20_CREATOR;
 
-    ERC20LaunchOptions public tokenOpts;
+    address public immutable FEE_COLLECTOR;
+
+    ERC20LaunchOptionsV3 public tokenOpts;
 
     bool public isTokenLaunched;
 
-    constructor(address globals, address erc20Creator, address feeCollector) InitialETHCrowdfund(IGlobals(globals)) {
-        ERC20_CREATOR = IERC20Creator(erc20Creator);
+    constructor(
+        address globals,
+        address erc20Creator,
+        address feeCollector
+    ) InitialETHCrowdfund(IGlobals(globals)) {
+        ERC20_CREATOR = IERC20CreatorV3(erc20Creator);
         FEE_COLLECTOR = feeCollector;
     }
 
@@ -61,6 +66,7 @@ contract ERC20LaunchCrowdfund is InitialETHCrowdfund {
     function initialize(
         InitialETHCrowdfundOptions memory crowdfundOpts,
         ETHPartyOptions memory partyOpts,
+        FeeRecipient[] memory _lpFeeRecipients,
         ERC20LaunchOptionsV3 memory _tokenOpts,
         MetadataProvider customMetadataProvider,
         bytes memory customMetadata
@@ -78,7 +84,17 @@ contract ERC20LaunchCrowdfund is InitialETHCrowdfund {
             revert InvalidTokenDistribution();
         }
 
+        if (
+            _tokenOpts.poolFee != 10_000 && _tokenOpts.poolFee != 3_000 && _tokenOpts.poolFee != 100
+        ) {
+            revert InvalidPoolFee();
+        }
+
         tokenOpts = _tokenOpts;
+
+        for (uint256 i = 0; i < _lpFeeRecipients.length; i++) {
+            lpFeeRecipients.push(_lpFeeRecipients[i]);
+        }
 
         InitialETHCrowdfund.initialize(
             crowdfundOpts,
@@ -107,12 +123,12 @@ contract ERC20LaunchCrowdfund is InitialETHCrowdfund {
         }
 
         // Create the ERC20 token.
-        ERC20LaunchOptions memory _tokenOpts = tokenOpts;
+        ERC20LaunchOptionsV3 memory _tokenOpts = tokenOpts;
         token = ERC20_CREATOR.createToken{ value: totalContributions_ }(
             address(party),
             _tokenOpts.name,
             _tokenOpts.symbol,
-            TokenConfiguration({
+            TokenDistributionConfiguration({
                 totalSupply: _tokenOpts.totalSupply,
                 numTokensForDistribution: _tokenOpts.numTokensForDistribution,
                 numTokensForRecipient: _tokenOpts.numTokensForRecipient,
@@ -120,7 +136,12 @@ contract ERC20LaunchCrowdfund is InitialETHCrowdfund {
             }),
             _tokenOpts.recipient,
             address(FEE_COLLECTOR),
-
+            _tokenOpts.poolFee,
+            PositionParams({
+                party: address(party),
+                isFirstRecipientDistributor: _tokenOpts.isFirstRecipientDistributor,
+                recipients: lpFeeRecipients
+            })
         );
     }
 
