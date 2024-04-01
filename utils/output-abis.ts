@@ -33,6 +33,7 @@ const RELEVANT_ABIS = [
   "OffChainSignatureValidator",
   "BondingCurveAuthority",
   "EZPartyBuilder",
+  "ERC20LaunchCrowdfund",
 ];
 
 // AFileName -> a_file_name
