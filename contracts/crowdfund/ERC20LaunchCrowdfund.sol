@@ -57,6 +57,8 @@ contract ERC20LaunchCrowdfund is InitialETHCrowdfund {
         MetadataProvider customMetadataProvider,
         bytes memory customMetadata
     ) external payable {
+        uint16 feeBasisPoints = ERC20_CREATOR.feeBasisPoints();
+
         if (
             _tokenOpts.numTokensForDistribution +
                 _tokenOpts.numTokensForRecipient +
@@ -65,7 +67,10 @@ contract ERC20LaunchCrowdfund is InitialETHCrowdfund {
             _tokenOpts.totalSupply > type(uint112).max ||
             _tokenOpts.numTokensForLP < 1e4 ||
             crowdfundOpts.fundingSplitBps > 5e3 ||
-            crowdfundOpts.minTotalContributions < 1e4
+            crowdfundOpts.minTotalContributions < 1e4 ||
+            crowdfundOpts.maxTotalContributions >= _tokenOpts.numTokensForLP * 1e18 ||
+            _tokenOpts.numTokensForLP >=
+            (crowdfundOpts.minTotalContributions * 1e18 * (1e4 - feeBasisPoints)) / 1e4
         ) {
             revert InvalidTokenDistribution();
         }
