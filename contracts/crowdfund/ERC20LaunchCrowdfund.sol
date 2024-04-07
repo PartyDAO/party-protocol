@@ -68,9 +68,9 @@ contract ERC20LaunchCrowdfund is InitialETHCrowdfund {
             _tokenOpts.numTokensForLP < 1e4 ||
             crowdfundOpts.fundingSplitBps > 5e3 ||
             crowdfundOpts.minTotalContributions < 1e4 ||
-            crowdfundOpts.maxTotalContributions >= _tokenOpts.numTokensForLP * 1e18 ||
+            crowdfundOpts.maxTotalContributions >= uint256(_tokenOpts.numTokensForLP) * 1e18 ||
             _tokenOpts.numTokensForLP >=
-            (crowdfundOpts.minTotalContributions * 1e18 * (1e4 - feeBasisPoints)) / 1e4
+            (uint256(crowdfundOpts.minTotalContributions) * 1e18 * (1e4 - feeBasisPoints)) / 1e4
         ) {
             revert InvalidTokenDistribution();
         }
