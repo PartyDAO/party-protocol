@@ -3,7 +3,8 @@ pragma solidity ^0.8;
 
 import { SetupPartyHelper, Party } from "../utils/SetupPartyHelper.sol";
 import { IERC20 } from "openzeppelin/contracts/interfaces/IERC20.sol";
-import { ERC20Creator, IUniswapV2Router02, IUniswapV2Factory, ITokenDistributor } from "erc20-creator/ERC20Creator.sol";
+import { ERC20CreatorV3, IUniswapV3Factory, INonfungiblePositionManager, ITokenDistributor } from "erc20-creator/ERC20CreatorV3.sol";
+import { FeeCollector, IWETH } from "erc20-creator/FeeCollector.sol";
 import { ERC20LaunchCrowdfund, IERC20Creator } from "contracts/crowdfund/ERC20LaunchCrowdfund.sol";
 import { CrowdfundFactory } from "contracts/crowdfund/CrowdfundFactory.sol";
 import { Vm } from "forge-std/Test.sol";
@@ -11,21 +12,31 @@ import { Vm } from "forge-std/Test.sol";
 contract ERC20LaunchCrowdfundForkedTest is SetupPartyHelper {
     constructor() onlyForked SetupPartyHelper(true) {}
 
-    ERC20Creator internal creator;
+    ERC20CreatorV3 internal creator;
+    FeeCollector internal feeCollector;
     ERC20LaunchCrowdfund internal launchCrowdfundImpl;
     CrowdfundFactory internal crowdfundFactory;
 
     function setUp() public override onlyForked {
         super.setUp();
 
-        // Existing addresses on Sepolia
-        creator = new ERC20Creator(
+        feeCollector = new FeeCollector(
+            INonfungiblePositionManager(0xC36442b4a4522E871399CD717aBDD847Ab11FE88),
             ITokenDistributor(address(tokenDistributor)),
-            IUniswapV2Router02(0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D),
-            IUniswapV2Factory(0x5C69bEe701ef814a2B6a3EDD4B1652CB9cc5aA6f),
-            0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2,
-            address(0),
-            0
+            globalDaoWalletAddress,
+            IWETH(0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2)
+        );
+
+        // Existing addresses on Sepolia
+        creator = new ERC20CreatorV3(
+            ITokenDistributor(address(tokenDistributor)),
+            INonfungiblePositionManager(0xC36442b4a4522E871399CD717aBDD847Ab11FE88),
+            IUniswapV3Factory(0x1F98431c8aD98523631AE4a59f267346ea31F984),
+            address(feeCollector),
+            0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2, // WETH
+            globalDaoWalletAddress,
+            100, // 1% fee
+            10_000 // 1% pool
         );
         launchCrowdfundImpl = new ERC20LaunchCrowdfund(globals, IERC20Creator(address(creator)));
         crowdfundFactory = new CrowdfundFactory();
@@ -58,7 +69,7 @@ contract ERC20LaunchCrowdfundForkedTest is SetupPartyHelper {
         tokenOpts.name = "Test ERC20";
         tokenOpts.symbol = "TEST";
         tokenOpts.totalSupply = 1e6 ether;
-        tokenOpts.recipient = address(this);
+        tokenOpts.recipient = launchCrowdfundImpl.PARTY_ADDRESS_KEY();
         tokenOpts.numTokensForDistribution = 5e4 ether;
         tokenOpts.numTokensForRecipient = 5e4 ether;
         tokenOpts.numTokensForLP = 9e5 ether;
@@ -105,7 +116,7 @@ contract ERC20LaunchCrowdfundForkedTest is SetupPartyHelper {
         address(tokenDistributor).call(callData);
 
         assertEq(IERC20(info.token).balanceOf(contributor), 5e4 ether);
-        assertEq(IERC20(info.token).balanceOf(address(this)), 5e4 ether);
+        assertEq(IERC20(info.token).balanceOf(address(launchCrowdfund.party())), 5e4 ether);
     }
 
     function test_ERC20LaunchCrowdfund_revertIfNumTokensNotAddUpToTotal() public onlyForked {
