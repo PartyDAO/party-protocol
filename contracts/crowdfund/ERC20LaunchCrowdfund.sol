@@ -58,8 +58,8 @@ contract ERC20LaunchCrowdfund is InitialETHCrowdfund {
         bytes memory customMetadata
     ) external payable {
         uint16 feeBasisPoints = 5e3; // Max possible fee
-        uint256 minTotalSpendableEth = (((uint256(crowdfundOpts.minTotalContributions) *
-            (1e4 - feeBasisPoints)) / 1e4) * (1e4 - crowdfundOpts.fundingSplitBps)) / 1e4;
+        uint256 minTotalSpendableEth = ((((uint256(crowdfundOpts.minTotalContributions) *
+            (1e4 - crowdfundOpts.fundingSplitBps)) / 1e4) * (1e4 - feeBasisPoints)) / 1e4);
 
         if (
             _tokenOpts.numTokensForDistribution +
