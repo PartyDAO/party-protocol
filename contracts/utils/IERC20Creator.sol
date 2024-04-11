@@ -18,6 +18,4 @@ interface IERC20Creator {
         TokenConfiguration calldata config,
         address recipientAddress
     ) external payable returns (ERC20 token);
-
-    function feeBasisPoints() external view returns (uint16);
 }
