@@ -22,8 +22,8 @@ async function main() {
     let looking = false;
     for (let i = 0; i < outputLines.length; i++) {
       const outputLine = outputLines[i].trim();
-      // Only start looking until we see a line that starts with "Running"
-      if (outputLine.startsWith("Running")) {
+      // Only start looking once we see a line that starts with "Running"
+      if (outputLine.startsWith("Ran")) {
         looking = true;
         continue;
       }
@@ -35,7 +35,8 @@ async function main() {
         outputLine.startsWith("Test result:") ||
         outputLine.startsWith("Ran 1 test") ||
         outputLine.endsWith("test/GasBenchmarks.t.sol:GasBenchmarks") ||
-        outputLine.startsWith("No files changed")
+        outputLine.startsWith("No files changed") ||
+        outputLine.startsWith("Suite result")
       ) {
         continue;
       }
