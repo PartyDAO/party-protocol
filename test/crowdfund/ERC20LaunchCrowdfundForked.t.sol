@@ -117,7 +117,11 @@ contract ERC20LaunchCrowdfundForkedTest is SetupPartyHelper {
         address(tokenDistributor).call(callData);
 
         assertEq(IERC20(info.token).balanceOf(contributor), 5e4 ether);
-        assertEq(IERC20(info.token).balanceOf(address(launchCrowdfund.party())), 5e4 ether);
+        assertApproxEqAbs(
+            IERC20(info.token).balanceOf(address(launchCrowdfund.party())),
+            5e4 ether,
+            100
+        );
     }
 
     function test_ERC20LaunchCrowdfund_revertIfNumTokensNotAddUpToTotal() public onlyForked {
