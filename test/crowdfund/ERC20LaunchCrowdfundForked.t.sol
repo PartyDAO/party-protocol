@@ -22,8 +22,8 @@ contract ERC20LaunchCrowdfundForkedTest is SetupPartyHelper {
 
         feeCollector = new FeeCollector(
             INonfungiblePositionManager(0xC36442b4a4522E871399CD717aBDD847Ab11FE88),
-            ITokenDistributor(address(tokenDistributor)),
             globalDaoWalletAddress,
+            5e3,
             IWETH(0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2)
         );
 
@@ -73,6 +73,7 @@ contract ERC20LaunchCrowdfundForkedTest is SetupPartyHelper {
         tokenOpts.numTokensForDistribution = 5e4 ether;
         tokenOpts.numTokensForRecipient = 5e4 ether;
         tokenOpts.numTokensForLP = 9e5 ether;
+        tokenOpts.lpFeeRecipient = launchCrowdfundImpl.PARTY_ADDRESS_KEY();
 
         ERC20LaunchCrowdfund launchCrowdfund = crowdfundFactory.createERC20LaunchCrowdfund(
             launchCrowdfundImpl,
@@ -150,6 +151,7 @@ contract ERC20LaunchCrowdfundForkedTest is SetupPartyHelper {
         tokenOpts.numTokensForDistribution = 5e4 ether + 1; // Add 1 to make it invalid
         tokenOpts.numTokensForRecipient = 5e4 ether;
         tokenOpts.numTokensForLP = 9e5 ether;
+        tokenOpts.lpFeeRecipient = launchCrowdfundImpl.PARTY_ADDRESS_KEY();
 
         vm.expectRevert(ERC20LaunchCrowdfund.InvalidTokenDistribution.selector);
         ERC20LaunchCrowdfund launchCrowdfund = crowdfundFactory.createERC20LaunchCrowdfund(
@@ -192,6 +194,7 @@ contract ERC20LaunchCrowdfundForkedTest is SetupPartyHelper {
         tokenOpts.numTokensForDistribution = 5e4 ether;
         tokenOpts.numTokensForRecipient = 5e4 ether;
         tokenOpts.numTokensForLP = 1e4 - 1; // Too low
+        tokenOpts.lpFeeRecipient = launchCrowdfundImpl.PARTY_ADDRESS_KEY();
 
         vm.expectRevert(ERC20LaunchCrowdfund.InvalidTokenDistribution.selector);
         ERC20LaunchCrowdfund launchCrowdfund = crowdfundFactory.createERC20LaunchCrowdfund(
@@ -234,6 +237,7 @@ contract ERC20LaunchCrowdfundForkedTest is SetupPartyHelper {
         tokenOpts.numTokensForDistribution = 5e4 ether;
         tokenOpts.numTokensForRecipient = 5e4 ether;
         tokenOpts.numTokensForLP = 9e5 ether;
+        tokenOpts.lpFeeRecipient = launchCrowdfundImpl.PARTY_ADDRESS_KEY();
 
         vm.expectRevert(ERC20LaunchCrowdfund.InvalidTokenDistribution.selector);
         ERC20LaunchCrowdfund launchCrowdfund = crowdfundFactory.createERC20LaunchCrowdfund(
@@ -276,6 +280,7 @@ contract ERC20LaunchCrowdfundForkedTest is SetupPartyHelper {
         tokenOpts.numTokensForDistribution = 5e4 ether;
         tokenOpts.numTokensForRecipient = 5e4 ether;
         tokenOpts.numTokensForLP = 9e5 ether;
+        tokenOpts.lpFeeRecipient = launchCrowdfundImpl.PARTY_ADDRESS_KEY();
 
         ERC20LaunchCrowdfund launchCrowdfund = crowdfundFactory.createERC20LaunchCrowdfund(
             launchCrowdfundImpl,
@@ -364,6 +369,7 @@ contract ERC20LaunchCrowdfundForkedTest is SetupPartyHelper {
         tokenOpts.numTokensForDistribution = 5e4 ether;
         tokenOpts.numTokensForRecipient = 5e4 ether;
         tokenOpts.numTokensForLP = 9e5 ether;
+        tokenOpts.lpFeeRecipient = launchCrowdfundImpl.PARTY_ADDRESS_KEY();
 
         ERC20LaunchCrowdfund launchCrowdfund = crowdfundFactory.createERC20LaunchCrowdfund(
             launchCrowdfundImpl,
