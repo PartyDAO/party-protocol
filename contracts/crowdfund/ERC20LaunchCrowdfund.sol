@@ -25,8 +25,10 @@ contract ERC20LaunchCrowdfund is InitialETHCrowdfund {
         uint256 numTokensForDistribution;
         // The number of tokens to send to an arbitrary recipient.
         uint256 numTokensForRecipient;
-        // The number of tokens to use for the Uniswap LP pair.
+        // The number of tokens to use for the Uniswap LP position.
         uint256 numTokensForLP;
+        // The address that receives fees from the Uniswap LP position.
+        address lpFeeRecipient;
     }
 
     error InvalidTokenDistribution();
@@ -110,10 +112,16 @@ contract ERC20LaunchCrowdfund is InitialETHCrowdfund {
             tokenRecipient = address(party);
         }
 
+        address lpFeeRecipient = tokenOpts.lpFeeRecipient;
+        if (lpFeeRecipient == PARTY_ADDRESS_KEY) {
+            lpFeeRecipient = address(party);
+        }
+
         // Create the ERC20 token.
         ERC20LaunchOptions memory _tokenOpts = tokenOpts;
         token = ERC20_CREATOR.createToken{ value: totalContributions_ }(
             address(party),
+            lpFeeRecipient,
             _tokenOpts.name,
             _tokenOpts.symbol,
             TokenConfiguration({

@@ -12,10 +12,11 @@ struct TokenConfiguration {
 
 interface IERC20Creator {
     function createToken(
-        address partyAddress,
-        string calldata name,
-        string calldata symbol,
-        TokenConfiguration calldata config,
-        address recipientAddress
+        address party,
+        address lpFeeRecipient,
+        string memory name,
+        string memory symbol,
+        TokenConfiguration memory config,
+        address tokenRecipientAddress
     ) external payable returns (ERC20 token);
 }
