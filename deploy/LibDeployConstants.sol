@@ -132,7 +132,7 @@ library LibDeployConstants {
             contributionRouterInitialFee: 0.00055 ether,
             tokenDistributorV1: 0x1CA2007a81F8A7491BB6E11D8e357FD810896454,
             tokenDistributorV2: 0x49a3caab781f711aD74C9d2F34c3cbD835d6A608,
-            tokenDistributorV3: 0x8723B021b008dD370FBEc1C791C390A2BC957654,
+            tokenDistributorV3: 0x0b7b86DCEAa8015CeD8F625d3b7A961b31fB05FE,
             baseExternalURL: "https://party.app/party/"
         });
 
@@ -168,7 +168,7 @@ library LibDeployConstants {
             contributionRouterInitialFee: 0.00055 ether,
             tokenDistributorV1: address(0),
             tokenDistributorV2: 0xf0560F963538017CAA5081D96f839FE5D265acCB,
-            tokenDistributorV3: 0x6c7d98079023F05c2B57DFc933fa0903A2C95411,
+            tokenDistributorV3: 0x65778953D291DD1e3a97c6b4d8BEea188B650077,
             baseExternalURL: "https://base.party.app/party/"
         });
 
@@ -203,7 +203,7 @@ library LibDeployConstants {
             contributionRouterInitialFee: 0.00055 ether,
             tokenDistributorV1: address(0),
             tokenDistributorV2: address(0),
-            tokenDistributorV3: 0x9a85aD6eb642bd1409df73484B331a1925B6c6cd,
+            tokenDistributorV3: 0x5B19016a409a888326b05949391EB8797dD5F75B,
             baseExternalURL: "https://zora.party.app/party/"
         });
 
