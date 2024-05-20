@@ -19,7 +19,7 @@ contract SSTORE2MetadataProvider is MetadataProvider {
     }
 
     /// @notice The next index to use for storing metadata.
-    uint256 public nextIndex;
+    uint256 public nextIndex = 1;
 
     /// @notice The metadata for each Party instance.
     mapping(uint256 index => address file) public files;
@@ -35,6 +35,9 @@ contract SSTORE2MetadataProvider is MetadataProvider {
         uint256
     ) external view override returns (bytes memory data) {
         Indexes memory index = indexes[instance];
+
+        if (index.start == 0 && index.end == 0) return "";
+
         for (uint256 i = index.start; i <= index.end; i++) {
             data = abi.encodePacked(data, SSTORE2.read(files[i]));
         }
