@@ -24,6 +24,8 @@
 
 A protocol for _group coordination_. The Party Protocol provides on-chain functionality for group formation, coordination, and distribution, with the goal of making Ethereum multiplayer.
 
+The Party Protocol powers secure commercial transactions through crowdfunding, on-chain payments and transactions, and distributions to Party members.
+
 ## Table of Contents
 
 - [Party Protocol](https://github.com/PartyDAO/party-protocol#party-protocol)
