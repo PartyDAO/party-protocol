@@ -8,4 +8,5 @@
 broadcast/
 package-lock.json
 yarn.lock
+bun.lock
 lcov.info

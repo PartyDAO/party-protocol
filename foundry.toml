@@ -3,15 +3,31 @@ src = 'contracts'
 out = 'out'
 test = 'test'
 script = 'deploy'
-libs = ['lib']
+libs = [ 'lib' ]
 evm_version = 'shanghai'
-gas_reports = ['Proxy', 'Party', 'PartyGovernance', 'ProposalExecutionEngine', 'AuctionCrowdfund', 'BuyCrowdfund', 'CollectionBuyCrowdfund', 'Crowdfund', 'PartyFactory', 'CrowdfundFactory', 'TokenDistributor']
+gas_reports = [
+  'Proxy',
+  'Party',
+  'PartyGovernance',
+  'ProposalExecutionEngine',
+  'AuctionCrowdfund',
+  'BuyCrowdfund',
+  'CollectionBuyCrowdfund',
+  'Crowdfund',
+  'PartyFactory',
+  'CrowdfundFactory',
+  'TokenDistributor'
+]
 remappings = [
   "forge-std/=lib/forge-std/src/",
   "openzeppelin/=lib/openzeppelin-contracts/",
-  "solmate/=lib/solmate/src/"
+  "solmate/=lib/solmate/src/",
+  "party-protocol/=contracts/",
+  "v2-core/=lib/v2-core/contracts/",
+  "v2-periphery/=lib/v2-periphery/contracts/",
+  "v3-core/=lib/v3-core/contracts/",
+  "v3-periphery/=lib/v3-periphery/contracts/"
 ]
-fs_permissions = [{ access = "read-write", path = "./out"}]
-
+fs_permissions = [ { access = "read-write", path = "./out" } ]
 
 # See more config options https://github.com/foundry-rs/foundry/tree/master/config

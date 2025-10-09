@@ -19,3 +19,9 @@
 [submodule "lib/erc20-creator"]
 	path = lib/erc20-creator
 	url = https://github.com/PartyDAO/erc20-creator
+[submodule "lib/v3-periphery"]
+	path = lib/v3-periphery
+	url = https://github.com/Uniswap/v3-periphery
+[submodule "lib/v3-core"]
+	path = lib/v3-core
+	url = https://github.com/Uniswap/v3-core
