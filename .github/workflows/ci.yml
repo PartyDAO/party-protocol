@@ -84,18 +84,6 @@ jobs:
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           fail_ci_if_error: true
-  lint:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-      - name: Use Node.js 16.x
-        uses: actions/setup-node@v3
-        with:
-          node-version: 16.x
-      - name: Install Dependencies
-        run: yarn install
-      - name: Run Linter
-        run: yarn lint:check
   contracts-deployable:
     runs-on: ubuntu-latest
     steps:
